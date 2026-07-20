@@ -16,11 +16,13 @@ for seed in "${SEEDS[@]}"; do
     continue
   fi
 
-  CUDA_VISIBLE_DEVICES=0,1,2,3 MODEL_VARIANT=single \
+  CUDA_VISIBLE_DEVICES=0,1,2,3 MASTER_ADDR=127.0.0.1 \
+    MASTER_PORT=23171 MODEL_VARIANT=single \
     TRAINING_SEED="$seed" \
     bash scripts/run_h3_speed_isolated_train.sh "$MODE" &
   single_pid=$!
-  CUDA_VISIBLE_DEVICES=4,5,6,7 MODEL_VARIANT=multi \
+  CUDA_VISIBLE_DEVICES=4,5,6,7 MASTER_ADDR=127.0.0.1 \
+    MASTER_PORT=23172 MODEL_VARIANT=multi \
     TRAINING_SEED="$seed" \
     bash scripts/run_h3_speed_isolated_train.sh "$MODE" &
   multi_pid=$!
