@@ -12,7 +12,8 @@
 | [ContextWorld Benchmark 设计规范](ContextWorld_Benchmark_Design.md) | 跨任务的评测原则、指标和冻结流程 | 想设计或审核 Benchmark |
 
 当前证据属于单训练种子的 Validation 机制验证，正式 Test 尚未启用。报告中的
-50/75/100 步是 TwoRoom Validation 的当前预算阶梯，不应直接套用到其他任务。
+50/75/100 步是 TwoRoom Validation 的当前执行预算阶梯，25/50 步是本阶段的
+模型视野对照；这些数值都不应直接套用到其他任务。
 
 ## 复现材料
 
@@ -24,6 +25,7 @@
 - [多速度训练数据](protocols/TwoRoom_SpeedFull_Data_Protocol.md)
 - [速度上下文双向评测](protocols/TwoRoom_Speed_Context_Direction_Eval_Protocol.md)
 - [上下文敏感距离校准](protocols/TwoRoom_Speed_ICL_Sensitive_Eval_Protocol.md)
+- [CEM 规划配置影响实验](protocols/TwoRoom_CEM_Planning_Config_Impact_Protocol.md)
 - [SpeedClean 数据与训练](protocols/TwoRoom_SpeedClean_Data_Protocol.md)
 - [SpeedTask 数据与训练](protocols/TwoRoom_SpeedTask_Data_Protocol.md)
 

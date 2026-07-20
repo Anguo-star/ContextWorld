@@ -1,6 +1,6 @@
 # TwoRoom 速度上下文学习 Benchmark 报告
 
-**版本**：v5.2  
+**版本**：v6.0
 **日期**：2026-07-20  
 **证据级别**：Validation 机制验证；单训练种子；正式 Test 尚未启用
 
@@ -16,23 +16,33 @@
 
 机制验证把“预测是否准确”和“有限 CEM 是否成功”拆开。主要结果如下：
 
-1. 在固定动作和真实 query-speed 轨迹上，SpeedFull 的 Correct 上下文具有最低
-   的规划 horizon 平均预测 MSE；单速混训控制没有这一模式。
-2. 精确动力学 oracle 在 Correct 速度下实现 100% 的 horizon 末端成功，证明
-   正确速度在物理和评测定义上有效。
-3. 固定 300 条候选动作时，SpeedFull 的 Correct 与 Fast 真实末端结果基本相当；
-   Fast 的优势主要在自由 CEM 搜索和闭环执行后出现。
-4. 把真实执行预算从 50 步增加到 100 步后，Fast−Correct 从 `+6.33` 降至
-   `+1.00` 个百分点并失去显著性，说明有限截止是 Fast 高分的重要来源。
-5. 在 50 步内两者都成功的任务上，Fast 平均反而多用 `1.40` 个真实步。因此，
-   Fast 高分不等于真实到达更快。
+1. 固定真实 query-speed 轨迹时，SpeedFull 的 Correct 上下文具有最低的整段
+   rollout MSE；单速混训控制没有这一模式。
+2. 精确动力学 oracle 在 Correct 速度下实现 100% 的 horizon 末端成功。固定
+   300 条候选时，Correct 与 Fast 的真实末端结果基本相当。
+3. 把真实执行预算从 50 步增加到 100 步后，Fast−Correct 从 `+6.33` 降至
+   `+1.00` 个百分点，说明真实执行截止是 Fast 高分的重要来源。
+4. 100 步时残留的 `Fast−Slow=+8.67` 主要来自 25 步 model horizon。只把
+   horizon 延长到 50 步后，差值变为 `−1.67` 个百分点；相对基线缩小
+   `10.33` 个百分点，95% 区间为 `[-16.00,-4.67]`，Holm 校正
+   `p=0.00186`。
+5. 候选数从 300 增到 600 会大幅提高三种上下文的绝对成功率，但只把
+   Fast−Slow 缩小 `2.67` 个百分点，未通过预注册归因门。迭代数从 30 增到
+   60 没有缩小差距。
+6. 在 50 步固定 probe 上，后 25 步平均 MSE 为 Slow `0.21659`、Correct
+   `0.08340`、Fast `0.09854`。长 horizon 没有改变“Correct 预测最准确”。
+7. 在共同成功任务上，Fast 的高成功率不等于真实到达更快；规划 horizon
+   变长也会把到达时间整体推后。
 
-阶段结论是：SpeedFull 已形成速度条件化的预测和规划能力；正确速度的预测总体
-更准确，而错误快速上下文在有限规划与执行资源下具有截止收益。预测准确率、
-截止前成功率和真实执行效率必须分别报告。
+阶段结论是：SpeedFull 已形成速度条件化的预测和规划能力，但单个 endpoint
+成功率的方向和大小同时受两个时间上限控制：真实环境允许执行多久，以及模型每次
+规划能向前看多久。25 步 model horizon 会特别压低 Slow，因为模型根据慢速上下文
+判断同一动作走得更短，目标更容易落在内部可达范围之外。把视野延长到 50 步后，
+Slow 的成功率从 `63.00%` 提高到 `73.33%`，原来的 Fast 单向优势消失。
 
-因此，Speed Benchmark 的正式结果不采用单一 Eval score，而是固定报告速度
-可辨识性、预测校准、候选动作、执行预算曲线、连续轨迹、真实效率和能力保持。
+因此，Speed Benchmark 不采用单一 Eval score。正式结果必须联合报告速度
+可辨识性、预测校准、候选动作、model-horizon 敏感性、执行预算曲线、连续轨迹、
+真实效率、计算量和能力保持。
 
 本文是 TwoRoom 速度轨道的唯一当前结果报告。数据生成与历史实验协议保留在
 `protocols/`，旧版阶段总结保留在 `archive/`，但不再作为当前结论入口。
@@ -61,6 +71,7 @@ History-3 输入由两段历史转移和一个当前查询组成：
 | 预测校准 | Correct 是否更接近真实 query-speed 轨迹 | 固定动作 rollout MSE |
 | 候选动作 | 上下文如何改变规划选择 | cost rank、top-k、argmin |
 | 预算曲线 | 高成功率是否依赖执行截止 | Slow/Correct/Fast 的 `S(B)` |
+| 规划资源 | 成功率排序是否依赖 planner 配置 | horizon、samples、iterations 单因素对照 |
 | 连续轨迹 | 未成功时是否仍接近目标 | final/best distance、AUC |
 | 真实效率 | 同一成功任务是否更快、更省 | 配对 steps、path efficiency |
 | 能力保持 | 新训练是否损伤原能力 | 原始 ID/OOD Eval |
@@ -180,22 +191,49 @@ TwoRoom 当前 Validation 的执行预算阶梯为：
 
 不同 checkpoint 的 latent 尺度不可直接比较，因此只做同一模型内的配对比较。
 
-### 3.4 计数与完整性审计
+### 3.4 CEM 规划配置影响实验
+
+该实验在正式出分前冻结于
+`configs/benchmark/tworoom_cem_config_impact_v1.yaml`。真实执行预算固定为
+100 步，每次只改变一个 CEM 参数：
+
+| 配置 | Model horizon | Candidates | Iterations | Top-k |
+|---|---:|---:|---:|---:|
+| 基线 | 5 blocks / 25 步 | 300 | 30 | 30 |
+| 长前视 | 10 blocks / 50 步 | 300 | 30 | 30 |
+| 宽搜索 | 5 blocks / 25 步 | 600 | 30 | 30 |
+| 深搜索 | 5 blocks / 25 步 | 300 | 60 | 30 |
+
+Receding horizon 始终为 5 个 blocks，因此长前视只增加“模型向前看多久”，不会
+改变每次规划后实际执行 25 步再重规划的规则。每个配置、每个方向 Eval、每个
+条件仍完整执行 `50×6=300`。三个新配置产生 3,600 条记录；加上 1,200 条已审计
+基线，配置矩阵共有 4,800 条原始记录。
+
+主指标是每个配置的 `Fast−Slow` 相对基线改变多少。统计使用 50,000 次按评测
+种子分层的配对 bootstrap、200,000 次配对符号翻转和三个配置的 Holm 校正。
+同时用 300 条固定 probe 检查 5 至 50 步预测误差，避免把长视野下的模型漂移误写
+成搜索结论。
+
+### 3.5 计数与完整性审计
 
 | 审计项 | 结果 |
 |---|---:|
 | 固定候选文件 | 12 |
 | 固定候选 query 记录 | 600 |
 | 固定候选上下文评估 | 1,800 |
-| 闭环文件 | 48 |
-| 闭环原始记录 | 4,800 |
+| 四模型闭环归因文件 | 48 |
+| 四模型闭环归因原始记录 | 4,800 |
 | 去除两个 Eval 的重复 Correct 后的条件记录 | 3,600 |
 | 50/75/100 轨迹前缀一致性检查 | 2,700/2,700 通过 |
+| CEM 配置影响闭环文件 | 48 |
+| CEM 配置影响原始记录 | 4,800 |
+| 每个配置 Slow / Correct / Fast | 300 / 300 / 300 |
+| 50 步预测诊断文件 / query | 6 / 300 |
 
 Checkpoint、normalizer、catalog、StableWorldModel commit、随机 schedule 和
 candidate bank 哈希全部匹配。所有主条件都是独立 `50×6`，没有多任务均分。
 
-### 3.5 Horizon 记录说明
+### 3.6 Horizon 记录说明
 
 预注册的宽泛 horizon 列表曾写入原始步 1/2/3，但该模型每 5 个原始动作输出一个
 预测帧，实际可观测点为 5/10/15/20/25。预注册主分析要求的
@@ -348,29 +386,125 @@ Fast 没有让共同成功的任务更快完成。它的成功率更高来自成
 的任务在 Fast 下赶在截止前成功。直接比较各条件“成功样本的平均步数”也会受到
 成功集合不同的选择偏差，因此主报告采用共同成功配对。
 
+### 5.7 CEM 规划配置影响
+
+每个配置的三种条件均为 300 个配对观测。`Δ gap` 表示该配置的
+`Fast−Slow` 减去基线 `Fast−Slow`；负值表示差距缩小。
+
+| 配置 | Slow | Correct | Fast | Fast−Slow | Δ gap（95% 区间） | Holm p | 预注册判定 |
+|---|---:|---:|---:|---:|---:|---:|---|
+| 基线：H5/N300/I30 | 63.00% | 70.67% | 71.67% | +8.67 pp | — | — | 参考 |
+| 长前视：H10 | **73.33%** | 72.33% | 71.67% | −1.67 pp | **−10.33** `[-16.00,-4.67]` | **0.00186** | 主要来源 |
+| 宽搜索：N600 | 80.67% | 82.67% | **86.67%** | +6.00 pp | −2.67 `[-7.33,+2.00]` | 0.643 | 未通过 |
+| 深搜索：I60 | 64.00% | 68.67% | 73.00% | +9.00 pp | +0.33 `[-2.00,+3.00]` | 1.000 | 未通过 |
+
+长前视的差距变化在六个评测种子上分别为
+`−14/−2/−14/−2/−14/−16 pp`，方向全部一致。它通过“至少缩小 3 个百分点、
+区间完全低于 0、Holm p 小于 0.05”三项预注册门，并且缩小量超过基线差距的
+一半，因此判为主要来源。
+
+三条件分解表明，差距缩小来自 Slow 的针对性改善：
+
+- Slow：`+10.33 pp`，95% 区间 `[+5.00,+15.67]`，配对
+  `p=0.000194`；
+- Correct：`+1.67 pp`，区间 `[-3.00,+6.33]`；
+- Fast：`0.00 pp`，区间 `[-5.00,+5.00]`。
+
+H10 下 Fast 与 Slow 的配对差异不再显著（`p=0.583`），但
+Fast−Slow 的区间为 `[-6.33,+3.00]`，没有完全落入预注册的
+`[-3,+3]` 等价带。因此可以说“原来的 Fast 单向优势消失”，不能进一步声称
+三种上下文已经通过严格等价检验。
+
+宽搜索带来很大的绝对收益：Slow、Correct、Fast 相对基线分别提高
+`17.67/12.00/15.00 pp`。这说明 300 candidates 对整体规划性能仍不充分，但
+三种条件一起提高，Fast−Slow 的相对缩小未通过归因门。搜索宽度影响绝对分数，
+却不是残留速度方向差异的主要来源。增加迭代数则没有带来同等收益。
+
+### 5.8 连续轨迹、到达时间与计算量
+
+| 配置 | 最终距离 S/C/F（px） | 归一化进度 S/C/F | 距离 AUC S/C/F |
+|---|---|---|---|
+| 基线 | 50.69 / 42.91 / 40.64 | 0.434 / 0.530 / 0.556 | 0.827 / 0.761 / 0.726 |
+| 长前视 H10 | 29.54 / 29.08 / 26.98 | 0.684 / 0.688 / 0.710 | 0.659 / 0.662 / 0.638 |
+| 宽搜索 N600 | 31.17 / 27.41 / 25.73 | 0.667 / 0.713 / 0.733 | 0.702 / 0.663 / 0.636 |
+| 深搜索 I60 | 49.39 / 44.16 / 39.20 | 0.445 / 0.516 / 0.567 | 0.819 / 0.764 / 0.718 |
+
+H10 和 N600 都明显改善连续轨迹，但含义不同：H10 主要消除 Slow 的内部可达性
+劣势，N600 主要提高所有条件找到好动作的概率。
+
+H10 并没有让共同成功任务更早到达。共同成功集上三种上下文的平均到达时间约为
+50 步，而基线约为 32–35 步。当前 LeWM cost 只比较 model horizon 末端与目标；
+把 horizon 从 25 延长到 50 后，规划器也会倾向于让候选在更晚的末端对齐目标。
+所以 H10 的高成功率表示“100 步截止内更稳健”，不表示执行效率更高。
+
+| 配置 | CEM 求解次数 | 候选代价评估量 | 候选 rollout blocks | 累计 GPU 秒 |
+|---|---:|---:|---:|---:|
+| 基线 | 2,783 | 25.047M | 125.235M | 1,777.6 |
+| 长前视 H10 | 3,522 | 31.698M | 316.980M | 3,293.2 |
+| 宽搜索 N600 | 2,393 | 43.074M | 215.370M | 1,793.5 |
+| 深搜索 I60 | 2,838 | 51.084M | 255.420M | 3,226.9 |
+
+N600 的累计用时接近基线，是因为更多任务提前成功、触发的 CEM solve 次数更少；
+它实际评估的候选数仍比基线高 72%。正式报告必须同时给出耗时、solve 次数和
+候选评估量，不能只看墙钟时间。
+
+### 5.9 50 步预测诊断
+
+固定 probe 的前 25 步使用 Correct-speed 精确动力学从冻结候选 bank 选出的动作，
+后 25 步为真实零动作。300/300 个 probe 在第 25 步均进入成功半径。
+
+| 聚合区间 | Slow MSE | Correct MSE | Fast MSE | Correct−Slow 95% 区间 | Correct−Fast 95% 区间 |
+|---|---:|---:|---:|---:|---:|
+| 5–25 步 | 0.12161 | **0.03811** | 0.05141 | `[-0.09639,-0.07192]` | `[-0.01970,-0.00715]` |
+| 30–50 步 | 0.21659 | **0.08340** | 0.09854 | `[-0.15493,-0.11315]` | `[-0.02942,-0.00144]` |
+| 5–50 步 | 0.16910 | **0.06075** | 0.07498 | `[-0.12552,-0.09281]` | `[-0.02456,-0.00437]` |
+
+第 50 步单点 MSE 为 Slow `0.22841`、Correct `0.09944`、Fast `0.12411`；
+Correct−Slow 区间为 `[-0.14982,-0.10960]`，Correct−Fast 为
+`[-0.03910,-0.01053]`。因此，H10 消除 Fast endpoint 优势不是因为错误上下文
+在长 rollout 上变得更准确。Correct 在 50 步范围内仍最符合真实动力学。
+
 ## 6. 机制解释
 
-现有证据支持以下链路：
+速度任务同时受两个不同的时间上限约束：
+
+```text
+model horizon：每次 CEM 让世界模型向前预测多久
+execution budget：真实环境最多允许执行多久
+```
+
+增加 execution budget 不能改变 model horizon 内部的可达性。此前把真实预算从
+50 放宽到 100 后，Fast−Correct 基本消失，但 Fast−Slow 仍为 `+8.67 pp`，
+正是因为每次 CEM 仍只向前看 25 步。
+
+SpeedFull 从上下文推断出不同单位动作位移。Slow 让模型认为同一动作走得更短，
+在 25 步内部视野中，更多目标看起来不可达；Fast 让模型认为走得更远，更多候选
+能在 horizon 末端接近目标。当前 LeWM cost 只使用 horizon 最后一个 latent 与
+goal 的距离，因此内部可达时间会直接改变候选代价和动作幅度。
+
+把 model horizon 延长到 50 步后，Slow 的成功率提高 `10.33 pp`，Fast 没有
+提高，原来的 Fast−Slow 优势消失。这是对“规划视野不足”的直接单因素证据。
+H10 的共同成功任务约在第 50 步到达，也与“末端代价把计划对齐到新的 horizon”
+一致；但 terminal-only cost 本身尚未做独立消融。
+
+候选数翻倍把三种条件一起提高，说明搜索宽度限制了绝对性能；它没有稳定消除
+方向差异，因此不是原残留 Fast−Slow 的主要来源。迭代数翻倍没有相应收益，说明
+当前瓶颈不是简单的“30 轮尚未优化完”。
+
+50 步预测诊断仍由 Correct 最准确，精确动力学 oracle 也明确偏好 Correct。
+因此完整链路是：
 
 ```text
 速度上下文
-  → SpeedFull 的预测位移和 rollout error 改变
-  → 顶部候选代价出现小幅重排
-  → 自由 CEM 的采样分布、argmin 和滚动重规划改变
-  → 有限执行截止前的成功集合改变
+  → 模型内部位移与 rollout 变化
+  → 与 model horizon 共同决定“内部是否可达”
+  → terminal goal cost 和候选排序变化
+  → CEM 搜索、滚动重规划与真实执行截止共同决定 endpoint success
 ```
 
-Fast 上下文不会提高真实模拟器速度。它让模型内部认为相同动作能走得更远，因此
-更多候选可能在固定 25 步 model horizon 内看起来接近目标。这个变化可以促使
-CEM 选择更激进或不同的动作，并在 50 步真实执行截止内增加成功数。
-
-同时，Correct 在固定真实 rollout 上具有更低的整段平均预测误差，精确动力学
-oracle 也明确偏好 Correct。两者共同证明 Fast 的高 endpoint score 不是
-“Fast 更符合真实动力学”。
-
-预算曲线显示 Correct 在宽松预算下基本追平 Fast；Fast−Slow 仍残留，说明
-固定 25 步 model horizon、CEM candidate 数或重规划过程还可能放大慢速上下文
-的可达性偏差。
+这个结果不会削弱速度 ICL 的证据；它限定了证据的含义。上下文确实改变了模型
+预测和规划，但某个条件在单一 CEM profile 下的 endpoint 排名不是模型正确性的
+稳定排序。
 
 ## 7. 结论边界
 
@@ -379,34 +513,50 @@ oracle 也明确偏好 Correct。两者共同证明 Fast 的高 endpoint score �
 1. 速度 5 合成数据可以重建基础规划能力。
 2. SpeedFull 形成了预测层和规划层的速度条件化上下文学习。
 3. 四模型控制支持当前完整多速度训练配方的区分作用。
-4. Correct 在规划 horizon 上的平均预测误差低于 Slow 和 Fast。
+4. Correct 在 5–50 步固定真实轨迹上的平均预测误差低于 Slow 和 Fast。
 5. Fast 的 50 步 endpoint 优势包含显著的有限执行截止成分。
-6. Endpoint success、prediction error 和 steps-to-success 必须分开评价。
-7. 多执行预算曲线是 Speed Benchmark 的核心结果层。
+6. 100 步时残留的 Fast−Slow 主要由 25 步 model horizon 造成；H10 通过冻结的
+   主要来源判定。
+7. 搜索宽度显著影响绝对成功率，但 N600 没有通过方向差异归因门；I60 也没有。
+8. Endpoint success、prediction error、steps-to-success 和 compute 必须分开
+   评价。
+9. Speed Benchmark 必须同时报告执行预算曲线和 model-horizon 敏感性。
 
 ### 7.2 尚未建立
 
-1. Fast−Slow 的剩余效应由 horizon、采样预算或重规划中的哪一项主导。
-2. Correct 在所有资源配置和每个 query 上都优于双向错误上下文。
-3. 当前训练配方归因可以跨训练种子复现。
-4. 速度支持是两个训练配方间唯一变化的单变量因果结论。
-5. 正式 Test 或跨任务外推。
+1. H10 下三种条件通过严格的 `±3 pp` 实用等价检验；当前区间仍过宽。
+2. Terminal-only cost、horizon 长度和 receding replanning 三者各自的独立贡献。
+3. Correct 在每个 query 和每个 horizon 都优于双向错误上下文。
+4. 当前训练配方归因可以跨训练种子复现。
+5. 速度支持是两个训练配方间唯一变化的单变量因果结论。
+6. 正式 Test 或跨任务外推。
 
 ## 8. 下一阶段
 
-Speed Benchmark 的结果层级已经确定。下一优先级是 CEM 规划配置影响实验，用于
-判断 Relaxed 执行预算下仍存在的 Fast−Slow，主要来自规划视野不足还是搜索不
-充分：
+CEM 资源根因已经定位，不能继续在已看过分数的 Validation catalog 上挑“最好看”
+的 planner。下一阶段按以下顺序推进：
 
-1. 先验证模型和显存支持更长 rollout horizon；
-2. 在未评分配置上冻结 horizon 与 CEM sample/iteration 的单因素对照；
-3. 保持 query、执行预算、随机计划、cost 和成功半径不变；
-4. 每个 Eval、每个条件继续独立执行 `50×6=300`；
-5. 判断 100 步下剩余 Fast−Slow 差异随 horizon 还是搜索预算缩小。
+1. **新 Calibration split 上校准正式 Planner Profile**
 
-机制闭合后，增加多个 `H3-SpeedFull` 与 `H3-OrigPlusSynth5` 训练种子，匹配
-geometry、数据曝光量和 loader。正式 Test 的 Tight/Standard/Relaxed 预算只能
-在新 Calibration split 上确定，随后与模型、planner 和统计方法一并冻结。
+   同时校准 execution budget、model horizon 和 candidate population。horizon
+   必须覆盖最慢支持速度下的典型可达时间；samples 要达到绝对性能的稳定区，而
+   不是按哪个配置最能放大 ICL 差异来选择。
+2. **检查 goal cost 的时间语义**
+
+   比较当前 terminal-only cost 与预先冻结的“horizon 内最佳距离”或时间加权
+   cost，判断能否减少“计划必须在 horizon 末端才对齐目标”的到达时间偏置。
+   这一项属于新的 Calibration，不回改本报告结果。
+3. **完成多训练种子和单变量复现**
+
+   增加多个多速度混训与单速混训训练种子，并匹配 geometry、有效数据曝光量和
+   loader，避免把单 checkpoint 结果写成训练方法的总体方差。
+4. **冻结一次性 Test**
+
+   在全新 Test catalog 上锁定模型、三档执行预算、model horizon、搜索预算、
+   cost、指标和统计方法后只运行一次。
+
+Speed 正式首页仍应展示完整执行预算曲线，并附一个冻结的 horizon 敏感性检查。
+非 Speed 因子只有在改变可达时间或搜索难度时，才需要相同资源阶梯。
 
 ## 9. 复现信息
 
@@ -419,11 +569,22 @@ geometry、数据曝光量和 loader。正式 Test 的 Tight/Standard/Relaxed �
 - 机制验证汇总：
   `artifacts/evaluation/history3/planner_mechanism_v1/final_summary_n50x6.json`
   （SHA-256 `f3daeb2c5c50386634c1d966a6ee3d20a62de6021856861a7e1e6abdd0ec4663`）
+- CEM 配置影响预注册：
+  `configs/benchmark/tworoom_cem_config_impact_v1.yaml`
+  （SHA-256 `1695906d729bbcb7956aa1de406d2cb97c55670b9e348f285616a7dc75b1f911`）
+- CEM 配置影响汇总：
+  `artifacts/evaluation/history3/cem_config_impact_v1/final_summary_n50x6.json`
+  （SHA-256 `b4de2a356cdcf2ddf33d2751b29a2048cf8bd86ec0f9fad314a69d4065e492ed`）
 - 固定候选执行：
   `scripts/run_tworoom_fixed_candidate_mechanism.sh`
 - 闭环预算执行：
   `scripts/run_tworoom_planner_mechanism_eval.sh`
+- CEM 配置影响执行：
+  `scripts/run_tworoom_cem_config_impact.sh`
+- 50 步预测诊断：
+  `scripts/run_tworoom_long_horizon_prediction.sh`
 - 审计与汇总：
-  `scripts/analyze_tworoom_planner_mechanism.py`
+  `scripts/analyze_tworoom_planner_mechanism.py` 和
+  `scripts/analyze_tworoom_cem_config_impact.py`
 - 四模型归因汇总：
   `artifacts/evaluation/history3/icl_sensitive_v2_directional/four_model_attribution_summary_n50x6.json`
