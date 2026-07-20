@@ -204,6 +204,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         payload = json.loads(path.read_text(encoding="utf-8"))
         group = f"speed_{model}_v2"
         exposure = payload["training_plan"]["group_exposure"][group]
+        original_exposure = payload["training_plan"][
+            "group_exposure"
+        ]["original"]
         preflight[model] = {
             "path": str(path),
             "passed": bool(payload["passed"]),
@@ -211,6 +214,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "total_draws": int(exposure["total_draws"]),
             "mean_draws_per_raw_clip": float(
                 exposure["mean_draws_per_raw_clip"]
+            ),
+            "original_raw_train_clips": int(
+                original_exposure["raw_train_clips"]
+            ),
+            "original_total_draws": int(
+                original_exposure["total_draws"]
             ),
         }
     passed = bool(
@@ -224,6 +233,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         and all(row["passed"] for row in preflight.values())
         and preflight["single"]["total_draws"]
         == preflight["multi"]["total_draws"]
+        and preflight["single"]["original_total_draws"]
+        == preflight["multi"]["original_total_draws"]
     )
     output = {
         "schema_version": 1,
@@ -257,9 +268,17 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 "total_draws"
             ],
             "multi_synthetic_draws": preflight["multi"]["total_draws"],
+            "single_original_draws": preflight["single"][
+                "original_total_draws"
+            ],
+            "multi_original_draws": preflight["multi"][
+                "original_total_draws"
+            ],
             "passed": (
                 preflight["single"]["total_draws"]
                 == preflight["multi"]["total_draws"]
+                and preflight["single"]["original_total_draws"]
+                == preflight["multi"]["original_total_draws"]
             ),
         },
         "pairs": pair_rows,
