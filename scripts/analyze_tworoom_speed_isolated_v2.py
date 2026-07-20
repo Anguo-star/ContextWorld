@@ -315,6 +315,34 @@ def _physical_row_summary(
                             "latent_mse_to_nearest_oracle",
                         )
                     },
+                    "predicted_displacement_magnitude_px": float(
+                        np.mean(
+                            [
+                                np.linalg.norm(
+                                    record["conditions"][condition][
+                                        "by_horizon"
+                                    ][str(horizon)][
+                                        "predicted_displacement"
+                                    ]
+                                )
+                                for record in records
+                            ]
+                        )
+                    ),
+                    "true_displacement_magnitude_px": float(
+                        np.mean(
+                            [
+                                np.linalg.norm(
+                                    record["conditions"][condition][
+                                        "by_horizon"
+                                    ][str(horizon)][
+                                        "true_displacement"
+                                    ]
+                                )
+                                for record in records
+                            ]
+                        )
+                    ),
                     "inferred_speed_mae_to_query": float(
                         np.mean(
                             [
@@ -404,6 +432,12 @@ def _physical_row_summary(
         key=lambda name: condition_means[name]["history_speed"],
     )
     response_by_horizon = {}
+    history_speed_span = float(
+        condition_means[high]["history_speed"]
+        - condition_means[low]["history_speed"]
+    )
+    if history_speed_span <= 0.0:
+        raise RuntimeError("History speed span must be positive")
     for horizon in HORIZONS:
         differences = [
             float(
@@ -418,18 +452,55 @@ def _physical_row_summary(
             )
             for record in records
         ]
+        displacement_differences = [
+            float(
+                np.linalg.norm(
+                    record["conditions"][high]["by_horizon"][
+                        str(horizon)
+                    ]["predicted_displacement"]
+                )
+            )
+            - float(
+                np.linalg.norm(
+                    record["conditions"][low]["by_horizon"][
+                        str(horizon)
+                    ]["predicted_displacement"]
+                )
+            )
+            for record in records
+        ]
         by_seed: dict[int, list[float]] = defaultdict(list)
-        for record, difference in zip(records, differences):
+        displacement_by_seed: dict[int, list[float]] = defaultdict(list)
+        for record, difference, displacement_difference in zip(
+            records, differences, displacement_differences
+        ):
             by_seed[int(record["eval_seed"])].append(difference)
+            displacement_by_seed[int(record["eval_seed"])].append(
+                displacement_difference
+            )
         seed_means = {
             str(seed): float(np.mean(values))
             for seed, values in sorted(by_seed.items())
+        }
+        displacement_seed_means = {
+            str(seed): float(np.mean(values))
+            for seed, values in sorted(displacement_by_seed.items())
         }
         response_by_horizon[str(horizon)] = {
             "high_minus_low_inferred_speed": float(
                 np.mean(differences)
             ),
+            "history_speed_span": history_speed_span,
+            "inferred_speed_response_gain": float(
+                np.mean(differences) / history_speed_span
+            ),
+            "high_minus_low_predicted_displacement_px": float(
+                np.mean(displacement_differences)
+            ),
             "eval_seed_means": seed_means,
+            "predicted_displacement_eval_seed_means": (
+                displacement_seed_means
+            ),
             "positive_eval_seeds": int(
                 sum(value > 0.0 for value in seed_means.values())
             ),
@@ -440,6 +511,9 @@ def _physical_row_summary(
         }
     one_block_gate = all(
         row["one_block_position"]["passed_directional_stability"]
+        and row["one_block_displacement_magnitude"][
+            "passed_directional_stability"
+        ]
         for row in comparisons.values()
     )
     trajectory_gate = all(
@@ -795,12 +869,52 @@ def _mean_physical_benefit(track: dict[str, Any]) -> float:
     return float(np.mean(values))
 
 
+def _mean_displacement_calibration_benefit(
+    track: dict[str, Any],
+) -> float:
+    values = []
+    for row in track["by_query_speed"].values():
+        for comparison in row["physical"]["same_speed_benefit"].values():
+            values.append(
+                comparison["one_block_displacement_magnitude"][
+                    "other_minus_same_mean"
+                ]
+            )
+    return float(np.mean(values))
+
+
 def _mean_history_response(track: dict[str, Any]) -> float:
     return float(
         np.mean(
             [
                 row["physical"]["history_speed_response"]["1"][
                     "high_minus_low_inferred_speed"
+                ]
+                for row in track["by_query_speed"].values()
+            ]
+        )
+    )
+
+
+def _mean_history_response_gain(track: dict[str, Any]) -> float:
+    return float(
+        np.mean(
+            [
+                row["physical"]["history_speed_response"]["1"][
+                    "inferred_speed_response_gain"
+                ]
+                for row in track["by_query_speed"].values()
+            ]
+        )
+    )
+
+
+def _mean_displacement_response(track: dict[str, Any]) -> float:
+    return float(
+        np.mean(
+            [
+                row["physical"]["history_speed_response"]["1"][
+                    "high_minus_low_predicted_displacement_px"
                 ]
                 for row in track["by_query_speed"].values()
             ]
@@ -818,10 +932,194 @@ def _mean_fixed_benefit(track: dict[str, Any]) -> float:
     return float(np.mean(values))
 
 
+def _member_scalar_summary(
+    values: dict[str, float],
+) -> dict[str, Any]:
+    array = np.asarray(list(values.values()), dtype=np.float64)
+    return {
+        "mean": float(np.mean(array)),
+        "minimum": float(np.min(array)),
+        "maximum": float(np.max(array)),
+        "by_model": {
+            slug: float(value) for slug, value in values.items()
+        },
+    }
+
+
+def _model_group_summaries(
+    model_results: dict[str, dict[str, Any]],
+) -> dict[str, Any]:
+    grouped: dict[str, list[tuple[str, dict[str, Any]]]] = defaultdict(
+        list
+    )
+    for slug, row in model_results.items():
+        grouped[str(row["model_group"])].append((slug, row))
+    display_names = {
+        "original_reference": "原始单速基线",
+        "single_speed_control": "匹配单速控制",
+        "multi_speed_target": "匹配多速度模型",
+    }
+    result = {}
+    for group, members in grouped.items():
+        first = members[0][1]
+        tracks = {}
+        for track in first["tracks"]:
+            first_track = first["tracks"][track]
+            summary_effects = {
+                key: _member_scalar_summary(
+                    {
+                        slug: row["tracks"][track][
+                            "summary_effects"
+                        ][key]
+                        for slug, row in members
+                    }
+                )
+                for key in first_track["summary_effects"]
+            }
+            gates = {
+                key: {
+                    "passed_models": int(
+                        sum(
+                            bool(
+                                row["tracks"][track]["gates"][key]
+                            )
+                            for _, row in members
+                        )
+                    ),
+                    "models": len(members),
+                }
+                for key in first_track["gates"]
+            }
+            by_query_speed = {}
+            for speed, first_speed_row in first_track[
+                "by_query_speed"
+            ].items():
+                conditions = {}
+                for condition, first_condition in first_speed_row[
+                    "physical"
+                ]["condition_means"].items():
+                    h1_metrics = first_condition["by_horizon"]["1"]
+                    conditions[condition] = {
+                        "history_speed": float(
+                            first_condition["history_speed"]
+                        ),
+                        "history_relation": str(
+                            first_condition["history_relation"]
+                        ),
+                        "physical_one_block": {
+                            metric: _member_scalar_summary(
+                                {
+                                    slug: row["tracks"][track][
+                                        "by_query_speed"
+                                    ][speed]["physical"][
+                                        "condition_means"
+                                    ][condition]["by_horizon"]["1"][
+                                        metric
+                                    ]
+                                    for slug, row in members
+                                }
+                            )
+                            for metric in h1_metrics
+                            if isinstance(
+                                h1_metrics[metric], (int, float)
+                            )
+                        },
+                        "fixed_candidate": {
+                            metric: _member_scalar_summary(
+                                {
+                                    slug: row["tracks"][track][
+                                        "by_query_speed"
+                                    ][speed]["fixed_candidate"][
+                                        "condition_means"
+                                    ][condition][metric]
+                                    for slug, row in members
+                                }
+                            )
+                            for metric in (
+                                "mean_exact_query_dynamics_regret_px",
+                                "success_rate",
+                            )
+                        },
+                        "closed_loop": {
+                            metric: _member_scalar_summary(
+                                {
+                                    slug: row["tracks"][track][
+                                        "by_query_speed"
+                                    ][speed]["planning"]["conditions"][
+                                        condition
+                                    ][metric]
+                                    for slug, row in members
+                                }
+                            )
+                            for metric in (
+                                "success_rate",
+                                "mean_final_distance_px",
+                                "mean_normalized_distance_auc",
+                            )
+                        },
+                    }
+                    deadline_source = first_speed_row["planning"][
+                        "conditions"
+                    ][condition]["deadline_success_curve"]
+                    conditions[condition]["closed_loop"][
+                        "deadline_success_curve"
+                    ] = {
+                        budget: _member_scalar_summary(
+                            {
+                                slug: row["tracks"][track][
+                                    "by_query_speed"
+                                ][speed]["planning"]["conditions"][
+                                    condition
+                                ]["deadline_success_curve"][budget]
+                                for slug, row in members
+                            }
+                        )
+                        for budget in deadline_source
+                    }
+                by_query_speed[speed] = {
+                    "conditions": conditions,
+                }
+            tracks[track] = {
+                "summary_effects": summary_effects,
+                "gates": gates,
+                "by_query_speed": by_query_speed,
+            }
+        result[group] = {
+            "display_name": display_names.get(group, group),
+            "models": [slug for slug, _ in members],
+            "training_seeds": [
+                int(row["training_seed"]) for _, row in members
+            ],
+            "tracks": tracks,
+            "ability_retention": {
+                "passed_models": int(
+                    sum(
+                        bool(row["ability_retention"]["passed"])
+                        for _, row in members
+                    )
+                ),
+                "models": len(members),
+            },
+        }
+    return result
+
+
 def run(args: argparse.Namespace) -> dict[str, Any]:
     config_path = args.config.resolve()
     config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
     artifacts = config["artifacts"]
+    artifact_root = resolve_contextworld_path(
+        artifacts["root"], repo_root=ROOT
+    )
+    support_audit_path = artifact_root / "support_audit.json"
+    support_audit = _load_passed(support_audit_path)
+    if not (
+        support_audit["manifest_pairing"]["passed"]
+        and support_audit["actual_reset_goal_pairing"]["passed"]
+        and support_audit["exposure_equality"]["passed"]
+        and int(support_audit["paired_scenarios"]) == 608
+    ):
+        raise RuntimeError("Matched speed training-data audit failed")
     roots = {
         "physical": resolve_contextworld_path(
             artifacts["physical_transition_root"], repo_root=ROOT
@@ -967,6 +1265,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                     multiplicity_family.extend(
                         [
                             comparison["one_block_position"],
+                            comparison[
+                                "one_block_displacement_magnitude"
+                            ],
                             comparison["trajectory_position"],
                             comparison["trajectory_latent"],
                         ]
@@ -997,6 +1298,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                             comparison["one_block_position"][
                                 "holm_passed"
                             ]
+                            and comparison[
+                                "one_block_displacement_magnitude"
+                            ]["holm_passed"]
                             and comparison["trajectory_position"][
                                 "holm_passed"
                             ]
@@ -1038,8 +1342,19 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 "mean_one_block_same_speed_benefit_px": (
                     _mean_physical_benefit(track_results[track])
                 ),
+                "mean_one_block_same_speed_displacement_benefit_px": (
+                    _mean_displacement_calibration_benefit(
+                        track_results[track]
+                    )
+                ),
                 "mean_high_minus_low_inferred_speed": (
                     _mean_history_response(track_results[track])
+                ),
+                "mean_inferred_speed_response_gain": (
+                    _mean_history_response_gain(track_results[track])
+                ),
+                "mean_high_minus_low_predicted_displacement_px": (
+                    _mean_displacement_response(track_results[track])
                 ),
                 "mean_same_speed_fixed_candidate_benefit_px": (
                     _mean_fixed_benefit(track_results[track])
@@ -1057,6 +1372,71 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                     "aggregates": rollout["aggregates"],
                 }
             },
+        }
+
+    training_audit = {}
+    for slug, row in model_results.items():
+        report_path = resolve_contextworld_path(
+            f"artifacts/training/reports/{slug}.json",
+            repo_root=ROOT,
+        )
+        report = json.loads(report_path.read_text(encoding="utf-8"))
+        expected_steps = (
+            6420
+            if row["model_group"] == "original_reference"
+            else 12840
+        )
+        plan = report["training"]["plan"]
+        exposures = {
+            group: int(exposure["total_draws"])
+            for group, exposure in plan["group_exposure"].items()
+        }
+        passed = bool(
+            report["passed"]
+            and report["save_load_exact"]
+            and report["artifacts"]["pretrained_sha256"]
+            == row["checkpoint_sha256"]
+            and int(report["training"]["global_step"])
+            == expected_steps
+            and int(report["training"]["expected_optimizer_steps"])
+            == expected_steps
+            and int(report["training"]["scheduler_last_epoch"])
+            == expected_steps
+            and int(
+                report["training"][
+                    "seed_before_model_initialization"
+                ]
+            )
+            == int(row["training_seed"])
+            and int(report["model"]["history_size"]) == 3
+            and int(report["model"]["action_block"]) == 5
+            and len(exposures)
+            == (
+                1
+                if row["model_group"] == "original_reference"
+                else 2
+            )
+            and all(draws == 6574080 for draws in exposures.values())
+            and all(
+                bool(exposure["exposure_is_exact"])
+                for exposure in plan["group_exposure"].values()
+            )
+        )
+        if not passed:
+            raise RuntimeError(f"Training audit failed: {slug}")
+        training_audit[slug] = {
+            "path": str(report_path),
+            "training_seed": int(
+                report["training"]["seed_before_model_initialization"]
+            ),
+            "optimizer_steps": expected_steps,
+            "scheduler_steps": int(
+                report["training"]["scheduler_last_epoch"]
+            ),
+            "group_draws": exposures,
+            "save_load_exact": bool(report["save_load_exact"]),
+            "checkpoint_sha256": row["checkpoint_sha256"],
+            "passed": True,
         }
 
     reference_slug = next(
@@ -1084,6 +1464,28 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             for comparison in comparisons.values()
         )
 
+    causality_path = (
+        artifact_root / "temporal_causality_audit.json"
+    )
+    causality = _load_passed(causality_path)
+    expected_hashes = {
+        slug: row["checkpoint_sha256"]
+        for slug, row in model_results.items()
+    }
+    if set(causality.get("models", {})) != set(expected_hashes):
+        raise RuntimeError(
+            "Temporal causality audit model set does not match evaluation"
+        )
+    for slug, checkpoint_hash in expected_hashes.items():
+        audit_row = causality["models"][slug]
+        if (
+            audit_row["checkpoint_sha256"] != checkpoint_hash
+            or not audit_row["passed"]
+        ):
+            raise RuntimeError(
+                f"Temporal causality audit mismatch: {slug}"
+            )
+
     by_group_seed = {
         (row["model_group"], row["training_seed"]): (slug, row)
         for slug, row in model_results.items()
@@ -1101,9 +1503,36 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                         _mean_physical_benefit(multi["tracks"][track])
                         - _mean_physical_benefit(single["tracks"][track])
                     ),
+                    (
+                        "multi_minus_single_one_block_displacement_"
+                        "calibration_benefit_px"
+                    ): (
+                        _mean_displacement_calibration_benefit(
+                            multi["tracks"][track]
+                        )
+                        - _mean_displacement_calibration_benefit(
+                            single["tracks"][track]
+                        )
+                    ),
                     "multi_minus_single_history_response": (
                         _mean_history_response(multi["tracks"][track])
                         - _mean_history_response(single["tracks"][track])
+                    ),
+                    "multi_minus_single_history_response_gain": (
+                        _mean_history_response_gain(
+                            multi["tracks"][track]
+                        )
+                        - _mean_history_response_gain(
+                            single["tracks"][track]
+                        )
+                    ),
+                    "multi_minus_single_displacement_response_px": (
+                        _mean_displacement_response(
+                            multi["tracks"][track]
+                        )
+                        - _mean_displacement_response(
+                            single["tracks"][track]
+                        )
                     ),
                     "multi_minus_single_fixed_candidate_benefit_px": (
                         _mean_fixed_benefit(multi["tracks"][track])
@@ -1126,8 +1555,19 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 track,
                 "multi_minus_single_one_block_calibration_benefit_px",
             ),
+            "one_block_displacement_calibration_stable": stable_positive(
+                track,
+                (
+                    "multi_minus_single_one_block_displacement_"
+                    "calibration_benefit_px"
+                ),
+            ),
             "history_response_stable": stable_positive(
                 track, "multi_minus_single_history_response"
+            ),
+            "displacement_response_stable": stable_positive(
+                track,
+                "multi_minus_single_displacement_response_px",
             ),
             "fixed_candidate_calibration_stable": stable_positive(
                 track,
@@ -1152,7 +1592,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         level_a
         and all_multi(seen, "physical_calibration")
         and attribution[seen]["one_block_calibration_stable"]
+        and attribution[seen][
+            "one_block_displacement_calibration_stable"
+        ]
         and attribution[seen]["history_response_stable"]
+        and attribution[seen]["displacement_response_stable"]
     )
     level_c = bool(
         level_b
@@ -1187,8 +1631,52 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "tracks": list(tracks),
             "passed": True,
         },
+        "matched_training_data_audit": {
+            "path": str(support_audit_path),
+            "paired_scenarios": int(
+                support_audit["paired_scenarios"]
+            ),
+            "actual_rows": support_audit["actual_rows"],
+            "actual_speed_support": support_audit[
+                "actual_speed_support"
+            ],
+            "exposure_equality": support_audit["exposure_equality"],
+            "manifest_pairing_passed": support_audit[
+                "manifest_pairing"
+            ]["passed"],
+            "reset_and_goal_pairing_passed": support_audit[
+                "actual_reset_goal_pairing"
+            ]["passed"],
+            "passed": True,
+        },
+        "training_audit": training_audit,
         "context_identifiability_audit": context_identifiability,
+        "temporal_causality_audit": {
+            "path": str(causality_path),
+            "status": causality["status"],
+            "models": {
+                slug: {
+                    "maximum_change_at_or_before_boundary": row[
+                        "probe"
+                    ]["maximum_change_at_or_before_boundary"],
+                    "future_perturbation_changed_a_future_output": row[
+                        "probe"
+                    ][
+                        "future_perturbation_changed_a_future_output"
+                    ],
+                    "frozen_weight_audit_passed": row[
+                        "frozen_weight_audit"
+                    ]["passed"],
+                    "passed": row["passed"],
+                }
+                for slug, row in causality["models"].items()
+            },
+            "passed": True,
+        },
         "models": model_results,
+        "model_group_summaries": _model_group_summaries(
+            model_results
+        ),
         "paired_training_seed_attribution": paired_training,
         "attribution_gates": attribution,
         "decision_levels": {

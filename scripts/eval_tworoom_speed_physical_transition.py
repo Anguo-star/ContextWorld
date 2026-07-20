@@ -379,6 +379,13 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     import torch
 
     os.environ.setdefault("MUJOCO_GL", "egl")
+    torch.set_num_threads(1)
+    try:
+        torch.set_num_interop_threads(1)
+    except RuntimeError:
+        # PyTorch only permits changing this setting before inter-op work has
+        # started.  The command-line evaluator normally takes the first path.
+        pass
     args.catalog = resolve_contextworld_path(args.catalog, repo_root=ROOT)
     args.output = resolve_contextworld_path(args.output, repo_root=ROOT)
     args.checkpoint = resolve_contextworld_path(

@@ -7,6 +7,7 @@ from scripts.analyze_tworoom_speed_isolated_v2 import (
     _contrast,
     _exact_sign_test,
     _holm_adjust,
+    _physical_row_summary,
     _recover_speed_from_context,
 )
 
@@ -135,3 +136,93 @@ def test_context_speed_recovery_uses_dense_action_block() -> None:
 
     np.testing.assert_allclose(estimates, speed)
     np.testing.assert_allclose(residuals, 0.0, atol=1.0e-12)
+
+
+def test_physical_summary_reports_speed_and_displacement_response() -> None:
+    records = []
+    condition_values = {
+        "low": {
+            "history_speed": 3.0,
+            "history_relation": "slower",
+            "inferred_speed": 4.0,
+            "predicted_displacement": [1.0, 0.0],
+            "error": 1.0,
+        },
+        "same": {
+            "history_speed": 5.0,
+            "history_relation": "same",
+            "inferred_speed": 5.0,
+            "predicted_displacement": [2.0, 0.0],
+            "error": 0.0,
+        },
+        "high": {
+            "history_speed": 7.0,
+            "history_relation": "faster",
+            "inferred_speed": 6.0,
+            "predicted_displacement": [3.0, 0.0],
+            "error": 1.0,
+        },
+    }
+    for seed in (42, 43):
+        conditions = {}
+        for name, row in condition_values.items():
+            by_horizon = {}
+            for horizon in (1, 2, 3, 5, 10):
+                by_horizon[str(horizon)] = {
+                    "inferred_speed": row["inferred_speed"],
+                    "position_error_px": row["error"],
+                    "displacement_magnitude_error_px": row["error"],
+                    "displacement_direction_error_deg": 0.0,
+                    "latent_mse_to_true_query_future": row["error"],
+                    "latent_mse_to_nearest_oracle": 0.0,
+                    "predicted_displacement": row[
+                        "predicted_displacement"
+                    ],
+                    "true_displacement": [2.0, 0.0],
+                    "inferred_minus_query_speed": (
+                        row["inferred_speed"] - 5.0
+                    ),
+                    "inferred_minus_history_speed": (
+                        row["inferred_speed"] - row["history_speed"]
+                    ),
+                }
+            conditions[name] = {
+                "history_speed": row["history_speed"],
+                "history_relation": row["history_relation"],
+                "by_horizon": by_horizon,
+            }
+        records.append(
+            {
+                "eval_seed": seed,
+                "static_query_id": "shared-query",
+                "action_probe": {"family": "varying_magnitude"},
+                "conditions": conditions,
+            }
+        )
+
+    summary = _physical_row_summary(
+        records,
+        bootstrap_seed=17,
+        bootstrap_resamples=100,
+    )
+
+    one_block = summary["history_speed_response"]["1"]
+    assert one_block["high_minus_low_inferred_speed"] == 2.0
+    assert one_block["inferred_speed_response_gain"] == 0.5
+    assert one_block["high_minus_low_predicted_displacement_px"] == 2.0
+    assert summary["condition_means"]["same"]["by_horizon"]["1"][
+        "predicted_displacement_magnitude_px"
+    ] == 2.0
+    assert summary["gates"]["passed"]
+
+    for record in records:
+        record["conditions"]["same"]["by_horizon"]["1"][
+            "displacement_magnitude_error_px"
+        ] = 2.0
+    failed = _physical_row_summary(
+        records,
+        bootstrap_seed=18,
+        bootstrap_resamples=100,
+    )
+    assert not failed["gates"]["one_block_same_speed_lowest"]
+    assert not failed["gates"]["passed"]

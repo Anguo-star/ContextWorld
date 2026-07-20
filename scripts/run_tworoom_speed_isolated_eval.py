@@ -294,6 +294,17 @@ def _run_job(
     environment["CUDA_VISIBLE_DEVICES"] = str(gpu)
     environment.setdefault("MUJOCO_GL", "egl")
     environment.setdefault("PYTHONUNBUFFERED", "1")
+    # TwoRoom physics consists of very small tensor operations.  Letting every
+    # subprocess create one CPU worker per host core causes severe
+    # oversubscription when the eight GPU queues run together.
+    for variable in (
+        "OMP_NUM_THREADS",
+        "MKL_NUM_THREADS",
+        "OPENBLAS_NUM_THREADS",
+        "NUMEXPR_NUM_THREADS",
+        "VECLIB_MAXIMUM_THREADS",
+    ):
+        environment[variable] = "1"
     started = time.time()
     last_error = None
     for attempt in range(1, args.retries + 2):

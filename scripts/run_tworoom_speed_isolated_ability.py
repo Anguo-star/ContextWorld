@@ -232,6 +232,14 @@ def _run_job(
     environment["CUDA_VISIBLE_DEVICES"] = gpu
     environment.setdefault("MUJOCO_GL", "egl")
     environment.setdefault("PYTHONUNBUFFERED", "1")
+    for variable in (
+        "OMP_NUM_THREADS",
+        "MKL_NUM_THREADS",
+        "OPENBLAS_NUM_THREADS",
+        "NUMEXPR_NUM_THREADS",
+        "VECLIB_MAXIMUM_THREADS",
+    ):
+        environment[variable] = "1"
     started = time.time()
     with job.log.open("a", encoding="utf-8") as log:
         log.write(
