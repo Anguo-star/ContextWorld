@@ -1,0 +1,120 @@
+schema_version: 1
+benchmark: tworoom_speed_icl_sensitive_eval_v1
+status: preregistered_before_execution
+preregistered_date: 2026-07-18
+
+question: >-
+  With the frozen StableWM CEM configuration unchanged, can a calibrated
+  same-room distance band convert the already-established SpeedFull
+  prediction-level speed context effect into a heldout planning-success
+  correct-versus-wrong effect?
+
+frozen_scope:
+  train_new_models: false
+  modify_existing_e4: false
+  modify_cem_configuration: false
+  stable_worldmodel_commit: 5864b74980f6ed328fd0045e777b3865962eff43
+  normalizer: artifacts/splits/tworoom_original_train_s3072_normalizer.json
+  agent_speeds: [3.1, 3.3, 3.5, 4.1, 5.0, 5.1, 5.9, 7.0]
+  door_position: 49
+  context_budget_transitions: 2
+  planning:
+    eval_budget_raw_steps: 50
+    horizon_action_blocks: 5
+    receding_horizon_action_blocks: 5
+    action_block_raw_steps: 5
+    cem_samples: 300
+    cem_steps: 30
+    cem_topk: 30
+    cem_var_scale: 1.0
+
+catalog_generation:
+  task_relation: same_room
+  distance_bins_px: [48, 56, 64, 72, 80, 88, 96, 104, 112]
+  calibration:
+    geometry_seed: 2026071801
+    variants_per_distance: 4
+    catalog_seed: 2026071811
+    split: calibration
+  heldout_bank:
+    geometry_seed: 2026071802
+    variants_per_distance: 3
+    catalog_seed: 2026071812
+    split: heldout
+  disjointness:
+    require_distinct_query_ids: true
+    require_distinct_reset_goal_pairs: true
+    generate_both_banks_before_calibration_scores: true
+  feasibility:
+    query_speed_direct_policy_success_required: true
+    raw_step_budget: 50
+  interpretation:
+    - Distance is a calibration variable, not the sole definition of difficulty.
+    - The existing E4 catalog remains an unchanged far-goal stress test.
+    - The first ICL-sensitive catalog isolates speed with same-room geometry.
+
+calibration:
+  model:
+    display_name: H3-SpeedFull
+    slug: h3_speedfull_s3072
+    checkpoint: artifacts/training/runs/checkpoints/h3_speedfull_s3072/weights_final_step_12840.pt
+  eval_seeds: [2401, 2402]
+  evaluations_per_speed_per_seed: 72
+  expected_repeats_per_base_query_per_seed: 2
+  conditions: [correct, wrong]
+  distance_selection_frozen_before_execution:
+    pooled_correct_wrong_success_rate_min: 0.10
+    pooled_correct_wrong_success_rate_max: 0.90
+    correct_minus_wrong_success_rate_min_pp: 5.0
+    require_correct_only_greater_than_wrong_only: true
+    maximum_selected_bins: 2
+    require_selected_bins_adjacent_if_two: true
+    distance_bin_spacing_px: 8
+    algorithm: select_top_ranked_then_top_ranked_eligible_adjacent_neighbor
+    ranking:
+      - larger_correct_minus_wrong_success_rate
+      - pooled_success_closer_to_0.50
+      - shorter_distance
+    no_eligible_bin_action: stop_without_formal_eval
+
+formal_heldout:
+  eval_seeds: [42, 43, 44, 45, 46, 47]
+  evaluations_per_seed_per_condition: 50
+  conditions: [none, correct, wrong]
+  models:
+    - display_name: H3-OrigHeldout
+      slug: h3_origheldout_s3072
+      checkpoint: artifacts/training/runs/checkpoints/h3_origheldout_s3072/weights_final_step_6420.pt
+      role: fixed_speed_original_control
+    - display_name: H3-Synth5Matched
+      slug: h3_synth5matched_s3072
+      checkpoint: artifacts/training/runs/checkpoints/h3_synth5matched_s3072/weights_final_step_6420.pt
+      role: fixed_speed_synthetic_control
+    - display_name: H3-OrigPlusSynth5
+      slug: h3_origplus_synth5_s3072
+      checkpoint: artifacts/training/runs/checkpoints/h3_origplus_synth5_s3072/weights_final_step_12840.pt
+      role: fixed_speed_mixture_control
+    - display_name: H3-SpeedFull
+      slug: h3_speedfull_s3072
+      checkpoint: artifacts/training/runs/checkpoints/h3_speedfull_s3072/weights_final_step_12840.pt
+      role: primary_multispeed_context_model
+  primary_decision_frozen_before_execution:
+    model: H3-SpeedFull
+    correct_minus_wrong_success_rate_min_pp: 5.0
+    paired_exact_sign_test_p_max: 0.05
+    require_correct_only_greater_than_wrong_only: true
+    correct_success_rate_min: 0.10
+    correct_success_rate_max: 0.90
+  specificity_diagnostic:
+    primary_effect_minus_best_control_min_pp: 3.0
+    required_for_planning_icl_decision: false
+
+artifacts:
+  root: artifacts/evaluation/history3/icl_sensitive_v1
+  calibration_catalog: artifacts/evaluation/history3/icl_sensitive_v1/catalogs/calibration_bank.json
+  heldout_bank_catalog: artifacts/evaluation/history3/icl_sensitive_v1/catalogs/heldout_bank.json
+  selected_heldout_catalog: artifacts/evaluation/history3/icl_sensitive_v1/catalogs/heldout_selected.json
+  calibration_results: artifacts/evaluation/history3/icl_sensitive_v1/calibration
+  formal_results: artifacts/evaluation/history3/icl_sensitive_v1/formal
+  calibration_selection: artifacts/evaluation/history3/icl_sensitive_v1/calibration_selection.json
+  formal_summary: artifacts/evaluation/history3/icl_sensitive_v1/formal_summary_n50x6.json

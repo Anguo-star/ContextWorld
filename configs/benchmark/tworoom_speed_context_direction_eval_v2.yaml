@@ -1,0 +1,93 @@
+schema_version: 1
+benchmark: tworoom_speed_context_direction_eval_v2
+status: preregistered_before_execution
+preregistered_date: 2026-07-18
+
+question: >-
+  On untouched heldout geometries and the frozen CEM, does SpeedFull prefer
+  factually correct speed context over both slower and faster wrong context,
+  or does planning success instead increase with the speed expressed by the
+  context?
+
+hypothesis_origin:
+  source: tworoom_speed_icl_sensitive_eval_v1_posthoc
+  source_artifact: artifacts/evaluation/history3/icl_sensitive_v1/calibration_diagnostics_posthoc.json
+  evidence_level: hypothesis_generation_only
+  heldout_was_scored: false
+
+frozen_scope:
+  train_new_models: false
+  model:
+    display_name: H3-SpeedFull
+    slug: h3_speedfull_s3072
+    checkpoint: artifacts/training/runs/checkpoints/h3_speedfull_s3072/weights_final_step_12840.pt
+  stable_worldmodel_commit: 5864b74980f6ed328fd0045e777b3865962eff43
+  normalizer: artifacts/splits/tworoom_original_train_s3072_normalizer.json
+  source_heldout_bank: artifacts/evaluation/history3/icl_sensitive_v1/catalogs/heldout_bank.json
+  source_heldout_bank_sha256: ab059341bb8b8c491ef9be1186de0ae02f84b1c1cb10e8448b08de2889929f20
+  query_speeds: [5.0, 5.1]
+  wrong_slow_speed: 3.1
+  wrong_fast_speed: 7.0
+  distance_bins_px: [72, 80, 88, 96, 104, 112]
+  variants_per_distance: 3
+  geometry_seed: 2026071802
+  catalog_seed: 2026071822
+  door_position: 49
+  context_budget_transitions: 2
+  planning:
+    eval_budget_raw_steps: 50
+    horizon_action_blocks: 5
+    receding_horizon_action_blocks: 5
+    action_block_raw_steps: 5
+    cem_samples: 300
+    cem_steps: 30
+    cem_topk: 30
+    cem_var_scale: 1.0
+
+catalogs:
+  split: heldout_direction_confirmation
+  generate_both_before_any_score: true
+  require_identical_query_ids: true
+  require_identical_query_pixels: true
+  require_identical_correct_context: true
+  evaluations:
+    - name: wrong_slow
+      display_name: Wrong-Slower Eval
+      wrong_context_speed: 3.1
+    - name: wrong_fast
+      display_name: Wrong-Faster Eval
+      wrong_context_speed: 7.0
+
+formal_eval:
+  eval_seeds: [42, 43, 44, 45, 46, 47]
+  evaluations_per_condition_per_seed: 50
+  conditions_per_eval: [correct, wrong]
+  expected_evaluations_per_condition_per_eval: 300
+  expected_unique_base_queries_per_eval: 36
+  require_identical_schedule_across_evals: true
+  require_correct_outputs_identical_across_evals: true
+
+decisions_frozen_before_execution:
+  correctness_aligned_planning_icl:
+    require_correct_over_wrong_slow: true
+    require_correct_over_wrong_fast: true
+    minimum_effect_each_pp: 5.0
+    paired_exact_sign_test_p_max_each: 0.05
+    require_correct_only_greater_each: true
+  higher_speed_prompt_bias_confirmation:
+    comparison: wrong_fast_minus_wrong_slow
+    minimum_effect_pp: 5.0
+    paired_exact_sign_test_p_max: 0.05
+    require_fast_only_greater_than_slow_only: true
+  interpretation:
+    - Correct beats both wrong directions: correctness-aligned planning ICL.
+    - Wrong-fast beats wrong-slow without correct beating both: higher-speed prompt bias.
+    - Neither gate passes: v1 post-hoc mechanism does not replicate.
+
+artifacts:
+  root: artifacts/evaluation/history3/icl_sensitive_v2_directional
+  wrong_slow_catalog: artifacts/evaluation/history3/icl_sensitive_v2_directional/catalogs/heldout_wrong_slow.json
+  wrong_fast_catalog: artifacts/evaluation/history3/icl_sensitive_v2_directional/catalogs/heldout_wrong_fast.json
+  catalog_build_report: artifacts/evaluation/history3/icl_sensitive_v2_directional/catalogs/catalog_build_report.json
+  raw_results: artifacts/evaluation/history3/icl_sensitive_v2_directional/h3_speedfull_s3072
+  formal_summary: artifacts/evaluation/history3/icl_sensitive_v2_directional/formal_summary_n50x6.json

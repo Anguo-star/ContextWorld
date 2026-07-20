@@ -1,0 +1,97 @@
+schema_version: 1
+benchmark: tworoom_speed5_cross_eval_v1
+status: preregistered_before_execution
+preregistered_date: 2026-07-18
+
+question: >-
+  When evaluation dynamics are fixed to the original LeWM speed 5, how much
+  of the score gap is associated with original versus synthetic trajectory
+  source, E4 fixed-goal geometry/planner difficulty, and the multi-speed
+  mixture itself?
+
+models:
+  primary_fixed_speed:
+    - display_name: H3-OrigHeldout
+      slug: h3_origheldout_s3072
+      checkpoint: artifacts/training/runs/checkpoints/h3_origheldout_s3072/weights_final_step_6420.pt
+      training_speed_support: [5.0]
+    - display_name: H3-Synth5Matched
+      slug: h3_synth5matched_s3072
+      checkpoint: artifacts/training/runs/checkpoints/h3_synth5matched_s3072/weights_final_step_6420.pt
+      training_speed_support: [5.0]
+    - display_name: H3-OrigPlusSynth5
+      slug: h3_origplus_synth5_s3072
+      checkpoint: artifacts/training/runs/checkpoints/h3_origplus_synth5_s3072/weights_final_step_12840.pt
+      training_speed_support: [5.0]
+  robustness_control:
+    - display_name: H3-SpeedFull
+      slug: h3_speedfull_s3072
+      checkpoint: artifacts/training/runs/checkpoints/h3_speedfull_s3072/weights_final_step_12840.pt
+      training_speed_support: multi_speed
+
+evaluation:
+  fixed:
+    agent_speed: 5.0
+    door_position: 49
+    eval_seeds: [42, 43, 44, 45, 46, 47]
+    evaluations_per_seed_per_condition: 50
+    normalizer: artifacts/splits/tworoom_original_train_s3072_normalizer.json
+    stable_worldmodel_commit: 5864b74980f6ed328fd0045e777b3865962eff43
+    planning:
+      eval_budget_raw_steps: 50
+      horizon_action_blocks: 5
+      receding_horizon_action_blocks: 5
+      action_block_raw_steps: 5
+      cem_samples: 300
+      cem_steps: 30
+      cem_topk: 30
+  domains:
+    original_future25:
+      source: original episode-heldout H5
+      speed: 5.0
+      goal_rule: same-trajectory state at start plus 25 raw steps
+      status: reuse_completed
+    synthetic_matched_future25:
+      source: Synth5Matched-v2 validation
+      speed: 5.0
+      goal_rule: same-trajectory state at start plus 25 raw steps
+      status: reuse_completed
+    e4_fixed_geometry_speed5:
+      source: frozen E4 speed query catalog
+      catalog: artifacts/evaluation/icl/tworoom_icl_v1_validation_context_query_catalog.json
+      speed_selection: [5.0]
+      templates: [s0, s1, s2, s3]
+      conditions: [none, correct, wrong]
+      base_queries: 4
+      status: execute_50x6
+
+primary_attribution:
+  models:
+    - H3-OrigHeldout
+    - H3-Synth5Matched
+    - H3-OrigPlusSynth5
+  comparisons:
+    trajectory_source_component: synthetic_matched_future25 - original_future25
+    fixed_geometry_planner_component: e4_fixed_geometry_speed5_none - synthetic_matched_future25
+    context_prompt_component: e4_fixed_geometry_speed5_correct - e4_fixed_geometry_speed5_none
+    context_content_component: e4_fixed_geometry_speed5_correct - e4_fixed_geometry_speed5_wrong
+    speed_mixture_component: e4_fixed_geometry_speed5 - existing_multi_speed_e4
+
+decision_thresholds_frozen_before_execution:
+  trajectory_source_minor_if_max_abs_success_gap_pp_lte: 10.0
+  fixed_geometry_major_if_min_success_drop_pp_gte: 40.0
+  speed_mixture_primary_if_min_speed5_gain_pp_gte: 20.0
+  planning_context_detected_if_abs_success_gap_pp_gte: 5.0
+  require_template_outcome_report: true
+  require_no_context_for_cross_dataset_attribution: true
+
+interpretation_limits:
+  - The E4 speed-5 study repeats four frozen base geometries over CEM seeds; 300 evaluations are not 300 independent geometries.
+  - Original and matched future-25 catalogs are different queries, so their raw success difference is descriptive rather than a paired causal estimate.
+  - H3-SpeedFull is not part of the same-training-speed primary attribution because its training support is multi-speed.
+  - No new training is authorized by this protocol.
+
+artifacts:
+  root: artifacts/evaluation/history3/original_ability_reconstruction
+  per_model_subdir: speed5_cross_eval
+  summary: artifacts/evaluation/history3/original_ability_reconstruction/speed5_cross_eval_n50x6.json

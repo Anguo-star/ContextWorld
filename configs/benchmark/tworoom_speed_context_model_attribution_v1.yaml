@@ -1,0 +1,153 @@
+schema_version: 1
+benchmark: tworoom_speed_context_model_attribution_v1
+status: preregistered_before_control_execution
+preregistered_date: 2026-07-19
+
+question: >-
+  Under the exact directional-v2 catalogs, evaluation schedules, normalizer,
+  and frozen CEM, is the stable Fast > Slow planning effect specific to the
+  original-plus-multispeed-synthetic SpeedFull recipe, or is it also present
+  in original-only and single-speed controls?
+
+evidence_boundary:
+  stage: validation_model_attribution
+  final_test: false
+  speedfull_result_was_known_before_this_control_preregistration: true
+  all_control_results_were_unscored: true
+  training_seeds_per_model: 1
+  allowed_claim: integrated_recipe_support_at_fixed_train_seed
+  forbidden_claims:
+    - universal_causal_effect_of_multispeed_data
+    - architecture_independent_effect
+    - final_test_confirmation
+
+frozen_source:
+  directional_config:
+    path: configs/benchmark/tworoom_speed_context_direction_eval_v2.yaml
+    sha256: 85afbf31529f67d7167be81724f92fedca94741683cfa1114c03fb05977b426d
+  stable_worldmodel_commit: 5864b74980f6ed328fd0045e777b3865962eff43
+  normalizer:
+    path: artifacts/splits/tworoom_original_train_s3072_normalizer.json
+    sha256: 7a5be7ea867bced446c1671b0b2c0ff6450ffc61e1a7bdbbfc5eaa0942f635db
+  catalog_build_report:
+    path: artifacts/evaluation/history3/icl_sensitive_v2_directional/catalogs/catalog_build_report.json
+    sha256: e7439fbbf13a115a319ddebfb11664cb5964f46d0d48c9830f312cb170ff9125
+  catalogs:
+    wrong_slow:
+      path: artifacts/evaluation/history3/icl_sensitive_v2_directional/catalogs/heldout_wrong_slow.json
+      sha256: d692736d9d6aeb270f8b4edb8e9849c44f546c580555e97cc03dca4b953da318
+    wrong_fast:
+      path: artifacts/evaluation/history3/icl_sensitive_v2_directional/catalogs/heldout_wrong_fast.json
+      sha256: 1addd90144d8d442f6ee996ea9ad7a69c58cd643a96478046ba83f2341834e40
+  existing_speedfull_summary:
+    path: artifacts/evaluation/history3/icl_sensitive_v2_directional/formal_summary_n50x6.json
+    sha256: 63985075dd0e0a54379804fb535e3a440befca099933745ac0c3d52852c56a1b
+
+models:
+  - model_id: M_origheldout
+    display_name: H3-OrigHeldout
+    slug: h3_origheldout_s3072
+    role: original_only_control
+    factor_training_support: speed_5_only
+    optimizer_steps: 6420
+    checkpoint:
+      path: artifacts/training/runs/checkpoints/h3_origheldout_s3072/weights_final_step_6420.pt
+      sha256: 7d141b86cca49145444a69bff89c71ede69e8cf8252bfb933e656c3e2e962b54
+    raw_results: artifacts/evaluation/history3/icl_sensitive_v2_directional/h3_origheldout_s3072
+    directional_summary: artifacts/evaluation/history3/icl_sensitive_v2_directional/h3_origheldout_s3072/directional_summary_n50x6.json
+    execute: true
+  - model_id: M_synth5matched
+    display_name: H3-Synth5Matched
+    slug: h3_synth5matched_s3072
+    role: single_speed_synthetic_only_control
+    factor_training_support: speed_5_only
+    optimizer_steps: 6420
+    checkpoint:
+      path: artifacts/training/runs/checkpoints/h3_synth5matched_s3072/weights_final_step_6420.pt
+      sha256: 565de1fe25015603831fdfa9b0c3dee4f711ad1d929b00bf814ffee254c36283
+    raw_results: artifacts/evaluation/history3/icl_sensitive_v2_directional/h3_synth5matched_s3072
+    directional_summary: artifacts/evaluation/history3/icl_sensitive_v2_directional/h3_synth5matched_s3072/directional_summary_n50x6.json
+    execute: true
+  - model_id: M_origplus_synth5
+    display_name: H3-OrigPlusSynth5
+    slug: h3_origplus_synth5_s3072
+    role: original_plus_single_speed_synthetic_control
+    factor_training_support: speed_5_only
+    optimizer_steps: 12840
+    checkpoint:
+      path: artifacts/training/runs/checkpoints/h3_origplus_synth5_s3072/weights_final_step_12840.pt
+      sha256: 79e1c63a00e4b24e7c65d5bdc096afcfec7edd838e58475280637923991b3474
+    raw_results: artifacts/evaluation/history3/icl_sensitive_v2_directional/h3_origplus_synth5_s3072
+    directional_summary: artifacts/evaluation/history3/icl_sensitive_v2_directional/h3_origplus_synth5_s3072/directional_summary_n50x6.json
+    execute: true
+  - model_id: M_speedfull
+    display_name: H3-SpeedFull
+    slug: h3_speedfull_s3072
+    role: original_plus_multispeed_synthetic_target
+    factor_training_support: multispeed
+    optimizer_steps: 12840
+    checkpoint:
+      path: artifacts/training/runs/checkpoints/h3_speedfull_s3072/weights_final_step_12840.pt
+      sha256: 79e2b2d17445a21d1685759679c6ab82f9fda834584168d7e3e02bf50b78a778
+    raw_results: artifacts/evaluation/history3/icl_sensitive_v2_directional/h3_speedfull_s3072
+    directional_summary: artifacts/evaluation/history3/icl_sensitive_v2_directional/formal_summary_n50x6.json
+    execute: false
+
+evaluation_protocol:
+  query_speeds: [5.0, 5.1]
+  context_speeds:
+    wrong_slow: 3.1
+    correct: query_speed
+    wrong_fast: 7.0
+  eval_seeds: [42, 43, 44, 45, 46, 47]
+  evaluations_per_condition_per_seed: 50
+  evaluations_per_condition_per_eval: 300
+  evals_per_model: 2
+  conditions_per_eval: 2
+  raw_records_per_model: 1200
+  controls_to_execute: 3
+  expected_new_raw_records: 3600
+  require_independent_50x6_for_each_model_eval_condition: true
+  require_identical_catalogs_across_models: true
+  require_identical_schedule_across_models: true
+  require_identical_cem_subseeds_across_models: true
+  planning:
+    eval_budget_raw_steps: 50
+    horizon_action_blocks: 5
+    receding_horizon_action_blocks: 5
+    action_block_raw_steps: 5
+    cem_samples: 300
+    cem_steps: 30
+    cem_topk: 30
+    cem_var_scale: 1.0
+
+decisions_frozen_before_control_execution:
+  stable_fast_over_slow_gate:
+    comparison: wrong_fast_minus_wrong_slow
+    minimum_effect_pp: 5.0
+    paired_exact_sign_test_p_max: 0.05
+    require_fast_only_greater_than_slow_only: true
+  integrated_recipe_attribution_support:
+    target_model: M_speedfull
+    control_models:
+      - M_origheldout
+      - M_synth5matched
+      - M_origplus_synth5
+    require_target_gate_passed: true
+    require_every_control_gate_failed: true
+    interpretation_if_passed: >-
+      At this fixed training seed and integrated recipe level, multispeed
+      training exposure is supported as the distinguishing factor for the
+      stable planning-level speed-conditioned context effect.
+    interpretation_if_any_control_passes: >-
+      The planning-level Fast > Slow effect is not specific to SpeedFull and
+      cannot be attributed to multispeed exposure from this matrix.
+  secondary_not_frozen_gates:
+    - target_minus_control_difference_in_context_effect
+    - final_distance_and_normalized_progress
+    - per_seed_and_per_geometry_direction_consistency
+    - cem_replan_stage
+
+artifacts:
+  root: artifacts/evaluation/history3/icl_sensitive_v2_directional
+  final_summary: artifacts/evaluation/history3/icl_sensitive_v2_directional/four_model_attribution_summary_n50x6.json

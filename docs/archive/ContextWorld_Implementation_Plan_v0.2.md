@@ -1,4 +1,7 @@
-# ContextWorld 实施计划 v0.2
+# ContextWorld 实施计划 v0.2（已归档）
+
+> 本文是项目启动阶段的实施计划快照；当前设计以
+> [ContextWorld Benchmark 设计规范](../ContextWorld_Benchmark_Design.md) 为准。
 ## 第一阶段：基于上下文的新环境下一状态预测
 
 **日期**：2026-07-13  

@@ -1,0 +1,91 @@
+schema_version: 1
+experiment: tworoom_speed_pixel_pilot_v1
+task: tworoom
+env_id: swm/TwoRoom-v1
+profile: augmentation_pixel
+seed: 20260713
+
+stable_worldmodel:
+  repo: ../stable-worldmodel
+  expected_ref: 5864b74980f6ed328fd0045e777b3865962eff43
+
+collection:
+  staging_root: /tmp
+  episodes_per_scenario: 2
+  max_episode_steps: 100
+  image_shape: [224, 224]
+  num_envs: 1
+  policy:
+    action_noise: 2.0
+    action_repeat_prob: 0.05
+
+original_dataset:
+  path: ../../data/world_model/quentinll/lewm-tworooms/tworoom.h5
+
+output:
+  data_root: artifacts/synthesis/data/tworoom_speed_pixel_pilot_v1
+  manifest: artifacts/synthesis/manifests/tworoom_speed_pixel_pilot_v1.jsonl
+  report: artifacts/synthesis/reports/tworoom_speed_pixel_pilot_v1.json
+  catalog: artifacts/synthesis/catalogs/tworoom_speed_pixel_pilot_v1.json
+
+planning:
+  estimated_lance_bytes_per_row: 9000
+
+validation:
+  numeric_atom_isolation:
+    atom: agent_speed
+    minimum_cross_split_gap: 0.08
+  speed_frame_skip_oracle:
+    seed: 314159
+    slow_speed: 3.0
+    multiplier: 2
+    cases:
+      - state: [40.0, 40.0]
+        target_state: [190.0, 190.0]
+        action: [0.5, 0.25]
+      - state: [70.0, 170.0]
+        target_state: [190.0, 30.0]
+        action: [-0.25, -0.5]
+      - state: [50.0, 100.0]
+        target_state: [190.0, 180.0]
+        action: [0.5, -0.25]
+
+scenarios:
+  - name: speed_train_slow
+    split: train
+    regime: train
+    seed_group: tworoom_speed_pixel_pilot_v1_train_paired
+    atoms:
+      - {kind: agent_speed, value: 3.0}
+  - name: speed_train_fast
+    split: train
+    regime: train
+    seed_group: tworoom_speed_pixel_pilot_v1_train_paired
+    atoms:
+      - {kind: agent_speed, value: 7.0}
+
+  - name: speed_validation_interp
+    split: val
+    regime: validation_interp
+    seed_group: tworoom_speed_pixel_pilot_v1_validation_paired
+    atoms:
+      - {kind: agent_speed, value: 5.0}
+
+  - name: speed_test_interp
+    split: test
+    regime: test_interp
+    seed_group: tworoom_speed_pixel_pilot_v1_test_paired
+    atoms:
+      - {kind: agent_speed, value: 6.0}
+  - name: speed_test_extrap_low
+    split: test
+    regime: test_extrap_low
+    seed_group: tworoom_speed_pixel_pilot_v1_test_paired
+    atoms:
+      - {kind: agent_speed, value: 2.0}
+  - name: speed_test_extrap_high
+    split: test
+    regime: test_extrap_high
+    seed_group: tworoom_speed_pixel_pilot_v1_test_paired
+    atoms:
+      - {kind: agent_speed, value: 9.0}

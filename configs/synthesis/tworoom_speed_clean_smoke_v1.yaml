@@ -1,0 +1,86 @@
+schema_version: 1
+experiment: tworoom_speed_clean_smoke_v1
+task: tworoom
+env_id: swm/TwoRoom-v1
+profile: lossless_pipeline_smoke
+seed: 20260715
+
+stable_worldmodel:
+  repo: ../stable-worldmodel
+  expected_ref: 5864b74980f6ed328fd0045e777b3865962eff43
+
+collection:
+  staging_root: /tmp
+  episodes_per_scenario: 2
+  max_episode_steps: 24
+  image_shape: [224, 224]
+  num_envs: 1
+  pixel_codec: {format: png, compress_level: 1}
+  policy: {action_noise: 2.0, action_repeat_prob: 0.05}
+
+original_dataset:
+  path: ../../data/world_model/quentinll/lewm-tworooms/tworoom.h5
+
+output:
+  data_root: artifacts/synthesis/data/tworoom_speed_clean_smoke_v1
+  manifest: artifacts/synthesis/manifests/tworoom_speed_clean_smoke_v1.jsonl
+  report: artifacts/synthesis/reports/tworoom_speed_clean_smoke_v1.json
+  catalog: artifacts/synthesis/catalogs/tworoom_speed_clean_smoke_v1.json
+
+validation:
+  numeric_atom_isolation: {atom: agent_speed, minimum_cross_split_gap: 0.1}
+  speed_frame_skip_oracle:
+    seed: 314159
+    slow_speed: 3.0
+    multiplier: 2
+    cases:
+      - state: [40.0, 40.0]
+        target_state: [190.0, 190.0]
+        action: [0.5, 0.25]
+      - state: [70.0, 170.0]
+        target_state: [190.0, 30.0]
+        action: [-0.25, -0.5]
+  minimum_episode_start_oracle:
+    minimum_rows: 2
+    termination_radius: 16.0
+    minimum_guaranteed_margin: 0.0
+  paired_seed_crossing:
+    atom: agent_speed
+    splits:
+      train:
+        minimum_seed_groups: 1
+        minimum_factor_values: 2
+        minimum_paired_resets_per_factor: 2
+      val:
+        minimum_seed_groups: 1
+        minimum_factor_values: 2
+        minimum_paired_resets_per_factor: 2
+  reset_coverage:
+    grid_size: 14
+    splits:
+      train:
+        unique_reset_seeds: 2
+        unique_start_states: 2
+        unique_goal_states: 2
+        start_goal_grid_pairs: 2
+      val:
+        unique_reset_seeds: 2
+        unique_start_states: 2
+        unique_goal_states: 2
+        start_goal_grid_pairs: 2
+
+scenario_sets:
+  - name_prefix: speed_train
+    split: train
+    regime: train
+    atom: agent_speed
+    episodes_per_scenario: 2
+    seed_group: tworoom_speed_clean_v1_train_paired_0008
+    values: {sampler: fixed, values: [3.0, 7.0]}
+  - name_prefix: speed_dev
+    split: val
+    regime: validation_dev_interp
+    atom: agent_speed
+    episodes_per_scenario: 2
+    seed_group: tworoom_speed_clean_v1_dev_paired_0000
+    values: {sampler: fixed, values: [4.0, 6.0]}

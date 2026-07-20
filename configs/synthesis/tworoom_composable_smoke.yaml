@@ -1,0 +1,135 @@
+schema_version: 1
+experiment: tworoom_composable_smoke_v1
+task: tworoom
+env_id: swm/TwoRoom-v1
+seed: 3072
+
+stable_worldmodel:
+  repo: ../stable-worldmodel
+  expected_ref: 5864b74980f6ed328fd0045e777b3865962eff43
+
+collection:
+  # LanceDB cannot initialize directly on some workspace mounts; publish
+  # complete tables from a local staging filesystem.
+  staging_root: /tmp
+  episodes_per_scenario: 1
+  max_episode_steps: 12
+  image_shape: [224, 224]
+  num_envs: 1
+  policy:
+    action_noise: 2.0
+    action_repeat_prob: 0.05
+
+original_dataset:
+  path: ../../data/world_model/quentinll/lewm-tworooms/tworoom.h5
+
+output:
+  data_root: artifacts/synthesis/data/tworoom_composable_smoke_v1
+  manifest: artifacts/synthesis/manifests/tworoom_composable_smoke_v1.jsonl
+  report: artifacts/synthesis/reports/tworoom_composable_smoke_v1.json
+  catalog: artifacts/synthesis/catalogs/tworoom_composable_smoke_v1.json
+
+validation:
+  training_unseen_combinations:
+    atoms: [agent_speed, door_position]
+    evaluation_splits: [test]
+  speed_frame_skip_oracle:
+    seed: 314159
+    slow_speed: 3.0
+    multiplier: 2
+    cases:
+      - state: [40.0, 40.0]
+        target_state: [190.0, 190.0]
+        action: [0.5, 0.25]
+      - state: [70.0, 170.0]
+        target_state: [190.0, 30.0]
+        action: [-0.25, -0.5]
+  door_position_pixel_oracle:
+    seed: 271828
+    first_position: 70
+    second_position: 154
+    door_half_size: 14
+    wall_thickness: 10
+    state: [40.0, 112.0]
+    target_state: [190.0, 112.0]
+  door_position_passage_oracle:
+    seed: 161803
+    speed: 5.0
+    door_half_size: 14
+    wall_thickness: 10
+    agent_radius: 7.0
+    steps: 8
+    cases:
+      - open_position: 70
+        blocked_position: 154
+        state: [90.0, 70.0]
+        target_state: [190.0, 190.0]
+        action: [1.0, 0.0]
+      - open_position: 154
+        blocked_position: 70
+        state: [134.0, 154.0]
+        target_state: [30.0, 30.0]
+        action: [-1.0, 0.0]
+
+scenarios:
+  # Single-atom train support.
+  - name: speed_slow
+    split: train
+    atoms:
+      - {kind: agent_speed, value: 3.0}
+  - name: speed_fast
+    split: train
+    atoms:
+      - {kind: agent_speed, value: 7.0}
+  - name: door_upper
+    split: train
+    atoms:
+      - {kind: door_position, value: 70}
+  - name: door_lower
+    split: train
+    atoms:
+      - {kind: door_position, value: 154}
+
+  # Seen train compositions.
+  - name: combo_slow_upper
+    split: train
+    atoms:
+      - {kind: agent_speed, value: 3.0}
+      - {kind: door_position, value: 70}
+  - name: combo_fast_lower
+    split: train
+    atoms:
+      - {kind: agent_speed, value: 7.0}
+      - {kind: door_position, value: 154}
+
+  # Single-atom interpolation/extrapolation tests.
+  - name: speed_ood_slowest
+    split: test
+    atoms:
+      - {kind: agent_speed, value: 2.0}
+  - name: speed_ood_fastest
+    split: test
+    atoms:
+      - {kind: agent_speed, value: 9.0}
+  - name: door_ood_mid_upper
+    split: test
+    atoms:
+      - {kind: door_position, value: 91}
+  - name: door_ood_mid_lower
+    split: test
+    atoms:
+      - {kind: door_position, value: 133}
+
+  # Training-unseen combinations (组合留出): each value exists in train,
+  # but these pairings do not. Legacy scenario IDs retain "heldout" so the
+  # generated smoke-v1 fingerprints remain reproducible.
+  - name: combo_heldout_slow_lower
+    split: test
+    atoms:
+      - {kind: agent_speed, value: 3.0}
+      - {kind: door_position, value: 154}
+  - name: combo_heldout_fast_upper
+    split: test
+    atoms:
+      - {kind: agent_speed, value: 7.0}
+      - {kind: door_position, value: 70}

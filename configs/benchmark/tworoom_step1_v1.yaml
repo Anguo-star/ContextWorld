@@ -1,0 +1,203 @@
+schema_version: 1
+benchmark: tworoom_benchmark_step1_v1
+status: formal_training_adapter_validated_pilot_pending
+benchmark_role: zero_shot_ood_and_training_adapter_foundation
+design_document: docs/ContextWorld_Benchmark_Design.md
+icl_protocol_config: configs/benchmark/tworoom_icl_v1.yaml
+
+terminology:
+  preferred: 训练未见组合
+  alias: 组合留出
+
+data:
+  original_read_only: ../../data/world_model/quentinll/lewm-tworooms/tworoom.h5
+  catalogs:
+    speed: artifacts/synthesis/catalogs/tworoom_speed_pixel_v2.json
+    door: artifacts/synthesis/catalogs/tworoom_door_pixel_v1.json
+    speed_door_composition: artifacts/synthesis/catalogs/tworoom_speed_door_composition_v1.json
+  combined_index: artifacts/synthesis/catalogs/tworoom_benchmark_step1_v1.json
+
+baseline:
+  model_id: M_orig
+  checkpoint_env: CONTEXTWORLD_TWOROOM_BASELINE_CKPT
+  identity_status: passed
+  seed: 3072
+  run_name: tworoom_lewm_20260430
+  run_dir: /opt/workspace/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-tworooms/ckpt/tworoom_lewm_20260430
+  object_checkpoint: /opt/workspace/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-tworooms/ckpt/tworoom_lewm_20260430/tworoom_lewm_20260430_epoch_10_object.ckpt
+  training_state_checkpoint: /opt/workspace/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-tworooms/ckpt/tworoom_lewm_20260430/tworoom_lewm_20260430_weights.ckpt
+  training_config: /opt/workspace/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-tworooms/ckpt/tworoom_lewm_20260430/config.yaml
+  task: tworoom
+  image_noise_std: [0.0, 0.0]
+  epoch: 9
+  completed_epochs: 10
+  global_step: 6420
+  model_class: jepa.JEPA
+  parameter_count: 18034478
+  action_block: 5
+  history_size: 3
+  audit: artifacts/evaluation/baseline/m_orig_seed3072_audit.json
+  train_action: reuse_existing_checkpoint
+  original_id_eval_action: reuse_existing_result
+  new_eval_required:
+    - speed_ood
+    - door_ood
+    - speed_door_training_unseen_combinations
+
+training_protocol:
+  architecture_and_hyperparameters: match_original_baseline
+  initialization: from_scratch_same_seed
+  optimizer_steps: match_original_baseline_global_step
+  pilot_seeds: [3072]
+  confirmation_seeds: [3072, 3073, 3074]
+  validation_role: monitoring_only
+  early_stopping: false
+  checkpoint_selection: final_fixed_step
+  test_never_used_for_selection: true
+  display_model_mapping:
+    H3-MixSpeed: M_speed
+  normalization:
+    statistics_source: full_original_tworoom_h5_before_seeded_90_10_loader_split
+    estimator: torch_unbiased_standard_deviation
+    synthetic_train_used_for_statistics: false
+    validation_or_test_used_for_statistics: false
+  formal_profiles:
+    H3-MixSpeed:
+      model_id: M_speed
+      history_size: 3
+      action_block: 5
+      epoch_size_global_samples: 1314816
+      logical_epochs: 5
+      batch_size_per_device: 128
+      devices: 4
+      adapter_gradient_accumulation_steps: 2
+      trainer_gradient_accumulation: 1
+      global_batch_size: 1024
+      microbatches_per_rank_per_epoch: 2568
+      microbatches_per_rank_total: 12840
+      accumulation_implementation: stablepretraining_manual_optimizer_frequency_with_explicit_loss_scaling
+      optimizer_steps: 6420
+      warmup_steps: 64
+      group_weights: {original: 0.50, speed: 0.50}
+      training_seed: 3072
+      data_split_seed: 3072
+      final_checkpoint: weights_final_step_6420.pt
+      budget_equivalence: matches_global_batch_total_exposure_steps_and_lr_schedule
+      cadence_difference: 5_logical_epochs_instead_of_10_baseline_epochs
+      runtime_requirement: 4_visible_cuda_devices
+      historical_reference_topology: 8gpu_x_b128_x_accum1
+      validated_execution_topology: 4gpu_x_b128_x_accum2
+  group_sampling:
+    # Weights apply to logical groups, not to every Lance scenario.
+    M_speed: {original: 0.50, speed: 0.50}
+    M_door: {original: 0.50, door: 0.50}
+    M_atomic: {original: 0.50, speed: 0.25, door: 0.25}
+    M_composed:
+      original: 0.50
+      speed: 0.1666666667
+      door: 0.1666666667
+      speed_door_composition: 0.1666666666
+
+  adapter_validation:
+    status: formal_data_plan_and_distributed_runtime_smoke_passed
+    entrypoint: scripts/train_tworoom_step1.py
+    execution_script: scripts/run_h3_mixspeed_train.sh
+    implementation: pinned_stable_worldmodel_lewm
+    stable_worldmodel_commit: 5864b74980f6ed328fd0045e777b3865962eff43
+    seed_before_model_initialization: true
+    factor_columns_exposed_to_model: false
+    loader_audit: artifacts/training/loader_audits/m_composed_smoke.json
+    train_save_load_report: artifacts/training/smoke/m_speed_train_save_load.json
+    native_checkpoint_eval: artifacts/evaluation/protocol_smoke/m_speed_adapter_smoke_speed_test_interp.json
+    formal_data_plan_preflight: artifacts/training/reports/h3_mixspeed_s3072_preflight.json
+    distributed_runtime_smoke:
+      report: artifacts/training/reports/h3_mixspeed_ddp_smoke_20260715T081237Z.json
+      devices: 2
+      num_workers_per_rank: 2
+      optimizer_steps: 2
+      exact_native_checkpoint_reload: true
+    formal_topology_runtime_smoke:
+      report: artifacts/training/reports/h3_mixspeed_4gpu_accum_smoke_20260715T084923Z.json
+      devices: 4
+      batch_size_per_device: 128
+      adapter_gradient_accumulation_steps: 2
+      microbatches_per_rank: 4
+      optimizer_steps: 2
+      scheduler_steps: 2
+      exact_native_checkpoint_reload: true
+    formal_4gpu_pilot_status: ready_to_launch
+    pixel_codec_domain_cue_audit: pending
+    interpretation: adapter_only_not_benchmark_performance
+
+models:
+  - model_id: M_orig
+    training_groups: []
+  - model_id: M_speed
+    training_groups: [original, speed]
+  - model_id: M_door
+    training_groups: [original, door]
+  - model_id: M_atomic
+    training_groups: [original, speed, door]
+  - model_id: M_composed
+    training_groups: [original, speed, door, speed_door_composition]
+
+evaluation:
+  adapter:
+    status: protocol_smoke_passed
+    env_id: contextworld/TwoRoomEval-v1
+    setup_order: [variation, state, goal]
+    normalization_source: original_training_h5_only
+    sampling: scenario_balanced_then_episode_balanced
+    entrypoint: scripts/eval_tworoom_step1.py
+    smoke_outputs:
+      - artifacts/evaluation/protocol_smoke/random_speed_test_interp.json
+      - artifacts/evaluation/protocol_smoke/random_door_test_interp.json
+      - artifacts/evaluation/protocol_smoke/random_speed_door_test_unseen_combination.json
+      - artifacts/evaluation/protocol_smoke/m_orig_speed_test_interp.json
+      - artifacts/evaluation/protocol_smoke/m_orig_door_test_interp.json
+      - artifacts/evaluation/protocol_smoke/m_orig_speed_door_test_unseen_combination.json
+      - artifacts/evaluation/protocol_smoke/m_speed_adapter_smoke_speed_test_interp.json
+    interpretation: protocol_only_not_benchmark_performance
+  augmented_models_original_id_eval: required
+  all_models_new_ood_eval:
+    - speed_test_interp
+    - speed_test_extrap_low
+    - speed_test_extrap_high
+    - door_test_interp
+    - door_test_extrap_low
+    - door_test_extrap_high
+    - speed_door_test_training_unseen_combination
+  primary_comparisons:
+    - [M_orig, M_speed, speed_ood]
+    - [M_orig, M_door, door_ood]
+    - [M_orig, M_atomic, speed_door_training_unseen_combinations]
+    - [M_atomic, M_composed, speed_door_training_unseen_combinations]
+
+execution_guards:
+  - id: baseline_identity
+    status: passed
+    requirement: Confirm checkpoint path, task identity, config, and global step.
+    evidence: artifacts/evaluation/baseline/m_orig_seed3072_audit.json
+  - id: group_weighted_loader
+    status: passed
+    requirement: Sample logical groups at configured weights.
+    forbidden_shortcut: Do not balance every Lance scenario as an independent task.
+    evidence: artifacts/training/loader_audits/m_composed_smoke.json
+  - id: variation_aware_eval
+    status: passed
+    requirement: Restore agent.speed and door.position before every OOD rollout.
+    forbidden_shortcut: Do not use stock eval_wm.py state/goal restoration alone.
+    evidence: artifacts/evaluation/protocol_smoke/
+  - id: train_save_load_eval
+    status: passed
+    requirement: Train with pinned StableWM, save its native checkpoint, reload exactly, and evaluate it with factor readback.
+    evidence:
+      - artifacts/training/smoke/m_speed_train_save_load.json
+      - artifacts/evaluation/protocol_smoke/m_speed_adapter_smoke_speed_test_interp.json
+  - id: formal_history3_mixspeed_training_contract
+    status: passed
+    requirement: Preserve history-3 input shapes, exact 50/50 logical mixture, global batch 1024, 6420 optimizer steps, and the 64/6420 LR schedule.
+    evidence:
+      - artifacts/training/reports/h3_mixspeed_s3072_preflight.json
+      - artifacts/training/reports/h3_mixspeed_ddp_smoke_20260715T081237Z.json
+      - artifacts/training/reports/h3_mixspeed_4gpu_accum_smoke_20260715T084923Z.json

@@ -1,0 +1,151 @@
+schema_version: 1
+benchmark: tworoom_planner_mechanism_attribution_v1
+status: preregistered_before_execution
+preregistered_date: 2026-07-19
+
+questions:
+  - Where does the SpeedFull fast-context planning advantage first appear?
+  - Does an exact-dynamics speed oracle prefer the true query speed?
+  - Does context change exact steps-to-success and trajectory efficiency?
+  - Is correct-context prediction more accurate even when fast-context planning success is higher?
+  - Does the Fast planning advantage shrink when the environment-step budget increases?
+
+evidence_boundary:
+  stage: validation_mechanism_attribution
+  final_test: false
+  training_seeds_per_model: 1
+  no_post_score_threshold_changes: true
+
+frozen_inputs:
+  stable_worldmodel_commit: 5864b74980f6ed328fd0045e777b3865962eff43
+  normalizer:
+    path: artifacts/splits/tworoom_original_train_s3072_normalizer.json
+    sha256: 7a5be7ea867bced446c1671b0b2c0ff6450ffc61e1a7bdbbfc5eaa0942f635db
+  catalogs:
+    wrong_slow:
+      path: artifacts/evaluation/history3/icl_sensitive_v2_directional/catalogs/heldout_wrong_slow.json
+      sha256: d692736d9d6aeb270f8b4edb8e9849c44f546c580555e97cc03dca4b953da318
+    wrong_fast:
+      path: artifacts/evaluation/history3/icl_sensitive_v2_directional/catalogs/heldout_wrong_fast.json
+      sha256: 1addd90144d8d442f6ee996ea9ad7a69c58cd643a96478046ba83f2341834e40
+  models:
+    speedfull:
+      path: artifacts/training/runs/checkpoints/h3_speedfull_s3072/weights_final_step_12840.pt
+      sha256: 79e2b2d17445a21d1685759679c6ab82f9fda834584168d7e3e02bf50b78a778
+    single_speed_mixed_control:
+      path: artifacts/training/runs/checkpoints/h3_origplus_synth5_s3072/weights_final_step_12840.pt
+      sha256: 79e1c63a00e4b24e7c65d5bdc096afcfec7edd838e58475280637923991b3474
+
+shared_protocol:
+  query_speeds: [5.0, 5.1]
+  context_speeds:
+    slow: 3.1
+    correct: query_speed
+    fast: 7.0
+  eval_seeds: [42, 43, 44, 45, 46, 47]
+  evaluations_per_condition_per_seed: 50
+  evaluations_per_condition: 300
+
+closed_loop_trace:
+  evals_per_model: 2
+  conditions_per_eval: 2
+  raw_records_per_model: 1200
+  models: 2
+  expected_raw_records: 2400
+  require_independent_50x6_per_eval_condition: true
+  planning:
+    eval_budget_raw_steps: 50
+    action_block_raw_steps: 5
+    horizon_action_blocks: 5
+    receding_horizon_action_blocks: 5
+    cem_samples: 300
+    cem_steps: 30
+    cem_topk: 30
+    cem_var_scale: 1.0
+  required_per_record:
+    - raw_step_states
+    - raw_step_actions
+    - raw_step_goal_distances
+    - steps_to_success
+    - path_length
+    - path_efficiency
+    - trajectory_distance_auc
+    - cem_solve_calls
+
+fixed_candidate_diagnostic:
+  candidate_sequences_per_query: 300
+  horizon_action_blocks: 5
+  raw_steps_per_action_block: 5
+  action_dimensions: 2
+  generation: 239_independent_normal_candidates_plus_60_goal_directed_candidates_plus_zero
+  preflight_revision: pure_random_bank_failed_oracle_reachability_before_formal_execution
+  force_first_candidate_zero: true
+  seed_derivation: numpy_SeedSequence_eval_seed_evaluation_index_query_index_271828
+  same_candidates_across_contexts: true
+  same_candidates_across_models: true
+  model_outputs:
+    - final_latent_cost
+    - latent_cost_at_1_2_3_5_steps
+    - candidate_rank
+    - topk_indices
+    - selected_candidate
+  exact_dynamics_assumed_speeds: [3.1, query_speed, 7.0]
+  exact_dynamics_execution_speed: query_speed
+  oracle_outputs:
+    - assumed_speed_final_distance_per_candidate
+    - selected_candidate_realized_true_speed_distance
+    - selected_candidate_success
+    - selected_candidate_steps_to_success
+
+directional_prediction_accuracy:
+  primary_model: speedfull
+  control_model: single_speed_mixed_control
+  shared_probe_actions_across_contexts: true
+  ground_truth_dynamics_speed: query_speed
+  paired_evaluations: 300
+  horizons_raw_steps: [1, 2, 3, 5, 10, 15, 25]
+  primary_horizons_raw_steps: [5, 10, 15, 25]
+  metric: native_latent_mse_to_true_speed_rollout
+  comparisons:
+    - correct_minus_slow
+    - correct_minus_fast
+  interpretation:
+    correct_lower_than_both_wrong: prediction_is_correctly_speed_calibrated
+    fast_lower_than_correct: fast_context_prediction_advantage_not_only_a_cem_endpoint_effect
+
+planning_budget_sensitivity:
+  model: speedfull
+  eval_budgets_raw_steps: [50, 75, 100]
+  budget_50_source: closed_loop_trace
+  each_eval_each_condition_each_budget: 300
+  keep_cem_search_fixed: true
+  cem_samples: 300
+  cem_steps: 30
+  cem_topk: 30
+  metrics:
+    - success
+    - final_distance
+    - normalized_progress
+    - steps_to_success
+    - trajectory_distance_auc
+  interpretation:
+    fast_advantage_shrinks_with_budget: finite_execution_budget_contributes
+    fast_advantage_persists_with_budget: search_or_model_cost_bias_remains
+  boundary: no_finite_budget_is_claimed_to_be_unlimited
+
+interpretation:
+  oracle_positive_control:
+    requirement: correct_assumed_speed_beats_both_wrong_directions_on_true_dynamics
+    if_failed: planner_or_candidate_bank_not_valid_for_correctness_attribution
+  model_rollout_bias:
+    evidence: speedfull_fast_context_cost_ranking_diverges_before_cem_search
+  search_bias:
+    evidence: fixed_candidate_costs_do_not_favor_fast_but_free_cem_does
+  model_calibration_issue:
+    evidence: oracle_positive_control_passes_and_speedfull_fixed_candidate_ranking_favors_fast
+  no_single_variable_training_claim: true
+  separate_prediction_accuracy_from_cem_endpoint_success: true
+
+artifacts:
+  root: artifacts/evaluation/history3/planner_mechanism_v1
+  final_summary: artifacts/evaluation/history3/planner_mechanism_v1/final_summary_n50x6.json

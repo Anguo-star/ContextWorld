@@ -1,0 +1,234 @@
+schema_version: 1
+benchmark: contextworld_tworoom_icl_v1
+design_document: docs/ContextWorld_Benchmark_Design.md
+data_card: docs/reference/TwoRoom_Benchmark_Step1_Data_Card_v1.md
+
+objective:
+  capability: frozen_weight_in_context_world_model_induction
+  primary_question: >-
+    Does rule-consistent visual-action context improve prediction and planning
+    for an identical query without changing model parameters?
+  parameter_updates_during_eval: forbidden
+  privileged_factor_input: forbidden
+  cross_scenario_context_memory: forbidden
+
+terminology:
+  unseen_combination: 训练未见组合
+  context_token: one observation-action-transition unit consumed by the model
+  correct_context: context generated under the same target latent rule as the query
+  wrong_context: paired context changing only the target latent rule
+  irrelevant_context: context preserving the target rule while changing a nuisance factor
+
+implementation:
+  stable_worldmodel_repo: ../stable-worldmodel
+  stable_worldmodel_commit: 5864b74980f6ed328fd0045e777b3865962eff43
+  environment_id: tworoom
+  eval_environment_id: contextworld/TwoRoomEval-v1
+  reference_model:
+    class: stable_worldmodel.wm.lewm.lewm.LeWM
+    history_size: 3
+    action_block: 5
+    native_track: T1_trajectory_icl
+    native_core_context_budgets: [0, 1, 2]
+    maximum_prior_context_transitions: 2
+    unsupported_context_budgets: [3, 4, 8, 16]
+
+data:
+  original_read_only: ../../data/world_model/quentinll/lewm-tworooms/tworoom.h5
+  catalogs:
+    speed: artifacts/synthesis/catalogs/tworoom_speed_pixel_v2.json
+    door: artifacts/synthesis/catalogs/tworoom_door_pixel_v1.json
+    speed_door_composition: artifacts/synthesis/catalogs/tworoom_speed_door_composition_v1.json
+  model_visible_columns: [pixels, action, proprio]
+  privileged_validation_columns:
+    - state
+    - variation_agent_speed
+    - variation_door_position
+
+factor_roles:
+  agent_speed:
+    novelty_level: N1
+    observability: transition_only
+    role: positive_icl_factor
+    required_context_properties:
+      - nonzero_motion
+      - collision_free
+      - nonterminal
+      - candidate_speeds_separable_in_state_and_pixels
+  door_position:
+    novelty_level: N0
+    observability: initial_observation
+    role: visible_geometry_negative_control
+  speed_door_composition:
+    novelty_level: N1_plus_N0
+    role: latent_visible_factor_disentanglement_and_unseen_combination
+
+tracks:
+  T0_zero_shot_ood:
+    context: none
+    purpose: static_ood_baseline
+  T1_trajectory_icl:
+    context_source: nonoverlapping_prefix_of_same_episode
+    query_source: later_transitions_of_same_episode
+    episode_boundaries: not_applicable
+    primary: true
+  T2_support_set_icl:
+    context_source: context_episodes
+    query_source: disjoint_query_episodes_from_same_scenario
+    episode_boundaries: required
+    primary: true
+  T3_active_context:
+    context_source: agent_selected_interactions
+    primary: false
+    reporting: separate_from_passive_icl
+
+context_protocol:
+  core_budgets_tokens: [0, 1, 2, 3]
+  extended_budgets_tokens: [4, 8, 16]
+  shuffled_minimum_budget_tokens: 2
+  conditions:
+    - none
+    - correct
+    - wrong
+    - irrelevant
+    - shuffled
+  query_invariant_across_conditions: true
+  context_query_overlap: forbidden
+  query_future_in_context: forbidden
+  factor_labels_in_model_input: forbidden
+  reset_context_after_each_query_bundle: true
+  paired_intervention:
+    hold_fixed:
+      - query
+      - reset_state
+      - goal
+      - open_loop_actions
+      - nuisance_atoms
+      - evaluation_randomness
+    change_only: target_latent_factor
+
+context_conditions_by_family:
+  speed:
+    correct: same_speed_same_nuisance_factors
+    wrong: different_speed_same_door_and_actions
+    irrelevant: same_speed_different_door
+  speed_door_composition:
+    correct: same_speed_same_door
+    wrong_speed: different_speed_same_door
+    irrelevant_door: same_speed_different_door
+    wrong_both: different_speed_different_door
+
+query_tasks:
+  prediction:
+    - one_step_native_latent_prediction
+    - multi_step_native_latent_rollout
+  counterfactual:
+    - candidate_rule_identification
+    - counterfactual_transition_selection
+    - defect_detection
+  planning:
+    - mpc_task_success
+    - final_distance
+    - planning_cost
+
+metrics:
+  required:
+    - prediction_loss_by_context_budget
+    - prediction_icl_gain
+    - wrong_context_separation
+    - planning_success_by_context_budget
+    - planning_icl_gain
+    - context_efficiency_auc
+    - minimum_context_to_threshold
+    - original_id_retention
+  prediction_icl_gain: loss_none_minus_loss_correct
+  wrong_context_separation: loss_wrong_minus_loss_correct
+  planning_icl_gain: success_correct_minus_success_none
+  aggregation:
+    first: per_query
+    second: per_scenario
+    third: scenario_balanced_regime
+    confidence_interval: bootstrap
+    preserve_raw_results: true
+
+splits:
+  value_regimes:
+    - validation_interp
+    - test_interp
+    - test_extrap_low
+    - test_extrap_high
+  combination_regimes:
+    - seen_values_seen_combinations
+    - seen_values_unseen_combinations
+    - unseen_values
+    - unseen_values_unseen_combinations
+  episode_roles:
+    - context
+    - query
+    - diagnostic
+  test_context_is_allowed_only_as_frozen_input: true
+  test_context_for_model_selection: forbidden
+
+models:
+  - model_id: M_orig
+    training_groups: [original]
+  - model_id: M_speed
+    training_groups: [original, speed]
+  - model_id: M_door
+    training_groups: [original, door]
+  - model_id: M_atomic
+    training_groups: [original, speed, door]
+  - model_id: M_composed
+    training_groups: [original, speed, door, speed_door_composition]
+
+training_fairness:
+  architecture: identical_within_comparison
+  initialization: from_scratch_same_seed
+  optimizer_steps: match_verified_M_orig_budget
+  pilot_seeds: [3072]
+  confirmation_seeds: [3072, 3073, 3074]
+  normalizer_sources:
+    lewm: full_original_tworoom_h5_before_seeded_90_10_loader_split
+    synthetic: excluded
+    validation_and_test: excluded
+  validation_role: monitoring_only
+  early_stopping: false
+  checkpoint_selection: final_fixed_step
+  test_for_selection: forbidden
+  logical_group_sampling:
+    M_speed: {original: 0.50, speed: 0.50}
+    M_door: {original: 0.50, door: 0.50}
+    M_atomic: {original: 0.50, speed: 0.25, door: 0.25}
+    M_composed:
+      original: 0.50
+      speed: 0.1666666667
+      door: 0.1666666667
+      speed_door_composition: 0.1666666666
+
+execution_guards:
+  frozen_weights:
+    requirement: state_dict_hash_before_equals_state_dict_hash_after
+  context_isolation:
+    requirement: no_overlap_no_future_no_cross_scenario_memory
+  query_invariance:
+    requirement: identical_query_and_eval_randomness_across_context_conditions
+  context_diagnosticity:
+    requirement: paired_contexts_separate_candidate_rules_in_state_and_pixels
+  factor_readback:
+    requirement: restore_variation_then_state_then_goal_and_verify_values
+  simulator_replay:
+    requirement: exact_state_and_encoded_pixel_replay
+  natural_history_continuity:
+    requirement: same_episode_training_equivalent_clip_without_padding_or_splicing
+  model_inputs:
+    requirement: no_factor_value_scenario_id_or_privileged_state
+
+outputs:
+  validation_context_query_catalog: artifacts/evaluation/icl/tworoom_icl_v1_validation_context_query_catalog.json
+  validation_catalog_report: artifacts/evaluation/icl/tworoom_icl_v1_validation_catalog_validation.json
+  m_orig_validation_diagnostic: artifacts/evaluation/icl/tworoom_m_orig_validation_t0_t1.json
+  validation_natural_history_catalog: artifacts/evaluation/icl/tworoom_natural_history_v1_validation_catalog.json
+  validation_natural_history_report: artifacts/evaluation/icl/tworoom_natural_history_v1_validation_report.json
+  m_orig_natural_history_prediction: artifacts/evaluation/icl/tworoom_m_orig_validation_natural_history_prediction.json
+  raw_results: artifacts/evaluation/icl/raw
+  aggregate_reports: artifacts/evaluation/icl/reports

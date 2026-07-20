@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "contextworld"
+version = "0.1.0"
+description = "Composable context-shift data synthesis for world models"
+requires-python = ">=3.10"
+dependencies = [
+  "numpy>=1.24",
+  "PyYAML>=6.0",
+]
+
+[project.scripts]
+contextworld-smoke = "contextworld.synthesis.smoke:main"
+contextworld-synthesize = "contextworld.synthesis.smoke:main"
+
+[tool.setuptools.packages.find]
+include = ["contextworld*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+pythonpath = ["."]

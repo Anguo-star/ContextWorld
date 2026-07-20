@@ -1,0 +1,102 @@
+schema_version: 1
+benchmark: tworoom_original_ability_reconstruction_v1
+status: preregistered_executable_pending
+
+data:
+  original_read_only: ../../data/world_model/quentinll/lewm-tworooms/tworoom.h5
+  original_split:
+    strategy: episode_heldout
+    seed: 3072
+    train_fraction: 0.9
+    heldout_view: artifacts/splits/tworoom_original_episode_holdout_s3072.h5
+    heldout_manifest: artifacts/splits/tworoom_original_episode_holdout_s3072.json
+  catalogs:
+    synth5_matched: artifacts/synthesis/catalogs/tworoom_synth5_matched_v2.json
+
+data_quality:
+  groups:
+    synth5_matched:
+      required_pixel_codec: {format: png, compress_level: 1, lossless: true}
+      sampling_strategy: concatenated_raw_clips
+      minimum_raw_train_clips: 600000
+      maximum_formal_mean_draws_per_raw_clip: 11.0
+      minimum_train_scenarios: 90
+      minimum_validation_scenarios: 10
+
+training_protocol:
+  comparison: original_ability_reconstruction
+  early_stopping: false
+  checkpoint_selection: final_fixed_step
+  fixed_components:
+    - history3_lewm_architecture
+    - stable_worldmodel_commit_5864b74980f6ed328fd0045e777b3865962eff43
+    - training_seed_3072
+    - original_episode_split_seed_3072
+    - original_train_only_normalization
+    - effective_global_batch_1024
+  group_sampling:
+    M_origheldout: {original: 1.0}
+    M_synth5matched: {synth5_matched: 1.0}
+    M_origplus_synth5: {original: 0.5, synth5_matched: 0.5}
+  exposure_contract:
+    single_domain:
+      epoch_size_global: 1314816
+      logical_epochs: 5
+      optimizer_steps: 6420
+      effective_global_batch: 1024
+      total_draws: 6574080
+    additive:
+      epoch_size_global: 2629632
+      logical_epochs: 5
+      optimizer_steps: 12840
+      effective_global_batch: 1024
+      original_draws: 6574080
+      synthetic_draws: 6574080
+
+models:
+  - model_id: M_origheldout
+    display_name: H3-OrigHeldout
+    training_groups: [original]
+    profile: formal
+    checkpoint: artifacts/training/runs/checkpoints/h3_origheldout_s3072/weights_final_step_6420.pt
+  - model_id: M_synth5matched
+    display_name: H3-Synth5Matched
+    training_groups: [synth5_matched]
+    profile: formal
+    checkpoint: artifacts/training/runs/checkpoints/h3_synth5matched_s3072/weights_final_step_6420.pt
+  - model_id: M_origplus_synth5
+    display_name: H3-OrigPlusSynth5
+    training_groups: [original, synth5_matched]
+    profile: additive
+    checkpoint: artifacts/training/runs/checkpoints/h3_origplus_synth5_s3072/weights_final_step_12840.pt
+
+evaluation_protocol:
+  eval_seeds: [42, 43, 44, 45, 46, 47]
+  num_eval_per_seed: 50
+  reuse_evaluation_ids: true
+  reuse_cem_subseeds: true
+  normalization: original_train_9000_frozen_unbiased_zscore
+  planning:
+    eval_budget: 50
+    horizon: 5
+    receding_horizon: 5
+    cem_samples: 300
+    cem_steps: 30
+    cem_topk: 30
+  rollout_horizons_action_blocks: [1, 2, 3, 5]
+  non_inferiority:
+    reference: H3-OrigHeldout
+    confidence_level: 0.95
+    paired_bootstrap_seed: 3072
+    paired_bootstrap_resamples: 10000
+    success_margin_percentage_points: -5.0
+    final_distance_margin_px: 5.0
+    require_no_solvable_stratum_collapse: true
+
+artifacts:
+  root: artifacts/evaluation/history3/original_ability_reconstruction
+  frozen_normalizer: artifacts/splits/tworoom_original_train_s3072_normalizer.json
+  original_eval_catalog: artifacts/evaluation/history3/original_ability_reconstruction/original_heldout_eval_catalog.json
+  matched_eval_catalog: artifacts/evaluation/history3/original_ability_reconstruction/speed5_matched_eval_catalog.json
+  rollout_catalog: artifacts/evaluation/history3/original_ability_reconstruction/rollout_catalog.json
+  summary: artifacts/evaluation/history3/original_ability_reconstruction/original_ability_reconstruction_n50x6.json

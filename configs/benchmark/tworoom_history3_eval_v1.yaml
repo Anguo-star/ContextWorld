@@ -1,0 +1,460 @@
+schema_version: 1
+benchmark: contextworld_tworoom_history3_eval_v1
+execution_repo: ContextWorld
+stable_worldmodel_role: pinned_runtime_dependency
+
+formal_planning_eval_protocol:
+  num_eval_per_condition_per_seed: 50
+  eval_seeds: [42, 43, 44, 45, 46, 47]
+  total_eval_per_condition: 300
+  aggregation: report_per_seed_then_equal_seed_mean_and_pooled_counts
+  paired_conditions: reuse_identical_queries_goals_and_cem_subseeds
+  scope: formal_cem_planning_only
+  exceptions: [protocol_smoke, qualitative_probe, deterministic_prediction_catalog]
+
+study_scope:
+  stage: speed_first
+  active_family: speed
+  decision_rule: conclude_speed_before_enabling_other_families
+  deferred_families: [door, speed_door_composition]
+
+stage1_comparison_roster:
+  - display_id: H3-Orig
+    model_family: LeWM
+    training_data: original_only
+    role: within_family_negative_control
+    status: e4_50x6_complete
+  - display_id: DINO-Orig
+    model_family: DINO-WM
+    implementation: StableWM_PreJEPA
+    training_data: original_only
+    input_modalities: [pixels, action]
+    history_size: 3
+    action_block: 5
+    role: external_family_negative_control
+    status: checkpoint_and_adapter_pending
+    required_adapter_guards:
+      - infer_action_block_from_extra_encoders_action
+      - clear_init_and_goal_cache_between_context_conditions
+      - reproduce_dinowm_population_zscore_from_original_train_data
+      - do_not_use_with_proprio_without_context_proprio_injection
+  - display_id: H3-MixSpeed
+    model_id: M_speed
+    model_family: LeWM
+    training_data: [original, speed]
+    logical_group_weights: {original: 0.5, speed: 0.5}
+    training_profile_ref: configs/benchmark/tworoom_step1_v1.yaml
+    training_seed: 3072
+    data_split_seed: 3072
+    role: synthetic_training_positive_control
+    checkpoint: artifacts/training/runs/checkpoints/h3_mixspeed_s3072/weights_final_step_6420.pt
+    checkpoint_sha256: aab2a6f439e06f1a4bbba7189d29904b53c1e79c17d7956aabaca5413523d144
+    status: e4_50x6_complete_no_positive_separation
+  - display_id: H3-SpeedClean
+    model_id: M_speedclean
+    model_family: LeWM
+    training_data: [original, speed_clean]
+    logical_group_weights: {original: 0.5, speed_clean: 0.5}
+    training_profile_ref: configs/benchmark/tworoom_step1_v1.yaml
+    training_seed: 3072
+    data_split_seed: 3072
+    role: data_repair_positive_control
+    checkpoint: artifacts/training/runs/checkpoints/h3_speedclean_s3072/weights_final_step_6420.pt
+    checkpoint_sha256: 2d64cf5c9beeae6578529e9fa94538dfd9e937073e5114933b7db7025ba5b35c
+    status: e1_id_e4_complete_no_planning_separation
+  - display_id: H3-SpeedSeen
+    model_id: M_speedseen
+    model_family: LeWM
+    training_data: [original, speed_seen]
+    logical_group_weights: {original: 0.5, speed_seen: 0.5}
+    training_profile_ref: configs/benchmark/tworoom_speed_seen_v1.yaml
+    training_seed: 3072
+    data_split_seed: 3072
+    role: exact_speed_support_overlap_control
+    evaluation_role: seen_speed_diagnostic_not_heldout_validation
+    checkpoint: artifacts/training/runs/checkpoints/h3_speedseen_s3072/weights_final_step_6420.pt
+    checkpoint_sha256: 17122ac75fbcd327a25eae121eab8fdddec7fb6c46cb5beb2a1fd7784a5c5161
+    status: e1_id_e4_complete_success_unchanged_final_distance_improved
+  - display_id: H3-SpeedTask
+    model_id: M_speed
+    model_family: LeWM
+    training_data: [original, speed_task]
+    logical_group_weights: {original: 0.5, speed_task: 0.5}
+    training_profile_ref: configs/benchmark/tworoom_speed_task_v1.yaml
+    training_seed: 3072
+    data_split_seed: 3072
+    role: task_distribution_and_effective_geometry_control
+    data_status: generated_validated_preflight_passed
+    checkpoint: artifacts/training/runs/checkpoints/h3_speedtask_s3072/weights_final_step_6420.pt
+    checkpoint_sha256: 4bb6edfdf9d5c3868eb0aca2fc59b0716a2890cda9508806f0ed43b4094cb3fc
+    status: e1_id_e4_complete_success_unchanged_final_distance_regressed
+
+cross_model_interpretation:
+  absolute_ood_success: task_difficulty_and_general_ood_robustness
+  paired_correct_minus_wrong: within_model_context_adaptation
+  lewm_dinowm_latent_losses_directly_comparable: false
+  low_absolute_scores_alone_validate_icl_benchmark: false
+
+model:
+  model_id: M_orig
+  class: jepa.JEPA
+  checkpoint: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-tworooms/ckpt/tworoom_lewm_20260430/tworoom_lewm_20260430_epoch_10_object.ckpt
+  legacy_code_root: /opt/huawei/explorer-env/dataset/ag_data/code/wm_exp
+  original_h5: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-tworooms/tworoom.h5
+  parameter_count: 18034478
+  history_size: 3
+  maximum_prior_context_transitions: 2
+  action_block: 5
+  image_size: 224
+  training_seed: 3072
+  prediction_seed: 3072
+
+runtime:
+  stable_worldmodel_repo: ../stable-worldmodel
+  stable_worldmodel_commit: 5864b74980f6ed328fd0045e777b3865962eff43
+  device: cuda:0
+  output_dir: artifacts/evaluation/history3
+
+evaluation_groups:
+  speed_context_identifiability:
+    display_name: Speed-ID oracle
+    status: complete
+    entrypoint: scripts/eval_tworoom_speed_identifiability.py
+    catalog: artifacts/evaluation/icl/tworoom_icl_v1_validation_context_query_catalog.json
+    output: artifacts/evaluation/history3/oracle_speed_identifiability_k2_k4_k8.json
+    split: validation
+    family: speed
+    context_transitions: [2, 4, 8]
+    matched_model_history_tokens: [3, 5, 9]
+    unique_bundles: 32
+    candidate_speeds: [3.1, 3.3, 3.5, 4.1, 5.0, 5.1, 5.9, 7.0]
+    estimators:
+      state_oracle: [privileged_state, model_visible_action]
+      pixel_oracle: [model_visible_rgb, model_visible_action]
+    result:
+      state_accuracy_by_k: {2: 1.0, 4: 1.0, 8: 1.0}
+      pixel_accuracy_by_k: {2: 1.0, 4: 1.0, 8: 1.0}
+      pixel_speed_mae_by_k: {2: 0.003795921954143841, 4: 0.003795921954143841, 8: 0.003795921954143841}
+      maximum_endpoint_error: 0.0
+      maximum_collision_residual: 6.823937920013263e-06
+      decision: k2_is_information_sufficient_history_length_not_primary_bottleneck
+    interpretation: K4 and K8 repeat deterministic paired evidence while preserving the same query state; equal accuracy does not prove equal learning difficulty.
+
+  e1_paired_prediction:
+    experiment_id: E1
+    display_name: paired prediction
+    status: ready
+    entrypoint: scripts/eval_tworoom_icl.py
+    catalog: artifacts/evaluation/icl/tworoom_icl_v1_validation_context_query_catalog.json
+    split: validation
+    protocol_scope: no_context_baseline_and_trajectory_context
+    context_budgets: [0, 1, 2]
+    conditions: [none, correct, wrong, irrelevant, shuffled]
+    families: [speed]
+    encode_batch_size: 64
+    predictor_batch_size: 128
+    output_name: e1_speed_paired.json
+    speedclean_result:
+      output: artifacts/evaluation/history3/h3_speedclean_s3072/e1_speed_paired.json
+      no_context_latent_mse: 0.06188964153989218
+      prediction_icl_gain_k2: 0.0036938220728188753
+      prediction_icl_gain_k2_ci: [-0.00791006084982655, 0.016469252356910144]
+      wrong_context_separation_k2: 0.016740014543756843
+      wrong_context_separation_k2_ci: [0.006249695801670896, 0.02883942544576712]
+    speedseen_result:
+      output: artifacts/evaluation/history3/h3_speedseen_s3072/e1_speed_paired.json
+      evaluation_role: seen_speed_diagnostic
+      no_context_latent_mse: 0.0585495630512014
+      correct_context_latent_mse_k2: 0.05640586619847454
+      prediction_icl_gain_k2: 0.002143696852726862
+      prediction_icl_gain_k2_ci: [-0.012201466662372696, 0.017803631722927094]
+      wrong_context_separation_k2: 0.016707184811821207
+      wrong_context_separation_k2_ci: [0.0052035905508091675, 0.030232500513375244]
+    speedtask_result:
+      output: artifacts/evaluation/history3/h3_speedtask_s3072/e1_speed_paired.json
+      no_context_latent_mse: 0.05835155310342088
+      correct_context_latent_mse_k2: 0.04470684587431606
+      prediction_icl_gain_k2: 0.013644707229104824
+      prediction_icl_gain_k2_ci: [-0.00292194532812573, 0.03136236301688768]
+      wrong_context_separation_k2: 0.020804914413020015
+      wrong_context_separation_k2_ci: [0.01073148719187884, 0.03105577526766864]
+  e2_natural_prediction:
+    experiment_id: E2
+    display_name: natural-history prediction
+    status: ready
+    entrypoint: scripts/eval_tworoom_natural_history.py
+    catalog: artifacts/evaluation/icl/tworoom_natural_history_v1_validation_catalog.json
+    split: validation
+    context_budgets: [0, 1, 2]
+    families: [speed]
+    clips: 24
+    encode_batch_size: 64
+    predictor_batch_size: 128
+    output_name: e2_speed_natural.json
+
+  e3_no_context_planning:
+    experiment_id: E3
+    display_name: no-context planning
+    status: ready_for_variation_aware_no_context_evaluation
+    entrypoint: scripts/eval_tworoom_step1.py
+    limitation: current_observation_only_no_paired_context_injection
+    original_tworoom_reference:
+      eval_seeds: [42, 43, 44]
+      num_eval_per_seed: 100
+      success_rate_by_seed: {42: 91.0, 43: 92.0, 44: 99.0}
+      mean_success_rate: 94.0
+      metrics_glob: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-tworooms/ckpt/tworoom_lewm_20260430/eval_results/clean_seed{seed}_metrics.txt
+    budget_semantics: total_evaluations_across_selected_scenarios_per_eval_seed
+    families:
+      - name: speed
+        catalog: artifacts/synthesis/catalogs/tworoom_speed_pixel_v2.json
+        regime: validation_interp
+    profiles:
+      smoke:
+        run_kind: protocol_smoke
+        eval_seeds: [42]
+        num_eval_per_seed: 1
+        max_scenarios: 1
+        goal_offset: 10
+        eval_budget: 10
+        horizon: 2
+        receding_horizon: 2
+        cem_batch_size: 1
+        cem_num_samples: 8
+        cem_var_scale: 1.0
+        cem_steps: 2
+        cem_topk: 2
+      quick:
+        run_kind: qualitative_probe
+        eval_seeds: [42]
+        num_eval_per_seed: 9
+        scenario_indices: [1, 3, 7]
+        selected_speeds: [3.1, 5.0, 7.0]
+        max_scenarios: null
+        goal_offset: 25
+        eval_budget: 50
+        horizon: 5
+        receding_horizon: 5
+        cem_batch_size: 1
+        cem_num_samples: 300
+        cem_var_scale: 1.0
+        cem_steps: 30
+        cem_topk: 30
+      full:
+        run_kind: benchmark
+        eval_seeds: [42, 43, 44, 45, 46, 47]
+        num_eval_per_seed: 50
+        max_scenarios: null
+        goal_offset: 25
+        eval_budget: 50
+        horizon: 5
+        receding_horizon: 5
+        cem_batch_size: 1
+        cem_num_samples: 300
+        cem_var_scale: 1.0
+        cem_steps: 30
+        cem_topk: 30
+
+  e4_paired_context_planning:
+    experiment_id: E4
+    display_name: paired-context planning
+    family: speed
+    status: completed_h3_matrix_speedtask_and_training_data_gap_diagnosis
+    entrypoint: scripts/eval_tworoom_icl_planning.py
+    catalog: artifacts/evaluation/icl/tworoom_icl_v1_validation_context_query_catalog.json
+    quick:
+      eval_seed: 42
+      speeds: [3.1, 5.0, 7.0]
+      templates: [s0, s1, s2]
+      queries_per_condition: 9
+      conditions: [correct, wrong]
+      context_budget: 2
+      eval_budget: 50
+      horizon: 5
+      receding_horizon: 5
+      cem_batch_size: 1
+      cem_num_samples: 300
+      cem_var_scale: 1.0
+      cem_steps: 30
+      cem_topk: 30
+      output_name: e4_speed_ctx_quick_s42.json
+    formal_confirmation:
+      eval_seeds: [42, 43, 44, 45, 46, 47]
+      num_eval_per_condition_per_seed: 50
+      unique_base_queries: 32
+      query_schedule: all_32_once_then_balanced_reuse_with_independent_cem_subseeds
+      speeds: [3.1, 3.3, 3.5, 4.1, 5.0, 5.1, 5.9, 7.0]
+      templates: [s0, s1, s2, s3]
+      conditions: [correct, wrong]
+      context_budget: 2
+      eval_budget: 50
+      horizon: 5
+      receding_horizon: 5
+      cem_batch_size: 1
+      cem_num_samples: 300
+      cem_var_scale: 1.0
+      cem_steps: 30
+      cem_topk: 30
+      reference_result:
+        model_id: M_orig
+        output: artifacts/evaluation/history3/e4_speed_ctx_n50x6.json
+        correct_successes: 112
+        correct_evaluations: 300
+        correct_success_rate: 37.333333333333336
+        wrong_successes: 115
+        wrong_evaluations: 300
+        wrong_success_rate: 38.333333333333336
+        correct_minus_wrong_success_rate_points: -1.0
+        correct_only_successes: 0
+        wrong_only_successes: 3
+        paired_sign_test_two_sided_p_value: 0.25
+      synthetic_training_result:
+        model_id: M_speed
+        display_id: H3-MixSpeed
+        output: artifacts/evaluation/history3/h3_mixspeed_s3072/e4_speed_ctx_n50x6.json
+        correct_successes: 97
+        correct_evaluations: 300
+        correct_success_rate: 32.333333333333336
+        wrong_successes: 100
+        wrong_evaluations: 300
+        wrong_success_rate: 33.333333333333336
+        correct_minus_wrong_success_rate_points: -1.0
+        correct_only_successes: 0
+        wrong_only_successes: 3
+        paired_sign_test_two_sided_p_value: 0.25
+        difference_in_differences_vs_h3_orig_points: 0.0
+        positive_control_passed: false
+      data_repair_result:
+        model_id: M_speedclean
+        display_id: H3-SpeedClean
+        output: artifacts/evaluation/history3/h3_speedclean_s3072/e4_speed_ctx_n50x6.json
+        original_id_output: artifacts/evaluation/history3/h3_speedclean_s3072/id_retention_n50x6.json
+        original_id_successes: 297
+        original_id_evaluations: 300
+        original_id_success_rate: 99.0
+        correct_successes: 73
+        correct_evaluations: 300
+        correct_success_rate: 24.333333333333332
+        wrong_successes: 73
+        wrong_evaluations: 300
+        wrong_success_rate: 24.333333333333332
+        correct_minus_wrong_success_rate_points: 0.0
+        correct_only_successes: 0
+        wrong_only_successes: 0
+        paired_sign_test_two_sided_p_value: 1.0
+        difference_in_differences_vs_h3_orig_points: 1.0
+        positive_control_passed: false
+      exact_speed_support_result:
+        model_id: M_speedseen
+        display_id: H3-SpeedSeen
+        evaluation_role: seen_speed_diagnostic_not_heldout_validation
+        output: artifacts/evaluation/history3/h3_speedseen_s3072/e4_speed_ctx_n50x6.json
+        original_id_output: artifacts/evaluation/history3/h3_speedseen_s3072/id_retention_n50x6.json
+        original_id_successes: 297
+        original_id_evaluations: 300
+        original_id_success_rate: 99.0
+        paired_comparison_vs_speedclean: artifacts/evaluation/history3/h3_speedseen_s3072/e4_vs_speedclean_paired.json
+        correct_successes: 73
+        correct_evaluations: 300
+        correct_success_rate: 24.333333333333332
+        wrong_successes: 73
+        wrong_evaluations: 300
+        wrong_success_rate: 24.333333333333332
+        correct_minus_wrong_success_rate_points: 0.0
+        correct_only_successes: 0
+        wrong_only_successes: 0
+        paired_sign_test_two_sided_p_value: 1.0
+        success_outcomes_identical_to_speedclean: true
+        correct_candidate_minus_speedclean_mean_final_distance: -15.605090487798055
+        wrong_candidate_minus_speedclean_mean_final_distance: -17.845431464513144
+        shared_failure_correct_speedclean_mean_final_distance: 148.64545037357817
+        shared_failure_correct_speedseen_mean_final_distance: 128.1196607009955
+        termination_radius: 16.0
+        correct_condition_improved_seed_means: 6
+        correct_condition_improved_speed_means: 8
+        within_model_wrong_minus_correct_mean_final_distance: -2.496404333114624
+        positive_control_passed: false
+      trajectory_quality_result:
+        output: artifacts/evaluation/history3/trajectory_quality_v1.json
+        analyzer: scripts/analyze_tworoom_trajectory_quality.py
+        original_cross_room_fraction: 1.0
+        synthetic_cross_room_fraction: 0.5078125
+        original_independent_start_goal_pairs: 10000
+        synthetic_independent_start_goal_pairs: 128
+        synthetic_episodes_per_independent_geometry: 32.0
+        matched_speed5_cross_room_success_rate:
+          original: 0.4035
+          synthetic: 0.4
+        pearson_speed_vs_synthetic_success_rate: 0.9878005035973191
+        e4_cross_room_successes:
+          evaluations_per_condition: 149
+          H3-Orig: {correct: 0, wrong: 0}
+          H3-SpeedClean: {correct: 0, wrong: 0}
+          H3-SpeedSeen: {correct: 0, wrong: 0}
+        diagnosis: synthetic task-distribution fidelity and effective trajectory diversity are insufficient; weak ExpertPolicy is not established
+        next_control: H3-SpeedTask-s3072_completed
+      speedtask_data_result:
+        synthesis_report: artifacts/synthesis/reports/tworoom_speed_task_v1.json
+        trajectory_quality_report: artifacts/synthesis/reports/tworoom_speed_task_quality_v1.json
+        training_preflight: artifacts/training/reports/h3_speedtask_s3072_preflight.json
+        status: generated_validated_preflight_passed
+        train_episodes: 16384
+        independent_geometries: 512
+        complete_geometry_speed_crosses: 512
+        cross_room_fraction: 1.0
+        raw_train_clips: 1099271
+        mean_formal_draws_per_raw_clip: 2.9901998688221556
+        residual_speed_outcome_correlation: 0.9938909659225406
+        interpretation: task semantics and geometry coverage are repaired; subsequent fixed-recipe training did not improve planning ICL
+      speedtask_model_result:
+        training_report: artifacts/training/reports/h3_speedtask_s3072.json
+        checkpoint_sha256: 4bb6edfdf9d5c3868eb0aca2fc59b0716a2890cda9508806f0ed43b4094cb3fc
+        e1_output: artifacts/evaluation/history3/h3_speedtask_s3072/e1_speed_paired.json
+        original_id_output: artifacts/evaluation/history3/h3_speedtask_s3072/id_retention_n50x6.json
+        e4_output: artifacts/evaluation/history3/h3_speedtask_s3072/e4_speed_ctx_n50x6.json
+        original_id_successes: 296
+        original_id_evaluations: 300
+        original_id_success_rate: 98.66666666666667
+        correct_successes: 73
+        wrong_successes: 73
+        evaluations_per_condition: 300
+        correct_minus_wrong_success_rate_points: 0.0
+        correct_only_successes: 0
+        wrong_only_successes: 0
+        paired_sign_test_two_sided_p_value: 1.0
+        paired_comparison_vs_speedseen: artifacts/evaluation/history3/h3_speedtask_s3072/e4_vs_speedseen_paired.json
+        success_outcomes_identical_to_speedseen: true
+        correct_candidate_minus_speedseen_mean_final_distance: 16.94583431561788
+        wrong_candidate_minus_speedseen_mean_final_distance: 19.70671326637268
+        shared_failure_correct_delta: 22.404660968528447
+        shared_failure_wrong_delta: 26.028708268892398
+        positive_control_passed: false
+      speedtask_training_data_gap:
+        output: artifacts/evaluation/history3/h3_speedtask_s3072/training_data_gap_v1.json
+        analyzer: scripts/analyze_tworoom_training_data_gap.py
+        original_independent_geometries: 10000
+        speedtask_independent_geometries: 512
+        original_model_visible_state_goal_cells_14px: 23535
+        speedtask_model_visible_state_goal_cells_14px: 16143
+        matched_speed5_controller_quality_primary_gap_established: false
+        speedtask_original_exposure_fraction_vs_h3_orig: 0.5
+        historical_id_exact_query_start_clip_overlap: 0.9066666666666666
+        historical_id_query_state_training_frame_overlap: 0.9966666666666667
+        next_control: episode_heldout_id_independent_geometry_and_e4_stratum_matched_data_plus_planning_oracle
+    primary_fixed_length_conditions: [correct, wrong, irrelevant, shuffled]
+    descriptive_variable_length_condition: none
+    pairing: reuse_identical_evaluation_schedule_and_cem_draws_across_conditions
+    required_conditions: [none, correct, wrong, irrelevant, shuffled]
+    required_guards:
+      - identical_query_state_and_goal
+      - identical_cem_random_draws_across_conditions
+      - fixed_context_actions_not_optimized_by_cem
+      - frozen_state_dict_hash_before_equals_after
+      - variation_then_state_then_goal_restore_order
+    note: Do not interpret E3 no-context planning as context-conditioned planning.
+
+deferred_until_speed_conclusion:
+  - family: door
+    role: visible_geometry_control
+  - family: speed_door_composition
+    role: latent_visible_composition

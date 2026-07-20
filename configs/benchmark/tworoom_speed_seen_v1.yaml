@@ -1,0 +1,150 @@
+schema_version: 1
+benchmark: tworoom_speed_seen_v1
+status: complete
+
+data:
+  original_read_only: ../../data/world_model/quentinll/lewm-tworooms/tworoom.h5
+  catalogs:
+    speed: artifacts/synthesis/catalogs/tworoom_speed_seen_v1.json
+
+data_quality:
+  groups:
+    speed:
+      required_pixel_codec: {format: png, compress_level: 1, lossless: true}
+      minimum_raw_train_clips: 160000
+      maximum_formal_mean_draws_per_raw_clip: 20.0
+      minimum_train_scenarios: 128
+      minimum_validation_scenarios: 16
+
+training_protocol:
+  comparison: exact_speed_support_overlap_only
+  reference: H3-SpeedClean-s3072
+  validation_role: monitoring_only
+  early_stopping: false
+  checkpoint_selection: final_fixed_step
+  formal_e4_role: seen_speed_diagnostic_not_heldout_validation
+  group_sampling:
+    M_speed: {original: 0.50, speed: 0.50}
+
+models:
+  - model_id: M_speed
+    display_name: H3-SpeedSeen
+    training_groups: [original, speed]
+    checkpoint: artifacts/training/runs/checkpoints/h3_speedseen_s3072/weights_final_step_6420.pt
+
+evaluation_plan:
+  prediction_gate: E1 paired prediction on the frozen E4 catalog
+  original_id_retention: 50x6
+  seen_speed_planning_diagnostic: E4 correct/wrong 50x6
+  interpretation:
+    both_conditions_improve_equally: exact support improves generic planning but not ICL
+    correct_improves_more_than_wrong: exact support enables seen-speed context use
+    neither_condition_improves: exact speed support is not the main bottleneck
+
+data_result:
+  status: passed
+  scenarios: 144
+  train_scenarios: 128
+  validation_scenarios: 16
+  episodes: 4352
+  train_episodes: 4096
+  rows: 296630
+  transitions: 292278
+  replay_mismatches:
+    pixel_bytes: 0
+    decoded_pixels: 0
+    state_transitions: 0
+    termination_flags: 0
+  train_raw_history3_clips: 204564
+  e4_speed_support_present: [3.1, 3.3, 3.5, 4.1, 5.0, 5.1, 5.9, 7.0]
+
+trajectory_quality_diagnosis:
+  status: passed
+  output: artifacts/evaluation/history3/trajectory_quality_v1.json
+  analyzer: scripts/analyze_tworoom_trajectory_quality.py
+  original_h5:
+    episodes: 10000
+    independent_start_goal_pairs: 10000
+    start_goal_grid_pairs_14px: 7019
+    cross_room_fraction: 1.0
+    termination_success_rate: 0.4035
+    mean_episode_rows: 92.0809
+    mean_final_distance: 50.691725381907055
+  synthetic_train:
+    episodes: 4096
+    independent_start_goal_pairs: 128
+    episodes_per_independent_geometry: 32.0
+    start_goal_grid_pairs_14px: 128
+    cross_room_fraction: 0.5078125
+    termination_success_rate: 0.6513671875
+    same_room_termination_success_rate: 0.9007936507936508
+    cross_room_termination_success_rate: 0.4096153846153846
+  matched_speed5_cross_room:
+    original_termination_success_rate: 0.4035
+    synthetic_termination_success_rate: 0.4
+    original_mean_final_distance: 50.691725381907055
+    synthetic_mean_final_distance: 51.81390533016776
+    weak_expert_hypothesis_supported: false
+  speed_outcome_coupling:
+    pearson_speed_vs_termination_success_rate: 0.9878005035973191
+    pearson_speed_vs_mean_episode_rows: -0.9967915686616918
+    pearson_speed_vs_mean_final_distance: -0.987263534541317
+  interpretation: task semantics, effective geometry diversity, and factor-trajectory-quality coupling are insufficiently controlled
+  recommended_control:
+    dataset_id: TwoRoom-SpeedTask-v1
+    model_id: H3-SpeedTask-s3072
+    enforce_opposite_room_targets: true
+    increase_independent_reset_goal_geometries: true
+    stratify_trajectory_quality_per_speed: true
+    keep_policy_codec_mixture_model_and_steps_fixed: true
+
+training_result:
+  status: passed
+  run_name: h3_speedseen_s3072
+  logical_epochs: 5
+  optimizer_steps: 6420
+  final_checkpoint: artifacts/training/runs/checkpoints/h3_speedseen_s3072/weights_final_step_6420.pt
+  final_checkpoint_sha256: 17122ac75fbcd327a25eae121eab8fdddec7fb6c46cb5beb2a1fd7784a5c5161
+  native_resume_checkpoint_present: true
+  save_load_exact: true
+
+evaluation_result:
+  role: seen_speed_diagnostic_not_heldout_validation
+  original_id:
+    output: artifacts/evaluation/history3/h3_speedseen_s3072/id_retention_n50x6.json
+    seed_success_rates: {42: 98.0, 43: 100.0, 44: 98.0, 45: 100.0, 46: 98.0, 47: 100.0}
+    successes: 297
+    evaluations: 300
+    pooled_success_rate: 99.0
+    interpretation: original_tworoom_id_retention_only
+  e1:
+    output: artifacts/evaluation/history3/h3_speedseen_s3072/e1_speed_paired.json
+    no_context_latent_mse: 0.0585495630512014
+    correct_context_latent_mse_k2: 0.05640586619847454
+    correct_context_gain_k2: 0.002143696852726862
+    correct_context_gain_k2_ci: [-0.012201466662372696, 0.017803631722927094]
+    wrong_minus_correct_k2: 0.016707184811821207
+    wrong_minus_correct_k2_ci: [0.0052035905508091675, 0.030232500513375244]
+  e4:
+    output: artifacts/evaluation/history3/h3_speedseen_s3072/e4_speed_ctx_n50x6.json
+    correct_successes: 73
+    wrong_successes: 73
+    evaluations_per_condition: 300
+    correct_success_rate: 24.333333333333332
+    wrong_success_rate: 24.333333333333332
+    correct_minus_wrong_points: 0.0
+    discordant_success_pairs: 0
+    success_outcomes_identical_to_speedclean: true
+    comparison_vs_speedclean: artifacts/evaluation/history3/h3_speedseen_s3072/e4_vs_speedclean_paired.json
+    correct_mean_final_distance_change_vs_speedclean: -15.605090487798055
+    wrong_mean_final_distance_change_vs_speedclean: -17.845431464513144
+    shared_failure_correct_reference_mean_final_distance: 148.64545037357817
+    shared_failure_correct_candidate_mean_final_distance: 128.1196607009955
+    termination_radius: 16.0
+    within_model_wrong_minus_correct_mean_final_distance: -2.496404333114624
+    geometry_strata:
+      evaluations_per_condition: {cross_room: 149, same_room: 151}
+      cross_room_successes: {correct: 0, wrong: 0}
+      same_room_successes: {correct: 73, wrong: 73}
+      all_successes_from_template: s3
+  conclusion: exact speed support improves continuous prediction and planning distance but neither binary success nor context adaptation

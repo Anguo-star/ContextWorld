@@ -1,0 +1,135 @@
+schema_version: 1
+experiment: tworoom_door_pixel_v1
+task: tworoom
+env_id: swm/TwoRoom-v1
+profile: augmentation_pixel
+seed: 20260714
+scenario_generation_seed: 20260714
+
+stable_worldmodel:
+  repo: ../stable-worldmodel
+  expected_ref: 5864b74980f6ed328fd0045e777b3865962eff43
+
+collection:
+  staging_root: /tmp
+  episodes_per_scenario: 1
+  max_episode_steps: 100
+  image_shape: [224, 224]
+  num_envs: 1
+  policy:
+    action_noise: 2.0
+    action_repeat_prob: 0.05
+
+original_dataset:
+  path: ../../data/world_model/quentinll/lewm-tworooms/tworoom.h5
+
+output:
+  data_root: artifacts/synthesis/data/tworoom_door_pixel_v1
+  manifest: artifacts/synthesis/manifests/tworoom_door_pixel_v1.jsonl
+  report: artifacts/synthesis/reports/tworoom_door_pixel_v1.json
+  catalog: artifacts/synthesis/catalogs/tworoom_door_pixel_v1.json
+
+planning:
+  estimated_lance_bytes_per_row: 9000
+
+validation:
+  numeric_atom_isolation:
+    atom: door_position
+    minimum_cross_split_gap: 4
+  minimum_episode_start_oracle:
+    minimum_rows: 2
+    termination_radius: 16.0
+    minimum_guaranteed_margin: 8.0
+  # These cases cover a small overlapping move, the renderer's upper-border
+  # overdraw, disjoint openings, and the lower-border overdraw.
+  door_position_pixel_oracle:
+    seed: 271828
+    door_half_size: 14
+    wall_thickness: 10
+    border_thickness: 4
+    state: [40.0, 112.0]
+    target_state: [190.0, 112.0]
+    cases:
+      - {first_position: 49, second_position: 53}
+      - {first_position: 49, second_position: 24}
+      - {first_position: 49, second_position: 154}
+      - {first_position: 49, second_position: 199}
+  # Same state/action sequence: aligned opening crosses the wall, displaced
+  # opening clamps at the exact radius-adjusted wall boundary.
+  door_position_passage_oracle:
+    seed: 161803
+    speed: 5.0
+    door_half_size: 14
+    wall_thickness: 10
+    agent_radius: 7.0
+    steps: 8
+    cases:
+      - open_position: 70
+        blocked_position: 154
+        state: [90.0, 70.0]
+        target_state: [190.0, 190.0]
+        action: [1.0, 0.0]
+      - open_position: 154
+        blocked_position: 70
+        state: [134.0, 154.0]
+        target_state: [30.0, 30.0]
+        action: [-1.0, 0.0]
+
+# Door values are at least four pixels apart across every split. The default
+# original-data value (49) is included in train. Low/high regimes lie outside
+# the train interval; all scenarios within one regime share reset/policy seeds.
+scenario_sets:
+  - name_prefix: door_train
+    split: train
+    regime: train
+    atom: door_position
+    minimum_gap: 4
+    episodes_per_scenario: 8
+    seed_group: tworoom_door_pixel_v1_train_paired_safe_0
+    values:
+      sampler: fixed
+      values: [49, 57, 65, 73, 81, 89, 97, 105, 113, 121, 129, 137, 145, 153, 161, 169]
+
+  - name_prefix: door_validation_interp
+    split: val
+    regime: validation_interp
+    atom: door_position
+    minimum_gap: 4
+    episodes_per_scenario: 4
+    seed_group: tworoom_door_pixel_v1_validation_paired_safe_0
+    values:
+      sampler: fixed
+      values: [53, 85, 117, 149]
+
+  - name_prefix: door_test_interp
+    split: test
+    regime: test_interp
+    atom: door_position
+    minimum_gap: 4
+    episodes_per_scenario: 4
+    seed_group: tworoom_door_pixel_v1_test_paired_safe_0
+    values:
+      sampler: fixed
+      values: [61, 77, 93, 109, 125, 141, 157, 165]
+
+  - name_prefix: door_test_extrap_low
+    split: test
+    regime: test_extrap_low
+    atom: door_position
+    minimum_gap: 4
+    episodes_per_scenario: 4
+    seed_group: tworoom_door_pixel_v1_test_paired_safe_0
+    values:
+      sampler: fixed
+      values: [24, 32, 40]
+
+  - name_prefix: door_test_extrap_high
+    split: test
+    regime: test_extrap_high
+    atom: door_position
+    minimum_gap: 4
+    episodes_per_scenario: 4
+    seed_group: tworoom_door_pixel_v1_test_paired_safe_0
+    values:
+      sampler: fixed
+      values: [180, 190, 199]

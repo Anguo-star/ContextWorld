@@ -1,0 +1,101 @@
+schema_version: 1
+benchmark: tworoom_speed_full_v1
+status: complete_prediction_icl_without_planning_success_separation
+
+data:
+  original_read_only: ../../data/world_model/quentinll/lewm-tworooms/tworoom.h5
+  original_split:
+    strategy: episode_heldout
+    seed: 3072
+    train_fraction: 0.9
+    heldout_view: artifacts/splits/tworoom_original_episode_holdout_s3072.h5
+    heldout_manifest: artifacts/splits/tworoom_original_episode_holdout_s3072.json
+  catalogs:
+    speed: artifacts/synthesis/catalogs/tworoom_speed_full_v1.json
+
+data_quality:
+  groups:
+    speed:
+      required_pixel_codec: {format: png, compress_level: 1, lossless: true}
+      balance_by_factor: agent.speed
+      minimum_raw_train_clips: 790000
+      maximum_formal_mean_draws_per_raw_clip: 8.4
+      minimum_train_scenarios: 512
+      minimum_validation_scenarios: 96
+
+training_protocol:
+  comparison: independent_coverage_additive_exposure_and_episode_heldout_id
+  reference: H3-SpeedTask-s3072
+  early_stopping: false
+  checkpoint_selection: final_fixed_step
+  profile: additive
+  fixed_components:
+    - history3_lewm_architecture
+    - stable_worldmodel_native_training_and_checkpoint_resume
+    - original_synthetic_50_50_batch_mixture
+    - exact_e4_speed_support
+    - expert_policy_parameters
+    - lossless_png_codec
+    - training_seed_3072
+  changed_components:
+    - independent_reset_geometry_for_every_synthetic_episode
+    - balanced_same_and_cross_room_training_resets
+    - explicit_e4_s0_s1_s2_s3_template_support_at_every_train_speed
+    - full_historical_original_draw_budget_plus_equal_synthetic_draw_budget
+    - original_training_and_id_evaluation_disjoint_at_episode_level
+    - normalization_statistics_fit_on_original_train_episodes_only
+  group_sampling:
+    M_speed: {original: 0.50, speed: 0.50}
+  exposure_contract:
+    epoch_size_global: 2629632
+    logical_epochs: 5
+    optimizer_steps: 12840
+    effective_global_batch: 1024
+    original_draws: 6574080
+    synthetic_draws: 6574080
+
+models:
+  - model_id: M_speed
+    display_name: H3-SpeedFull
+    training_groups: [original, speed]
+    checkpoint: artifacts/training/runs/checkpoints/h3_speedfull_s3072/weights_final_step_12840.pt
+
+evaluation_plan:
+  prediction_gate: E1 paired prediction on the frozen E4 catalog
+  episode_heldout_original_id: 50x6
+  paired_planning: E4 correct/wrong 50x6
+  comparison_models: [H3-Orig, H3-SpeedSeen, H3-SpeedTask]
+  decision_rule: a planning gain is attributed to the repaired protocol only if the frozen E4 score improves while episode-heldout ID remains acceptable
+
+results:
+  synthesis:
+    scenarios: 608
+    episodes: 17920
+    rows: 1203993
+    replayed_transitions: 1186073
+    pixel_mismatches: 0
+    state_transition_mismatches: 0
+  training:
+    optimizer_steps: 12840
+    checkpoint_sha256: 79e2b2d17445a21d1685759679c6ab82f9fda834584168d7e3e02bf50b78a778
+  prediction_e1:
+    no_context_latent_mse: 0.06362125574378297
+    correct_k2_latent_mse: 0.028390550694894046
+    correct_k2_gain: 0.03523070504888892
+    correct_k2_gain_ci95: [0.012819486633816268, 0.06255290814442559]
+    wrong_k2_latent_mse: 0.15591874084202573
+    wrong_minus_correct: 0.12752819014713168
+    wrong_minus_correct_ci95: [0.07568169375736034, 0.1811450610985048]
+  original_episode_heldout_id:
+    successes: 289
+    evaluations: 300
+    success_rate: 0.9633333333333334
+  planning_e4:
+    correct_successes: 73
+    wrong_successes: 73
+    evaluations_per_condition: 300
+    correct_only: 0
+    wrong_only: 0
+    paired_effect_percentage_points: 0.0
+    correct_minus_wrong_final_distance_px: -0.389235
+  interpretation: independent coverage and additive exposure establish prediction-level speed context use and improve failure trajectories relative to H3-SpeedTask, but do not establish planning-success ICL under the frozen E4 protocol

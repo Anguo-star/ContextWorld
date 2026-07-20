@@ -1,0 +1,139 @@
+schema_version: 1
+benchmark: tworoom_speed_task_v1
+status: complete_no_planning_icl_improvement
+
+data:
+  original_read_only: ../../data/world_model/quentinll/lewm-tworooms/tworoom.h5
+  catalogs:
+    speed: artifacts/synthesis/catalogs/tworoom_speed_task_v1.json
+
+data_quality:
+  groups:
+    speed:
+      required_pixel_codec: {format: png, compress_level: 1, lossless: true}
+      minimum_raw_train_clips: 1000000
+      maximum_formal_mean_draws_per_raw_clip: 5.0
+      minimum_train_scenarios: 512
+      minimum_validation_scenarios: 32
+
+training_protocol:
+  comparison: task_distribution_and_trajectory_composition_vs_speedseen
+  reference: H3-SpeedSeen-s3072
+  early_stopping: false
+  checkpoint_selection: final_fixed_step
+  fixed_components:
+    - exact_e4_speed_support
+    - expert_policy_parameters
+    - lossless_png_codec
+    - original_synthetic_50_50_mixture
+    - history3_lewm_architecture
+    - optimizer_and_6420_step_budget
+  changed_components:
+    - all_synthetic_targets_are_opposite_room
+    - independent_train_geometries_increase_from_128_to_512
+    - reset_geometry_is_fully_crossed_with_all_32_speeds
+  group_sampling:
+    M_speed: {original: 0.50, speed: 0.50}
+
+models:
+  - model_id: M_speed
+    display_name: H3-SpeedTask
+    training_groups: [original, speed]
+    checkpoint: artifacts/training/runs/checkpoints/h3_speedtask_s3072/weights_final_step_6420.pt
+
+evaluation_plan:
+  prediction_gate: E1 paired prediction on the frozen E4 catalog
+  original_id_retention: 50x6
+  paired_planning: E4 correct/wrong 50x6 with room-relation and template strata
+  decision_rule: improvement over H3-SpeedSeen isolates the joint task-distribution and effective-geometry data-quality repair under a fixed model/training recipe
+
+data_result:
+  status: passed
+  synthesis_report: artifacts/synthesis/reports/tworoom_speed_task_v1.json
+  trajectory_quality_report: artifacts/synthesis/reports/tworoom_speed_task_quality_v1.json
+  training_preflight: artifacts/training/reports/h3_speedtask_s3072_preflight.json
+  scenarios: 544
+  episodes: 16896
+  rows: 1455828
+  exact_replay_transitions: 1438932
+  pixel_mismatches: 0
+  train:
+    scenarios: 512
+    episodes: 16384
+    rows: 1410372
+    independent_geometries: 512
+    start_goal_grid_pairs_14px: 500
+    cross_room_fraction: 1.0
+    factor_values: 32
+    episodes_per_factor: 512
+    complete_geometry_factor_crosses: 512
+    termination_success_rate: 0.45733642578125
+    mean_episode_rows: 86.082275390625
+    mean_final_distance: 47.52591826574799
+  training_loader:
+    synthetic_raw_train_clips: 1099271
+    formal_mean_draws_per_raw_clip: 2.9901998688221556
+    data_quality_gates_passed: true
+  residual_property:
+    pearson_speed_vs_termination_success_rate: 0.9938909659225406
+    interpretation: speed-dependent completion remains an environment property; every speed is geometry-balanced and retains both success and nontermination strata, but outcomes are not claimed to be statistically independent of speed
+
+training_result:
+  status: passed
+  report: artifacts/training/reports/h3_speedtask_s3072.json
+  checkpoint: artifacts/training/runs/checkpoints/h3_speedtask_s3072/weights_final_step_6420.pt
+  checkpoint_sha256: 4bb6edfdf9d5c3868eb0aca2fc59b0716a2890cda9508806f0ed43b4094cb3fc
+  stablewm_resume_checkpoint: artifacts/training/runs/checkpoints/h3_speedtask_s3072/h3_speedtask_s3072_weights.ckpt
+  devices: 4
+  logical_epochs: 5
+  optimizer_steps: 6420
+  original_draws: 3287040
+  synthetic_draws: 3287040
+  exact_save_load: true
+
+evaluation_result:
+  status: complete_no_planning_icl_improvement
+  e1:
+    output: artifacts/evaluation/history3/h3_speedtask_s3072/e1_speed_paired.json
+    no_context_latent_mse: 0.05835155310342088
+    correct_context_latent_mse_k2: 0.04470684587431606
+    prediction_icl_gain_k2: 0.013644707229104824
+    prediction_icl_gain_k2_ci: [-0.00292194532812573, 0.03136236301688768]
+    wrong_context_separation_k2: 0.020804914413020015
+    wrong_context_separation_k2_ci: [0.01073148719187884, 0.03105577526766864]
+  original_id:
+    output: artifacts/evaluation/history3/h3_speedtask_s3072/id_retention_n50x6.json
+    successes: 296
+    evaluations: 300
+    success_rate: 98.66666666666667
+    interpretation: same_h5_clip_level_retention_not_episode_heldout_generalization
+  e4:
+    output: artifacts/evaluation/history3/h3_speedtask_s3072/e4_speed_ctx_n50x6.json
+    correct_successes: 73
+    wrong_successes: 73
+    evaluations_per_condition: 300
+    correct_success_rate: 24.333333333333332
+    wrong_success_rate: 24.333333333333332
+    correct_minus_wrong_success_rate_points: 0.0
+    correct_only_successes: 0
+    wrong_only_successes: 0
+    paired_sign_test_two_sided_p_value: 1.0
+  paired_vs_speedseen:
+    output: artifacts/evaluation/history3/h3_speedtask_s3072/e4_vs_speedseen_paired.json
+    success_outcomes_identical: true
+    correct_candidate_minus_reference_mean_final_distance_px: 16.94583431561788
+    wrong_candidate_minus_reference_mean_final_distance_px: 19.70671326637268
+    common_failure_correct_delta_px: 22.404660968528447
+    common_failure_wrong_delta_px: 26.028708268892398
+  training_data_gap:
+    output: artifacts/evaluation/history3/h3_speedtask_s3072/training_data_gap_v1.json
+    analyzer: scripts/analyze_tworoom_training_data_gap.py
+    original_independent_geometries: 10000
+    speedtask_independent_geometries: 512
+    original_state_goal_grid_cells_14px: 23535
+    speedtask_state_goal_grid_cells_14px: 16143
+    speedtask_original_exposure_fraction_vs_h3_orig: 0.5
+    id_exact_query_start_clip_overlap: 0.9066666666666666
+    id_query_state_training_frame_overlap: 0.9966666666666667
+    matched_speed5_controller_quality_gap_established: false
+  decision: task_semantics_and_512_geometry_repair_are_not_sufficient_under_the_fixed_h3_recipe

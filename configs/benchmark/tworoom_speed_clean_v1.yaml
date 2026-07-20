@@ -1,0 +1,60 @@
+schema_version: 1
+benchmark: tworoom_speed_clean_v1
+status: eval_complete_no_planning_context_separation
+
+data:
+  original_read_only: ../../data/world_model/quentinll/lewm-tworooms/tworoom.h5
+  catalogs:
+    speed: artifacts/synthesis/catalogs/tworoom_speed_clean_v1.json
+
+data_quality:
+  groups:
+    speed:
+      required_pixel_codec: {format: png, compress_level: 1, lossless: true}
+      minimum_raw_train_clips: 160000
+      maximum_formal_mean_draws_per_raw_clip: 20.0
+      minimum_train_scenarios: 128
+      minimum_validation_scenarios: 16
+
+training_protocol:
+  validation_role: monitoring_only
+  early_stopping: false
+  checkpoint_selection: final_fixed_step
+  test_never_used_for_selection: true
+  group_sampling:
+    M_speed: {original: 0.50, speed: 0.50}
+
+models:
+  - model_id: M_speed
+    display_name: H3-SpeedClean
+    training_groups: [original, speed]
+    checkpoint: artifacts/training/runs/checkpoints/h3_speedclean_s3072/weights_final_step_6420.pt
+    checkpoint_sha256: 2d64cf5c9beeae6578529e9fa94538dfd9e937073e5114933b7db7025ba5b35c
+
+evaluation_results:
+  e1_paired_prediction:
+    output: artifacts/evaluation/history3/h3_speedclean_s3072/e1_speed_paired.json
+    no_context_latent_mse: 0.06188964153989218
+    prediction_icl_gain_k2: 0.0036938220728188753
+    wrong_context_separation_k2: 0.016740014543756843
+  original_id_retention:
+    output: artifacts/evaluation/history3/h3_speedclean_s3072/id_retention_n50x6.json
+    eval_seeds: [42, 43, 44, 45, 46, 47]
+    num_eval_per_seed: 50
+    successes: 297
+    evaluations: 300
+    success_rate: 99.0
+  e4_paired_context_planning:
+    output: artifacts/evaluation/history3/h3_speedclean_s3072/e4_speed_ctx_n50x6.json
+    eval_seeds: [42, 43, 44, 45, 46, 47]
+    num_eval_per_condition_per_seed: 50
+    correct_successes: 73
+    wrong_successes: 73
+    evaluations_per_condition: 300
+    correct_success_rate: 24.333333333333332
+    wrong_success_rate: 24.333333333333332
+    correct_minus_wrong_success_rate_points: 0.0
+    correct_only_successes: 0
+    wrong_only_successes: 0
+    paired_sign_test_two_sided_p_value: 1.0
+    positive_control_passed: false

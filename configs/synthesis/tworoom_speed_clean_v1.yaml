@@ -1,0 +1,154 @@
+schema_version: 1
+experiment: tworoom_speed_clean_v1
+task: tworoom
+env_id: swm/TwoRoom-v1
+profile: augmentation_pixel_lossless_broad
+seed: 20260715
+scenario_generation_seed: 20260715
+
+stable_worldmodel:
+  repo: ../stable-worldmodel
+  expected_ref: 5864b74980f6ed328fd0045e777b3865962eff43
+
+collection:
+  staging_root: /tmp
+  episodes_per_scenario: 1
+  max_episode_steps: 100
+  image_shape: [224, 224]
+  num_envs: 1
+  pixel_codec:
+    format: png
+    compress_level: 1
+  policy:
+    action_noise: 2.0
+    action_repeat_prob: 0.05
+
+original_dataset:
+  path: ../../data/world_model/quentinll/lewm-tworooms/tworoom.h5
+
+output:
+  data_root: artifacts/synthesis/data/tworoom_speed_clean_v1
+  manifest: artifacts/synthesis/manifests/tworoom_speed_clean_v1.jsonl
+  report: artifacts/synthesis/reports/tworoom_speed_clean_v1.json
+  catalog: artifacts/synthesis/catalogs/tworoom_speed_clean_v1.json
+
+planning:
+  # White-background TwoRoom PNGs are small; the projection remains a
+  # conservative pre-collection storage estimate.
+  estimated_lance_bytes_per_row: 6500
+
+validation:
+  scenario_validation_workers: 4
+  numeric_atom_isolation:
+    atom: agent_speed
+    minimum_cross_split_gap: 0.08
+  minimum_episode_start_oracle:
+    minimum_rows: 2
+    termination_radius: 16.0
+    minimum_guaranteed_margin: 8.0
+  speed_frame_skip_oracle:
+    seed: 314159
+    slow_speed: 3.0
+    multiplier: 2
+    cases:
+      - state: [40.0, 40.0]
+        target_state: [190.0, 190.0]
+        action: [0.5, 0.25]
+      - state: [70.0, 170.0]
+        target_state: [190.0, 30.0]
+        action: [-0.25, -0.5]
+      - state: [50.0, 100.0]
+        target_state: [190.0, 180.0]
+        action: [0.5, -0.25]
+  paired_seed_crossing:
+    atom: agent_speed
+    splits:
+      train:
+        minimum_seed_groups: 4
+        minimum_factor_values: 32
+        minimum_paired_resets_per_factor: 128
+      val:
+        minimum_seed_groups: 2
+        minimum_factor_values: 8
+        minimum_paired_resets_per_factor: 32
+  reset_coverage:
+    grid_size: 14
+    splits:
+      train:
+        unique_reset_seeds: 128
+        unique_start_states: 128
+        unique_goal_states: 128
+        start_grid_bins: 90
+        goal_grid_bins: 84
+        start_goal_grid_pairs: 128
+      val:
+        unique_reset_seeds: 32
+        unique_start_states: 32
+        unique_goal_states: 32
+        start_grid_bins: 20
+        goal_grid_bins: 20
+        start_goal_grid_pairs: 32
+
+# These 32 values match the original speed-augmentation support.  Formal E4
+# values (3.1, 3.3, 3.5, 4.1, 5.0, 5.1, 5.9, 7.0) are deliberately absent.
+scenario_sets:
+  - name_prefix: speed_train
+    split: train
+    regime: train
+    atom: agent_speed
+    minimum_gap: 0.08
+    episodes_per_scenario: 32
+    seed_groups:
+      - tworoom_speed_clean_v1_train_paired_0008
+      - tworoom_speed_clean_v1_train_paired_0028
+      - tworoom_speed_clean_v1_train_paired_0113
+      - tworoom_speed_clean_v1_train_paired_0128
+    values:
+      sampler: fixed
+      values:
+        - 2.6
+        - 2.7
+        - 2.8
+        - 2.9
+        - 3.0
+        - 3.4
+        - 3.6
+        - 3.7
+        - 3.8
+        - 3.9
+        - 4.0
+        - 4.2
+        - 4.4
+        - 4.5
+        - 4.7
+        - 4.8
+        - 5.2
+        - 5.3
+        - 5.5
+        - 5.7
+        - 6.0
+        - 6.1
+        - 6.2
+        - 6.3
+        - 6.6
+        - 6.7
+        - 6.8
+        - 7.1
+        - 7.2
+        - 7.3
+        - 7.8
+        - 7.9
+
+  # Monitoring-only dev speeds come from the old test pool, not formal E4.
+  - name_prefix: speed_dev
+    split: val
+    regime: validation_dev_interp
+    atom: agent_speed
+    minimum_gap: 0.08
+    episodes_per_scenario: 16
+    seed_groups:
+      - tworoom_speed_clean_v1_dev_paired_0000
+      - tworoom_speed_clean_v1_dev_paired_0001
+    values:
+      sampler: fixed
+      values: [2.5, 3.2, 4.3, 4.6, 4.9, 5.4, 5.6, 5.8]

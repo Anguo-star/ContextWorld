@@ -1,0 +1,197 @@
+schema_version: 1
+experiment: tworoom_synth5_matched_v2
+task: tworoom
+env_id: swm/TwoRoom-v1
+profile: original_task_matched_speed5_lossless_legacy_minpath25
+seed: 20260718
+scenario_generation_seed: 20260718
+
+# Executable amendment after v1 failed its preregistered distribution gate.
+# The thresholds below are unchanged.  v2 restores two original-collector
+# semantics discovered in StableWM history before any v2 trajectory exists:
+#   1. target constrain_fn=_constrain_target_by_min_steps with min_steps=25
+#      and speed=5, represented as a speed-independent 125 px door path;
+#   2. 101 stored states for the original 100-transition horizon.
+amendment:
+  predecessor: tworoom_synth5_matched_v1
+  predecessor_status: failed_distribution_preflight_not_used_for_training
+  stablewm_evidence_commit: 37f34bb
+  unchanged_distribution_thresholds: true
+  changed_fields:
+    collection.max_episode_steps: {from: 100, to: 101}
+    collection.reset_constraints.minimum_door_path_distance:
+      from: null
+      to: 125.0
+
+stable_worldmodel:
+  repo: ../stable-worldmodel
+  expected_ref: 5864b74980f6ed328fd0045e777b3865962eff43
+
+collection:
+  staging_root: /tmp
+  episodes_per_scenario: 1
+  max_episode_steps: 101
+  image_shape: [224, 224]
+  num_envs: 1
+  pixel_codec:
+    format: png
+    compress_level: 1
+  policy:
+    action_noise: 2.0
+    action_repeat_prob: 0.05
+  reset_constraints:
+    target_room: opposite
+    exclude_wall_zone: true
+    minimum_door_path_distance: 125.0
+
+original_dataset:
+  path: ../../data/world_model/quentinll/lewm-tworooms/tworoom.h5
+  episode_split:
+    seed: 3072
+    train_fraction: 0.9
+
+output:
+  data_root: artifacts/synthesis/data/tworoom_synth5_matched_v2
+  manifest: artifacts/synthesis/manifests/tworoom_synth5_matched_v2.jsonl
+  report: artifacts/synthesis/reports/tworoom_synth5_matched_v2.json
+  catalog: artifacts/synthesis/catalogs/tworoom_synth5_matched_v2.json
+  frozen_reference: artifacts/synthesis/reports/tworoom_synth5_matched_v2_reference.json
+  distribution_report: artifacts/synthesis/reports/tworoom_synth5_matched_v2_distribution.json
+
+planning:
+  estimated_lance_bytes_per_row: 6500
+
+distribution_matching:
+  grid_size_px: 14
+  reference_partition: original_train_9000_only
+  no_success_filtering: true
+  gates:
+    cross_room_fraction:
+      absolute_tolerance: 0.0
+    left_to_right_fraction:
+      absolute_tolerance: 0.03
+    initial_distance_quantiles_px:
+      quantiles: [0.1, 0.5, 0.9]
+      maximum_absolute_difference: 6.0
+    start_grid_total_variation:
+      maximum: 0.12
+    goal_grid_total_variation:
+      maximum: 0.12
+    reset_goal_grid_unique_cells:
+      minimum_reference_fraction: 0.90
+    state_goal_grid_unique_cells:
+      minimum_reference_fraction: 0.85
+    mean_episode_rows:
+      maximum_absolute_difference: 4.0
+    episode_length_quantiles:
+      quantiles: [0.1, 0.5, 0.9]
+      maximum_absolute_difference: 6.0
+    termination_success_rate:
+      maximum_absolute_difference: 0.05
+    goal_side_row_fraction:
+      maximum_absolute_difference: 0.05
+    mean_action_norm:
+      maximum_absolute_difference: 0.05
+    saturated_action_component_fraction:
+      maximum_absolute_difference: 0.04
+    exact_action_repeat_fraction:
+      maximum_absolute_difference: 0.02
+    collision_residual_fraction:
+      maximum_absolute_difference: 0.03
+    mean_goal_progress_px:
+      maximum_absolute_difference: 0.12
+    positive_net_progress_fraction:
+      maximum_absolute_difference: 0.04
+    median_path_efficiency:
+      maximum_relative_difference: 0.20
+
+validation:
+  scenario_validation_workers: 16
+  speed_frame_skip_oracle:
+    seed: 314159
+    slow_speed: 3.0
+    multiplier: 2
+    cases:
+      - state: [40.0, 40.0]
+        target_state: [190.0, 190.0]
+        action: [0.5, 0.25]
+      - state: [70.0, 170.0]
+        target_state: [190.0, 30.0]
+        action: [-0.25, -0.5]
+      - state: [50.0, 100.0]
+        target_state: [190.0, 180.0]
+        action: [0.5, -0.25]
+  independent_seed_assignment:
+    atom: agent_speed
+    splits:
+      train:
+        minimum_seed_groups: 90
+        minimum_factor_values: 1
+        minimum_scenarios_per_factor: 90
+        minimum_episodes_per_factor: 9000
+        require_one_scenario_per_seed_group: true
+        require_factor_balance: true
+      val:
+        minimum_seed_groups: 10
+        minimum_factor_values: 1
+        minimum_scenarios_per_factor: 10
+        minimum_episodes_per_factor: 1000
+        require_one_scenario_per_seed_group: true
+        require_factor_balance: true
+  reset_coverage:
+    grid_size: 14
+    splits:
+      train:
+        unique_reset_seeds: 9000
+        unique_start_states: 9000
+        unique_goal_states: 9000
+        start_grid_bins: 180
+        goal_grid_bins: 180
+        start_goal_grid_pairs: 5800
+        cross_room_fraction: 1.0
+        left_to_right_resets: 4000
+        right_to_left_resets: 4000
+        initial_distance_p10: 88.0
+      val:
+        unique_reset_seeds: 1000
+        unique_start_states: 1000
+        unique_goal_states: 1000
+        start_grid_bins: 150
+        goal_grid_bins: 150
+        start_goal_grid_pairs: 800
+        cross_room_fraction: 1.0
+        left_to_right_resets: 400
+        right_to_left_resets: 400
+        initial_distance_p10: 85.0
+
+scenario_sets:
+  - name_prefix: synth5_train_v2
+    split: train
+    regime: train_original_matched
+    atom: agent_speed
+    assignment: paired_cycle
+    episodes_per_scenario: 100
+    seed_groups:
+      sampler: indexed
+      prefix: tworoom_synth5_matched_v2_train
+      count: 90
+      width: 3
+    values:
+      sampler: fixed
+      values: [5.0]
+
+  - name_prefix: synth5_dev_v2
+    split: val
+    regime: validation_original_matched
+    atom: agent_speed
+    assignment: paired_cycle
+    allow_value_reuse: true
+    episodes_per_scenario: 100
+    seed_groups:
+      sampler: indexed
+      prefix: tworoom_synth5_matched_v2_dev
+      count: 10
+      width: 3
+    values:
+      sampler: fixed
+      values: [5.0]

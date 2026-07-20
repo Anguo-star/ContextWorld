@@ -1,0 +1,133 @@
+schema_version: 1
+experiment: tworoom_speed_pixel_v2
+task: tworoom
+env_id: swm/TwoRoom-v1
+profile: augmentation_pixel
+seed: 20260713
+scenario_generation_seed: 20260713
+
+stable_worldmodel:
+  repo: ../stable-worldmodel
+  expected_ref: 5864b74980f6ed328fd0045e777b3865962eff43
+
+collection:
+  staging_root: /tmp
+  # Individual scenario sets override this value.
+  episodes_per_scenario: 1
+  max_episode_steps: 100
+  image_shape: [224, 224]
+  num_envs: 1
+  policy:
+    # Match the original TwoRoom expert collector.
+    action_noise: 2.0
+    action_repeat_prob: 0.05
+
+original_dataset:
+  path: ../../data/world_model/quentinll/lewm-tworooms/tworoom.h5
+
+output:
+  data_root: artifacts/synthesis/data/tworoom_speed_pixel_v2
+  manifest: artifacts/synthesis/manifests/tworoom_speed_pixel_v2.jsonl
+  report: artifacts/synthesis/reports/tworoom_speed_pixel_v2.json
+  catalog: artifacts/synthesis/catalogs/tworoom_speed_pixel_v2.json
+
+planning:
+  # Conservative estimate from the 224x224 JPEG Lance smoke.
+  estimated_lance_bytes_per_row: 9000
+
+validation:
+  numeric_atom_isolation:
+    atom: agent_speed
+    minimum_cross_split_gap: 0.08
+  # Stable-WM stores its first row after the first step. Prove every reset
+  # remains at least 8 px outside the success boundary even under the largest
+  # possible one-step action, so every episode has at least two stored rows.
+  minimum_episode_start_oracle:
+    minimum_rows: 2
+    termination_radius: 16.0
+    minimum_guaranteed_margin: 8.0
+  speed_frame_skip_oracle:
+    seed: 314159
+    slow_speed: 3.0
+    multiplier: 2
+    cases:
+      - state: [40.0, 40.0]
+        target_state: [190.0, 190.0]
+        action: [0.5, 0.25]
+      - state: [70.0, 170.0]
+        target_state: [190.0, 30.0]
+        action: [-0.25, -0.5]
+      - state: [50.0, 100.0]
+        target_state: [190.0, 180.0]
+        action: [0.5, -0.25]
+
+# Generate all interpolation values jointly. The unshuffled spacing is 0.10;
+# deterministic shuffling assigns values to splits without reducing that gap.
+scenario_value_pools:
+  speed_interpolation:
+    sampler: stratified_unique
+    range: [2.5, 8.0]
+    count: 56
+    shuffle: true
+
+# Values are unique across all sets. Scenarios in one seed_group use identical
+# environment/policy seeds. Each group's consecutive environment-seed block
+# passes minimum_episode_start_oracle at its maximum configured speed.
+scenario_sets:
+  - name_prefix: speed_train
+    split: train
+    regime: train
+    atom: agent_speed
+    minimum_gap: 0.08
+    episodes_per_scenario: 8
+    seed_group: tworoom_speed_pixel_v2_train_paired_safe_1
+    values:
+      pool: speed_interpolation
+      start: 0
+      count: 32
+
+  - name_prefix: speed_validation_interp
+    split: val
+    regime: validation_interp
+    atom: agent_speed
+    minimum_gap: 0.08
+    episodes_per_scenario: 4
+    seed_group: tworoom_speed_pixel_v2_validation_paired_safe_0
+    values:
+      pool: speed_interpolation
+      start: 32
+      count: 8
+
+  - name_prefix: speed_test_interp
+    split: test
+    regime: test_interp
+    atom: agent_speed
+    minimum_gap: 0.08
+    episodes_per_scenario: 4
+    seed_group: tworoom_speed_pixel_v2_test_paired_safe_0
+    values:
+      pool: speed_interpolation
+      start: 40
+      count: 16
+
+  - name_prefix: speed_test_extrap_low
+    split: test
+    regime: test_extrap_low
+    atom: agent_speed
+    minimum_gap: 0.08
+    episodes_per_scenario: 4
+    seed_group: tworoom_speed_pixel_v2_test_paired_safe_0
+    values:
+      sampler: fixed
+      values: [1.75, 1.95, 2.15, 2.35]
+
+  - name_prefix: speed_test_extrap_high
+    split: test
+    regime: test_extrap_high
+    atom: agent_speed
+    minimum_gap: 0.08
+    episodes_per_scenario: 4
+    seed_group: tworoom_speed_pixel_v2_test_paired_safe_0
+    values:
+      sampler: fixed
+      values: [8.25, 8.75, 9.50, 10.25]

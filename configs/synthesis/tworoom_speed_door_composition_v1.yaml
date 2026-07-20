@@ -1,0 +1,136 @@
+schema_version: 1
+experiment: tworoom_speed_door_composition_v1
+task: tworoom
+env_id: swm/TwoRoom-v1
+profile: augmentation_pixel_composition
+seed: 20260714
+scenario_generation_seed: 20260714
+
+stable_worldmodel:
+  repo: ../stable-worldmodel
+  expected_ref: 5864b74980f6ed328fd0045e777b3865962eff43
+
+collection:
+  staging_root: /tmp
+  episodes_per_scenario: 1
+  max_episode_steps: 100
+  image_shape: [224, 224]
+  num_envs: 1
+  policy:
+    action_noise: 2.0
+    action_repeat_prob: 0.05
+
+original_dataset:
+  path: ../../data/world_model/quentinll/lewm-tworooms/tworoom.h5
+
+output:
+  data_root: artifacts/synthesis/data/tworoom_speed_door_composition_v1
+  manifest: artifacts/synthesis/manifests/tworoom_speed_door_composition_v1.jsonl
+  report: artifacts/synthesis/reports/tworoom_speed_door_composition_v1.json
+  catalog: artifacts/synthesis/catalogs/tworoom_speed_door_composition_v1.json
+
+planning:
+  estimated_lance_bytes_per_row: 9000
+
+validation:
+  training_unseen_combinations:
+    atoms: [agent_speed, door_position]
+    evaluation_splits: [val, test]
+  minimum_episode_start_oracle:
+    minimum_rows: 2
+    termination_radius: 16.0
+    minimum_guaranteed_margin: 8.0
+  speed_frame_skip_oracle:
+    seed: 314159
+    slow_speed: 3.0
+    multiplier: 2
+    cases:
+      - state: [40.0, 40.0]
+        target_state: [190.0, 190.0]
+        action: [0.5, 0.25]
+      - state: [70.0, 170.0]
+        target_state: [190.0, 30.0]
+        action: [-0.25, -0.5]
+      - state: [50.0, 100.0]
+        target_state: [190.0, 180.0]
+        action: [0.5, -0.25]
+  door_position_pixel_oracle:
+    seed: 271828
+    door_half_size: 14
+    wall_thickness: 10
+    border_thickness: 4
+    state: [40.0, 112.0]
+    target_state: [190.0, 112.0]
+    cases:
+      - {first_position: 61, second_position: 85}
+      - {first_position: 109, second_position: 133}
+      - {first_position: 61, second_position: 157}
+  door_position_passage_oracle:
+    seed: 161803
+    speed: 5.0
+    door_half_size: 14
+    wall_thickness: 10
+    agent_radius: 7.0
+    steps: 8
+    cases:
+      - open_position: 85
+        blocked_position: 157
+        state: [90.0, 85.0]
+        target_state: [190.0, 190.0]
+        action: [1.0, 0.0]
+      - open_position: 157
+        blocked_position: 61
+        state: [134.0, 157.0]
+        target_state: [30.0, 30.0]
+        action: [-1.0, 0.0]
+
+# Full 5×5 grid over speed and door contains 25 combinations. Five diagonal
+# pairs are validation, five cyclic-shift pairs are test, and the remaining
+# 15 are train. Thus every individual value is observed in train, but no
+# validation/test pairing is observed there.
+scenario_sets:
+  - name_prefix: speed_door_train
+    split: train
+    regime: train_combinations
+    episodes_per_scenario: 6
+    seed_group: tworoom_speed_door_composition_v1_train_paired_safe_1
+    combinations:
+      - {agent_speed: 3.0, door_position: 109}
+      - {agent_speed: 3.0, door_position: 133}
+      - {agent_speed: 3.0, door_position: 157}
+      - {agent_speed: 4.0, door_position: 61}
+      - {agent_speed: 4.0, door_position: 133}
+      - {agent_speed: 4.0, door_position: 157}
+      - {agent_speed: 5.0, door_position: 61}
+      - {agent_speed: 5.0, door_position: 85}
+      - {agent_speed: 5.0, door_position: 157}
+      - {agent_speed: 6.0, door_position: 61}
+      - {agent_speed: 6.0, door_position: 85}
+      - {agent_speed: 6.0, door_position: 109}
+      - {agent_speed: 7.0, door_position: 85}
+      - {agent_speed: 7.0, door_position: 109}
+      - {agent_speed: 7.0, door_position: 133}
+
+  - name_prefix: speed_door_validation_unseen_combination
+    split: val
+    regime: validation_unseen_combination
+    episodes_per_scenario: 4
+    seed_group: tworoom_speed_door_composition_v1_validation_paired_safe_0
+    combinations:
+      - {agent_speed: 3.0, door_position: 61}
+      - {agent_speed: 4.0, door_position: 85}
+      - {agent_speed: 5.0, door_position: 109}
+      - {agent_speed: 6.0, door_position: 133}
+      - {agent_speed: 7.0, door_position: 157}
+
+  - name_prefix: speed_door_test_unseen_combination
+    split: test
+    regime: test_unseen_combination
+    episodes_per_scenario: 4
+    seed_group: tworoom_speed_door_composition_v1_test_paired_safe_1
+    combinations:
+      - {agent_speed: 3.0, door_position: 85}
+      - {agent_speed: 4.0, door_position: 109}
+      - {agent_speed: 5.0, door_position: 133}
+      - {agent_speed: 6.0, door_position: 157}
+      - {agent_speed: 7.0, door_position: 61}
