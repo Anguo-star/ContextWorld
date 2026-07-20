@@ -304,9 +304,11 @@ predicted_position = oracle_state(v_hat)
 - 位移大小误差和位移方向误差；
 - 逐 horizon latent MSE。
 
-action probe 同时包含恒定方向、幅度变化和转向序列，并单列碰撞与无碰撞轨迹。
-速度标签、真实状态和 simulator readback 只用于评分，不进入模型输入。物理状态
-误差是“做到速度自适应”的主判据；target cost 与 CEM score 不能替代它。
+主 action probe 同时包含恒定方向、幅度变化和转向序列，并始终朝 query 所在
+房间的内部运动，避免把撞墙截断混入速度步长主判据。碰撞敏感性属于单独的稳健性
+诊断，不能与无碰撞主结果混成均值。速度标签、真实状态和 simulator readback
+只用于评分，不进入模型输入。物理状态误差是“做到速度自适应”的主判据；
+target cost 与 CEM score 不能替代它。
 
 ### 5.4 Query 动力学校准
 

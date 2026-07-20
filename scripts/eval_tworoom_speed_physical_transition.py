@@ -58,7 +58,13 @@ def physical_action_probe(
 
     if raw_steps != 50:
         raise ValueError("The frozen physical probe uses 50 raw steps")
-    center = np.asarray([167.0, 112.0], dtype=np.float32)
+    center = np.asarray(
+        [
+            56.0 if float(query_state[0]) < 112.0 else 168.0,
+            112.0,
+        ],
+        dtype=np.float32,
+    )
     direction = _unit(center - np.asarray(query_state, dtype=np.float32))
     perpendicular = np.asarray(
         [-direction[1], direction[0]], dtype=np.float32
@@ -167,6 +173,32 @@ def _simulate_oracle_grid(
         np.stack(frames_by_speed),
         np.stack(states_by_speed).astype(np.float32),
         np.asarray(terminated_by_speed, dtype=bool),
+    )
+
+
+def _free_motion_residual(
+    *,
+    query_state: np.ndarray,
+    raw_actions: np.ndarray,
+    speed_grid: np.ndarray,
+    oracle_states: np.ndarray,
+) -> float:
+    clipped = np.clip(
+        np.asarray(raw_actions, dtype=np.float32), -1.0, 1.0
+    )
+    cumulative = np.cumsum(clipped, axis=0)[ACTION_BLOCK - 1 :: ACTION_BLOCK]
+    expected = (
+        np.asarray(query_state, dtype=np.float32)[None, None]
+        + speed_grid.astype(np.float32)[:, None, None]
+        * cumulative[None]
+    )
+    return float(
+        np.max(
+            np.linalg.norm(
+                np.asarray(oracle_states, dtype=np.float32) - expected,
+                axis=-1,
+            )
+        )
     )
 
 
@@ -504,6 +536,18 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                         ),
                     )
                 temporary.replace(cache_path)
+        free_motion_residual = _free_motion_residual(
+            query_state=episode.query_state,
+            raw_actions=raw_actions,
+            speed_grid=speed_grid,
+            oracle_states=states,
+        )
+        if free_motion_residual > 1.0e-3:
+            raise RuntimeError(
+                "Primary physical action probe encountered a wall or "
+                f"boundary: residual={free_motion_residual:.6g}, "
+                f"query={episode.query_id}, family={family}"
+            )
         condition_rows = {}
         for condition in conditions:
             history_speed = float(
@@ -580,6 +624,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                     "any_termination_or_truncation": bool(
                         np.any(terminated)
                     ),
+                    "maximum_free_motion_residual_px": (
+                        free_motion_residual
+                    ),
+                    "collision_or_boundary_free": True,
                 },
                 "conditions": condition_rows,
             }
