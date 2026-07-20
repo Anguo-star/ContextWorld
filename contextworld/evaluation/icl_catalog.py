@@ -655,8 +655,33 @@ def validate_context_query_catalog(
                                 expected=replay[key],
                             )
 
-            correct = "correct"
-            wrong = "wrong_speed" if bundle["family"] == "speed_door_composition" else "wrong"
+            correct = str(bundle.get("same_speed_condition", "correct"))
+            if "same_speed_condition" in bundle:
+                wrong = next(
+                    name
+                    for name in bundle["conditions"]
+                    if name != correct
+                    and not np.isclose(
+                        float(
+                            bundle["conditions"][name]["factors"][
+                                "agent.speed"
+                            ]
+                        ),
+                        float(
+                            bundle["conditions"][correct]["factors"][
+                                "agent.speed"
+                            ]
+                        ),
+                        rtol=0.0,
+                        atol=1e-6,
+                    )
+                )
+            else:
+                wrong = (
+                    "wrong_speed"
+                    if bundle["family"] == "speed_door_composition"
+                    else "wrong"
+                )
             correct_mid = payload[f"context_b2_{correct}_next_pixels"][0]
             wrong_mid = payload[f"context_b2_{wrong}_next_pixels"][0]
             if bundle["family"] in {"speed", "speed_door_composition"} and np.array_equal(

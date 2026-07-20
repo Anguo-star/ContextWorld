@@ -1,8 +1,11 @@
 # TwoRoom SpeedClean 数据与训练协议
 
-**版本**：v1.1  
+**版本**：v1.2
 **日期**：2026-07-16  
 **适用模型**：`H3-SpeedClean`（LeWM，history=3）
+
+旧机器字段 `correct` 和 `wrong` 分别表示同速历史和另一档速度历史，不表示速度
+正确或错误。
 
 ## 1. 目标
 
@@ -95,7 +98,7 @@ dev 使用：
 正式训练继续使用 original/speed=`50/50`、effective global batch=1,024、总
 6,420 optimizer steps，以保持与 `H3-Orig` 和首轮 `H3-MixSpeed` 的计算预算
 一致。训练完成后先运行 E1 与原始 ID retention；两项链路通过后执行 E4
-`50×6`，并以固定 K=2 的 `correct−wrong` paired effect 作为规划 ICL 判据。
+`50×6`，并以固定 K=2 的同速−另一档历史 paired effect 作为规划 ICL 判据。
 
 ## 6. 正式数据质量结果
 
@@ -128,18 +131,18 @@ auto-resume 和 `resume` required 语义。
 ## 7. 正式评测结果
 
 `H3-SpeedClean-s3072` 已完成全部 validation gate。E1 使用 32 个固定 query
-bundles：K=2 correct 相对无 context 的 latent-MSE 改善为 0.00369，95%
-scenario-bootstrap CI 为 [-0.00791, 0.01647]；wrong 相对 correct 的损失差为
-0.01674，CI 为 [0.00625, 0.02884]。该结果表明模型输出能够区分不同速度
-context，但 correct-context gain 尚不稳定。
+bundles：K=2 同速历史相对无历史的 latent-MSE 改善为 0.00369，95%
+scenario-bootstrap CI 为 [-0.00791, 0.01647]；另一档历史相对同速历史的损失差
+为 0.01674，CI 为 [0.00625, 0.02884]。该结果表明模型输出能够区分不同速度
+历史，但同速历史收益尚不稳定。
 
 原始 TwoRoom ID retention 使用 seeds 42–47、每 seed 50 条 StableWM CEM
 rollout，成功率分别为 98%/98%/100%/98%/100%/100%，合计 297/300
 （99.0%）。因此后续 OOD 结果不能归因于基础 TwoRoom 规划能力丢失。
 
-固定 K=2 的 E4 `50×6` 中，correct 与 wrong 均为 73/300（24.33%）；300
-个 paired queries 中 both-success=73、neither=227、correct-only=0、
-wrong-only=0，双侧 paired sign test p=1.0。所有 8 个速度的 success count
+固定 K=2 的 E4 `50×6` 中，同速与另一档历史均为 73/300（24.33%）；300
+个 paired queries 中 both-success=73、neither=227、同速-only=0、
+另一档-only=0，双侧 paired sign test p=1.0。所有 8 个速度的 success count
 也逐项相同。由此，E1 的预测分离没有转化为规划行为，数据修复正向对照未
 达到 planning-level ICL 判据。
 

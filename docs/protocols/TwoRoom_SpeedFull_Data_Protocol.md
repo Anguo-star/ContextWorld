@@ -1,12 +1,14 @@
 # TwoRoom-SpeedFull-v1 数据、训练与评测协议
 
-**版本**：v1.4  
+**版本**：v1.5
 **日期**：2026-07-19  
 **状态**：正式生成、训练、validation 评测与四模型归因均已完成
 
 > 当前阶段结论统一见
 > [TwoRoom 速度上下文学习 Benchmark 报告](../TwoRoom_Speed_Benchmark_Report.md)；
 > 本文只保留 SpeedFull 数据、训练与 checkpoint 审计。
+> 旧机器字段 `correct`、`wrong`、`wrong-slow` 和 `wrong-fast` 分别按同速、
+> 另一档、慢速和快速历史解释，不表示速度正确或错误。
 
 ## 1. 目标
 
@@ -83,24 +85,24 @@ SHA-256 为
 | Gate | 结果 | 结论 |
 |---|---:|---|
 | E1 K=0 latent MSE | 0.06362 | 一般 OOD prediction 基线 |
-| E1 K=2 correct latent MSE | 0.02839 | correct context 明显降低误差 |
-| E1 correct gain | 0.03523，95% CI [0.01282, 0.06255] | prediction ICL 成立 |
-| E1 wrong−correct | 0.12753，95% CI [0.07568, 0.18115] | context 内容强分离 |
+| E1 K=2 同速历史 latent MSE | 0.02839 | 同速历史明显降低误差 |
+| E1 同速历史收益 | 0.03523，95% CI [0.01282, 0.06255] | prediction ICL 成立 |
+| E1 另一档−同速历史 | 0.12753，95% CI [0.07568, 0.18115] | 历史内容强分离 |
 | Episode-heldout ID | 289/300（96.33%） | 严格 ID 泛化保持 |
-| 旧 E4 correct / wrong | 73/300 / 73/300 | 该模板集未显示规划 context effect |
+| 旧 E4 同速 / 另一档历史 | 73/300 / 73/300 | 该模板集未显示规划历史效应 |
 | E4 discordant success | 0 / 0 | success effect=0 pp |
 
 上述 E4 及跨模型配对属于历史六模型协议，使用 full-H5 normalizer。SpeedFull
-相对 SpeedTask 的 correct/wrong final distance 分别减少 13.75/13.63 px，
-但成功集合逐条不变。相对 legacy H3-Orig，SpeedFull 的 correct/wrong success
+相对 SpeedTask 的同速/另一档历史 final distance 分别减少 13.75/13.63 px，
+但成功集合逐条不变。相对 legacy H3-Orig，SpeedFull 的同速/另一档历史 success
 分别少 39/42 次，final distance 分别高 28.90/28.55 px；由于 H3-Orig 不是
 episode-heldout 公平基线，这一差距只保留为历史观察。
 
 同一个 SpeedFull checkpoint 在公平四模型协议中复用相同 E4 query 与 CEM
-seed、改用 original 9,000-train-only normalizer 重评。两次 success 都是
-correct=wrong=73/300，但连续距离如下：
+seed、改用 original 9,000-train-only normalizer 重评。两次同速/另一档历史
+success 都是 73/300，但连续距离如下：
 
-| E4 协议 | Correct 距离 | Wrong 距离 |
+| E4 协议 | 同速历史距离 | 另一档历史距离 |
 |---|---:|---:|
 | 历史六模型，full-H5 normalizer | 103.64 px | 104.03 px |
 | 公平四模型，train-only normalizer | 103.10 px | 104.26 px |
@@ -114,10 +116,10 @@ synthetic 数据质量或多速度竞争。
 其收益尚未转化为冻结 CEM E4 的任务成功率。固定 speed=5 补充实验已经证明
 E4 低分不是速度混合主导，而是 s0/s1/s2 全失败的 planner/template 地板效应。
 双向 heldout Eval 得到
-`wrong-slow=50.67% < correct=58.33% < wrong-fast=64.67%`，正式确认当前
-速度条件化规划 ICL 已生效，但表现为偏好高速提示，而不是事实正确性。三个
-单速对照在相同 directional v2 中均未通过冻结门，只有 SpeedFull 通过
-Fast−Slow 门。该结果支持当前固定训练 seed 下的多速度集成配方归因，但不把
+“慢速历史 50.67% < 同速历史 58.33% < 快速历史 64.67%”，正式确认当前
+速度条件化规划 ICL 已生效，但快速历史的有限 CEM 成功率最高。三个单速对照在
+相同 directional v2 中均未通过冻结门，只有 SpeedFull 通过快速−慢速门。该结果
+支持当前固定训练 seed 下的多速度集成配方归因，但不把
 速度 support 写成已完成的单变量因果证明。规划机制和后续训练安排不属于本
 数据协议，完整结论与路线图见
 [速度上下文学习 Benchmark 报告](../TwoRoom_Speed_Benchmark_Report.md)。

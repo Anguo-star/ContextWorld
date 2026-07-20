@@ -28,6 +28,8 @@ from .episode_split import (
 MODEL_COLUMNS = ("pixels", "action", "proprio")
 CATALOG_BY_GROUP = {
     "speed": "speed",
+    "speed_single_v2": "speed_single_v2",
+    "speed_multi_v2": "speed_multi_v2",
     "synth5_matched": "synth5_matched",
     "door": "door",
     "speed_door_composition": "speed_door_composition",

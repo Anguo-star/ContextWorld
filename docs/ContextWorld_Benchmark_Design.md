@@ -1,6 +1,6 @@
 # ContextWorld 世界模型上下文学习评测设计规范
 
-**版本**：v6.0
+**版本**：v6.4
 **日期**：2026-07-20  
 **文档性质**：通用设计规范
 
@@ -35,42 +35,82 @@ ContextWorld 评估世界模型能否在不更新权重的情况下，从近期�
 1. 评测期间不更新模型权重；
 2. 因子可从模型可见的上下文中识别；
 3. 查询、目标、输入长度和规划随机计划保持不变；
-4. 只改变上下文因子时，预测或规划产生稳定且方向相关的变化；
+4. 只改变历史因子时，预测或规划产生稳定且方向相关的变化；
 5. 变化在 heldout 场景、多个评测种子和关键任务分层上复现；
 6. 单因子或无关上下文控制不能产生同等效应。
 
 数值发生轻微变化不等于 ICL。变化必须能对应到上下文表达的规则。
 
-### 2.2 预测正确性
+当前 query 观测不需要直接暴露隐藏因子。评测器可以固定一个模型不可见、但决定
+query 后续转移的隐藏动力学参数；历史交互负责提供识别它所需的证据。必须区分：
 
-声明模型正确估计当前环境规律，要求正确上下文在相同 query 和 action sequence
-上具有更低的真实预测误差。
+```text
+v_query：评测器固定、决定 query 未来的隐藏因子
+v_history：生成历史动作—观测转移的因子
+```
+
+只有任务明确假设“历史与 query 属于同一稳定环境阶段”时，才能把
+`v_history = v_query` 称为“同设定历史”。`v_history < v_query` 和
+`v_history > v_query` 分别称为“低值历史”和“高值历史”，都不是错误数据。若
+任务不包含上述同阶段假设，就只能比较不同历史设定造成的变化，不能把其中一种
+当作标准答案。
+
+### 2.2 物理因子与时间聚合
+
+Benchmark 必须区分环境动力学参数和数据/模型的时间聚合参数。以 TwoRoom 为例：
+
+| 参数 | 含义 |
+|---|---|
+| `agent.speed` | 每个原始环境步的动作—位移增益 |
+| `frameskip/action_block` | 一个模型时间步跨多少个原始环境步，以及包含多少个稠密动作 |
+
+在无碰撞区间，一个 action block 的位移近似为：
+
+```text
+Δx_block ≈ agent.speed × Σ(raw actions in block)
+```
+
+当块内动作完全相同且无碰撞时，速度和动作重复次数只通过乘积影响末端位移，容易
+被混为一谈。单因子速度 Benchmark 因此必须固定 frameskip/action block，保留
+全部有序原始动作，并分别审计速度 readback 与 observation stride。其结论只能
+写成“固定时间聚合下的物理速度 ICL”。
+
+改变 frameskip、action repeat 或 observation rate 是另一类隐藏因子。它通常还会
+改变模型输入维度、历史覆盖的真实时间和 planner 的执行接口，应使用匹配训练和
+独立协议，不能与物理速度干预合并归因。
+
+### 2.3 预测校准
+
+声明模型根据历史正确校准当前环境规律，要求同设定历史在相同 query 和 action
+sequence 上具有更低的真实未来预测误差。真实未来由评测器固定的 query 动力学
+生成，不要求模型从当前单帧直接读取该动力学参数。
 
 对有顺序的因子，应同时比较：
 
 ```text
-wrong-lower / correct / wrong-higher
+低值历史 / 同设定历史 / 高值历史
 ```
 
 主结论应基于冻结的 horizon 聚合方式，并报告逐 horizon 结果。不能因为平均误差
 较低，就声称每个 query 或每个 horizon 都更准确。
 
-### 2.3 规划正确性与效率
+### 2.4 规划条件化、正确性与效率
 
-声明正确上下文带来规划收益，至少要求：
+规划层声明分为两个强度：
 
-1. Correct 优于无上下文；
-2. Correct 同时优于 wrong-lower 和 wrong-higher；
-3. 改善出现在真实模拟器结果，而非只出现在模型内部代价；
-4. 成功率、连续进度和效率指标方向一致；
-5. 结论明确绑定冻结的规划资源配置。
+1. “历史影响规划”要求低值和高值历史稳定改变候选代价、排序或动作，并与预测层
+   的因子方向一致；
+2. “同设定历史改善规划正确性”要求在固定 candidate bank 上，同设定历史选出
+   动作的真实动力学 regret 低于低值和高值历史。
 
-如果 `wrong-lower < correct < wrong-higher`，可以建立因子条件化规划，但不能建立
-“正确上下文最优”。
+闭环成功率、连续进度和执行效率必须另外报告，并明确绑定冻结的规划资源配置。
+同设定历史不必在每个有限 CEM profile 下取得最高 endpoint success；若出现
+“低值 < 同设定 < 高值”，可以建立方向性的历史条件化规划，但不能仅凭该排序
+建立同设定历史最优或预测更准确。
 
 对速度等资源耦合因子，规划正确性必须结合整条执行预算曲线和模型视野敏感性
-判断。单个资源配置下 Wrong-higher 的成功率更高，不能推翻 Correct 的预测校准，
-也不能证明 Wrong-higher 是物理上正确的上下文。
+判断。单个资源配置下高值历史的成功率更高，不能推翻同设定历史的预测校准，也
+不能证明高值历史更符合 query 的真实动力学。
 
 ## 3. 数据对象与来源追踪
 
@@ -96,6 +136,7 @@ wrong-lower / correct / wrong-higher
 - 数据、catalog、checkpoint、normalizer 和候选 bank 哈希；
 - scenario、episode、query、evaluation 和 split 标识；
 - 隐藏因子真实值及 readback；
+- 因子值相对训练支持的 `seen/interpolation/extrapolation` 标记；
 - 训练、采集、评测和 planner 随机种子；
 - 上下文像素与动作 payload 哈希；
 - 原始结果、审计结果、汇总和日志。
@@ -113,6 +154,19 @@ wrong-lower / correct / wrong-higher
 
 报告必须明确满足的隔离级别，不能用 clip-heldout 代替 episode-heldout 或
 scenario-heldout。
+
+因子值是否见过与 geometry 是否见过是两个独立维度：
+
+| 轨道 | 因子值 | Geometry | 允许的结论 |
+|---|---|---|---|
+| 因子值见过 | Train 中出现 | heldout | 模型能根据历史识别并调用已学规律 |
+| 区间内新因子值 | Train 中未出现、位于训练范围内 | heldout | 连续插值 |
+| 范围外新因子值 | Train 范围外 | heldout | 外推压力测试 |
+
+第一条仍可构成 ICL，因为 query 本身可以不暴露当前因子，模型仍需根据历史选择
+规律；但它不能被写成未见因子泛化。正式 Benchmark 应保存训练、Calibration、
+Validation 和 Test 的因子值集合并做数值交集审计。插值与外推必须单列，不能与
+见过因子值的分数合并。
 
 ### 4.2 Split 角色
 
@@ -133,6 +187,11 @@ Support context 不得包含：
 - 隐藏因子标签；
 - 任务是否完成的特权信息；
 - 超出正式协议的额外上下文长度。
+
+若模型同时对多个时间位置计算预测，必须记录 temporal attention 形式并做未来
+token 扰动检查。Causal 模型要求较早输出不随未来 observation/action token
+改变；full temporal attention 模型必须单列，不能与 causal 模型混作同一训练
+数据对照。单张图像内部的空间 attention 与时间因果性是两件事，应分别说明。
 
 ## 5. 评测数据集构建
 
@@ -155,14 +214,14 @@ Support context 不得包含：
 | 条件 | 作用 |
 |---|---|
 | 无上下文 | 测量默认行为 |
-| Correct | 与 query 使用相同隐藏因子 |
-| Wrong-lower | 因子值低于 query |
-| Wrong-higher | 因子值高于 query |
+| 同设定历史 | 历史与评测器固定的查询环境使用相同隐藏因子 |
+| 低值历史 | 历史因子低于查询环境的隐藏因子 |
+| 高值历史 | 历史因子高于查询环境的隐藏因子 |
 | 无关上下文 | 排除长度或内容总量 |
 | 打乱上下文 | 破坏时序或动作—观测对应关系 |
 
 同一组的 query、goal、context actions、输入长度、candidate bank 和规划随机数
-必须一致。
+必须一致。三种历史本身都必须是合法、可回放的数据，不能称为“错误数据”。
 
 ### 5.3 难度设计
 
@@ -186,8 +245,8 @@ Support context 不得包含：
 每个 Eval × 每个 condition × 50 次 × 6 个评测种子 = 300 次
 ```
 
-两个 Eval 即使共享 Correct，也必须分别执行 300 次。不能把多个任务合并成一次
-300 次均分。任务数增加时，样本量线性增加。
+两个 Eval 即使共享同设定历史，也必须分别执行 300 次。不能把多个任务合并成
+一次 300 次均分。任务数增加时，样本量线性增加。
 
 执行预算阶梯不是把这 300 次拆给多个预算点。每个预算点都必须有同一组
 `50×6=300` 个配对观测：
@@ -210,7 +269,7 @@ Support context 不得包含：
 |---|---|---|
 | L0 数据完整性 | 数据是否按协议生成 | replay、readback、hash、泄漏 |
 | L1 可辨识性 | 上下文是否足以识别因子 | oracle accuracy/MAE、信息增益 |
-| L2 一步预测 | 下一状态是否更准 | correct gain、wrong−correct、反事实预测 |
+| L2 一步预测 | 下一状态是否更准 | 同设定收益、其他历史−同设定、历史方向预测 |
 | L3 多步 rollout | 改善能否维持 | 逐 horizon error、horizon 平均 error、drift |
 | L4 候选代价 | 上下文如何改变规划输入 | cost error、rank、top-k、argmin |
 | L5 连续轨迹 | 未成功时是否更接近 | final/best distance、progress、trajectory AUC |
@@ -226,7 +285,7 @@ Eval score：
 | 结果层 | 必报内容 | 解释边界 |
 |---|---|---|
 | 速度可辨识性 | 从历史动作和位移恢复速度 | 证明上下文含有速度信息 |
-| 预测校准 | Slow/Correct/Fast 的逐 horizon 与聚合误差 | 判断哪个上下文更符合真实动力学 |
+| 预测校准 | 慢速/同速/快速历史的逐 horizon 与聚合误差 | 判断哪段历史更符合查询环境 |
 | 候选动作 | cost rank、top-k、argmin、真实候选结果 | 定位上下文如何进入 CEM |
 | 模型视野敏感性 | 固定执行预算下改变 rollout horizon | 判断内部可达性是否制造条件差异 |
 | 执行预算曲线 | 紧/标准/宽松预算下的三条件成功率 | 区分模型能力和截止效应 |
@@ -237,9 +296,9 @@ Eval score：
 Speed 轨道的核心结果是一个结构化结果组，而不是一个混合总分。至少同时展示：
 
 ```text
-S_slow(B), S_correct(B), S_fast(B)
-Fast−Correct(B)
-Correct−Slow(B)
+S_slow(B), S_same(B), S_fast(B)
+S_fast(B)−S_same(B)
+S_same(B)−S_slow(B)
 ```
 
 其中 `S_condition(B)` 是该上下文在真实执行预算 `B` 前的成功率。可以附加归一化
@@ -255,7 +314,7 @@ success_budget_auc(c)
 ```
 
 结果范围为 0–1，越高表示在整个预算区间内越容易成功。上下文差异直接计算
-`AUC_correct−AUC_slow` 和 `AUC_fast−AUC_correct`，不把预测误差或路径效率混入
+`AUC_same−AUC_slow` 和 `AUC_fast−AUC_same`，不把预测误差或路径效率混入
 同一个数。
 
 ### 6.3 预测误差
@@ -269,6 +328,13 @@ success_budget_auc(c)
 
 如果比较 latent MSE，必须说明不同 checkpoint 的 latent 尺度是否可比。默认只
 允许同一 checkpoint 内的上下文条件比较。
+
+对速度、摩擦、动作延迟等物理动力学因子，还必须提供不依赖最终 target 的物理
+转移指标。固定同一 query 和原始 action 序列，由真实模拟器生成每档隐藏因子的
+下一状态，再逐 horizon 报告预测位置、位移大小和方向误差。若模型只预测 latent
+且没有解码器，可以把预测 latent 与冻结 encoder 下的精确动力学 oracle 轨迹
+匹配，得到最近 oracle 因子及其物理状态；不得为了让 Validation 好看而在
+Validation 上训练坐标解码头。
 
 ### 6.4 连续轨迹
 
@@ -313,7 +379,8 @@ normalized_progress = 1 − normalized_remaining
 
 | 资源 | 例子 | 影响 |
 |---|---|---|
-| 模型视野 | rollout horizon、action block | 候选是否在模型内看起来可达 |
+| 时间聚合接口 | frameskip、action block | 一个模型步覆盖多少原始步；通常是模型固定接口 |
+| 模型视野 | rollout horizon × action block | 候选在模型内能向前看多少原始步 |
 | 搜索预算 | samples、iterations、top-k、采样方差 | 是否找到高质量候选 |
 | 真实执行预算 | 最大环境步数、replanning 次数 | 是否赶在截止前成功 |
 | 成功定义 | 半径、是否立即终止 | 二值 score 与到达时间 |
@@ -323,15 +390,17 @@ normalized_progress = 1 − normalized_remaining
 
 ### 7.2 Speed 执行预算与模型视野
 
-速度会直接改变单位动作位移、预计到达时间和固定视野内的可达性。Speed
-Benchmark 必须区分两个时间尺度：
+物理速度会在固定 action block 下改变单位原始动作位移、预计到达时间和固定视野
+内的可达性。Speed Benchmark 必须区分两个时间尺度：
 
 ```text
 B_exec：一次闭环评测最多允许执行多少个真实环境步
-H_model：每次 CEM 求解时，世界模型向前预测多少个真实步
+H_model：每次 CEM 求解时，世界模型向前预测多少个模型步
+H_model_raw：H_model × action_block，对应多少个原始环境步
 ```
 
 增加 `B_exec` 只允许规划器执行和重规划更多次，不会自动增加单次求解的
+`H_model_raw`。同一 checkpoint 的 action block 保持固定，模型视野对照只改变
 `H_model`。因此，完整执行预算曲线和模型视野敏感性都是主评测，而不是出分后的
 附加诊断。
 
@@ -352,12 +421,12 @@ Validation 使用 50/75/100 个原始步；这组具体数字不自动推广到�
 预算曲线至少回答：
 
 ```text
-Fast−Correct 是否随预算增加而缩小？
-Correct−Slow 是否在宽松预算下仍存在？
+快速历史−同速历史是否随预算增加而缩小？
+同速历史−慢速历史是否在宽松预算下仍存在？
 各条件新增成功发生在哪个预算区间？
 ```
 
-模型视野至少设置预先冻结的短、标准、长三档：
+模型视野至少设置预先冻结的短、标准、长三档模型步数：
 
 ```text
 H_short < H_standard < H_long
@@ -385,7 +454,8 @@ receding horizon、cost、候选数和迭代次数不变，避免把多项资源
 
 | 因子类型 | 示例 | 资源设计 |
 |---|---|---|
-| 时间尺度或动力学 | 速度、摩擦、质量、动作延迟、action repeat | 完整执行预算阶梯 |
+| 时间尺度或动力学 | 物理速度、摩擦、质量、动作延迟 | 完整执行预算阶梯 |
+| 时间聚合 | frameskip、action repeat、观测频率 | 独立训练/接口控制和完整预算阶梯 |
 | 路径与拓扑 | 门位置、障碍布局、通道开闭 | 至少紧/宽两个预算的敏感性检查 |
 | 语义或观测映射 | 颜色规则、目标语义、静态标签映射 | 通常一个冻结主预算即可 |
 | 随机性与噪声 | 观测噪声、转移随机性 | 优先评估不确定性和搜索预算阶梯 |
@@ -419,9 +489,9 @@ context-conditioned rollout
 
 Calibration 必须确认：
 
-- Candidate bank 在 Correct 动力学下具有足够可达率；
+- Candidate bank 在 query 真实动力学下具有足够可达率；
 - 精确动力学或 oracle planner 能完成任务；
-- 正确因子在真实动力学误差或 horizon 末端代价上优于双向错误因子；
+- 同设定历史在真实未来预测误差或固定候选 regret 上优于低值和高值历史；
 - 主 planner 既非全失败也非全成功；
 - 资源上限足以让模型差异传到至少一个连续指标。
 
@@ -452,7 +522,7 @@ scenario、评测种子和训练种子数量。
 Speed 轨道至少报告：
 
 - 每个预算的三条件成功数和成功率；
-- `Fast−Correct` 与 `Correct−Slow` 的配对 flips 和检验；
+- 高值−同设定与同设定−低值历史的配对 flips 和检验；
 - 上下文效应从紧预算到宽松预算的配对变化及区间；
 - success-budget AUC；
 - 共同成功 query 的配对到达步数。
@@ -485,8 +555,8 @@ Speed 轨道至少报告：
 | 模型 | 作用 |
 |---|---|
 | Original-only | 原始能力基线 |
-| Synthetic-only matched | 合成数据独立能力 |
-| Original + matched synthetic | 混训与能力保持 |
+| 仅同设定合成数据 | 合成数据独立能力 |
+| 原始数据 + 同设定合成数据 | 混训与能力保持 |
 | Original + factor-diverse synthetic | 因子多样性训练 |
 
 训练比较至少匹配或明确报告：
@@ -509,7 +579,7 @@ Speed 轨道至少报告：
 
 | 内容 | 字段 |
 |---|---|
-| 条件 | none/correct/wrong-lower/wrong-higher |
+| 条件 | 无历史/同设定历史/低值历史/高值历史 |
 | 数量 | 每 Eval、条件、评测种子的计数 |
 | 预测 | 逐 horizon 与聚合误差 |
 | 候选 | rank、top-k、argmin、真实代价 |
@@ -551,21 +621,24 @@ Test 只运行一次，成功与失败都完整发布。
 
 ## 11. TwoRoom 对本规范的验证
 
-TwoRoom 速度实验给出八个直接经验：
+TwoRoom 速度实验给出九个直接经验：
 
 1. 旧 E4 的地板与天花板说明距离和任务难度必须校准。
-2. 双向错误上下文区分“读取因子”和“正确估计因子”。
-3. 四模型控制区分多速度训练效应与原始模型或统一 CEM 的一般响应。
-4. 正确上下文预测更准，但 Fast 的有限预算成功率更高，证明 prediction error
-   和 endpoint score 不能合并。
-5. 执行预算从 50 增至 100 后 Fast−Correct 基本消失，证明 success 依赖
+2. `agent.speed` 与 frameskip/action block 必须分开；TwoRoom 当前结果是在固定
+   action block 5 下得到的物理速度条件化。
+3. 同时提供低值和高值历史，才能区分“读取历史因子”和“按查询环境校准预测”。
+4. 四模型控制区分多速度训练效应与原始模型或统一 CEM 的一般响应。
+5. 同速历史预测更准，但快速历史的有限预算成功率更高，证明 prediction
+   error 和 endpoint score 不能合并。
+6. 执行预算从 50 增至 100 后快速−同速基本消失，证明 success 依赖
    deadline。
-6. Fast 在共同成功任务上没有更快到达，证明 success rate 和 execution
+7. 快速历史在共同成功任务上没有更快到达，证明 success rate 和 execution
    efficiency 也必须分开。
-7. 100 步时 Fast−Slow 仍有 `8.67` 个百分点；只把 model horizon 从 25 步延长到
-   50 步后变为 `−1.67` 个百分点，证明执行预算和模型视野是两个独立时间尺度。
-8. 候选数翻倍能普遍提高绝对成功率，却没有稳定缩小 Fast−Slow；搜索质量和条件
-   差异的根因必须分别判断。
+8. 100 步时快速−慢速仍有 `8.67` 个百分点；只把 model horizon 从 25 步
+   延长到 50 步后变为 `−1.67` 个百分点，证明执行预算和模型视野是两个独立
+   时间尺度。
+9. 候选数翻倍能普遍提高绝对成功率，却没有稳定缩小快速−慢速差异；搜索
+   质量和条件差异的根因必须分别判断。
 
 TwoRoom 的当前实现、阶段结果和后续工作统一见
 [速度上下文学习 Benchmark 报告](TwoRoom_Speed_Benchmark_Report.md)。

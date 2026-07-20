@@ -259,7 +259,7 @@ def _load_query_assets(
         )
 
         contexts: dict[str, dict[str, Any]] = {}
-        for condition in ("correct", "wrong"):
+        for condition in bundle["conditions"]:
             prefix = f"context_b2_{condition}"
             pixels = np.asarray(payload[f"{prefix}_pixels"], dtype=np.uint8).copy()
             raw_actions = np.asarray(
@@ -292,8 +292,11 @@ def _load_query_assets(
                 "source_factors": bundle["conditions"][condition]["factors"],
             }
 
-    if contexts["correct"]["raw_actions_sha256"] != contexts["wrong"]["raw_actions_sha256"]:
-        raise RuntimeError("Correct/wrong fixed context actions are not paired")
+    action_hashes = {
+        context["raw_actions_sha256"] for context in contexts.values()
+    }
+    if len(action_hashes) != 1:
+        raise RuntimeError("Fixed context actions are not paired")
     return {
         "bundle": bundle,
         "episode": QueryEpisode(

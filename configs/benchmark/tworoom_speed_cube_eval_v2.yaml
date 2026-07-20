@@ -1,0 +1,121 @@
+schema_version: 1
+benchmark: tworoom_history3_speed_cube_eval_v2
+status: preregistered_before_catalog_generation_and_scoring
+preregistered_date: 2026-07-20
+
+stable_worldmodel:
+  repo: ../stable-worldmodel
+  expected_ref: 5864b74980f6ed328fd0045e777b3865962eff43
+
+frozen_scope:
+  source_training_protocol: configs/benchmark/tworoom_speed_isolated_v2.yaml
+  action_block_raw_steps: 5
+  model_history_tokens: 3
+  context_budget_transitions: 2
+  door_position: 49
+  distance_bins_px: [72, 80, 88, 96, 104, 112]
+  variants_per_distance: 3
+  geometry_seed: 2026072101
+  catalog_seed: 2026072102
+  tracks:
+    - name: calibration
+      split: calibration
+      speeds: [3.0, 5.2, 6.5]
+      role: planner_and_probe_calibration_only
+    - name: seen_for_multi
+      split: validation
+      speeds: [3.1, 5.1, 7.0]
+      role: learned_regime_identification
+    - name: unseen_interpolation
+      split: validation
+      speeds: [3.4, 4.8, 6.9]
+      role: primary_unseen_speed_interpolation
+
+formal_eval:
+  eval_seeds: [42, 43, 44, 45, 46, 47]
+  evaluations_per_matrix_cell_per_seed: 50
+  evaluations_per_matrix_cell: 300
+  query_speeds_per_track: 3
+  history_conditions_per_query_speed: 3
+  expected_base_queries_per_query_speed: 18
+  expected_records_per_checkpoint_per_track: 2700
+  planner:
+    eval_budget_raw_steps: 100
+    horizon_action_blocks: 10
+    receding_horizon_action_blocks: 5
+    cem_samples: 300
+    cem_steps: 30
+    cem_topk: 30
+    cem_var_scale: 1.0
+    success_radius_px: 16
+  physical_transition:
+    horizons_action_blocks: [1, 2, 3, 5, 10]
+    oracle_speed_grid_step: 0.05
+    oracle_speed_grid_range: [2.5, 8.0]
+    action_probe_families:
+      - constant_direction
+      - varying_magnitude
+      - turning
+    primary_metrics:
+      - inferred_speed_mae
+      - predicted_position_mae_px
+      - displacement_magnitude_mae_px
+      - displacement_direction_error_deg
+      - latent_mse_to_true_query_future
+  fixed_candidate:
+    candidates: 300
+    horizon_action_blocks: 10
+    primary_metric: exact_query_dynamics_regret_px
+
+models:
+  original_reference:
+    - slug: h3_origheldout_s3072
+      training_seed: 3072
+      checkpoint: artifacts/training/runs/checkpoints/h3_origheldout_s3072/weights_final_step_6420.pt
+  single_speed_control:
+    - slug: h3_speed_single_v2_s3072
+      training_seed: 3072
+      checkpoint: artifacts/training/runs/checkpoints/h3_speed_single_v2_s3072/weights_final_step_12840.pt
+    - slug: h3_speed_single_v2_s4096
+      training_seed: 4096
+      checkpoint: artifacts/training/runs/checkpoints/h3_speed_single_v2_s4096/weights_final_step_12840.pt
+    - slug: h3_speed_single_v2_s5120
+      training_seed: 5120
+      checkpoint: artifacts/training/runs/checkpoints/h3_speed_single_v2_s5120/weights_final_step_12840.pt
+  multi_speed_target:
+    - slug: h3_speed_multi_v2_s3072
+      training_seed: 3072
+      checkpoint: artifacts/training/runs/checkpoints/h3_speed_multi_v2_s3072/weights_final_step_12840.pt
+    - slug: h3_speed_multi_v2_s4096
+      training_seed: 4096
+      checkpoint: artifacts/training/runs/checkpoints/h3_speed_multi_v2_s4096/weights_final_step_12840.pt
+    - slug: h3_speed_multi_v2_s5120
+      training_seed: 5120
+      checkpoint: artifacts/training/runs/checkpoints/h3_speed_multi_v2_s5120/weights_final_step_12840.pt
+
+decisions:
+  speed_adaptation:
+    require_multi_history_speed_response: true
+    require_same_speed_lowest_physical_state_error_in_all_three_rows: true
+    require_multi_minus_single_paired_effect_across_training_seeds: true
+    endpoint_success_is_not_a_required_prediction_gate: true
+  interpolation:
+    primary_track: unseen_interpolation
+    seen_for_multi_must_be_reported_separately: true
+  multiplicity:
+    familywise_alpha: 0.05
+    correction: holm
+
+artifacts:
+  root: artifacts/evaluation/history3/speed_isolated_v2
+  catalog_root: artifacts/evaluation/history3/speed_isolated_v2/catalogs
+  payload_root: artifacts/evaluation/history3/speed_isolated_v2/payloads
+  build_report: artifacts/evaluation/history3/speed_isolated_v2/catalogs/build_report.json
+  catalogs:
+    calibration: artifacts/evaluation/history3/speed_isolated_v2/catalogs/calibration.json
+    seen_for_multi: artifacts/evaluation/history3/speed_isolated_v2/catalogs/seen_for_multi.json
+    unseen_interpolation: artifacts/evaluation/history3/speed_isolated_v2/catalogs/unseen_interpolation.json
+  physical_transition_root: artifacts/evaluation/history3/speed_isolated_v2/physical_transition
+  fixed_candidate_root: artifacts/evaluation/history3/speed_isolated_v2/fixed_candidate
+  closed_loop_root: artifacts/evaluation/history3/speed_isolated_v2/closed_loop
+  final_summary: artifacts/evaluation/history3/speed_isolated_v2/final_summary.json

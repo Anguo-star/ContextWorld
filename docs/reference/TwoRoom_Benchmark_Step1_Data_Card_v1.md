@@ -5,6 +5,9 @@
 **环境实现**：Stable-WorldModel 5864b74980f6ed328fd0045e777b3865962eff43  
 **Benchmark 规范**：[ContextWorld Benchmark 设计](../ContextWorld_Benchmark_Design.md)
 
+旧机器字段 `correct` 和 `wrong` 仅表示同设定历史和另一设定历史，不表示因子
+正确或错误。
+
 ## 1. 数据目的
 
 该数据族为 ContextWorld 的 TwoRoom 参考实例提供受控环境分布：
@@ -135,6 +138,6 @@ pytest -q
 - 普通模型输入只包含声明的 pixels/action/proprio，不包含 factor value、scenario ID 或 privileged state。
 - ICL eval 期间模型权重冻结，eval 前后 state-dict hash 必须一致。
 - context 与 query 使用不重叠的 transition 或 episodes；context 不得包含 query future、label 或 goal outcome。
-- `none/correct/wrong/irrelevant` 条件必须共享完全相同的 query，只有 context 可以变化。
+- 无历史、同设定历史、另一设定历史和无关历史必须共享完全相同的 query，只有历史内容可以变化。
 - speed context 必须包含非零、无碰撞、未终止且能区分候选速度的转移；door context 必须作为可见因素对照单独报告。
 - 物理数据 catalog、训练 mixture 和 `ContextQueryCatalog` 是不同层次的入口，不能互相替代。

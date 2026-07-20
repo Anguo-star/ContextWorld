@@ -10,10 +10,18 @@
 |---|---|---|
 | [TwoRoom 速度 Benchmark 报告](TwoRoom_Speed_Benchmark_Report.md) | 当前实验结果与阶段结论 | 想知道“做到了什么、证据是什么、下一步是什么” |
 | [ContextWorld Benchmark 设计规范](ContextWorld_Benchmark_Design.md) | 跨任务的评测原则、指标和冻结流程 | 想设计或审核 Benchmark |
+| [History-3 速度 Benchmark v2 方案](protocols/TwoRoom_History3_Speed_Benchmark_v2_Protocol.md) | 下一阶段完整模型、数据、指标和执行矩阵 | 想审核下一步如何形成正式 History-3 结论 |
 
 当前证据属于单训练种子的 Validation 机制验证，正式 Test 尚未启用。报告中的
 50/75/100 步是 TwoRoom Validation 的当前执行预算阶梯，25/50 步是本阶段的
 模型视野对照；这些数值都不应直接套用到其他任务。
+
+当前文档统一使用“慢速历史、同速历史、快速历史”。它们只描述历史速度相对查询
+环境速度的关系，不表示正确或错误。旧配置和结果中的 `correct`、`wrong_slow`、
+`wrong_fast` 是冻结机器字段，不再作为概念名称。
+
+v2 的训练/Eval 速度集合、三个成对训练种子、`3×3` 速度矩阵、物理下一状态指标
+和主 planner profile 已预注册；模型尚未重训，Validation 尚未评分。
 
 ## 复现材料
 
@@ -26,6 +34,7 @@
 - [速度上下文双向评测](protocols/TwoRoom_Speed_Context_Direction_Eval_Protocol.md)
 - [上下文敏感距离校准](protocols/TwoRoom_Speed_ICL_Sensitive_Eval_Protocol.md)
 - [CEM 规划配置影响实验](protocols/TwoRoom_CEM_Planning_Config_Impact_Protocol.md)
+- [History-3 速度 Benchmark v2 方案](protocols/TwoRoom_History3_Speed_Benchmark_v2_Protocol.md)
 - [SpeedClean 数据与训练](protocols/TwoRoom_SpeedClean_Data_Protocol.md)
 - [SpeedTask 数据与训练](protocols/TwoRoom_SpeedTask_Data_Protocol.md)
 

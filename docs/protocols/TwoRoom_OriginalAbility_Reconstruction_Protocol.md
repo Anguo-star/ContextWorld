@@ -1,6 +1,6 @@
 # TwoRoom 原始能力重建对照协议
 
-**版本**：v1.5  
+**版本**：v1.6
 **日期**：2026-07-19  
 **状态**：已完成；能力重建、固定 speed=5 跨 Eval 与四模型归因均已完成
 
@@ -9,6 +9,8 @@
 > **单速 5 合成单训**、**原始+单速 5 混训**和**原始+多速度混训**。
 > 机器 ID 仅用于复现。阶段结论与后续路线图见
 > [TwoRoom 速度上下文学习 Benchmark 报告](../TwoRoom_Speed_Benchmark_Report.md)。
+> 旧结果字段 `correct` 和 `wrong` 分别按同速历史和另一档速度历史解释，不表示
+> 速度正确或错误。
 
 ## 1. 目标
 
@@ -20,8 +22,8 @@
 3. 多速度 factor diversity 引入容量竞争或长程 rollout 退化。
 
 该实验不直接判定 ICL。原始能力 non-inferiority 是规划评测的必要能力 gate；
-速度条件化 ICL 还需检验结果是否随速度 context 系统变化，正确性对齐收益则
-进一步要求 `correct` 同时优于双向 `wrong`。
+速度条件化 ICL 还需检验结果是否随历史速度系统变化；规划校准则进一步要求
+同速历史在真实查询动力学下优于慢速和快速历史。
 
 ## 2. 模型矩阵
 
@@ -117,7 +119,7 @@ path efficiency 和 state-goal coverage 等全部冻结分布门均通过。失�
 | 原始留出导航 | Original episode-heldout ID | 原始任务泛化 | success、final distance |
 | 单速 5 同分布导航 | Frozen speed=5 matched catalog | 同动力学、同任务分布能力 | success、final distance、1/2/3/5-step error |
 | 多速度上下文导航（无上下文） | Frozen E4 no-context | 一般多速度 OOD 能力 | success、final distance |
-| 多速度上下文导航（正确/错误上下文） | Frozen E4 correct/wrong | context-to-planning | paired success、distance、sign test |
+| 多速度历史对照导航 | Frozen E4 `correct/wrong` 字段 | history-to-planning | paired success、distance、sign test |
 
 prediction 另外报告 one-step latent MSE；planning 报告 room/template strata，
 不得只使用 pooled success 掩盖某个任务层全部失败。
@@ -141,9 +143,9 @@ prediction 另外报告 one-step latent MSE；planning 报告 room/template stra
 | 单速 5 合成单训未通过，原始单训通过 | synthetic 数据分布/轨迹质量是基础能力瓶颈 |
 | 单速 5 合成单训通过，原始+单速 5 混训未通过 | mixed-domain optimization 或 gradient interference |
 | 原始+单速 5 混训通过，原始+多速度混训在能力指标下降 | 多速度组成、factor balancing 或容量竞争 |
-| 原始+多速度混训能力通过但 E4 correct≈wrong | context-to-rollout/cost/planner 链路瓶颈 |
+| 原始+多速度混训能力通过但 E4 同速≈另一档历史 | history-to-rollout/cost/planner 链路瓶颈 |
 | 原始+多速度混训能力通过且结果随 context speed 系统变化 | 建立速度条件化 planning ICL |
-| correct 同时优于双向 wrong | 进一步建立正确性对齐的规划收益 |
+| 同速历史同时优于慢速和快速历史 | 进一步建立按查询动力学校准的规划收益 |
 
 单一失败模式不能证明更细的机制。例如 Synth5Matched 失败后，需要结合
 state-goal coverage、rollout-horizon error 和 action statistics 再区分轨迹覆盖
@@ -219,7 +221,7 @@ native-latent RMSE 的 `1/2/3/5-step` 绝对值如下：
 
 E1 K=2 prediction gain 分别为 OrigHeldout `0.00229`、Synth5Matched
 `0.00145`、OrigPlusSynth5 `0.00156`、SpeedFull `0.03523`。四模型的 E4
-no-context/correct/wrong success 均为 `73/300`，correct/wrong 均无 discordant
+无历史/同速历史/另一档历史 success 均为 `73/300`，后两者均无 discordant
 success，paired sign-test `p=1.0`。
 
 ### 8.5 正式结论
@@ -233,8 +235,8 @@ success，paired sign-test `p=1.0`。
 3. **多速度竞争不是本次能力差距的解释。** `H3-SpeedFull` 在公平的
    OrigHeldout 两域上均通过，并在 original heldout 上显著更高；旧 legacy
    `H3-Orig` 的优势不应继续当作 episode-heldout 能力证据。
-4. **旧 E4 没有建立规划层 context effect。** SpeedFull 虽有强 prediction-level
-   context effect，但旧 E4 的 correct/wrong success 完全一致。规划层 ICL
+4. **旧 E4 没有建立规划层历史效应。** SpeedFull 虽有强 prediction-level
+   history effect，但旧 E4 的同速/另一档历史 success 完全一致。规划层 ICL
    需要由独立的双向上下文协议判定，不属于本能力重建协议的结论范围。
 
 ### 8.6 固定 speed=5 跨 Eval 补充
@@ -243,7 +245,7 @@ success，paired sign-test `p=1.0`。
 [speed=5 跨 Eval 协议](TwoRoom_Speed5_CrossEval_Protocol.md)。前三个模型的
 训练速度均为 5，三套 Eval 的 query 速度也统一为 5；SpeedFull 只作控制。
 
-| 训练模型 | 原始 future-25 | 合成 matched future-25 | E4-speed5 none/correct/wrong |
+| 训练模型 | 原始 future-25 | 合成速度 5 future-25 | E4-speed5 无/同速/快速历史 |
 |---|---:|---:|---:|
 | 原始单训 | 91.00% | 93.67% | 25.00% / 25.00% / 25.00% |
 | 单速 5 合成单训 | 91.67% | 94.00% | 25.00% / 25.00% / 25.00% |
@@ -257,7 +259,7 @@ success，paired sign-test `p=1.0`。
 - speed5 E4 相对多速度 E4 只高 0.67 pp，且完全来自 s3 抽样数
   `75 vs 73`；按模板条件化后速度成分为 0。
 
-E4-speed5 的 s0/s1/s2 在四模型与三种 context 下均为零成功，s3 均为全成功。
+E4-speed5 的 s0/s1/s2 在四模型与三种历史条件下均为零成功，s3 均为全成功。
 所以 fixed-speed 结果进一步排除了“多速度混合压低 pooled score”这一解释，
 并把当前根因收窄到 E4 固定远目标的任务几何与 planner 链路。它不改变
 8.5 的训练数据结论，也不能单独区分 cost、CEM search、动作边界和 rollout

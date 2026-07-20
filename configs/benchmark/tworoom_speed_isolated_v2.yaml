@@ -1,0 +1,139 @@
+schema_version: 1
+benchmark: tworoom_speed_isolated_v2
+status: preregistered_before_training
+preregistered_date: 2026-07-20
+
+question: >-
+  Does matched multi-speed training, unlike matched single-speed training,
+  make a History-3 LeWM infer physical agent.speed from two prior transitions
+  and correctly predict held-out query dynamics without weight updates?
+
+data:
+  original_read_only: ../../data/world_model/quentinll/lewm-tworooms/tworoom.h5
+  original_split:
+    strategy: episode_heldout
+    seed: 3072
+    train_fraction: 0.9
+    heldout_view: artifacts/splits/tworoom_original_episode_holdout_s3072.h5
+    heldout_manifest: artifacts/splits/tworoom_original_episode_holdout_s3072.json
+  catalogs:
+    speed_single_v2: artifacts/synthesis/catalogs/tworoom_speed_single_matched_v2.json
+    speed_multi_v2: artifacts/synthesis/catalogs/tworoom_speed_full_v1.json
+
+speed_support:
+  tolerance: 1.0e-6
+  original_train: [5.0]
+  multi_synthetic_train:
+    [2.6, 2.7, 2.8, 2.9, 3.1, 3.3, 3.5, 3.7, 3.8, 3.9, 4.1,
+     4.2, 4.4, 4.5, 4.7, 5.0, 5.1, 5.3, 5.5, 5.7, 5.9, 6.1,
+     6.2, 6.3, 6.6, 6.7, 6.8, 7.0, 7.2, 7.3, 7.8, 7.9]
+  training_monitor_only: [2.5, 3.2, 4.3, 4.6, 4.9, 5.4, 5.6, 5.8]
+  planner_calibration: [3.0, 5.2, 6.5]
+  validation_seen_for_multi: [3.1, 5.1, 7.0]
+  validation_unseen_interpolation: [3.4, 4.8, 6.9]
+  sealed_test_interpolation: [3.6, 6.0, 7.5]
+  required_relations:
+    - validation_unseen_interpolation is disjoint from original_train
+    - validation_unseen_interpolation is disjoint from multi_synthetic_train
+    - validation_unseen_interpolation is disjoint from training_monitor_only
+    - validation_seen_for_multi is a subset of multi_synthetic_train
+    - planner_calibration is disjoint from every validation and test set
+    - sealed_test_interpolation is disjoint from train, monitor, calibration, and validation
+
+data_quality:
+  groups:
+    speed_single_v2:
+      required_pixel_codec: {format: png, compress_level: 1, lossless: true}
+      balance_by_factor: agent.speed
+      minimum_raw_train_clips: 750000
+      maximum_formal_mean_draws_per_raw_clip: 9.0
+      minimum_train_scenarios: 512
+      minimum_validation_scenarios: 96
+    speed_multi_v2:
+      required_pixel_codec: {format: png, compress_level: 1, lossless: true}
+      balance_by_factor: agent.speed
+      minimum_raw_train_clips: 790000
+      maximum_formal_mean_draws_per_raw_clip: 8.4
+      minimum_train_scenarios: 512
+      minimum_validation_scenarios: 96
+
+training_protocol:
+  comparison: paired_single_variable_speed_support
+  early_stopping: false
+  checkpoint_selection: final_fixed_step
+  profile: additive
+  fixed_components:
+    - history3_causal_lewm_architecture
+    - stable_worldmodel_commit_5864b74980f6ed328fd0045e777b3865962eff43
+    - original_synthetic_50_50_batch_mixture
+    - original_episode_split_seed_3072
+    - original_train_only_normalization
+    - geometry_seed_groups_and_reset_constraints
+    - collection_policy_and_episode_budget
+    - effective_global_batch_1024
+    - optimizer_steps_12840
+    - final_fixed_step_checkpoint
+  changed_components:
+    - synthetic_agent_speed_support_only
+  paired_training_seeds: [3072, 4096, 5120]
+  group_sampling:
+    M_speed_single_v2: {original: 0.5, speed_single_v2: 0.5}
+    M_speed_multi_v2: {original: 0.5, speed_multi_v2: 0.5}
+  exposure_contract:
+    epoch_size_global: 2629632
+    logical_epochs: 5
+    optimizer_steps: 12840
+    effective_global_batch: 1024
+    original_draws: 6574080
+    synthetic_draws: 6574080
+
+models:
+  - model_id: M_speed_single_v2
+    display_name: History-3 单速匹配控制
+    training_groups: [original, speed_single_v2]
+  - model_id: M_speed_multi_v2
+    display_name: History-3 多速度目标
+    training_groups: [original, speed_multi_v2]
+
+evaluation_protocol:
+  original_reference_checkpoint: artifacts/training/runs/checkpoints/h3_origheldout_s3072/weights_final_step_6420.pt
+  normalizer: artifacts/splits/tworoom_original_train_s3072_normalizer.json
+  eval_seeds: [42, 43, 44, 45, 46, 47]
+  evaluations_per_matrix_cell_per_seed: 50
+  evaluations_per_matrix_cell: 300
+  tracks:
+    - validation_seen_for_multi
+    - validation_unseen_interpolation
+  query_speeds_per_track: 3
+  history_speeds_per_track: 3
+  physical_transition_horizons_action_blocks: [1, 2, 3, 5, 10]
+  planning:
+    eval_budget_raw_steps: 100
+    horizon_action_blocks: 10
+    receding_horizon_action_blocks: 5
+    action_block_raw_steps: 5
+    cem_samples: 300
+    cem_steps: 30
+    cem_topk: 30
+  evidence_order:
+    - support_and_replay_audit
+    - context_speed_identifiability
+    - physical_next_state_and_displacement_calibration
+    - fixed_candidate_true_dynamics_regret
+    - closed_loop_planning
+    - original_ability_retention
+
+decision_levels:
+  history_speed_response:
+    requirement: inferred physical speed follows history speed on paired queries
+  query_dynamics_calibration:
+    requirement: same-speed history has lower true next-state error than both other histories in every query-speed row
+  training_attribution:
+    requirement: multi-speed minus single-speed paired effect is stable across three training seeds
+  planning_utility:
+    requirement: fixed-candidate regret and closed-loop curves are reported separately from prediction calibration
+
+artifacts:
+  root: artifacts/evaluation/history3/speed_isolated_v2
+  support_audit: artifacts/evaluation/history3/speed_isolated_v2/support_audit.json
+  final_summary: artifacts/evaluation/history3/speed_isolated_v2/final_summary.json

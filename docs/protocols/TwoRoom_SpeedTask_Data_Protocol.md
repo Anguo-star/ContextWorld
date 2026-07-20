@@ -1,8 +1,11 @@
 # TwoRoom SpeedTask 数据与训练协议
 
-**版本**：v1.1  
+**版本**：v1.2
 **日期**：2026-07-16  
 **适用模型**：`H3-SpeedTask`（LeWM，history=3）
+
+旧机器字段 `correct` 和 `wrong` 分别表示同速历史和另一档速度历史，不表示速度
+正确或错误。
 
 ## 1. 目标与比较边界
 
@@ -139,20 +142,20 @@ microbatches、6,420 optimizer/scheduler steps。StableWM 原生 final checkpoin
 | Gate | 结果 |
 |---|---:|
 | E1 K=0 latent MSE | 0.05835 |
-| E1 K=2 correct latent MSE | 0.04471 |
-| E1 K=2 correct gain | 0.01364，95% CI [-0.00292, 0.03136] |
-| E1 K=2 wrong−correct | 0.02080，95% CI [0.01073, 0.03106] |
+| E1 K=2 同速历史 latent MSE | 0.04471 |
+| E1 K=2 同速历史收益 | 0.01364，95% CI [-0.00292, 0.03136] |
+| E1 K=2 另一档−同速历史 | 0.02080，95% CI [0.01073, 0.03106] |
 | 原始 ID `50×6` | 296/300（98.67%） |
-| E4 correct | 73/300（24.33%） |
-| E4 wrong | 73/300（24.33%） |
-| E4 correct-only / wrong-only | 0 / 0 |
+| E4 同速历史 | 73/300（24.33%） |
+| E4 另一档历史 | 73/300（24.33%） |
+| E4 同速-only / 另一档-only | 0 / 0 |
 
-E1 表明模型输出能够区分 correct/wrong context，但 correct 相对 K=0 的收益 CI
-仍跨 0。E4 的 correct 与 wrong 在六个 seeds、八个速度及 300 个 evaluation
+E1 表明模型输出能够区分同速/另一档历史，但同速历史相对 K=0 的收益 CI
+仍跨 0。E4 的同速与另一档历史在六个 seeds、八个速度及 300 个 evaluation
 IDs 上的 success outcomes 完全相同，没有建立 planning-level ICL。
 
 与固定 recipe 的直接 reference `H3-SpeedSeen` 配对后，SpeedTask 的二值成功
-集合在两个 conditions 下均不变；correct/wrong mean final distance 却分别增加
+集合在两个 conditions 下均不变；同速/另一档历史 mean final distance 却分别增加
 16.95/19.71 px。227 个共同失败样本的相应增加为 22.40/26.03 px。因此本实验
 不支持“恢复 cross-room task semantics 并增加到 512 geometry 足以提高 E4”。
 

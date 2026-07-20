@@ -1,13 +1,16 @@
 # TwoRoom 上下文敏感距离校准协议与结果
 
-**协议版本**：v1.1  
+**协议版本**：v1.2
 **日期**：2026-07-18  
 **执行状态**：calibration 已完成；正式 heldout 按预注册停止  
-**用途**：检验“只要把 Eval 目标距离调到 CEM 的敏感区，正确上下文收益就会出现”
+**用途**：检验“只要把 Eval 目标距离调到 CEM 的敏感区，同速历史收益就会出现”
 
 > 当前统一结论见
 > [TwoRoom 速度上下文学习 Benchmark 报告](../TwoRoom_Speed_Benchmark_Report.md)；
 > 本文只保留 v1 距离校准和停止规则。
+
+同速历史表示历史速度与查询环境速度相同；对照历史是冻结 catalog 中的另一档
+速度。旧机器字段 `correct` 和 `wrong` 仅用于复现，不表示速度正确或错误。
 
 ## 1. 为什么要做距离校准
 
@@ -17,12 +20,12 @@
 - s3 全成功。
 
 这使二值成功率主要由模板决定。即使上下文改变了模型预测，只要没有让失败
-模板跨过 16 px 成功半径，`correct` 和 `wrong` 的成功数仍会相同。
+模板跨过 16 px 成功半径，同速历史和对照历史的成功数仍会相同。
 
 v1 保持模型和 CEM 不变，只扫描起点到目标的欧氏距离，目的是找出：
 
 1. 任务不是几乎全成功或全失败；
-2. 正确上下文比错误上下文至少高 5 个百分点。
+2. 同速历史比对照历史至少高 5 个百分点。
 
 ## 2. 难度校准和正式留出数据必须分开
 
@@ -64,16 +67,16 @@ Heldout bank 在 v1 主判据中从未评分。
 | CEM | 300 samples × 30 iterations，top-k 30 |
 | Calibration seeds | 2401/2402 |
 
-每个 calibration result 对一个速度和一个 seed 执行 72 个 paired
-correct/wrong evaluations。合计 1,152 pairs，每距离 128 pairs。
+每个 calibration result 对一个速度和一个 seed 执行 72 个同速/对照配对。
+合计 1,152 pairs，每距离 128 pairs。
 
 ## 4. 出分前冻结的距离门
 
 一个距离只有同时满足以下条件才可进入正式 heldout：
 
-1. correct/wrong pooled success 在 10%–90%；
-2. `correct − wrong ≥ 5 pp`；
-3. correct-only > wrong-only。
+1. 同速/对照 pooled success 在 10%–90%；
+2. 同速 − 对照至少 5 个百分点；
+3. 同速-only > 对照-only。
 
 最多选择两个相邻距离。如果没有距离过门：
 
@@ -84,7 +87,7 @@ correct/wrong evaluations。合计 1,152 pairs，每距离 128 pairs。
 
 ## 5. 难度校准正式结果
 
-| 距离 | Correct | Wrong | Correct−Wrong | Pooled | 判定 |
+| 距离 | 同速历史 | 对照历史 | 同速−对照 | Pooled | 判定 |
 |---:|---:|---:|---:|---:|---|
 | 48 | 98.44% | 96.09% | +2.34 pp | 97.27% | 天花板 |
 | 56 | 92.97% | 89.84% | +3.13 pp | 91.41% | 天花板 |
@@ -110,8 +113,8 @@ heldout_scored = false
 
 - 48–64 px 仍在天花板；
 - 72–112 px 已出现多个非饱和区；
-- 离开地板/天花板没有自动产生正确上下文收益；
-- “只要调整距离，correct−wrong 就会打开”没有得到支持。
+- 离开地板/天花板没有自动产生同速历史收益；
+- “只要调整距离，同速−对照就会打开”没有得到支持。
 
 但不能因此说距离不重要。距离决定总体任务尺度，只是它不是充分的难度变量。
 同一距离的不同 geometry 可以分别全成功、全失败或对 context 敏感。正式评测
@@ -121,7 +124,7 @@ heldout_scored = false
 
 以下分析在 v1 停止后进行，只用于生成下一假设：
 
-| Query 速度组 | Wrong context | Correct | Wrong | Correct−Wrong |
+| 查询环境速度组 | 对照历史速度 | 同速历史 | 对照历史 | 同速−对照 |
 |---|---:|---:|---:|---:|
 | 3.1–5.0 | 7.0，更快 | 33.33% | 39.79% | -6.46 pp |
 | 5.1–7.0 | 3.1，更慢 | 58.33% | 51.04% | +7.29 pp |
@@ -137,7 +140,7 @@ heldout_scored = false
 Higher-only/lower-only 为 65/13，双侧 sign `p=1.81e-9`，较高速 context
 的平均最终距离低 5.66 px。
 
-这个结果不能回写成 v1 formal success，因为 query 速度组与 wrong direction
+这个结果不能回写成 v1 formal success，因为查询速度组与对照历史方向
 同时变化。它只产生了“当前 CEM 可能偏好高速提示”的假设。
 
 ## 8. 与 Directional v2 的关系
