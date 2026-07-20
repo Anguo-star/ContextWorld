@@ -1,7 +1,12 @@
 schema_version: 1
 benchmark: tworoom_history3_speed_cube_eval_v2
-status: preregistered_before_catalog_generation_and_scoring
+status: amended_before_model_scoring
 preregistered_date: 2026-07-20
+amended_date: 2026-07-20
+amendment_reason: >-
+  Catalogs had been generated but no model had been scored. The user required
+  physical one-block next-state displacement to be an explicit primary gate
+  and a deadline-budget curve to be read from the shared 100-step rollout.
 
 stable_worldmodel:
   repo: ../stable-worldmodel
@@ -41,6 +46,7 @@ formal_eval:
   expected_records_per_checkpoint_per_track: 2700
   planner:
     eval_budget_raw_steps: 100
+    deadline_budgets_raw_steps: [50, 75, 100]
     horizon_action_blocks: 10
     receding_horizon_action_blocks: 5
     cem_samples: 300
@@ -57,6 +63,8 @@ formal_eval:
       - varying_magnitude
       - turning
     primary_metrics:
+      - one_block_predicted_position_mae_px
+      - one_block_displacement_magnitude_mae_px
       - inferred_speed_mae
       - predicted_position_mae_px
       - displacement_magnitude_mae_px
@@ -96,7 +104,11 @@ models:
 decisions:
   speed_adaptation:
     require_multi_history_speed_response: true
-    require_same_speed_lowest_physical_state_error_in_all_three_rows: true
+    primary_next_state_horizon_action_blocks: 1
+    trajectory_summary_horizons_action_blocks: [1, 2, 3, 5, 10]
+    require_same_speed_lowest_one_block_position_error_in_all_three_rows: true
+    require_same_speed_lowest_trajectory_position_error_in_all_three_rows: true
+    require_same_speed_lowest_latent_error_in_all_three_rows: true
     require_multi_minus_single_paired_effect_across_training_seeds: true
     endpoint_success_is_not_a_required_prediction_gate: true
   interpolation:

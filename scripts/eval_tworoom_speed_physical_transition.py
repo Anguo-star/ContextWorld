@@ -355,6 +355,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     args.normalizer = resolve_contextworld_path(
         args.normalizer, repo_root=ROOT
     )
+    if args.oracle_cache_dir is not None:
+        args.oracle_cache_dir = resolve_contextworld_path(
+            args.oracle_cache_dir, repo_root=ROOT
+        )
+        args.oracle_cache_dir.mkdir(parents=True, exist_ok=True)
     swm, stable_repo, stable_commit = load_stable_worldmodel(
         ROOT, args.stablewm_repo, args.stablewm_ref
     )
@@ -364,6 +369,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         swm,
         cache_dir=artifact_path("evaluation/model_cache", repo_root=ROOT),
     )
+    checkpoint_sha256 = file_sha256(args.checkpoint.resolve())
     protocol = infer_model_protocol(model, action_dim=2)
     if protocol != {"action_block": 5, "history_size": 3}:
         raise RuntimeError(f"Unexpected model protocol: {protocol}")
@@ -408,6 +414,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         raise RuntimeError(f"Unexpected speed cube conditions: {conditions}")
 
     records = []
+    oracle_cache_hits = 0
+    oracle_cache_misses = 0
     for record_index, scheduled in enumerate(schedule):
         asset = scheduled["asset"]
         episode = asset["episode"]
@@ -421,18 +429,81 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             .astype(np.float32)
             .reshape(10, 10)
         )
-        frames, states, terminated = _simulate_oracle_grid(
-            episode=episode,
-            raw_actions=raw_actions,
-            speed_grid=speed_grid,
+        cache_path = (
+            args.oracle_cache_dir
+            / f"{episode.query_id}_{family}.npz"
+            if args.oracle_cache_dir is not None
+            else None
         )
-        oracle_embeddings = _encode_oracle_grid(
-            model=model,
-            frames=frames,
-            transform=transform,
-            device=args.device,
-            chunk_speeds=args.oracle_encode_chunk_speeds,
-        )
+        if cache_path is not None and cache_path.is_file():
+            with np.load(cache_path, allow_pickle=False) as cached:
+                cached_speed_grid = np.asarray(
+                    cached["speed_grid"], dtype=np.float64
+                )
+                cached_actions_hash = str(
+                    np.asarray(cached["raw_actions_sha256"]).item()
+                )
+                cached_checkpoint_hash = str(
+                    np.asarray(cached["checkpoint_sha256"]).item()
+                )
+                if not np.array_equal(cached_speed_grid, speed_grid):
+                    raise RuntimeError(
+                        f"Oracle cache speed grid mismatch: {cache_path}"
+                    )
+                if cached_actions_hash != _array_sha256(raw_actions):
+                    raise RuntimeError(
+                        f"Oracle cache action mismatch: {cache_path}"
+                    )
+                if cached_checkpoint_hash != checkpoint_sha256:
+                    raise RuntimeError(
+                        f"Oracle cache model mismatch: {cache_path}"
+                    )
+                states = np.asarray(
+                    cached["states"], dtype=np.float32
+                )
+                terminated = np.asarray(
+                    cached["terminated"], dtype=bool
+                )
+                oracle_embeddings = torch.from_numpy(
+                    np.asarray(cached["embeddings"], dtype=np.float32)
+                ).to(args.device)
+            oracle_cache_hits += 1
+        else:
+            frames, states, terminated = _simulate_oracle_grid(
+                episode=episode,
+                raw_actions=raw_actions,
+                speed_grid=speed_grid,
+            )
+            oracle_embeddings = _encode_oracle_grid(
+                model=model,
+                frames=frames,
+                transform=transform,
+                device=args.device,
+                chunk_speeds=args.oracle_encode_chunk_speeds,
+            )
+            oracle_cache_misses += 1
+            if cache_path is not None:
+                temporary = cache_path.with_suffix(".npz.tmp")
+                with temporary.open("wb") as handle:
+                    np.savez(
+                        handle,
+                        speed_grid=speed_grid,
+                        raw_actions_sha256=np.asarray(
+                            _array_sha256(raw_actions)
+                        ),
+                        checkpoint_sha256=np.asarray(
+                            checkpoint_sha256
+                        ),
+                        states=states,
+                        terminated=terminated,
+                        embeddings=(
+                            oracle_embeddings.detach()
+                            .cpu()
+                            .float()
+                            .numpy()
+                        ),
+                    )
+                temporary.replace(cache_path)
         condition_rows = {}
         for condition in conditions:
             history_speed = float(
@@ -532,7 +603,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "eval_seed": int(args.seed),
         "model": {
             "checkpoint": str(args.checkpoint.resolve()),
-            "sha256": file_sha256(args.checkpoint.resolve()),
+            "sha256": checkpoint_sha256,
         },
         "normalizer": {
             "path": str(args.normalizer.resolve()),
@@ -566,6 +637,16 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 "varying_magnitude",
                 "turning",
             ],
+            "oracle_embedding_cache": {
+                "enabled": args.oracle_cache_dir is not None,
+                "directory": (
+                    str(args.oracle_cache_dir)
+                    if args.oracle_cache_dir is not None
+                    else None
+                ),
+                "hits": int(oracle_cache_hits),
+                "misses": int(oracle_cache_misses),
+            },
         },
         "frozen_weight_audit": {
             "state_dict_sha256_before": weight_before,
@@ -601,6 +682,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--oracle-encode-chunk-speeds", type=int, default=16
     )
+    parser.add_argument("--oracle-cache-dir", type=Path)
     parser.add_argument("--stablewm-repo", default="../stable-worldmodel")
     parser.add_argument("--stablewm-ref", default=PINNED_STABLEWM)
     return parser.parse_args()

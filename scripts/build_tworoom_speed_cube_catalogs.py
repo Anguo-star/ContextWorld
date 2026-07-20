@@ -32,10 +32,10 @@ PINNED_STABLEWM = "5864b74980f6ed328fd0045e777b3865962eff43"
 
 def _load(path: Path) -> dict[str, Any]:
     config = yaml.safe_load(path.read_text(encoding="utf-8"))
-    if (
-        config["status"]
-        != "preregistered_before_catalog_generation_and_scoring"
-    ):
+    if config["status"] not in {
+        "preregistered_before_catalog_generation_and_scoring",
+        "amended_before_model_scoring",
+    }:
         raise ValueError("Speed cube config is not preregistered")
     return config
 

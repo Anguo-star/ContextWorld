@@ -1,9 +1,14 @@
 # TwoRoom History-3 速度 Benchmark v2 设计方案
 
-**版本**：v0.4
+**版本**：v0.5
 **日期**：2026-07-20
-**状态**：协议与速度集合已预注册；尚未训练、尚未评分
+**状态**：catalog 已生成；模型尚未评分；下一状态主判据已在评分前冻结
 **范围**：先完成 History-3 的单因子速度结论；更长历史、其他因子和因子组合后置
+
+v0.5 是评分前修订。v0.4 catalog 生成后尚未加载任何模型、也没有产生模型分数。
+本次只把物理下一状态的主次关系和执行预算读取方式写得更明确：第 1 个 action
+block 的位置与位移误差是首要门槛，完整轨迹继续检查 1/2/3/5/10 blocks；一次
+100 步闭环轨迹同时读取 50/75/100 步 deadline，避免为每个预算重复采样。
 
 ## 1. 目标
 
@@ -316,9 +321,11 @@ E(mid, mid) < E(mid, low), E(mid, high)
 E(high, high) < E(high, low), E(high, mid)
 ```
 
-每个比较都先在 query 内跨冻结 horizon 聚合，再做配对统计。不同 checkpoint 的
-原生 latent MSE 不直接横向比较；跨模型以预测速度、位置 px 误差、同速收益和
-标准化效应为主。
+判定分两层。第 1 个 action block 的位置 px 误差和位移大小误差是首要下一状态
+门槛；随后把 1/2/3/5/10 blocks 的位置误差在 query 内聚合，检查校准是否能持续
+到自回归长 rollout。两层都要求三个 query 速度行分别满足上述同速关系。逐
+horizon latent MSE 是同一模型内部的直接证据；不同 checkpoint 的原生 latent
+尺度不直接横向比较。跨模型以预测速度、位置 px 误差、同速收益和标准化效应为主。
 
 ### 5.5 固定候选规划正确性
 
@@ -339,7 +346,7 @@ regret(q,h)
 
 闭环必须报告：
 
-- 紧、标准、宽松执行预算下的 deadline success curve；
+- 从同一次 100 步最大轨迹读取 50/75/100 步 deadline success curve；
 - final/best distance、normalized progress 和 trajectory AUC；
 - 共同成功 query 的配对 steps-to-success；
 - CEM solve、候选评估量、rollout blocks 和耗时；
@@ -372,9 +379,10 @@ M1、M2 相对 M0 必须在原始 episode-heldout 和合成速度 5 domain 上�
 速度在模型视野内具有合理可达率；不能选择最能放大 M2 与控制模型差异的配置。
 `action_block=5` 是模型与数据的固定接口，不属于这轮 planner 调参项。
 
-Validation 只使用一个冻结主 profile 跑完整 `3×3` 矩阵。执行预算曲线可以读取
-最大轨迹前缀；额外 model-horizon 敏感性只作为资源稳健性层，不与九个矩阵单元
-混成一个总分。
+Validation 只使用一个冻结主 profile 跑完整 `3×3` 矩阵。主 profile 的最大
+执行预算为 100 步，deadline 固定为 50/75/100 步；预算曲线从同一条最大轨迹
+读取，不重新运行 CEM。额外 model-horizon 敏感性只作为资源稳健性层，不与九个
+矩阵单元混成一个总分。
 
 ## 7. 预注册主假设
 
@@ -382,8 +390,9 @@ Validation 只使用一个冻结主 profile 跑完整 `3×3` 矩阵。执行预�
 
 1. **H1 历史速度条件化**：M2 的预测最接近速度随三档历史单调变化，且效应稳定
    大于 M1；
-2. **H2 query 动力学校准**：M2 在三个 query 动力学行中，同速历史的预测位置
-   px 误差分别低于另外两档历史，并且 `v_hat` 同时跟随历史速度；
+2. **H2 query 动力学校准**：M2 在三个 query 动力学行中，同速历史的第 1 block
+   位置 px 误差分别低于另外两档历史，1/2/3/5/10-block 聚合误差保持该关系，
+   并且 `v_hat` 同时跟随历史速度；
 3. **H3 规划层校准**：M2 的同速历史在固定候选上的精确动力学 regret 分别低于
    另外两档历史；
 4. **H4 训练归因**：M2−M1 的差分之差在至少三个成对训练种子上复现；
