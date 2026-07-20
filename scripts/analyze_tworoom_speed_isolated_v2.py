@@ -510,6 +510,17 @@ def _ability_records(
     records = []
     for seed in eval_seeds:
         path = root / slug / domain / f"s{seed}.json"
+        if not path.is_file() and slug == "h3_origheldout_s3072":
+            legacy_stem = {
+                "original_heldout": "planning_original_heldout",
+                "speed5_matched": "planning_speed5_matched",
+            }[domain]
+            path = (
+                root.parent.parent
+                / "original_ability_reconstruction"
+                / slug
+                / f"{legacy_stem}_s{seed}.json"
+            )
         payload = _load_passed(path)
         if payload["checkpoint"]["sha256"] != checkpoint_sha256:
             raise RuntimeError(
@@ -732,6 +743,16 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         rollout_path = (
             roots["ability"] / slug / "rollout_error.json"
         )
+        if (
+            not rollout_path.is_file()
+            and slug == "h3_origheldout_s3072"
+        ):
+            rollout_path = (
+                roots["ability"].parent.parent
+                / "original_ability_reconstruction"
+                / slug
+                / "rollout_error.json"
+            )
         rollout = _load_passed(rollout_path)
         if rollout["checkpoint"]["sha256"] != checkpoint_hash:
             raise RuntimeError(
