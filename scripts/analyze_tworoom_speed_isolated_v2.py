@@ -62,6 +62,23 @@ def _bootstrap_ci(
     ]
 
 
+def _holm_adjust(rows: list[dict[str, Any]], *, alpha: float) -> None:
+    ordered = sorted(
+        enumerate(rows),
+        key=lambda item: float(
+            item[1]["cluster_sign_test_two_sided_p"]
+        ),
+    )
+    running = 0.0
+    total = len(ordered)
+    for rank, (_, row) in enumerate(ordered):
+        raw = float(row["cluster_sign_test_two_sided_p"])
+        adjusted = min(1.0, (total - rank) * raw)
+        running = max(running, adjusted)
+        row["holm_adjusted_p"] = float(running)
+        row["holm_passed"] = bool(running <= alpha)
+
+
 def _contrast(
     records: list[dict[str, Any]],
     *,
@@ -775,6 +792,29 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                         mode_records["planning"]
                     ),
                 }
+            multiplicity_family = []
+            for speed_row in rows_by_speed.values():
+                for comparison in speed_row["physical"][
+                    "same_speed_benefit"
+                ].values():
+                    multiplicity_family.extend(
+                        [
+                            comparison["one_block_position"],
+                            comparison["trajectory_position"],
+                            comparison["trajectory_latent"],
+                        ]
+                    )
+                multiplicity_family.extend(
+                    speed_row["fixed_candidate"][
+                        "same_speed_benefit"
+                    ].values()
+                )
+            _holm_adjust(
+                multiplicity_family,
+                alpha=float(config["decisions"]["multiplicity"][
+                    "familywise_alpha"
+                ]),
+            )
             track_results[track] = {
                 "by_query_speed": rows_by_speed,
                 "gates": {
@@ -786,13 +826,44 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                     ),
                     "physical_calibration": all(
                         row["physical"]["gates"]["passed"]
+                        and all(
+                            comparison["one_block_position"][
+                                "holm_passed"
+                            ]
+                            and comparison["trajectory_position"][
+                                "holm_passed"
+                            ]
+                            and comparison["trajectory_latent"][
+                                "holm_passed"
+                            ]
+                            for comparison in row["physical"][
+                                "same_speed_benefit"
+                            ].values()
+                        )
                         for row in rows_by_speed.values()
                     ),
                     "fixed_candidate_calibration": all(
                         row["fixed_candidate"]["gates"][
                             "same_speed_lowest_regret"
                         ]
+                        and all(
+                            comparison["holm_passed"]
+                            for comparison in row[
+                                "fixed_candidate"
+                            ]["same_speed_benefit"].values()
+                        )
                         for row in rows_by_speed.values()
+                    ),
+                },
+                "multiplicity": {
+                    "method": "holm",
+                    "familywise_alpha": float(
+                        config["decisions"]["multiplicity"][
+                            "familywise_alpha"
+                        ]
+                    ),
+                    "primary_comparisons": len(
+                        multiplicity_family
                     ),
                 },
             }

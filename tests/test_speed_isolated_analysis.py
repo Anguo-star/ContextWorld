@@ -4,6 +4,7 @@ from scripts.analyze_tworoom_speed_isolated_v2 import (
     _ability_comparison,
     _contrast,
     _exact_sign_test,
+    _holm_adjust,
 )
 
 
@@ -80,3 +81,21 @@ def test_ability_noninferiority_comparison_is_paired() -> None:
     assert result["candidate_minus_reference_success_rate_points"] == 10.0
     assert result["candidate_minus_reference_mean_final_distance_px"] == -1.0
     assert result["passed"]
+
+
+def test_holm_adjustment_is_monotone_in_sorted_p_values() -> None:
+    rows = [
+        {"cluster_sign_test_two_sided_p": value}
+        for value in (0.01, 0.03, 0.02)
+    ]
+    _holm_adjust(rows, alpha=0.05)
+    adjusted = sorted(
+        (
+            row["cluster_sign_test_two_sided_p"],
+            row["holm_adjusted_p"],
+        )
+        for row in rows
+    )
+
+    assert [value for _, value in adjusted] == [0.03, 0.04, 0.04]
+    assert all(row["holm_passed"] for row in rows)
