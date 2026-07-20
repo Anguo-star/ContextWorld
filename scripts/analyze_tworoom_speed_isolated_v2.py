@@ -34,6 +34,109 @@ def _load_passed(path: Path) -> dict[str, Any]:
     return payload
 
 
+def _recover_speed_from_context(
+    *,
+    states: np.ndarray,
+    next_states: np.ndarray,
+    actions: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray]:
+    states = np.asarray(states, dtype=np.float64)
+    next_states = np.asarray(next_states, dtype=np.float64)
+    actions = np.asarray(actions, dtype=np.float64)
+    if (
+        states.shape != next_states.shape
+        or states.ndim != 2
+        or states.shape[-1] != 2
+        or actions.shape != (states.shape[0], 5, 2)
+    ):
+        raise ValueError(
+            "Expected states/next_states [T,2] and actions [T,5,2]"
+        )
+    block_actions = np.sum(actions, axis=1)
+    denominators = np.sum(block_actions**2, axis=-1)
+    if np.any(denominators <= 1.0e-12):
+        raise ValueError("Context contains a zero-information action block")
+    displacements = next_states - states
+    estimates = (
+        np.sum(displacements * block_actions, axis=-1) / denominators
+    )
+    residuals = np.linalg.norm(
+        displacements - estimates[:, None] * block_actions,
+        axis=-1,
+    )
+    return estimates, residuals
+
+
+def _context_identifiability_audit(catalog_path: Path) -> dict[str, Any]:
+    catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
+    speed_errors = []
+    motion_residuals = []
+    visible_field_checks = []
+    query_hashes: dict[str, set[str]] = defaultdict(set)
+    payloads = set()
+    for bundle in catalog["bundles"]:
+        visible_field_checks.append(
+            set(bundle.get("model_visible_fields", []))
+            == {"pixels", "action"}
+        )
+        query_hashes[str(bundle["static_query_id"])].add(
+            str(bundle["query_pixels_sha256"])
+        )
+        payload_path = resolve_contextworld_path(
+            str(bundle["payload"]), repo_root=ROOT
+        )
+        payloads.add(str(payload_path))
+        with np.load(payload_path, allow_pickle=False) as payload:
+            for condition, condition_row in bundle["conditions"].items():
+                expected_speed = float(
+                    condition_row["factors"]["agent.speed"]
+                )
+                estimates, residuals = _recover_speed_from_context(
+                    states=payload[
+                        f"context_b2_{condition}_states"
+                    ],
+                    next_states=payload[
+                        f"context_b2_{condition}_next_states"
+                    ],
+                    actions=payload[
+                        f"context_b2_{condition}_actions"
+                    ],
+                )
+                speed_errors.extend(
+                    np.abs(estimates - expected_speed).tolist()
+                )
+                motion_residuals.extend(residuals.tolist())
+    static_pixels_identical = all(
+        len(hashes) == 1 for hashes in query_hashes.values()
+    )
+    maximum_speed_error = float(max(speed_errors))
+    maximum_motion_residual = float(max(motion_residuals))
+    passed = bool(
+        speed_errors
+        and maximum_speed_error <= 1.0e-4
+        and maximum_motion_residual <= 1.0e-4
+        and static_pixels_identical
+        and all(visible_field_checks)
+    )
+    return {
+        "catalog": str(catalog_path),
+        "track": str(catalog["track"]),
+        "bundles": len(catalog["bundles"]),
+        "payloads": len(payloads),
+        "context_transitions": len(speed_errors),
+        "speed_recovery_mae": float(np.mean(speed_errors)),
+        "maximum_speed_recovery_error": maximum_speed_error,
+        "maximum_free_motion_residual_px": maximum_motion_residual,
+        "static_query_pixels_identical_across_query_speeds": (
+            static_pixels_identical
+        ),
+        "model_input_excludes_speed_and_state": all(
+            visible_field_checks
+        ),
+        "passed": passed,
+    }
+
+
 def _exact_sign_test(positive: int, negative: int) -> float:
     trials = int(positive + negative)
     if trials == 0:
@@ -714,6 +817,18 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         for row in config["frozen_scope"]["tracks"]
         if row["name"] in args.tracks
     }
+    context_identifiability = {
+        track: _context_identifiability_audit(
+            resolve_contextworld_path(
+                artifacts["catalogs"][track], repo_root=ROOT
+            )
+        )
+        for track in tracks
+    }
+    if not all(
+        row["passed"] for row in context_identifiability.values()
+    ):
+        raise RuntimeError("Speed context identifiability audit failed")
     models = [
         (group, model)
         for group, rows in config["models"].items()
@@ -1041,6 +1156,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "tracks": list(tracks),
             "passed": True,
         },
+        "context_identifiability_audit": context_identifiability,
         "models": model_results,
         "paired_training_seed_attribution": paired_training,
         "attribution_gates": attribution,

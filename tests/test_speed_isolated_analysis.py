@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import numpy as np
+
 from scripts.analyze_tworoom_speed_isolated_v2 import (
     _ability_comparison,
     _contrast,
     _exact_sign_test,
     _holm_adjust,
+    _recover_speed_from_context,
 )
 
 
@@ -99,3 +102,36 @@ def test_holm_adjustment_is_monotone_in_sorted_p_values() -> None:
 
     assert [value for _, value in adjusted] == [0.03, 0.04, 0.04]
     assert all(row["holm_passed"] for row in rows)
+
+
+def test_context_speed_recovery_uses_dense_action_block() -> None:
+    states = np.asarray([[10.0, 20.0], [12.0, 22.0]])
+    actions = np.asarray(
+        [
+            [
+                [0.1, -0.1],
+                [0.2, 0.0],
+                [0.0, 0.1],
+                [0.1, 0.1],
+                [0.0, -0.1],
+            ],
+            [
+                [-0.1, 0.2],
+                [0.0, 0.1],
+                [0.2, -0.1],
+                [0.1, 0.0],
+                [0.1, 0.1],
+            ],
+        ]
+    )
+    speed = 4.8
+    next_states = states + speed * actions.sum(axis=1)
+
+    estimates, residuals = _recover_speed_from_context(
+        states=states,
+        next_states=next_states,
+        actions=actions,
+    )
+
+    np.testing.assert_allclose(estimates, speed)
+    np.testing.assert_allclose(residuals, 0.0, atol=1.0e-12)
