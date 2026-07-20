@@ -295,23 +295,54 @@ def _physical_row_summary(
             ],
             "by_horizon": {
                 str(horizon): {
-                    metric: float(
+                    **{
+                        metric: float(
+                            np.mean(
+                                [
+                                    record["conditions"][condition][
+                                        "by_horizon"
+                                    ][str(horizon)][metric]
+                                    for record in records
+                                ]
+                            )
+                        )
+                        for metric in (
+                            "inferred_speed",
+                            "position_error_px",
+                            "displacement_magnitude_error_px",
+                            "displacement_direction_error_deg",
+                            "latent_mse_to_true_query_future",
+                            "latent_mse_to_nearest_oracle",
+                        )
+                    },
+                    "inferred_speed_mae_to_query": float(
                         np.mean(
                             [
-                                record["conditions"][condition][
-                                    "by_horizon"
-                                ][str(horizon)][metric]
+                                abs(
+                                    record["conditions"][condition][
+                                        "by_horizon"
+                                    ][str(horizon)][
+                                        "inferred_minus_query_speed"
+                                    ]
+                                )
                                 for record in records
                             ]
                         )
-                    )
-                    for metric in (
-                        "inferred_speed",
-                        "position_error_px",
-                        "displacement_magnitude_error_px",
-                        "displacement_direction_error_deg",
-                        "latent_mse_to_true_query_future",
-                    )
+                    ),
+                    "inferred_speed_mae_to_history": float(
+                        np.mean(
+                            [
+                                abs(
+                                    record["conditions"][condition][
+                                        "by_horizon"
+                                    ][str(horizon)][
+                                        "inferred_minus_history_speed"
+                                    ]
+                                )
+                                for record in records
+                            ]
+                        )
+                    ),
                 }
                 for horizon in HORIZONS
             },
