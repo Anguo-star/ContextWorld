@@ -122,6 +122,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 raise RuntimeError(
                     f"Eval-seed partitions overlap: {path} {track_name}"
                 )
+            if int(track["data_audit"]["unique_payload_hashes"]) != int(
+                track["data_audit"]["bundles"]
+            ):
+                raise RuntimeError(
+                    f"Repeated payload contents: {path} {track_name}"
+                )
             if not track["summary"]["count_audit"]["passed"]:
                 raise RuntimeError(f"Count audit failed: {path} {track_name}")
             if not track["autoregressive_prefix_audit"]["passed"]:
@@ -173,6 +179,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 }
             track_rows[track_name] = {
                 "horizons": horizons,
+                "unique_payload_hashes": int(
+                    track["data_audit"]["unique_payload_hashes"]
+                ),
                 "condition_trajectories": int(
                     track["summary"]["count_audit"][
                         "condition_trajectories"
@@ -334,6 +343,22 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     expected_horizon_per_model = int(
         config["evaluation"]["horizon_losses_per_checkpoint_all_tracks"]
     )
+    all_payloads_unique = all(
+        track["unique_payload_hashes"]
+        == track["condition_trajectories"]
+        // len(config["data"]["tracks"][track_name]["speeds"])
+        for row in models.values()
+        for track_name, track in row["tracks"].items()
+    )
+    all_query_pixels_unique = all(
+        int(track["summary"]["unique_query_pixel_hashes"])
+        == int(
+            config["evaluation"]["unique_queries_per_reference_speed"]
+        )
+        for track in build_report["tracks"].values()
+    )
+    if not all_payloads_unique or not all_query_pixels_unique:
+        raise RuntimeError("Deterministic query content uniqueness audit failed")
     payload = {
         "schema_version": 1,
         "benchmark": config["benchmark"],
@@ -355,7 +380,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 len(models) * expected_horizon_per_model
             ),
             "online_environment_calls": 0,
-            "all_deterministic_queries_disjoint_within_cells": True,
+            "all_deterministic_queries_disjoint_across_eval_seeds": True,
+            "all_catalog_payload_hashes_unique": all_payloads_unique,
+            "all_tracks_have_300_unique_query_pixels": (
+                all_query_pixels_unique
+            ),
         },
         "models": models,
         "group_summaries": group_summaries,

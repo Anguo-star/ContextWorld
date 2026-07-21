@@ -1,6 +1,6 @@
 # TwoRoom History-3 速度 Benchmark v2 执行协议
 
-**版本**：v1.3
+**版本**：v1.4
 **日期**：2026-07-21
 **状态**：Validation 已执行；Test 保持封存
 **用途**：固定数据、模型、评测、统计和能力声明边界
@@ -250,6 +250,10 @@ relative_loss_reduction(v)
 oracle 网格指标。若未来需要多步准确性，必须先离线生成并冻结多步目标帧，再发布
 新的协议版本，不能在正式评分期间临时运行环境。
 
+该扩展现已由独立的
+[速度范围外与多步预测协议](TwoRoom_History3_Speed_Extrapolation_Multistep_v1_Protocol.md)
+执行。v2 的原始一步数据和判断门保持不变。
+
 ### 5.3 固定候选动作
 
 每个 query 冻结 300 条、每条 10 个 action block 的候选序列。三种历史共享同一
@@ -341,8 +345,7 @@ v4 的正式门是预注册的方向一致性和成对训练种子效应，不�
 闭环 endpoint score 在所有等级中均为必报结果，但不作为物理预测门。
 
 额外报告“同速历史是否分别优于另外两种历史”，但它是严格诊断，不替代上表冻结的
-平均 loss 主门。当前多速度模型在训练内速度上严格诊断 `2/3` 通过，在未训练速度上
-`3/3` 通过；正式下一帧速度 ICL 主门在两条轨道均为 `3/3` 通过。
+平均 loss 主门。实际通过情况统一见主报告，本协议不重复维护结果数字。
 
 ## 8. 产物与复现入口
 
@@ -376,6 +379,12 @@ python scripts/analyze_tworoom_speed_isolated_v2.py
 
 ```text
 artifacts/evaluation/history3/speed_next_latent_v4/final_summary.json
+```
+
+范围外与多步扩展机器汇总写入：
+
+```text
+artifacts/evaluation/history3/speed_multistep_extrap_v5/final_summary.json
 ```
 
 已有规划与能力保持汇总写入：
