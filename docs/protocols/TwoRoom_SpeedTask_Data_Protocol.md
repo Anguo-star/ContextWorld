@@ -1,5 +1,8 @@
 # TwoRoom SpeedTask 数据与训练协议
 
+> **文档角色**：历史数据与训练协议，不维护当前结果。当前数据比较和正式结论
+> 统一见[主报告](../TwoRoom_Speed_Benchmark_Report.md)。
+
 **版本**：v1.2
 **日期**：2026-07-16  
 **适用模型**：`H3-SpeedTask`（LeWM，history=3）
