@@ -8,6 +8,7 @@ from contextworld.evaluation.icl_sensitive import SensitiveGeometry
 from scripts.analyze_tworoom_speed_multistep_extrap_v5 import (
     HORIZONS as ANALYZER_HORIZONS,
     _longest_contiguous,
+    _query_level_metrics,
 )
 from scripts.build_tworoom_speed_multistep_catalogs import (
     HORIZONS,
@@ -227,6 +228,26 @@ def test_full_four_by_four_50_by_6_matrix_and_metric(monkeypatch) -> None:
         assert row["reference_speed_balanced_relative_loss_reduction"] == pytest.approx(
             0.5
         )
+
+
+def test_reader_facing_loss_ratio_and_query_win_rates() -> None:
+    records, _ = _synthetic_records()
+    metrics = _query_level_metrics(records, horizon=1)
+    assert metrics[
+        "reference_speed_balanced_matching_to_other_loss_ratio"
+    ] == pytest.approx(0.5)
+    assert metrics[
+        "reference_speed_balanced_query_win_rate_vs_other_mean"
+    ] == pytest.approx(1.0)
+    assert metrics[
+        "reference_speed_balanced_strict_query_win_rate_vs_every_other"
+    ] == pytest.approx(1.0)
+    assert set(metrics["by_reference_speed"]) == {
+        "1.75",
+        "1.95",
+        "2.15",
+        "2.35",
+    }
 
 
 def test_longest_contiguous_horizon_stops_at_first_failure() -> None:

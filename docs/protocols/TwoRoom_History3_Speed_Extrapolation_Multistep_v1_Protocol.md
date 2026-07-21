@@ -12,8 +12,8 @@
 2. 上下文带来的一步预测优势，在完全自回归预测 2、3、5 个 action block 时还能
    保持多久。
 
-当前结论仍统一写入
-[TwoRoom 速度上下文学习 Benchmark 报告](../TwoRoom_Speed_Benchmark_Report.md)。
+本文件保存冻结配置与正式判断门，适合复现者和审计者。当前结果和结论统一见
+[TwoRoom History-3 速度学习报告](../TwoRoom_Speed_Benchmark_Report.md)。
 
 ## 1. 不改变的实验基础
 
@@ -144,6 +144,16 @@ L_h(v_history → v_reference)
 相对 loss 降低
 = 同速历史优势 / 其他历史的平均 loss
 ```
+
+以上公式是冻结的预注册判定尺度。为了避免把百分数误读成预测准确率，公开报告改用
+完全等价的 `loss 比值 = 同速历史 loss / 其他历史平均 loss`，并补充两个逐 query
+描述指标：
+
+- query 胜率：同速 loss 小于其他历史平均 loss 的 query 比例；
+- 严格胜率：同速 loss 小于每一种其他历史 loss 的 query 比例。
+
+`相对 loss 降低 = 1 − loss 比值`，所以改变展示方式不会改变任何预注册判定。
+逐 query 指标用于说明效果覆盖范围，不追溯修改正式门。
 
 “同速”只表示历史和参考未来由同一稳定速度生成，不表示历史本身有对错。只有在
 历史与 query 属于同一、短期速度不变环境的任务假设下，同速历史才是准确性参照。

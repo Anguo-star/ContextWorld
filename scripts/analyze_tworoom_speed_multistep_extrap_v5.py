@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
@@ -45,6 +46,93 @@ def _longest_contiguous(passes: dict[str, bool]) -> int:
             break
         longest = horizon
     return longest
+
+
+def _query_level_metrics(
+    records: list[dict[str, Any]], horizon: int
+) -> dict[str, Any]:
+    """Return paired metrics that are easier to interpret than percentages."""
+
+    grouped: dict[tuple[Any, ...], list[dict[str, Any]]] = defaultdict(list)
+    for row in records:
+        grouped[
+            (
+                float(row["reference_speed"]),
+                int(row["eval_seed"]),
+                str(row["query_id"]),
+            )
+        ].append(row)
+
+    by_speed: dict[float, list[dict[str, Any]]] = defaultdict(list)
+    for (speed, eval_seed, query_id), rows in grouped.items():
+        matching_condition = str(rows[0]["matching_condition"])
+        matching_rows = [
+            row for row in rows if row["condition"] == matching_condition
+        ]
+        if len(matching_rows) != 1 or len(rows) < 2:
+            raise RuntimeError(
+                f"Incomplete query matrix: {speed} {eval_seed} {query_id}"
+            )
+        matching_loss = float(
+            matching_rows[0]["latent_mse_by_horizon"][str(horizon)]
+        )
+        other_losses = [
+            float(row["latent_mse_by_horizon"][str(horizon)])
+            for row in rows
+            if row["condition"] != matching_condition
+        ]
+        other_mean = float(np.mean(other_losses))
+        by_speed[speed].append(
+            {
+                "matching_loss": matching_loss,
+                "other_mean_loss": other_mean,
+                "matching_beats_other_mean": matching_loss < other_mean,
+                "matching_beats_every_other": all(
+                    matching_loss < loss for loss in other_losses
+                ),
+            }
+        )
+
+    speed_rows = {}
+    for speed, rows in sorted(by_speed.items()):
+        matching = _mean([row["matching_loss"] for row in rows])
+        other = _mean([row["other_mean_loss"] for row in rows])
+        speed_rows[str(speed)] = {
+            "queries": len(rows),
+            "matching_loss": matching,
+            "other_history_mean_loss": other,
+            "matching_to_other_loss_ratio": float(
+                matching / max(other, 1e-12)
+            ),
+            "query_win_rate_vs_other_mean": _mean(
+                [float(row["matching_beats_other_mean"]) for row in rows]
+            ),
+            "strict_query_win_rate_vs_every_other": _mean(
+                [float(row["matching_beats_every_other"]) for row in rows]
+            ),
+        }
+
+    return {
+        "reference_speed_balanced_matching_loss": _mean(
+            [row["matching_loss"] for row in speed_rows.values()]
+        ),
+        "reference_speed_balanced_other_history_mean_loss": _mean(
+            [row["other_history_mean_loss"] for row in speed_rows.values()]
+        ),
+        "reference_speed_balanced_matching_to_other_loss_ratio": _mean(
+            [row["matching_to_other_loss_ratio"] for row in speed_rows.values()]
+        ),
+        "reference_speed_balanced_query_win_rate_vs_other_mean": _mean(
+            [row["query_win_rate_vs_other_mean"] for row in speed_rows.values()]
+        ),
+        "reference_speed_balanced_strict_query_win_rate_vs_every_other": _mean(
+            [
+                row["strict_query_win_rate_vs_every_other"]
+                for row in speed_rows.values()
+            ]
+        ),
+        "by_reference_speed": speed_rows,
+    }
 
 
 def run(args: argparse.Namespace) -> dict[str, Any]:
@@ -134,6 +222,24 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 raise RuntimeError(f"Prefix audit failed: {path} {track_name}")
             horizons = {}
             for horizon, row in track["summary"]["by_horizon"].items():
+                query_metrics = _query_level_metrics(
+                    track["records"], int(horizon)
+                )
+                expected_ratio = 1.0 - float(
+                    row[
+                        "reference_speed_balanced_relative_loss_reduction"
+                    ]
+                )
+                observed_ratio = query_metrics[
+                    "reference_speed_balanced_matching_to_other_loss_ratio"
+                ]
+                if not np.isclose(
+                    observed_ratio, expected_ratio, atol=1e-10, rtol=1e-8
+                ):
+                    raise RuntimeError(
+                        f"Loss-ratio audit failed: {path} {track_name} "
+                        f"h={horizon}"
+                    )
                 horizons[horizon] = {
                     "reference_speed_balanced_relative_loss_reduction": float(
                         row[
@@ -146,6 +252,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                     "strict_each_alternative_pass": bool(
                         row["strict_each_alternative_pass"]
                     ),
+                    "reader_facing_metrics": query_metrics,
                     "by_reference_speed": {
                         speed: {
                             "matching_loss": float(values["matching_loss"]),
@@ -224,6 +331,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                     for row in selected
                 ]
                 mean_value = _mean(values)
+                reader_rows = [
+                    row["tracks"][track]["horizons"][str(horizon)][
+                        "reader_facing_metrics"
+                    ]
+                    for row in selected
+                ]
                 h_rows[str(horizon)] = {
                     "mean_reference_speed_balanced_relative_loss_reduction": (
                         mean_value
@@ -238,6 +351,30 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                         for slug, row in models.items()
                         if row["group"] == group
                     },
+                    "mean_matching_to_other_loss_ratio": _mean(
+                        [
+                            row[
+                                "reference_speed_balanced_matching_to_other_loss_ratio"
+                            ]
+                            for row in reader_rows
+                        ]
+                    ),
+                    "mean_query_win_rate_vs_other_mean": _mean(
+                        [
+                            row[
+                                "reference_speed_balanced_query_win_rate_vs_other_mean"
+                            ]
+                            for row in reader_rows
+                        ]
+                    ),
+                    "mean_strict_query_win_rate_vs_every_other": _mean(
+                        [
+                            row[
+                                "reference_speed_balanced_strict_query_win_rate_vs_every_other"
+                            ]
+                            for row in reader_rows
+                        ]
+                    ),
                     "formal_within_checkpoint_passed_models": sum(
                         row["tracks"][track]["horizons"][str(horizon)][
                             "formal_within_checkpoint_pass"
@@ -273,12 +410,42 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 ][str(horizon)][
                     "reference_speed_balanced_relative_loss_reduction"
                 ]
+                single_reader = models[f"h3_speed_single_v2_s{seed}"][
+                    "tracks"
+                ][track]["horizons"][str(horizon)]["reader_facing_metrics"]
+                multi_reader = models[f"h3_speed_multi_v2_s{seed}"][
+                    "tracks"
+                ][track]["horizons"][str(horizon)]["reader_facing_metrics"]
                 rows.append(
                     {
                         "training_seed": seed,
                         "single_speed_relative_loss_reduction": single,
                         "multi_speed_relative_loss_reduction": multi,
                         "multi_minus_single": multi - single,
+                        "single_speed_query_win_rate": single_reader[
+                            "reference_speed_balanced_query_win_rate_vs_other_mean"
+                        ],
+                        "multi_speed_query_win_rate": multi_reader[
+                            "reference_speed_balanced_query_win_rate_vs_other_mean"
+                        ],
+                        "query_win_rate_multi_minus_single": multi_reader[
+                            "reference_speed_balanced_query_win_rate_vs_other_mean"
+                        ]
+                        - single_reader[
+                            "reference_speed_balanced_query_win_rate_vs_other_mean"
+                        ],
+                        "single_speed_strict_query_win_rate": single_reader[
+                            "reference_speed_balanced_strict_query_win_rate_vs_every_other"
+                        ],
+                        "multi_speed_strict_query_win_rate": multi_reader[
+                            "reference_speed_balanced_strict_query_win_rate_vs_every_other"
+                        ],
+                        "strict_query_win_rate_multi_minus_single": multi_reader[
+                            "reference_speed_balanced_strict_query_win_rate_vs_every_other"
+                        ]
+                        - single_reader[
+                            "reference_speed_balanced_strict_query_win_rate_vs_every_other"
+                        ],
                     }
                 )
             paired_effects[track][str(horizon)] = {
@@ -288,6 +455,15 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 ),
                 "all_three_directions_positive": all(
                     row["multi_minus_single"] > 0 for row in rows
+                ),
+                "mean_query_win_rate_multi_minus_single": _mean(
+                    [row["query_win_rate_multi_minus_single"] for row in rows]
+                ),
+                "mean_strict_query_win_rate_multi_minus_single": _mean(
+                    [
+                        row["strict_query_win_rate_multi_minus_single"]
+                        for row in rows
+                    ]
                 ),
             }
 

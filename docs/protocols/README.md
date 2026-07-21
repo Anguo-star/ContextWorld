@@ -1,36 +1,39 @@
-# TwoRoom 速度实验协议导航
+# TwoRoom 速度实验复现索引
 
-本目录只保存“实验怎样执行”的技术材料，不维护当前结论。当前数据、模型对比、
-能力等级和下一步统一见
-[TwoRoom History-3 速度 Benchmark 报告](../TwoRoom_Speed_Benchmark_Report.md)。
+本目录保存冻结配置、审计规则和运行方法。它面向需要复现实验的读者，不负责讲述
+当前结论；结果请直接阅读
+[TwoRoom History-3 速度学习报告](../TwoRoom_Speed_Benchmark_Report.md)。
 
-## 当前正式协议
+## 当前协议
 
-| 文档 | 状态 | 用途 |
+| 协议 | 覆盖内容 | 状态 |
 |---|---|---|
-| [History-3 速度 Benchmark v2](TwoRoom_History3_Speed_Benchmark_v2_Protocol.md) | Validation 已执行，Test 封存 | 原始数据、单速合成混训和多速度合成混训的隔离实验、完整速度矩阵与复现入口 |
-| [速度范围外与多步预测](TwoRoom_History3_Speed_Extrapolation_Multistep_v1_Protocol.md) | Validation 已执行，Test 封存 | 低端/高端范围外速度和 1/2/3/5-step 离线真实未来 latent |
+| [History-3 速度 Benchmark v2](TwoRoom_History3_Speed_Benchmark_v2_Protocol.md) | 隔离训练、区间内速度、固定候选、CEM 资源阶梯、能力保持 | Validation 已执行，Test 封存 |
+| [范围外速度与多步预测](TwoRoom_History3_Speed_Extrapolation_Multistep_v1_Protocol.md) | 低端和高端范围外速度、1/2/3/5 步真实未来 latent | Validation 已执行，Test 封存 |
 
-## 支持性协议
+复现完整当前结论时，两份都需要：第一份建立训练归因和规划证据，第二份补全多步
+预测与能力边界。协议中的旧字段名和预注册计算式为了机器结果兼容保持不变；面向
+读者的名称和指标解释以主报告为准。
 
-以下文档记录了形成 v2 设计之前的专项实验。它们仍用于复现，但其中的阶段表述不再
-作为当前结论入口。
+## 专项支持协议
 
-| 文档 | 回答的问题 | 当前报告对应位置 |
-|---|---|---|
-| [原始能力重建](TwoRoom_OriginalAbility_Reconstruction_Protocol.md) | 速度 5 合成单训能否重建基础能力 | 6.2 节 |
-| [速度 5 跨 Eval](TwoRoom_Speed5_CrossEval_Protocol.md) | 原始与合成 Eval 的分数差来自哪里 | 6.3 节 |
-| [CEM 规划配置影响](TwoRoom_CEM_Planning_Config_Impact_Protocol.md) | horizon、候选数和迭代数如何影响速度分数 | 5.3 节 |
-| [上下文敏感距离校准](TwoRoom_Speed_ICL_Sensitive_Eval_Protocol.md) | 怎样避免远目标地板 | 6.3 节 |
-| [双向速度上下文评测](TwoRoom_Speed_Context_Direction_Eval_Protocol.md) | 早期低/中/高速历史现象能否复现 | 5 节 |
-| [SpeedFull 数据与训练](TwoRoom_SpeedFull_Data_Protocol.md) | 早期多速度数据怎样生成和训练 | 历史复现材料 |
-| [SpeedClean 数据与训练](TwoRoom_SpeedClean_Data_Protocol.md) | 早期单速控制怎样生成和训练 | 历史复现材料 |
-| [SpeedTask 数据与训练](TwoRoom_SpeedTask_Data_Protocol.md) | 更早期速度任务怎样生成和评测 | 历史复现材料 |
+这些文件保存形成当前设计之前的专项对照。只有复现相应子问题时才需要阅读。
 
-## 阅读规则
+| 协议 | 子问题 |
+|---|---|
+| [原始能力重建](TwoRoom_OriginalAbility_Reconstruction_Protocol.md) | 速度 5 合成单训能否重建基础能力 |
+| [速度 5 跨 Eval](TwoRoom_Speed5_CrossEval_Protocol.md) | 原始与合成 Eval 的分数差来自哪里 |
+| [CEM 规划配置影响](TwoRoom_CEM_Planning_Config_Impact_Protocol.md) | horizon、候选数和迭代数如何影响成功率 |
+| [上下文敏感距离校准](TwoRoom_Speed_ICL_Sensitive_Eval_Protocol.md) | 怎样避免远目标造成成功率地板 |
+| [双向速度历史评测](TwoRoom_Speed_Context_Direction_Eval_Protocol.md) | 较慢、同速和较快历史的早期规划现象 |
+| [SpeedFull 数据与训练](TwoRoom_SpeedFull_Data_Protocol.md) | 早期多速度数据的生成和训练 |
+| [SpeedClean 数据与训练](TwoRoom_SpeedClean_Data_Protocol.md) | 早期单速控制的生成和训练 |
+| [SpeedTask 数据与训练](TwoRoom_SpeedTask_Data_Protocol.md) | 更早期速度任务的生成和评测 |
 
-- 只判断“训练数据怎么配、速度 ICL 表现怎样、CEM 成功率怎样”时，读主报告
-  第 1–5 节；
-- 审核隔离训练、规划和基础能力时读 v2；审核范围外与多步评分时读多步协议；
-- 只有需要复现旧对照或追溯设计原因时，才打开支持性协议；
-- 支持性协议与主报告表述不一致时，以主报告和两份当前正式协议为准。
+## 阅读顺序
+
+- 只想理解结果：不要从协议开始，阅读主报告；
+- 想检查 Benchmark 为什么这样设计：阅读
+  [ContextWorld Benchmark 设计指南](../ContextWorld_Benchmark_Design.md)；
+- 想复现实验：先读 v2，再读范围外与多步协议，最后按需查专项协议；
+- 专项协议中的阶段性判断若与主报告不同，以主报告的当前结论为准。

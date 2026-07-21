@@ -5,8 +5,9 @@
 **状态**：Validation 已执行；Test 保持封存
 **用途**：固定数据、模型、评测、统计和能力声明边界
 
-本文件回答“结果是怎样得到的”。当前数据、结果和结论统一见
-[TwoRoom 速度上下文学习 Benchmark 报告](../TwoRoom_Speed_Benchmark_Report.md)。
+本文件回答“结果是怎样得到的”，适合复现者和审计者。只想了解训练配方、关键
+数字和能力边界的读者，请直接阅读
+[TwoRoom History-3 速度学习报告](../TwoRoom_Speed_Benchmark_Report.md)。
 
 ## 1. 研究问题
 

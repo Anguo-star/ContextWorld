@@ -1,77 +1,59 @@
-# ContextWorld 文档导航
+# ContextWorld 文档入口
 
-## 从哪里开始
+这里的公开文档只保留三条阅读路径。读者不需要从实验记录中自行拼结论。
 
-如果只想知道“现在做到什么、证据是什么、下一步是什么”，请读：
+## 我只想知道结果
 
-[TwoRoom History-3 速度 Benchmark 报告](TwoRoom_Speed_Benchmark_Report.md)
+阅读 [TwoRoom History-3 速度学习报告](TwoRoom_Speed_Benchmark_Report.md)。
 
-如果要审核 Benchmark 是否合理，再读：
+这份报告回答：
 
-[ContextWorld Benchmark 设计规范](ContextWorld_Benchmark_Design.md)
+- 用什么训练数据；
+- 模型是否真的会根据历史调节速度预测；
+- 这种能力能保持多少步；
+- 训练范围外是否有效；
+- CEM 成功率为什么不能代替预测误差；
+- 当前结论的边界和下一阶段是什么。
 
-如果要复现实验或核对冻结计数，再读：
+## 我想设计新的 Benchmark
 
-[History-3 速度 Benchmark v2 执行协议](protocols/TwoRoom_History3_Speed_Benchmark_v2_Protocol.md)
+阅读 [ContextWorld Benchmark 设计指南](ContextWorld_Benchmark_Design.md)。
 
-[速度范围外与多步预测执行协议](protocols/TwoRoom_History3_Speed_Extrapolation_Multistep_v1_Protocol.md)
+它说明怎样区分隐藏动力学与可见几何，怎样准备训练对照、Eval 数据、预测指标和
+规划指标，以及怎样避免把一个难解释的百分数当成“模型准确率”。
 
-旧实验协议按用途统一索引在：
+## 我需要复现实验
 
-[TwoRoom 速度实验协议导航](protocols/README.md)
+阅读 [复现实验索引](protocols/README.md)。
 
-文档分工固定：
+其中两份当前协议分别负责：
 
-| 文档 | 只负责什么 |
-|---|---|
-| 结果报告 | 当前数据、正式结论、失败边界和下一步 |
-| 设计规范 | 跨任务通用的 Benchmark 原则 |
-| v2 执行协议 | 隔离训练、区间内一步、规划和基础能力的冻结细节 |
-| 范围外与多步协议 | 四条速度轨道和 1/2/3/5-step 真实未来评分细节 |
-| 协议导航 | 旧实验分别回答什么问题，以及它们在当前报告中的位置 |
+- [隔离训练、区间内评测、规划与能力保持](protocols/TwoRoom_History3_Speed_Benchmark_v2_Protocol.md)；
+- [训练范围外速度与多步真实未来评测](protocols/TwoRoom_History3_Speed_Extrapolation_Multistep_v1_Protocol.md)。
 
-结果不再分散写入多个阶段记录。旧实验只保留复现和决策背景，不作为当前结论入口。
+协议保存配置、样本数、哈希、判定门和运行命令。它们服务于复现，不重复讲一遍
+当前结论。
 
-## 当前状态放在哪里
+## 文档分工
 
-README 不重复维护实验数字，避免同一结论散落在多个文件。训练数据配方、速度 ICL
-指标、CEM 成功率和最终判断均统一维护在主报告第 1–8 节。
+| 文档 | 面向谁 | 只负责什么 |
+|---|---|---|
+| 结果报告 | 所有读者 | 当前数据、结果、结论和下一步 |
+| 设计指南 | Benchmark 设计者 | 可复用的设计原则和指标解释 |
+| 执行协议 | 实验复现者 | 冻结配置、审计规则和命令 |
+| `archive/` | 需要追溯历史的人 | 旧计划和阶段快照，不代表当前结论 |
 
-## 阅读用名称
+如果文件之间出现表述差异，以结果报告中的当前结论、设计指南中的通用规则和当前
+执行协议中的冻结配置为准。
 
-当前报告只使用：
+## 名称约定
 
 | 名称 | 含义 |
 |---|---|
 | 原始数据模型 | 只用原始速度 5 数据训练 |
-| 单速合成混训模型 | 原始数据加速度 5 合成数据，抽样比 1:1 |
-| 多速度合成混训模型 | 原始数据加 32 个速度的合成数据，抽样比 1:1 |
+| 单速合成混训模型 | 原始数据与速度 5 合成数据按 1:1 抽样 |
+| 多速度合成混训模型 | 原始数据与 32 个速度的合成数据按 1:1 抽样 |
 
-历史条件称为低速、中速和高速历史。只有在“历史与 query 属于同一稳定环境”的
-任务假设下，才用“同速历史”描述二者速度相同。当前文档不使用带有对错含义的
-历史名称。
-
-`agent.speed` 与 `frameskip/action block` 也必须分开：
-
-- 本轨道改变 `agent.speed`；
-- `frameskip/action block` 始终为 5；
-- 改变观测频率或动作重复次数属于独立 Benchmark。
-
-## 复现材料
-
-`protocols/` 保存已执行或冻结的专项协议，包括数据生成、能力重建、CEM 资源影响、
-History-3 v2 以及范围外与多步扩展。它们用于复现，不重复维护当前结论。
-
-主要机器汇总写入：
-
-```text
-artifacts/evaluation/history3/speed_multistep_extrap_v5/final_summary.json
-artifacts/evaluation/history3/speed_next_latent_v4/final_summary.json
-artifacts/evaluation/history3/speed_isolated_v2/final_summary.json
-```
-
-第一份是当前 1/2/3/5-step 与范围外速度的直接预测主证据；第二份是独立的一步
-复现；第三份保存固定候选、CEM 和基础能力保持结果。
-
-`reference/` 保存仍被配置或工具引用的边界说明。`archive/` 保存旧计划和阶段
-快照；若其内容与当前报告冲突，以当前报告、设计规范和两份当前正式协议为准。
+历史条件只称为较慢历史、同速历史和较快历史，不使用“正确速度”“错误速度”或
+“反事实速度”。`agent.speed` 是环境动力学参数；`action block=5` 是时间聚合方式，
+两者不是同一个变量。
