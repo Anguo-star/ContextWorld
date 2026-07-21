@@ -1,0 +1,173 @@
+schema_version: 1
+benchmark: tworoom_history3_speed_multistep_extrap_v5
+status: preregistered_before_catalog_generation_and_model_scoring
+preregistered_date: 2026-07-21
+
+purpose: >-
+  Extend the completed v4 speed benchmark without changing it. Test one-step
+  extrapolation below and above the multi-speed training range, and test how
+  long context-conditioned accuracy persists against frozen offline true
+  future frames at 1/2/3/5 action blocks.
+
+stable_worldmodel:
+  repo: ../stable-worldmodel
+  expected_ref: 5864b74980f6ed328fd0045e777b3865962eff43
+
+input:
+  history_tokens: 3
+  context_transitions: 2
+  action_block_raw_steps: 5
+  future_action_blocks: 5
+  model_visible_fields: [pixels, action]
+  privileged_fields_not_visible_to_model:
+    - agent.speed
+    - state
+    - target_state
+
+data:
+  online_environment_during_scoring: false
+  source_training_protocol: configs/benchmark/tworoom_speed_isolated_v2.yaml
+  generation:
+    distance_bins_px: [72, 80, 88, 96, 104, 112]
+    variants_per_distance: 50
+    geometry_seed: 2026072111
+    catalog_seed: 2026072112
+    eval_seed_assignment_seed: 2026072113
+    door_position: 49
+    context_probe_raw_actions_per_direction: 5
+    context_action_magnitude: 0.5
+    query_action_magnitude: 0.35
+    query_action_families:
+      - bounded_axis_loop_x_first
+      - bounded_axis_loop_y_first
+      - bounded_diagonal_loop
+  tracks:
+    seen_for_multi:
+      split: validation
+      role: trained_speed_anchor
+      speeds: [3.1, 5.1, 7.0]
+      catalog: artifacts/evaluation/history3/speed_multistep_extrap_v5/catalogs/seen_for_multi.json
+    unseen_interpolation:
+      split: validation
+      role: heldout_in_range_interpolation
+      speeds: [3.4, 4.8, 6.9]
+      catalog: artifacts/evaluation/history3/speed_multistep_extrap_v5/catalogs/unseen_interpolation.json
+    extrapolation_low:
+      split: validation_extension
+      role: heldout_below_training_range
+      speeds: [1.75, 1.95, 2.15, 2.35]
+      catalog: artifacts/evaluation/history3/speed_multistep_extrap_v5/catalogs/extrapolation_low.json
+    extrapolation_high:
+      split: validation_extension
+      role: heldout_above_training_range
+      speeds: [8.25, 8.75, 9.50, 10.25]
+      catalog: artifacts/evaluation/history3/speed_multistep_extrap_v5/catalogs/extrapolation_high.json
+
+evaluation:
+  normalizer: artifacts/splits/tworoom_original_train_s3072_normalizer.json
+  eval_seeds: [42, 43, 44, 45, 46, 47]
+  unique_queries_per_reference_speed_per_seed: 50
+  unique_queries_per_reference_speed: 300
+  history_condition_scheme: one_condition_per_reference_speed
+  matrix_by_track:
+    seen_for_multi:
+      reference_speeds: 3
+      history_conditions: 3
+      cells: 9
+      condition_trajectories: 2700
+    unseen_interpolation:
+      reference_speeds: 3
+      history_conditions: 3
+      cells: 9
+      condition_trajectories: 2700
+    extrapolation_low:
+      reference_speeds: 4
+      history_conditions: 4
+      cells: 16
+      condition_trajectories: 4800
+    extrapolation_high:
+      reference_speeds: 4
+      history_conditions: 4
+      cells: 16
+      condition_trajectories: 4800
+  condition_trajectories_per_checkpoint_all_tracks: 15000
+  target_horizons_action_blocks: [1, 2, 3, 5]
+  horizon_losses_per_checkpoint_all_tracks: 60000
+  target_encoding: current_checkpoint_frozen_encoder
+
+metrics:
+  primary:
+    - true_future_latent_mse_by_horizon
+    - matching_history_advantage_by_horizon
+    - relative_loss_reduction_by_horizon
+    - longest_contiguous_passing_horizon
+  excluded:
+    - inferred_speed
+    - projected_pixel_position
+    - position_error_px
+    - displacement_error_px
+    - nearest_speed_oracle_loss
+    - cem_success_rate
+  aggregation:
+    matching_advantage: ratio_of_condition_mean_losses
+    reference_speed_weighting: equal_within_each_track
+    track_weighting: never_pool_primary_tracks
+    horizon_weighting: never_average_horizons
+    training_attribution: paired_multi_minus_single_by_training_seed
+    uncertainty: 10000_static_query_cluster_bootstrap_pointwise_ci
+
+models:
+  original_reference:
+    - slug: h3_origheldout_s3072
+      training_seed: 3072
+      checkpoint: artifacts/training/runs/checkpoints/h3_origheldout_s3072/weights_final_step_6420.pt
+  single_speed_control:
+    - slug: h3_speed_single_v2_s3072
+      training_seed: 3072
+      checkpoint: artifacts/training/runs/checkpoints/h3_speed_single_v2_s3072/weights_final_step_12840.pt
+    - slug: h3_speed_single_v2_s4096
+      training_seed: 4096
+      checkpoint: artifacts/training/runs/checkpoints/h3_speed_single_v2_s4096/weights_final_step_12840.pt
+    - slug: h3_speed_single_v2_s5120
+      training_seed: 5120
+      checkpoint: artifacts/training/runs/checkpoints/h3_speed_single_v2_s5120/weights_final_step_12840.pt
+  multi_speed_target:
+    - slug: h3_speed_multi_v2_s3072
+      training_seed: 3072
+      checkpoint: artifacts/training/runs/checkpoints/h3_speed_multi_v2_s3072/weights_final_step_12840.pt
+    - slug: h3_speed_multi_v2_s4096
+      training_seed: 4096
+      checkpoint: artifacts/training/runs/checkpoints/h3_speed_multi_v2_s4096/weights_final_step_12840.pt
+    - slug: h3_speed_multi_v2_s5120
+      training_seed: 5120
+      checkpoint: artifacts/training/runs/checkpoints/h3_speed_multi_v2_s5120/weights_final_step_12840.pt
+
+decision:
+  one_step_extrapolation:
+    tracks: [extrapolation_low, extrapolation_high]
+    gates:
+      - matching_history_advantage_positive_at_every_reference_speed
+      - direction_positive_at_every_reference_speed_in_all_six_eval_seed_partitions
+      - reference_speed_equal_multi_speed_exceeds_paired_single_speed_for_all_three_training_seeds
+  multistep_persistence:
+    tracks:
+      - seen_for_multi
+      - unseen_interpolation
+      - extrapolation_low
+      - extrapolation_high
+    horizons_are_judged_independently: true
+    gates_per_horizon:
+      - matching_history_advantage_positive_at_every_reference_speed
+      - direction_positive_at_every_reference_speed_in_all_six_eval_seed_partitions
+      - reference_speed_equal_multi_speed_exceeds_paired_single_speed_for_all_three_training_seeds
+    claim_rule: >-
+      Report the longest contiguous passing horizon beginning at horizon 1;
+      failure at a later horizon does not erase an earlier-horizon result.
+  strict_diagnostic_not_primary_gate:
+    - matching_history_mean_loss_below_each_other_history_mean_loss
+
+artifacts:
+  root: artifacts/evaluation/history3/speed_multistep_extrap_v5
+  payload_root: artifacts/evaluation/history3/speed_multistep_extrap_v5/payloads
+  build_report: artifacts/evaluation/history3/speed_multistep_extrap_v5/catalogs/build_report.json
+  final_summary: artifacts/evaluation/history3/speed_multistep_extrap_v5/final_summary.json

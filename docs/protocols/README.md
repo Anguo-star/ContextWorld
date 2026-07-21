@@ -9,6 +9,7 @@
 | 文档 | 状态 | 用途 |
 |---|---|---|
 | [History-3 速度 Benchmark v2](TwoRoom_History3_Speed_Benchmark_v2_Protocol.md) | Validation 已执行，Test 封存 | 原始数据、单速合成混训和多速度合成混训的隔离实验、完整速度矩阵与复现入口 |
+| [速度范围外与多步预测](TwoRoom_History3_Speed_Extrapolation_Multistep_v1_Protocol.md) | 已预注册，尚未执行 | 低端/高端范围外速度和 1/2/3/5-step 离线真实未来 latent |
 
 ## 支持性协议
 
