@@ -1,0 +1,216 @@
+schema_version: 1
+release_id: contextworld_tworoom_speed_icl_history3_v1
+release_status: validation_release
+released_date: "2026-07-21"
+
+scope:
+  environment: TwoRoom
+  capability: hidden_agent_speed_from_history
+  history_tokens: 3
+  context_transitions: 2
+  action_block_raw_steps: 5
+  target_horizons_action_blocks: [1, 2, 3, 5]
+  public_tracks:
+    - seen_for_multi
+    - unseen_interpolation
+    - extrapolation_low
+    - extrapolation_high
+  sealed_test_included: false
+
+runtime:
+  supported_adapter: stable_worldmodel_lewm
+  contextworld:
+    repository: https://github.com/Anguo-star/ContextWorld
+    package_version: 0.1.0
+    source_sha256:
+      contextworld/benchmarks/adapters.py: ba0ec8c54ccad08ae2308fea16f25d6b26c785e821fe2098a666cf7d94ed7832
+      contextworld/benchmarks/speed_icl_data.py: 445acf65238e42b43a549eaa66f75861213b48b42c346edc7d10fe703734614f
+      contextworld/benchmarks/speed_icl_score.py: 9132192e25274d4ff18d67ea967771a879b5edee6f9f2e47713e896555825c48
+      contextworld/benchmarks/speed_icl_cli.py: 04df96b0c474fca1baa35a5dcb2a897f177e018b25af3c3cc37cec0dd4caa328
+      contextworld/evaluation/icl_model.py: d9386f688ad268dc6f712d9ee41910ac7097bee8016a2efa84cd193cd02ee69c
+      contextworld/evaluation/protocol.py: a80ca5d5f67f39ea5d82a14d7960d8f30ff64c85dc81268631e242092ec7cf05
+      contextworld/paths.py: 6e64b151a4a6c439cd93a81ee1a7b83694e07bd53b24623cd73b0d9f9147c125
+      contextworld/training/tworoom_data.py: 6f5b6002247d66bb80dfe350820800bb6db5fd0af2dfe7d35fbf5de14def3050
+      contextworld/synthesis/stablewm.py: dcb66bb9965bcc8597955443e71860483051ab003d071345ff434b153757e1d5
+      contextworld/synthesis/manifest.py: 8882069ba2e4c0810d7694db68526335c46aea70e204dafacc5ac962796867e8
+      scripts/train_tworoom_step1.py: 984e03d641b4c6407fd2e8cd89553433d7a47405b38ad967b57951c0a5483ad8
+      scripts/eval_tworoom_speed_cube_fixed_candidate.py: 978bf4b81c96381a7c5c37a9560cd36d4df4560ab5688387826f3b757f5ce637
+      scripts/eval_tworoom_speed_cube_planning.py: 22184323ec39ab049c94df2c73af31465c6ebcf881b2d351d112756afe7e794c
+      configs/benchmark/tworoom_speed_isolated_v2.yaml: 583bb7a807b670b63a6b60b5f466354a3d68c946b2d684595e28e7e646df0165
+      configs/benchmark/tworoom_original_ability_reconstruction_v1.yaml: 3737e422cc0b32ded74000668e292457611c7c8b639813d2cae258717f5cc40c
+      configs/benchmark/tworoom_speed_multistep_extrap_v5.yaml: 2d45894614da32f29266051bdb3a54d1a2f0d07683e02ac7739353cc84214db9
+      configs/benchmark/tworoom_speed_cube_eval_v2.yaml: 387e5bd678ccf04e5ced9cd967b218f2014feefade09a0c5ab6989e2df62f2e9
+  stable_worldmodel:
+    source: https://github.com/galilai-group/stable-worldmodel
+    repo: ../stable-worldmodel
+    expected_ref: 5864b74980f6ed328fd0045e777b3865962eff43
+  extension_contract: contextworld.benchmarks.adapters.SpeedICLModelAdapter
+
+training:
+  protocol: configs/benchmark/tworoom_speed_isolated_v2.yaml
+  paired_training_seeds: [3072, 4096, 5120]
+  original:
+    source: https://huggingface.co/datasets/quentinll/lewm-tworooms
+    license: MIT
+    filename: tworoom.h5
+    environment_variable: CONTEXTWORLD_TWOROOM_H5
+    local_fallback: ../../data/world_model/quentinll/lewm-tworooms/tworoom.h5
+    bytes: 12775849984
+    sha256: 129a36aa93ea0de488d2bcc876e396de9e3907bf66c6aae6394e542ef6a6d623
+    split:
+      strategy: episode_heldout
+      seed: 3072
+      train_episodes: 9000
+      heldout_episodes: 1000
+  recipes:
+    original_reference:
+      model_id: M_origheldout
+      benchmark_config: configs/benchmark/tworoom_original_ability_reconstruction_v1.yaml
+      profile: formal
+      epoch_size_global: 1314816
+      validation_epoch_size: 12288
+      optimizer_steps: 6420
+      training_seeds: [3072]
+      groups: {original: 1.0}
+      required_for_method_submission: false
+    single_speed_control:
+      model_id: M_speed_single_v2
+      benchmark_config: configs/benchmark/tworoom_speed_isolated_v2.yaml
+      profile: additive
+      epoch_size_global: 2629632
+      validation_epoch_size: 12288
+      optimizer_steps: 12840
+      training_seeds: [3072, 4096, 5120]
+      groups: {original: 0.5, speed_single_v2: 0.5}
+      required_for_method_submission: true
+    multi_speed_target:
+      model_id: M_speed_multi_v2
+      benchmark_config: configs/benchmark/tworoom_speed_isolated_v2.yaml
+      profile: additive
+      epoch_size_global: 2629632
+      validation_epoch_size: 12288
+      optimizer_steps: 12840
+      training_seeds: [3072, 4096, 5120]
+      groups: {original: 0.5, speed_multi_v2: 0.5}
+      required_for_method_submission: true
+  synthetic:
+    single_speed_control:
+      data_root: artifacts/synthesis/data/tworoom_speed_single_matched_v2
+      catalog: artifacts/synthesis/catalogs/tworoom_speed_single_matched_v2.json
+      catalog_sha256: ed6f15758e47547c6ad78763fda8f8f07af14349ce0b95b2e6614eb85c58d959
+      manifest: artifacts/synthesis/manifests/tworoom_speed_single_matched_v2.jsonl
+      manifest_sha256: ebd8a0dd5c6a03f3a10c4eb0e24745ebec5eb512ca57ab792fd522258fe44b69
+      report: artifacts/synthesis/reports/tworoom_speed_single_matched_v2.json
+      report_sha256: cb5299e597d0f41015f27ee8a96886792a48daeddd55743b64f82ca2f1a9d97a
+      train_scenarios: 512
+      validation_scenarios: 96
+      data_tree_files: 1824
+      data_tree_bytes: 6405310504
+      data_tree_sha256: 497bd668ef2d45f21fd838680db16aa291f150a6c25b63cc168d797d423dbcbb
+      speeds: [5.0]
+    multi_speed_target:
+      data_root: artifacts/synthesis/data/tworoom_speed_full_v1
+      catalog: artifacts/synthesis/catalogs/tworoom_speed_full_v1.json
+      catalog_sha256: d614f07fe73ddec0e0e86e1918dfb90f7a80eff5c2ef9b04d4c3d21742cfda34
+      manifest: artifacts/synthesis/manifests/tworoom_speed_full_v1.jsonl
+      manifest_sha256: 1815b2b4b6d2a03249b0f6642b4adc779554c65a7114c57e3731556d74024290
+      report: artifacts/synthesis/reports/tworoom_speed_full_v1.json
+      report_sha256: 9b386989107e1fa1b09b82076b3cbfcff2673075c8985fecf5b47a4fd846b490
+      train_scenarios: 512
+      validation_scenarios: 96
+      data_tree_files: 1824
+      data_tree_bytes: 6478493614
+      data_tree_sha256: a125c3ed1f5f07a5be0957bbea3748a985636a248c65d8c198afab7083f5ab0d
+      speeds: [2.6, 2.7, 2.8, 2.9, 3.1, 3.3, 3.5, 3.7, 3.8, 3.9,
+               4.1, 4.2, 4.4, 4.5, 4.7, 5.0, 5.1, 5.3, 5.5, 5.7,
+               5.9, 6.1, 6.2, 6.3, 6.6, 6.7, 6.8, 7.0, 7.2, 7.3,
+               7.8, 7.9]
+
+evaluation:
+  source_protocol: configs/benchmark/tworoom_speed_multistep_extrap_v5.yaml
+  normalizer: artifacts/splits/tworoom_original_train_s3072_normalizer.json
+  normalizer_sha256: 7a5be7ea867bced446c1671b0b2c0ff6450ffc61e1a7bdbbfc5eaa0942f635db
+  build_report: artifacts/evaluation/history3/speed_multistep_extrap_v5/catalogs/build_report.json
+  build_report_sha256: 9a97022680b424431c57ca5788498d1c82a0dc2e28dcff8e04f0cb7019e8326f
+  eval_seeds: [42, 43, 44, 45, 46, 47]
+  queries_per_reference_speed_per_seed: 50
+  tracks:
+    seen_for_multi:
+      relation: training_seen
+      speeds: [3.1, 5.1, 7.0]
+      catalog: artifacts/evaluation/history3/speed_multistep_extrap_v5/catalogs/seen_for_multi.json
+      catalog_sha256: a6c60c2e7f695ead8eb9b5c1668e1d575d4ea4ba33ff22d1798470187ebbd2e2
+    unseen_interpolation:
+      relation: heldout_within_training_range
+      speeds: [3.4, 4.8, 6.9]
+      catalog: artifacts/evaluation/history3/speed_multistep_extrap_v5/catalogs/unseen_interpolation.json
+      catalog_sha256: 1578da1f2db8a5feddb6f32bd78840562fe12a591e6bae65d241224151f854f6
+    extrapolation_low:
+      relation: below_training_range
+      speeds: [1.75, 1.95, 2.15, 2.35]
+      catalog: artifacts/evaluation/history3/speed_multistep_extrap_v5/catalogs/extrapolation_low.json
+      catalog_sha256: aadf9b1d70a0c4a87aea0df24e58e33a44f78b775f275fd308aad0e66a2e9d28
+    extrapolation_high:
+      relation: above_training_range
+      speeds: [8.25, 8.75, 9.50, 10.25]
+      catalog: artifacts/evaluation/history3/speed_multistep_extrap_v5/catalogs/extrapolation_high.json
+      catalog_sha256: 0094a050ca1b2153faddb12d1cd81aeb6dd0a327d1f0cf5d6e489d90c5d79b2a
+
+scoring:
+  target: checkpoint_native_encoder_of_frozen_true_future_pixels
+  online_environment_calls: 0
+  teacher_forcing_future_frames: false
+  primary_reader_metrics:
+    - matching_to_other_loss_ratio
+    - query_win_rate_vs_other_mean
+    - strict_query_win_rate_vs_every_other
+  raw_diagnostic: native_latent_mse_within_checkpoint_only
+  track_weighting: never_pool_tracks
+  horizon_weighting: never_pool_horizons
+  single_model_submission:
+    minimum_models: 1
+    claim: descriptive_model_score
+  method_submission:
+    target_training_seeds: 3
+    paired_single_speed_control_seeds: 3
+    claim: training_attributed_speed_icl
+  core_claim_tracks: [seen_for_multi, unseen_interpolation]
+  extrapolation_tracks: [extrapolation_low, extrapolation_high]
+
+planning:
+  role: supporting_utility_metrics
+  required_for_speed_icl_prediction_claim: false
+  runtime: stable_worldmodel_only
+  source_protocol: configs/benchmark/tworoom_speed_cube_eval_v2.yaml
+  build_report: artifacts/evaluation/history3/speed_isolated_v2/catalogs/build_report.json
+  build_report_sha256: 22045e89e8326b038d96c09e4ca45db473e1c6da8aba5eaff486c47a6842ff89
+  eval_seeds: [42, 43, 44, 45, 46, 47]
+  evaluations_per_speed_condition_per_seed: 50
+  tracks:
+    seen_for_multi:
+      speeds: [3.1, 5.1, 7.0]
+      catalog: artifacts/evaluation/history3/speed_isolated_v2/catalogs/seen_for_multi.json
+      catalog_sha256: f8bb83e008398378e71c9345de13144b52f08b9bcb6ad02653deddc2020a9152
+    unseen_interpolation:
+      speeds: [3.4, 4.8, 6.9]
+      catalog: artifacts/evaluation/history3/speed_isolated_v2/catalogs/unseen_interpolation.json
+      catalog_sha256: b26b8e52ee1cc8dcb5b46442c747382aa1847dcff77e4b73e8afc62e7c6f570f
+  fixed_candidate:
+    candidates: 300
+    horizon_action_blocks: 10
+    metrics:
+      - exact_query_dynamics_regret_px
+      - cost_vs_true_distance_spearman
+  cem:
+    execution_budget_raw_steps: 100
+    deadline_budgets_raw_steps: [50, 75, 100]
+    horizon_action_blocks: 10
+    receding_horizon_action_blocks: 5
+    candidates: 300
+    iterations: 30
+    topk: 30
+    metrics:
+      - success_rate_by_execution_budget
+      - final_distance_px
+      - normalized_distance_auc
+      - steps_to_success

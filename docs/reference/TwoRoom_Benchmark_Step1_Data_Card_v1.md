@@ -1,5 +1,9 @@
 # TwoRoom Benchmark 数据卡
 
+> 本文记录早期 Step-1 数据族，不是当前 Speed ICL 发布包的数据清单。第三方训练与
+> 评测请以 [Speed ICL Benchmark 使用指南](../TwoRoom_Speed_ICL_Benchmark_Release.md)
+> 和冻结 release YAML 为准；本文仅用于理解门位置与组合数据的来源。
+
 **日期**：2026-07-14  
 **状态**：正式 train/validation/test 数据已生成并通过全量验证  
 **环境实现**：Stable-WorldModel 5864b74980f6ed328fd0045e777b3865962eff43  

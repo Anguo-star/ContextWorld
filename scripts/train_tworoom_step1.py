@@ -495,6 +495,7 @@ def run(args) -> dict:
         model_id=args.model_id,
         epoch_size=args.epoch_size,
         validation_epoch_size=args.validation_epoch_size,
+        original_h5=args.original_h5,
         frameskip=5,
         num_steps=4,
         img_size=224,
@@ -977,6 +978,15 @@ def parse_args():
     )
     parser.add_argument("--report", type=Path, required=True)
     parser.add_argument("--benchmark-config", type=Path, default=REPO_ROOT / "configs/benchmark/tworoom_step1_v1.yaml")
+    parser.add_argument(
+        "--original-h5",
+        type=Path,
+        default=None,
+        help=(
+            "Optional local copy of quentinll/lewm-tworooms/tworoom.h5. "
+            "Overrides the machine-layout fallback in the benchmark config."
+        ),
+    )
     parser.add_argument("--stablewm-repo", default="../stable-worldmodel")
     parser.add_argument("--stablewm-ref", default=PINNED_STABLEWM)
     parser.add_argument(

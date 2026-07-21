@@ -16,6 +16,7 @@ OUTPUT_ROOT="${OUTPUT_ROOT:-$ARTIFACT_ROOT/training/runs}"
 REPORT_DIR="${REPORT_DIR:-$ARTIFACT_ROOT/training/reports}"
 LOG_DIR="${LOG_DIR:-$ARTIFACT_ROOT/training/logs}"
 BENCHMARK_CONFIG="$ROOT/configs/benchmark/tworoom_speed_isolated_v2.yaml"
+ORIGINAL_H5="${CONTEXTWORLD_TWOROOM_H5:-${ORIGINAL_H5:-}}"
 MPLCONFIGDIR="${MPLCONFIGDIR:-/tmp/contextworld-matplotlib}"
 export MPLCONFIGDIR
 
@@ -78,6 +79,11 @@ esac
 
 mkdir -p "$REPORT_DIR" "$LOG_DIR" "$MPLCONFIGDIR"
 
+ORIGINAL_ARGS=()
+if [[ -n "$ORIGINAL_H5" ]]; then
+  ORIGINAL_ARGS=(--original-h5 "$ORIGINAL_H5")
+fi
+
 echo "[speed-isolated-v2] variant=$VARIANT mode=$MODE run=$RUN_NAME seed=$TRAINING_SEED"
 "$PYTHON_BIN" "$ROOT/scripts/train_tworoom_step1.py" \
   --model-id "$MODEL_ID" \
@@ -88,6 +94,7 @@ echo "[speed-isolated-v2] variant=$VARIANT mode=$MODE run=$RUN_NAME seed=$TRAINI
   --data-split-seed "$DATA_SPLIT_SEED" \
   --stablewm-repo "$STABLEWM_REPO" \
   --stablewm-ref "$STABLEWM_REF" \
+  "${ORIGINAL_ARGS[@]}" \
   --output-root "$OUTPUT_ROOT" \
   --report "$REPORT" \
   "${EXTRA_ARGS[@]}" \

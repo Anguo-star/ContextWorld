@@ -423,6 +423,7 @@ def build_tworoom_grouped_data(
     model_id: str,
     epoch_size: int,
     validation_epoch_size: int,
+    original_h5: Path | None = None,
     frameskip: int = 5,
     num_steps: int = 4,
     img_size: int = 224,
@@ -450,8 +451,12 @@ def build_tworoom_grouped_data(
             f"model={expected_groups}"
         )
 
-    original_path = resolve_contextworld_path(
-        config["data"]["original_read_only"], repo_root=repo_root
+    original_path = (
+        Path(original_h5).expanduser().resolve()
+        if original_h5 is not None
+        else resolve_contextworld_path(
+            config["data"]["original_read_only"], repo_root=repo_root
+        )
     )
     if not original_path.is_file():
         raise FileNotFoundError(original_path)

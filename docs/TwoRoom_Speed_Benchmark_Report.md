@@ -281,6 +281,7 @@ History-3 速度部分现在具备一套完整 Benchmark 基础：隔离的训�
 
 ## 9. 复现与机器结果
 
+- 第三方使用入口：[Speed ICL Benchmark 使用指南](TwoRoom_Speed_ICL_Benchmark_Release.md)
 - 通用设计原则：[ContextWorld Benchmark 设计指南](ContextWorld_Benchmark_Design.md)
 - 当前执行协议：[protocols/README.md](protocols/README.md)
 - 多步与范围外机器汇总：
