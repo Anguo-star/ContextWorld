@@ -1,0 +1,124 @@
+schema_version: 1
+benchmark: tworoom_history3_speed_next_latent_v4
+status: preregistered_before_independent_catalog_generation_and_scoring
+preregistered_date: 2026-07-21
+
+purpose: >-
+  Test whether History-3 makes the predicted next-frame latent more accurate
+  for the speed demonstrated by context. Every matrix cell contains 50 unique
+  frozen queries for each of six eval seeds. Scoring uses only offline query,
+  action, and target pixels; it does not infer speed or pixel position.
+
+stable_worldmodel:
+  repo: ../stable-worldmodel
+  expected_ref: 5864b74980f6ed328fd0045e777b3865962eff43
+
+input:
+  history_tokens: 3
+  context_transitions: 2
+  action_block_raw_steps: 5
+  model_visible_fields: [pixels, action]
+  privileged_fields_not_visible_to_model:
+    - agent.speed
+    - state
+    - target_state
+
+data:
+  online_environment_during_scoring: false
+  generation:
+    distance_bins_px: [72, 80, 88, 96, 104, 112]
+    variants_per_distance: 50
+    geometry_seed: 2026072104
+    catalog_seed: 2026072105
+    eval_seed_assignment_seed: 2026072106
+    door_position: 49
+  required_payload_arrays:
+    - query_pixels
+    - query_action
+    - target_pixels
+    - context_b2_history_low_pixels
+    - context_b2_history_low_actions
+    - context_b2_history_mid_pixels
+    - context_b2_history_mid_actions
+    - context_b2_history_high_pixels
+    - context_b2_history_high_actions
+  tracks:
+    seen_for_multi:
+      split: validation
+      catalog: artifacts/evaluation/history3/speed_next_latent_v4/catalogs/seen_for_multi.json
+      speeds: [3.1, 5.1, 7.0]
+    unseen_interpolation:
+      split: validation
+      catalog: artifacts/evaluation/history3/speed_next_latent_v4/catalogs/unseen_interpolation.json
+      speeds: [3.4, 4.8, 6.9]
+
+evaluation:
+  normalizer: artifacts/splits/tworoom_original_train_s3072_normalizer.json
+  eval_seeds: [42, 43, 44, 45, 46, 47]
+  unique_queries_per_reference_speed_per_seed: 50
+  unique_queries_per_reference_speed: 300
+  evaluations_per_reference_speed_per_history_per_seed: 50
+  evaluations_per_reference_speed_per_history: 300
+  reference_speeds_per_track: 3
+  history_conditions: [history_low, history_mid, history_high]
+  matrix_cells_per_track: 9
+  expected_unique_queries_per_checkpoint_per_track: 900
+  expected_records_per_checkpoint_per_track: 2700
+  target_encoding: current_checkpoint_frozen_encoder
+  prediction_horizon_action_blocks: 1
+
+metrics:
+  primary:
+    - next_frame_latent_mse
+    - matching_history_advantage
+    - relative_loss_reduction
+  excluded:
+    - inferred_speed
+    - projected_pixel_position
+    - position_error_px
+    - displacement_error_px
+    - nearest_speed_oracle_loss
+
+models:
+  original_reference:
+    - slug: h3_origheldout_s3072
+      training_seed: 3072
+      checkpoint: artifacts/training/runs/checkpoints/h3_origheldout_s3072/weights_final_step_6420.pt
+  single_speed_control:
+    - slug: h3_speed_single_v2_s3072
+      training_seed: 3072
+      checkpoint: artifacts/training/runs/checkpoints/h3_speed_single_v2_s3072/weights_final_step_12840.pt
+    - slug: h3_speed_single_v2_s4096
+      training_seed: 4096
+      checkpoint: artifacts/training/runs/checkpoints/h3_speed_single_v2_s4096/weights_final_step_12840.pt
+    - slug: h3_speed_single_v2_s5120
+      training_seed: 5120
+      checkpoint: artifacts/training/runs/checkpoints/h3_speed_single_v2_s5120/weights_final_step_12840.pt
+  multi_speed_target:
+    - slug: h3_speed_multi_v2_s3072
+      training_seed: 3072
+      checkpoint: artifacts/training/runs/checkpoints/h3_speed_multi_v2_s3072/weights_final_step_12840.pt
+    - slug: h3_speed_multi_v2_s4096
+      training_seed: 4096
+      checkpoint: artifacts/training/runs/checkpoints/h3_speed_multi_v2_s4096/weights_final_step_12840.pt
+    - slug: h3_speed_multi_v2_s5120
+      training_seed: 5120
+      checkpoint: artifacts/training/runs/checkpoints/h3_speed_multi_v2_s5120/weights_final_step_12840.pt
+
+decision:
+  within_checkpoint:
+    - matching_history_advantage_positive_at_all_three_reference_speeds
+    - result_direction_consistent_across_six_eval_seeds
+  training_attribution:
+    - multi_speed_relative_loss_reduction_exceeds_paired_single_speed_control
+    - effect_direction_consistent_across_three_paired_training_seeds
+  unseen_speed:
+    - repeat_the_same_gates_on_unseen_interpolation
+  strict_diagnostic_not_primary_gate:
+    - matching_history_mean_loss_below_each_other_history_mean_loss
+
+artifacts:
+  root: artifacts/evaluation/history3/speed_next_latent_v4
+  payload_root: artifacts/evaluation/history3/speed_next_latent_v4/payloads
+  build_report: artifacts/evaluation/history3/speed_next_latent_v4/catalogs/build_report.json
+  final_summary: artifacts/evaluation/history3/speed_next_latent_v4/final_summary.json

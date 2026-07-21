@@ -1,7 +1,7 @@
 # TwoRoom History-3 速度 Benchmark v2 执行协议
 
-**版本**：v1.0
-**日期**：2026-07-20
+**版本**：v1.3
+**日期**：2026-07-21
 **状态**：Validation 已执行；Test 保持封存
 **用途**：固定数据、模型、评测、统计和能力声明边界
 
@@ -31,18 +31,20 @@ query：一张当前 observation + 待评估的 action sequence
 记：
 
 ```text
-v_query：评测器固定、决定 query 后续真实转移的速度
+v_reference：评测器用于生成参考未来的速度，不输入模型
 v_history：生成两段历史转移的速度
 ```
 
-每个 query 行比较低速、中速和高速三种历史。若历史速度与 `v_query` 相同，称为
-“同速历史”；其余条件只称为“较慢历史”或“较快历史”。速度和历史本身没有
+结果文件为了兼容旧代码，仍把 `v_reference` 存在字段 `query_speed` 中。Query 只有
+一张静态图像，从图像中无法知道这个值，模型输入也不包含它。
+
+每个参考未来速度比较低速、中速和高速三种历史。若历史速度与 `v_reference` 相同，
+称为“同速历史”；其余条件只称为“较慢历史”或“较快历史”。速度和历史本身没有
 “正确、错误”之分。
 
-Query 只有一张静态图像，从图像中无法知道 `v_query`。把同速历史作为物理校准
-参照，依赖一个明确的任务假设：历史和 query 来自同一个、短期内速度稳定的环境。
-若取消该假设，本协议只能判断模型是否随历史速度响应，不能判断哪种历史应最接近
-query 的真实未来。
+把同速历史作为准确性参照，依赖一个明确的任务假设：历史和 query 来自同一个、
+短期内速度稳定的环境。若取消该假设，本协议只能判断模型是否随历史速度响应，不能
+判断哪种历史应最接近参考未来。
 
 ### 2.1 速度不是 frameskip
 
@@ -159,20 +161,24 @@ Validation 分两条轨道：
 
 每条轨道构造完整 `3×3` 矩阵：
 
-| query 速度 | 低速历史 | 中速历史 | 高速历史 |
+| 参考未来速度 | 低速历史 | 中速历史 | 高速历史 |
 |---|---|---|---|
 | 低速 | 同速 | 较快 | 较快 |
 | 中速 | 较慢 | 同速 | 较快 |
 | 高速 | 较慢 | 较慢 | 同速 |
 
-三个 query 速度使用相同的静态 query 像素；速度只会影响动作执行后的未来。三种
+三个参考未来速度使用相同的静态 query 像素；速度只会影响动作执行后的未来。三种
 历史使用相同历史初始状态和动作，后续状态按各自速度自然变化。
 
-每个 query 速度行、历史条件、模型和评测种子都使用完整样本：
+每个参考未来速度行、历史条件、模型和评测种子都使用完整样本：
 
 ```text
 50 个 query × 6 个评测种子 = 300
 ```
+
+下一帧 latent 推理是确定性的，因此每个种子中的 50 个 query 必须互不相同，六个
+种子之间也不得重复。同一批 300 个静态 query 在三个参考未来速度之间严格配对；
+不能像随机 CEM 那样重复一个 query 多次再把重复项算作独立样本。
 
 因此：
 
@@ -191,49 +197,63 @@ Validation 分两条轨道：
 
 - scenario、episode、query 和 payload 哈希审计；
 - `agent.speed` 与 action block 分开读取；
-- 静态 query 像素在三种 query 速度间完全相同；
+- 静态 query 像素在三种参考未来速度间完全相同；
 - 模型输入字段仅为像素和动作；
 - 历史状态与块内动作能恢复生成速度；
 - Train、Validation 和封存 Test 的速度支持符合第 3.3 节。
 
 若真实状态和动作都无法恢复速度，模型无响应不能解释为模型能力不足。
 
-### 5.2 真实下一状态与位移：主要证据
+### 5.2 参考未来 Latent Loss：主要证据
 
-对相同 query 单帧和相同原始动作序列，精确模拟器按 `v_query` 生成真实未来。
-模型分别输入三种历史，在 `1/2/3/5/10` 个 action block 上报告：
+Eval payload 在构建时已经离线保存：
 
-- 推断速度；
-- 预测位置与真实位置误差，单位 px；
-- 预测位移长度、真实位移长度及误差；
-- 位移方向误差；
-- 预测 latent 到真实 query future latent 的 MSE。
+- `query_pixels`：当前 query 图像；
+- `query_action`：随后执行的一个 5-step action block；
+- `target_pixels`：按 `v_reference` 真实执行该 action 后的下一帧；
+- 低速、中速和高速三种 History-3 上下文。
 
-LeWM 没有坐标解码头。评测器在 `2.5–8.0`、步长 `0.05` 的冻结速度网格上生成
-精确未来，经同一冻结 encoder 编码；与预测 latent 最接近的 oracle 速度提供
-“推断速度”和对应物理位置。直接 latent MSE 同时保留，避免只依赖网格映射。
+评分时禁止启动环境重新生成目标。每张 `target_pixels` 使用当前 checkpoint 自己的
+冻结 encoder 编码：
 
-Action probe 包含恒定方向、变幅和转向三类，并限制在无碰撞区域。这样测量的是
-单位动作位移，不把撞墙截断混入主结论。
-
-两个概念必须分开：
+`target_pixels` 是当前 query 执行 `query_action` 后的真实下一帧，不是已经出现在
+上下文输入中的 history next frame。后者不得作为当前 query 的评分目标。
 
 ```text
-历史响应：
-  高速历史预测 − 低速历史预测
+reference_latent(v) = encoder(frozen_target_pixels(v))
 
-物理校准：
-  其他历史对真实 query future 的误差
-  − 同速历史对真实 query future 的误差
+loss(v_history → v_reference)
+= MSE(predicted_next_latent(v_history), reference_latent(v_reference))
 ```
 
-历史响应大于零说明模型读取了速度线索；只有同速历史在三个 query 行都具有最低
-误差，才说明响应已经校准到 query 的真实动力学。
+主指标为：
+
+```text
+matching_loss(v) = loss(v → v)
+
+matching_advantage(v)
+= mean(loss(other_history → v)) − matching_loss(v)
+
+relative_loss_reduction(v)
+= matching_advantage(v) / mean(loss(other_history → v))
+```
+
+这组指标不把 latent 反推成速度或二维坐标。正的 `matching_advantage` 表示：在生成
+同一个参考未来时，同速历史比另外两种历史产生了更准确的预测。只报
+`matching_loss` 不足以隔离 ICL，因为普通画面预测误差也会进入该 loss。
+
+所有比较必须在同一个 checkpoint 内完成。不同 checkpoint 的 encoder 空间和 MSE
+尺度可能不同，因此跨模型只比较归一化后的相对 loss 降低、成对训练种子效应和方向
+一致性，不直接比较原始 latent MSE。
+
+正式直接指标只评测这个冻结的一步转移，不保留从 latent 反推的速度、像素位置或
+oracle 网格指标。若未来需要多步准确性，必须先离线生成并冻结多步目标帧，再发布
+新的协议版本，不能在正式评分期间临时运行环境。
 
 ### 5.3 固定候选动作
 
 每个 query 冻结 300 条、每条 10 个 action block 的候选序列。三种历史共享同一
-candidate bank。模型对候选排序，精确模拟器按 `v_query` 执行被选候选。
+candidate bank。模型对候选排序，冻结的机制评测按 `v_reference` 判断候选真实代价。
 
 主指标：
 
@@ -288,7 +308,7 @@ Rollout error 必须报告，但不同 checkpoint 的原生 latent 尺度不直�
 
 ## 6. 统计
 
-物理与固定候选比较均在同一 query、action probe 和评测种子内配对。独立 cluster
+下一帧 latent 与固定候选比较均在同一 query、action 和评测种子内配对。独立 cluster
 定义为：
 
 ```text
@@ -297,11 +317,13 @@ Rollout error 必须报告，但不同 checkpoint 的原生 latent 尺度不直�
 
 正式汇总使用：
 
-- 10,000 次分层 bootstrap 95% 区间；
+- 以静态 query 为 cluster 的 10,000 次 bootstrap 95% 区间；
 - 六个评测种子的逐种子方向；
-- cluster sign test；
-- 预注册主比较的 Holm 校正，familywise α=0.05；
 - 单速与多速度混训三个相同训练种子的成对方法效应。
+
+v4 的正式门是预注册的方向一致性和成对训练种子效应，不把事后新增的显著性检验
+写成正式门。若后续协议同时冻结多个 p-value 主检验，再按通用设计规范预注册多重
+比较校正。
 
 训练方法是否稳定，以三个训练种子为最高层复现单位，不以 300 个 query 重复代替
 训练方差。
@@ -310,28 +332,39 @@ Rollout error 必须报告，但不同 checkpoint 的原生 latent 尺度不直�
 
 | 能力 | 必须满足 | 允许的结论 |
 |---|---|---|
-| 历史敏感 | 多速度混训模型在见过速度的三行均稳定随历史速度响应 | 模型会读取 History-3 中的速度线索 |
-| 物理校准 | 历史敏感通过；三行的一步及多步真实未来误差门通过；多速度相对单速的提升稳定 | 响应已校准到 query 动力学 |
-| 候选校准 | 物理校准通过；三行固定候选选择误差门通过；多速度相对单速的提升稳定 | 校准改善真实候选选择 |
+| 下一帧速度 ICL | 三个参考速度上，同速历史的离线下一帧 latent loss 低于另外两种历史的平均 loss；六个评测种子方向一致；多速度相对单速的提升在三个成对训练种子上稳定 | 模型会根据 History-3 提高相应速度下一帧的预测准确性 |
+| 候选校准 | 下一帧速度 ICL 通过；三行固定候选选择误差门通过；多速度相对单速的提升稳定 | 下一帧校准改善真实候选选择 |
 | 完整训练方法 | 候选校准通过；三种归因效应稳定；基础能力保持 | 多速度训练稳定带来完整能力且不损伤原任务 |
-| 未见速度插值 | 完整训练方法通过；未见速度复现历史敏感、物理校准、候选校准和归因门 | 能力推广到训练未见的区间内速度 |
+| 未见速度插值 | 完整训练方法通过；未见速度复现下一帧 latent、候选校准和归因门 | 能力推广到训练未见的区间内速度 |
 
 能力按顺序判定。后续能力的某个平均指标改善，不能绕过前置条件。
 闭环 endpoint score 在所有等级中均为必报结果，但不作为物理预测门。
 
+额外报告“同速历史是否分别优于另外两种历史”，但它是严格诊断，不替代上表冻结的
+平均 loss 主门。当前多速度模型在训练内速度上严格诊断 `2/3` 通过，在未训练速度上
+`3/3` 通过；正式下一帧速度 ICL 主门在两条轨道均为 `3/3` 通过。
+
 ## 8. 产物与复现入口
 
-冻结配置：
+当前下一帧 latent 评分配置：
 
-- `configs/benchmark/tworoom_speed_isolated_v2.yaml`
-- `configs/benchmark/tworoom_speed_cube_eval_v2.yaml`
+- `configs/benchmark/tworoom_speed_next_latent_v4.yaml`
 
-主要入口：
+旧的速度网格和位置 probe 只保留为历史产物，不再是本协议的评分入口。当前离线
+评分与汇总入口为：
+
+```bash
+python scripts/build_tworoom_speed_next_latent_catalogs.py
+python scripts/eval_tworoom_speed_next_latent.py \
+  --model MODEL_SLUG --output MODEL_RESULT.json --device cuda:0
+python scripts/analyze_tworoom_speed_next_latent.py
+```
+
+已有训练、规划和审计入口：
 
 ```bash
 python scripts/audit_tworoom_speed_isolated_v2.py
 python scripts/build_tworoom_speed_cube_catalog.py
-python scripts/run_tworoom_speed_isolated_eval.py --mode physical
 python scripts/run_tworoom_speed_isolated_eval.py --mode fixed
 python scripts/run_tworoom_speed_isolated_eval.py --mode planning
 python scripts/run_tworoom_speed_isolated_ability.py --mode all
@@ -339,7 +372,13 @@ python scripts/audit_tworoom_temporal_causality.py
 python scripts/analyze_tworoom_speed_isolated_v2.py
 ```
 
-统一机器汇总写入：
+下一帧 latent 统一机器汇总写入：
+
+```text
+artifacts/evaluation/history3/speed_next_latent_v4/final_summary.json
+```
+
+已有规划与能力保持汇总写入：
 
 ```text
 artifacts/evaluation/history3/speed_isolated_v2/final_summary.json

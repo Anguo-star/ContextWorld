@@ -62,8 +62,12 @@ README 不重复维护实验数字，避免同一结论散落在多个文件。�
 主要机器汇总写入：
 
 ```text
+artifacts/evaluation/history3/speed_next_latent_v4/final_summary.json
 artifacts/evaluation/history3/speed_isolated_v2/final_summary.json
 ```
+
+第一份是冻结真实下一帧 latent 的速度 ICL 主证据；第二份保存固定候选、CEM 和基础
+能力保持结果。
 
 `reference/` 保存仍被配置或工具引用的边界说明。`archive/` 保存旧计划和阶段
 快照；若其内容与当前报告冲突，以当前报告、设计规范和 v2 执行协议为准。
