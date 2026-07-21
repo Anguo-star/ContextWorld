@@ -14,6 +14,7 @@ from scripts.build_tworoom_speed_multistep_catalogs import (
     _condition_names,
     _free_motion_residual,
     _query_actions,
+    _select_unique_reset_geometries,
 )
 from scripts.eval_tworoom_speed_multistep_latent import (
     HORIZONS as SCORER_HORIZONS,
@@ -42,6 +43,10 @@ def test_v5_protocol_freezes_outer_support_multistep_and_counts() -> None:
     assert evaluation["unique_queries_per_reference_speed_per_seed"] == 50
     assert evaluation["unique_queries_per_reference_speed"] == 300
     assert evaluation["target_horizons_action_blocks"] == [1, 2, 3, 5]
+    assert config["data"]["generation"]["candidate_variants_per_distance"] == 100
+    assert config["data"]["generation"]["geometry_selection"] == (
+        "first_unique_reset_state_per_distance"
+    )
     assert tuple(evaluation["target_horizons_action_blocks"]) == HORIZONS
     assert SCORER_HORIZONS == HORIZONS
     assert ANALYZER_HORIZONS == HORIZONS
@@ -133,6 +138,30 @@ def test_free_motion_residual_is_zero_for_exact_dynamics() -> None:
     cumulative = np.cumsum(actions.reshape(-1, 2), axis=0)[4::5]
     next_states = reset[None] + speed * cumulative
     assert _free_motion_residual(tuple(reset), speed, actions, next_states) < 1e-5
+
+
+def test_geometry_selection_keeps_unique_reset_per_distance() -> None:
+    rows = []
+    for distance in (72, 80):
+        for variant, reset_x in enumerate((150.0, 151.0, 152.0, 153.0)):
+            rows.append(
+                SensitiveGeometry(
+                    template_id=f"{distance}-{variant}",
+                    distance_bin=distance,
+                    geometry_variant=variant,
+                    reset_state=(reset_x, 100.0),
+                    goal_state=(reset_x, 172.0),
+                    context_direction=(1.0, 0.0),
+                    query_action=(0.5, 0.0),
+                )
+            )
+    selected = _select_unique_reset_geometries(
+        rows, distances=[72, 80], variants_per_distance=2
+    )
+    assert len(selected) == 4
+    assert len({row.reset_state for row in selected}) == 4
+    assert [row.distance_bin for row in selected].count(72) == 2
+    assert [row.distance_bin for row in selected].count(80) == 2
 
 
 def _synthetic_records() -> tuple[list[dict], list[str]]:

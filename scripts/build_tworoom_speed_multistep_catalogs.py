@@ -60,6 +60,43 @@ def _condition_names(count: int) -> list[str]:
     return [f"history_{index:02d}" for index in range(count)]
 
 
+def _select_unique_reset_geometries(
+    candidates: list[SensitiveGeometry],
+    *,
+    distances: list[int],
+    variants_per_distance: int,
+) -> list[SensitiveGeometry]:
+    """Keep exactly N geometries per distance with globally unique queries."""
+
+    selected: list[SensitiveGeometry] = []
+    seen_resets: set[tuple[float, float]] = set()
+    for distance in distances:
+        distance_rows = [
+            geometry
+            for geometry in candidates
+            if int(geometry.distance_bin) == int(distance)
+        ]
+        kept = 0
+        for geometry in distance_rows:
+            reset = tuple(map(float, geometry.reset_state))
+            if reset in seen_resets:
+                continue
+            selected.append(geometry)
+            seen_resets.add(reset)
+            kept += 1
+            if kept == int(variants_per_distance):
+                break
+        if kept != int(variants_per_distance):
+            raise RuntimeError(
+                f"Distance {distance}: expected {variants_per_distance} "
+                f"unique reset states, got {kept}"
+            )
+    expected = len(distances) * int(variants_per_distance)
+    if len(selected) != expected or len(seen_resets) != expected:
+        raise RuntimeError("Unique query geometry selection failed")
+    return selected
+
+
 def _context_actions(
     geometry: SensitiveGeometry, magnitude: float = 0.5
 ) -> np.ndarray:
@@ -401,6 +438,12 @@ def _build_track(
             f"contexts={context_pixel_failures}, "
             f"targets={target_pixel_failures}"
         )
+    unique_query_pixel_hashes = len(set(static_hashes.values()))
+    if unique_query_pixel_hashes != len(geometries):
+        raise RuntimeError(
+            "Rendered query pixels are not unique across static queries: "
+            f"{unique_query_pixel_hashes}/{len(geometries)}"
+        )
     catalog = {
         "schema_version": 1,
         "benchmark": config["benchmark"],
@@ -425,6 +468,10 @@ def _build_track(
         "summary": {
             "bundles": len(bundles),
             "base_geometries": len(geometries),
+            "unique_reset_states": len(
+                {tuple(geometry.reset_state) for geometry in geometries}
+            ),
+            "unique_query_pixel_hashes": unique_query_pixel_hashes,
             "reference_speeds": speeds,
             "history_conditions": names,
             "matrix_cells": len(speeds) ** 2,
@@ -469,10 +516,18 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     training_config = (ROOT / config["data"]["source_training_protocol"]).resolve()
     support_audit = _speed_support_audit(config, training_config)
     generation = config["data"]["generation"]
-    geometries = generate_same_room_geometries(
-        distances=[int(value) for value in generation["distance_bins_px"]],
-        variants_per_distance=int(generation["variants_per_distance"]),
+    distances = [int(value) for value in generation["distance_bins_px"]]
+    candidates = generate_same_room_geometries(
+        distances=distances,
+        variants_per_distance=int(
+            generation["candidate_variants_per_distance"]
+        ),
         geometry_seed=int(generation["geometry_seed"]),
+    )
+    geometries = _select_unique_reset_geometries(
+        candidates,
+        distances=distances,
+        variants_per_distance=int(generation["variants_per_distance"]),
     )
     expected = int(config["evaluation"]["unique_queries_per_reference_speed"])
     if len(geometries) != expected:
@@ -531,6 +586,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "speed_support_audit": support_audit,
         "tracks": tracks,
         "count_audit": {
+            "candidate_geometries": len(candidates),
+            "selected_geometries": len(geometries),
+            "geometry_selection": str(generation["geometry_selection"]),
             "unique_static_queries_per_track": len(reference_hashes),
             "expected_unique_static_queries_per_track": expected_static_queries,
             "unique_queries_per_reference_speed_per_seed": int(
