@@ -37,6 +37,7 @@ FIXED_CONFIG = (
 MULTI_CONFIG = ROOT / "configs/synthesis/tworoom_door_multi_v2.yaml"
 TRAINING_CONFIG = ROOT / "configs/benchmark/tworoom_door_training_v2.yaml"
 TRAINING_RUNNER = ROOT / "scripts/run_h3_door_train.sh"
+TRAINING_ENTRY = ROOT / "scripts/train_tworoom_step1.py"
 
 
 def _yaml(path: Path) -> dict:
@@ -312,6 +313,10 @@ def test_door_groups_are_wired_to_the_additive_training_profile() -> None:
     )
     runner = TRAINING_RUNNER.read_text(encoding="utf-8")
     assert "NCCL_" not in runner
+    training_entry = TRAINING_ENTRY.read_text(encoding="utf-8")
+    assert 'filename="state"' in training_entry
+    assert "save_top_k=1" in training_entry
+    assert "save_last=True" in training_entry
     assert protocol["paired_training_seeds"] == [3072, 4096, 5120]
     assert protocol["group_sampling"]["M_door_fixed49_v2"] == {
         "original": 0.5,

@@ -6,6 +6,7 @@ from scripts.train_tworoom_step1 import (
     PROFILE_DEFAULTS,
     _apply_profile,
     _build_training_plan,
+    _canonicalize_complete_epoch_checkpoint_state,
     _full_state_checkpoint_metadata,
     _lejepa_forward_with_manual_accumulation,
     _normalize_complete_epoch_resume_loop_state,
@@ -262,12 +263,64 @@ def test_full_state_checkpoint_requires_complete_epoch_boundary(
     assert metadata["optimizer_steps_per_epoch"] == 2
 
 
+def test_epoch_end_checkpoint_is_canonicalized_for_repeated_resume() -> None:
+    checkpoint = {
+        "global_step": 2,
+        "epoch": 0,
+        "loops": {
+            "fit_loop": {
+                "epoch_progress": {
+                    "total": {
+                        "ready": 1,
+                        "started": 1,
+                        "processed": 1,
+                        "completed": 0,
+                    },
+                    "current": {
+                        "ready": 1,
+                        "started": 1,
+                        "processed": 1,
+                        "completed": 0,
+                    },
+                }
+            }
+        },
+    }
+
+    audit = _canonicalize_complete_epoch_checkpoint_state(
+        checkpoint, optimizer_steps_per_epoch=2
+    )
+
+    expected = {"ready": 1, "started": 1, "processed": 1, "completed": 1}
+    assert checkpoint["epoch"] == 1
+    assert checkpoint["loops"]["fit_loop"]["epoch_progress"] == {
+        "total": expected,
+        "current": expected,
+    }
+    assert audit["previous_epoch"] == 0
+    assert audit["canonical_epoch"] == 1
+
+
 def test_complete_epoch_loop_state_restarts_at_next_epoch_batch_zero() -> None:
     checkpoint = {
         "global_step": 4,
-        "epoch": 2,
+        "epoch": 1,
         "loops": {
             "fit_loop": {
+                "epoch_progress": {
+                    "total": {
+                        "ready": 2,
+                        "started": 2,
+                        "processed": 2,
+                        "completed": 1,
+                    },
+                    "current": {
+                        "ready": 2,
+                        "started": 2,
+                        "processed": 2,
+                        "completed": 1,
+                    },
+                },
                 "epoch_loop.batch_progress": {
                     "total": {
                         "ready": 8,
@@ -305,14 +358,30 @@ def test_complete_epoch_loop_state_restarts_at_next_epoch_batch_zero() -> None:
     assert progress["is_last_batch"] is False
     assert progress["total"]["completed"] == 8
     assert audit["next_epoch_starts_at_batch_zero"] is True
+    assert audit["native_on_train_epoch_end_state"] is True
+    assert audit["completed_epochs"] == 2
 
 
 def test_complete_epoch_loop_state_rejects_partial_epoch() -> None:
     checkpoint = {
         "global_step": 2,
-        "epoch": 1,
+        "epoch": 0,
         "loops": {
             "fit_loop": {
+                "epoch_progress": {
+                    "total": {
+                        "ready": 1,
+                        "started": 1,
+                        "processed": 1,
+                        "completed": 0,
+                    },
+                    "current": {
+                        "ready": 1,
+                        "started": 1,
+                        "processed": 1,
+                        "completed": 0,
+                    },
+                },
                 "epoch_loop.batch_progress": {
                     "total": {
                         "ready": 3,

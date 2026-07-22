@@ -581,6 +581,58 @@ def _full_state_checkpoint_metadata(
     }
 
 
+def _canonicalize_complete_epoch_checkpoint_state(
+    checkpoint: dict,
+    *,
+    optimizer_steps_per_epoch: int,
+) -> dict:
+    """Write Lightning's epoch-end checkpoint in a restart-stable form."""
+
+    global_step = int(checkpoint.get("global_step", -1))
+    if global_step <= 0 or global_step % optimizer_steps_per_epoch != 0:
+        raise RuntimeError(
+            "Cannot save a recovery checkpoint outside a complete epoch "
+            f"boundary: step={global_step}, "
+            f"steps_per_epoch={optimizer_steps_per_epoch}"
+        )
+    completed_epochs = global_step // optimizer_steps_per_epoch
+    try:
+        epoch_progress = checkpoint["loops"]["fit_loop"]["epoch_progress"]
+        current = epoch_progress["current"]
+        total = epoch_progress["total"]
+    except (KeyError, TypeError) as exc:
+        raise RuntimeError(
+            "Checkpoint is missing Lightning epoch-loop progress"
+        ) from exc
+    counter_names = ("ready", "started", "processed", "completed")
+    previous_current = {
+        name: int(current.get(name, -1)) for name in counter_names
+    }
+    previous_total = {
+        name: int(total.get(name, -1)) for name in counter_names
+    }
+    # ModelCheckpoint serializes inside on_train_epoch_end, before Lightning
+    # increments ``epoch`` and ``epoch_progress.completed``.  Canonicalize all
+    # cumulative epoch counters to the number proved by global_step.  This is
+    # also necessary after a prior resume, where Lightning otherwise keeps the
+    # old serialized epoch index while global_step continues to advance.
+    canonical = {name: completed_epochs for name in counter_names}
+    epoch_progress["current"] = dict(canonical)
+    epoch_progress["total"] = dict(canonical)
+    previous_epoch = int(checkpoint.get("epoch", -1))
+    checkpoint["epoch"] = completed_epochs
+    return {
+        "applied": True,
+        "global_step": global_step,
+        "completed_epochs": completed_epochs,
+        "previous_epoch": previous_epoch,
+        "canonical_epoch": completed_epochs,
+        "previous_current_epoch_progress": previous_current,
+        "previous_total_epoch_progress": previous_total,
+        "canonical_epoch_progress": canonical,
+    }
+
+
 def _normalize_complete_epoch_resume_loop_state(
     checkpoint: dict,
     *,
@@ -604,21 +656,51 @@ def _normalize_complete_epoch_resume_loop_state(
             f"steps_per_epoch={optimizer_steps_per_epoch}"
         )
     expected_epoch = global_step // optimizer_steps_per_epoch
-    if int(checkpoint.get("epoch", -1)) != expected_epoch:
-        raise RuntimeError(
-            "Checkpoint epoch/global-step boundary mismatch: "
-            f"epoch={checkpoint.get('epoch')}, expected={expected_epoch}"
-        )
     try:
-        batch_progress = checkpoint["loops"]["fit_loop"][
+        fit_loop = checkpoint["loops"]["fit_loop"]
+        batch_progress = fit_loop[
             "epoch_loop.batch_progress"
         ]
         current = batch_progress["current"]
         total = batch_progress["total"]
+        epoch_progress = fit_loop["epoch_progress"]
     except (KeyError, TypeError) as exc:
         raise RuntimeError(
-            "Checkpoint is missing Lightning train batch-loop progress"
+            "Checkpoint is missing Lightning train/epoch-loop progress"
         ) from exc
+    stored_epoch = int(checkpoint.get("epoch", -1))
+    # ModelCheckpoint runs inside ``on_train_epoch_end``.  Lightning has
+    # processed the epoch at this point, but has not yet incremented the
+    # serialized ``epoch`` field or ``epoch_progress.completed``.  At restore,
+    # FitLoop.on_run_start promotes completed=processed, so the native
+    # representation below is the exact boundary before the next epoch.
+    native_epoch_end = stored_epoch == expected_epoch - 1
+    completed_epoch_end = stored_epoch == expected_epoch
+    if not (native_epoch_end or completed_epoch_end):
+        raise RuntimeError(
+            "Checkpoint epoch/global-step boundary mismatch: "
+            f"epoch={stored_epoch}, expected one of "
+            f"[{expected_epoch - 1}, {expected_epoch}]"
+        )
+    epoch_current = epoch_progress.get("current", {})
+    observed_epoch_progress = {
+        name: int(epoch_current.get(name, -1))
+        for name in ("ready", "started", "processed", "completed")
+    }
+    expected_epoch_progress = {
+        "ready": expected_epoch,
+        "started": expected_epoch,
+        "processed": expected_epoch,
+        "completed": (
+            expected_epoch - 1 if native_epoch_end else expected_epoch
+        ),
+    }
+    if observed_epoch_progress != expected_epoch_progress:
+        raise RuntimeError(
+            "Checkpoint epoch progress is not at a complete boundary: "
+            f"observed={observed_epoch_progress}, "
+            f"expected={expected_epoch_progress}"
+        )
     counter_names = ("ready", "started", "processed", "completed")
     observed_current = {
         name: int(current.get(name, -1)) for name in counter_names
@@ -643,6 +725,9 @@ def _normalize_complete_epoch_resume_loop_state(
         "applied": True,
         "global_step": global_step,
         "completed_epochs": expected_epoch,
+        "stored_epoch": stored_epoch,
+        "native_on_train_epoch_end_state": native_epoch_end,
+        "previous_epoch_progress": observed_epoch_progress,
         "optimizer_steps_per_epoch": optimizer_steps_per_epoch,
         "microbatches_per_epoch_per_rank": expected_batches,
         "previous_current_batch_progress": observed_current,
@@ -988,6 +1073,7 @@ def run(args) -> dict:
             self.verified_on_train_start = False
             self.loader_generator_advanced_before_train_start = None
             self.loop_state_normalization = None
+            self.checkpoint_save_canonicalization = None
 
         @staticmethod
         def _state_for_rank(checkpoint: dict, rank: int) -> dict:
@@ -1081,6 +1167,14 @@ def run(args) -> dict:
                 raise RuntimeError(
                     "Refusing to save a trainer checkpoint without RNG state"
                 )
+            self.checkpoint_save_canonicalization = (
+                _canonicalize_complete_epoch_checkpoint_state(
+                    checkpoint,
+                    optimizer_steps_per_epoch=training_plan[
+                        "optimizer_steps_per_epoch"
+                    ],
+                )
+            )
             checkpoint["contextworld_rng_states_v1"] = self.states
 
         def on_load_checkpoint(
@@ -1307,7 +1401,12 @@ def run(args) -> dict:
     state_checkpoint = ModelCheckpoint(
         dirpath=str(run_dir),
         filename="state",
-        save_top_k=0,
+        # Lightning 2.6 only calls ``save_last`` after a checkpoint was saved
+        # in the same hook.  ``save_top_k=0`` therefore disables both the
+        # named checkpoint and ``last.ckpt``.  Keep one rotating named state
+        # so every complete epoch also produces the required resumable last
+        # checkpoint.
+        save_top_k=1,
         save_last=True,
         verbose=True,
         enable_version_counter=False,
@@ -1492,6 +1591,9 @@ def run(args) -> dict:
             "resume_scope": "complete_epoch_boundary_only",
             "resume_loop_state_normalization": (
                 rng_checkpoint.loop_state_normalization
+            ),
+            "checkpoint_save_canonicalization": (
+                rng_checkpoint.checkpoint_save_canonicalization
             ),
             "resume_policy": args.resume_policy,
             "training_complete": training_complete,
