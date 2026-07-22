@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import numpy as np
+import pytest
 
 from contextworld.evaluation.planner_mechanism import (
     fixed_candidate_bank,
@@ -42,3 +43,13 @@ def test_rank_metrics() -> None:
     assert spearman(a, b) == 1.0
     assert spearman(a, c) == -1.0
     assert topk_overlap(np.arange(40), np.arange(40), k=30) == 1.0
+
+
+def test_spearman_uses_average_ranks_for_many_ties_and_is_order_invariant() -> None:
+    endpoint = np.asarray([0.0] * 49 + [1.0] * 40 + [2.0] * 11)
+    predicted = np.asarray([0.0] * 49 + [2.0] * 40 + [1.0] * 11)
+    first = spearman(predicted, endpoint)
+    permutation = np.random.default_rng(17).permutation(len(endpoint))
+    second = spearman(predicted[permutation], endpoint[permutation])
+    assert first == pytest.approx(second, abs=1e-15)
+    assert spearman(np.zeros(300), np.arange(300.0)) == 0.0

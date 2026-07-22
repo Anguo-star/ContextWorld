@@ -779,7 +779,12 @@ def validate_minimum_episode_start_oracle(
         )
     termination_radius = float(config.get("termination_radius", 16.0))
     minimum_margin = float(config.get("minimum_guaranteed_margin", 0.0))
+    expected_agent_speed = config.get("expected_agent_speed")
+    if expected_agent_speed is not None:
+        expected_agent_speed = float(expected_agent_speed)
     failures: list[dict[str, Any]] = []
+    speed_mismatches: list[dict[str, Any]] = []
+    observed_agent_speeds: set[float] = set()
     closest: dict[str, Any] | None = None
     starts_checked = 0
 
@@ -811,6 +816,19 @@ def validate_minimum_episode_start_oracle(
                 speed = float(
                     env.variation_space["agent"]["speed"].value.item()
                 )
+                observed_agent_speeds.add(speed)
+                if expected_agent_speed is not None and not np.isclose(
+                    speed, expected_agent_speed, atol=1e-7
+                ):
+                    speed_mismatches.append(
+                        {
+                            "scenario_id": scenario.scenario_id,
+                            "episode_index": episode_index,
+                            "env_seed": scenario.env_seed + episode_index,
+                            "expected_agent_speed": expected_agent_speed,
+                            "observed_agent_speed": speed,
+                        }
+                    )
                 initial_distance = float(info["distance_to_target"])
                 maximum_displacement = speed * action_l2_bound
                 guaranteed_margin = (
@@ -839,7 +857,9 @@ def validate_minimum_episode_start_oracle(
             env.close()
 
     return {
-        "passed": bool(starts_checked and not failures),
+        "passed": bool(
+            starts_checked and not failures and not speed_mismatches
+        ),
         "semantics": (
             "every reset remains outside the success radius after the "
             "largest possible one-step displacement, guaranteeing at least "
@@ -847,6 +867,16 @@ def validate_minimum_episode_start_oracle(
         ),
         "minimum_rows": minimum_rows,
         "minimum_guaranteed_margin": minimum_margin,
+        "expected_agent_speed": expected_agent_speed,
+        "observed_agent_speeds": sorted(observed_agent_speeds),
+        "agent_speed_readback_passed": bool(
+            observed_agent_speeds
+            and (
+                expected_agent_speed is None
+                or not speed_mismatches
+            )
+        ),
+        "agent_speed_mismatches": speed_mismatches,
         "starts_checked": starts_checked,
         "minimum_observed_margin": (
             None if closest is None else closest["guaranteed_margin"]

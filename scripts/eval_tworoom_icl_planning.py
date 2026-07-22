@@ -25,6 +25,7 @@ from contextworld.evaluation.icl_planning import (
     FixedContextPolicy,
     PairedQueryDataset,
     QueryEpisode,
+    RollingContextPolicy,
 )
 from contextworld.evaluation.protocol import (
     EvaluationStarts,
@@ -331,6 +332,7 @@ def _run_one(
     evaluation_index: int,
     repeat_index: int,
     cem_seed: int,
+    rolling_context: bool = False,
 ) -> dict[str, Any]:
     import torch
 
@@ -376,12 +378,26 @@ def _run_one(
         },
     )
     trajectory_steps: list[dict[str, Any]] = []
-    prompted_policy = FixedContextPolicy(
-        policy,
-        context_pixels=context["pixels"][None],
-        context_actions=context["normalized_actions"][None],
-        trace_steps=trajectory_steps,
-    )
+    if rolling_context:
+        prompted_policy = RollingContextPolicy(
+            policy,
+            initial_context_pixels=context["pixels"][None],
+            initial_context_raw_actions=context["raw_actions"][None],
+            initial_context_normalized_actions=context[
+                "normalized_actions"
+            ][None],
+            initial_query_pixels=episode.query_pixels[None],
+            action_block=protocol["action_block"],
+            action_transform=process["action"],
+            trace_steps=trajectory_steps,
+        )
+    else:
+        prompted_policy = FixedContextPolicy(
+            policy,
+            context_pixels=context["pixels"][None],
+            context_actions=context["normalized_actions"][None],
+            trace_steps=trajectory_steps,
+        )
     starts = EvaluationStarts(episodes=[0], steps=[0])
     try:
         world.set_policy(prompted_policy)
@@ -443,6 +459,13 @@ def _run_one(
             if path_length > 0.0
             else 0.0
         )
+        rolling_audit = (
+            prompted_policy.runtime_audit() if rolling_context else None
+        )
+        if rolling_audit is not None and not rolling_audit["passed"]:
+            raise RuntimeError(
+                f"Rolling History-3 audit failed: {rolling_audit}"
+            )
         return {
             "evaluation_id": evaluation_id,
             "evaluation_index": int(evaluation_index),
@@ -480,6 +503,12 @@ def _run_one(
             "cem_rng_state_sha256_after": _generator_sha256(solver.torch_gen),
             "cem_solve_calls": int(prompted_model.get_cost_calls // args.cem_steps),
             "get_cost_calls": int(prompted_model.get_cost_calls),
+            "history3_context_mode": (
+                "rolling_live_history3"
+                if rolling_context
+                else "fixed_catalog_prompt"
+            ),
+            "rolling_history3_audit": rolling_audit,
             "fixed_context": {
                 "budget": 2,
                 "pixels_sha256": context["pixels_sha256"],

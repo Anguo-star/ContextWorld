@@ -98,9 +98,23 @@ def simulate_tworoom_candidates(
 
 
 def rankdata(values: np.ndarray) -> np.ndarray:
-    order = np.argsort(np.asarray(values), kind="mergesort")
+    """Return zero-based average ranks, including exact ties."""
+
+    array = np.asarray(values)
+    if array.ndim != 1:
+        raise ValueError(f"rankdata expects one dimension, got {array.shape}")
+    if not np.isfinite(array).all():
+        raise ValueError("rankdata does not accept non-finite values")
+    order = np.argsort(array, kind="mergesort")
     ranks = np.empty(len(order), dtype=np.float64)
-    ranks[order] = np.arange(len(order), dtype=np.float64)
+    sorted_values = array[order]
+    start = 0
+    while start < len(order):
+        stop = start + 1
+        while stop < len(order) and sorted_values[stop] == sorted_values[start]:
+            stop += 1
+        ranks[order[start:stop]] = 0.5 * (start + stop - 1)
+        start = stop
     return ranks
 
 

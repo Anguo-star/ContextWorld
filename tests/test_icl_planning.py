@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections import deque
+
 import numpy as np
 import pytest
 import torch
@@ -11,6 +13,7 @@ from contextworld.evaluation.icl_planning import (
     FixedContextPolicy,
     PairedQueryDataset,
     QueryEpisode,
+    RollingContextPolicy,
 )
 
 
@@ -99,3 +102,92 @@ def test_fixed_context_policy_records_raw_state_and_action():
     )
     assert np.allclose(action, [[0.25, -0.5]])
     assert trace == [{"state": [10.0, 20.0], "action": [0.25, -0.5]}]
+
+
+class _IdentityActionTransform:
+    def transform(self, value):
+        return np.asarray(value, dtype=np.float32)
+
+
+class _BufferedTracePolicy:
+    def __init__(self) -> None:
+        self._action_buffer = [deque()]
+        self.replan_inputs = []
+        self.step = 0
+
+    def get_action(self, info, **kwargs):
+        if not self._action_buffer[0]:
+            self.replan_inputs.append(
+                {
+                    CONTEXT_PIXELS_KEY: np.asarray(
+                        info[CONTEXT_PIXELS_KEY]
+                    ).copy(),
+                    CONTEXT_ACTIONS_KEY: np.asarray(
+                        info[CONTEXT_ACTIONS_KEY]
+                    ).copy(),
+                }
+            )
+            self._action_buffer[0].extend([None] * 4)
+        self._action_buffer[0].popleft()
+        self.step += 1
+        return np.asarray([[self.step, -self.step]], dtype=np.float32)
+
+
+def test_rolling_context_uses_two_live_blocks_at_second_replan():
+    base = _BufferedTracePolicy()
+    initial_context = np.stack(
+        [
+            np.full((4, 4, 3), 250, dtype=np.uint8),
+            np.full((4, 4, 3), 251, dtype=np.uint8),
+        ]
+    )[None]
+    policy = RollingContextPolicy(
+        base,
+        initial_context_pixels=initial_context,
+        initial_context_raw_actions=np.zeros(
+            (1, 2, 2, 2), dtype=np.float32
+        ),
+        initial_context_normalized_actions=np.zeros(
+            (1, 2, 4), dtype=np.float32
+        ),
+        initial_query_pixels=np.zeros((1, 4, 4, 3), dtype=np.uint8),
+        action_block=2,
+        action_transform=_IdentityActionTransform(),
+    )
+
+    for step in range(5):
+        policy.get_action(
+            {
+                "pixels": np.full(
+                    (1, 1, 4, 4, 3), step, dtype=np.uint8
+                ),
+                "state": np.asarray(
+                    [[[10.0 + step, 20.0]]], dtype=np.float32
+                ),
+            }
+        )
+
+    assert len(base.replan_inputs) == 2
+    assert np.array_equal(
+        base.replan_inputs[0][CONTEXT_PIXELS_KEY], initial_context
+    )
+    rolling_pixels = base.replan_inputs[1][CONTEXT_PIXELS_KEY]
+    assert np.all(rolling_pixels[:, 0] == 0)
+    assert np.all(rolling_pixels[:, 1] == 2)
+    assert np.array_equal(
+        base.replan_inputs[1][CONTEXT_ACTIONS_KEY],
+        np.asarray(
+            [[[1.0, -1.0, 2.0, -2.0], [3.0, -3.0, 4.0, -4.0]]],
+            dtype=np.float32,
+        ),
+    )
+    audit = policy.runtime_audit()
+    assert audit["passed"]
+    assert audit["replans"] == 2
+    assert audit["rolling_replans"] == 1
+    assert audit["uses"][1]["current_raw_step"] == 4
+    assert audit["uses"][1]["context_frame_raw_steps"] == [0, 2]
+    assert audit["uses"][1]["context_action_raw_step_ranges"] == [
+        [0, 2],
+        [2, 4],
+    ]

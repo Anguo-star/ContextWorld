@@ -1,0 +1,112 @@
+schema_version: 1
+benchmark: tworoom_door_training_v2
+status: preregistered_before_data_generation_and_training
+preregistered_date: "2026-07-22"
+
+source_protocol: configs/benchmark/tworoom_door_visual_generalization_v1.yaml
+question: >-
+  Under a data-matched additive recipe, does training on multiple visible door
+  positions improve door-geometry generalization relative to a fixed-door
+  synthetic control without changing the original-data contribution?
+
+data:
+  original_read_only: ../../data/world_model/quentinll/lewm-tworooms/tworoom.h5
+  original_split:
+    strategy: episode_heldout
+    seed: 3072
+    train_fraction: 0.9
+    heldout_view: artifacts/splits/tworoom_original_episode_holdout_s3072.h5
+    heldout_manifest: artifacts/splits/tworoom_original_episode_holdout_s3072.json
+  catalogs:
+    door_fixed49_v2: artifacts/synthesis/catalogs/tworoom_door_fixed49_matched_v2.json
+    door_multi_v2: artifacts/synthesis/catalogs/tworoom_door_multi_v2.json
+
+door_support:
+  tolerance: 0
+  fixed_synthetic_train: [49]
+  fixed_loader_validation: [49]
+  multi_synthetic_train:
+    [49, 57, 65, 73, 81, 89, 97, 105,
+     113, 121, 129, 137, 145, 153, 161, 169]
+  multi_loader_validation:
+    [49, 57, 65, 73, 81, 89, 97, 105,
+     113, 121, 129, 137, 145, 153, 161, 169]
+  eval_seen_training_values: [49, 89, 129, 169]
+  eval_heldout_values:
+    [24, 32, 40, 53, 61, 77, 85, 93, 109, 117,
+     125, 141, 149, 157, 165, 180, 190, 199]
+  requirements:
+    - loader validation uses training factor values only
+    - no held-out Eval door value appears in train or loader validation
+    - fixed and multi collection differ only in door-position support
+
+paired_collection_contract:
+  paired_fields:
+    - environment_seed_group
+    - policy_seed_group
+    - reset_and_goal_sampling_constraints
+    - collection_policy
+    - episode_budget
+  reset_and_goal_pairing: exact_by_seed_group
+  expert_actions: >-
+    Recomputed inside each door environment. They may diverge after different
+    door geometry changes the trajectory; identical action sequences are not
+    required by the data-matched comparison.
+
+data_quality:
+  groups:
+    door_fixed49_v2:
+      required_pixel_codec: {format: png, compress_level: 1, lossless: true}
+      balance_by_factor: door.position
+      minimum_raw_train_clips: 600000
+      maximum_formal_mean_draws_per_raw_clip: 11.0
+      minimum_train_scenarios: 512
+      minimum_validation_scenarios: 96
+    door_multi_v2:
+      required_pixel_codec: {format: png, compress_level: 1, lossless: true}
+      balance_by_factor: door.position
+      minimum_raw_train_clips: 600000
+      maximum_formal_mean_draws_per_raw_clip: 11.0
+      minimum_train_scenarios: 512
+      minimum_validation_scenarios: 96
+
+training_protocol:
+  comparison: paired_fixed_door_vs_multi_door_support
+  profile: additive
+  architecture: stable_worldmodel_lewm_history3
+  initialization: from_scratch_paired_by_training_seed
+  early_stopping: false
+  checkpoint_selection: final_fixed_step
+  normalizer_source: original_training_split_only
+  paired_training_seeds: [3072, 4096, 5120]
+  fixed_components:
+    - history3_causal_lewm_architecture
+    - stable_worldmodel_commit_5864b74980f6ed328fd0045e777b3865962eff43
+    - original_synthetic_50_50_batch_mixture
+    - original_episode_split_seed_3072
+    - original_train_only_normalization
+    - paired_geometry_and_policy_seed_groups
+    - collection_policy_reset_constraints_and_episode_budget
+    - effective_global_batch_1024
+    - optimizer_steps_12840
+    - final_fixed_step_checkpoint
+  changed_components:
+    - synthetic_door_position_support_only
+  group_sampling:
+    M_door_fixed49_v2: {original: 0.5, door_fixed49_v2: 0.5}
+    M_door_multi_v2: {original: 0.5, door_multi_v2: 0.5}
+  exposure_contract:
+    epoch_size_global: 2629632
+    logical_epochs: 5
+    optimizer_steps: 12840
+    effective_global_batch: 1024
+    original_draws: 6574080
+    synthetic_draws: 6574080
+
+models:
+  - model_id: M_door_fixed49_v2
+    display_name: History-3 固定门位置匹配控制
+    training_groups: [original, door_fixed49_v2]
+  - model_id: M_door_multi_v2
+    display_name: History-3 多门位置目标
+    training_groups: [original, door_multi_v2]

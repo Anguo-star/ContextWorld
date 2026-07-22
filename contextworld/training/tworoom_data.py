@@ -32,6 +32,8 @@ CATALOG_BY_GROUP = {
     "speed_multi_v2": "speed_multi_v2",
     "synth5_matched": "synth5_matched",
     "door": "door",
+    "door_fixed49_v2": "door_fixed49_v2",
+    "door_multi_v2": "door_multi_v2",
     "speed_door_composition": "speed_door_composition",
 }
 

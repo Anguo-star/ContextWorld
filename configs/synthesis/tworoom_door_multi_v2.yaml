@@ -1,0 +1,287 @@
+schema_version: 1
+experiment: tworoom_door_multi_v2
+task: tworoom
+env_id: swm/TwoRoom-v1
+profile: door_v2_multi_value_geometry_matched_lossless
+seed: 20260722
+scenario_generation_seed: 20260722
+
+stable_worldmodel:
+  repo: ../stable-worldmodel
+  expected_ref: 5864b74980f6ed328fd0045e777b3865962eff43
+
+controlled_constants:
+  agent_speed: 5.0
+
+collection:
+  staging_root: /tmp
+  episodes_per_scenario: 1
+  max_episode_steps: 100
+  image_shape: [224, 224]
+  num_envs: 1
+  pixel_codec: {format: png, compress_level: 1}
+  policy:
+    action_noise: 2.0
+    action_repeat_prob: 0.05
+
+original_dataset:
+  path: ../../data/world_model/quentinll/lewm-tworooms/tworoom.h5
+
+output:
+  data_root: artifacts/synthesis/data/tworoom_door_multi_v2
+  manifest: artifacts/synthesis/manifests/tworoom_door_multi_v2.jsonl
+  report: artifacts/synthesis/reports/tworoom_door_multi_v2.json
+  catalog: artifacts/synthesis/catalogs/tworoom_door_multi_v2.json
+
+planning:
+  estimated_lance_bytes_per_row: 6500
+
+validation:
+  scenario_validation_workers: 16
+  independent_seed_assignment:
+    atom: door_position
+    factor_key: door.position
+    splits:
+      train:
+        minimum_seed_groups: 512
+        minimum_factor_values: 16
+        minimum_scenarios_per_factor: 32
+        minimum_episodes_per_factor: 1024
+        require_one_scenario_per_seed_group: true
+        require_factor_balance: true
+      val:
+        minimum_seed_groups: 96
+        minimum_factor_values: 16
+        minimum_scenarios_per_factor: 6
+        minimum_episodes_per_factor: 96
+        require_one_scenario_per_seed_group: true
+        require_factor_balance: true
+  minimum_episode_start_oracle:
+    minimum_rows: 2
+    termination_radius: 16.0
+    minimum_guaranteed_margin: 8.0
+    expected_agent_speed: 5.0
+  door_position_pixel_oracle:
+    seed: 271828
+    door_half_size: 14
+    wall_thickness: 10
+    border_thickness: 4
+    state: [40.0, 112.0]
+    target_state: [190.0, 112.0]
+    cases:
+      - {first_position: 49, second_position: 57}
+      - {first_position: 49, second_position: 169}
+      - {first_position: 49, second_position: 24}
+      - {first_position: 49, second_position: 199}
+  door_position_passage_oracle:
+    seed: 161803
+    speed: 5.0
+    door_half_size: 14
+    wall_thickness: 10
+    agent_radius: 7.0
+    steps: 8
+    cases:
+      - open_position: 70
+        blocked_position: 154
+        state: [90.0, 70.0]
+        target_state: [190.0, 190.0]
+        action: [1.0, 0.0]
+      - open_position: 154
+        blocked_position: 70
+        state: [134.0, 154.0]
+        target_state: [30.0, 30.0]
+        action: [-1.0, 0.0]
+  reset_coverage:
+    grid_size: 14
+    splits:
+      train:
+        unique_reset_seeds: 16384
+        unique_start_states: 16384
+        unique_goal_states: 16384
+        start_grid_bins: 150
+        goal_grid_bins: 150
+        start_goal_grid_pairs: 5000
+        cross_room_resets: 8192
+        same_room_resets: 8192
+        left_to_right_resets: 2500
+        right_to_left_resets: 2500
+        minimum_initial_distance: 36.0
+        initial_distance_p10: 36.0
+        templates:
+          s0: {start_grid: [3, 5], goal_grid: [13, 13], minimum_resets: 1024}
+          s1: {start_grid: [3, 10], goal_grid: [13, 13], minimum_resets: 1024}
+          s2: {start_grid: [12, 5], goal_grid: [13, 13], minimum_resets: 1024}
+          s3: {start_grid: [12, 10], goal_grid: [13, 13], minimum_resets: 1024}
+      val:
+        unique_reset_seeds: 1536
+        unique_start_states: 1536
+        unique_goal_states: 1536
+        start_grid_bins: 120
+        goal_grid_bins: 120
+        start_goal_grid_pairs: 700
+        cross_room_resets: 768
+        same_room_resets: 768
+        minimum_initial_distance: 36.0
+        templates:
+          s0: {start_grid: [3, 5], goal_grid: [13, 13], minimum_resets: 128}
+          s1: {start_grid: [3, 10], goal_grid: [13, 13], minimum_resets: 128}
+          s2: {start_grid: [12, 5], goal_grid: [13, 13], minimum_resets: 128}
+          s3: {start_grid: [12, 10], goal_grid: [13, 13], minimum_resets: 128}
+
+scenario_sets:
+  - name_prefix: train_broad_cross
+    split: train
+    regime: train_broad_cross
+    atom: door_position
+    assignment: paired_cycle
+    episodes_per_scenario: 32
+    seed_groups: {sampler: indexed, prefix: doorv2_train_broad_cross, count: 192, width: 4}
+    values: &train_doors
+      sampler: fixed
+      values: [49, 57, 65, 73, 81, 89, 97, 105,
+               113, 121, 129, 137, 145, 153, 161, 169]
+    reset_constraints: &cross_constraints
+      target_room: opposite
+      exclude_wall_zone: true
+      minimum_initial_distance: 40.0
+
+  - name_prefix: train_broad_same
+    split: train
+    regime: train_broad_same
+    atom: door_position
+    assignment: paired_cycle
+    allow_value_reuse: true
+    episodes_per_scenario: 32
+    seed_groups: {sampler: indexed, prefix: doorv2_train_broad_same, count: 192, width: 4}
+    values: *train_doors
+    reset_constraints: &same_constraints
+      target_room: same
+      exclude_wall_zone: true
+      minimum_initial_distance: 40.0
+
+  - &train_template
+    name_prefix: train_template_s0
+    split: train
+    regime: train_template_s0
+    atom: door_position
+    assignment: paired_cycle
+    allow_value_reuse: true
+    episodes_per_scenario: 32
+    seed_groups: {sampler: indexed, prefix: doorv2_train_template_s0, count: 32, width: 4}
+    values: *train_doors
+    reset_constraints:
+      target_room: opposite
+      minimum_initial_distance: 36.0
+      agent_position_bounds: [[42.1, 55.9], [70.1, 83.9]]
+      target_position_bounds: [[182.1, 195.9], [182.1, 195.9]]
+
+  - <<: *train_template
+    name_prefix: train_template_s1
+    regime: train_template_s1
+    seed_groups: {sampler: indexed, prefix: doorv2_train_template_s1, count: 32, width: 4}
+    reset_constraints:
+      target_room: opposite
+      minimum_initial_distance: 36.0
+      agent_position_bounds: [[42.1, 55.9], [140.1, 153.9]]
+      target_position_bounds: [[182.1, 195.9], [182.1, 195.9]]
+
+  - <<: *train_template
+    name_prefix: train_template_s2
+    regime: train_template_s2
+    seed_groups: {sampler: indexed, prefix: doorv2_train_template_s2, count: 32, width: 4}
+    reset_constraints:
+      target_room: same
+      minimum_initial_distance: 36.0
+      agent_position_bounds: [[168.1, 181.9], [70.1, 83.9]]
+      target_position_bounds: [[182.1, 195.9], [182.1, 195.9]]
+
+  - <<: *train_template
+    name_prefix: train_template_s3
+    regime: train_template_s3
+    seed_groups: {sampler: indexed, prefix: doorv2_train_template_s3, count: 32, width: 4}
+    reset_constraints:
+      target_room: same
+      minimum_initial_distance: 36.0
+      agent_position_bounds: [[168.1, 181.9], [140.1, 153.9]]
+      target_position_bounds: [[182.1, 195.9], [182.1, 195.9]]
+
+  - name_prefix: val_broad_cross
+    split: val
+    regime: validation_broad_cross
+    atom: door_position
+    assignment: paired_cycle
+    allow_value_reuse: true
+    episodes_per_scenario: 16
+    seed_groups: {sampler: indexed, prefix: doorv2_val_broad_cross, count: 32, width: 4}
+    values: *train_doors
+    reset_constraints: *cross_constraints
+
+  - name_prefix: val_broad_same
+    split: val
+    regime: validation_broad_same
+    atom: door_position
+    assignment: paired_cycle
+    allow_value_reuse: true
+    episodes_per_scenario: 16
+    seed_groups: {sampler: indexed, prefix: doorv2_val_broad_same, count: 32, width: 4}
+    values: *train_doors
+    reset_constraints: *same_constraints
+
+  # The four 8-scenario template blocks use complementary halves of the
+  # training support. Together with both broad blocks, every door gets exactly
+  # six validation scenarios (96 episodes) and no held-out Eval value appears.
+  - &val_template_low
+    name_prefix: val_template_s0
+    split: val
+    regime: validation_template_s0
+    atom: door_position
+    assignment: paired_cycle
+    allow_value_reuse: true
+    episodes_per_scenario: 16
+    seed_groups: {sampler: indexed, prefix: doorv2_val_template_s0, count: 8, width: 4}
+    values: &val_doors_low
+      sampler: fixed
+      values: [49, 57, 65, 73, 81, 89, 97, 105]
+    reset_constraints:
+      target_room: opposite
+      minimum_initial_distance: 36.0
+      agent_position_bounds: [[42.1, 55.9], [70.1, 83.9]]
+      target_position_bounds: [[182.1, 195.9], [182.1, 195.9]]
+
+  - <<: *val_template_low
+    name_prefix: val_template_s1
+    regime: validation_template_s1
+    seed_groups: {sampler: indexed, prefix: doorv2_val_template_s1, count: 8, width: 4}
+    reset_constraints:
+      target_room: opposite
+      minimum_initial_distance: 36.0
+      agent_position_bounds: [[42.1, 55.9], [140.1, 153.9]]
+      target_position_bounds: [[182.1, 195.9], [182.1, 195.9]]
+
+  - &val_template_high
+    name_prefix: val_template_s2
+    split: val
+    regime: validation_template_s2
+    atom: door_position
+    assignment: paired_cycle
+    allow_value_reuse: true
+    episodes_per_scenario: 16
+    seed_groups: {sampler: indexed, prefix: doorv2_val_template_s2, count: 8, width: 4}
+    values: &val_doors_high
+      sampler: fixed
+      values: [113, 121, 129, 137, 145, 153, 161, 169]
+    reset_constraints:
+      target_room: same
+      minimum_initial_distance: 36.0
+      agent_position_bounds: [[168.1, 181.9], [70.1, 83.9]]
+      target_position_bounds: [[182.1, 195.9], [182.1, 195.9]]
+
+  - <<: *val_template_high
+    name_prefix: val_template_s3
+    regime: validation_template_s3
+    seed_groups: {sampler: indexed, prefix: doorv2_val_template_s3, count: 8, width: 4}
+    reset_constraints:
+      target_room: same
+      minimum_initial_distance: 36.0
+      agent_position_bounds: [[168.1, 181.9], [140.1, 153.9]]
+      target_position_bounds: [[182.1, 195.9], [182.1, 195.9]]

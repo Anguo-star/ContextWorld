@@ -1,7 +1,17 @@
 schema_version: 1
 benchmark: tworoom_door_visual_generalization_v1
-status: preregistered_design_only_before_new_data_generation_or_model_scoring
+status: preregistered_amended_before_new_data_generation_or_model_scoring
 preregistered_date: "2026-07-22"
+
+pre_data_amendment:
+  date: "2026-07-22"
+  timing: before_formal_data_generation_training_or_model_scoring
+  reason: independent_implementation_audit_and_real_checkpoint_smoke
+  changes:
+    - the_third_actual_contiguous_frame_is_the_query_even_if_nominal_return_has_float_residual
+    - cem_replans_use_two_most_recent_complete_live_action_blocks
+    - spearman_uses_tie_aware_average_ranks
+    - extreme_door_waypoints_and_crossing_checks_follow_environment_endpoint_bounds
 
 scope:
   environment: TwoRoom
@@ -135,6 +145,8 @@ evaluation_data:
       primary_decision_gate: true
       same_episode: true
       door_position_constant: true
+      query_definition: third_actual_contiguous_frame
+      nominal_return_drift_tolerance_px: 1.0e-4
   future_horizons_action_blocks: [1, 2, 3, 5]
   online_environment_calls_during_latent_scoring: 0
   teacher_forcing_future_frames: false
@@ -191,6 +203,7 @@ fixed_candidate_evaluation:
   candidates_per_query: 300
   horizon_action_blocks: 10
   identical_candidate_library_across_models: true
+  spearman_rank_ties: average_rank
   metrics:
     - exact_environment_endpoint_regret_px
     - predicted_cost_vs_true_endpoint_distance_spearman
@@ -208,6 +221,11 @@ closed_loop_planning:
   iterations: 30
   topk: 30
   identical_queries_and_cem_seeds_across_models: true
+  history3_replan_context:
+    first_replan: frozen_contiguous_catalog_history
+    later_replans: two_most_recent_complete_live_action_blocks
+    stale_initial_history_reuse: forbidden
+    hash_every_replan_pixels_raw_actions_normalized_actions_and_current_state: true
   geometry_distribution:
     directions: [left_to_right, right_to_left]
     door_relative_vertical_offsets_px: [0, 20, 40]
