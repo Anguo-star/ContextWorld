@@ -1,0 +1,267 @@
+schema_version: 1
+benchmark: tworoom_door_visual_generalization_v1
+status: preregistered_design_only_before_new_data_generation_or_model_scoring
+preregistered_date: "2026-07-22"
+
+scope:
+  environment: TwoRoom
+  factor: door.position
+  factor_observability: visible_in_current_query_pixels
+  claim_type: visible_geometry_generalization
+  explicitly_not_claimed: door_position_icl
+  agent_speed: 5.0
+  history_tokens: 3
+  context_transitions: 2
+  action_block_raw_steps: 5
+  supported_runtime: stable_worldmodel_lewm
+
+stage_order:
+  - visible_door_position_generalization
+  - hidden_passage_rule_icl
+  - speed_icl_x_visible_door_composition
+
+existing_foundation:
+  dataset: artifacts/synthesis/data/tworoom_door_pixel_v1
+  role: physical_replay_and_pixel_oracle_foundation_only
+  formal_training_source: false
+  reason: insufficient_scale_and_no_data_matched_fixed_door_control
+
+training_data:
+  generation_configs_planned:
+    fixed_door_control: configs/synthesis/tworoom_door_fixed49_matched_v2.yaml
+    multi_door_target: configs/synthesis/tworoom_door_multi_v2.yaml
+  fixed_door_control:
+    door_positions: [49]
+  multi_door_target:
+    door_positions: [49, 57, 65, 73, 81, 89, 97, 105,
+                     113, 121, 129, 137, 145, 153, 161, 169]
+  paired_collection_contract:
+    train_scenarios: 512
+    episodes_per_train_scenario: 32
+    train_episodes: 16384
+    validation_scenarios: 96
+    episodes_per_validation_scenario: 16
+    validation_episodes: 1536
+    same_fields:
+      - reset_and_goal_seed_groups
+      - expert_policy_seed_groups
+      - collection_policy
+      - reset_constraints
+      - episode_budget
+      - pixel_codec
+      - scenario_count
+      - episode_count
+    only_intended_difference: whether_door_position_varies
+    training_loader_validation_uses_training_factor_values: true
+  codec: {format: png, compress_level: 1, lossless: true}
+  quality_requirements:
+    minimum_raw_train_clips: 600000
+    maximum_formal_mean_draws_per_raw_clip: 11.0
+    exact_state_and_encoded_pixel_replay: true
+    factor_readback: true
+    unique_seed_group_per_scenario: true
+    balanced_multi_door_exposure: true
+
+models:
+  original_reference:
+    display_name: 原始数据模型
+    role: descriptive_reference
+    training_groups: {original: 1.0}
+    required_training_seeds: [3072]
+  fixed_door_control:
+    display_name: 固定门位置合成混训模型
+    role: data_and_training_process_control
+    training_groups: {original: 0.5, door_fixed49_v2: 0.5}
+    required_training_seeds: [3072, 4096, 5120]
+  multi_door_target:
+    display_name: 多门位置合成混训模型
+    role: visible_door_generalization_target
+    training_groups: {original: 0.5, door_multi_v2: 0.5}
+    required_training_seeds: [3072, 4096, 5120]
+
+training_protocol:
+  architecture: stable_worldmodel_lewm_history3
+  initialization: from_scratch_paired_by_training_seed
+  profile: additive
+  epoch_size_global: 2629632
+  logical_epochs: 5
+  effective_global_batch: 1024
+  optimizer_steps: 12840
+  warmup_steps: 128
+  checkpoint_selection: final_fixed_step
+  early_stopping: false
+  normalizer_source: original_training_split_only
+  validation_or_test_used_for_normalizer: false
+
+evaluation_data:
+  eval_seeds: [42, 43, 44, 45, 46, 47]
+  unique_queries_per_door_per_task_per_seed: 50
+  unique_queries_per_door_per_task: 300
+  query_sets_nonoverlapping_across_eval_seeds: true
+  identical_queries_reused_across_models_and_input_conditions: true
+  tracks:
+    validation_seen:
+      split: validation
+      relation_to_multi_door_target_training_values: seen
+      door_positions: [49, 89, 129, 169]
+    validation_interpolation:
+      split: validation
+      relation_to_multi_door_target_training_values: unseen_inside_training_range
+      door_positions: [53, 85, 117, 149]
+    test_interpolation:
+      split: sealed_test
+      relation_to_multi_door_target_training_values: unseen_inside_training_range
+      door_positions: [61, 77, 93, 109, 125, 141, 157, 165]
+    test_extrapolation_low:
+      split: sealed_test
+      relation_to_multi_door_target_training_values: below_training_range
+      door_positions: [24, 32, 40]
+    test_extrapolation_high:
+      split: sealed_test
+      relation_to_multi_door_target_training_values: above_training_range
+      door_positions: [180, 190, 199]
+  offline_prediction_tasks:
+    - doorway_passage
+    - wall_contact
+  input_conditions:
+    query_only:
+      visible_frames: 1
+      role: direct_current_frame_geometry_diagnostic
+      primary_decision_gate: false
+      caveat: sequence_length_differs_from_training
+    natural_history3:
+      visible_frames: 3
+      role: normal_contiguous_model_input
+      primary_decision_gate: true
+      same_episode: true
+      door_position_constant: true
+  future_horizons_action_blocks: [1, 2, 3, 5]
+  online_environment_calls_during_latent_scoring: 0
+  teacher_forcing_future_frames: false
+  validation_counts_per_checkpoint:
+    door_positions: 8
+    prediction_tasks: 2
+    input_conditions: 2
+    cells: 32
+    scored_sequences: 9600
+    horizon_losses: 38400
+  sealed_test_counts_per_checkpoint:
+    door_positions: 14
+    prediction_tasks: 2
+    input_conditions: 2
+    cells: 56
+    scored_sequences: 16800
+    horizon_losses: 67200
+
+data_audit:
+  required:
+    - exact_factor_readback
+    - exact_state_replay
+    - exact_encoded_pixel_replay
+    - query_pixel_and_payload_uniqueness
+    - zero_train_validation_test_scenario_overlap
+    - zero_heldout_door_value_overlap_with_training_values
+    - visible_door_pixel_oracle
+    - doorway_passage_and_wall_contact_outcome_oracle
+    - nonzero_true_future_change_for_every_prediction_query
+    - scripted_planning_oracle_succeeds_within_execution_budget
+    - immutable_config_code_catalog_and_payload_hashes
+
+prediction_metrics:
+  target: frozen_checkpoint_encoder_of_true_future_pixels
+  primary:
+    - native_latent_mse_by_horizon_within_checkpoint
+    - error_multiple_vs_unchanged_frame_baseline_by_horizon
+    - paired_query_win_rate_target_vs_control
+  query_only_vs_history3: descriptive_within_checkpoint_only
+  raw_latent_mse_cross_checkpoint_ranking: forbidden
+  inferred_door_position_from_latent: excluded
+  pixel_position_decoding_from_latent: excluded
+  aggregation:
+    first: paired_query
+    second: eval_seed_partition
+    third: door_position
+    tracks_never_pooled: true
+    horizons_never_pooled: true
+    uncertainty: 10000_query_cluster_paired_bootstrap
+
+fixed_candidate_evaluation:
+  query_task: cross_room_navigation
+  evaluations_per_door_per_seed: 50
+  candidates_per_query: 300
+  horizon_action_blocks: 10
+  identical_candidate_library_across_models: true
+  metrics:
+    - exact_environment_endpoint_regret_px
+    - predicted_cost_vs_true_endpoint_distance_spearman
+    - selected_candidate_doorway_crossing_rate
+
+closed_loop_planning:
+  query_task: cross_room_navigation
+  evaluations_per_door_per_seed: 50
+  agent_speed: 5.0
+  execution_budget_raw_steps: 100
+  budget_ladder_required: false
+  horizon_action_blocks: 10
+  receding_horizon_action_blocks: 5
+  candidates: 300
+  iterations: 30
+  topk: 30
+  identical_queries_and_cem_seeds_across_models: true
+  geometry_distribution:
+    directions: [left_to_right, right_to_left]
+    door_relative_vertical_offsets_px: [0, 20, 40]
+    offset_direction: toward_room_vertical_interior
+    reuse_translated_geometry_templates_across_door_positions: true
+    formal_claims_by_direction_or_offset: false
+  metrics:
+    - success_rate
+    - final_distance_px
+    - steps_to_success
+    - doorway_crossing_rate
+  interpretation: supporting_planning_evidence_not_prediction_accuracy
+
+ability_retention:
+  protocol: configs/benchmark/tworoom_original_ability_reconstruction_v1.yaml
+  per_eval_per_model: 300
+  noninferiority:
+    success_margin_percentage_points: -5.0
+    final_distance_margin_px: 5.0
+
+decision:
+  visible_geometry_generalization_validation_gate:
+    primary_tracks: [validation_seen, validation_interpolation]
+    primary_horizon: 1
+    requirements:
+      - multi_door_target_lower_normalized_error_than_paired_fixed_door_control_for_all_three_training_seeds
+      - direction_consistent_in_all_six_eval_seed_partitions_at_every_door_position
+      - requirement_holds_for_natural_history3
+      - requirement_holds_for_doorway_passage_and_wall_contact_tasks
+    query_only_interpretation: descriptive_direct_visual_use_diagnostic_not_a_hard_gate
+  multistep_reporting:
+    rule: longest_contiguous_passing_horizon_starting_at_h1
+  extrapolation_claim:
+    low_and_high_tracks_judged_separately: true
+    no_bidirectional_claim_unless_every_position_in_both_tracks_passes: true
+  planning_claim:
+    prediction_gate_required_for_joint_prediction_to_planning_claim: true
+    planning_evaluation_runs_regardless_of_prediction_effect_direction: true
+    fixed_candidate_and_closed_loop_reported_separately: true
+  forbidden_conclusions:
+    - door_position_icl
+    - history_infers_visible_door_position
+    - cem_success_alone_proves_better_prediction
+
+execution_order:
+  - implement_and_test_paired_synthesis_configs
+  - compile_and_run_small_data_pilot
+  - generate_both_full_training_datasets
+  - run_full_data_and_loader_audits
+  - build_and_freeze_validation_eval_payloads
+  - run_training_preflight_and_gpu_smoke
+  - train_three_paired_seeds_for_both_recipes
+  - score_offline_true_future_latents
+  - run_fixed_candidate_evaluation_if_prediction_data_are_valid
+  - run_closed_loop_planning_after_prediction_integrity_checks
+  - run_original_ability_retention
+  - freeze_code_and_thresholds_then_open_sealed_test_once

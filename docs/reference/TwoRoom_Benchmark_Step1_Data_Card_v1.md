@@ -1,11 +1,14 @@
-# TwoRoom Benchmark 数据卡
+# TwoRoom Step-1 基础数据卡
 
-> 本文记录早期 Step-1 数据族，不是当前 Speed ICL 发布包的数据清单。第三方训练与
-> 评测请以 [Speed ICL Benchmark 使用指南](../TwoRoom_Speed_ICL_Benchmark_Release.md)
-> 和冻结 release YAML 为准；本文仅用于理解门位置与组合数据的来源。
+> 本文记录早期 Step-1 数据族，不是当前 Speed ICL 发布包或下一阶段门 Benchmark 的
+> 正式数据清单。速度复现请以
+> [Speed ICL Benchmark 使用指南](../TwoRoom_Speed_ICL_Benchmark_Release.md) 为准；
+> 门部分请以 [TwoRoom 门能力 Benchmark 设计](../TwoRoom_Door_Benchmark_Design.md)
+> 为准。本文只用于理解早期门位置与组合数据的物理来源。
 
 **日期**：2026-07-14  
-**状态**：正式 train/validation/test 数据已生成并通过全量验证  
+**状态**：早期物理基础数据已生成并通过全量验证；不作为新门 Benchmark 的正式训练
+或 Eval 数据
 **环境实现**：Stable-WorldModel 5864b74980f6ed328fd0045e777b3865962eff43  
 **Benchmark 规范**：[ContextWorld Benchmark 设计](../ContextWorld_Benchmark_Design.md)
 
@@ -30,7 +33,7 @@
 
 不重复生成原始数据，也不把原始 H5 物理复制到合成数据中。
 
-## 2. 正式数据
+## 2. 已验证的早期基础数据
 
 | 数据 | Train | Validation | Test | Episodes | 实际行数 |
 |---|---:|---:|---:|---:|---:|
@@ -47,6 +50,11 @@ artifacts/synthesis/data/tworoom_speed_door_composition_v1
 ~~~
 
 以上为可移植的逻辑路径，默认映射到 `/opt/huawei/explorer-env/dataset/ag_data/data/world_model/context_world/`；例如第一项的实际默认位置为 `.../context_world/synthesis/data/tworoom_speed_pixel_v2`。工程仓库不保存数据、checkpoint、日志或 eval 结果。其他部署可用 `CONTEXTWORLD_ARTIFACT_ROOT` 覆盖产物根目录。
+
+其中 door v1 的训练部分只有 128 个 episode，speed×door v1 也只是早期组合网格。
+它们足以验证 factor readback、渲染、碰撞和 split 逻辑，但数据规模和训练控制不足以
+支持新的正式能力归因。新门实验会生成一对大规模、严格匹配的“固定门位置”和
+“多门位置”v2 数据。
 
 每个 scenario 独立为一个 Lance 表。manifest 保存原子值、seed、Stable-WM commit、输出路径和 fingerprint；catalog 分别列出 train、validation、test 与具体 regime。
 
@@ -142,6 +150,9 @@ pytest -q
 - 普通模型输入只包含声明的 pixels/action/proprio，不包含 factor value、scenario ID 或 privileged state。
 - ICL eval 期间模型权重冻结，eval 前后 state-dict hash 必须一致。
 - context 与 query 使用不重叠的 transition 或 episodes；context 不得包含 query future、label 或 goal outcome。
-- 无历史、同设定历史、另一设定历史和无关历史必须共享完全相同的 query，只有历史内容可以变化。
-- speed context 必须包含非零、无碰撞、未终止且能区分候选速度的转移；door context 必须作为可见因素对照单独报告。
+- 隐藏因素的不同历史条件必须共享完全相同的 query，只有历史内容可以变化。
+- speed context 必须包含非零、无碰撞、未终止且能区分候选速度的转移。
+- 当前 `door.position` 从 query 像素中直接可见。正式门位置泛化实验只比较“只给当前
+  画面”和“同一门位置的连续 History-3”，不再把不同门位置的历史拼到相同 query
+  前面。
 - 物理数据 catalog、训练 mixture 和 `ContextQueryCatalog` 是不同层次的入口，不能互相替代。
