@@ -46,6 +46,15 @@ DEFAULT_CONFIG = (
 )
 
 
+def _catalog_benchmark(config: dict[str, Any]) -> str:
+    """Use the benchmark identity shared by the config and evaluators."""
+
+    benchmark = str(config.get("benchmark", ""))
+    if not benchmark.startswith("tworoom_"):
+        raise ValueError(f"Unexpected door benchmark name: {benchmark!r}")
+    return benchmark
+
+
 def _formal_strata(eval_seed_index: int) -> list[tuple[str, int]]:
     rows: list[tuple[str, int]] = []
     for direction_index, direction in enumerate(VALID_DIRECTIONS):
@@ -519,7 +528,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     formal = int(args.queries_per_seed) == 50 and len(eval_seeds) == 6
     catalog = {
         "schema_version": 1,
-        "benchmark": "tworoom_door_planning_catalog_v1",
+        "benchmark": _catalog_benchmark(config),
         "status": "passed" if formal else "smoke_only",
         "split_role": args.split,
         "config": {"path": str(config_path), "sha256": file_sha256(config_path)},

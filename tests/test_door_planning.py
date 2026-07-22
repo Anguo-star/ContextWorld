@@ -24,6 +24,7 @@ from contextworld.evaluation.planner_mechanism import (
     simulate_tworoom_candidates,
 )
 from scripts.build_tworoom_door_planning_catalogs import (
+    _catalog_benchmark,
     _relative_templates,
     _scripted_actions,
 )
@@ -35,6 +36,11 @@ ROOT = Path(__file__).resolve().parents[1]
 DOOR_CONFIG = (
     ROOT / "configs/benchmark/tworoom_door_visual_generalization_v1.yaml"
 )
+
+
+def test_planning_catalog_uses_the_evaluator_benchmark_identity() -> None:
+    config = yaml.safe_load(DOOR_CONFIG.read_text(encoding="utf-8"))
+    assert _catalog_benchmark(config) == config["benchmark"]
 
 
 def _formal_catalog_header(config: dict) -> dict:
