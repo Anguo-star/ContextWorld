@@ -32,10 +32,12 @@ from contextworld.evaluation.door_visual import (
 )
 from contextworld.evaluation.icl_catalog import _factor_options
 from contextworld.evaluation.icl_model import file_sha256
-from contextworld.paths import (
-    artifact_path,
-    portable_contextworld_path,
+from contextworld.evaluation.sealed_test_gate import (
+    canonical_door_split_root,
+    require_canonical_split_path,
+    require_sealed_test_gate,
 )
+from contextworld.paths import portable_contextworld_path
 from contextworld.synthesis.manifest import write_json
 from contextworld.synthesis.stablewm import load_stable_worldmodel
 
@@ -539,6 +541,22 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
     if not str(config.get("status", "")).startswith("preregistered_"):
         raise ValueError("Door benchmark config is not preregistered")
+    gate_audit = require_sealed_test_gate(
+        split=args.evaluation_split,
+        config_path=config_path,
+        config=config,
+        manifest_path=getattr(args, "sealed_test_gate", None),
+        repo_root=ROOT,
+    )
+    canonical_root = canonical_door_split_root(
+        config, split=args.evaluation_split, repo_root=ROOT
+    )
+    artifact_root = require_canonical_split_path(
+        args.output_root,
+        canonical=canonical_root,
+        split=args.evaluation_split,
+        label="Door visual catalog root",
+    )
     support = door_support_audit(config)
     if not support["passed"]:
         raise RuntimeError(f"Door support audit failed: {support}")
@@ -546,10 +564,6 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         ROOT, args.stablewm_repo, args.stablewm_ref
     )
     config_hash = file_sha256(config_path)
-    default_root = artifact_path(DEFAULT_ARTIFACT_SUBDIR, repo_root=ROOT)
-    if args.evaluation_split == "sealed_test":
-        default_root = default_root / "sealed_test"
-    artifact_root = args.output_root.resolve() if args.output_root else default_root
     payload_root = artifact_root / "payloads"
     catalog_root = artifact_root / "catalogs"
     evaluation = config["evaluation_data"]
@@ -618,6 +632,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "evaluation_split": args.evaluation_split,
         "config": {"path": str(config_path), "sha256": config_hash},
         "stable_worldmodel": {"repo": str(stable_repo), "commit": stable_commit},
+        "sealed_test_gate": gate_audit,
         "tracks": tracks,
         "door_support_audit": support,
         "visible_door_pixel_oracle": visible_oracle,
@@ -627,8 +642,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "exact_state_and_pixel_replay": not args.skip_exact_replay,
             "exact_encoded_payload_replay": True,
             "query_and_payload_uniqueness": True,
-            "eval_scenario_namespace": "door_visual_validation_v1",
-            "scenario_ids_unique_and_validation_namespaced": True,
+            "eval_scenario_namespace": (
+                "door_visual_validation_v1"
+                if args.evaluation_split == "validation"
+                else "door_visual_sealed_test_v1"
+            ),
+            "scenario_ids_unique_and_split_namespaced": True,
             "zero_train_eval_scenario_id_overlap_by_reserved_namespace": True,
             "online_environment_required_during_model_scoring": False,
         },
@@ -670,6 +689,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--track")
     parser.add_argument("--max-queries-per-door-task", type=int)
     parser.add_argument("--skip-exact-replay", action="store_true")
+    parser.add_argument("--sealed-test-gate", type=Path)
     parser.add_argument("--stablewm-repo", default="../stable-worldmodel")
     parser.add_argument("--stablewm-ref", default=PINNED_STABLEWM)
     return parser.parse_args()

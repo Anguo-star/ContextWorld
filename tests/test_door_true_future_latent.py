@@ -31,7 +31,10 @@ from scripts.analyze_tworoom_door_visual_generalization import _load_results
 from scripts.build_tworoom_door_visual_catalogs import _prediction_payload_views
 from scripts.build_tworoom_door_visual_catalogs import _task_oracle
 from scripts.build_tworoom_door_visual_catalogs import _selected_track_rows
-from scripts.eval_tworoom_door_true_future_latent import _rollout
+from scripts.eval_tworoom_door_true_future_latent import (
+    _audit_prefix_causality,
+    _rollout,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -379,6 +382,52 @@ def test_query_only_and_history3_rollout_extract_five_future_predictions() -> No
     assert _rollout(model, history3, registry, device="cpu").shape == (1, 5, 4)
 
 
+def test_prefix_causality_audit_uses_same_length_suffix_perturbations() -> None:
+    torch = pytest.importorskip("torch")
+
+    class PrefixModel(torch.nn.Module):
+        def __init__(self, *, leak_future: bool) -> None:
+            super().__init__()
+            self.anchor = torch.nn.Parameter(torch.zeros(()))
+            self.leak_future = leak_future
+
+        def rollout(self, observations, actions, history_size):
+            del observations, history_size
+            action_values = actions[:, 0, :, 0]
+            predictions = torch.cumsum(action_values, dim=1)
+            if self.leak_future:
+                predictions = predictions + action_values.sum(dim=1, keepdim=True)
+            values = torch.cat(
+                [torch.zeros_like(predictions[:, :1]), predictions], dim=1
+            )
+            return {
+                "predicted_emb": values[:, None, :, None].expand(-1, 1, -1, 4)
+            }
+
+    registry = {"q": np.zeros((224, 224, 3), dtype=np.uint8)}
+    rows = [
+        {
+            "history_size": 1,
+            "input_pixel_keys": ["q"],
+            "normalized_actions": np.zeros((5, 10), dtype=np.float32),
+        }
+    ]
+    causal = _audit_prefix_causality(
+        PrefixModel(leak_future=False), rows, registry, device="cpu"
+    )
+    assert causal["method"] == "same_length_future_action_suffix_perturbation"
+    assert causal["checked_future_counts"] == [1, 2, 3]
+    assert causal["minimum_suffix_action_perturbation"] == pytest.approx(0.5)
+    assert causal["shared_prefix_max_abs_difference"] == 0.0
+    assert causal["passed"]
+
+    noncausal = _audit_prefix_causality(
+        PrefixModel(leak_future=True), rows, registry, device="cpu"
+    )
+    assert noncausal["shared_prefix_max_abs_difference"] > 0.0
+    assert not noncausal["passed"]
+
+
 def test_longest_contiguous_horizon_stops_at_first_failure() -> None:
     assert longest_contiguous_horizon(
         {"1": True, "2": True, "3": False, "5": True}
@@ -454,10 +503,13 @@ def test_runtime_identity_and_training_reports_bind_every_checkpoint(
             "save_load_exact": True,
             "model_id": expected["model_id"],
             "run_name": expected["run_name"],
-            "data": {"seed": seed},
+            "data": {"seed": 3072},
             "training": {
                 "training_complete": True,
-                "plan": {"training_seed": seed},
+                "plan": {
+                    "data_split_seed": 3072,
+                    "training_seed": seed,
+                },
             },
             "stable_worldmodel": {"commit": stable_commit},
             "artifacts": {"pretrained_sha256": checkpoint_hash},
@@ -473,6 +525,7 @@ def test_runtime_identity_and_training_reports_bind_every_checkpoint(
         results,
         report_paths=report_paths,
         stable_worldmodel_commit=stable_commit,
+        expected_data_split_seed=3072,
         require_complete=True,
     )
     assert binding["complete_formal_binding"]

@@ -92,6 +92,7 @@ models:
 training_protocol:
   architecture: stable_worldmodel_lewm_history3
   initialization: from_scratch_paired_by_training_seed
+  data_split_seed: 3072
   profile: additive
   epoch_size_global: 2629632
   logical_epochs: 5
@@ -245,6 +246,30 @@ ability_retention:
   noninferiority:
     success_margin_percentage_points: -5.0
     final_distance_margin_px: 5.0
+
+sealed_test_gate:
+  manifest: configs/benchmark/tworoom_door_sealed_test_gate_v1.json
+  schema: configs/benchmark/tworoom_door_sealed_test_gate_v1.schema.json
+  validation_freeze_record: configs/benchmark/tworoom_door_validation_freeze_record_v1.json
+  required_implementation_files:
+    - contextworld/evaluation/sealed_test_gate.py
+    - contextworld/evaluation/door_visual.py
+    - contextworld/evaluation/door_planning.py
+    - scripts/build_tworoom_door_visual_catalogs.py
+    - scripts/build_tworoom_door_planning_catalogs.py
+    - scripts/eval_tworoom_door_true_future_latent.py
+    - scripts/eval_tworoom_door_fixed_candidates.py
+    - scripts/eval_tworoom_door_planning.py
+    - scripts/run_tworoom_door_eval.py
+    - scripts/analyze_tworoom_door_visual_generalization.py
+    - scripts/analyze_tworoom_door_planning.py
+    - scripts/analyze_tworoom_door_ability.py
+    - configs/benchmark/tworoom_door_sealed_test_gate_v1.schema.json
+  validation_evidence:
+    prediction: {expected_result_files: 7}
+    fixed_candidate: {expected_result_files: 336}
+    closed_loop_planning: {expected_result_files: 336}
+    original_ability: {expected_result_files: 49}
 
 decision:
   visible_geometry_generalization_validation_gate:

@@ -56,15 +56,35 @@ paired_collection_contract:
 data_quality:
   groups:
     door_fixed49_v2:
+      require_complete_synthesis_report: true
+      required_catalog_sha256: 9aafe77f8f73ee352be75fa9e09ebdd10c998c51f7823922e912f42344767c67
+      required_manifest_sha256: c9d6b641a1768f0573f98b15f21ddf6d54d0e9249a707cde153d9cf037f4fe1b
+      required_synthesis_report_sha256: 21d121c5e448e562c666b170b5ec797c37b4a71a0c1f8723e8bc4641e5baa1f1
       required_pixel_codec: {format: png, compress_level: 1, lossless: true}
       balance_by_factor: door.position
+      exact_train_scenarios: 512
+      exact_validation_scenarios: 96
+      factor_support_contract:
+        factor: door.position
+        train_values_from_door_support: fixed_synthetic_train
+        validation_values_from_door_support: fixed_loader_validation
       minimum_raw_train_clips: 600000
       maximum_formal_mean_draws_per_raw_clip: 11.0
       minimum_train_scenarios: 512
       minimum_validation_scenarios: 96
     door_multi_v2:
+      require_complete_synthesis_report: true
+      required_catalog_sha256: 2a0faae3d87028939c18fdcfe32d632df3ac6250d3a8170fb74eb8d628ed6f45
+      required_manifest_sha256: 4654bf359d7634a9e44de7b2296df27719f43382227dedb8501ec5dae3b080ee
+      required_synthesis_report_sha256: c231d47a40fc8070b2a4ca081489c4ee71b40ca4c80576927341cb59d8f10d69
       required_pixel_codec: {format: png, compress_level: 1, lossless: true}
       balance_by_factor: door.position
+      exact_train_scenarios: 512
+      exact_validation_scenarios: 96
+      factor_support_contract:
+        factor: door.position
+        train_values_from_door_support: multi_synthetic_train
+        validation_values_from_door_support: multi_loader_validation
       minimum_raw_train_clips: 600000
       maximum_formal_mean_draws_per_raw_clip: 11.0
       minimum_train_scenarios: 512
@@ -75,6 +95,48 @@ training_protocol:
   profile: additive
   architecture: stable_worldmodel_lewm_history3
   initialization: from_scratch_paired_by_training_seed
+  distributed_execution:
+    strategy: ddp
+    transport_configuration: framework_defaults
+    primary_formal_launch: fresh
+    resume_role: disaster_recovery_only
+    resume_scope: complete_epoch_boundary_only
+    equivalence_claim: >-
+      Single-GPU epoch-boundary recovery is bitwise equivalent. Four-GPU
+      recovery requires exact data-order, RNG, global-step, and scheduler
+      state restoration, plus a maximum absolute parameter difference of
+      2e-9; bytewise identity is not claimed across four-GPU process restarts.
+    recovery_acceptance:
+      single_gpu_epoch_boundary:
+        parameter_equivalence: bitwise
+      four_gpu_epoch_boundary:
+        data_order: exact
+        rng_state: exact
+        global_step: exact
+        scheduler_state: exact
+        parameter_equivalence: numerical
+        maximum_absolute_parameter_difference: 2.0e-9
+        bytewise_identity_required: false
+    recovery_verification:
+      comparison: continuous_vs_epoch_boundary_restart
+      optimizer_steps: 4
+      interruption_step: 2
+      single_gpu:
+        passed: true
+        compared_parameter_tensors: 303
+        non_bitwise_parameter_tensors: 0
+        observed_maximum_absolute_parameter_difference: 0.0
+        serialized_pretrained_sha256_equal: true
+      four_gpu:
+        passed: true
+        data_order_exact: true
+        rng_state_exact: true
+        global_step_exact: true
+        scheduler_state_exact: true
+        compared_parameter_tensors: 303
+        non_bitwise_parameter_tensors: 22
+        observed_maximum_absolute_parameter_difference: 1.862645149230957e-9
+        serialized_pretrained_sha256_equal: false
   early_stopping: false
   checkpoint_selection: final_fixed_step
   normalizer_source: original_training_split_only

@@ -22,8 +22,14 @@ from contextworld.evaluation.door_planning import (
     load_door_planning_cell,
     simulate_door_candidates,
     summarize_fixed_candidate_selection,
+    validate_door_planning_catalog_header,
 )
 from contextworld.evaluation.icl_model import file_sha256, state_dict_sha256
+from contextworld.evaluation.sealed_test_gate import (
+    canonical_door_planning_catalog,
+    require_canonical_split_path,
+    require_sealed_test_gate,
+)
 from contextworld.evaluation.planner_mechanism import array_sha256
 from contextworld.evaluation.protocol import (
     frozen_normalizer_process,
@@ -144,11 +150,45 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     os.environ.setdefault("MUJOCO_GL", "egl")
     config_path = args.config.resolve()
     config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+    track_split = str(
+        config["evaluation_data"]["tracks"].get(args.track, {}).get("split", "")
+    )
+    gate_split = (
+        "sealed_test"
+        if "sealed_test" in (args.split, track_split)
+        else "validation"
+    )
+    gate_audit = require_sealed_test_gate(
+        split=gate_split,
+        config_path=config_path,
+        config=config,
+        manifest_path=getattr(args, "sealed_test_gate", None),
+        repo_root=ROOT,
+    )
+    if track_split != args.split:
+        raise RuntimeError("Configured track/evaluator split mismatch")
+    args.catalog = require_canonical_split_path(
+        args.catalog,
+        canonical=canonical_door_planning_catalog(
+            config, split=args.split, repo_root=ROOT
+        ),
+        split=args.split,
+        label="Door planning catalog input",
+    )
     frozen = _frozen_protocol(config)
     _assert_args_match_config(args, frozen)
     args.checkpoint = resolve_contextworld_path(args.checkpoint, repo_root=ROOT)
     args.normalizer = resolve_contextworld_path(args.normalizer, repo_root=ROOT)
     args.output = resolve_contextworld_path(args.output, repo_root=ROOT)
+
+    catalog_header = json.loads(args.catalog.read_text(encoding="utf-8"))
+    catalog_header_audit = validate_door_planning_catalog_header(
+        catalog_header,
+        config=config,
+        config_sha256=file_sha256(config_path),
+        split=args.split,
+        run_kind=args.run_kind,
+    )
 
     cell = load_door_planning_cell(
         args.catalog,
@@ -162,6 +202,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             frozen["per_seed"] if args.run_kind == "confirmation" else None
         ),
     )
+    if str(cell.catalog.get("split_role")) != args.split:
+        raise RuntimeError("Planning catalog/evaluator split mismatch")
     if args.num_eval > len(cell.assets):
         raise ValueError(
             f"Requested {args.num_eval} queries, cell has {len(cell.assets)}"
@@ -171,6 +213,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     swm, stable_repo, stable_commit = load_stable_worldmodel(
         ROOT, args.stablewm_repo, args.stablewm_ref
     )
+    if str(catalog_header.get("stable_worldmodel", {}).get("commit")) != str(
+        stable_commit
+    ):
+        raise RuntimeError("Planning catalog/StableWorldModel commit mismatch")
     process = frozen_normalizer_process(args.normalizer.resolve())
     model = load_pretrained_cost_model(
         args.checkpoint.resolve(),
@@ -299,6 +345,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "status": "passed",
         "evidence_role": "planning_action_ranking_not_latent_accuracy",
         "run_kind": args.run_kind,
+        "evaluation_split": args.split,
+        "sealed_test_gate": gate_audit,
         "track": args.track,
         "door_position": int(args.door_position),
         "eval_seed": int(args.seed),
@@ -309,6 +357,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "catalog": {
             "path": str(cell.catalog_path),
             "sha256": cell.catalog_sha256,
+            "header_audit": catalog_header_audit,
             "cell_audit": cell.audit,
         },
         "model": {
@@ -352,6 +401,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
+    parser.add_argument(
+        "--split", choices=("validation", "sealed_test"), default="validation"
+    )
+    parser.add_argument("--sealed-test-gate", type=Path)
     parser.add_argument("--catalog", type=Path, required=True)
     parser.add_argument("--checkpoint", type=Path, required=True)
     parser.add_argument("--normalizer", type=Path, required=True)

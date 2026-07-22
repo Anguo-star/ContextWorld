@@ -26,11 +26,16 @@ from contextworld.evaluation.door_visual import (
     paired_normalized_effects,
 )
 from contextworld.evaluation.icl_model import file_sha256
-from contextworld.paths import artifact_path, resolve_contextworld_path
+from contextworld.evaluation.sealed_test_gate import (
+    canonical_door_split_root,
+    require_canonical_split_path,
+    require_path_within_split_root,
+    require_sealed_test_gate,
+)
+from contextworld.paths import resolve_contextworld_path
 from contextworld.synthesis.manifest import write_json
 
 
-DEFAULT_ARTIFACT_SUBDIR = "evaluation/history3/door_visual_generalization_v1"
 PAIRED_TRAINING_SEEDS = (3072, 4096, 5120)
 DEFAULT_NORMALIZER = "artifacts/splits/tworoom_original_train_s3072_normalizer.json"
 TRAINING_BINDINGS = {
@@ -195,6 +200,7 @@ def _audit_training_report_bindings(
     *,
     report_paths: list[Path],
     stable_worldmodel_commit: str,
+    expected_data_split_seed: int,
     require_complete: bool,
 ) -> dict[str, Any]:
     reports: dict[tuple[str, int], tuple[Path, dict[str, Any]]] = {}
@@ -207,8 +213,8 @@ def _audit_training_report_bindings(
         if model_id not in model_id_to_group:
             raise RuntimeError(f"Unknown door training-report model_id in {path}")
         group = model_id_to_group[model_id]
-        seed = int(payload["data"]["seed"])
-        key = (group, seed)
+        training_seed = int(payload["training"]["plan"]["training_seed"])
+        key = (group, training_seed)
         if key not in TRAINING_BINDINGS:
             raise RuntimeError(f"Unexpected training-report binding {key}: {path}")
         if key in reports:
@@ -236,15 +242,18 @@ def _audit_training_report_bindings(
         path, report = reports[key]
         expected = TRAINING_BINDINGS[key]
         result = result_by_key[key]
+        training_plan = report["training"]["plan"]
         checks = {
             "training_report_passed": report.get("passed") is True,
             "training_complete": report["training"].get("training_complete") is True,
             "save_load_exact": report.get("save_load_exact") is True,
             "model_id": str(report.get("model_id")) == expected["model_id"],
             "run_name": str(report.get("run_name")) == expected["run_name"],
-            "data_seed": int(report["data"]["seed"]) == key[1],
-            "training_seed": int(report["training"]["plan"]["training_seed"])
-            == key[1],
+            "data_seed": int(report["data"]["seed"])
+            == expected_data_split_seed,
+            "plan_data_split_seed": int(training_plan["data_split_seed"])
+            == expected_data_split_seed,
+            "training_seed": int(training_plan["training_seed"]) == key[1],
             "stable_worldmodel_commit": str(
                 report["stable_worldmodel"]["commit"]
             )
@@ -420,10 +429,20 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     config_path = args.config.resolve()
     config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
     config_hash = file_sha256(config_path)
-    artifact_root = (
-        args.artifact_root.resolve()
-        if args.artifact_root
-        else artifact_path(DEFAULT_ARTIFACT_SUBDIR, repo_root=ROOT)
+    gate_audit = require_sealed_test_gate(
+        split=args.split,
+        config_path=config_path,
+        config=config,
+        manifest_path=getattr(args, "sealed_test_gate", None),
+        repo_root=ROOT,
+    )
+    artifact_root = require_canonical_split_path(
+        args.artifact_root,
+        canonical=canonical_door_split_root(
+            config, split=args.split, repo_root=ROOT
+        ),
+        split=args.split,
+        label="Door latent analysis root",
     )
     build_report_path = artifact_root / "catalogs" / "build_report.json"
     build_report_hash = file_sha256(build_report_path)
@@ -433,8 +452,18 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     if not args.allow_partial and build_report.get("status") != "passed":
         raise RuntimeError("Formal analysis refuses a smoke build report")
     evaluation_split = str(build_report.get("evaluation_split", "validation"))
+    if evaluation_split != args.split:
+        raise RuntimeError("Build report/analyzer split mismatch")
     stable_worldmodel_commit = str(build_report["stable_worldmodel"]["commit"])
-    paths = [path.resolve() for path in args.results]
+    paths = [
+        require_path_within_split_root(
+            path,
+            split_root=artifact_root,
+            split=args.split,
+            label="Door latent result",
+        )
+        for path in args.results
+    ]
     if not paths:
         paths = sorted(
             path.resolve()
@@ -477,6 +506,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             results,
             report_paths=training_report_paths,
             stable_worldmodel_commit=stable_worldmodel_commit,
+            expected_data_split_seed=int(
+                config["training_protocol"]["data_split_seed"]
+            ),
             require_complete=not args.allow_partial,
         )
         if training_report_paths
@@ -523,6 +555,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "schema_version": 1,
         "benchmark": config["benchmark"],
         "evaluation_split": evaluation_split,
+        "sealed_test_gate": gate_audit,
         "status": (
             "passed" if formal_analysis else "partial_analysis_only"
         ),
@@ -585,6 +618,10 @@ def parse_args() -> argparse.Namespace:
         / "configs/benchmark/tworoom_door_visual_generalization_v1.yaml",
     )
     parser.add_argument("--artifact-root", type=Path)
+    parser.add_argument(
+        "--split", choices=("validation", "sealed_test"), default="validation"
+    )
+    parser.add_argument("--sealed-test-gate", type=Path)
     parser.add_argument("--results", nargs="*", type=Path, default=[])
     parser.add_argument("--output", type=Path)
     parser.add_argument("--allow-partial", action="store_true")

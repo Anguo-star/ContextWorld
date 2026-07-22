@@ -27,6 +27,11 @@ from contextworld.evaluation.door_visual import (
     checkpoint_cell_summary,
 )
 from contextworld.evaluation.icl_model import file_sha256, state_dict_sha256
+from contextworld.evaluation.sealed_test_gate import (
+    canonical_door_split_root,
+    require_canonical_split_path,
+    require_sealed_test_gate,
+)
 from contextworld.evaluation.protocol import (
     frozen_normalizer_process,
     infer_model_protocol,
@@ -44,7 +49,6 @@ from scripts.eval_tworoom_speed_next_latent import (
 
 
 PINNED_STABLEWM = "5864b74980f6ed328fd0045e777b3865962eff43"
-DEFAULT_ARTIFACT_SUBDIR = "evaluation/history3/door_visual_generalization_v1"
 DEFAULT_NORMALIZER = "artifacts/splits/tworoom_original_train_s3072_normalizer.json"
 
 
@@ -276,6 +280,85 @@ def _rollout(
     return predictions
 
 
+def _audit_prefix_causality(
+    model: Any,
+    rows: list[dict[str, Any]],
+    registry: dict[str, np.ndarray],
+    *,
+    device: str,
+) -> dict[str, Any]:
+    """Verify causality without changing the rollout tensor shape.
+
+    Comparing a short rollout with a long rollout is not a valid bitwise
+    causality check on CUDA: the different tensor shapes can select different
+    numerical kernels even when the model is causal.  Instead, keep the full
+    action sequence length fixed, preserve the prefix needed for the first
+    ``future_count`` predictions, and deterministically perturb only the later
+    action suffix.  A causal rollout must leave the shared prediction prefix
+    unchanged.
+    """
+
+    import torch
+
+    audit_rows = rows[: min(8, len(rows))]
+    if not audit_rows:
+        raise ValueError("Prefix causality audit needs at least one row")
+    history_sizes = {int(row["history_size"]) for row in audit_rows}
+    if len(history_sizes) != 1:
+        raise ValueError("Prefix causality audit requires one history size")
+    history_size = next(iter(history_sizes))
+    reference = _rollout(model, audit_rows, registry, device=device)
+    maximum_prefix_difference = 0.0
+    minimum_suffix_perturbation = float("inf")
+    checked_future_counts = []
+    for future_count in (1, 2, 3):
+        action_prefix_tokens = history_size - 1 + future_count
+        variants = []
+        for row in audit_rows:
+            actions = np.asarray(
+                row["normalized_actions"], dtype=np.float32
+            ).copy()
+            suffix = actions[action_prefix_tokens:]
+            if suffix.size == 0:
+                raise RuntimeError(
+                    "Prefix causality audit requires a non-empty action suffix"
+                )
+            perturbation = np.where(
+                np.arange(suffix.size).reshape(suffix.shape) % 2 == 0,
+                np.float32(0.5),
+                np.float32(-0.5),
+            ).astype(np.float32)
+            actions[action_prefix_tokens:] = suffix + perturbation
+            minimum_suffix_perturbation = min(
+                minimum_suffix_perturbation,
+                float(np.min(np.abs(perturbation))),
+            )
+            variants.append({**row, "normalized_actions": actions})
+        perturbed = _rollout(model, variants, registry, device=device)
+        difference = float(
+            torch.max(
+                torch.abs(
+                    perturbed[:, :future_count]
+                    - reference[:, :future_count]
+                )
+            ).item()
+        )
+        maximum_prefix_difference = max(maximum_prefix_difference, difference)
+        checked_future_counts.append(future_count)
+    passed = bool(
+        maximum_prefix_difference <= 1e-6
+        and minimum_suffix_perturbation >= 0.5
+    )
+    return {
+        "method": "same_length_future_action_suffix_perturbation",
+        "checked_future_counts": checked_future_counts,
+        "shared_prefix_max_abs_difference": maximum_prefix_difference,
+        "minimum_suffix_action_perturbation": minimum_suffix_perturbation,
+        "tolerance": 1e-6,
+        "passed": passed,
+    }
+
+
 def _score_condition(
     model: Any,
     rows: list[dict[str, Any]],
@@ -289,9 +372,10 @@ def _score_condition(
     import torch.nn.functional as F
 
     records = []
-    maximum_prefix_difference = 0.0
-    prefix_checked = False
     with torch.inference_mode():
+        prefix_audit = _audit_prefix_causality(
+            model, rows, registry, device=device
+        )
         for start in range(0, len(rows), int(batch_size)):
             chunk = rows[start : start + int(batch_size)]
             predicted = _rollout(model, chunk, registry, device=device)
@@ -310,34 +394,6 @@ def _score_condition(
             ).mean(dim=-1)
             if torch.any(baseline <= 1e-12):
                 raise RuntimeError("Unchanged-frame latent baseline is zero")
-            if not prefix_checked:
-                audit_chunk = chunk[: min(8, len(chunk))]
-                audit_full = _rollout(model, audit_chunk, registry, device=device)
-                history_size = int(audit_chunk[0]["history_size"])
-                for future_count in (1, 2, 3):
-                    action_tokens = history_size - 1 + future_count
-                    truncated = [
-                        {
-                            **row,
-                            "normalized_actions": row["normalized_actions"][
-                                :action_tokens
-                            ],
-                        }
-                        for row in audit_chunk
-                    ]
-                    shorter = _rollout(model, truncated, registry, device=device)
-                    difference = float(
-                        torch.max(
-                            torch.abs(
-                                shorter[:, :future_count]
-                                - audit_full[:, :future_count]
-                            )
-                        ).item()
-                    )
-                    maximum_prefix_difference = max(
-                        maximum_prefix_difference, difference
-                    )
-                prefix_checked = True
             normalized = losses / baseline
             for row, row_losses, row_baseline, row_normalized in zip(
                 chunk, losses, baseline, normalized
@@ -370,10 +426,7 @@ def _score_condition(
                         },
                     }
                 )
-    return records, {
-        "shared_prefix_max_abs_difference": maximum_prefix_difference,
-        "passed": maximum_prefix_difference <= 1e-6,
-    }
+    return records, prefix_audit
 
 
 def run(args: argparse.Namespace) -> dict[str, Any]:
@@ -384,15 +437,27 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     config_path = args.config.resolve()
     config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
     config_hash = file_sha256(config_path)
-    artifact_root = (
-        args.artifact_root.resolve()
-        if args.artifact_root
-        else artifact_path(DEFAULT_ARTIFACT_SUBDIR, repo_root=ROOT)
+    gate_audit = require_sealed_test_gate(
+        split=args.split,
+        config_path=config_path,
+        config=config,
+        manifest_path=getattr(args, "sealed_test_gate", None),
+        repo_root=ROOT,
+    )
+    artifact_root = require_canonical_split_path(
+        args.artifact_root,
+        canonical=canonical_door_split_root(
+            config, split=args.split, repo_root=ROOT
+        ),
+        split=args.split,
+        label="Door latent artifact root",
     )
     build_report_path = artifact_root / "catalogs" / "build_report.json"
     build_report = json.loads(build_report_path.read_text(encoding="utf-8"))
     if build_report["config"]["sha256"] != config_hash:
         raise RuntimeError("Build report/config hash mismatch")
+    if str(build_report.get("evaluation_split")) != args.split:
+        raise RuntimeError("Build report/evaluator split mismatch")
     formal = build_report["status"] == "passed"
     if not formal and not args.allow_smoke_catalog:
         raise RuntimeError("Refusing to score a non-formal smoke catalog")
@@ -486,6 +551,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "benchmark": config["benchmark"],
         "status": "passed" if formal else "smoke_only",
         "evaluation_split": split_name,
+        "sealed_test_gate": gate_audit,
         "config": {"path": str(config_path), "sha256": config_hash},
         "build_report": {
             "path": str(build_report_path),
@@ -544,6 +610,10 @@ def parse_args() -> argparse.Namespace:
         / "configs/benchmark/tworoom_door_visual_generalization_v1.yaml",
     )
     parser.add_argument("--artifact-root", type=Path)
+    parser.add_argument(
+        "--split", choices=("validation", "sealed_test"), default="validation"
+    )
+    parser.add_argument("--sealed-test-gate", type=Path)
     parser.add_argument("--model-slug", required=True)
     parser.add_argument(
         "--group",

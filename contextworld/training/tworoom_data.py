@@ -114,11 +114,138 @@ def _catalog_paths(
     return _resolve_catalog_entries(raw, repo_root=repo_root)
 
 
+def _validate_complete_synthesis_report(
+    synthesis_report: dict[str, Any],
+    *,
+    report_path: Path,
+    catalog_path: Path,
+    manifest_path: Path,
+    expected_scenario_ids: set[str],
+) -> dict[str, Any]:
+    """Require a completed, loader-validated synthesis collection."""
+
+    if not isinstance(synthesis_report, dict):
+        raise ValueError(f"Invalid synthesis report mapping: {report_path}")
+    if synthesis_report.get("passed") is not True:
+        raise ValueError(f"Synthesis report did not pass: {report_path}")
+    if synthesis_report.get("compile_only") is not False:
+        raise ValueError(
+            f"Synthesis report is not a completed collection: {report_path}; "
+            f"compile_only={synthesis_report.get('compile_only')!r}"
+        )
+    if synthesis_report.get("preflight_passed") is not True:
+        raise ValueError(
+            f"Synthesis preflight did not pass: {report_path}"
+        )
+    loader_compatibility = synthesis_report.get("loader_compatibility")
+    if (
+        not isinstance(loader_compatibility, dict)
+        or loader_compatibility.get("passed") is not True
+    ):
+        raise ValueError(
+            f"Synthesis loader compatibility did not pass: {report_path}"
+        )
+
+    declared_paths = {
+        "catalog": catalog_path,
+        "manifest": manifest_path,
+    }
+    for field, expected_path in declared_paths.items():
+        declared = synthesis_report.get(field)
+        if not isinstance(declared, str) or not declared:
+            raise ValueError(
+                f"Synthesis report is missing {field}: {report_path}"
+            )
+        if Path(declared).expanduser().resolve() != expected_path.resolve():
+            raise ValueError(
+                f"Synthesis report {field} mismatch: {report_path}; "
+                f"declared={declared}, expected={expected_path}"
+            )
+
+    scenario_results = synthesis_report.get("scenarios")
+    if not isinstance(scenario_results, list):
+        raise ValueError(
+            f"Synthesis report is missing scenario results: {report_path}"
+        )
+    report_scenario_ids = []
+    for index, scenario in enumerate(scenario_results):
+        if not isinstance(scenario, dict):
+            raise ValueError(
+                f"Invalid synthesis scenario result at index {index}: "
+                f"{report_path}"
+            )
+        scenario_id = scenario.get("scenario_id")
+        if not isinstance(scenario_id, str) or not scenario_id:
+            raise ValueError(
+                f"Synthesis scenario result has no scenario_id at index "
+                f"{index}: {report_path}"
+            )
+        if scenario.get("passed") is not True:
+            raise ValueError(
+                f"Synthesis scenario did not pass: {scenario_id} in "
+                f"{report_path}"
+            )
+        report_scenario_ids.append(scenario_id)
+    if (
+        len(report_scenario_ids) != len(set(report_scenario_ids))
+        or set(report_scenario_ids) != expected_scenario_ids
+    ):
+        raise ValueError(
+            f"Synthesis report/catalog scenario sets differ: {report_path}; "
+            f"expected={len(expected_scenario_ids)}, "
+            f"reported={len(report_scenario_ids)}, "
+            f"catalog_only={sorted(expected_scenario_ids - set(report_scenario_ids))}, "
+            f"report_only={sorted(set(report_scenario_ids) - expected_scenario_ids)}"
+        )
+
+    collection_status = synthesis_report.get("collection_status")
+    if not isinstance(collection_status, dict):
+        raise ValueError(
+            f"Synthesis report is missing collection status: {report_path}"
+        )
+    collection_ids = set(collection_status)
+    if collection_ids != expected_scenario_ids:
+        raise ValueError(
+            f"Synthesis collection/catalog scenario sets differ: "
+            f"{report_path}; expected={len(expected_scenario_ids)}, "
+            f"reported={len(collection_status)}, "
+            f"catalog_only={sorted(expected_scenario_ids - collection_ids)}, "
+            f"report_only={sorted(collection_ids - expected_scenario_ids)}"
+        )
+    incomplete = {
+        scenario_id: status
+        for scenario_id, status in collection_status.items()
+        if status not in {"collected", "reused"}
+    }
+    if incomplete:
+        raise ValueError(
+            f"Synthesis scenarios are not collected: {report_path}; "
+            f"statuses={incomplete}"
+        )
+
+    return {
+        "required": True,
+        "compile_only": False,
+        "preflight_passed": True,
+        "loader_compatibility_passed": True,
+        "scenario_results": len(report_scenario_ids),
+        "collection_status_entries": len(collection_status),
+        "collection_status_counts": dict(
+            sorted(Counter(collection_status.values()).items())
+        ),
+        "passed": True,
+    }
+
+
 def _catalog_split_audit(
     catalog_path: Path,
     *,
     repo_root: Path,
     expected_stablewm_commit: str | None,
+    require_complete_synthesis_report: bool = False,
+    expected_split_scenario_counts: dict[str, int] | None = None,
+    factor_support_contract: dict[str, Any] | None = None,
+    required_artifact_hashes: dict[str, str] | None = None,
 ) -> dict[str, Any]:
     with catalog_path.open("r", encoding="utf-8") as handle:
         catalog = json.load(handle)
@@ -262,6 +389,85 @@ def _catalog_split_audit(
                 f"Manifest split/regime mismatch for {section}: {invalid}"
             )
 
+    observed_split_scenario_counts = {
+        section: len(paths)
+        for section, (paths, _, _) in section_contract.items()
+    }
+    expected_split_scenario_counts = dict(
+        expected_split_scenario_counts or {}
+    )
+    split_count_mismatches = {
+        section: {
+            "expected": int(expected),
+            "observed": int(observed_split_scenario_counts.get(section, -1)),
+        }
+        for section, expected in expected_split_scenario_counts.items()
+        if observed_split_scenario_counts.get(section) != int(expected)
+    }
+    if split_count_mismatches:
+        raise ValueError(
+            f"Catalog exact split counts failed for {catalog_path}: "
+            f"{split_count_mismatches}"
+        )
+
+    factor_support_audit: dict[str, Any] = {
+        "required": False,
+        "passed": True,
+    }
+    if factor_support_contract:
+        factor_key = str(factor_support_contract["factor"])
+        expected_by_split = {
+            str(section): list(values)
+            for section, values in factor_support_contract[
+                "expected_by_split"
+            ].items()
+        }
+        observed_by_split: dict[str, list[Any]] = {}
+        mismatches = {}
+        for section, expected_values in expected_by_split.items():
+            if section not in section_contract:
+                raise ValueError(
+                    f"Unknown factor-support split {section!r} for {catalog_path}"
+                )
+            paths = section_contract[section][0]
+            observed_values = []
+            for path in paths:
+                factors = record_by_path[path].get("factors")
+                if not isinstance(factors, dict) or factor_key not in factors:
+                    raise ValueError(
+                        f"Manifest record is missing factor {factor_key!r}: "
+                        f"{record_by_path[path].get('scenario_id')}"
+                    )
+                observed_values.append(factors[factor_key])
+            expected_map = {
+                json.dumps(value, sort_keys=True): value
+                for value in expected_values
+            }
+            observed_map = {
+                json.dumps(value, sort_keys=True): value
+                for value in observed_values
+            }
+            observed_by_split[section] = [
+                observed_map[key] for key in sorted(observed_map)
+            ]
+            if set(observed_map) != set(expected_map):
+                mismatches[section] = {
+                    "expected": [expected_map[key] for key in sorted(expected_map)],
+                    "observed": observed_by_split[section],
+                }
+        if mismatches:
+            raise ValueError(
+                f"Catalog factor support failed for {catalog_path}: "
+                f"factor={factor_key}, mismatches={mismatches}"
+            )
+        factor_support_audit = {
+            "required": True,
+            "factor": factor_key,
+            "expected_by_split": expected_by_split,
+            "observed_by_split": observed_by_split,
+            "passed": True,
+        }
+
     if expected_stablewm_commit is not None and commits != {
         expected_stablewm_commit
     }:
@@ -278,15 +484,53 @@ def _catalog_split_audit(
         )
     with report_path.open("r", encoding="utf-8") as handle:
         synthesis_report = json.load(handle)
-    if not synthesis_report.get("passed"):
-        raise ValueError(f"Synthesis report did not pass: {report_path}")
+    if require_complete_synthesis_report:
+        synthesis_report_gate = _validate_complete_synthesis_report(
+            synthesis_report,
+            report_path=report_path,
+            catalog_path=catalog_path,
+            manifest_path=manifest_path,
+            expected_scenario_ids=set(scenario_ids),
+        )
+    else:
+        if not synthesis_report.get("passed"):
+            raise ValueError(f"Synthesis report did not pass: {report_path}")
+        synthesis_report_gate = {
+            "required": False,
+            "passed": True,
+        }
+
+    artifact_hashes = {
+        "catalog": _sha256(catalog_path),
+        "manifest": _sha256(manifest_path),
+        "synthesis_report": _sha256(report_path),
+    }
+    required_artifact_hashes = dict(required_artifact_hashes or {})
+    hash_mismatches = {
+        name: {"expected": expected, "observed": artifact_hashes.get(name)}
+        for name, expected in required_artifact_hashes.items()
+        if artifact_hashes.get(name) != expected
+    }
+    if hash_mismatches:
+        raise ValueError(
+            f"Frozen synthesis artifact hash mismatch for {catalog_path}: "
+            f"{hash_mismatches}"
+        )
 
     return {
-        "catalog_sha256": _sha256(catalog_path),
+        "catalog_sha256": artifact_hashes["catalog"],
         "manifest": str(manifest_path),
-        "manifest_sha256": _sha256(manifest_path),
+        "manifest_sha256": artifact_hashes["manifest"],
         "synthesis_report": str(report_path),
-        "synthesis_report_sha256": _sha256(report_path),
+        "synthesis_report_sha256": artifact_hashes["synthesis_report"],
+        "required_artifact_hashes": required_artifact_hashes,
+        "exact_split_scenario_counts": {
+            "expected": expected_split_scenario_counts,
+            "observed": observed_split_scenario_counts,
+            "passed": True,
+        },
+        "factor_support": factor_support_audit,
+        "synthesis_report_gate": synthesis_report_gate,
         "stable_worldmodel_commits": sorted(commits),
         "pixel_codec": catalog_codec,
         "train_scenarios": len(train),
@@ -316,6 +560,98 @@ def _catalog_factors_by_path(
             )[0]
             output[path] = dict(record["factors"])
     return output
+
+
+def _manifest_records_by_seed_group(
+    catalog_path: Path, *, repo_root: Path
+) -> dict[str, dict[str, Any]]:
+    artifact_root = catalog_path.parent.parent
+    manifest_path = artifact_root / "manifests" / f"{catalog_path.stem}.jsonl"
+    records: dict[str, dict[str, Any]] = {}
+    with manifest_path.open("r", encoding="utf-8") as handle:
+        for line_number, line in enumerate(handle, start=1):
+            if not line.strip():
+                continue
+            record = json.loads(line)
+            seed_group = record.get("seed_group")
+            if not isinstance(seed_group, str) or not seed_group:
+                raise ValueError(
+                    f"Missing seed_group at {manifest_path}:{line_number}"
+                )
+            if seed_group in records:
+                raise ValueError(
+                    f"Duplicate seed_group {seed_group!r} in {manifest_path}"
+                )
+            records[seed_group] = record
+    if not records:
+        raise ValueError(f"Empty synthesis manifest: {manifest_path}")
+    return records
+
+
+def _validate_paired_door_catalogs(
+    config: dict[str, Any], *, repo_root: Path
+) -> dict[str, Any]:
+    """Mechanically enforce the fixed-door/multi-door pairing contract."""
+
+    catalog_paths = {
+        group: resolve_contextworld_path(
+            config["data"]["catalogs"][group], repo_root=repo_root
+        )
+        for group in ("door_fixed49_v2", "door_multi_v2")
+    }
+    records = {
+        group: _manifest_records_by_seed_group(path, repo_root=repo_root)
+        for group, path in catalog_paths.items()
+    }
+    fixed = records["door_fixed49_v2"]
+    multi = records["door_multi_v2"]
+    if set(fixed) != set(multi):
+        raise ValueError(
+            "Paired door catalogs have different seed-group sets: "
+            f"fixed_only={sorted(set(fixed) - set(multi))}, "
+            f"multi_only={sorted(set(multi) - set(fixed))}"
+        )
+
+    paired_fields = (
+        "split",
+        "regime",
+        "env_id",
+        "env_seed",
+        "policy_seed",
+        "episodes",
+        "task",
+        "max_episode_steps",
+        "image_shape",
+        "reset_constraints",
+        "pixel_codec",
+    )
+    mismatches: list[dict[str, Any]] = []
+    for seed_group in sorted(fixed):
+        left = fixed[seed_group]
+        right = multi[seed_group]
+        changed = [
+            field for field in paired_fields if left.get(field) != right.get(field)
+        ]
+        if changed:
+            mismatches.append(
+                {"seed_group": seed_group, "fields": changed}
+            )
+    if mismatches:
+        raise ValueError(
+            "Paired door catalog contract failed; only door.position may "
+            f"differ: {mismatches[:20]}"
+        )
+
+    split_counts = Counter(row["split"] for row in fixed.values())
+    return {
+        "required": True,
+        "catalogs": {key: str(value) for key, value in catalog_paths.items()},
+        "paired_seed_groups": len(fixed),
+        "split_counts": dict(sorted(split_counts.items())),
+        "equal_fields": list(paired_fields),
+        "allowed_difference": "door.position",
+        "passed": True,
+    }
 
 
 def _factor_balanced_group(
@@ -453,6 +789,15 @@ def build_tworoom_grouped_data(
             f"model={expected_groups}"
         )
 
+    paired_collection_audit: dict[str, Any] = {
+        "required": False,
+        "passed": True,
+    }
+    if any(group.startswith("door_") for group in expected_groups):
+        paired_collection_audit = _validate_paired_door_catalogs(
+            config, repo_root=repo_root
+        )
+
     original_path = (
         Path(original_h5).expanduser().resolve()
         if original_h5 is not None
@@ -550,14 +895,64 @@ def build_tworoom_grouped_data(
         catalog_path = resolve_contextworld_path(
             config["data"]["catalogs"][catalog_key], repo_root=repo_root
         )
+        quality = dict(quality_groups.get(group, {}))
         train_paths = _catalog_paths(
             catalog_path, "train", repo_root=repo_root
         )
         val_paths = _catalog_paths(catalog_path, "val", repo_root=repo_root)
+        factor_support_config = quality.get("factor_support_contract")
+        factor_support_contract = None
+        if factor_support_config:
+            door_support = config["door_support"]
+            factor_support_contract = {
+                "factor": str(factor_support_config["factor"]),
+                "expected_by_split": {
+                    "train": list(
+                        door_support[
+                            factor_support_config[
+                                "train_values_from_door_support"
+                            ]
+                        ]
+                    ),
+                    "validation": list(
+                        door_support[
+                            factor_support_config[
+                                "validation_values_from_door_support"
+                            ]
+                        ]
+                    ),
+                },
+            }
+        exact_split_counts = {
+            name: int(quality[key])
+            for name, key in (
+                ("train", "exact_train_scenarios"),
+                ("validation", "exact_validation_scenarios"),
+            )
+            if key in quality
+        }
+        required_artifact_hashes = {
+            name: str(quality[key])
+            for name, key in (
+                ("catalog", "required_catalog_sha256"),
+                ("manifest", "required_manifest_sha256"),
+                (
+                    "synthesis_report",
+                    "required_synthesis_report_sha256",
+                ),
+            )
+            if key in quality
+        }
         split_audit = _catalog_split_audit(
             catalog_path,
             repo_root=repo_root,
             expected_stablewm_commit=expected_stablewm_commit,
+            require_complete_synthesis_report=bool(
+                quality.get("require_complete_synthesis_report", False)
+            ),
+            expected_split_scenario_counts=exact_split_counts,
+            factor_support_contract=factor_support_contract,
+            required_artifact_hashes=required_artifact_hashes,
         )
         train_scenarios = _lance_scenarios(
             swm,
@@ -573,7 +968,6 @@ def build_tworoom_grouped_data(
             num_steps=num_steps,
             transform=transform,
         )
-        quality = dict(quality_groups.get(group, {}))
         balance_by_factor = quality.get("balance_by_factor")
         if balance_by_factor:
             factors_by_path = _catalog_factors_by_path(
@@ -664,6 +1058,7 @@ def build_tworoom_grouped_data(
         "validation_group_counts": val.epoch_group_counts(),
         "validation_group_coverage": val.epoch_group_coverage(),
         "groups": group_metadata,
+        "paired_collection_audit": paired_collection_audit,
         "normalization_reference": normalization_reference,
         "normalization": {
             name: {

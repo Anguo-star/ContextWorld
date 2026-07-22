@@ -1,0 +1,168 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "tworoom_door_sealed_test_gate_v1.schema.json",
+  "title": "TwoRoom visible-door sealed-Test gate",
+  "type": "object",
+  "required": ["schema_version", "benchmark", "status"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "benchmark": {"const": "tworoom_door_visual_generalization_v1"},
+    "status": {
+      "enum": [
+        "locked_pending_validation",
+        "unlocked_after_validation_freeze"
+      ]
+    },
+    "schema": {"type": "string", "minLength": 1},
+    "validation_freeze_record": {"$ref": "#/$defs/file"},
+    "freeze": {
+      "type": "object",
+      "required": ["commit", "recorded_at_utc", "immutable"],
+      "properties": {
+        "commit": {"$ref": "#/$defs/commit"},
+        "recorded_at_utc": {"type": "string", "minLength": 1},
+        "immutable": {"const": true}
+      },
+      "additionalProperties": false
+    },
+    "reason": {"type": "string"}
+  },
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {"const": "unlocked_after_validation_freeze"}
+        }
+      },
+      "then": {
+        "required": [
+          "schema",
+          "validation_freeze_record",
+          "freeze"
+        ]
+      }
+    }
+  ],
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "commit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "file": {
+      "type": "object",
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      },
+      "additionalProperties": false
+    },
+    "evidence": {
+      "type": "object",
+      "required": [
+        "analysis_report",
+        "result_file_count",
+        "result_files_manifest_sha256"
+      ],
+      "properties": {
+        "analysis_report": {"$ref": "#/$defs/file"},
+        "result_file_count": {"type": "integer", "minimum": 1},
+        "result_files_manifest_sha256": {"$ref": "#/$defs/sha256"}
+      },
+      "additionalProperties": false
+    },
+    "implementation": {
+      "type": "object",
+      "required": ["commit", "tree", "files"],
+      "properties": {
+        "commit": {"$ref": "#/$defs/commit"},
+        "tree": {"$ref": "#/$defs/commit"},
+        "files": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/file"}
+        }
+      },
+      "additionalProperties": false
+    },
+    "checkpoint": {
+      "type": "object",
+      "required": ["path", "sha256", "group", "slug", "training_seed"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "group": {
+          "enum": [
+            "original_reference",
+            "fixed_door_control",
+            "multi_door_target"
+          ]
+        },
+        "slug": {"type": "string", "minLength": 1},
+        "training_seed": {"type": "integer"}
+      },
+      "additionalProperties": false
+    },
+    "validation_freeze_record": {
+      "type": "object",
+      "required": [
+        "schema_version",
+        "benchmark",
+        "status",
+        "validation_config",
+        "implementation",
+        "checkpoints",
+        "validation_evidence",
+        "preregistered_gate"
+      ],
+      "properties": {
+        "schema_version": {"const": 1},
+        "benchmark": {"const": "tworoom_door_visual_generalization_v1"},
+        "status": {"const": "validation_frozen"},
+        "validation_config": {"$ref": "#/$defs/file"},
+        "implementation": {"$ref": "#/$defs/implementation"},
+        "checkpoints": {
+          "type": "array",
+          "minItems": 7,
+          "maxItems": 7,
+          "items": {"$ref": "#/$defs/checkpoint"}
+        },
+        "validation_evidence": {
+          "type": "object",
+          "required": [
+            "prediction",
+            "fixed_candidate",
+            "closed_loop_planning",
+            "original_ability"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "prediction": {"$ref": "#/$defs/evidence"},
+            "fixed_candidate": {"$ref": "#/$defs/evidence"},
+            "closed_loop_planning": {"$ref": "#/$defs/evidence"},
+            "original_ability": {"$ref": "#/$defs/evidence"}
+          }
+        },
+        "preregistered_gate": {
+          "type": "object",
+          "required": ["name", "passed", "source_analysis_report_sha256"],
+          "properties": {
+            "name": {
+              "const": "visible_geometry_generalization_validation_gate"
+            },
+            "passed": {"const": true},
+            "source_analysis_report_sha256": {"$ref": "#/$defs/sha256"}
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

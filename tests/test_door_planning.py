@@ -1,9 +1,13 @@
 from __future__ import annotations
 
+import copy
 import json
+import sys
 from pathlib import Path
 
 import numpy as np
+import pytest
+import yaml
 
 from contextworld.evaluation.door_planning import (
     aggregate_door_records,
@@ -12,6 +16,7 @@ from contextworld.evaluation.door_planning import (
     load_door_planning_cell,
     simulate_door_candidates,
     summarize_fixed_candidate_selection,
+    validate_door_planning_catalog_header,
 )
 from contextworld.evaluation.icl_model import file_sha256
 from contextworld.evaluation.planner_mechanism import (
@@ -22,6 +27,151 @@ from scripts.build_tworoom_door_planning_catalogs import (
     _relative_templates,
     _scripted_actions,
 )
+from scripts import eval_tworoom_door_fixed_candidates as fixed_evaluator
+from scripts import eval_tworoom_door_planning as planning_evaluator
+
+
+ROOT = Path(__file__).resolve().parents[1]
+DOOR_CONFIG = (
+    ROOT / "configs/benchmark/tworoom_door_visual_generalization_v1.yaml"
+)
+
+
+def _formal_catalog_header(config: dict) -> dict:
+    fixed = config["fixed_candidate_evaluation"]
+    planning = config["closed_loop_planning"]
+    return {
+        "benchmark": config["benchmark"],
+        "status": "passed",
+        "split_role": "validation",
+        "config": {"sha256": file_sha256(DOOR_CONFIG)},
+        "stable_worldmodel": {
+            "commit": "5864b74980f6ed328fd0045e777b3865962eff43"
+        },
+        "protocol": {
+            "agent_speed": planning["agent_speed"],
+            "task": planning["query_task"],
+            "history_tokens": config["scope"]["history_tokens"],
+            "action_block_raw_steps": config["scope"][
+                "action_block_raw_steps"
+            ],
+            "candidates_per_query": fixed["candidates_per_query"],
+            "candidate_horizon_action_blocks": fixed[
+                "horizon_action_blocks"
+            ],
+            "eval_seeds": config["evaluation_data"]["eval_seeds"],
+            "queries_per_door_per_eval_seed": planning[
+                "evaluations_per_door_per_seed"
+            ],
+        },
+        "summary": {"formal_50_by_6_per_door": True},
+    }
+
+
+def test_direct_evaluator_catalog_header_binds_config_split_status_and_protocol() -> None:
+    config = yaml.safe_load(DOOR_CONFIG.read_text(encoding="utf-8"))
+    header = _formal_catalog_header(config)
+    audit = validate_door_planning_catalog_header(
+        header,
+        config=config,
+        config_sha256=file_sha256(DOOR_CONFIG),
+        split="validation",
+        run_kind="confirmation",
+    )
+    assert audit["passed"]
+    assert all(audit["checks"].values())
+
+    mutations = []
+    stale = copy.deepcopy(header)
+    stale["config"]["sha256"] = "stale"
+    mutations.append(stale)
+    wrong_split = copy.deepcopy(header)
+    wrong_split["split_role"] = "sealed_test"
+    mutations.append(wrong_split)
+    smoke_status = copy.deepcopy(header)
+    smoke_status["status"] = "smoke_only"
+    mutations.append(smoke_status)
+    wrong_protocol = copy.deepcopy(header)
+    wrong_protocol["protocol"]["candidates_per_query"] = 299
+    mutations.append(wrong_protocol)
+    for changed in mutations:
+        with pytest.raises(RuntimeError, match="catalog header mismatch"):
+            validate_door_planning_catalog_header(
+                changed,
+                config=config,
+                config_sha256=file_sha256(DOOR_CONFIG),
+                split="validation",
+                run_kind="confirmation",
+            )
+
+    smoke = copy.deepcopy(header)
+    smoke["status"] = "smoke_only"
+    smoke["protocol"]["queries_per_door_per_eval_seed"] = 1
+    smoke["summary"]["formal_50_by_6_per_door"] = False
+    assert validate_door_planning_catalog_header(
+        smoke,
+        config=config,
+        config_sha256=file_sha256(DOOR_CONFIG),
+        split="validation",
+        run_kind="smoke",
+    )["passed"]
+
+
+@pytest.mark.parametrize(
+    "evaluator",
+    [fixed_evaluator, planning_evaluator],
+    ids=["fixed_candidates", "closed_loop_cem"],
+)
+def test_direct_evaluator_rejects_stale_catalog_before_cell_or_model_load(
+    tmp_path: Path, monkeypatch, evaluator
+) -> None:
+    monkeypatch.setenv("CONTEXTWORLD_ARTIFACT_ROOT", str(tmp_path))
+    catalog = (
+        tmp_path
+        / "evaluation/history3/door_visual_generalization_v1"
+        / "planning/validation/catalog.json"
+    )
+    catalog.parent.mkdir(parents=True, exist_ok=True)
+    config = yaml.safe_load(DOOR_CONFIG.read_text(encoding="utf-8"))
+    stale = _formal_catalog_header(config)
+    stale["config"]["sha256"] = "stale"
+    catalog.write_text(json.dumps(stale), encoding="utf-8")
+    called = False
+
+    def forbidden_loader(*args, **kwargs):
+        nonlocal called
+        called = True
+        raise AssertionError("stale catalog reached the payload loader")
+
+    monkeypatch.setattr(evaluator, "load_door_planning_cell", forbidden_loader)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            evaluator.__name__,
+            "--config",
+            str(DOOR_CONFIG),
+            "--split",
+            "validation",
+            "--catalog",
+            str(catalog),
+            "--checkpoint",
+            str(tmp_path / "missing.pt"),
+            "--normalizer",
+            str(tmp_path / "missing-normalizer.json"),
+            "--output",
+            str(tmp_path / "unused.json"),
+            "--track",
+            "validation_seen",
+            "--door-position",
+            "49",
+            "--seed",
+            "42",
+        ],
+    )
+    with pytest.raises(RuntimeError, match="catalog header mismatch"):
+        evaluator.run(evaluator.parse_args())
+    assert not called
 
 
 def test_doorway_crossing_requires_opening_and_goal_direction() -> None:

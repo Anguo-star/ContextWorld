@@ -11,6 +11,8 @@ import sys
 from functools import partial
 from pathlib import Path
 
+import yaml
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
@@ -461,6 +463,334 @@ def _validate_resume_policy(
     return checkpoint_path if checkpoint_exists else None
 
 
+def _full_state_checkpoint_metadata(
+    checkpoint_path: Path,
+    *,
+    expected_optimizer_steps: int,
+    require_incomplete: bool,
+    expected_world_size: int | None = None,
+    optimizer_steps_per_epoch: int | None = None,
+) -> dict:
+    """Fail closed unless ``checkpoint_path`` is a resumable trainer state."""
+
+    import torch
+
+    try:
+        checkpoint = torch.load(
+            checkpoint_path, map_location="cpu", weights_only=False
+        )
+    except Exception as exc:
+        raise RuntimeError(
+            f"Could not read full-state checkpoint {checkpoint_path}: {exc}"
+        ) from exc
+    if not isinstance(checkpoint, dict):
+        raise RuntimeError(
+            f"Full-state checkpoint is not a mapping: {checkpoint_path}"
+        )
+    required = {
+        "state_dict",
+        "optimizer_states",
+        "lr_schedulers",
+        "global_step",
+        "epoch",
+        "loops",
+        "contextworld_rng_states_v1",
+    }
+    missing = sorted(required - set(checkpoint))
+    if missing:
+        raise RuntimeError(
+            "Checkpoint cannot safely resume optimizer/scheduler/RNG state; "
+            f"missing={missing}, path={checkpoint_path}"
+        )
+    if not checkpoint["optimizer_states"] or not checkpoint["lr_schedulers"]:
+        raise RuntimeError(
+            "Checkpoint has no optimizer or scheduler state: "
+            f"{checkpoint_path}"
+        )
+    rng_states = checkpoint["contextworld_rng_states_v1"]
+    if not isinstance(rng_states, list) or not rng_states:
+        raise RuntimeError(
+            f"Checkpoint has no per-rank RNG state: {checkpoint_path}"
+        )
+    rng_required = {
+        "rank",
+        "python",
+        "numpy",
+        "torch_cpu",
+        "torch_cuda",
+        "train_loader_generator",
+    }
+    invalid_rng_rows = [
+        index
+        for index, row in enumerate(rng_states)
+        if not isinstance(row, dict) or not rng_required.issubset(row)
+    ]
+    if invalid_rng_rows:
+        raise RuntimeError(
+            "Checkpoint contains incomplete per-rank RNG state: "
+            f"rows={invalid_rng_rows}, path={checkpoint_path}"
+        )
+    ranks = sorted(int(row["rank"]) for row in rng_states)
+    if ranks != list(range(len(rng_states))):
+        raise RuntimeError(
+            f"Checkpoint RNG rank coverage is invalid: {ranks}"
+        )
+    if expected_world_size is not None and len(ranks) != expected_world_size:
+        raise RuntimeError(
+            "Checkpoint world size differs from the frozen execution topology: "
+            f"checkpoint={len(ranks)}, expected={expected_world_size}"
+        )
+    global_step = int(checkpoint["global_step"])
+    if global_step <= 0:
+        raise RuntimeError(
+            f"Resume checkpoint has no completed optimizer step: {checkpoint_path}"
+        )
+    if global_step > expected_optimizer_steps:
+        raise RuntimeError(
+            "Resume checkpoint exceeds the frozen optimizer budget: "
+            f"step={global_step}, expected={expected_optimizer_steps}"
+        )
+    if require_incomplete and global_step >= expected_optimizer_steps:
+        raise RuntimeError(
+            "Training is already complete at the frozen optimizer budget; "
+            f"refusing to resume step={global_step}"
+        )
+    if (
+        optimizer_steps_per_epoch is not None
+        and global_step % optimizer_steps_per_epoch != 0
+    ):
+        raise RuntimeError(
+            "Resume checkpoint is not at a complete epoch boundary: "
+            f"step={global_step}, steps_per_epoch={optimizer_steps_per_epoch}, "
+            f"path={checkpoint_path}"
+        )
+    return {
+        "path": str(checkpoint_path.resolve()),
+        "sha256": _sha256(checkpoint_path),
+        "global_step": global_step,
+        "epoch": int(checkpoint["epoch"]),
+        "optimizer_states": len(checkpoint["optimizer_states"]),
+        "lr_schedulers": len(checkpoint["lr_schedulers"]),
+        "rng_ranks": ranks,
+        "complete_epoch_boundary": (
+            global_step % optimizer_steps_per_epoch == 0
+            if optimizer_steps_per_epoch is not None
+            else None
+        ),
+        "optimizer_steps_per_epoch": optimizer_steps_per_epoch,
+    }
+
+
+def _normalize_complete_epoch_resume_loop_state(
+    checkpoint: dict,
+    *,
+    optimizer_steps_per_epoch: int,
+    accumulation_steps: int,
+) -> dict:
+    """Start a completed-epoch checkpoint at batch zero of the next epoch.
+
+    Lightning 2.6 restores ``batch_progress.current`` from an epoch-end
+    checkpoint.  Without resetting that per-epoch counter, its data fetcher
+    fast-forwards by a full epoch and executes zero new batches.  Cumulative
+    totals, epoch/global step, optimizer, and scheduler state remain intact.
+    """
+
+    global_step = int(checkpoint.get("global_step", -1))
+    expected_batches = optimizer_steps_per_epoch * accumulation_steps
+    if global_step <= 0 or global_step % optimizer_steps_per_epoch != 0:
+        raise RuntimeError(
+            "Cannot normalize a checkpoint outside a complete epoch "
+            f"boundary: step={global_step}, "
+            f"steps_per_epoch={optimizer_steps_per_epoch}"
+        )
+    expected_epoch = global_step // optimizer_steps_per_epoch
+    if int(checkpoint.get("epoch", -1)) != expected_epoch:
+        raise RuntimeError(
+            "Checkpoint epoch/global-step boundary mismatch: "
+            f"epoch={checkpoint.get('epoch')}, expected={expected_epoch}"
+        )
+    try:
+        batch_progress = checkpoint["loops"]["fit_loop"][
+            "epoch_loop.batch_progress"
+        ]
+        current = batch_progress["current"]
+        total = batch_progress["total"]
+    except (KeyError, TypeError) as exc:
+        raise RuntimeError(
+            "Checkpoint is missing Lightning train batch-loop progress"
+        ) from exc
+    counter_names = ("ready", "started", "processed", "completed")
+    observed_current = {
+        name: int(current.get(name, -1)) for name in counter_names
+    }
+    expected_current = {name: expected_batches for name in counter_names}
+    if observed_current != expected_current or batch_progress.get(
+        "is_last_batch"
+    ) is not True:
+        raise RuntimeError(
+            "Checkpoint is not at the end of a complete train epoch: "
+            f"current={observed_current}, expected={expected_current}, "
+            f"is_last_batch={batch_progress.get('is_last_batch')!r}"
+        )
+    observed_total = {name: int(total.get(name, -1)) for name in counter_names}
+    if any(observed_total[name] < expected_batches for name in counter_names):
+        raise RuntimeError(
+            f"Checkpoint cumulative batch progress is invalid: {observed_total}"
+        )
+    batch_progress["current"] = {name: 0 for name in counter_names}
+    batch_progress["is_last_batch"] = False
+    return {
+        "applied": True,
+        "global_step": global_step,
+        "completed_epochs": expected_epoch,
+        "optimizer_steps_per_epoch": optimizer_steps_per_epoch,
+        "microbatches_per_epoch_per_rank": expected_batches,
+        "previous_current_batch_progress": observed_current,
+        "cumulative_batch_progress": observed_total,
+        "next_epoch_starts_at_batch_zero": True,
+    }
+
+
+def _configure_spt_for_controlled_checkpointing(spt) -> dict:
+    """Keep Manager output under ContextWorld's explicit Trainer run dir.
+
+    The pinned runtime's public ``spt.set(cache_dir=None)`` currently leaves
+    the default cache unchanged, despite its documented API.  Assign through
+    the typed config property and assert the result so a future runtime change
+    fails visibly instead of redirecting checkpoints to an anonymous cache.
+    """
+
+    from stable_pretraining._config import get_config
+
+    runtime = get_config()
+    runtime.cache_dir = None
+    spt.set(default_loggers={"registry": False})
+    if runtime.cache_dir is not None:
+        raise RuntimeError(
+            "stable_pretraining cache_dir must be disabled for controlled "
+            f"checkpointing, observed={runtime.cache_dir}"
+        )
+    return {
+        "manager_cache_dir": None,
+        "manager_uses_trainer_root": True,
+        "registry_logger_disabled": not runtime.default_loggers.get(
+            "registry", True
+        ),
+    }
+
+
+def _load_distributed_execution_contract(
+    benchmark_config: Path, *, devices: int
+) -> dict:
+    """Load the recovery contract without changing the DDP transport.
+
+    Formal runs deliberately use Lightning/PyTorch's default DDP and NCCL
+    selection.  Reproducible recovery is gated on restored training state and
+    a measured numerical tolerance, not on benchmark-specific NCCL overrides.
+    """
+
+    with benchmark_config.open("r", encoding="utf-8") as handle:
+        config = yaml.safe_load(handle)
+    declared = (
+        config.get("training_protocol", {})
+        .get("distributed_execution", {})
+    )
+    if not isinstance(declared, dict):
+        raise ValueError(
+            "training_protocol.distributed_execution "
+            "must be a mapping"
+        )
+    transport_keys = {
+        str(key) for key in declared if "nccl" in str(key).lower()
+    }
+    if transport_keys:
+        raise ValueError(
+            "Door training must not freeze NCCL transport settings; found "
+            f"{sorted(transport_keys)}"
+        )
+
+    acceptance = declared.get("recovery_acceptance")
+    if acceptance is not None:
+        expected = {
+            "single_gpu_epoch_boundary": {
+                "parameter_equivalence": "bitwise",
+            },
+            "four_gpu_epoch_boundary": {
+                "data_order": "exact",
+                "rng_state": "exact",
+                "global_step": "exact",
+                "scheduler_state": "exact",
+                "parameter_equivalence": "numerical",
+                "maximum_absolute_parameter_difference": 2.0e-9,
+                "bytewise_identity_required": False,
+            },
+        }
+        if acceptance != expected:
+            raise ValueError(
+                "distributed recovery acceptance contract differs from the "
+                f"frozen epoch-boundary gate: {acceptance}"
+            )
+
+    verification = declared.get("recovery_verification")
+    if verification is not None:
+        single = verification.get("single_gpu", {})
+        multi = verification.get("four_gpu", {})
+        maximum = (
+            acceptance.get("four_gpu_epoch_boundary", {}).get(
+                "maximum_absolute_parameter_difference"
+            )
+            if acceptance is not None
+            else None
+        )
+        exact_multi_state = all(
+            multi.get(key) is True
+            for key in (
+                "data_order_exact",
+                "rng_state_exact",
+                "global_step_exact",
+                "scheduler_state_exact",
+            )
+        )
+        observed = multi.get(
+            "observed_maximum_absolute_parameter_difference"
+        )
+        if not (
+            verification.get("comparison")
+            == "continuous_vs_epoch_boundary_restart"
+            and single.get("passed") is True
+            and single.get("non_bitwise_parameter_tensors") == 0
+            and single.get(
+                "observed_maximum_absolute_parameter_difference"
+            )
+            == 0.0
+            and single.get("serialized_pretrained_sha256_equal") is True
+            and multi.get("passed") is True
+            and exact_multi_state
+            and isinstance(observed, (int, float))
+            and isinstance(maximum, (int, float))
+            and 0.0 <= float(observed) <= float(maximum)
+            and multi.get("serialized_pretrained_sha256_equal") is False
+        ):
+            raise ValueError(
+                "distributed recovery verification does not satisfy the "
+                "frozen epoch-boundary acceptance gate"
+            )
+
+    return {
+        "devices": devices,
+        "runtime_mode": "single_gpu" if devices <= 1 else "multi_gpu",
+        "transport_configuration": declared.get(
+            "transport_configuration", "framework_defaults"
+        ),
+        "transport_overrides_applied": False,
+        "primary_formal_launch": declared.get("primary_formal_launch"),
+        "resume_role": declared.get("resume_role"),
+        "resume_scope": declared.get("resume_scope"),
+        "recovery_acceptance": acceptance,
+        "recovery_verification": verification,
+    }
+
+
 def run(args) -> dict:
     args.output_root = resolve_contextworld_path(
         args.output_root, repo_root=REPO_ROOT
@@ -479,7 +809,7 @@ def run(args) -> dict:
     import lightning as pl
     import stable_pretraining as spt
     import torch
-    from lightning.pytorch.callbacks import Callback
+    from lightning.pytorch.callbacks import Callback, ModelCheckpoint
     from lightning.pytorch.trainer.connectors import callback_connector
     from omegaconf import OmegaConf, open_dict
     from stable_worldmodel.wm.loss import SIGReg
@@ -543,6 +873,8 @@ def run(args) -> dict:
         }
         write_json(args.report.resolve(), report)
         return report
+
+    spt_runtime = _configure_spt_for_controlled_checkpointing(spt)
 
     generator = torch.Generator().manual_seed(args.seed)
     train_loader = torch.utils.data.DataLoader(
@@ -623,15 +955,176 @@ def run(args) -> dict:
 
     output_root = args.output_root.resolve()
     run_dir = output_root / "checkpoints" / args.run_name
-    resume_checkpoint = pinned_train.get_resume_checkpoint_path(
-        run_dir, args.run_name
-    )
+    resume_checkpoint = run_dir / "last.ckpt"
     manager_resume_checkpoint = _validate_resume_policy(
         run_dir=run_dir,
         checkpoint_path=resume_checkpoint,
         policy=args.resume_policy,
     )
+    loaded_checkpoint = (
+        _full_state_checkpoint_metadata(
+            manager_resume_checkpoint,
+            expected_optimizer_steps=args.expected_optimizer_steps,
+            require_incomplete=True,
+            expected_world_size=args.devices,
+            optimizer_steps_per_epoch=training_plan[
+                "optimizer_steps_per_epoch"
+            ],
+        )
+        if manager_resume_checkpoint is not None
+        else None
+    )
     run_dir.mkdir(parents=True, exist_ok=True)
+
+    class FullStateRNGCheckpoint(Callback):
+        """Persist and restore Python/NumPy/Torch/DataLoader RNG per rank."""
+
+        def __init__(self) -> None:
+            self.states: list[dict] | None = None
+            self.pending_state: dict | None = None
+            self.restored = False
+            self.restored_on_fit_start_before_data = False
+            self.checkpoint_state_validated_on_load = False
+            self.verified_on_train_start = False
+            self.loader_generator_advanced_before_train_start = None
+            self.loop_state_normalization = None
+
+        @staticmethod
+        def _state_for_rank(checkpoint: dict, rank: int) -> dict:
+            states = checkpoint.get("contextworld_rng_states_v1")
+            if not isinstance(states, list):
+                raise RuntimeError(
+                    "Resume checkpoint is missing ContextWorld RNG state"
+                )
+            by_rank = {int(row["rank"]): row for row in states}
+            if rank not in by_rank:
+                raise RuntimeError(
+                    f"Resume checkpoint has no RNG state for rank {rank}"
+                )
+            return by_rank[rank]
+
+        def _restore(self, trainer, state: dict) -> None:
+            import random
+
+            import numpy as np
+
+            random.setstate(state["python"])
+            np.random.set_state(state["numpy"])
+            torch.set_rng_state(state["torch_cpu"])
+            device = trainer.strategy.root_device
+            if device.type == "cuda":
+                if state["torch_cuda"] is None:
+                    raise RuntimeError(
+                        "Resume checkpoint has no CUDA RNG state"
+                    )
+                torch.cuda.set_rng_state(state["torch_cuda"], device=device)
+            generator.set_state(state["train_loader_generator"])
+
+        def _observe_loader_generator(self, state: dict) -> None:
+            generator_matches = torch.equal(
+                generator.get_state().cpu(),
+                state["train_loader_generator"].cpu(),
+            )
+            # Lightning creates the resumed epoch iterator before
+            # ``on_train_start``.  Advancing this generator here is expected:
+            # the important guarantee is that it advanced from the restored
+            # checkpoint state.  End-to-end parameter equivalence is the
+            # mechanical test of sampler continuity.
+            self.loader_generator_advanced_before_train_start = (
+                not generator_matches
+            )
+
+        def _capture(self, trainer) -> None:
+            import random
+
+            import numpy as np
+
+            device = trainer.strategy.root_device
+            local = {
+                "rank": int(trainer.global_rank),
+                "python": random.getstate(),
+                "numpy": np.random.get_state(),
+                "torch_cpu": torch.get_rng_state().cpu(),
+                "torch_cuda": (
+                    torch.cuda.get_rng_state(device).cpu()
+                    if device.type == "cuda"
+                    else None
+                ),
+                "train_loader_generator": generator.get_state().cpu(),
+            }
+            if (
+                torch.distributed.is_available()
+                and torch.distributed.is_initialized()
+            ):
+                gathered: list[dict | None] = [None] * int(
+                    trainer.world_size
+                )
+                torch.distributed.all_gather_object(gathered, local)
+                if any(row is None for row in gathered):
+                    raise RuntimeError("Failed to gather per-rank RNG states")
+                self.states = [row for row in gathered if row is not None]
+            else:
+                self.states = [local]
+            ranks = sorted(int(row["rank"]) for row in self.states)
+            if ranks != list(range(int(trainer.world_size))):
+                raise RuntimeError(
+                    f"RNG checkpoint rank coverage mismatch: {ranks}"
+                )
+
+        def on_train_epoch_end(self, trainer, pl_module) -> None:
+            self._capture(trainer)
+
+        def on_save_checkpoint(
+            self, trainer, pl_module, checkpoint
+        ) -> None:
+            if not self.states:
+                raise RuntimeError(
+                    "Refusing to save a trainer checkpoint without RNG state"
+                )
+            checkpoint["contextworld_rng_states_v1"] = self.states
+
+        def on_load_checkpoint(
+            self, trainer, pl_module, checkpoint
+        ) -> None:
+            self.loop_state_normalization = (
+                _normalize_complete_epoch_resume_loop_state(
+                    checkpoint,
+                    optimizer_steps_per_epoch=training_plan[
+                        "optimizer_steps_per_epoch"
+                    ],
+                    accumulation_steps=args.accumulate_grad_batches,
+                )
+            )
+            self.pending_state = self._state_for_rank(
+                checkpoint, int(trainer.global_rank)
+            )
+            self.checkpoint_state_validated_on_load = True
+
+        def on_fit_start(self, trainer, pl_module) -> None:
+            if self.pending_state is None:
+                return
+            # Lightning 2.6 restores callback checkpoint state before
+            # ``on_fit_start`` and only creates the FitLoop data iterator
+            # afterward.  Restore here: late enough to follow optimizer/model
+            # restoration, early enough for the sampler to consume the saved
+            # DataLoader generator state.
+            self._restore(trainer, self.pending_state)
+            self.restored = True
+            self.restored_on_fit_start_before_data = True
+
+        def on_train_start(self, trainer, pl_module) -> None:
+            if self.pending_state is None:
+                return
+            if not self.restored_on_fit_start_before_data:
+                raise RuntimeError(
+                    "Resume RNG was not restored before data setup"
+                )
+            if not self.checkpoint_state_validated_on_load:
+                raise RuntimeError(
+                    "Lightning did not validate the preloaded RNG checkpoint"
+                )
+            self._observe_loader_generator(self.pending_state)
+            self.verified_on_train_start = True
 
     class SavePretrainedAtEpochEnd(Callback):
         def on_train_epoch_end(self, trainer, pl_module) -> None:
@@ -657,12 +1150,17 @@ def run(args) -> dict:
                     "w", encoding="utf-8"
                 ) as handle:
                     OmegaConf.save(cfg, handle)
+            expected_execution_steps = (
+                args.stop_after_optimizer_step
+                if args.stop_after_optimizer_step is not None
+                else args.expected_optimizer_steps
+            )
             estimated = int(trainer.estimated_stepping_batches)
-            if estimated != args.expected_optimizer_steps:
+            if estimated != expected_execution_steps:
                 raise RuntimeError(
                     "Trainer optimizer-step estimate violates the frozen "
                     f"budget: estimated={estimated}, "
-                    f"expected={args.expected_optimizer_steps}"
+                    f"expected={expected_execution_steps}"
                 )
 
         def on_train_start(self, trainer, pl_module) -> None:
@@ -786,30 +1284,53 @@ def run(args) -> dict:
                     f"expected={target_steps}"
                 )
 
-    class StopAfterOptimizerStepForResumeSmoke(Callback):
-        def on_train_batch_end(
-            self, trainer, pl_module, outputs, batch, batch_idx
-        ) -> None:
-            if (
-                args.stop_after_optimizer_step is not None
-                and int(trainer.global_step)
-                >= args.stop_after_optimizer_step
-            ):
-                trainer.should_stop = True
-
+    rng_checkpoint = FullStateRNGCheckpoint()
     training_contract = TrainingContract()
+    if (
+        args.stop_after_optimizer_step is not None
+        and args.stop_after_optimizer_step
+        % training_plan["optimizer_steps_per_epoch"]
+        != 0
+    ):
+        raise ValueError(
+            "Controlled resume smoke must stop at a complete epoch boundary: "
+            f"stop={args.stop_after_optimizer_step}, "
+            "steps_per_epoch="
+            f"{training_plan['optimizer_steps_per_epoch']}"
+        )
+    trainer_max_epochs = args.max_epochs
+    if args.stop_after_optimizer_step is not None:
+        trainer_max_epochs = (
+            args.stop_after_optimizer_step
+            // training_plan["optimizer_steps_per_epoch"]
+        )
+    state_checkpoint = ModelCheckpoint(
+        dirpath=str(run_dir),
+        filename="state",
+        save_top_k=0,
+        save_last=True,
+        verbose=True,
+        enable_version_counter=False,
+        every_n_train_steps=None,
+        every_n_epochs=1,
+        save_on_train_epoch_end=True,
+    )
     callbacks = [
+        rng_checkpoint,
         SavePretrainedAtEpochEnd(),
         training_contract,
-        StopAfterOptimizerStepForResumeSmoke(),
+        state_checkpoint,
     ]
     # stable_pretraining registers environment-dump callbacks through a
     # Lightning entry point.  They are unrelated to model training and may
     # write host metadata into the repository, so this benchmark supplies
     # only its explicit callbacks.
     callback_connector._load_external_callbacks = lambda _group: []
+    distributed_execution_contract = _load_distributed_execution_contract(
+        args.benchmark_config, devices=args.devices
+    )
     trainer = pl.Trainer(
-        max_epochs=args.max_epochs,
+        max_epochs=trainer_max_epochs,
         max_steps=args.expected_optimizer_steps,
         accelerator="gpu",
         devices=args.devices,
@@ -834,12 +1355,20 @@ def run(args) -> dict:
         data=data_module,
         seed=args.seed,
         ckpt_path=manager_resume_checkpoint,
+        weights_only=False,
     )
     manager()
 
     completed_scheduler = trainer.lr_scheduler_configs[0].scheduler
 
     training_complete = int(trainer.global_step) == args.expected_optimizer_steps
+    if args.stop_after_optimizer_step is None and not training_complete:
+        raise RuntimeError(
+            "Training returned before the frozen optimizer budget without an "
+            "intentional smoke stop: "
+            f"actual={trainer.global_step}, "
+            f"expected={args.expected_optimizer_steps}"
+        )
     final_filename = (
         f"weights_final_step_{args.expected_optimizer_steps}.pt"
         if training_complete
@@ -857,6 +1386,21 @@ def run(args) -> dict:
     trainer.strategy.barrier("contextworld_final_checkpoint")
     if not pretrained_path.is_file() or not (run_dir / "config.json").is_file():
         raise RuntimeError(f"Pretrained save missing under {run_dir}")
+    saved_checkpoint = _full_state_checkpoint_metadata(
+        resume_checkpoint,
+        expected_optimizer_steps=args.expected_optimizer_steps,
+        require_incomplete=False,
+        expected_world_size=args.devices,
+        optimizer_steps_per_epoch=training_plan[
+            "optimizer_steps_per_epoch"
+        ],
+    )
+    if saved_checkpoint["global_step"] != int(trainer.global_step):
+        raise RuntimeError(
+            "Final full-state checkpoint step does not match Trainer: "
+            f"checkpoint={saved_checkpoint['global_step']}, "
+            f"trainer={trainer.global_step}"
+        )
     reloaded = swm.wm.utils.load_pretrained(
         str(pretrained_path), cache_dir=str(output_root)
     )
@@ -892,11 +1436,16 @@ def run(args) -> dict:
             "global_step": int(trainer.global_step),
             "current_epoch": int(trainer.current_epoch),
             "max_epochs": args.max_epochs,
+            "execution_max_epochs": trainer_max_epochs,
             "seed_before_model_initialization": args.seed,
             "batch_size_per_device": args.batch_size,
             "devices": args.devices,
             "world_size": int(trainer.world_size),
             "strategy": type(trainer.strategy).__name__,
+            "ddp_static_graph": False,
+            "distributed_execution_contract": (
+                distributed_execution_contract
+            ),
             "precision": args.precision,
             "num_workers_per_rank": args.num_workers,
             "prefetch_factor": (
@@ -923,6 +1472,27 @@ def run(args) -> dict:
             "resumed_from_checkpoint": (
                 training_contract.initial_global_step > 0
             ),
+            "loaded_full_state_checkpoint": loaded_checkpoint,
+            "restored_global_step": training_contract.initial_global_step,
+            "restored_epoch": training_contract.initial_epoch,
+            "resume_weights_only": False,
+            "rng_state_restored": rng_checkpoint.restored,
+            "rng_state_loaded_on_checkpoint": (
+                rng_checkpoint.checkpoint_state_validated_on_load
+            ),
+            "rng_state_restored_on_fit_start_before_data": (
+                rng_checkpoint.restored_on_fit_start_before_data
+            ),
+            "rng_state_verified_on_train_start": (
+                rng_checkpoint.verified_on_train_start
+            ),
+            "loader_generator_advanced_before_train_start": (
+                rng_checkpoint.loader_generator_advanced_before_train_start
+            ),
+            "resume_scope": "complete_epoch_boundary_only",
+            "resume_loop_state_normalization": (
+                rng_checkpoint.loop_state_normalization
+            ),
             "resume_policy": args.resume_policy,
             "training_complete": training_complete,
             "intentional_stop_after_optimizer_step": (
@@ -938,6 +1508,7 @@ def run(args) -> dict:
                 float(value) for value in completed_scheduler.get_last_lr()
             ],
             "plan": training_plan,
+            "stable_pretraining_runtime": spt_runtime,
         },
         "sample_contract": sample_contract,
         "data": grouped.metadata,
@@ -951,6 +1522,7 @@ def run(args) -> dict:
             "stablewm_resume_checkpoint_exists": (
                 resume_checkpoint.is_file()
             ),
+            "full_state_checkpoint": saved_checkpoint,
         },
         "save_load_exact": reload_equal,
     }

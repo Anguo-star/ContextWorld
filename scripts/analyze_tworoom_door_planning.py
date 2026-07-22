@@ -24,7 +24,14 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from contextworld.evaluation.icl_model import file_sha256
-from contextworld.paths import artifact_path, resolve_contextworld_path
+from contextworld.evaluation.sealed_test_gate import (
+    canonical_door_planning_catalog,
+    canonical_door_split_root,
+    require_canonical_split_path,
+    require_path_within_split_root,
+    require_sealed_test_gate,
+)
+from contextworld.paths import resolve_contextworld_path
 from contextworld.synthesis.manifest import write_json
 from scripts.analyze_tworoom_door_visual_generalization import (
     PAIRED_TRAINING_SEEDS,
@@ -49,19 +56,6 @@ EXPECTED_EVIDENCE_ROLE = {
     "fixed": "planning_action_ranking_not_latent_accuracy",
     "planning": "closed_loop_planning_not_latent_accuracy",
 }
-
-
-def _split_root(config: Mapping[str, Any], split: str) -> Path:
-    benchmark = str(config["benchmark"])
-    if not benchmark.startswith("tworoom_"):
-        raise ValueError(f"Unexpected benchmark name: {benchmark}")
-    root = artifact_path(
-        "evaluation",
-        "history3",
-        benchmark.removeprefix("tworoom_"),
-        repo_root=ROOT,
-    )
-    return root if split == "validation" else root / "sealed_test"
 
 
 def _expected_tracks(
@@ -116,7 +110,10 @@ def _training_report_paths(args: argparse.Namespace) -> list[Path]:
 
 
 def _load_training_identities(
-    report_paths: Iterable[Path], *, require_complete: bool
+    report_paths: Iterable[Path],
+    *,
+    expected_data_split_seed: int,
+    require_complete: bool,
 ) -> tuple[dict[str, dict[str, Any]], dict[tuple[str, int], Path], str]:
     """Return checkpoint-hash identities after report-only integrity checks."""
 
@@ -135,8 +132,9 @@ def _load_training_identities(
         if model_id not in model_id_to_group:
             raise RuntimeError(f"Unknown door model_id in training report: {path}")
         group = model_id_to_group[model_id]
-        seed = int(report["data"]["seed"])
-        key = (group, seed)
+        training_plan = report["training"]["plan"]
+        training_seed = int(training_plan["training_seed"])
+        key = (group, training_seed)
         expected = TRAINING_BINDINGS.get(key)
         if expected is None:
             raise RuntimeError(f"Unexpected training report binding {key}: {path}")
@@ -149,9 +147,11 @@ def _load_training_identities(
             is True,
             "model_id": model_id == expected["model_id"],
             "run_name": str(report.get("run_name")) == expected["run_name"],
-            "data_seed": seed == key[1],
-            "training_seed": int(report["training"]["plan"]["training_seed"])
-            == key[1],
+            "data_seed": int(report["data"]["seed"])
+            == expected_data_split_seed,
+            "plan_data_split_seed": int(training_plan["data_split_seed"])
+            == expected_data_split_seed,
+            "training_seed": training_seed == key[1],
         }
         if not all(checks.values()):
             raise RuntimeError(f"Training report failed for {key}: {checks}")
@@ -163,7 +163,7 @@ def _load_training_identities(
         by_hash[checkpoint_hash] = {
             "slug": expected["run_name"],
             "group": group,
-            "training_seed": seed,
+            "training_seed": training_seed,
             "checkpoint_sha256": checkpoint_hash,
             "training_report": str(path.resolve()),
             "training_report_sha256": file_sha256(path),
@@ -964,6 +964,29 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
     if config.get("benchmark") != "tworoom_door_visual_generalization_v1":
         raise ValueError(f"Unexpected door benchmark config: {config_path}")
+    gate_audit = require_sealed_test_gate(
+        split=args.split,
+        config_path=config_path,
+        config=config,
+        manifest_path=getattr(args, "sealed_test_gate", None),
+        repo_root=ROOT,
+    )
+    artifact_root = require_canonical_split_path(
+        args.artifact_root,
+        canonical=canonical_door_split_root(
+            config, split=args.split, repo_root=ROOT
+        ),
+        split=args.split,
+        label="Door planning analysis root",
+    )
+    catalog_path = require_canonical_split_path(
+        args.catalog,
+        canonical=canonical_door_planning_catalog(
+            config, split=args.split, repo_root=ROOT
+        ),
+        split=args.split,
+        label="Door planning analysis catalog",
+    )
     config_hash = file_sha256(config_path)
     tracks = _expected_tracks(config, args.split)
     eval_seeds = tuple(map(int, config["evaluation_data"]["eval_seeds"]))
@@ -978,8 +1001,15 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     require_formal = not args.allow_partial
 
     report_paths = _training_report_paths(args)
+    expected_data_split_seed = int(
+        config["training_protocol"]["data_split_seed"]
+    )
     identities_by_hash, report_by_key, report_stable_commit = (
-        _load_training_identities(report_paths, require_complete=require_formal)
+        _load_training_identities(
+            report_paths,
+            expected_data_split_seed=expected_data_split_seed,
+            require_complete=require_formal,
+        )
     )
     expected_normalizer = resolve_contextworld_path(
         args.expected_normalizer, repo_root=ROOT
@@ -987,17 +1017,6 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     if not expected_normalizer.is_file():
         raise FileNotFoundError(expected_normalizer)
     normalizer_hash = file_sha256(expected_normalizer)
-    artifact_root = (
-        args.artifact_root.resolve()
-        if args.artifact_root is not None
-        else _split_root(config, args.split)
-    )
-    benchmark_root = _split_root(config, "validation")
-    catalog_path = (
-        args.catalog.resolve()
-        if args.catalog is not None
-        else benchmark_root / "planning" / args.split / "catalog.json"
-    )
     catalog, catalog_index = _load_catalog(
         catalog_path,
         config_hash=config_hash,
@@ -1009,8 +1028,17 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         require_formal=require_formal,
     )
     catalog_hash = file_sha256(catalog_path)
+    explicit_results = [
+        require_path_within_split_root(
+            path,
+            split_root=artifact_root,
+            split=args.split,
+            label="Door planning result",
+        )
+        for path in args.results
+    ]
     paths = _resolve_result_paths(
-        args.results, artifact_root=artifact_root, mode=args.mode
+        explicit_results, artifact_root=artifact_root, mode=args.mode
     )
     results = _load_results(
         paths,
@@ -1061,6 +1089,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         representative,
         report_paths=selected_report_paths,
         stable_worldmodel_commit=report_stable_commit,
+        expected_data_split_seed=expected_data_split_seed,
         require_complete=require_formal,
     )
     formal = bool(
@@ -1081,6 +1110,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "benchmark": config["benchmark"],
         "analysis": f"{args.mode}_planning_supporting_evidence",
         "evaluation_split": args.split,
+        "sealed_test_gate": gate_audit,
         "status": "passed" if formal else "partial_analysis_only",
         "formal_analysis": formal,
         "config": {"path": str(config_path), "sha256": config_hash},
@@ -1142,6 +1172,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--split", choices=("validation", "sealed_test"), default="validation"
     )
     parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
+    parser.add_argument("--sealed-test-gate", type=Path)
     parser.add_argument("--artifact-root", type=Path)
     parser.add_argument("--catalog", type=Path)
     parser.add_argument("--results", nargs="*", type=Path, default=[])

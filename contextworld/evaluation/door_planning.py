@@ -4,7 +4,7 @@ import hashlib
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any, Iterable, Mapping
 
 import numpy as np
 
@@ -40,6 +40,88 @@ def _required(mapping: dict[str, Any], key: str, *, where: str) -> Any:
     if key not in mapping:
         raise KeyError(f"Missing {key!r} in {where}")
     return mapping[key]
+
+
+def validate_door_planning_catalog_header(
+    catalog: Mapping[str, Any],
+    *,
+    config: Mapping[str, Any],
+    config_sha256: str,
+    split: str,
+    run_kind: str,
+) -> dict[str, Any]:
+    """Bind a directly invoked evaluator to the current frozen protocol."""
+
+    if run_kind not in {"confirmation", "smoke"}:
+        raise ValueError(f"Unknown door evaluation run kind: {run_kind}")
+    protocol = catalog.get("protocol", {})
+    if not isinstance(protocol, Mapping):
+        raise RuntimeError("Door planning catalog protocol must be a mapping")
+    evaluation = config["evaluation_data"]
+    fixed = config["fixed_candidate_evaluation"]
+    planning = config["closed_loop_planning"]
+    expected_per_seed = int(planning["evaluations_per_door_per_seed"])
+    observed_per_seed = int(
+        protocol.get("queries_per_door_per_eval_seed", -1)
+    )
+    status = str(catalog.get("status"))
+    checks = {
+        "benchmark": str(catalog.get("benchmark"))
+        == str(config["benchmark"]),
+        "status": (
+            status == "passed"
+            if run_kind == "confirmation"
+            else status in {"passed", "smoke_only"}
+        ),
+        "split": str(catalog.get("split_role")) == str(split),
+        "config_sha256": str(catalog.get("config", {}).get("sha256"))
+        == str(config_sha256),
+        "agent_speed": float(protocol.get("agent_speed", float("nan")))
+        == float(planning["agent_speed"]),
+        "task": str(protocol.get("task"))
+        == str(planning["query_task"])
+        == str(fixed["query_task"]),
+        "history_tokens": int(protocol.get("history_tokens", -1))
+        == int(config["scope"]["history_tokens"]),
+        "action_block_raw_steps": int(
+            protocol.get("action_block_raw_steps", -1)
+        )
+        == int(config["scope"]["action_block_raw_steps"]),
+        "candidates_per_query": int(
+            protocol.get("candidates_per_query", -1)
+        )
+        == int(fixed["candidates_per_query"])
+        == int(planning["candidates"]),
+        "candidate_horizon_action_blocks": int(
+            protocol.get("candidate_horizon_action_blocks", -1)
+        )
+        == int(fixed["horizon_action_blocks"])
+        == int(planning["horizon_action_blocks"]),
+        "eval_seeds": tuple(map(int, protocol.get("eval_seeds", [])))
+        == tuple(map(int, evaluation["eval_seeds"])),
+        "queries_per_door_per_eval_seed": (
+            observed_per_seed == expected_per_seed
+            if run_kind == "confirmation"
+            else 0 < observed_per_seed <= expected_per_seed
+        ),
+        "formal_count_summary": (
+            catalog.get("summary", {}).get("formal_50_by_6_per_door") is True
+            if run_kind == "confirmation"
+            else True
+        ),
+    }
+    if not all(checks.values()):
+        raise RuntimeError(
+            f"Door planning catalog header mismatch: {checks}"
+        )
+    return {
+        "passed": True,
+        "run_kind": run_kind,
+        "config_sha256": str(config_sha256),
+        "split": str(split),
+        "status": status,
+        "checks": checks,
+    }
 
 
 def _factor(bundle: dict[str, Any], name: str) -> Any:
@@ -682,4 +764,5 @@ __all__ = [
     "load_door_planning_cell",
     "simulate_door_candidates",
     "summarize_fixed_candidate_selection",
+    "validate_door_planning_catalog_header",
 ]

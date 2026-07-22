@@ -14,6 +14,55 @@ ROOT = Path(__file__).resolve().parents[1]
 CONFIG = ROOT / "configs/benchmark/tworoom_door_visual_generalization_v1.yaml"
 
 
+def test_planning_training_identity_uses_training_seed_not_data_seed(
+    tmp_path: Path,
+) -> None:
+    report_paths = []
+    for training_seed in (3072, 4096, 5120):
+        expected = analysis.TRAINING_BINDINGS[
+            ("multi_door_target", training_seed)
+        ]
+        report = {
+            "passed": True,
+            "save_load_exact": True,
+            "model_id": expected["model_id"],
+            "run_name": expected["run_name"],
+            "data": {"seed": 3072},
+            "training": {
+                "training_complete": True,
+                "plan": {
+                    "data_split_seed": 3072,
+                    "training_seed": training_seed,
+                },
+            },
+            "stable_worldmodel": {"commit": "stable"},
+            "artifacts": {
+                "pretrained_sha256": f"checkpoint-{training_seed}"
+            },
+        }
+        path = tmp_path / expected["report_name"]
+        path.write_text(json.dumps(report), encoding="utf-8")
+        report_paths.append(path)
+
+    identities, paths, commit = analysis._load_training_identities(
+        report_paths,
+        expected_data_split_seed=3072,
+        require_complete=False,
+    )
+
+    assert set(paths) == {
+        ("multi_door_target", 3072),
+        ("multi_door_target", 4096),
+        ("multi_door_target", 5120),
+    }
+    assert set(identities) == {
+        "checkpoint-3072",
+        "checkpoint-4096",
+        "checkpoint-5120",
+    }
+    assert commit == "stable"
+
+
 def test_paired_bootstrap_respects_metric_direction_and_ties() -> None:
     rng = np.random.default_rng(3)
     indices = rng.integers(0, 4, size=(100, 4))
@@ -167,7 +216,10 @@ def _write_partial_inputs(tmp_path: Path) -> tuple[Path, Path, Path, Path]:
         "data": {"seed": 3072},
         "training": {
             "training_complete": True,
-            "plan": {"training_seed": 3072},
+            "plan": {
+                "data_split_seed": 3072,
+                "training_seed": 3072,
+            },
         },
         "stable_worldmodel": {"commit": stable_commit},
         "artifacts": {"pretrained_sha256": checkpoint_hash},
@@ -291,8 +343,25 @@ def _write_partial_inputs(tmp_path: Path) -> tuple[Path, Path, Path, Path]:
     return normalizer, report_path, catalog_path, result_path
 
 
-def test_partial_end_to_end_is_never_formal(tmp_path: Path) -> None:
+def test_partial_end_to_end_is_never_formal(tmp_path: Path, monkeypatch) -> None:
+    artifact_base = tmp_path / "artifacts"
+    monkeypatch.setenv("CONTEXTWORLD_ARTIFACT_ROOT", str(artifact_base))
     normalizer, report, catalog, result = _write_partial_inputs(tmp_path)
+    canonical_root = (
+        artifact_base
+        / "evaluation/history3/door_visual_generalization_v1"
+    )
+    canonical_catalog = canonical_root / "planning/validation/catalog.json"
+    canonical_catalog.parent.mkdir(parents=True, exist_ok=True)
+    catalog.replace(canonical_catalog)
+    canonical_result = canonical_root / "fixed_results/partial.json"
+    canonical_result.parent.mkdir(parents=True, exist_ok=True)
+    result.replace(canonical_result)
+    catalog = canonical_catalog
+    result = canonical_result
+    moved_payload = json.loads(result.read_text(encoding="utf-8"))
+    moved_payload["catalog"]["path"] = str(catalog)
+    result.write_text(json.dumps(moved_payload), encoding="utf-8")
     args = analysis.parse_args(
         [
             "--mode",

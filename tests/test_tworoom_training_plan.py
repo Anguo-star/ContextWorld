@@ -6,11 +6,43 @@ from scripts.train_tworoom_step1 import (
     PROFILE_DEFAULTS,
     _apply_profile,
     _build_training_plan,
+    _full_state_checkpoint_metadata,
     _lejepa_forward_with_manual_accumulation,
+    _normalize_complete_epoch_resume_loop_state,
     _parse_batch_limit,
     _validate_resume_policy,
     parse_args,
 )
+
+
+def _full_state_payload(*, global_step: int = 3, world_size: int = 1):
+    import random
+
+    import numpy as np
+    import torch
+
+    rng_states = []
+    for rank in range(world_size):
+        generator = torch.Generator().manual_seed(100 + rank)
+        rng_states.append(
+            {
+                "rank": rank,
+                "python": random.getstate(),
+                "numpy": np.random.get_state(),
+                "torch_cpu": torch.get_rng_state(),
+                "torch_cuda": torch.tensor([rank], dtype=torch.uint8),
+                "train_loader_generator": generator.get_state(),
+            }
+        )
+    return {
+        "state_dict": {"weight": torch.ones(1)},
+        "optimizer_states": [{"state": {}, "param_groups": []}],
+        "lr_schedulers": [{"last_epoch": global_step}],
+        "global_step": global_step,
+        "epoch": 0,
+        "loops": {"fit_loop": {}},
+        "contextworld_rng_states_v1": rng_states,
+    }
 
 
 def _profile_args(profile: str, **overrides) -> Namespace:
@@ -138,6 +170,174 @@ def test_native_resume_policy_requires_native_checkpoint(tmp_path) -> None:
         )
         == checkpoint
     )
+
+
+def test_full_state_checkpoint_metadata_accepts_complete_trainer_state(
+    tmp_path,
+) -> None:
+    import torch
+
+    checkpoint = tmp_path / "last.ckpt"
+    torch.save(_full_state_payload(global_step=3, world_size=4), checkpoint)
+
+    metadata = _full_state_checkpoint_metadata(
+        checkpoint,
+        expected_optimizer_steps=10,
+        require_incomplete=True,
+        expected_world_size=4,
+    )
+
+    assert metadata["global_step"] == 3
+    assert metadata["optimizer_states"] == 1
+    assert metadata["lr_schedulers"] == 1
+    assert metadata["rng_ranks"] == [0, 1, 2, 3]
+    assert len(metadata["sha256"]) == 64
+
+
+def test_full_state_checkpoint_rejects_model_only_weights(tmp_path) -> None:
+    import torch
+
+    checkpoint = tmp_path / "last.ckpt"
+    torch.save({"state_dict": {"weight": torch.ones(1)}}, checkpoint)
+
+    with pytest.raises(RuntimeError, match="cannot safely resume"):
+        _full_state_checkpoint_metadata(
+            checkpoint,
+            expected_optimizer_steps=10,
+            require_incomplete=True,
+            expected_world_size=4,
+        )
+
+
+def test_full_state_checkpoint_rejects_topology_or_completed_run(
+    tmp_path,
+) -> None:
+    import torch
+
+    checkpoint = tmp_path / "last.ckpt"
+    torch.save(_full_state_payload(global_step=10, world_size=1), checkpoint)
+
+    with pytest.raises(RuntimeError, match="world size differs"):
+        _full_state_checkpoint_metadata(
+            checkpoint,
+            expected_optimizer_steps=10,
+            require_incomplete=True,
+            expected_world_size=4,
+        )
+    with pytest.raises(RuntimeError, match="already complete"):
+        _full_state_checkpoint_metadata(
+            checkpoint,
+            expected_optimizer_steps=10,
+            require_incomplete=True,
+            expected_world_size=1,
+        )
+
+
+def test_full_state_checkpoint_requires_complete_epoch_boundary(
+    tmp_path,
+) -> None:
+    import torch
+
+    checkpoint = tmp_path / "last.ckpt"
+    torch.save(_full_state_payload(global_step=3, world_size=1), checkpoint)
+
+    with pytest.raises(RuntimeError, match="complete epoch boundary"):
+        _full_state_checkpoint_metadata(
+            checkpoint,
+            expected_optimizer_steps=10,
+            require_incomplete=True,
+            expected_world_size=1,
+            optimizer_steps_per_epoch=2,
+        )
+
+    torch.save(_full_state_payload(global_step=4, world_size=1), checkpoint)
+    metadata = _full_state_checkpoint_metadata(
+        checkpoint,
+        expected_optimizer_steps=10,
+        require_incomplete=True,
+        expected_world_size=1,
+        optimizer_steps_per_epoch=2,
+    )
+    assert metadata["complete_epoch_boundary"] is True
+    assert metadata["optimizer_steps_per_epoch"] == 2
+
+
+def test_complete_epoch_loop_state_restarts_at_next_epoch_batch_zero() -> None:
+    checkpoint = {
+        "global_step": 4,
+        "epoch": 2,
+        "loops": {
+            "fit_loop": {
+                "epoch_loop.batch_progress": {
+                    "total": {
+                        "ready": 8,
+                        "started": 8,
+                        "processed": 8,
+                        "completed": 8,
+                    },
+                    "current": {
+                        "ready": 4,
+                        "started": 4,
+                        "processed": 4,
+                        "completed": 4,
+                    },
+                    "is_last_batch": True,
+                }
+            }
+        },
+    }
+
+    audit = _normalize_complete_epoch_resume_loop_state(
+        checkpoint,
+        optimizer_steps_per_epoch=2,
+        accumulation_steps=2,
+    )
+
+    progress = checkpoint["loops"]["fit_loop"][
+        "epoch_loop.batch_progress"
+    ]
+    assert progress["current"] == {
+        "ready": 0,
+        "started": 0,
+        "processed": 0,
+        "completed": 0,
+    }
+    assert progress["is_last_batch"] is False
+    assert progress["total"]["completed"] == 8
+    assert audit["next_epoch_starts_at_batch_zero"] is True
+
+
+def test_complete_epoch_loop_state_rejects_partial_epoch() -> None:
+    checkpoint = {
+        "global_step": 2,
+        "epoch": 1,
+        "loops": {
+            "fit_loop": {
+                "epoch_loop.batch_progress": {
+                    "total": {
+                        "ready": 3,
+                        "started": 3,
+                        "processed": 3,
+                        "completed": 3,
+                    },
+                    "current": {
+                        "ready": 3,
+                        "started": 3,
+                        "processed": 3,
+                        "completed": 3,
+                    },
+                    "is_last_batch": False,
+                }
+            }
+        },
+    }
+
+    with pytest.raises(RuntimeError, match="not at the end"):
+        _normalize_complete_epoch_resume_loop_state(
+            checkpoint,
+            optimizer_steps_per_epoch=2,
+            accumulation_steps=2,
+        )
 
 
 def test_formal_data_quality_gate_rejects_excessive_reuse() -> None:

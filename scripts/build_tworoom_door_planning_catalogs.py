@@ -29,8 +29,13 @@ from contextworld.evaluation.door_planning import (
 )
 from contextworld.evaluation.icl_catalog import _factor_options
 from contextworld.evaluation.icl_model import file_sha256
+from contextworld.evaluation.sealed_test_gate import (
+    canonical_door_planning_catalog,
+    require_canonical_split_path,
+    require_sealed_test_gate,
+)
 from contextworld.evaluation.planner_mechanism import array_sha256
-from contextworld.paths import artifact_path, portable_contextworld_path
+from contextworld.paths import portable_contextworld_path
 from contextworld.synthesis.manifest import write_json
 from contextworld.synthesis.stablewm import load_stable_worldmodel
 
@@ -39,7 +44,6 @@ PINNED_STABLEWM = "5864b74980f6ed328fd0045e777b3865962eff43"
 DEFAULT_CONFIG = (
     ROOT / "configs/benchmark/tworoom_door_visual_generalization_v1.yaml"
 )
-DEFAULT_ROOT = "evaluation/history3/door_visual_generalization_v1/planning"
 
 
 def _formal_strata(eval_seed_index: int) -> list[tuple[str, int]]:
@@ -313,6 +317,21 @@ def _selected_tracks(config: dict[str, Any], split: str) -> dict[str, Any]:
 def run(args: argparse.Namespace) -> dict[str, Any]:
     config_path = args.config.resolve()
     config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+    gate_audit = require_sealed_test_gate(
+        split=args.split,
+        config_path=config_path,
+        config=config,
+        manifest_path=getattr(args, "sealed_test_gate", None),
+        repo_root=ROOT,
+    )
+    output = require_canonical_split_path(
+        args.output,
+        canonical=canonical_door_planning_catalog(
+            config, split=args.split, repo_root=ROOT
+        ),
+        split=args.split,
+        label="Door planning catalog",
+    )
     _, stable_repo, stable_commit = load_stable_worldmodel(
         ROOT, args.stablewm_repo, args.stablewm_ref
     )
@@ -337,12 +356,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         }
         tracks = {name: row for name, row in tracks.items() if row["door_positions"]}
     templates = _relative_templates(eval_seeds, args.queries_per_seed)
-    artifact_dir = artifact_path(DEFAULT_ROOT, args.split, repo_root=ROOT)
-    if args.output is not None:
-        output = args.output.resolve()
-        artifact_dir = output.parent
-    else:
-        output = artifact_dir / "catalog.json"
+    artifact_dir = output.parent
     payload_root = artifact_dir / "payloads"
     payload_root.mkdir(parents=True, exist_ok=True)
 
@@ -510,6 +524,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "split_role": args.split,
         "config": {"path": str(config_path), "sha256": file_sha256(config_path)},
         "stable_worldmodel": {"repo": str(stable_repo), "commit": stable_commit},
+        "sealed_test_gate": gate_audit,
         "protocol": {
             "agent_speed": 5.0,
             "task": "cross_room_navigation",
@@ -541,7 +556,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     write_json(output, catalog)
     report_path = output.with_name(output.stem + "_build_report.json")
     report = {
-        "status": "passed",
+        "status": "passed" if formal else "smoke_only",
+        "sealed_test_gate": gate_audit,
         "catalog": str(output),
         "catalog_sha256": file_sha256(output),
         "summary": catalog["summary"],
@@ -562,6 +578,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--doors", type=int, nargs="+")
     parser.add_argument("--queries-per-seed", type=int, default=50)
     parser.add_argument("--output", type=Path)
+    parser.add_argument("--sealed-test-gate", type=Path)
     parser.add_argument("--stablewm-repo", default="../stable-worldmodel")
     parser.add_argument("--stablewm-ref", default=PINNED_STABLEWM)
     return parser.parse_args()
