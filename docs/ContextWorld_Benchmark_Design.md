@@ -224,6 +224,11 @@ bootstrap 或按 query 聚类的置信区间。训练种子只有三个时，方
 Test 必须在模型、数据、指标、判定门和规划配置冻结后一次性运行。Validation 可用
 于形成新假设，但新假设必须重新登记，不能改写成事先计划。
 
+如果 Validation 的主预测门未通过，Test 必须继续封存。固定候选动作或 CEM 即使明显
+改善，也只能作为规划层支持证据，不能覆盖主门或替代真实未来预测。此时应在
+Validation 范围内做失败分解；若更换训练配方、阈值或判定逻辑，应登记新版本并使用
+新的 Validation，不能用旧 Test 调参。
+
 ## 7. 结果应该怎样公开
 
 每个能力类别的公开报告应按固定顺序写：
@@ -261,6 +266,8 @@ Test 必须在模型、数据、指标、判定门和规划配置冻结后一次
 判断问题来自门的基础能力、门的历史辨识能力，还是组合本身。
 
 当前 TwoRoom 速度实例及其数据见
-[History-3 速度学习报告](TwoRoom_Speed_Benchmark_Report.md)；门部分的具体三阶段设计
-见 [TwoRoom 门能力 Benchmark 设计](TwoRoom_Door_Benchmark_Design.md)；冻结配置与速度
-实验复现命令见 [协议索引](protocols/README.md)。
+[History-3 速度学习报告](TwoRoom_Speed_Benchmark_Report.md)。可见门位置 v1 已完成
+Validation，但因固定门基准点未满足逐门严格门槛，预测主门未通过、Test 继续锁定；
+具体设计、结果与后续路线见
+[TwoRoom 可见门位置泛化报告](TwoRoom_Door_Benchmark_Design.md)。冻结配置与复现命令
+见 [协议索引](protocols/README.md)。
