@@ -1,0 +1,77 @@
+schema_version: 1
+benchmark: tworoom_hidden_passage_history3_feasibility_v1
+status: feasibility_preregistered_before_formal_training_or_model_scoring
+claim_limit: physical_identifiability_only_not_a_model_icl_result
+date: "2026-07-23"
+
+stable_worldmodel:
+  repo: ../stable-worldmodel
+  commit: 5864b74980f6ed328fd0045e777b3865962eff43
+
+environment:
+  id: contextworld/TwoRoomHiddenPassage-v1
+  base: swm/TwoRoom-v1
+  hidden_factor: passage.open
+  rules:
+    passable: 1
+    blocked: 0
+  rendering_contract: passage_rule_never_changes_pixels_at_equal_state
+  observation_contract: passage_rule_is_not_in_model_observation
+
+protocol:
+  history_tokens: 3
+  context_transitions: 2
+  raw_steps_per_action_block: 5
+  agent_speed: 5.0
+  door_number: 1
+  sequence:
+    - identical_pre_probe_frame
+    - rule_revealing_probe_result
+    - identical_query_after_rule_blind_recovery
+  query_future: identical_action_with_rule_dependent_true_future
+  contiguous_history: true
+  resets_or_teleports_inside_history: false
+  actions_identical_across_rules: true
+
+geometry:
+  door_positions: [49, 89, 129, 169]
+  directions: [left_to_right, right_to_left]
+  doorway_offsets_px: [11.0, 12.0, 13.0, 14.0]
+  goal_state: [190.0, 190.0]
+
+catalog_seed: 20260723
+counts:
+  paired_templates: 32
+  rule_rollouts: 64
+
+gates:
+  minimum_middle_state_gap_px: 5.0
+  minimum_future_state_gap_px: 20.0
+  query_state_exact_match: true
+  query_pixels_bitwise_match: true
+  raw_history_actions_bitwise_match: true
+  query_action_bitwise_match: true
+  exact_replay: true
+  action_signature_only_accuracy: 0.5
+  zero_failed_templates: true
+
+model_visible_fields: [pixels, action]
+privileged_audit_fields:
+  - passage.open
+  - state
+  - template_id
+  - physical_oracle
+
+output_root: artifacts/evaluation/history3/hidden_passage_feasibility_v1
+
+next_gate:
+  on_pass:
+    - connect_world_lance_reload_and_variation_restore_pilot
+    - verify_real_model_input_projection_excludes_privileged_fields
+    - audit_collision_projection_and_choose_h3_specific_or_longer_history
+    - freeze_formal_training_control_and_multi_rule_recipes
+    - build_fresh_validation_50x6_per_rule_history_condition
+    - keep_formal_test_sealed
+  on_fail:
+    - do_not_generate_formal_training_data
+    - revise_geometry_or_history_length

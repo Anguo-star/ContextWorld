@@ -17,6 +17,11 @@ ContextWorld 用受控数据变化检验世界模型能否从近期交互中识�
 的全部门位置标准，因此 Test 继续锁定，当前也不作为第三方发布 Benchmark。门在当前
 画面中可见，所以这项实验测的是可见几何泛化，不是门位置 ICL。
 
+真正需要历史的门任务也已开始。当前完成的是 32 对 History-3 隐藏通行规则可行性
+smoke：两种规则使用相同动作并回到相同 query，但真实未来不同。该构造依赖当前
+碰撞器的恢复投影，因此下一步是端到端数据管线与模型输入 pilot，尚未进入模型训练，
+也不能写成门规则 ICL 已经成立。
+
 当前版本先正式支持 Stable-WorldModel LeWM。代码和本地数据导出流程已经跑通；大
 文件公共下载地址与 ContextWorld 自产内容的分发许可证仍需由发布者配置，因此请先
 按使用指南准备 artifact root。
@@ -26,7 +31,8 @@ ContextWorld 用受控数据变化检验世界模型能否从近期交互中识�
 1. [Speed ICL Benchmark 使用指南](docs/TwoRoom_Speed_ICL_Benchmark_Release.md)
 2. [Speed 当前实验结果](docs/TwoRoom_Speed_Benchmark_Report.md)
 3. [可见门位置实验结果](docs/TwoRoom_Door_Benchmark_Design.md)
-4. [Benchmark 设计原则](docs/ContextWorld_Benchmark_Design.md)
+4. [隐藏通行规则可行性协议](docs/protocols/TwoRoom_History3_Hidden_Passage_Feasibility_v1.md)
+5. [Benchmark 设计原则](docs/ContextWorld_Benchmark_Design.md)
 
 查看冻结发布信息：
 

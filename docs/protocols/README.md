@@ -31,6 +31,23 @@
 门在当前 query 画面中可见，所以该协议测视觉几何泛化，不把结果称为门位置 ICL。
 机器汇总的顶层 `status=passed` 只表示矩阵完整；正式结论读取预测报告中的能力判定字段。
 
+## 隐藏通行规则 ICL
+
+门的外观保持不变，只改变它在碰撞计算中能否通过。第一阶段已经证明 History-3 可以
+在动作相同、query 状态和像素完全相同的前提下，先留下规则证据，再让同一 query 动作
+产生不同的真实未来：
+
+| 文件 | 作用 | 状态 |
+|---|---|---|
+| [History-3 隐藏通行规则可行性协议](TwoRoom_History3_Hidden_Passage_Feasibility_v1.md) | 32 对连续轨迹、物理结果、序列化、路径和动作泄露审计 | 可行性通过，端到端 pilot 待执行 |
+| [`tworoom_hidden_passage_h3_feasibility_v1.yaml`](../../configs/benchmark/tworoom_hidden_passage_h3_feasibility_v1.yaml) | 环境、动作、样本覆盖和通过标准 | 已冻结 |
+
+这项结果只开放 `World → Lance → 重载 → 规则恢复 → 真实模型输入` pilot，不代表模型
+已经学会门规则 ICL。当前 History-3 恢复还依赖碰撞器的 8.5 px 投影；pilot 通过并决定
+保留该限定或改用更长 History 后，才能开始正式训练。正式阶段仍须使用单规则控制和
+双规则训练的三个配对种子，并让每个模型、真实规则和历史条件各自拥有独立
+`50×6=300` 个 query。
+
 ## 专项支持协议
 
 这些文件保存形成当前设计之前的专项对照。只有复现相应子问题时才需要阅读。

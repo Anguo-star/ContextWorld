@@ -27,6 +27,12 @@
 以及四类评测得到什么结论。多门训练明显改善了新门位置的一步预测和动作选择，但没有
 满足全部正式标准，因此 Test 保持锁定。这一阶段测的是可见几何，不是门位置 ICL。
 
+真正需要历史的门任务已经完成第一步：
+[History-3 隐藏通行规则可行性协议](protocols/TwoRoom_History3_Hidden_Passage_Feasibility_v1.md)
+证明可以在当前 query 和动作完全相同的情况下，只用历史区分“门可通过”与“门不可
+通过”。目前只完成固定碰撞器上的物理可测性检查，正式数据管线 pilot 和模型训练均
+未开始，不能写成门规则 ICL 已经生效。
+
 ## 我想设计新的 Benchmark
 
 阅读 [ContextWorld Benchmark 设计指南](ContextWorld_Benchmark_Design.md)。
@@ -47,6 +53,10 @@
 
 - [隔离训练、区间内评测、规划与能力保持](protocols/TwoRoom_History3_Speed_Benchmark_v2_Protocol.md)；
 - [训练范围外速度与多步真实未来评测](protocols/TwoRoom_History3_Speed_Extrapolation_Multistep_v1_Protocol.md)。
+
+门规则任务当前使用
+[History-3 隐藏通行规则可行性协议](protocols/TwoRoom_History3_Hidden_Passage_Feasibility_v1.md)；
+下一步是端到端数据重载与模型输入 pilot，正式训练与 `50×6` Validation 尚未开始。
 
 协议保存配置、样本数、哈希、判定门和运行命令。它们服务于复现，不重复讲一遍
 当前结论。
