@@ -269,9 +269,9 @@ History-3 速度部分现在具备一套完整 Benchmark 基础：隔离的训�
 - 区间内插值已通过，范围外速度未通过；
 - 五步结果来自冻结安全回路，尚未覆盖更长的开放轨迹。
 
-门位置 v1 已完成固定门与多门配对训练和正式 Validation。训练范围内的新门位置出现
-稳定的一步预测收益，但固定门基准点未满足逐门严格门槛，因此总体预测门未通过、
-Test 继续锁定，速度×门组合也暂不启动。
+门位置 v1 已完成单门与多门配对训练和验证集实验。多门训练改善了新门位置的一步预测
+和动作选择，但双方都训练过的门位置 49 没有满足逐门严格标准，因此正式判定未通过、
+Test 继续锁定。新门位置的完整 CEM 规划也不稳定，所以速度×门组合暂不启动。
 
 下一阶段按以下顺序扩展能力类别：
 
@@ -283,13 +283,13 @@ Test 继续锁定，速度×门组合也暂不启动。
 
 门位置本身可以从 query 图像看见，因此当前门 v1 是视觉几何泛化，不称为速度同类的
 ICL。门阶段的实际结果和后续设计见
-[TwoRoom 可见门位置泛化报告](TwoRoom_Door_Benchmark_Design.md)。
+[TwoRoom 可见门位置实验报告](TwoRoom_Door_Benchmark_Design.md)。
 
 ## 9. 复现与机器结果
 
 - 第三方使用入口：[Speed ICL Benchmark 使用指南](TwoRoom_Speed_ICL_Benchmark_Release.md)
 - 通用设计原则：[ContextWorld Benchmark 设计指南](ContextWorld_Benchmark_Design.md)
-- 可见门位置阶段：[TwoRoom 可见门位置泛化报告](TwoRoom_Door_Benchmark_Design.md)
+- 可见门位置阶段：[TwoRoom 可见门位置实验报告](TwoRoom_Door_Benchmark_Design.md)
 - 当前执行协议：[protocols/README.md](protocols/README.md)
 - 多步与范围外机器汇总：
   `artifacts/evaluation/history3/speed_multistep_extrap_v5/final_summary.json`

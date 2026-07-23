@@ -3,7 +3,7 @@
 本目录保存冻结配置、审计规则和运行方法。它面向需要复现实验的读者，不负责讲述
 当前结论；结果请直接阅读
 [TwoRoom History-3 速度学习报告](../TwoRoom_Speed_Benchmark_Report.md)或
-[TwoRoom 可见门位置泛化报告](../TwoRoom_Door_Benchmark_Design.md)。
+[TwoRoom 可见门位置实验报告](../TwoRoom_Door_Benchmark_Design.md)。
 
 ## 当前协议
 
@@ -18,15 +18,15 @@
 
 ## 可见门位置泛化
 
-门位置 v1 已完成固定门与多门数据、六个配对模型和 Validation。真实未来预测主门未
-通过，sealed Test 继续锁定。复现时使用以下冻结入口：
+门位置 v1 已完成单门与多门数据、六个配对模型和验证集评测。正式通过标准未满足，
+封存测试集（sealed Test）继续锁定。复现时使用以下冻结入口：
 
 | 文件 | 作用 |
 |---|---|
 | [`tworoom_door_visual_generalization_v1.yaml`](../../configs/benchmark/tworoom_door_visual_generalization_v1.yaml) | Eval 划分、指标、样本数和判定门槛 |
 | [`tworoom_door_training_v2.yaml`](../../configs/benchmark/tworoom_door_training_v2.yaml) | 六模型训练矩阵和训练审计 |
-| [`tworoom_door_sealed_test_gate_v1.json`](../../configs/benchmark/tworoom_door_sealed_test_gate_v1.json) | Test 锁定状态 |
-| [可见门位置泛化报告](../TwoRoom_Door_Benchmark_Design.md) | 实际结果、解释边界和运行入口 |
+| [`tworoom_door_sealed_test_gate_v1.json`](../../configs/benchmark/tworoom_door_sealed_test_gate_v1.json) | 封存测试集锁定状态 |
+| [可见门位置实验报告](../TwoRoom_Door_Benchmark_Design.md) | 实际结果、解释边界和运行入口 |
 
 门在当前 query 画面中可见，所以该协议测视觉几何泛化，不把结果称为门位置 ICL。
 机器汇总的顶层 `status=passed` 只表示矩阵完整；正式结论读取预测报告中的能力判定字段。
