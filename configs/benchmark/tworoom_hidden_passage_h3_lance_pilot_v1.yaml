@@ -1,0 +1,71 @@
+schema_version: 1
+benchmark: tworoom_hidden_passage_history3_lance_pilot_v1
+status: preregistered_before_world_lance_collection_and_model_adapter_audit
+date: "2026-07-23"
+
+source_protocol: configs/benchmark/tworoom_hidden_passage_h3_feasibility_v1.yaml
+
+stable_worldmodel:
+  repo: ../stable-worldmodel
+  commit: 5864b74980f6ed328fd0045e777b3865962eff43
+
+history3:
+  history_tokens: 3
+  raw_steps_per_action_block: 5
+  stored_rows_per_episode: 20
+  collection_layout:
+    - one_zero_action_lead_in
+    - five_probe_steps
+    - five_recovery_steps
+    - five_query_steps
+    - four_zero_action_tail_steps
+  model_frame_rows: [0, 5, 10, 15]
+  model_action_row_blocks:
+    - [0, 5]
+    - [5, 10]
+    - [10, 15]
+  fourth_action_block_unused_and_zero: true
+
+geometry:
+  door_position: 49
+  doorway_offset_px: 14.0
+  directions:
+    left_to_right:
+      goal_state: [190.0, 63.0]
+    right_to_left:
+      goal_state: [30.0, 63.0]
+  rules: [passable, blocked]
+  catalog_seed: 20260723
+
+storage:
+  pixel_codec:
+    format: png
+    compress_level: 1
+    lossless: true
+  watched_variations:
+    - agent.speed
+    - door.number
+    - door.position
+    - passage.open
+
+model_adapter:
+  checkpoint: artifacts/training/runs/checkpoints/h3_origheldout_s3072/weights_final_step_6420.pt
+  checkpoint_sha256: 7d141b86cca49145444a69bff89c71ede69e8cf8252bfb933e656c3e2e962b54
+  normalizer: artifacts/splits/tworoom_original_train_s3072_normalizer.json
+  normalizer_sha256: 7a5be7ea867bced446c1671b0b2c0ff6450ffc61e1a7bdbbfc5eaa0942f635db
+  device: cpu
+  purpose: interface_and_privileged_field_isolation_only
+  claim_limit: not_a_hidden_passage_icl_result
+
+gates:
+  exact_lance_rows: 20
+  exact_model_clip_count_per_table: 1
+  model_loader_keys: [pixels, action]
+  diagnostic_loader_keys: [pixels, action, proprio]
+  exact_rule_restore_replay: true
+  opposite_rule_must_fail_replay: true
+  pair_middle_state_gap_px: 8.5
+  pair_future_state_gap_px: 25.0
+  actual_checkpoint_adapter_required: true
+
+output_root: artifacts/evaluation/history3/hidden_passage_lance_pilot_v1

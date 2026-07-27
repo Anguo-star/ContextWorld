@@ -10,6 +10,15 @@ from typing import Any
 import numpy as np
 import yaml
 
+from contextworld.evaluation.hidden_passage_h3_data import (
+    audit_hidden_passage_release_assets,
+    lexical_contextworld_path,
+    require_lexical_containment,
+    require_safe_directory,
+    require_safe_regular_file,
+    shard_completion_marker_path,
+    verify_hidden_passage_shard_completion,
+)
 from contextworld.paths import resolve_contextworld_path
 
 from .groups import (
@@ -34,8 +43,19 @@ CATALOG_BY_GROUP = {
     "door": "door",
     "door_fixed49_v2": "door_fixed49_v2",
     "door_multi_v2": "door_multi_v2",
+    "passage_passable": "passage_passable",
+    "passage_blocked": "passage_blocked",
+    "passage_mixed": "passage_mixed",
+    "passage_tiny_overfit": "passage_tiny_overfit",
+    "action_delay_single": "action_delay_single",
+    "action_delay_multi": "action_delay_multi",
     "speed_door_composition": "speed_door_composition",
 }
+PASSAGE_GROUPS = (
+    "passage_passable",
+    "passage_blocked",
+    "passage_mixed",
+)
 
 
 class UnbiasedZScoreScaler:
@@ -90,6 +110,525 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _directory_sha256(path: Path) -> str:
+    """Hash every regular file in a synthetic dataset directory."""
+
+    root = Path(path)
+    digest = hashlib.sha256()
+    files = []
+    for value in root.rglob("*"):
+        if value.is_symlink():
+            raise ValueError(
+                f"Synthetic dataset contains a symlink: {value}"
+            )
+        if value.is_file():
+            files.append(value)
+    for value in sorted(
+        files,
+        key=lambda item: item.relative_to(root).as_posix(),
+    ):
+        relative = value.relative_to(root).as_posix()
+        digest.update(relative.encode("utf-8"))
+        digest.update(b"\0")
+        with value.open("rb") as handle:
+            for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+                digest.update(chunk)
+        digest.update(b"\0")
+    return digest.hexdigest()
+
+
+def _passage_release_root_for_catalog(catalog_path: Path) -> Path:
+    catalog = require_safe_regular_file(catalog_path)
+    release_root = require_safe_directory(catalog.parent.parent)
+    expected_catalog_root = release_root / "catalogs"
+    require_lexical_containment(catalog, expected_catalog_root)
+    require_safe_directory(expected_catalog_root)
+    return release_root
+
+
+def _resolve_passage_declared_path(
+    value: str | Path,
+    *,
+    repo_root: Path,
+    release_root: Path,
+    leaf_kind: str,
+    required_subtree: str | None,
+) -> Path:
+    """Validate lexical containment and lstat before canonicalization."""
+
+    lexical = lexical_contextworld_path(value, repo_root=repo_root)
+    subtree = require_safe_directory(
+        release_root
+        if required_subtree is None
+        else release_root / required_subtree
+    )
+    require_lexical_containment(lexical, subtree)
+    if leaf_kind == "directory":
+        require_safe_directory(lexical, containment_root=release_root)
+    elif leaf_kind == "regular_file":
+        require_safe_regular_file(lexical, containment_root=release_root)
+    else:
+        raise ValueError(f"Unsupported passage leaf kind: {leaf_kind}")
+    canonical = lexical.resolve(strict=True)
+    canonical_root = release_root.resolve(strict=True)
+    require_lexical_containment(canonical, canonical_root)
+    return canonical
+
+
+def _passage_catalog_path(
+    value: str | Path,
+    *,
+    repo_root: Path,
+) -> Path:
+    lexical = lexical_contextworld_path(value, repo_root=repo_root)
+    require_safe_regular_file(lexical)
+    release_root = require_safe_directory(lexical.parent.parent)
+    require_lexical_containment(lexical, release_root / "catalogs")
+    return lexical.resolve(strict=True)
+
+
+def _load_frozen_normalizer(
+    specification: dict[str, Any],
+    *,
+    repo_root: Path,
+    split_metadata: dict[str, Any],
+) -> tuple[dict[str, UnbiasedZScoreScaler], dict[str, Any]]:
+    """Load one externally frozen normalizer for every compared model."""
+
+    path = resolve_contextworld_path(
+        specification["path"],
+        repo_root=repo_root,
+    )
+    if not path.is_file():
+        raise FileNotFoundError(path)
+    expected_sha256 = str(specification["sha256"])
+    observed_sha256 = _sha256(path)
+    if observed_sha256 != expected_sha256:
+        raise ValueError(
+            "Frozen normalizer hash mismatch: "
+            f"expected={expected_sha256}, observed={observed_sha256}"
+        )
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    expected_protocol = str(
+        specification.get(
+            "protocol",
+            "tworoom_original_train_s3072_unbiased_zscore_v1",
+        )
+    )
+    expected_scope = str(
+        specification.get(
+            "statistics_scope",
+            "original_9000_train_episodes_only",
+        )
+    )
+    if payload.get("protocol") != expected_protocol:
+        raise ValueError(
+            f"Frozen normalizer protocol differs in {path}"
+        )
+    if payload.get("statistics_scope") != expected_scope:
+        raise ValueError(
+            f"Frozen normalizer statistics scope differs in {path}"
+        )
+    expected_episode_hash = split_metadata.get(
+        "train_episode_ids_sha256"
+    )
+    if (
+        expected_episode_hash is not None
+        and payload.get("train_episode_ids_sha256")
+        != expected_episode_hash
+    ):
+        raise ValueError(
+            "Frozen normalizer and original training split differ: "
+            f"{path}"
+        )
+
+    scalers: dict[str, UnbiasedZScoreScaler] = {}
+    column_metadata: dict[str, Any] = {}
+    for column in ("action", "proprio"):
+        try:
+            values = payload["columns"][column]
+            mean = np.asarray(values["mean"], dtype=np.float64)[None, :]
+            std = np.asarray(
+                values["std_unbiased"],
+                dtype=np.float64,
+            )[None, :]
+        except (KeyError, TypeError, ValueError) as exc:
+            raise ValueError(
+                f"Frozen normalizer has invalid {column!r} statistics: {path}"
+            ) from exc
+        if (
+            mean.shape != (1, 2)
+            or std.shape != (1, 2)
+            or not np.isfinite(mean).all()
+            or not np.isfinite(std).all()
+            or not (std > 0).all()
+        ):
+            raise ValueError(
+                f"Frozen normalizer has invalid {column!r} values: {path}"
+            )
+        scalers[column] = UnbiasedZScoreScaler(mean, std)
+        column_metadata[column] = {
+            "mean": mean.tolist(),
+            "std_unbiased": std.tolist(),
+            "valid_rows": int(values["valid_rows"]),
+        }
+
+    return scalers, {
+        "mode": "frozen_original_training_split",
+        "path": str(path),
+        "sha256": observed_sha256,
+        "protocol": expected_protocol,
+        "statistics_scope": expected_scope,
+        "train_episode_ids_sha256": payload.get(
+            "train_episode_ids_sha256"
+        ),
+        "source_sha256": payload.get("source_sha256"),
+        "columns": column_metadata,
+        "passed": True,
+    }
+
+
+def _load_training_exclusion_manifest(
+    specification: dict[str, Any],
+    *,
+    repo_root: Path,
+    expected_eval_only_door_positions: list[int],
+) -> dict[str, Any]:
+    """Verify the sealed validation identities before training can start."""
+
+    path = resolve_contextworld_path(
+        specification["path"],
+        repo_root=repo_root,
+    )
+    if not path.is_file():
+        raise FileNotFoundError(path)
+    observed_sha256 = _sha256(path)
+    expected_sha256 = str(specification["sha256"])
+    if observed_sha256 != expected_sha256:
+        raise ValueError(
+            "Training exclusion manifest hash mismatch: "
+            f"expected={expected_sha256}, observed={observed_sha256}"
+        )
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    expected_content_sha256 = str(specification["content_sha256"])
+    if payload.get("content_manifest_sha256") != expected_content_sha256:
+        raise ValueError(
+            "Training exclusion content hash mismatch: "
+            f"expected={expected_content_sha256}, "
+            f"observed={payload.get('content_manifest_sha256')}"
+        )
+    records = payload.get("query_records")
+    expected_query_count = int(
+        specification.get("query_count", 300)
+    )
+    if (
+        payload.get("schema_version") != 1
+        or not isinstance(records, list)
+        or payload.get("query_count") != expected_query_count
+        or len(records) != expected_query_count
+    ):
+        raise ValueError(
+            f"Training exclusion manifest has invalid query coverage: {path}"
+        )
+    query_ids = [record.get("query_id") for record in records]
+    template_ids = [record.get("template_id") for record in records]
+    if (
+        any(not isinstance(value, str) or not value for value in query_ids)
+        or len(set(query_ids)) != expected_query_count
+        or any(
+            not isinstance(value, str) or not value
+            for value in template_ids
+        )
+        or len(set(template_ids)) != expected_query_count
+    ):
+        raise ValueError(
+            f"Training exclusion query/template identities are invalid: {path}"
+        )
+    expected_doors = {
+        int(value) for value in expected_eval_only_door_positions
+    }
+    observed_doors = {
+        int(value)
+        for value in payload.get("eval_only_door_positions", [])
+    }
+    if observed_doors != expected_doors:
+        raise ValueError(
+            "Training exclusion door support differs from benchmark config: "
+            f"expected={sorted(expected_doors)}, "
+            f"observed={sorted(observed_doors)}"
+        )
+    return {
+        "path": str(path),
+        "sha256": observed_sha256,
+        "content_sha256": expected_content_sha256,
+        "query_count": expected_query_count,
+        "unique_query_ids": len(set(query_ids)),
+        "unique_template_ids": len(set(template_ids)),
+        "eval_only_door_positions": sorted(observed_doors),
+        "passed": True,
+    }
+
+
+def _load_formal_passage_build_report(
+    config: dict[str, Any],
+    *,
+    repo_root: Path,
+) -> dict[str, Any]:
+    """Bind training to one complete formal data build, not loose files."""
+
+    specification = config["data"].get("formal_build_report")
+    if not isinstance(specification, dict):
+        raise ValueError(
+            "Passage training requires data.formal_build_report"
+        )
+    catalog_roots = {
+        _passage_release_root_for_catalog(
+            _passage_catalog_path(value, repo_root=repo_root)
+        )
+        for group, value in config["data"]["catalogs"].items()
+        if group in PASSAGE_GROUPS
+    }
+    if len(catalog_roots) != 1:
+        raise ValueError(
+            "Passage training catalogs do not share a release root: "
+            f"{sorted(map(str, catalog_roots))}"
+        )
+    release_root = next(iter(catalog_roots))
+    path = _resolve_passage_declared_path(
+        specification["path"],
+        repo_root=repo_root,
+        release_root=release_root,
+        leaf_kind="regular_file",
+        required_subtree=None,
+    )
+    observed_sha256 = _sha256(path)
+    expected_sha256 = str(specification["sha256"])
+    if observed_sha256 != expected_sha256:
+        raise ValueError(
+            "Formal hidden-passage build_report hash mismatch: "
+            f"expected={expected_sha256}, observed={observed_sha256}"
+        )
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    expected_benchmark = str(specification["benchmark"])
+    expected_scale = str(specification.get("scale", "formal"))
+    if (
+        payload.get("schema_version") != 1
+        or payload.get("benchmark") != expected_benchmark
+        or payload.get("scale") != expected_scale
+        or payload.get("status") != "passed"
+        or payload.get("passed") is not True
+    ):
+        raise ValueError(
+            "Formal hidden-passage build_report identity/status failed: "
+            f"path={path}, benchmark={payload.get('benchmark')!r}, "
+            f"scale={payload.get('scale')!r}, "
+            f"status={payload.get('status')!r}, "
+            f"passed={payload.get('passed')!r}"
+        )
+
+    required_checks = (
+        "all_shards_pass",
+        "frozen_validation_exclusion_passes",
+        "pair_and_split_audit_passes",
+        "three_catalogs_are_same_source",
+        "catalog_counts_are_exact",
+        "model_columns_are_pixels_and_action_only",
+        "catalogs_are_synthetic_only",
+        "every_episode_is_exactly_one_h3_clip",
+        "no_unreferenced_lance_shards",
+        "all_shards_have_valid_completion_markers",
+        "no_unreferenced_completion_markers",
+    )
+    checks = payload.get("checks")
+    if (
+        not isinstance(checks, dict)
+        or any(checks.get(name) is not True for name in required_checks)
+    ):
+        raise ValueError(
+            "Formal hidden-passage build_report checks failed: "
+            f"{checks}"
+        )
+
+    expected_commit = str(config["stable_worldmodel"]["commit"])
+    identity = payload.get("identity")
+    if (
+        not isinstance(identity, dict)
+        or identity.get("stable_worldmodel_commit") != expected_commit
+    ):
+        raise ValueError(
+            "Formal hidden-passage build runtime identity mismatch: "
+            f"expected={expected_commit}, observed={identity}"
+        )
+
+    exclusion = payload.get("validation_exclusion_audit")
+    expected_query_count = int(
+        config["data"]["training_exclusion_manifest"].get(
+            "query_count",
+            300,
+        )
+    )
+    if (
+        not isinstance(exclusion, dict)
+        or exclusion.get("passed") is not True
+        or exclusion.get("selected_query_count") != expected_query_count
+        or exclusion.get("selected_query_pixel_hash_overlap") != []
+    ):
+        raise ValueError(
+            "Formal hidden-passage build exclusion/query-overlap gate failed: "
+            f"{exclusion}"
+        )
+
+    artifacts = payload.get("artifacts_by_group")
+    if not isinstance(artifacts, dict) or set(artifacts) != set(
+        PASSAGE_GROUPS
+    ):
+        raise ValueError(
+            "Formal hidden-passage build_report must list exactly the three "
+            f"active passage groups, got {sorted(artifacts or {})}"
+        )
+    quality_groups = config["data_quality"]["groups"]
+    active_artifacts: dict[str, Any] = {}
+    expected_physical_shards = 0
+    expected_physical_episodes = 0
+    for group in PASSAGE_GROUPS:
+        artifact = artifacts[group]
+        quality = quality_groups[group]
+        expected_counts = {
+            "train": {
+                "shards": int(quality["exact_train_scenarios"]),
+                "episodes": int(quality["exact_train_clips"]),
+                "clips": int(quality["exact_train_clips"]),
+            },
+            "val": {
+                "shards": int(quality["exact_validation_scenarios"]),
+                "episodes": int(quality["exact_validation_clips"]),
+                "clips": int(quality["exact_validation_clips"]),
+            },
+            "test": {
+                "shards": int(quality["exact_test_scenarios"]),
+                "episodes": int(quality["exact_test_clips"]),
+                "clips": int(quality["exact_test_clips"]),
+            },
+        }
+        if artifact.get("counts") != expected_counts:
+            raise ValueError(
+                "Formal hidden-passage group counts differ: "
+                f"group={group}, expected={expected_counts}, "
+                f"observed={artifact.get('counts')}"
+            )
+
+        resolved = {}
+        observed_hashes = {}
+        for name, path_field, hash_field in (
+            ("catalog", "catalog", "catalog_sha256"),
+            ("manifest", "manifest", "manifest_sha256"),
+            (
+                "synthesis_report",
+                "synthesis_report",
+                "synthesis_report_sha256",
+            ),
+        ):
+            artifact_path = _resolve_passage_declared_path(
+                artifact[path_field],
+                repo_root=repo_root,
+                release_root=release_root,
+                leaf_kind="regular_file",
+                required_subtree={
+                    "catalog": "catalogs",
+                    "manifest": "manifests",
+                    "synthesis_report": "reports",
+                }[name],
+            )
+            actual_hash = _sha256(artifact_path)
+            if actual_hash != artifact.get(hash_field):
+                raise ValueError(
+                    "Formal hidden-passage active artifact hash mismatch: "
+                    f"group={group}, artifact={name}, "
+                    f"reported={artifact.get(hash_field)}, "
+                    f"observed={actual_hash}"
+                )
+            resolved[name] = str(artifact_path)
+            observed_hashes[name] = actual_hash
+
+        configured_catalog = _passage_catalog_path(
+            config["data"]["catalogs"][group],
+            repo_root=repo_root,
+        )
+        if Path(resolved["catalog"]) != configured_catalog:
+            raise ValueError(
+                "Formal build_report catalog is not the active training "
+                f"catalog: group={group}, reported={resolved['catalog']}, "
+                f"configured={configured_catalog}"
+            )
+        for name, quality_key in (
+            ("catalog", "required_catalog_sha256"),
+            ("manifest", "required_manifest_sha256"),
+            (
+                "synthesis_report",
+                "required_synthesis_report_sha256",
+            ),
+        ):
+            frozen_hash = quality.get(quality_key)
+            if (
+                frozen_hash is not None
+                and str(frozen_hash) != observed_hashes[name]
+            ):
+                raise ValueError(
+                    "Formal build_report artifact differs from the group "
+                    f"freeze: group={group}, artifact={name}"
+                )
+        active_artifacts[group] = {
+            name: {
+                "path": resolved[name],
+                "sha256": observed_hashes[name],
+            }
+            for name in (
+                "catalog",
+                "manifest",
+                "synthesis_report",
+            )
+        }
+        active_artifacts[group]["counts"] = expected_counts
+        if group != "passage_mixed":
+            expected_physical_shards += sum(
+                row["shards"] for row in expected_counts.values()
+            )
+            expected_physical_episodes += sum(
+                row["episodes"] for row in expected_counts.values()
+            )
+
+    rows_per_episode = int(payload["history3"]["rows_per_episode"])
+    physical_counts = {
+        "shards": expected_physical_shards,
+        "episodes": expected_physical_episodes,
+        "rows": expected_physical_episodes * rows_per_episode,
+    }
+    observed_physical_counts = {
+        "shards": int(payload.get("physical_shards", -1)),
+        "episodes": int(payload.get("physical_episodes", -1)),
+        "rows": int(payload.get("physical_rows", -1)),
+    }
+    if observed_physical_counts != physical_counts:
+        raise ValueError(
+            "Formal hidden-passage physical counts differ: "
+            f"expected={physical_counts}, "
+            f"observed={observed_physical_counts}"
+        )
+
+    return {
+        "required": True,
+        "path": str(path),
+        "sha256": observed_sha256,
+        "benchmark": expected_benchmark,
+        "scale": expected_scale,
+        "status": "passed",
+        "checks": {name: True for name in required_checks},
+        "active_artifacts": active_artifacts,
+        "physical_counts": physical_counts,
+        "passed": True,
+    }
+
+
 def _resolve_catalog_entries(
     entries: list[str], *, repo_root: Path, require_directories: bool = True
 ) -> list[Path]:
@@ -108,9 +647,24 @@ def _catalog_paths(
     *,
     repo_root: Path,
 ) -> list[Path]:
+    require_safe_regular_file(catalog_path)
     with catalog_path.open("r", encoding="utf-8") as handle:
         catalog = json.load(handle)
     raw = catalog[section]["synthetic"]
+    if str(catalog.get("benchmark", "")).startswith(
+        "tworoom_hidden_passage_history3"
+    ):
+        release_root = _passage_release_root_for_catalog(catalog_path)
+        return sorted(
+            _resolve_passage_declared_path(
+                entry,
+                repo_root=repo_root,
+                release_root=release_root,
+                leaf_kind="directory",
+                required_subtree="tables",
+            )
+            for entry in raw
+        )
     return _resolve_catalog_entries(raw, repo_root=repo_root)
 
 
@@ -240,6 +794,7 @@ def _validate_complete_synthesis_report(
 def _catalog_split_audit(
     catalog_path: Path,
     *,
+    swm: Any | None = None,
     repo_root: Path,
     expected_stablewm_commit: str | None,
     require_complete_synthesis_report: bool = False,
@@ -247,6 +802,7 @@ def _catalog_split_audit(
     factor_support_contract: dict[str, Any] | None = None,
     required_artifact_hashes: dict[str, str] | None = None,
 ) -> dict[str, Any]:
+    require_safe_regular_file(catalog_path)
     with catalog_path.open("r", encoding="utf-8") as handle:
         catalog = json.load(handle)
     if catalog.get("schema_version") != 1:
@@ -255,14 +811,52 @@ def _catalog_split_audit(
             f"{catalog.get('schema_version')}"
         )
 
-    train_paths = _resolve_catalog_entries(
-        list(catalog["train"]["synthetic"]), repo_root=repo_root
+    passage_catalog = str(catalog.get("benchmark", "")).startswith(
+        "tworoom_hidden_passage_history3"
     )
-    validation_paths = _resolve_catalog_entries(
-        list(catalog["val"]["synthetic"]), repo_root=repo_root
+    catalog_release_root = (
+        _passage_release_root_for_catalog(catalog_path)
+        if passage_catalog
+        else None
+    )
+    diagnostic_source_release = catalog.get(
+        "diagnostic_source_passage_release_root"
+    )
+    if diagnostic_source_release is not None:
+        if passage_catalog or catalog.get("diagnostic_only") is not True:
+            raise ValueError(
+                "A diagnostic source passage release is allowed only for "
+                "an explicitly diagnostic, non-formal catalog"
+            )
+        record_release_root = require_safe_directory(
+            resolve_contextworld_path(
+                diagnostic_source_release,
+                repo_root=repo_root,
+            )
+        )
+    else:
+        record_release_root = catalog_release_root
+
+    def resolve_entries(entries: list[str]) -> list[Path]:
+        if record_release_root is None:
+            return _resolve_catalog_entries(entries, repo_root=repo_root)
+        return sorted(
+            _resolve_passage_declared_path(
+                entry,
+                repo_root=repo_root,
+                release_root=record_release_root,
+                leaf_kind="directory",
+                required_subtree="tables",
+            )
+            for entry in entries
+        )
+
+    train_paths = resolve_entries(list(catalog["train"]["synthetic"]))
+    validation_paths = resolve_entries(
+        list(catalog["val"]["synthetic"])
     )
     test_entries = list(catalog.get("ood_test", {}).get("synthetic", []))
-    test_paths = _resolve_catalog_entries(test_entries, repo_root=repo_root)
+    test_paths = resolve_entries(test_entries)
 
     duplicates = {}
     for name, paths in {
@@ -296,10 +890,20 @@ def _catalog_split_audit(
     artifact_root = catalog_path.parent.parent
     manifest_path = artifact_root / "manifests" / f"{catalog_path.stem}.jsonl"
     report_path = artifact_root / "reports" / f"{catalog_path.stem}.json"
-    if not manifest_path.is_file():
-        raise FileNotFoundError(manifest_path)
-    if not report_path.is_file():
-        raise FileNotFoundError(report_path)
+    if catalog_release_root is not None:
+        require_safe_regular_file(
+            manifest_path,
+            containment_root=catalog_release_root,
+        )
+        require_safe_regular_file(
+            report_path,
+            containment_root=catalog_release_root,
+        )
+    else:
+        if not manifest_path.is_file():
+            raise FileNotFoundError(manifest_path)
+        if not report_path.is_file():
+            raise FileNotFoundError(report_path)
 
     records = []
     with manifest_path.open("r", encoding="utf-8") as handle:
@@ -321,10 +925,20 @@ def _catalog_split_audit(
     commits = set()
     manifest_codecs = set()
     record_by_path = {}
+    storage_hashes_verified = 0
     for record in records:
-        resolved = _resolve_catalog_entries(
-            [record["output_path"]], repo_root=repo_root
-        )[0]
+        if record_release_root is not None:
+            resolved = _resolve_passage_declared_path(
+                record["output_path"],
+                repo_root=repo_root,
+                release_root=record_release_root,
+                leaf_kind="directory",
+                required_subtree="tables",
+            )
+        else:
+            resolved = _resolve_catalog_entries(
+                [record["output_path"]], repo_root=repo_root
+            )[0]
         manifest_paths.append(resolved)
         scenario_ids.append(record["scenario_id"])
         fingerprints.append(record["fingerprint"])
@@ -332,9 +946,13 @@ def _catalog_split_audit(
         manifest_codecs.add(
             json.dumps(record.get("pixel_codec"), sort_keys=True)
         )
-        if record.get("collection_status") != "collected":
+        if record.get("collection_status") not in {
+            "collected",
+            "reused",
+        }:
             raise ValueError(
-                f"Manifest scenario is not collected: {record['scenario_id']}"
+                "Manifest scenario is neither collected nor safely reused: "
+                f"{record['scenario_id']}"
             )
         if resolved.stem != record["scenario_id"]:
             raise ValueError(
@@ -344,6 +962,17 @@ def _catalog_split_audit(
             raise ValueError(
                 f"Scenario fingerprint/path mismatch: {record['scenario_id']}"
             )
+        expected_storage_sha256 = record.get("storage_sha256")
+        if expected_storage_sha256 is not None:
+            observed_storage_sha256 = _directory_sha256(resolved)
+            if observed_storage_sha256 != str(expected_storage_sha256):
+                raise ValueError(
+                    "Synthetic dataset storage hash mismatch: "
+                    f"scenario={record['scenario_id']}, "
+                    f"expected={expected_storage_sha256}, "
+                    f"observed={observed_storage_sha256}"
+                )
+            storage_hashes_verified += 1
         record_by_path[resolved] = record
 
     unique_fields = {
@@ -370,6 +999,50 @@ def _catalog_split_audit(
             f"catalog_only={sorted(str(p) for p in catalog_union - manifest_union)}, "
             f"manifest_only={sorted(str(p) for p in manifest_union - catalog_union)}"
         )
+    passage_records = [
+        record
+        for record in records
+        if "passage.open" in dict(record.get("factors", {}))
+    ]
+    if passage_records:
+        if swm is None:
+            raise ValueError(
+                "Passage catalog audit requires Stable-WorldModel to "
+                "recompute every shard's logical content"
+            )
+        logical_shards = [
+            _verify_passage_shard_logical_content(
+                swm,
+                record=record,
+                repo_root=repo_root,
+                release_root=record_release_root,
+            )
+            for record in passage_records
+        ]
+        logical_content_audit = {
+            "required": True,
+            "shards_verified": len(logical_shards),
+            "episodes_verified": sum(
+                int(row["episodes_verified"])
+                for row in logical_shards
+            ),
+            "completion_markers_verified": sum(
+                row["completion_marker"]["passed"]
+                for row in logical_shards
+            ),
+            "completion_protocol": (
+                logical_shards[0]["completion_marker"]["protocol"]
+            ),
+            "columns": logical_shards[0]["columns"],
+            "passed": True,
+        }
+    else:
+        logical_content_audit = {
+            "required": False,
+            "shards_verified": 0,
+            "episodes_verified": 0,
+            "passed": True,
+        }
     section_contract = {
         "train": (train, "train", "train"),
         "validation": (validation, "val", "validation"),
@@ -530,6 +1203,7 @@ def _catalog_split_audit(
             "passed": True,
         },
         "factor_support": factor_support_audit,
+        "logical_content_audit": logical_content_audit,
         "synthesis_report_gate": synthesis_report_gate,
         "stable_worldmodel_commits": sorted(commits),
         "pixel_codec": catalog_codec,
@@ -538,6 +1212,7 @@ def _catalog_split_audit(
         "test_scenarios": len(test),
         "unique_scenario_ids": len(set(scenario_ids)),
         "unique_fingerprints": len(set(fingerprints)),
+        "storage_hashes_verified": storage_hashes_verified,
         "duplicate_paths": duplicates,
         "path_overlap": overlaps,
         "passed": True,
@@ -586,6 +1261,868 @@ def _manifest_records_by_seed_group(
     if not records:
         raise ValueError(f"Empty synthesis manifest: {manifest_path}")
     return records
+
+
+def _manifest_records_by_pair(
+    catalog_path: Path,
+    *,
+    repo_root: Path,
+) -> dict[tuple[str, str], dict[str, Any]]:
+    """Index one passage manifest by split and stable physical pair id."""
+
+    artifact_root = catalog_path.parent.parent
+    manifest_path = artifact_root / "manifests" / f"{catalog_path.stem}.jsonl"
+    require_safe_regular_file(
+        manifest_path,
+        containment_root=artifact_root,
+    )
+    records: dict[tuple[str, str], dict[str, Any]] = {}
+    with manifest_path.open("r", encoding="utf-8") as handle:
+        for line_number, line in enumerate(handle, start=1):
+            if not line.strip():
+                continue
+            record = json.loads(line)
+            pair_id = record.get("pair_id", record.get("seed_group"))
+            split = record.get("split")
+            if (
+                not isinstance(pair_id, str)
+                or not pair_id
+                or not isinstance(split, str)
+                or not split
+            ):
+                raise ValueError(
+                    "Passage manifest record needs split and pair_id "
+                    f"(or seed_group): {manifest_path}:{line_number}"
+                )
+            identity = (split, pair_id)
+            if identity in records:
+                raise ValueError(
+                    f"Duplicate passage pair {identity!r} in {manifest_path}"
+                )
+            records[identity] = record
+    if not records:
+        raise ValueError(f"Empty synthesis manifest: {manifest_path}")
+    return records
+
+
+def _catalog_split_path_sets(
+    catalog_path: Path,
+    *,
+    repo_root: Path,
+) -> dict[str, set[Path]]:
+    return {
+        "train": set(
+            _catalog_paths(catalog_path, "train", repo_root=repo_root)
+        ),
+        "validation": set(
+            _catalog_paths(catalog_path, "val", repo_root=repo_root)
+        ),
+        "test": set(
+            _catalog_paths(
+                catalog_path,
+                "ood_test",
+                repo_root=repo_root,
+            )
+        ),
+    }
+
+
+def _load_passage_episode_sidecar(
+    record: dict[str, Any],
+    *,
+    repo_root: Path,
+    release_root: Path,
+    strict_release_layout: bool = True,
+) -> tuple[dict[str, dict[str, Any]], dict[str, Any]]:
+    raw_path = record.get("episode_manifest")
+    expected_sha256 = record.get("episode_manifest_sha256")
+    if (
+        not isinstance(raw_path, str)
+        or not raw_path
+        or not isinstance(expected_sha256, str)
+        or len(expected_sha256) != 64
+    ):
+        raise ValueError(
+            "Passage manifest record is missing its episode sidecar binding: "
+            f"{record.get('scenario_id', record.get('pair_id'))}"
+        )
+    path = _resolve_passage_declared_path(
+        raw_path,
+        repo_root=repo_root,
+        release_root=release_root,
+        leaf_kind="regular_file",
+        required_subtree=(
+            "episode_manifests" if strict_release_layout else None
+        ),
+    )
+    observed_sha256 = _sha256(path)
+    if observed_sha256 != expected_sha256:
+        raise ValueError(
+            "Passage episode sidecar hash mismatch: "
+            f"expected={expected_sha256}, observed={observed_sha256}, "
+            f"path={path}"
+        )
+
+    episodes: dict[str, dict[str, Any]] = {}
+    with path.open("r", encoding="utf-8") as handle:
+        for line_number, line in enumerate(handle, start=1):
+            if not line.strip():
+                continue
+            episode = json.loads(line)
+            template_id = episode.get("template_id")
+            if not isinstance(template_id, str) or not template_id:
+                raise ValueError(
+                    f"Episode sidecar is missing template_id: "
+                    f"{path}:{line_number}"
+                )
+            if template_id in episodes:
+                raise ValueError(
+                    f"Duplicate episode template {template_id!r}: {path}"
+                )
+            episodes[template_id] = episode
+    expected_count = int(record.get("episode_count", -1))
+    if (
+        not episodes
+        or expected_count != len(episodes)
+        or int(record.get("clip_count", -1)) != expected_count
+    ):
+        raise ValueError(
+            "Passage episode sidecar count differs from its shard manifest: "
+            f"path={path}, episodes={len(episodes)}, "
+            f"expected={expected_count}, "
+            f"clips={record.get('clip_count')}"
+        )
+    return episodes, {
+        "path": str(path),
+        "sha256": observed_sha256,
+        "episodes": len(episodes),
+        "passed": True,
+    }
+
+
+def _verify_passage_shard_logical_content(
+    swm: Any,
+    *,
+    record: dict[str, Any],
+    repo_root: Path,
+    release_root: Path | None = None,
+) -> dict[str, Any]:
+    """Recompute one shard identity from decoded Lance rows."""
+
+    from contextworld.evaluation.hidden_passage_h3_data import (
+        LOGICAL_CONTENT_COLUMNS,
+        LOGICAL_CONTENT_HASH_KIND,
+        SHARD_COMPLETION_PROTOCOL,
+        STORAGE_CONTENT_HASH_KIND,
+        logical_episode_content_hashes,
+        logical_shard_content_sha256,
+        shard_completion_marker_path,
+        verify_hidden_passage_shard_completion,
+    )
+
+    scenario_id = str(record.get("scenario_id", "unknown"))
+    strict_release_layout = release_root is not None
+    release_root = (
+        require_safe_directory(release_root)
+        if release_root is not None
+        else require_safe_directory(repo_root)
+    )
+    if record.get("content_sha256_kind") != LOGICAL_CONTENT_HASH_KIND:
+        raise ValueError(
+            "Passage shard has an unsupported logical content hash kind: "
+            f"scenario={scenario_id}, "
+            f"observed={record.get('content_sha256_kind')!r}"
+        )
+    expected_content_sha256 = record.get("content_sha256")
+    if (
+        not isinstance(expected_content_sha256, str)
+        or len(expected_content_sha256) != 64
+    ):
+        raise ValueError(
+            f"Passage shard has no sealed logical content hash: {scenario_id}"
+        )
+    table_path = _resolve_passage_declared_path(
+        record["output_path"],
+        repo_root=repo_root,
+        release_root=release_root,
+        leaf_kind="directory",
+        required_subtree="tables" if strict_release_layout else None,
+    )
+    if record.get("storage_sha256_kind") != STORAGE_CONTENT_HASH_KIND:
+        raise ValueError(
+            "Passage shard has an unsupported storage hash kind: "
+            f"scenario={scenario_id}, "
+            f"observed={record.get('storage_sha256_kind')!r}"
+        )
+    expected_storage_sha256 = record.get("storage_sha256")
+    expected_marker_sha256 = record.get("completion_marker_sha256")
+    raw_marker_path = record.get("completion_marker")
+    if (
+        record.get("completion_protocol") != SHARD_COMPLETION_PROTOCOL
+        or not isinstance(expected_storage_sha256, str)
+        or len(expected_storage_sha256) != 64
+        or not isinstance(expected_marker_sha256, str)
+        or len(expected_marker_sha256) != 64
+        or not isinstance(raw_marker_path, str)
+        or not raw_marker_path
+    ):
+        raise ValueError(
+            "Passage shard has no sealed completion-marker binding: "
+            f"{scenario_id}"
+        )
+    marker_path = _resolve_passage_declared_path(
+        raw_marker_path,
+        repo_root=repo_root,
+        release_root=release_root,
+        leaf_kind="regular_file",
+        required_subtree="tables" if strict_release_layout else None,
+    )
+    expected_marker_path = shard_completion_marker_path(table_path)
+    if marker_path != expected_marker_path:
+        raise ValueError(
+            "Passage completion marker is not the shard sibling: "
+            f"scenario={scenario_id}, declared={marker_path}, "
+            f"expected={expected_marker_path}"
+        )
+    episodes, _ = _load_passage_episode_sidecar(
+        record,
+        repo_root=repo_root,
+        release_root=release_root,
+        strict_release_layout=strict_release_layout,
+    )
+    completion_audit = verify_hidden_passage_shard_completion(
+        table_path=table_path,
+        episode_manifest_path=_resolve_passage_declared_path(
+            record["episode_manifest"],
+            repo_root=repo_root,
+            release_root=release_root,
+            leaf_kind="regular_file",
+            required_subtree=(
+                "episode_manifests" if strict_release_layout else None
+            ),
+        ),
+        expected_scenario_id=scenario_id,
+        expected_fingerprint=str(record.get("fingerprint", "")),
+        expected_content_sha256=str(expected_content_sha256),
+        expected_storage_sha256=expected_storage_sha256,
+        expected_episode_manifest_sha256=str(
+            record["episode_manifest_sha256"]
+        ),
+        expected_marker_sha256=expected_marker_sha256,
+    )
+    ordered = sorted(
+        episodes.values(),
+        key=lambda row: int(row.get("episode_index", -1)),
+    )
+    expected_indices = list(range(len(ordered)))
+    observed_indices = [
+        int(row.get("episode_index", -1)) for row in ordered
+    ]
+    if observed_indices != expected_indices:
+        raise ValueError(
+            "Passage episode sidecar indices are not contiguous/in order: "
+            f"scenario={scenario_id}, observed={observed_indices[:20]}"
+        )
+
+    raw = swm.data.LanceDataset(path=table_path)
+    rows_per_episode = int(record.get("rows_per_episode", -1))
+    if (
+        len(raw.lengths) != len(ordered)
+        or any(int(length) != rows_per_episode for length in raw.lengths)
+        or int(sum(map(int, raw.lengths)))
+        != int(record.get("raw_rows", -1))
+    ):
+        raise ValueError(
+            "Passage Lance row/episode counts differ from the sealed "
+            f"manifest: scenario={scenario_id}"
+        )
+
+    observed_rows = []
+    for episode_index, expected_row in enumerate(ordered):
+        actual_hashes = logical_episode_content_hashes(
+            raw.load_episode(episode_index)
+        )
+        hash_mismatches = {
+            name: {
+                "expected": expected_row.get(name),
+                "observed": observed,
+            }
+            for name, observed in actual_hashes.items()
+            if expected_row.get(name) != observed
+        }
+        if hash_mismatches:
+            raise ValueError(
+                "Passage Lance logical content differs from its episode "
+                f"sidecar: scenario={scenario_id}, "
+                f"episode={episode_index}, mismatches={hash_mismatches}"
+            )
+        observed_rows.append(
+            {
+                "episode_index": episode_index,
+                "template_id": expected_row["template_id"],
+                "rule": expected_row["rule"],
+                **actual_hashes,
+            }
+        )
+    observed_content_sha256 = logical_shard_content_sha256(observed_rows)
+    if observed_content_sha256 != expected_content_sha256:
+        raise ValueError(
+            "Passage Lance logical content hash mismatch: "
+            f"scenario={scenario_id}, "
+            f"expected={expected_content_sha256}, "
+            f"observed={observed_content_sha256}"
+        )
+    return {
+        "scenario_id": scenario_id,
+        "path": str(table_path),
+        "content_sha256_kind": LOGICAL_CONTENT_HASH_KIND,
+        "content_sha256": observed_content_sha256,
+        "episodes_verified": len(observed_rows),
+        "rows_verified": int(sum(map(int, raw.lengths))),
+        "columns": list(LOGICAL_CONTENT_COLUMNS),
+        "completion_marker": completion_audit,
+        "passed": True,
+    }
+
+
+def _validate_paired_passage_catalogs(
+    config: dict[str, Any],
+    *,
+    repo_root: Path,
+) -> dict[str, Any]:
+    """Prove that mixed support is exactly the union of paired single rules."""
+
+    catalog_paths = {
+        group: _passage_catalog_path(
+            config["data"]["catalogs"][group],
+            repo_root=repo_root,
+        )
+        for group in PASSAGE_GROUPS
+    }
+    split_paths = {
+        group: _catalog_split_path_sets(path, repo_root=repo_root)
+        for group, path in catalog_paths.items()
+    }
+    path_checks: dict[str, dict[str, Any]] = {}
+    for split in ("train", "validation", "test"):
+        passable = split_paths["passage_passable"][split]
+        blocked = split_paths["passage_blocked"][split]
+        mixed = split_paths["passage_mixed"][split]
+        disjoint = not (passable & blocked)
+        exact_union = mixed == passable | blocked
+        path_checks[split] = {
+            "passable_paths": len(passable),
+            "blocked_paths": len(blocked),
+            "mixed_paths": len(mixed),
+            "single_rule_paths_disjoint": disjoint,
+            "mixed_is_exact_union": exact_union,
+            "passed": disjoint and exact_union,
+        }
+    if not all(row["passed"] for row in path_checks.values()):
+        raise ValueError(
+            "Passage mixed catalog is not the exact disjoint union of "
+            f"the two single-rule catalogs: {path_checks}"
+        )
+
+    records = {
+        group: _manifest_records_by_pair(
+            catalog_paths[group],
+            repo_root=repo_root,
+        )
+        for group in ("passage_passable", "passage_blocked")
+    }
+    release_roots = {
+        _passage_release_root_for_catalog(path)
+        for path in catalog_paths.values()
+    }
+    if len(release_roots) != 1:
+        raise ValueError(
+            "Passage catalogs do not share one sealed release root: "
+            f"{sorted(map(str, release_roots))}"
+        )
+    release_root = next(iter(release_roots))
+    passable_records = records["passage_passable"]
+    blocked_records = records["passage_blocked"]
+    if set(passable_records) != set(blocked_records):
+        raise ValueError(
+            "Passage single-rule manifests have different pair sets: "
+            f"passable_only={sorted(set(passable_records) - set(blocked_records))}, "
+            f"blocked_only={sorted(set(blocked_records) - set(passable_records))}"
+        )
+
+    all_physical_records = [
+        record
+        for group_records in records.values()
+        for record in group_records.values()
+    ]
+    sealed_release_layout = all(
+        all(
+            isinstance(record.get(field), str) and bool(record[field])
+            for field in (
+                "completion_marker",
+                "completion_marker_sha256",
+                "storage_sha256",
+                "episode_manifest",
+                "episode_manifest_sha256",
+            )
+        )
+        for record in all_physical_records
+    )
+    expected_tables: set[Path] = set()
+    expected_markers: set[Path] = set()
+    expected_sidecars: set[Path] = set()
+    if sealed_release_layout:
+        for record in all_physical_records:
+            table = _resolve_passage_declared_path(
+                record["output_path"],
+                repo_root=repo_root,
+                release_root=release_root,
+                leaf_kind="directory",
+                required_subtree="tables",
+            )
+            marker = _resolve_passage_declared_path(
+                record["completion_marker"],
+                repo_root=repo_root,
+                release_root=release_root,
+                leaf_kind="regular_file",
+                required_subtree="tables",
+            )
+            sidecar = _resolve_passage_declared_path(
+                record["episode_manifest"],
+                repo_root=repo_root,
+                release_root=release_root,
+                leaf_kind="regular_file",
+                required_subtree="episode_manifests",
+            )
+            if marker != shard_completion_marker_path(table):
+                raise ValueError(
+                    "Passage marker is not the declared table sibling: "
+                    f"scenario={record.get('scenario_id')}, marker={marker}, "
+                    f"table={table}"
+                )
+            expected_tables.add(table)
+            expected_markers.add(marker)
+            expected_sidecars.add(sidecar)
+        release_asset_audit = audit_hidden_passage_release_assets(
+            release_root=release_root,
+            expected_tables=expected_tables,
+            expected_markers=expected_markers,
+            expected_sidecars=expected_sidecars,
+        )
+    else:
+        release_asset_audit = {
+            "required": False,
+            "reason": "legacy_unsealed_unit_fixture",
+            "passed": True,
+        }
+
+    contract = dict(
+        config.get("paired_collection_contract", {}).get(
+            "passage_rules",
+            {},
+        )
+    )
+    paired_fields = tuple(
+        contract.get(
+            "equal_manifest_fields",
+            (
+                "split",
+                "regime",
+                "env_id",
+                "env_seed",
+                "policy_seed",
+                "episodes",
+                "task",
+                "max_episode_steps",
+                "image_shape",
+                "reset_constraints",
+                "pixel_codec",
+                "seed_group",
+                "pair_id",
+            ),
+        )
+    )
+    mismatches: list[dict[str, Any]] = []
+    passage_values: dict[str, Counter] = {
+        "passage_passable": Counter(),
+        "passage_blocked": Counter(),
+    }
+    door_positions_by_split: dict[str, set[int]] = {
+        "train": set(),
+        "val": set(),
+        "test": set(),
+    }
+    paired_episode_records = 0
+    episode_sidecars_verified = 0
+    equal_episode_fields = tuple(
+        contract.get(
+            "equal_episode_fields",
+            (
+                "pair_id",
+                "action_sha256",
+                "initial_pixels_sha256",
+                "query_pixels_sha256",
+                "model_input_keys",
+                "passed",
+            ),
+        )
+    )
+    allowed_episode_differences = list(
+        contract.get(
+            "allowed_episode_differences",
+            (
+                "rule",
+                "passage_open",
+                "future_pixels_sha256",
+            ),
+        )
+    )
+    for identity in sorted(passable_records):
+        left = passable_records[identity]
+        right = blocked_records[identity]
+        changed = []
+        for field in paired_fields:
+            if field not in left or field not in right:
+                changed.append(f"missing.{field}")
+            elif left[field] != right[field]:
+                changed.append(field)
+        left_factors = dict(left.get("factors", {}))
+        right_factors = dict(right.get("factors", {}))
+        left_passage = left_factors.pop("passage.open", None)
+        right_passage = right_factors.pop("passage.open", None)
+        left_door = left_factors.get("door.position")
+        if identity[0] in door_positions_by_split:
+            try:
+                raw_doors = (
+                    list(left_door)
+                    if isinstance(left_door, (list, tuple))
+                    else [left_door]
+                )
+                normalized_doors = {
+                    int(value) for value in raw_doors
+                }
+                if len(normalized_doors) != 1:
+                    raise ValueError(left_door)
+                door_positions_by_split[identity[0]].update(
+                    normalized_doors
+                )
+            except (TypeError, ValueError):
+                changed.append("door.position")
+        passage_values["passage_passable"][str(left_passage)] += 1
+        passage_values["passage_blocked"][str(right_passage)] += 1
+        if left_factors != right_factors:
+            changed.append("factors_except_passage.open")
+        if left_passage != 1:
+            changed.append("passage_passable_support")
+        if right_passage != 0:
+            changed.append("passage_blocked_support")
+        for optional_field in contract.get(
+            "equal_manifest_count_fields",
+            (
+                "episode_count",
+                "clip_count",
+                "rows_per_episode",
+                "raw_rows",
+            ),
+        ):
+            if (
+                optional_field in left
+                or optional_field in right
+            ) and left.get(optional_field) != right.get(optional_field):
+                changed.append(optional_field)
+
+        try:
+            left_episodes, _ = _load_passage_episode_sidecar(
+                left,
+                repo_root=repo_root,
+                release_root=release_root,
+                strict_release_layout=sealed_release_layout,
+            )
+            right_episodes, _ = _load_passage_episode_sidecar(
+                right,
+                repo_root=repo_root,
+                release_root=release_root,
+                strict_release_layout=sealed_release_layout,
+            )
+            episode_sidecars_verified += 2
+        except (FileNotFoundError, ValueError) as exc:
+            raise ValueError(
+                "Passage episode-level pairing audit failed for "
+                f"{identity!r}: {exc}"
+            ) from exc
+        if set(left_episodes) != set(right_episodes):
+            changed.append("episode_template_set")
+        else:
+            paired_episode_records += len(left_episodes)
+            for template_id in sorted(left_episodes):
+                left_episode = left_episodes[template_id]
+                right_episode = right_episodes[template_id]
+                for field in equal_episode_fields:
+                    if (
+                        field not in left_episode
+                        or field not in right_episode
+                    ):
+                        changed.append(f"episode.missing.{field}")
+                    elif left_episode[field] != right_episode[field]:
+                        changed.append(f"episode.{field}")
+                if set(left_episode) != set(right_episode):
+                    changed.append("episode.key_set")
+                for field in sorted(
+                    set(left_episode) | set(right_episode)
+                ):
+                    if (
+                        left_episode.get(field)
+                        != right_episode.get(field)
+                        and field not in allowed_episode_differences
+                    ):
+                        changed.append(f"episode.{field}")
+                if (
+                    left_episode.get("rule") != "passable"
+                    or left_episode.get("passage_open") != 1
+                ):
+                    changed.append("episode.passable_rule")
+                if (
+                    right_episode.get("rule") != "blocked"
+                    or right_episode.get("passage_open") != 0
+                ):
+                    changed.append("episode.blocked_rule")
+                if left_episode.get("model_input_keys") != [
+                    "pixels",
+                    "action",
+                ]:
+                    changed.append("episode.model_input_boundary")
+        if changed:
+            mismatches.append(
+                {
+                    "split": identity[0],
+                    "pair_id": identity[1],
+                    "fields": sorted(set(changed)),
+                }
+            )
+    if mismatches:
+        raise ValueError(
+            "Paired passage catalogs differ beyond passage.open: "
+            f"{mismatches[:20]}"
+        )
+
+    expected_eval_doors = {
+        int(value)
+        for value in config.get("passage_support", {}).get(
+            "eval_only_door_positions",
+            [],
+        )
+    }
+    train_and_loader_val_doors = (
+        door_positions_by_split["train"]
+        | door_positions_by_split["val"]
+    )
+    eval_overlap = train_and_loader_val_doors & expected_eval_doors
+    test_catalog_empty = not door_positions_by_split["test"]
+    if eval_overlap or not test_catalog_empty:
+        raise ValueError(
+            "Passage train/validation/test door isolation failed: "
+            f"train_or_val_overlap={sorted(eval_overlap)}, "
+            "the training catalog ood_test section must be empty, "
+            f"observed_test={sorted(door_positions_by_split['test'])}"
+        )
+
+    return {
+        "required": True,
+        "catalogs": {
+            key: str(value) for key, value in catalog_paths.items()
+        },
+        "paired_single_rule_shards": len(passable_records),
+        "pair_identity": ["split", "pair_id"],
+        "equal_manifest_fields": list(paired_fields),
+        "equal_episode_fields": list(equal_episode_fields),
+        "allowed_difference": "passage.open",
+        "allowed_episode_differences": allowed_episode_differences,
+        "episode_sidecars_verified": episode_sidecars_verified,
+        "paired_episode_records": paired_episode_records,
+        "single_rule_support": {
+            group: dict(sorted(values.items()))
+            for group, values in passage_values.items()
+        },
+        "mixed_catalog_composition": "exact_path_union",
+        "release_asset_audit": release_asset_audit,
+        "split_path_checks": path_checks,
+        "door_position_isolation": {
+            "expected_eval_only": sorted(expected_eval_doors),
+            "observed": {
+                "train": sorted(door_positions_by_split["train"]),
+                "validation": sorted(door_positions_by_split["val"]),
+                "test": sorted(door_positions_by_split["test"]),
+            },
+            "train_and_loader_validation_exclude_eval_only": (
+                not eval_overlap
+            ),
+            "training_catalog_test_is_empty": test_catalog_empty,
+            "validation_assets_are_managed_separately": True,
+            "passed": not eval_overlap and test_catalog_empty,
+        },
+        "fair_draw_contract": (
+            "models receive equal logical optimizer draws; mixed raw support "
+            "is intentionally the union and therefore twice one single rule"
+        ),
+        "passed": True,
+    }
+
+
+def revalidate_hidden_passage_training_storage(
+    benchmark_config: Path,
+    *,
+    repo_root: Path,
+) -> dict[str, Any]:
+    """Recheck sealed bytes immediately before the first training batch."""
+
+    config = _load_yaml(benchmark_config)
+    catalog_paths = {
+        group: _passage_catalog_path(
+            config["data"]["catalogs"][group],
+            repo_root=repo_root,
+        )
+        for group in PASSAGE_GROUPS
+    }
+    release_roots = {
+        _passage_release_root_for_catalog(path)
+        for path in catalog_paths.values()
+    }
+    if len(release_roots) != 1:
+        raise ValueError(
+            "Passage catalogs do not share one release root during "
+            f"pre-batch revalidation: {sorted(map(str, release_roots))}"
+        )
+    release_root = next(iter(release_roots))
+    records_by_group = {
+        group: _manifest_records_by_pair(
+            catalog_paths[group],
+            repo_root=repo_root,
+        )
+        for group in ("passage_passable", "passage_blocked")
+    }
+    physical_records: dict[str, dict[str, Any]] = {}
+    expected_tables: set[Path] = set()
+    expected_markers: set[Path] = set()
+    expected_sidecars: set[Path] = set()
+    for records in records_by_group.values():
+        for record in records.values():
+            scenario_id = str(record["scenario_id"])
+            if scenario_id in physical_records:
+                raise ValueError(
+                    f"Duplicate physical passage scenario: {scenario_id}"
+                )
+            table = _resolve_passage_declared_path(
+                record["output_path"],
+                repo_root=repo_root,
+                release_root=release_root,
+                leaf_kind="directory",
+                required_subtree="tables",
+            )
+            marker = _resolve_passage_declared_path(
+                record["completion_marker"],
+                repo_root=repo_root,
+                release_root=release_root,
+                leaf_kind="regular_file",
+                required_subtree="tables",
+            )
+            sidecar = _resolve_passage_declared_path(
+                record["episode_manifest"],
+                repo_root=repo_root,
+                release_root=release_root,
+                leaf_kind="regular_file",
+                required_subtree="episode_manifests",
+            )
+            if marker != shard_completion_marker_path(table):
+                raise ValueError(
+                    "Passage marker is not the table sibling during "
+                    f"pre-batch revalidation: {scenario_id}"
+                )
+            physical_records[scenario_id] = record
+            expected_tables.add(table)
+            expected_markers.add(marker)
+            expected_sidecars.add(sidecar)
+    release_assets = audit_hidden_passage_release_assets(
+        release_root=release_root,
+        expected_tables=expected_tables,
+        expected_markers=expected_markers,
+        expected_sidecars=expected_sidecars,
+    )
+    completions = []
+    for scenario_id, record in sorted(physical_records.items()):
+        table = _resolve_passage_declared_path(
+            record["output_path"],
+            repo_root=repo_root,
+            release_root=release_root,
+            leaf_kind="directory",
+            required_subtree="tables",
+        )
+        sidecar = _resolve_passage_declared_path(
+            record["episode_manifest"],
+            repo_root=repo_root,
+            release_root=release_root,
+            leaf_kind="regular_file",
+            required_subtree="episode_manifests",
+        )
+        completion = verify_hidden_passage_shard_completion(
+            table_path=table,
+            episode_manifest_path=sidecar,
+            expected_scenario_id=scenario_id,
+            expected_fingerprint=str(record["fingerprint"]),
+            expected_content_sha256=str(record["content_sha256"]),
+            expected_storage_sha256=str(record["storage_sha256"]),
+            expected_episode_manifest_sha256=str(
+                record["episode_manifest_sha256"]
+            ),
+            expected_marker_sha256=str(
+                record["completion_marker_sha256"]
+            ),
+        )
+        completions.append(completion)
+    return {
+        "release_root": str(release_root),
+        "release_assets": release_assets,
+        "physical_shards_verified": len(completions),
+        "storage_hashes_verified": len(completions),
+        "sidecar_hashes_verified": len(completions),
+        "completion_markers_verified": len(completions),
+        "passed": True,
+    }
+
+
+def hidden_passage_training_release_root(
+    benchmark_config: Path,
+    *,
+    repo_root: Path,
+    model_id: str,
+) -> Path | None:
+    """Return the one sealed root used by a passage model, if applicable."""
+
+    config = _load_yaml(benchmark_config)
+    model_entries = {
+        str(entry["model_id"]): entry
+        for entry in config.get("models", [])
+    }
+    entry = model_entries.get(model_id)
+    if entry is None:
+        return None
+    groups = list(entry.get("training_groups", []))
+    if not any(group in PASSAGE_GROUPS for group in groups):
+        return None
+    roots = {
+        _passage_release_root_for_catalog(
+            _passage_catalog_path(
+                config["data"]["catalogs"][group],
+                repo_root=repo_root,
+            )
+        )
+        for group in PASSAGE_GROUPS
+    }
+    if len(roots) != 1:
+        raise ValueError(
+            f"Passage model {model_id} has multiple release roots: "
+            f"{sorted(map(str, roots))}"
+        )
+    return next(iter(roots))
 
 
 def _validate_paired_door_catalogs(
@@ -694,6 +2231,7 @@ def _training_transform(
     *,
     img_size: int,
     statistics_rows: np.ndarray | None = None,
+    frozen_scalers: dict[str, UnbiasedZScoreScaler] | None = None,
 ):
     import stable_pretraining as spt
     import torch
@@ -707,17 +2245,27 @@ def _training_transform(
         dt.transforms.Resize(img_size, source="pixels", target="pixels"),
     )
     transforms = [image]
-    scalers = {}
+    scalers: dict[str, UnbiasedZScoreScaler] = {}
     for column in ("action", "proprio"):
-        values_array = np.asarray(original_dataset.get_col_data(column))
-        if statistics_rows is not None:
-            values_array = values_array[statistics_rows]
-        values = torch.from_numpy(values_array)
-        valid = values[~torch.isnan(values).any(dim=1)]
-        scaler = UnbiasedZScoreScaler(
-            valid.mean(0, keepdim=True).numpy(),
-            valid.std(0, keepdim=True).numpy(),
-        )
+        if frozen_scalers is not None:
+            try:
+                scaler = frozen_scalers[column]
+            except KeyError as exc:
+                raise ValueError(
+                    f"Frozen normalizer is missing {column!r}"
+                ) from exc
+        else:
+            values_array = np.asarray(
+                original_dataset.get_col_data(column)
+            )
+            if statistics_rows is not None:
+                values_array = values_array[statistics_rows]
+            values = torch.from_numpy(values_array)
+            valid = values[~torch.isnan(values).any(dim=1)]
+            scaler = UnbiasedZScoreScaler(
+                valid.mean(0, keepdim=True).numpy(),
+                valid.std(0, keepdim=True).numpy(),
+            )
         scalers[column] = scaler
         transforms.append(
             dt.transforms.WrapTorchTransform(
@@ -788,8 +2336,19 @@ def build_tworoom_grouped_data(
             f"{model_id} group order mismatch: weights={list(weights)}, "
             f"model={expected_groups}"
         )
+    passage_model = any(
+        group in PASSAGE_GROUPS for group in expected_groups
+    )
 
     paired_collection_audit: dict[str, Any] = {
+        "required": False,
+        "passed": True,
+    }
+    training_exclusion_audit: dict[str, Any] = {
+        "required": False,
+        "passed": True,
+    }
+    formal_build_report_audit: dict[str, Any] = {
         "required": False,
         "passed": True,
     }
@@ -797,7 +2356,34 @@ def build_tworoom_grouped_data(
         paired_collection_audit = _validate_paired_door_catalogs(
             config, repo_root=repo_root
         )
-
+    elif passage_model:
+        exclusion_spec = config["data"].get(
+            "training_exclusion_manifest"
+        )
+        if not isinstance(exclusion_spec, dict):
+            raise ValueError(
+                "Passage training requires data.training_exclusion_manifest"
+            )
+        training_exclusion_audit = {
+            "required": True,
+            **_load_training_exclusion_manifest(
+                exclusion_spec,
+                repo_root=repo_root,
+                expected_eval_only_door_positions=list(
+                    config["passage_support"][
+                        "eval_only_door_positions"
+                    ]
+                ),
+            ),
+        }
+        formal_build_report_audit = _load_formal_passage_build_report(
+            config,
+            repo_root=repo_root,
+        )
+        paired_collection_audit = _validate_paired_passage_catalogs(
+            config,
+            repo_root=repo_root,
+        )
     original_path = (
         Path(original_h5).expanduser().resolve()
         if original_h5 is not None
@@ -860,8 +2446,30 @@ def build_tworoom_grouped_data(
         }
     else:
         raise ValueError(f"Unsupported original split strategy: {split_strategy}")
+    frozen_normalizer_spec = config["data"].get("frozen_normalizer")
+    frozen_scalers = None
+    if frozen_normalizer_spec is not None:
+        if not isinstance(frozen_normalizer_spec, dict):
+            raise ValueError("data.frozen_normalizer must be a mapping")
+        frozen_scalers, normalization_contract = (
+            _load_frozen_normalizer(
+                frozen_normalizer_spec,
+                repo_root=repo_root,
+                split_metadata=split_metadata,
+            )
+        )
+    else:
+        normalization_contract = {
+            "mode": "computed_from_original_training_split",
+            "path": None,
+            "sha256": None,
+            "passed": True,
+        }
     transform, scalers = _training_transform(
-        original, img_size=img_size, statistics_rows=statistics_rows
+        original,
+        img_size=img_size,
+        statistics_rows=statistics_rows,
+        frozen_scalers=frozen_scalers,
     )
     original.transform = transform
 
@@ -892,9 +2500,16 @@ def build_tworoom_grouped_data(
         if group == "original":
             continue
         catalog_key = CATALOG_BY_GROUP[group]
-        catalog_path = resolve_contextworld_path(
-            config["data"]["catalogs"][catalog_key], repo_root=repo_root
-        )
+        if group in PASSAGE_GROUPS:
+            catalog_path = _passage_catalog_path(
+                config["data"]["catalogs"][catalog_key],
+                repo_root=repo_root,
+            )
+        else:
+            catalog_path = resolve_contextworld_path(
+                config["data"]["catalogs"][catalog_key],
+                repo_root=repo_root,
+            )
         quality = dict(quality_groups.get(group, {}))
         train_paths = _catalog_paths(
             catalog_path, "train", repo_root=repo_root
@@ -903,31 +2518,43 @@ def build_tworoom_grouped_data(
         factor_support_config = quality.get("factor_support_contract")
         factor_support_contract = None
         if factor_support_config:
-            door_support = config["door_support"]
-            factor_support_contract = {
-                "factor": str(factor_support_config["factor"]),
-                "expected_by_split": {
-                    "train": list(
-                        door_support[
-                            factor_support_config[
-                                "train_values_from_door_support"
+            if "expected_by_split" in factor_support_config:
+                factor_support_contract = {
+                    "factor": str(factor_support_config["factor"]),
+                    "expected_by_split": {
+                        str(section): list(values)
+                        for section, values in factor_support_config[
+                            "expected_by_split"
+                        ].items()
+                    },
+                }
+            else:
+                door_support = config["door_support"]
+                factor_support_contract = {
+                    "factor": str(factor_support_config["factor"]),
+                    "expected_by_split": {
+                        "train": list(
+                            door_support[
+                                factor_support_config[
+                                    "train_values_from_door_support"
+                                ]
                             ]
-                        ]
-                    ),
-                    "validation": list(
-                        door_support[
-                            factor_support_config[
-                                "validation_values_from_door_support"
+                        ),
+                        "validation": list(
+                            door_support[
+                                factor_support_config[
+                                    "validation_values_from_door_support"
+                                ]
                             ]
-                        ]
-                    ),
-                },
-            }
+                        ),
+                    },
+                }
         exact_split_counts = {
             name: int(quality[key])
             for name, key in (
                 ("train", "exact_train_scenarios"),
                 ("validation", "exact_validation_scenarios"),
+                ("test", "exact_test_scenarios"),
             )
             if key in quality
         }
@@ -945,10 +2572,14 @@ def build_tworoom_grouped_data(
         }
         split_audit = _catalog_split_audit(
             catalog_path,
+            swm=swm,
             repo_root=repo_root,
             expected_stablewm_commit=expected_stablewm_commit,
             require_complete_synthesis_report=bool(
-                quality.get("require_complete_synthesis_report", False)
+                quality.get(
+                    "require_complete_synthesis_report",
+                    False,
+                )
             ),
             expected_split_scenario_counts=exact_split_counts,
             factor_support_contract=factor_support_contract,
@@ -1059,12 +2690,41 @@ def build_tworoom_grouped_data(
         "validation_group_coverage": val.epoch_group_coverage(),
         "groups": group_metadata,
         "paired_collection_audit": paired_collection_audit,
+        "training_exclusion_audit": training_exclusion_audit,
+        "formal_build_report_audit": formal_build_report_audit,
+        "distributed_passage_audit": {
+            "required": passage_model,
+            "optimization": "disabled_per_rank_full_audit",
+            "process_mode": "full",
+            "full_logical_audit_executed_in_this_process": (
+                passage_model
+            ),
+            "rank0_attestation_required": False,
+            "rank0_attestation_used": False,
+            "passed": True,
+        },
+        "training_data_scope": {
+            "synthetic_only": "original" not in expected_groups,
+            "original_samples_included": "original" in expected_groups,
+            "original_data_role_when_synthetic_only": (
+                "normalizer_and_split_identity_only"
+                if "original" not in expected_groups
+                else None
+            ),
+            "model_visible_columns": ["pixels", "action"],
+            "diagnostic_only_columns": ["proprio"],
+            "hidden_rule_columns_loaded": False,
+        },
         "normalization_reference": normalization_reference,
+        "normalization_contract": normalization_contract,
         "normalization": {
             name: {
                 "mean": scaler.mean.tolist(),
                 "std_unbiased": scaler.std.tolist(),
-                "source": str(original_path),
+                "source": (
+                    normalization_contract["path"]
+                    or str(original_path)
+                ),
             }
             for name, scaler in scalers.items()
         },

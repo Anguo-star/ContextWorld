@@ -280,8 +280,22 @@ class StableWorldModelLeWMAdapter(SpeedICLModelAdapter):
         return state_dict_sha256(self.model)
 
 
+class StableWorldModelPLDMAdapter(StableWorldModelLeWMAdapter):
+    """History-3 adapter for Stable-WorldModel PLDM checkpoints."""
+
+    adapter_id = "stable_worldmodel_pldm_v1"
+
+
+# Door and Speed use the same raw-pixel/action interface.  This public alias
+# lets integrations describe their purpose without inheriting a speed-named
+# type; existing Speed integrations remain fully compatible.
+DoorICLModelAdapter = SpeedICLModelAdapter
+
+
 __all__ = [
     "AdapterProtocol",
+    "DoorICLModelAdapter",
     "SpeedICLModelAdapter",
     "StableWorldModelLeWMAdapter",
+    "StableWorldModelPLDMAdapter",
 ]

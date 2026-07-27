@@ -1,0 +1,120 @@
+schema_version: 1
+benchmark: tworoom_hidden_passage_history3_tiny_frozen_representation_eval_v1
+status: diagnostic_frozen_before_catalog_generation_and_scoring
+date: "2026-07-24"
+
+question: >-
+  在完全相同的 8 个已见 query 上，固定原始图像表示是否能阻止双规则训练压缩
+  下一帧差异，并使预测结果真正随三帧历史切换？
+
+stable_worldmodel:
+  repo: ../stable-worldmodel
+  commit: 5864b74980f6ed328fd0045e777b3865962eff43
+
+data:
+  split: diagnostic_exact_training_examples
+  generation:
+    query_domain: training_seen
+    template_source: frozen_training_geometry
+    training_data_config: configs/benchmark/tworoom_hidden_passage_h3_training_data_v1.yaml
+    training_data_config_sha256: c9ab2054c3421582d3464634e574711f3035686b41a11c4fc610bc9442bc5f82
+    training_scale: formal
+    training_split: train
+    allow_training_split_subset: true
+    deduplicate_query_pixels_before_selection: true
+    minimum_unique_candidate_queries: 8
+    assignment_seed: 20260728
+    eval_only_door_positions:
+      [30, 34, 38, 42, 46, 50, 54, 58, 62, 66, 70, 74, 78, 82,
+       86, 90, 94, 98, 102, 106, 110, 114, 118, 122, 126, 130, 134,
+       138, 142, 146, 150, 154, 158, 162, 166, 170, 174, 178, 182,
+       186, 190, 194]
+    candidate_door_positions: [36]
+    candidate_templates: 80
+    selected_unique_queries: 8
+
+evaluation:
+  eval_seeds: [242]
+  eval_seed_semantics: seeded_disjoint_without_replacement_query_sets
+  unique_queries_per_seed: 8
+  unique_queries: 8
+  model_predictions_per_checkpoint: 24
+  loss_records_per_checkpoint: 48
+  batch_size: 8
+  environment_calls_during_scoring: 0
+
+adapter:
+  implementation: StableWorldModelLeWMAdapter
+  normalizer: artifacts/splits/tworoom_original_train_s3072_normalizer.json
+  normalizer_sha256: 7a5be7ea867bced446c1671b0b2c0ff6450ffc61e1a7bdbbfc5eaa0942f635db
+  model_input_keys: [pixels, action]
+
+gates:
+  minimum_middle_state_gap_px: 5.0
+  minimum_future_state_gap_px: 25.0
+  minimum_same_history_two_target_accuracy_exclusive: 0.5
+  require_target_accuracy_above_threshold_in_every_eval_seed_direction: true
+  minimum_strict_win_rate_exclusive: 0.5
+  minimum_target_pair_latent_mse_exclusive: 1.0e-12
+  paired_bootstrap:
+    unit: static_query_within_eval_seed_direction
+    strata: eval_seed_x_direction
+    method: percentile
+    resamples: 2000
+    confidence: 0.95
+    seed: 20260729
+    minimum_lower_bound_exclusive: 0.0
+    required_metrics:
+      - passable/same_vs_other_rule_history
+      - passable/same_vs_no_crossing_attempt
+      - blocked/same_vs_other_rule_history
+      - blocked/same_vs_no_crossing_attempt
+      - passable/matching_history_two_target_margin
+      - blocked/matching_history_two_target_margin
+  diagnostic_overfit:
+    minimum_matching_history_accuracy_exclusive: 0.95
+    minimum_history_target_switch_rate_exclusive: 0.95
+    minimum_correct_directional_switch_rate_exclusive: 0.95
+    require_all_selected_queries: true
+
+checkpoint_contract:
+  original:
+    audit_kind: frozen_original
+    role: original_h3_before_tiny_training
+    model_id: M_origheldout
+    checkpoint: artifacts/training/runs/checkpoints/h3_origheldout_s3072/weights_final_step_6420.pt
+    checkpoint_sha256: 7d141b86cca49145444a69bff89c71ede69e8cf8252bfb933e656c3e2e962b54
+    checkpoint_config_sha256: 44b5bde83fbc91634ef84acbdba9a75d3436568ed72266c9a5aa057653f9162b
+    training_report: artifacts/training/reports/h3_origheldout_s3072.json
+    training_report_sha256: 2ce86b60585eee9f1e79c4cd540a277cc82b5efa69ac80982d4f99a76306bdea
+  joint_update:
+    audit_kind: tiny_training
+    role: encoder_and_predictor_updated_together
+    model_id: H3_Passage_TinyPairedOverfit
+    run_name: h3_passage_tiny_paired_overfit_s3072
+    training_config: configs/benchmark/tworoom_hidden_passage_h3_tiny_overfit_training_v1.yaml
+    training_seed: 3072
+    expected_optimizer_steps: 1024
+    expected_total_logical_draws: 16384
+    expected_group_weights: {passage_tiny_overfit: 1.0}
+    checkpoint_sha256: c6b089c09ae725d5c9747871ff28fabe2f2bc56f131d2a8352faa783622aa49c
+    checkpoint_config_sha256: 96a6c027535eef1095170e638769f1452167cf44843d863d97be88529e844924
+    training_report_sha256: 0f2d992d6bf0652edd4149cc92d02d043bf98f51db1e781fe335df962b3af853
+    expected_frozen_modules: []
+  fixed_representation:
+    audit_kind: tiny_training
+    role: original_encoder_and_projector_frozen
+    model_id: H3_Passage_TinyPairedFrozenRepresentation
+    run_name: h3_passage_tiny_frozen_representation_s3072
+    training_config: configs/benchmark/tworoom_hidden_passage_h3_tiny_frozen_representation_training_v1.yaml
+    training_config_sha256: c31eb91a86dba3d8fd20c9d150220c67dabeb2813f1c091c849757d34e66f466
+    training_seed: 3072
+    expected_optimizer_steps: 1024
+    expected_total_logical_draws: 16384
+    expected_group_weights: {passage_tiny_overfit: 1.0}
+    expected_frozen_modules: [encoder, projector]
+
+artifacts:
+  output_root: artifacts/evaluation/history3/hidden_passage_frozen_representation_diagnostic_v1
+  catalog: artifacts/evaluation/history3/hidden_passage_frozen_representation_diagnostic_v1/catalog.json
+  training_exclusion_manifest: artifacts/evaluation/history3/hidden_passage_frozen_representation_diagnostic_v1/training_exclusion_manifest.json

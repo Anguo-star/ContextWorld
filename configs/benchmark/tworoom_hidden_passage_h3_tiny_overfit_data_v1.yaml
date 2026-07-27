@@ -1,0 +1,39 @@
+schema_version: 1
+benchmark: tworoom_h3_tiny_paired_overfit_data_v1
+status: diagnostic_frozen_before_subset_build
+date: "2026-07-24"
+
+purpose: >-
+  从已经通过完整性审计的正式双规则数据中，抽取一个训练门位置和一个独立 loader
+  validation 门位置。该数据只用于验证 History=3 LeWM 是否能够记住严格成对的
+  “门可通过/门不可通过”样本，不用于能力归因或正式 Benchmark 排名。
+
+source:
+  catalog: artifacts/synthesis/hidden_passage_h3_v1/formal/catalogs/tworoom_hidden_passage_h3_mixed_v1.json
+  catalog_sha256: 6a0ecfd6f954d27f33a3f4a517213dbf6cc6b3d1bfa34e31421797c9b9e2d61c
+  manifest: artifacts/synthesis/hidden_passage_h3_v1/formal/manifests/tworoom_hidden_passage_h3_mixed_v1.jsonl
+  manifest_sha256: 14a82fce15d351c66d19d138d5463a91295574bb50bf2b0072de07a449489617
+  formal_build_report: artifacts/synthesis/hidden_passage_h3_v1/formal/build_report.json
+  formal_build_report_sha256: bd3bde3da3bc97c67c4f9eb1ed87f4a41b50c25c9709ce6b64c4f9a69b9c556a
+  stable_worldmodel_commit: 5864b74980f6ed328fd0045e777b3865962eff43
+
+selection:
+  train:
+    door_positions: [36]
+    rules: [passable, blocked]
+    expected_shards: 2
+    expected_clips: 160
+  validation:
+    door_positions: [65]
+    rules: [passable, blocked]
+    expected_shards: 2
+    expected_clips: 160
+  require_pair_id_per_door: true
+  require_equal_rule_clip_counts: true
+  test_shards: 0
+
+artifacts:
+  output_root: artifacts/diagnostics/history3/hidden_passage_tiny_overfit_v1/data
+  catalog: artifacts/diagnostics/history3/hidden_passage_tiny_overfit_v1/data/catalogs/tworoom_h3_tiny_paired_overfit_v1.json
+  manifest: artifacts/diagnostics/history3/hidden_passage_tiny_overfit_v1/data/manifests/tworoom_h3_tiny_paired_overfit_v1.jsonl
+  report: artifacts/diagnostics/history3/hidden_passage_tiny_overfit_v1/data/reports/tworoom_h3_tiny_paired_overfit_v1.json

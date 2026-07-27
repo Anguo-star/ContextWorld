@@ -84,12 +84,66 @@ def build_lance_writer(
     hook; the on-disk Lance schema and reader remain native StableWM.
     """
 
+    import lance as lance_lib
     import pyarrow as pa
 
     specification = normalize_pixel_codec(pixel_codec)
     base = swm.data.LanceWriter
 
     class ContextWorldLanceWriter(base):
+        def __init__(self, raw_path: str | Path, *, mode: str = "error"):
+            super().__init__(raw_path, mode=mode)
+            self._raw_path = Path(raw_path)
+            self._contextworld_mode = mode
+
+        def __enter__(self):
+            if self._raw_path.exists():
+                if self._contextworld_mode == "error":
+                    raise FileExistsError(self._raw_path)
+                if self._contextworld_mode != "overwrite":
+                    raise ValueError(
+                        "ContextWorld raw Lance writer supports only error "
+                        "or overwrite mode"
+                    )
+            self._raw_path.parent.mkdir(parents=True, exist_ok=True)
+            # The upstream writer checks only that this sentinel is non-None.
+            # Writing the raw Lance dataset directly avoids a needless
+            # LanceDB connection while preserving the native table schema.
+            self._db = self
+            return self
+
+        def __exit__(self, *exc):
+            self._db = None
+            self._table = None
+
+        def _consume_episodes(self, episodes) -> None:
+            iterator = iter(episodes)
+            try:
+                first_ep = next(iterator)
+            except StopIteration:
+                return
+            self._init_schema(first_ep)
+            self._initialized = True
+
+            def batch_gen():
+                yield self._batch_from_episode(first_ep)
+                for episode in iterator:
+                    yield self._batch_from_episode(episode)
+
+            reader = pa.RecordBatchReader.from_batches(
+                self._schema,
+                batch_gen(),
+            )
+            lance_lib.write_dataset(
+                reader,
+                str(self._raw_path),
+                mode=(
+                    "overwrite"
+                    if self._contextworld_mode == "overwrite"
+                    else "create"
+                ),
+            )
+
         def _build_batch(self, ep_data: dict, ep_len: int) -> pa.RecordBatch:
             episode_idx = np.full(ep_len, self._ep_idx, dtype=np.int32)
             step_idx = np.arange(ep_len, dtype=np.int32)

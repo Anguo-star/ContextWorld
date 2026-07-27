@@ -1,5 +1,9 @@
 # TwoRoom Speed ICL Benchmark 使用指南
 
+> **文档角色：Speed 组件复现附录。** 最终发布只维护一份
+> [ContextWorld ICL Benchmark v1 统一说明](ContextWorld_ICL_Benchmark.md)；
+> 本文件保留 Speed 的扩展命令与历史兼容细节。
+
 **发布版本**：`contextworld_tworoom_speed_icl_history3_v1`
 
 **发布范围**：Validation 训练与评测工具；正式 Test 不包含在本版本中

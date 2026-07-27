@@ -3,8 +3,9 @@
 > 本文记录早期 Step-1 数据族，不是当前 Speed ICL 发布包或下一阶段门 Benchmark 的
 > 正式数据清单。速度复现请以
 > [Speed ICL Benchmark 使用指南](../TwoRoom_Speed_ICL_Benchmark_Release.md) 为准；
-> 门部分请以 [TwoRoom 可见门位置实验报告](../TwoRoom_Door_Benchmark_Design.md)
-> 为准。本文只用于理解早期门位置与组合数据的物理来源。
+> 当前门规则能力请以
+> [TwoRoom 门通行规则 ICL Benchmark v1](../TwoRoom_Door_Benchmark_Design.md)
+> 为准。本文只用于理解早期可见门位置与组合数据的物理来源。
 
 **日期**：2026-07-14  
 **状态**：早期物理基础数据已生成并通过全量验证；不作为新门 Benchmark 的正式训练

@@ -1,0 +1,165 @@
+schema_version: 2
+benchmark: tworoom_hidden_passage_history3_train_seen_diagnostic_v1
+status: frozen_after_v1_train_seen_diagnostic_before_unseen_validation_scoring
+date: "2026-07-24"
+
+question: >-
+  固定原始图像表示的三个双规则模型，在训练中出现过的门位置上，能否根据
+  “穿过门”或“被门挡住”这两种有明确证据的三帧历史选择正确下一帧？
+
+decision_protocol:
+  name: informative_history_rule_switch_v2
+  frozen_before_unseen_validation_scoring: true
+  unseen_checkpoint_scores_inspected_before_freeze: false
+  source_of_revision: train_seen_diagnostic_only
+  supersedes_for_capability_gate:
+    config: configs/benchmark/tworoom_hidden_passage_h3_fixed_representation_train_seen_eval_v1.yaml
+    result: artifacts/evaluation/history3/hidden_passage_fixed_representation_train_seen_v1/aggregate.json
+  reason: >-
+    “没有尝试穿门”的历史没有显示门的物理规则，因此没有唯一正确的下一帧。
+    v1 将它列为辅助参照，却又要求匹配历史必须在原始 latent 误差上击败它，
+    会把合理的默认倾向误判为规则切换失败。v2 的能力门槛只比较“看见穿过”
+    与“看见受阻”两种都有明确规则证据的历史；无证据历史仍完整评测和报告，
+    但不参与通过判定。
+  unchanged:
+    - training_recipe_and_checkpoints
+    - train_seen_catalog_and_300_queries
+    - three_history_conditions_and_offline_true_futures
+    - each_condition_50x6
+    - target_accuracy_and_latent_separation_checks
+    - seed_direction_consistency_and_paired_bootstrap
+
+stable_worldmodel:
+  repo: ../stable-worldmodel
+  commit: 5864b74980f6ed328fd0045e777b3865962eff43
+
+data:
+  split: diagnostic_train_seen
+  generation:
+    query_domain: training_seen
+    template_source: frozen_training_geometry
+    training_data_config: configs/benchmark/tworoom_hidden_passage_h3_training_data_v1.yaml
+    training_data_config_sha256: c9ab2054c3421582d3464634e574711f3035686b41a11c4fc610bc9442bc5f82
+    training_scale: formal
+    training_split: train
+    allow_training_split_subset: false
+    training_geometry_filter:
+      wall_distance_indices: [0]
+      doorway_offset_indices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+    deduplicate_query_pixels_before_selection: true
+    minimum_unique_candidate_queries: 300
+    assignment_seed: 20260726
+    eval_only_door_positions:
+      [30, 34, 38, 42, 46, 50, 54, 58, 62, 66, 70, 74, 78, 82,
+       86, 90, 94, 98, 102, 106, 110, 114, 118, 122, 126, 130, 134,
+       138, 142, 146, 150, 154, 158, 162, 166, 170, 174, 178, 182,
+       186, 190, 194]
+    candidate_door_positions:
+      [36, 37, 39, 41, 43, 44, 45, 47, 48, 49, 51, 52, 53, 55, 56,
+       57, 59, 60, 61, 63, 64, 67, 68, 69, 71, 72, 73, 75, 76, 80,
+       81, 83, 84, 85, 88, 89, 91, 92, 93, 95, 96, 97, 99, 100,
+       101, 103, 104, 105, 107, 108, 109, 111, 113, 116, 117, 119,
+       120, 121, 123, 124, 125, 128, 129, 133, 135, 136, 137, 139,
+       140, 141, 143, 144, 145, 147, 148, 149, 151, 153, 155, 156,
+       157, 159, 160, 161, 163, 164, 165, 168, 173, 176, 177, 179,
+       181, 184, 187, 188]
+    candidate_templates: 1920
+    selected_unique_queries: 300
+
+evaluation:
+  eval_seeds: [142, 143, 144, 145, 146, 147]
+  eval_seed_semantics: seeded_disjoint_without_replacement_query_sets
+  unique_queries_per_seed: 50
+  unique_queries: 300
+  model_predictions_per_checkpoint: 900
+  loss_records_per_checkpoint: 1800
+  batch_size: 64
+  environment_calls_during_scoring: 0
+
+adapter:
+  implementation: StableWorldModelLeWMAdapter
+  normalizer: artifacts/splits/tworoom_original_train_s3072_normalizer.json
+  normalizer_sha256: 7a5be7ea867bced446c1671b0b2c0ff6450ffc61e1a7bdbbfc5eaa0942f635db
+  model_input_keys: [pixels, action]
+
+metrics:
+  primary: frozen_true_next_frame_native_latent_mse
+  capability_gate:
+    - matching_history_loss_vs_opposite_evidence_history_loss
+    - matching_history_two_target_accuracy
+    - matching_vs_opposite_history_win_rate
+    - eval_seed_and_direction_sign_consistency
+    - paired_bootstrap_confidence_bounds
+    - target_latent_separation
+  auxiliary:
+    - no_crossing_attempt_history_loss
+    - matching_vs_no_crossing_attempt_loss
+    - all_three_histories_strict_win_rate
+  no_crossing_attempt_role: auxiliary_default_tendency_only
+  raw_latent_mse_cross_checkpoint_comparison_allowed: false
+
+gates:
+  decision_contract: informative_history_rule_switch_v2
+  minimum_middle_state_gap_px: 5.0
+  minimum_future_state_gap_px: 25.0
+  minimum_same_history_two_target_accuracy_exclusive: 0.5
+  require_target_accuracy_above_threshold_in_every_eval_seed_direction: true
+  minimum_matching_vs_opposite_history_win_rate_exclusive: 0.5
+  minimum_target_pair_latent_mse_exclusive: 1.0e-12
+  paired_bootstrap:
+    unit: static_query_within_eval_seed_direction
+    strata: eval_seed_x_direction
+    method: percentile
+    resamples: 10000
+    confidence: 0.95
+    seed: 20260727
+    minimum_lower_bound_exclusive: 0.0
+    required_metrics:
+      - passable/same_vs_other_rule_history
+      - blocked/same_vs_other_rule_history
+      - passable/matching_history_two_target_margin
+      - blocked/matching_history_two_target_margin
+
+comparison:
+  required_results:
+    H3_Passage_MixedRules_FrozenRepresentation: [3072, 4096, 5120]
+  checkpoint_training_model_id:
+    H3_Passage_MixedRules_FrozenRepresentation: H3_Passage_MixedRules_FrozenRepresentation
+  checkpoint_training_group:
+    H3_Passage_MixedRules_FrozenRepresentation: passage_mixed
+  attribution_gate:
+    target_model_id: H3_Passage_MixedRules_FrozenRepresentation
+    required_passed_training_seeds: 3
+  require_identical:
+    - config_sha256
+    - catalog_sha256
+    - normalizer_sha256
+    - stable_worldmodel_commit
+    - adapter_protocol
+  require_unique_checkpoint_per_result: true
+
+training_provenance:
+  passage_formal:
+    training_benchmark_config: configs/benchmark/tworoom_hidden_passage_h3_fixed_representation_training_v1.yaml
+    profile: passage_formal
+    optimizer_steps: 1024
+    total_logical_draws: 1048576
+    effective_global_batch: 1024
+    topology:
+      world_size: 8
+      devices: 8
+      batch_size_per_device: 128
+      accumulation_steps: 1
+      execution_topology: 8gpu_x_b128_x_accum1
+    synthetic_only: true
+    frozen_model_modules: [encoder, projector]
+    validation_exclusion_benchmark: tworoom_hidden_passage_history3_validation_v2
+    initialization_checkpoint:
+      sha256: 7d141b86cca49145444a69bff89c71ede69e8cf8252bfb933e656c3e2e962b54
+      config_sha256: 44b5bde83fbc91634ef84acbdba9a75d3436568ed72266c9a5aa057653f9162b
+      role: model_weight_initialization_only_not_resume
+
+artifacts:
+  output_root: artifacts/evaluation/history3/hidden_passage_fixed_representation_train_seen_rule_switch_v2
+  catalog: artifacts/evaluation/history3/hidden_passage_train_seen_diagnostic_v1/catalog.json
+  training_exclusion_manifest: artifacts/evaluation/history3/hidden_passage_train_seen_diagnostic_v1/training_exclusion_manifest.json

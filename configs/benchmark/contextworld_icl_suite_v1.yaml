@@ -1,0 +1,88 @@
+schema_version: 1
+release_id: contextworld_icl_benchmark_suite_v1
+release_status: validation_release_candidate
+candidate_date: "2026-07-26"
+
+scope:
+  environment: TwoRoom
+  history_tokens: 3
+  components: [speed, door]
+  sealed_test_included: false
+
+repository:
+  url: https://github.com/Anguo-star/ContextWorld
+  package_version: 0.1.0
+  source_sha256:
+    contextworld/benchmarks/__init__.py: a78522cdd595cdaa74d58889557ccf39f860ff843d6e38c66a6582b10b64651f
+    contextworld/benchmarks/suite_data.py: 5e190af78d0154ce372faa06b28cf29f1523bdc69cd0391db641833d51736665
+    contextworld/benchmarks/suite_cli.py: 79417e0b97c9f80ae5c0ab21d259d9b31d013790c0da5eae3afcb241abae41ba
+    pyproject.toml: bd419760f4c1dd40ed7256429b64b5e4e3c1f127ee499fc8ae02e0d1baeb9e12
+  public_document:
+    path: docs/ContextWorld_ICL_Benchmark.md
+    sha256: 14dc54d332c9a21fcde520e32271cf5b559af75975c9094987d8490ae14d1fb0
+
+bundle:
+  top_level_entries: [README.md, benchmark]
+  readme: README.md
+  benchmark_root: benchmark
+  suite_config: benchmark/suite.yaml
+  inventory: benchmark/inventory.json
+  component_release_directory: benchmark/releases
+  artifact_root_environment: CONTEXTWORLD_ARTIFACT_ROOT
+  upstream_original_environment: CONTEXTWORLD_TWOROOM_H5
+  upstream_original_bundle_path: benchmark/upstream/lewm-tworooms/tworoom.h5
+
+components:
+  speed:
+    display_name: TwoRoom History=3 Speed ICL
+    capability: infer_hidden_agent_speed_from_recent_interaction
+    release_id: contextworld_tworoom_speed_icl_history3_v1
+    release_config: configs/benchmark/tworoom_speed_icl_release_v1.yaml
+    release_config_sha256: 62c2938ea6d345c135950097800d5c781013c5504de37a57b3642cc114c7ccd2
+    bundled_release_config: benchmark/releases/speed.yaml
+    cli: contextworld-speed
+    status: validation_release
+    training_data_included: true
+    validation_data_included: true
+    reference_results_included: false
+    upstream_original_h5_included: true
+  door:
+    display_name: TwoRoom History=3 Door Rule ICL
+    capability: infer_hidden_door_passability_from_recent_interaction
+    release_id: contextworld_tworoom_door_rule_icl_history3_v1
+    release_config: configs/benchmark/tworoom_door_icl_release_v1.yaml
+    release_config_sha256: 9bbd448eb5bf7d40fc46ced46b90170871f8233f8e34c54d897534cfcafdf4c0
+    bundled_release_config: benchmark/releases/door.yaml
+    cli: contextworld-door
+    status: validation_release_candidate
+    training_data_included: true
+    validation_data_included: true
+    reference_results_included: true
+    upstream_original_h5_included: true
+
+extension:
+  component_contract:
+    required:
+      - unique_component_id
+      - frozen_release_yaml
+      - training_data_contract
+      - validation_data_contract
+      - scoring_contract
+      - model_adapter_contract
+      - audit_function
+      - command_line_entry
+      - one_section_in_public_document
+  rule: >-
+    新能力只能作为新的 component 注册。不得新增并列的总入口文档、
+    独立 artifact root 或另一套顶层发布结构。
+
+distribution:
+  release_kind: local_technical_release_candidate
+  code_license_status: not_declared
+  generated_data_license_status: not_declared
+  public_download_status: not_configured
+  public_artifact_urls: []
+  export_grants_redistribution_rights: false
+  note: >-
+    统一代码、数据和评测工具可在本地完整审计与导出。正式公共分发前，
+    发布者仍需声明 ContextWorld 源码与自产数据许可证并配置公共下载地址。

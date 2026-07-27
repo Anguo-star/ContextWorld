@@ -125,8 +125,50 @@ class DoorPositionAtom(VariationAtom):
         )
 
 
+class PassageOpenAtom(VariationAtom):
+    """Hidden binary rule controlling whether the visible doorway is usable."""
+
+    kind = "passage_open"
+    factor_key = "passage.open"
+    pixel_effect = "contact_dynamics"
+    required_oracles = ("hidden_passage_contact_oracle",)
+
+    def compile(self, value: Any) -> CompiledAtom:
+        if isinstance(value, (bool, np.bool_)):
+            passage_open = int(value)
+        else:
+            try:
+                passage_open = int(value)
+            except (TypeError, ValueError) as exc:
+                raise AtomValidationError(
+                    "passage_open must be 0 (blocked) or 1 (passable)"
+                ) from exc
+            try:
+                is_integer = float(value) == float(passage_open)
+            except (TypeError, ValueError):
+                is_integer = False
+            if not is_integer:
+                raise AtomValidationError(
+                    "passage_open must be 0 (blocked) or 1 (passable)"
+                )
+        if passage_open not in (0, 1):
+            raise AtomValidationError(
+                "passage_open must be 0 (blocked) or 1 (passable)"
+            )
+        return CompiledAtom(
+            kind=self.kind,
+            factor_key=self.factor_key,
+            factor_value=passage_open,
+            variation_value=passage_open,
+        )
+
+
 def tworoom_atom_registry() -> dict[str, VariationAtom]:
-    atoms: tuple[VariationAtom, ...] = (AgentSpeedAtom(), DoorPositionAtom())
+    atoms: tuple[VariationAtom, ...] = (
+        AgentSpeedAtom(),
+        DoorPositionAtom(),
+        PassageOpenAtom(),
+    )
     for atom in atoms:
         if atom.pixel_effect not in PIXEL_EFFECT_CONTRACTS:
             raise RuntimeError(

@@ -75,6 +75,21 @@ def hidden_passage_env_class() -> type:
             self.variation_space.set_value(
                 {PASSAGE_FACTOR: passage_open_value(value)}
             )
+            self._contextworld_hidden_passage_readback = self.passage_open
+
+        def restore_contextworld_hidden_passage(
+            self,
+            passage_open: Any,
+            state: Any | None = None,
+            goal_state: Any | None = None,
+        ) -> None:
+            """Restore the hidden rule before optional state and goal values."""
+
+            self.set_hidden_passage_rule(passage_open)
+            if state is not None:
+                self._set_state(np.asarray(state, dtype=np.float32))
+            if goal_state is not None:
+                self._set_goal_state(np.asarray(goal_state, dtype=np.float32))
 
         def _in_any_door_1d(self, coord_1d: float, margin: float):
             if self.passage_open == PASSAGE_RULES["blocked"]:

@@ -1,0 +1,101 @@
+schema_version: 1
+benchmark: tworoom_hidden_passage_history3_training_data_v1
+status: preregistered_before_formal_collection
+date: "2026-07-23"
+
+stable_worldmodel:
+  repo: ../stable-worldmodel
+  commit: 5864b74980f6ed328fd0045e777b3865962eff43
+
+protocol:
+  history_tokens: 3
+  agent_speed: 5.0
+  door_number: 1
+  frameskip: 5
+  num_steps: 4
+  rows_per_episode: 20
+  clips_per_episode: 1
+
+geometry:
+  directions: [left_to_right, right_to_left]
+  doorway_offsets_px: [11.0, 11.5, 12.0, 12.5, 13.0, 13.5, 14.0, 14.5, 15.0, 15.5]
+  wall_distances_px: [1.5, 2.5, 3.5, 4.5]
+  wall_geometry:
+    left_contact_x: 99.5
+    right_contact_x: 124.5
+    left_to_right_goal_x: 190.0
+    right_to_left_goal_x: 30.0
+
+catalog_seed: 20260723
+
+scales:
+  small:
+    door_splits:
+      train: [37, 39]
+      loader_val: [41]
+      final_eval_candidates: [30, 194]
+      guard: [43]
+    expected_door_counts:
+      train: 2
+      loader_val: 1
+      final_eval_candidates: 2
+      guard: 1
+    expected_single_rule_catalog_counts:
+      train: {shards: 2, clips: 16}
+      val: {shards: 1, clips: 8}
+      test: {shards: 0, clips: 0}
+    geometry:
+      doorway_offsets_px: [11.0, 15.5]
+      wall_distances_px: [1.5, 4.5]
+
+  formal:
+    door_selection:
+      safe_integer_range: {start: 36, stop_inclusive: 188, step: 1}
+      final_eval_candidate_range: {start: 30, stop_inclusive: 194, step: 4}
+      split_seed: 20260723
+      train_count: 96
+      loader_val_count: 16
+      expected_guard_count: 3
+      expected_safe_final_eval_intersection_count: 38
+    expected_door_counts:
+      train: 96
+      loader_val: 16
+      final_eval_candidates: 42
+      guard: 3
+    expected_single_rule_catalog_counts:
+      train: {shards: 96, clips: 7680}
+      val: {shards: 16, clips: 1280}
+      test: {shards: 0, clips: 0}
+
+storage:
+  pixel_codec:
+    format: png
+    compress_level: 1
+    lossless: true
+
+collection:
+  staging_root: /tmp
+
+gates:
+  minimum_middle_state_gap_px: 5.0
+  minimum_future_state_gap_px: 25.0
+
+validation_exclusion:
+  benchmark: tworoom_hidden_passage_history3_validation_v2
+  query_count: 300
+  eval_only_door_count: 42
+  catalog: artifacts/evaluation/history3/hidden_passage_validation_v2/catalog.json
+  catalog_sha256: d5356582f658070bb41972873720e29add04e2d6ca2e637bc0bc7bd57f204551
+  manifest: artifacts/evaluation/history3/hidden_passage_validation_v2/training_exclusion_manifest.json
+  manifest_sha256: d732ca66061b7f16436d7897e570da3626957b1bda0a94ab0e7125d98f14eee9
+  content_manifest_sha256: c23f079e6e9119fd4320d6209f992ca98b1d81a889c6127ade087a447c2aea0c
+  exact_test_door_scales: [formal]
+
+original_dataset:
+  path: ../../data/world_model/quentinll/lewm-tworooms/tworoom.h5
+
+artifact_names:
+  catalog_prefix: tworoom_hidden_passage_h3
+  version: v1
+
+output_root_base: artifacts/synthesis/hidden_passage_h3_v1

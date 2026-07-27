@@ -8,6 +8,7 @@ from typing import Any
 
 from .models import CompiledScenario
 from .lance import build_lance_writer
+from .environments import register_contextworld_environment
 from .reset_constraints import apply_tworoom_reset_constraints
 
 
@@ -31,6 +32,7 @@ def collect_scenario(
     # Import only after the configured Stable-WorldModel checkout is on sys.path.
     from stable_worldmodel.envs.two_room import ExpertPolicy
 
+    register_contextworld_environment(scenario.env_id)
     scenario.output_path.parent.mkdir(parents=True, exist_ok=True)
     staging_root = Path(collection_config.get("staging_root", "/tmp"))
     staging_root.mkdir(parents=True, exist_ok=True)

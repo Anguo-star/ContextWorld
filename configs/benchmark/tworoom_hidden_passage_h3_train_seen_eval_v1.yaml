@@ -1,0 +1,149 @@
+schema_version: 1
+benchmark: tworoom_hidden_passage_history3_train_seen_diagnostic_v1
+status: diagnostic_frozen_before_catalog_generation_and_scoring
+date: "2026-07-24"
+
+question: >-
+  现有 History=3 模型在正式训练中实际出现过的门位置、起点、动作和历史轨迹上，
+  能否根据“穿过门”或“被门挡住”的历史选择正确下一帧？
+
+stable_worldmodel:
+  repo: ../stable-worldmodel
+  commit: 5864b74980f6ed328fd0045e777b3865962eff43
+
+data:
+  split: diagnostic_train_seen
+  generation:
+    query_domain: training_seen
+    template_source: frozen_training_geometry
+    training_data_config: configs/benchmark/tworoom_hidden_passage_h3_training_data_v1.yaml
+    training_data_config_sha256: c9ab2054c3421582d3464634e574711f3035686b41a11c4fc610bc9442bc5f82
+    training_scale: formal
+    training_split: train
+    allow_training_split_subset: false
+    training_geometry_filter:
+      wall_distance_indices: [0]
+      doorway_offset_indices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+    deduplicate_query_pixels_before_selection: true
+    minimum_unique_candidate_queries: 300
+    assignment_seed: 20260726
+    eval_only_door_positions:
+      [30, 34, 38, 42, 46, 50, 54, 58, 62, 66, 70, 74, 78, 82,
+       86, 90, 94, 98, 102, 106, 110, 114, 118, 122, 126, 130, 134,
+       138, 142, 146, 150, 154, 158, 162, 166, 170, 174, 178, 182,
+       186, 190, 194]
+    candidate_door_positions:
+      [36, 37, 39, 41, 43, 44, 45, 47, 48, 49, 51, 52, 53, 55, 56,
+       57, 59, 60, 61, 63, 64, 67, 68, 69, 71, 72, 73, 75, 76, 80,
+       81, 83, 84, 85, 88, 89, 91, 92, 93, 95, 96, 97, 99, 100,
+       101, 103, 104, 105, 107, 108, 109, 111, 113, 116, 117, 119,
+       120, 121, 123, 124, 125, 128, 129, 133, 135, 136, 137, 139,
+       140, 141, 143, 144, 145, 147, 148, 149, 151, 153, 155, 156,
+       157, 159, 160, 161, 163, 164, 165, 168, 173, 176, 177, 179,
+       181, 184, 187, 188]
+    candidate_templates: 1920
+    selected_unique_queries: 300
+
+evaluation:
+  eval_seeds: [142, 143, 144, 145, 146, 147]
+  eval_seed_semantics: seeded_disjoint_without_replacement_query_sets
+  unique_queries_per_seed: 50
+  unique_queries: 300
+  model_predictions_per_checkpoint: 900
+  loss_records_per_checkpoint: 1800
+  batch_size: 64
+  environment_calls_during_scoring: 0
+
+adapter:
+  implementation: StableWorldModelLeWMAdapter
+  normalizer: artifacts/splits/tworoom_original_train_s3072_normalizer.json
+  normalizer_sha256: 7a5be7ea867bced446c1671b0b2c0ff6450ffc61e1a7bdbbfc5eaa0942f635db
+  model_input_keys: [pixels, action]
+
+gates:
+  minimum_middle_state_gap_px: 5.0
+  minimum_future_state_gap_px: 25.0
+  minimum_same_history_two_target_accuracy_exclusive: 0.5
+  require_target_accuracy_above_threshold_in_every_eval_seed_direction: true
+  minimum_strict_win_rate_exclusive: 0.5
+  minimum_target_pair_latent_mse_exclusive: 1.0e-12
+  paired_bootstrap:
+    unit: static_query_within_eval_seed_direction
+    strata: eval_seed_x_direction
+    method: percentile
+    resamples: 10000
+    confidence: 0.95
+    seed: 20260727
+    minimum_lower_bound_exclusive: 0.0
+    required_metrics:
+      - passable/same_vs_other_rule_history
+      - passable/same_vs_no_crossing_attempt
+      - blocked/same_vs_other_rule_history
+      - blocked/same_vs_no_crossing_attempt
+      - passable/matching_history_two_target_margin
+      - blocked/matching_history_two_target_margin
+
+comparison:
+  required_results:
+    H3_Original_LEWM: [3072]
+    H3_Passage_PassableOnly: [3072, 4096, 5120]
+    H3_Passage_BlockedOnly: [3072, 4096, 5120]
+    H3_Passage_MixedRules: [3072, 4096, 5120]
+  checkpoint_training_model_id:
+    H3_Original_LEWM: M_origheldout
+    H3_Passage_PassableOnly: H3_Passage_PassableOnly
+    H3_Passage_BlockedOnly: H3_Passage_BlockedOnly
+    H3_Passage_MixedRules: H3_Passage_MixedRules
+  attribution_gate:
+    mixed_rules_passed_training_seeds: 3
+    original_baseline_must_fail: true
+    each_single_rule_family_must_not_pass_all_three_seeds: true
+  require_identical:
+    - config_sha256
+    - catalog_sha256
+    - normalizer_sha256
+    - stable_worldmodel_commit
+    - adapter_protocol
+  require_unique_checkpoint_per_result: true
+
+training_provenance:
+  original_baseline:
+    training_report: artifacts/training/reports/h3_origheldout_s3072.json
+    training_report_sha256: 2ce86b60585eee9f1e79c4cd540a277cc82b5efa69ac80982d4f99a76306bdea
+    checkpoint_sha256: 7d141b86cca49145444a69bff89c71ede69e8cf8252bfb933e656c3e2e962b54
+    checkpoint_config_sha256: 44b5bde83fbc91634ef84acbdba9a75d3436568ed72266c9a5aa057653f9162b
+    checkpoint_model_id: M_origheldout
+    profile: formal
+    optimizer_steps: 6420
+    total_logical_draws: 6574080
+    group_weights: {original: 1.0}
+    topology:
+      world_size: 4
+      devices: 4
+      batch_size_per_device: 128
+      accumulation_steps: 2
+      execution_topology: 4gpu_x_b128_x_accum2
+    initialization_checkpoint: none
+  passage_formal:
+    training_benchmark_config: configs/benchmark/tworoom_hidden_passage_h3_training_v1.yaml
+    profile: passage_formal
+    optimizer_steps: 1024
+    total_logical_draws: 1048576
+    effective_global_batch: 1024
+    topology:
+      world_size: 8
+      devices: 8
+      batch_size_per_device: 128
+      accumulation_steps: 1
+      execution_topology: 8gpu_x_b128_x_accum1
+    synthetic_only: true
+    validation_exclusion_benchmark: tworoom_hidden_passage_history3_validation_v2
+    initialization_checkpoint:
+      sha256: 7d141b86cca49145444a69bff89c71ede69e8cf8252bfb933e656c3e2e962b54
+      config_sha256: 44b5bde83fbc91634ef84acbdba9a75d3436568ed72266c9a5aa057653f9162b
+      role: model_weight_initialization_only_not_resume
+
+artifacts:
+  output_root: artifacts/evaluation/history3/hidden_passage_train_seen_diagnostic_v1
+  catalog: artifacts/evaluation/history3/hidden_passage_train_seen_diagnostic_v1/catalog.json
+  training_exclusion_manifest: artifacts/evaluation/history3/hidden_passage_train_seen_diagnostic_v1/training_exclusion_manifest.json

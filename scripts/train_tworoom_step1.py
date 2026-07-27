@@ -6,8 +6,11 @@ import hashlib
 import importlib.util
 import json
 import math
+import multiprocessing
 import os
 import sys
+from datetime import timedelta
+from contextlib import nullcontext
 from functools import partial
 from pathlib import Path
 
@@ -21,14 +24,81 @@ if str(REPO_ROOT) not in sys.path:
 from contextworld.synthesis.manifest import write_json
 from contextworld.synthesis.stablewm import load_stable_worldmodel
 from contextworld.paths import artifact_path, resolve_contextworld_path
-from contextworld.training.tworoom_data import build_tworoom_grouped_data
+from contextworld.evaluation.hidden_passage_h3_data import (
+    AUDIT_SCHEDULING_LOCK_PROTOCOL,
+    PARALLEL_AUDIT_SCHEDULING_LOCK_PROTOCOL,
+    TRAINING_RUN_LOCK_PROTOCOL,
+    hidden_passage_audit_scheduling_lock,
+    hidden_passage_release_lock,
+    hidden_passage_training_run_lock,
+    verify_hidden_passage_training_run_parent,
+)
+from contextworld.training.tworoom_data import (
+    build_tworoom_grouped_data,
+    hidden_passage_training_release_root,
+    revalidate_hidden_passage_training_storage,
+)
 
 
 PINNED_STABLEWM = "5864b74980f6ed328fd0045e777b3865962eff43"
+PASSAGE_INTERNAL_ENVIRONMENT = (
+    "CONTEXTWORLD_H3_RANK0_ATTESTATION_V1",
+    "CONTEXTWORLD_H3_RANK0_ATTESTATION_V2",
+    "CONTEXTWORLD_H3_RANK0_SECRET",
+    "CONTEXTWORLD_H3_RANK0_ISSUER",
+)
+PASSAGE_DDP_RENDEZVOUS_TIMEOUT_SECONDS = 7200
+TRAINING_RUN_EXCLUSIVITY_CONTRACT = {
+    "protocol": TRAINING_RUN_LOCK_PROTOCOL,
+    "policy": "one_root_training_run_per_release",
+    "maximum_concurrency": 1,
+    "blocking": False,
+    "scope": "full_root_training_or_preflight_call",
+    "held_through_report_snapshot": True,
+    "nonzero_rank_admission": "direct_parent_holds_root_training_lock",
+}
+SERIAL_AUDIT_SCHEDULING_CONTRACT = {
+    "policy": "sibling_exclusive_flock",
+    "maximum_concurrency": 1,
+    "scope": "per_rank_full_audit_and_fit_start_storage_revalidation",
+    "lock_protocol": AUDIT_SCHEDULING_LOCK_PROTOCOL,
+    "lock_order": "release_shared_then_audit_exclusive",
+    "collective_holds_lock": False,
+    "topology_scope": "single_node_8gpu",
+    "concurrent_training_runs_per_release": 1,
+}
+PARALLEL_AUDIT_SCHEDULING_CONTRACT = {
+    "policy": "sibling_shared_flock",
+    "maximum_concurrency": 8,
+    "scope": "per_rank_full_audit_and_fit_start_storage_revalidation",
+    "lock_protocol": PARALLEL_AUDIT_SCHEDULING_LOCK_PROTOCOL,
+    "lock_order": "release_shared_then_audit_shared",
+    "collective_holds_lock": False,
+    "topology_scope": "single_node_8gpu",
+    "concurrent_training_runs_per_release": 1,
+}
+PARALLEL_RANK_CPU_AFFINITY_CONTRACT = {
+    "policy": "local_rank_disjoint_contiguous_from_zero",
+    "cpus_per_rank": 8,
+    "expected_world_size": 8,
+    "scope": "full_rank_process",
+    "apply_before_stableworldmodel_and_lance_import": True,
+}
+AUDIT_SCHEDULING_CONTRACTS = (
+    SERIAL_AUDIT_SCHEDULING_CONTRACT,
+    PARALLEL_AUDIT_SCHEDULING_CONTRACT,
+)
 
 FORMAL_TOPOLOGIES = {
     (4, 128, 2): "4gpu_x_b128_x_accum2",
     (8, 128, 1): "8gpu_x_b128_x_accum1",
+}
+CONTROLLED_PROFILES = {
+    "formal",
+    "additive",
+    "icl_formal",
+    "passage_pilot",
+    "passage_formal",
 }
 
 PROFILE_DEFAULTS = {
@@ -73,6 +143,48 @@ PROFILE_DEFAULTS = {
         "limit_train_batches": 1.0,
         "limit_val_batches": 1.0,
         "expected_optimizer_steps": 12_840,
+    },
+    "icl_formal": {
+        "run_kind": "confirmation",
+        "epoch_size": 262_144,
+        "validation_epoch_size": 8_192,
+        "max_epochs": 4,
+        "batch_size": 128,
+        "num_workers": 6,
+        "devices": 8,
+        "precision": "bf16-mixed",
+        "accumulate_grad_batches": 1,
+        "limit_train_batches": 1.0,
+        "limit_val_batches": 1.0,
+        "expected_optimizer_steps": 1_024,
+    },
+    "passage_pilot": {
+        "run_kind": "pilot",
+        "epoch_size": 65_536,
+        "validation_epoch_size": 4_096,
+        "max_epochs": 4,
+        "batch_size": 128,
+        "num_workers": 6,
+        "devices": 8,
+        "precision": "bf16-mixed",
+        "accumulate_grad_batches": 1,
+        "limit_train_batches": 1.0,
+        "limit_val_batches": 1.0,
+        "expected_optimizer_steps": 256,
+    },
+    "passage_formal": {
+        "run_kind": "confirmation",
+        "epoch_size": 262_144,
+        "validation_epoch_size": 8_192,
+        "max_epochs": 4,
+        "batch_size": 128,
+        "num_workers": 6,
+        "devices": 8,
+        "precision": "bf16-mixed",
+        "accumulate_grad_batches": 1,
+        "limit_train_batches": 1.0,
+        "limit_val_batches": 1.0,
+        "expected_optimizer_steps": 1_024,
     },
 }
 
@@ -123,7 +235,7 @@ def _apply_profile(args: argparse.Namespace) -> argparse.Namespace:
         invalid["num_workers"] = args.num_workers
     if invalid:
         raise ValueError(f"Training profile values are invalid: {invalid}")
-    if args.profile in {"formal", "additive"}:
+    if args.profile in CONTROLLED_PROFILES:
         fixed = {
             key: value
             for key, value in defaults.items()
@@ -148,7 +260,8 @@ def _apply_profile(args: argparse.Namespace) -> argparse.Namespace:
             )
         if args.run_kind not in {"pilot", "confirmation"}:
             raise ValueError(
-                f"{args.profile.title()} profile requires run-kind pilot or confirmation"
+                f"{args.profile.title()} profile requires run-kind pilot "
+                "or confirmation"
             )
         topology = (
             args.devices,
@@ -157,7 +270,8 @@ def _apply_profile(args: argparse.Namespace) -> argparse.Namespace:
         )
         if topology not in FORMAL_TOPOLOGIES:
             raise ValueError(
-                f"{args.profile.title()} profile requires one of the validated execution "
+                f"{args.profile.title()} profile requires one of the "
+                "validated execution "
                 f"topologies {sorted(FORMAL_TOPOLOGIES)}; observed={topology}"
             )
     return args
@@ -259,6 +373,20 @@ def _build_training_plan(args: argparse.Namespace, data_metadata: dict) -> dict:
         maximum_reuse = requirements.get(
             "maximum_formal_mean_draws_per_raw_clip"
         )
+        required_hash_names = {
+            "catalog",
+            "manifest",
+            "synthesis_report",
+        }
+        frozen_artifact_hashes = set(
+            data_metadata["groups"][name]
+            .get("catalog_split_audit", {})
+            .get("required_artifact_hashes", {})
+        )
+        artifact_hash_freeze_required = (
+            args.profile == "passage_formal"
+            and name.startswith("passage_")
+        )
         gates = {
             "static": all(
                 data_metadata["groups"][name]
@@ -266,10 +394,14 @@ def _build_training_plan(args: argparse.Namespace, data_metadata: dict) -> dict:
                 .values()
             ),
             "formal_reuse": (
-                args.profile not in {"formal", "additive"}
+                args.profile not in CONTROLLED_PROFILES
                 or maximum_reuse is None
                 or exposure["logical_budget_mean_draws_per_raw_clip"]
                 <= float(maximum_reuse)
+            ),
+            "formal_artifact_hashes_frozen": (
+                not artifact_hash_freeze_required
+                or frozen_artifact_hashes == required_hash_names
             ),
         }
         data_quality_gates[name] = {
@@ -278,6 +410,14 @@ def _build_training_plan(args: argparse.Namespace, data_metadata: dict) -> dict:
             "observed_mean_draws_per_raw_clip": exposure[
                 "logical_budget_mean_draws_per_raw_clip"
             ],
+            "required_artifact_hash_names": (
+                sorted(required_hash_names)
+                if artifact_hash_freeze_required
+                else []
+            ),
+            "frozen_artifact_hash_names": sorted(
+                frozen_artifact_hashes
+            ),
             "gates": gates,
         }
     failed_quality = {
@@ -289,6 +429,26 @@ def _build_training_plan(args: argparse.Namespace, data_metadata: dict) -> dict:
         raise ValueError(
             "Training data-quality gates failed: "
             f"{failed_quality}"
+        )
+    formal_build = dict(
+        data_metadata.get(
+            "formal_build_report_audit",
+            {"required": False, "passed": True},
+        )
+    )
+    formal_build_report_gate = {
+        "required": bool(formal_build.get("required", False)),
+        "path": formal_build.get("path"),
+        "sha256": formal_build.get("sha256"),
+        "passed": formal_build.get("passed") is True,
+    }
+    if (
+        formal_build_report_gate["required"]
+        and not formal_build_report_gate["passed"]
+    ):
+        raise ValueError(
+            "Formal hidden-passage build_report gate failed: "
+            f"{formal_build_report_gate}"
         )
 
     return {
@@ -328,6 +488,7 @@ def _build_training_plan(args: argparse.Namespace, data_metadata: dict) -> dict:
         "total_global_sample_draws": computed_steps * global_batch_size,
         "group_exposure": group_exposure,
         "data_quality_gates": data_quality_gates,
+        "formal_build_report_gate": formal_build_report_gate,
         "data_split_seed": args.data_split_seed,
         "training_seed": args.seed,
         "sampling_mapping_repeats_each_logical_epoch": True,
@@ -343,6 +504,300 @@ def _process_is_global_zero() -> bool:
     return int(os.environ.get("RANK", os.environ.get("LOCAL_RANK", "0"))) == 0
 
 
+def _reject_internal_passage_environment() -> None:
+    inherited = sorted(
+        name for name in PASSAGE_INTERNAL_ENVIRONMENT if name in os.environ
+    )
+    if inherited:
+        for name in inherited:
+            os.environ.pop(name, None)
+        raise RuntimeError(
+            "Internal hidden-passage launch state may not cross a shell or "
+            f"pipeline boundary: {inherited}"
+        )
+
+
+def _apply_passage_rank_cpu_affinity(
+    *,
+    contract: dict | None,
+    local_rank: int,
+    devices: int,
+) -> dict | None:
+    """Bound Lance's per-process pools before StableWM imports Lance."""
+
+    if contract is None:
+        return None
+    if contract != PARALLEL_RANK_CPU_AFFINITY_CONTRACT:
+        raise ValueError(
+            "Passage rank CPU affinity differs from the frozen parallel "
+            f"audit contract: observed={contract}"
+        )
+    if not hasattr(os, "sched_setaffinity") or not hasattr(
+        os, "sched_getaffinity"
+    ):
+        raise RuntimeError(
+            "Parallel passage audits require Linux CPU affinity"
+        )
+    expected_world_size = int(contract["expected_world_size"])
+    cpus_per_rank = int(contract["cpus_per_rank"])
+    if int(devices) != expected_world_size:
+        raise RuntimeError(
+            "Passage CPU affinity is frozen to the 8-rank topology: "
+            f"devices={devices}, expected={expected_world_size}"
+        )
+    if not 0 <= int(local_rank) < expected_world_size:
+        raise RuntimeError(
+            f"LOCAL_RANK is outside CPU-affinity topology: {local_rank}"
+        )
+    cpu_count = os.cpu_count()
+    required_cpus = expected_world_size * cpus_per_rank
+    if not isinstance(cpu_count, int) or cpu_count < required_cpus:
+        raise RuntimeError(
+            "Host has too few logical CPUs for disjoint passage rank "
+            f"affinity: observed={cpu_count}, required={required_cpus}"
+        )
+    start = int(local_rank) * cpus_per_rank
+    target = tuple(range(start, start + cpus_per_rank))
+    before = tuple(sorted(os.sched_getaffinity(0)))
+    os.sched_setaffinity(0, set(target))
+    after = tuple(sorted(os.sched_getaffinity(0)))
+    if after != target:
+        raise RuntimeError(
+            "Passage rank CPU affinity was not applied exactly: "
+            f"rank={local_rank}, expected={target}, observed={after}"
+        )
+    return {
+        "policy": contract["policy"],
+        "scope": contract["scope"],
+        "applied_before_stableworldmodel_and_lance_import": True,
+        "local_rank": int(local_rank),
+        "cpus_per_rank": cpus_per_rank,
+        "cpu_ids": list(target),
+        "host_logical_cpu_count": cpu_count,
+        "prior_affinity_cpu_count": len(before),
+        "passed": True,
+    }
+
+
+class PassageReleaseGatedDataset:
+    """A process-shared hard gate at the real Dataset read boundary."""
+
+    def __init__(self, dataset, *, split: str) -> None:
+        self.dataset = dataset
+        self.split = split
+        self._released = multiprocessing.Event()
+        self._pre_release_calls = multiprocessing.Value("q", 0)
+        self._pre_release_items = multiprocessing.Value("q", 0)
+        self._post_release_calls = multiprocessing.Value("q", 0)
+        self._post_release_items = multiprocessing.Value("q", 0)
+
+    def __len__(self) -> int:
+        return len(self.dataset)
+
+    @staticmethod
+    def _increment(counter, amount: int) -> None:
+        with counter.get_lock():
+            counter.value += int(amount)
+
+    def _authorize(self, item_count: int) -> None:
+        if not self._released.is_set():
+            self._increment(self._pre_release_calls, 1)
+            self._increment(self._pre_release_items, item_count)
+            raise RuntimeError(
+                f"{self.split} Dataset read attempted before audit consensus"
+            )
+        self._increment(self._post_release_calls, 1)
+        self._increment(self._post_release_items, item_count)
+
+    def __getitem__(self, index):
+        self._authorize(1)
+        return self.dataset[index]
+
+    def __getitems__(self, indices):
+        indices = list(indices)
+        self._authorize(len(indices))
+        batched = getattr(self.dataset, "__getitems__", None)
+        if batched is not None:
+            return batched(indices)
+        return [self.dataset[index] for index in indices]
+
+    def release(self) -> None:
+        self._released.set()
+
+    @property
+    def released(self) -> bool:
+        return self._released.is_set()
+
+    def receipt(self) -> dict:
+        return {
+            "split": self.split,
+            "released": self.released,
+            "pre_release_calls": int(self._pre_release_calls.value),
+            "pre_release_items": int(self._pre_release_items.value),
+            "post_release_calls": int(self._post_release_calls.value),
+            "post_release_items": int(self._post_release_items.value),
+        }
+
+
+PASSAGE_RECEIPT_FIELDS = (
+    "rank",
+    "passed",
+    "full_logical_audit_count",
+    "storage_revalidation_count",
+    "train_pre_release_calls",
+    "train_pre_release_items",
+    "val_pre_release_calls",
+    "val_pre_release_items",
+    "internal_environment_clean",
+    "full_audit_lock_acquired",
+    "full_audit_lock_released",
+    "full_audit_release_shared_held",
+    "full_audit_collective_unlocked",
+    "full_audit_path_identity_verified",
+    "full_audit_path_identity_verified_after_acquire",
+    "full_audit_descriptor_noninheritable",
+    "full_audit_fork_child_close_registered",
+    "full_audit_wait_milliseconds",
+    "full_audit_hold_milliseconds",
+    "full_audit_sample_contract_reads",
+    "revalidation_lock_acquired",
+    "revalidation_lock_released",
+    "revalidation_release_shared_held",
+    "revalidation_collective_unlocked",
+    "revalidation_path_identity_verified",
+    "revalidation_path_identity_verified_after_acquire",
+    "revalidation_descriptor_noninheritable",
+    "revalidation_fork_child_close_registered",
+    "revalidation_wait_milliseconds",
+    "revalidation_hold_milliseconds",
+)
+
+
+def _lock_seconds_to_milliseconds(receipt: dict, field: str) -> int:
+    value = receipt.get(field)
+    if not isinstance(value, (int, float)) or float(value) < 0:
+        return -1
+    return int(round(float(value) * 1000))
+
+
+def _training_run_exclusivity_snapshot(args) -> dict:
+    receipt = dict(getattr(args, "_passage_training_run_lock", {}))
+    if receipt.get("acquired") is True:
+        receipt["held_through_report_snapshot"] = bool(
+            receipt.get("released") is False
+            and receipt.get("hold_seconds") is None
+        )
+    return receipt
+
+
+def _distributed_passage_full_audit_consensus(
+    *,
+    strategy,
+    torch_module,
+    device,
+    local_receipt: dict,
+    expected_world_size: int,
+) -> list[dict]:
+    """Gather every rank's independent audit before opening either gate."""
+
+    local = torch_module.tensor(
+        [int(local_receipt[name]) for name in PASSAGE_RECEIPT_FIELDS],
+        dtype=torch_module.int64,
+        device=device,
+    )
+    gathered = strategy.all_gather(local)
+    rows = (
+        gathered.detach()
+        .cpu()
+        .reshape(-1, len(PASSAGE_RECEIPT_FIELDS))
+        .tolist()
+    )
+    receipts = [
+        {
+            name: int(value)
+            for name, value in zip(PASSAGE_RECEIPT_FIELDS, row)
+        }
+        for row in rows
+    ]
+    ranks = sorted(row["rank"] for row in receipts)
+    expected_ranks = list(range(int(expected_world_size)))
+    all_passed = (
+        ranks == expected_ranks
+        and len(receipts) == int(expected_world_size)
+        and all(
+            row["passed"] == 1
+            and row["full_logical_audit_count"] == 1
+            and row["storage_revalidation_count"] == 1
+            and row["train_pre_release_calls"] == 0
+            and row["train_pre_release_items"] == 0
+            and row["val_pre_release_calls"] == 0
+            and row["val_pre_release_items"] == 0
+            and row["internal_environment_clean"] == 1
+            and row["full_audit_lock_acquired"] == 1
+            and row["full_audit_lock_released"] == 1
+            and row["full_audit_release_shared_held"] == 1
+            and row["full_audit_collective_unlocked"] == 1
+            and row["full_audit_path_identity_verified"] == 1
+            and row[
+                "full_audit_path_identity_verified_after_acquire"
+            ]
+            == 1
+            and row["full_audit_descriptor_noninheritable"] == 1
+            and row["full_audit_fork_child_close_registered"] == 1
+            and row["full_audit_wait_milliseconds"] >= 0
+            and row["full_audit_hold_milliseconds"] >= 0
+            and row["full_audit_sample_contract_reads"] == 8
+            and row["revalidation_lock_acquired"] == 1
+            and row["revalidation_lock_released"] == 1
+            and row["revalidation_release_shared_held"] == 1
+            and row["revalidation_collective_unlocked"] == 1
+            and row["revalidation_path_identity_verified"] == 1
+            and row[
+                "revalidation_path_identity_verified_after_acquire"
+            ]
+            == 1
+            and row["revalidation_descriptor_noninheritable"] == 1
+            and row["revalidation_fork_child_close_registered"] == 1
+            and row["revalidation_wait_milliseconds"] >= 0
+            and row["revalidation_hold_milliseconds"] >= 0
+            for row in receipts
+        )
+    )
+    if not all_passed:
+        raise RuntimeError(
+            "Hidden-passage per-rank audit consensus failed before Dataset "
+            f"release: receipts={receipts}"
+        )
+    return sorted(receipts, key=lambda row: row["rank"])
+
+
+def _project_lewm_model_batch(batch):
+    """Fail closed at the LeWM boundary: only images and actions are visible."""
+
+    import torch
+
+    required = ("pixels", "action")
+    missing = [key for key in required if key not in batch]
+    if missing:
+        raise KeyError(f"LeWM batch is missing required fields: {missing}")
+    visible = {key: batch[key] for key in required}
+    if not all(torch.is_tensor(value) for value in visible.values()):
+        raise TypeError("LeWM pixels and action inputs must be tensors")
+    pixels = visible["pixels"]
+    actions = visible["action"]
+    if pixels.ndim != 5 or pixels.shape[1] != 4 or pixels.shape[2] != 3:
+        raise ValueError(
+            "LeWM pixels must have shape [batch,4,3,height,width], got "
+            f"{tuple(pixels.shape)}"
+        )
+    if actions.ndim != 3 or tuple(actions.shape[1:]) != (4, 10):
+        raise ValueError(
+            "LeWM actions must have shape [batch,4,10], got "
+            f"{tuple(actions.shape)}"
+        )
+    return visible
+
+
 def _lejepa_forward_with_manual_accumulation(
     self,
     batch,
@@ -354,7 +809,12 @@ def _lejepa_forward_with_manual_accumulation(
 ):
     """Preserve per-rank batch statistics while accumulating exact gradients."""
 
-    state = base_forward(self, batch, stage, cfg)
+    state = base_forward(
+        self,
+        _project_lewm_model_batch(batch),
+        stage,
+        cfg,
+    )
     if stage == "fit" and accumulation_steps > 1:
         # StablePretraining's manual optimizer frequency delays optimizer.step,
         # but its stock training_step does not call rescale_loss_for_grad_acc.
@@ -364,6 +824,8 @@ def _lejepa_forward_with_manual_accumulation(
 
 
 def _sample_contract(dataset, count: int = 8) -> dict:
+    import torch
+
     indices = list(range(min(count, len(dataset))))
     samples = dataset.__getitems__(indices)
     expected = {
@@ -382,12 +844,52 @@ def _sample_contract(dataset, count: int = 8) -> dict:
         shapes = {key: list(sample[key].shape) for key in sorted(expected)}
         if shapes != expected:
             raise RuntimeError(f"Cross-group sample shape mismatch: {shapes}")
+    collated = torch.utils.data.default_collate(samples)
+    projected = _project_lewm_model_batch(collated)
+    raw_keys = sorted(collated)
+    model_boundary_keys = list(projected)
+    privileged = {
+        "passage.open",
+        "passage_open",
+        "variation_passage_open",
+        "state",
+        "proprio",
+        "template_id",
+        "pair_id",
+    }
+    leaked = sorted(privileged & set(model_boundary_keys))
+    if leaked:
+        raise RuntimeError(
+            f"Privileged fields reached the LeWM boundary: {leaked}"
+        )
     return {
         "passed": True,
         "sample_count": len(samples),
         "shapes": observed,
         "keys": sorted(samples[0]),
         "batched_dataset_read_exercised": True,
+        "collated_batch_audit": {
+            "raw_keys": raw_keys,
+            "raw_shapes": {
+                key: list(value.shape)
+                for key, value in collated.items()
+                if torch.is_tensor(value)
+            },
+            "model_boundary_keys": model_boundary_keys,
+            "model_boundary_shapes": {
+                key: list(value.shape)
+                for key, value in projected.items()
+            },
+            "privileged_fields": sorted(privileged),
+            "privileged_fields_at_model_boundary": leaked,
+            "strict_pixels_action_projection": (
+                model_boundary_keys == ["pixels", "action"]
+            ),
+            "passed": (
+                model_boundary_keys == ["pixels", "action"]
+                and not leaked
+            ),
+        },
     }
 
 
@@ -399,10 +901,352 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def _load_pinned_train_module(stable_repo: Path):
-    path = stable_repo / "scripts/train/lewm.py"
+def _state_dict_sha256(model) -> str:
+    import torch
+
+    digest = hashlib.sha256()
+    for name, value in sorted(model.state_dict().items()):
+        tensor = value.detach().cpu().contiguous()
+        digest.update(name.encode("utf-8"))
+        digest.update(str(tensor.dtype).encode("utf-8"))
+        digest.update(str(tuple(tensor.shape)).encode("utf-8"))
+        digest.update(
+            tensor.reshape(-1).view(torch.uint8).numpy().tobytes()
+        )
+    return digest.hexdigest()
+
+
+def _frozen_module_spec(benchmark_config: Path) -> dict:
+    """Load an optional, explicit representation-freeze diagnostic."""
+
+    with benchmark_config.open("r", encoding="utf-8") as handle:
+        benchmark = yaml.safe_load(handle)
+    declared = benchmark.get("training_protocol", {}).get(
+        "frozen_model_modules",
+        [],
+    )
+    if declared in (None, []):
+        return {
+            "configured": False,
+            "modules": [],
+            "force_eval_mode": False,
+        }
+    if not isinstance(declared, list) or not all(
+        isinstance(value, str) and value for value in declared
+    ):
+        raise ValueError(
+            "training_protocol.frozen_model_modules must be a list of names"
+        )
+    modules = list(declared)
+    if modules != ["encoder", "projector"]:
+        raise ValueError(
+            "The only audited representation freeze is exactly "
+            "['encoder', 'projector']"
+        )
+    force_eval_mode = benchmark.get("training_protocol", {}).get(
+        "force_frozen_modules_eval_mode"
+    )
+    if force_eval_mode is not True:
+        raise ValueError(
+            "Frozen encoder/projector requires "
+            "force_frozen_modules_eval_mode: true"
+        )
+    return {
+        "configured": True,
+        "modules": modules,
+        "force_eval_mode": True,
+        "purpose": (
+            "keep the original target-latent representation fixed while "
+            "testing whether the predictor can bind History=3 to the rule"
+        ),
+    }
+
+
+def _training_method(benchmark_config: Path) -> str:
+    """Return the explicitly selected StableWM training objective."""
+
+    with benchmark_config.open("r", encoding="utf-8") as handle:
+        benchmark = yaml.safe_load(handle)
+    method = str(
+        benchmark.get("training_protocol", {}).get(
+            "training_method",
+            "lewm",
+        )
+    ).lower()
+    if method not in {"lewm", "pldm"}:
+        raise ValueError(
+            "training_protocol.training_method must be 'lewm' or 'pldm', "
+            f"observed={method!r}"
+        )
+    return method
+
+
+def _training_objective_spec(training_method: str, cfg) -> dict:
+    """Return the explicit model-loss contract stored in every report."""
+
+    if training_method == "lewm":
+        return {
+            "name": (
+                "native_lewm_plus_std_cov"
+                if bool(cfg.loss.std.enabled)
+                and bool(cfg.loss.cov.enabled)
+                else "native_lewm"
+            ),
+            "prediction_target_detached": False,
+            "prediction_weight": 1.0,
+            "sigreg_weight": float(cfg.loss.sigreg.weight),
+            "std_enabled": bool(cfg.loss.std.enabled),
+            "std_weight": float(cfg.loss.std.weight),
+            "cov_enabled": bool(cfg.loss.cov.enabled),
+            "cov_weight": float(cfg.loss.cov.weight),
+        }
+    return {
+        "name": "native_pldm",
+        "prediction_target_detached": False,
+        "prediction_weight": 1.0,
+        "std_weight": float(cfg.loss.std.weight),
+        "std_t_weight": float(cfg.loss.std_t.weight),
+        "cov_weight": float(cfg.loss.cov.weight),
+        "cov_t_weight": float(cfg.loss.cov_t.weight),
+        "temp_align_weight": float(cfg.loss.temp_align.weight),
+        "idm_weight": float(cfg.loss.idm.weight),
+    }
+
+
+def _apply_frozen_modules(model, specification: dict) -> dict:
+    modules = list(specification["modules"])
+    initial_state_sha256 = {}
+    frozen_parameters = 0
+    for name in modules:
+        if not hasattr(model, name):
+            raise AttributeError(
+                f"StableWM model has no frozen module {name!r}"
+            )
+        module = getattr(model, name)
+        module.requires_grad_(False)
+        module.eval()
+        initial_state_sha256[name] = _state_dict_sha256(module)
+        frozen_parameters += sum(
+            parameter.numel() for parameter in module.parameters()
+        )
+    trainable_parameters = sum(
+        parameter.numel()
+        for parameter in model.parameters()
+        if parameter.requires_grad
+    )
+    total_parameters = sum(
+        parameter.numel() for parameter in model.parameters()
+    )
+    if specification["configured"] and (
+        frozen_parameters <= 0 or trainable_parameters <= 0
+    ):
+        raise RuntimeError(
+            "Representation-freeze diagnostic has no frozen or trainable "
+            "parameters"
+        )
+    return {
+        **specification,
+        "applied": bool(specification["configured"]),
+        "initial_state_sha256": initial_state_sha256,
+        "frozen_parameters": frozen_parameters,
+        "trainable_parameters": trainable_parameters,
+        "total_parameters": total_parameters,
+    }
+
+
+def _finalize_frozen_modules(model, audit: dict) -> dict:
+    final_state_sha256 = {
+        name: _state_dict_sha256(getattr(model, name))
+        for name in audit["modules"]
+    }
+    unchanged = {
+        name: (
+            final_state_sha256[name]
+            == audit["initial_state_sha256"][name]
+        )
+        for name in audit["modules"]
+    }
+    passed = (
+        not audit["configured"]
+        or (
+            bool(unchanged)
+            and all(unchanged.values())
+            and all(
+                not parameter.requires_grad
+                for name in audit["modules"]
+                for parameter in getattr(model, name).parameters()
+            )
+        )
+    )
+    if not passed:
+        raise RuntimeError(
+            "A frozen representation module changed during training: "
+            f"{unchanged}"
+        )
+    return {
+        **audit,
+        "final_state_sha256": final_state_sha256,
+        "state_unchanged": unchanged,
+        "passed": passed,
+    }
+
+
+def _initialization_checkpoint_spec(
+    args: argparse.Namespace,
+    *,
+    benchmark_config: Path,
+) -> dict | None:
+    """Resolve and hash a model-only initialization, separate from resume."""
+
+    with benchmark_config.open("r", encoding="utf-8") as handle:
+        benchmark = yaml.safe_load(handle)
+    declared = (
+        benchmark.get("training_protocol", {}).get(
+            "initialization_checkpoint"
+        )
+    )
+    if declared is not None and not isinstance(declared, dict):
+        raise ValueError(
+            "training_protocol.initialization_checkpoint must be a mapping"
+        )
+    declared = dict(declared or {})
+    cli_path = getattr(args, "initialization_checkpoint", None)
+    cli_sha256 = getattr(
+        args,
+        "initialization_checkpoint_sha256",
+        None,
+    )
+    raw_path = cli_path or declared.get("path")
+    expected_sha256 = cli_sha256 or declared.get("sha256")
+    if raw_path is None and expected_sha256 is None:
+        return None
+    if raw_path is None or expected_sha256 is None:
+        raise ValueError(
+            "Initialization checkpoint path and sha256 must be provided together"
+        )
+    path = resolve_contextworld_path(raw_path, repo_root=REPO_ROOT)
+    if not path.is_file():
+        raise FileNotFoundError(path)
+    config_path = path.parent / "config.json"
+    if not config_path.is_file():
+        raise FileNotFoundError(config_path)
+    observed_sha256 = _sha256(path)
+    if observed_sha256 != str(expected_sha256):
+        raise ValueError(
+            "Initialization checkpoint hash mismatch: "
+            f"expected={expected_sha256}, observed={observed_sha256}"
+        )
+    observed_config_sha256 = _sha256(config_path)
+    expected_config_sha256 = declared.get("config_sha256")
+    if (
+        expected_config_sha256 is not None
+        and observed_config_sha256 != str(expected_config_sha256)
+    ):
+        raise ValueError(
+            "Initialization checkpoint config hash mismatch: "
+            f"expected={expected_config_sha256}, "
+            f"observed={observed_config_sha256}"
+        )
+    role = str(
+        declared.get(
+            "role",
+            "model_weight_initialization_only",
+        )
+    )
+    if role not in {
+        "model_weight_initialization_only",
+        "model_weight_initialization_only_not_resume",
+    }:
+        raise ValueError(
+            "Initialization checkpoint role must explicitly be model-only, "
+            f"observed={role!r}"
+        )
+
+    if cli_path is not None and declared.get("path") is not None:
+        declared_path = resolve_contextworld_path(
+            declared["path"],
+            repo_root=REPO_ROOT,
+        )
+        if declared_path != path:
+            raise ValueError(
+                "CLI initialization checkpoint differs from benchmark config"
+            )
+    if (
+        cli_sha256 is not None
+        and declared.get("sha256") is not None
+        and str(cli_sha256) != str(declared["sha256"])
+    ):
+        raise ValueError(
+            "CLI initialization hash differs from benchmark config"
+        )
+    return {
+        "path": str(path),
+        "sha256": observed_sha256,
+        "config": str(config_path),
+        "config_sha256": observed_config_sha256,
+        "role": role,
+        "resume_state_loaded": False,
+        "optimizer_state_loaded": False,
+        "scheduler_state_loaded": False,
+        "hash_audit_passed": True,
+    }
+
+
+def _apply_initialization_checkpoint(
+    model,
+    *,
+    swm,
+    specification: dict[str, Any] | None,
+    cache_dir: Path,
+    resume_checkpoint: Path | None,
+) -> dict[str, Any]:
+    if specification is None:
+        return {
+            "configured": False,
+            "applied": False,
+            "reason": "from_scratch_or_full_state_resume",
+        }
+    metadata = {"configured": True, **specification}
+    if resume_checkpoint is not None:
+        return {
+            **metadata,
+            "applied": False,
+            "reason": "full_state_resume_supersedes_initialization",
+        }
+
+    source = swm.wm.utils.load_pretrained(
+        specification["path"],
+        cache_dir=str(cache_dir),
+    )
+    source_hash = _state_dict_sha256(source)
+    result = model.load_state_dict(source.state_dict(), strict=True)
+    if result.missing_keys or result.unexpected_keys:
+        raise RuntimeError(
+            "Initialization checkpoint state keys differ from the model: "
+            f"missing={result.missing_keys}, unexpected={result.unexpected_keys}"
+        )
+    initialized_hash = _state_dict_sha256(model)
+    if initialized_hash != source_hash:
+        raise RuntimeError(
+            "Initialization checkpoint did not load exactly into the model"
+        )
+    return {
+        **metadata,
+        "applied": True,
+        "reason": "fresh_model_weight_initialization",
+        "source_model_class": (
+            f"{type(source).__module__}.{type(source).__name__}"
+        ),
+        "source_state_sha256": source_hash,
+        "initialized_state_sha256": initialized_hash,
+        "state_exact": True,
+    }
+
+
+def _load_pinned_train_module(stable_repo: Path, training_method: str):
+    path = stable_repo / f"scripts/train/{training_method}.py"
     spec = importlib.util.spec_from_file_location(
-        "contextworld_pinned_stablewm_lewm_train", path
+        f"contextworld_pinned_stablewm_{training_method}_train", path
     )
     if spec is None or spec.loader is None:
         raise ImportError(path)
@@ -411,13 +1255,123 @@ def _load_pinned_train_module(stable_repo: Path):
     return module
 
 
-def _compose_model_config(stable_repo: Path, args):
+def _configure_training_logger(cfg, args) -> dict:
+    """Apply the shared StableWM logger contract to a composed train config."""
+
+    from omegaconf import OmegaConf, open_dict
+
+    backend = str(args.logger_backend).lower()
+    if backend not in {"none", "swanlab", "wandb"}:
+        raise ValueError(f"Unsupported logger backend: {backend}")
+
+    with open_dict(cfg):
+        if cfg.get("swanlab") is None:
+            cfg.swanlab = OmegaConf.create({})
+        if cfg.get("wandb") is None:
+            cfg.wandb = OmegaConf.create({"config": {}})
+        if cfg.swanlab.get("config") is None:
+            cfg.swanlab.config = OmegaConf.create({})
+        if cfg.wandb.get("config") is None:
+            cfg.wandb.config = OmegaConf.create({})
+
+        cfg.logger_backend = backend
+        cfg.swanlab.enabled = backend == "swanlab"
+        cfg.wandb.enabled = backend == "wandb"
+        cfg.swanlab.collect_hardware = bool(
+            args.swanlab_collect_hardware
+        )
+        cfg.swanlab.hardware_monitor = bool(
+            args.swanlab_hardware_monitor
+        )
+        cfg.swanlab.log_hyperparams = bool(
+            args.swanlab_log_hyperparams
+        )
+        cfg.swanlab.config.experiment_name = (
+            args.swanlab_experiment_name or args.run_name
+        )
+        cfg.swanlab.config.id = args.swanlab_id or args.run_name
+
+        optional_swanlab_values = {
+            "project": args.swanlab_project,
+            "workspace": args.swanlab_workspace,
+            "logdir": args.swanlab_logdir,
+            "mode": args.swanlab_mode,
+        }
+        for name, value in optional_swanlab_values.items():
+            if value is not None:
+                cfg.swanlab.config[name] = value
+
+    selected = cfg.get(backend, {}) if backend != "none" else {}
+    selected_config = selected.get("config", {}) if selected else {}
+    return {
+        "backend": backend,
+        "enabled": backend != "none",
+        "project": selected_config.get("project"),
+        "workspace": selected_config.get("workspace"),
+        "experiment_name": selected_config.get(
+            "experiment_name",
+            selected_config.get("name"),
+        ),
+        "run_id": selected_config.get("id"),
+        "logdir": selected_config.get("logdir"),
+        "mode": selected_config.get("mode"),
+        "collect_hardware": bool(
+            selected.get("collect_hardware", False)
+        ),
+        "hardware_monitor": bool(
+            selected.get("hardware_monitor", False)
+        ),
+        "log_hyperparams": bool(
+            selected.get("log_hyperparams", False)
+        ),
+    }
+
+
+def _build_training_logger_preserving_rng(
+    cfg,
+    *,
+    builder,
+    torch_module,
+):
+    """Initialize an external logger without changing training RNG streams."""
+
+    import random
+
+    import numpy as np
+
+    python_state = random.getstate()
+    numpy_state = np.random.get_state()
+    torch_state = torch_module.get_rng_state()
+    cuda_states = (
+        torch_module.cuda.get_rng_state_all()
+        if torch_module.cuda.is_initialized()
+        else None
+    )
+    try:
+        return builder(cfg)
+    finally:
+        random.setstate(python_state)
+        np.random.set_state(numpy_state)
+        torch_module.set_rng_state(torch_state)
+        if cuda_states is not None:
+            torch_module.cuda.set_rng_state_all(cuda_states)
+
+
+def _compose_model_config(
+    stable_repo: Path,
+    args,
+    *,
+    training_method: str,
+):
     import hydra
     from omegaconf import open_dict
 
     config_dir = str((stable_repo / "scripts/train/config").resolve())
     with hydra.initialize_config_dir(config_dir=config_dir, version_base=None):
-        cfg = hydra.compose(config_name="lewm", overrides=["data=tworoom"])
+        cfg = hydra.compose(
+            config_name=training_method,
+            overrides=["data=tworoom"],
+        )
     with open_dict(cfg):
         cfg.output_model_name = args.run_name
         cfg.subdir = args.run_name
@@ -429,6 +1383,17 @@ def _compose_model_config(stable_repo: Path, args):
         cfg.loader.batch_size = args.batch_size
         cfg.loader.num_workers = args.num_workers
         cfg.model.action_encoder.input_dim = 10
+        if training_method == "lewm":
+            cfg.loss.std.enabled = args.lewm_std_weight > 0.0
+            cfg.loss.std.weight = args.lewm_std_weight
+            cfg.loss.cov.enabled = args.lewm_cov_weight > 0.0
+            cfg.loss.cov.weight = args.lewm_cov_weight
+        if training_method == "pldm":
+            cfg.idm.input_dim = 2 * int(cfg.wm.embed_dim)
+            cfg.idm.output_dim = 10
+    logger_config = _configure_training_logger(cfg, args)
+    with open_dict(cfg):
+        cfg.contextworld_logger = logger_config
     return cfg
 
 
@@ -765,7 +1730,10 @@ def _configure_spt_for_controlled_checkpointing(spt) -> dict:
 
 
 def _load_distributed_execution_contract(
-    benchmark_config: Path, *, devices: int
+    benchmark_config: Path,
+    *,
+    devices: int,
+    passage_model: bool = False,
 ) -> dict:
     """Load the recovery contract without changing the DDP transport.
 
@@ -792,6 +1760,105 @@ def _load_distributed_execution_contract(
         raise ValueError(
             "Door training must not freeze NCCL transport settings; found "
             f"{sorted(transport_keys)}"
+        )
+    expected_transport = (
+        "framework_defaults_with_frozen_rendezvous_timeout"
+    )
+    observed_transport = declared.get("transport_configuration")
+    if passage_model and observed_transport != expected_transport:
+        raise ValueError(
+            "Distributed transport configuration differs from its scope: "
+            f"expected={expected_transport}, "
+            f"observed={observed_transport}"
+        )
+    if (
+        not passage_model
+        and observed_transport not in (None, "framework_defaults")
+    ):
+        raise ValueError(
+            "Non-passage training may only use framework-default transport: "
+            f"observed={observed_transport}"
+        )
+    declared_timeout = declared.get("rendezvous_timeout_seconds")
+    declared_scope = declared.get("rendezvous_timeout_scope")
+    if passage_model:
+        if (
+            declared_timeout
+            != PASSAGE_DDP_RENDEZVOUS_TIMEOUT_SECONDS
+            or declared_scope != "passage_multi_gpu_only"
+        ):
+            raise ValueError(
+                "Passage DDP rendezvous timeout must be frozen to "
+                f"{PASSAGE_DDP_RENDEZVOUS_TIMEOUT_SECONDS} seconds with "
+                "scope=passage_multi_gpu_only"
+            )
+    elif declared_timeout is not None or declared_scope is not None:
+        raise ValueError(
+            "Non-passage training must not declare a passage-only DDP "
+            "rendezvous timeout"
+        )
+    applied_timeout = (
+        int(declared_timeout)
+        if passage_model and devices > 1
+        else None
+    )
+    audit_scheduling = declared.get("audit_scheduling")
+    if (
+        passage_model
+        and audit_scheduling not in AUDIT_SCHEDULING_CONTRACTS
+    ):
+        raise ValueError(
+            "Passage audit scheduling must use one single-node audit "
+            f"contract from the frozen safe set: "
+            f"expected={AUDIT_SCHEDULING_CONTRACTS}, "
+            f"observed={audit_scheduling}"
+        )
+    if not passage_model and audit_scheduling is not None:
+        raise ValueError(
+            "Non-passage training must not declare passage audit scheduling"
+        )
+    rank_cpu_affinity = declared.get("rank_cpu_affinity")
+    if (
+        passage_model
+        and audit_scheduling == PARALLEL_AUDIT_SCHEDULING_CONTRACT
+        and rank_cpu_affinity != PARALLEL_RANK_CPU_AFFINITY_CONTRACT
+    ):
+        raise ValueError(
+            "Parallel passage audits require the frozen disjoint rank CPU "
+            f"affinity: expected={PARALLEL_RANK_CPU_AFFINITY_CONTRACT}, "
+            f"observed={rank_cpu_affinity}"
+        )
+    if (
+        passage_model
+        and audit_scheduling == SERIAL_AUDIT_SCHEDULING_CONTRACT
+        and rank_cpu_affinity is not None
+    ):
+        raise ValueError(
+            "Serial passage audit config must not declare parallel rank "
+            "CPU affinity"
+        )
+    if not passage_model and rank_cpu_affinity is not None:
+        raise ValueError(
+            "Non-passage training must not declare passage rank CPU affinity"
+        )
+    training_run_exclusivity = declared.get(
+        "training_run_exclusivity"
+    )
+    if (
+        passage_model
+        and training_run_exclusivity
+        != TRAINING_RUN_EXCLUSIVITY_CONTRACT
+    ):
+        raise ValueError(
+            "Passage training-run exclusivity differs from the frozen "
+            f"single-root contract: expected="
+            f"{TRAINING_RUN_EXCLUSIVITY_CONTRACT}, "
+            f"observed={training_run_exclusivity}"
+        )
+    if not passage_model and training_run_exclusivity is not None:
+        raise ValueError(
+            "Non-passage training must not declare passage root-run "
+            "exclusivity"
         )
 
     acceptance = declared.get("recovery_acceptance")
@@ -868,6 +1935,15 @@ def _load_distributed_execution_contract(
             "transport_configuration", "framework_defaults"
         ),
         "transport_overrides_applied": False,
+        "rendezvous_timeout_seconds_declared": declared_timeout,
+        "rendezvous_timeout_scope": declared_scope,
+        "rendezvous_timeout_seconds_applied": applied_timeout,
+        "rendezvous_timeout_override_applied": (
+            applied_timeout is not None
+        ),
+        "audit_scheduling": audit_scheduling,
+        "rank_cpu_affinity": rank_cpu_affinity,
+        "training_run_exclusivity": training_run_exclusivity,
         "primary_formal_launch": declared.get("primary_formal_launch"),
         "resume_role": declared.get("resume_role"),
         "resume_scope": declared.get("resume_scope"),
@@ -876,7 +1952,31 @@ def _load_distributed_execution_contract(
     }
 
 
-def run(args) -> dict:
+def _trainer_strategy_kwargs(
+    distributed_execution_contract: dict,
+    *,
+    ddp_strategy_class,
+) -> dict:
+    timeout_seconds = distributed_execution_contract.get(
+        "rendezvous_timeout_seconds_applied"
+    )
+    if timeout_seconds is None:
+        return {}
+    if (
+        int(timeout_seconds)
+        != PASSAGE_DDP_RENDEZVOUS_TIMEOUT_SECONDS
+    ):
+        raise ValueError(
+            f"Unexpected passage DDP timeout: {timeout_seconds}"
+        )
+    return {
+        "strategy": ddp_strategy_class(
+            timeout=timedelta(seconds=int(timeout_seconds))
+        )
+    }
+
+
+def _run_with_release_lock_held(args) -> dict:
     args.output_root = resolve_contextworld_path(
         args.output_root, repo_root=REPO_ROOT
     )
@@ -895,38 +1995,206 @@ def run(args) -> dict:
     import stable_pretraining as spt
     import torch
     from lightning.pytorch.callbacks import Callback, ModelCheckpoint
+    from lightning.pytorch.strategies import DDPStrategy
     from lightning.pytorch.trainer.connectors import callback_connector
     from omegaconf import OmegaConf, open_dict
-    from stable_worldmodel.wm.loss import SIGReg
+    from stable_worldmodel.wm.loss import (
+        PLDMLoss,
+        SIGReg,
+        TemporalStraighteningLoss,
+        VCReg,
+    )
+    from stable_worldmodel.loggers import build_training_logger
 
     pl.seed_everything(args.seed, workers=True)
-    pinned_train = _load_pinned_train_module(stable_repo)
-    cfg = _compose_model_config(stable_repo, args)
-
-    grouped = build_tworoom_grouped_data(
-        swm,
-        repo_root=REPO_ROOT,
-        benchmark_config=args.benchmark_config.resolve(),
-        model_id=args.model_id,
-        epoch_size=args.epoch_size,
-        validation_epoch_size=args.validation_epoch_size,
-        original_h5=args.original_h5,
-        frameskip=5,
-        num_steps=4,
-        img_size=224,
-        seed=args.data_split_seed,
-        expected_stablewm_commit=stable_commit,
+    training_method = _training_method(args.benchmark_config.resolve())
+    if training_method != "lewm" and (
+        args.lewm_std_weight != 0.0
+        or args.lewm_cov_weight != 0.0
+    ):
+        raise ValueError(
+            "LeWM std/cov weights cannot be applied to a PLDM training "
+            "configuration"
+        )
+    pinned_train = _load_pinned_train_module(
+        stable_repo,
+        training_method,
     )
+    cfg = _compose_model_config(
+        stable_repo,
+        args,
+        training_method=training_method,
+    )
+    training_objective = _training_objective_spec(training_method, cfg)
+    initialization_spec = _initialization_checkpoint_spec(
+        args,
+        benchmark_config=args.benchmark_config.resolve(),
+    )
+    frozen_module_spec = _frozen_module_spec(
+        args.benchmark_config.resolve()
+    )
+    passage_release_root = getattr(
+        args,
+        "_passage_release_root",
+        None,
+    )
+
+    output_root = args.output_root.resolve()
+    output_root.mkdir(parents=True, exist_ok=True)
+    run_dir = output_root / "checkpoints" / args.run_name
+    resume_checkpoint = run_dir / "last.ckpt"
+    manager_resume_checkpoint = _validate_resume_policy(
+        run_dir=run_dir,
+        checkpoint_path=resume_checkpoint,
+        policy=args.resume_policy,
+    )
+
+    if passage_release_root is not None:
+        release_lock = getattr(args, "_passage_release_lock", {})
+        if release_lock.get("mode") != "shared":
+            raise RuntimeError(
+                "Passage audit lock order requires the release shared lock "
+                "to be held first"
+            )
+    distributed_execution_contract = _load_distributed_execution_contract(
+        args.benchmark_config,
+        devices=args.devices,
+        passage_model=passage_release_root is not None,
+    )
+    local_rank_cpu_affinity = getattr(
+        args,
+        "_passage_rank_cpu_affinity",
+        None,
+    )
+    distributed_execution_contract["local_rank_cpu_affinity"] = (
+        dict(local_rank_cpu_affinity)
+        if local_rank_cpu_affinity is not None
+        else None
+    )
+    audit_scheduling_contract = distributed_execution_contract.get(
+        "audit_scheduling"
+    )
+    parallel_passage_audits = bool(
+        audit_scheduling_contract
+        == PARALLEL_AUDIT_SCHEDULING_CONTRACT
+    )
+    audit_schedule_context = (
+        hidden_passage_audit_scheduling_lock(
+            passage_release_root,
+            shared=parallel_passage_audits,
+        )
+        if passage_release_root is not None
+        else nullcontext(None)
+    )
+    with audit_schedule_context as build_audit_schedule:
+        grouped = build_tworoom_grouped_data(
+            swm,
+            repo_root=REPO_ROOT,
+            benchmark_config=args.benchmark_config.resolve(),
+            model_id=args.model_id,
+            epoch_size=args.epoch_size,
+            validation_epoch_size=args.validation_epoch_size,
+            original_h5=args.original_h5,
+            frameskip=5,
+            num_steps=4,
+            img_size=224,
+            seed=args.data_split_seed,
+            expected_stablewm_commit=stable_commit,
+        )
+        sample_contract = _sample_contract(grouped.train)
+    build_audit_schedule = (
+        dict(build_audit_schedule)
+        if build_audit_schedule is not None
+        else None
+    )
+    expected_audit_mode = (
+        "shared" if parallel_passage_audits else "exclusive"
+    )
+    if build_audit_schedule is not None:
+        if not (
+            build_audit_schedule.get("acquired") is True
+            and build_audit_schedule.get("released") is True
+            and build_audit_schedule.get("mode")
+            == expected_audit_mode
+            and build_audit_schedule.get("policy")
+            == audit_scheduling_contract["policy"]
+            and build_audit_schedule.get("protocol")
+            == audit_scheduling_contract["lock_protocol"]
+            and build_audit_schedule.get("path_identity_verified") is True
+            and build_audit_schedule.get(
+                "path_identity_verified_after_acquire"
+            )
+            is True
+            and build_audit_schedule.get("descriptor_inheritable") is False
+        ):
+            raise RuntimeError(
+                "Passage full-audit scheduling lock did not complete its "
+                "safe release contract"
+            )
+        build_audit_schedule.update(
+            {
+                "release_shared_lock_held": True,
+                "collective_unlocked": bool(
+                    build_audit_schedule["released"]
+                ),
+                "sample_contract_reads_inside_lock": int(
+                    sample_contract["sample_count"]
+                ),
+            }
+        )
     training_plan = _build_training_plan(args, grouped.metadata)
-    sample_contract = _sample_contract(grouped.train)
+    pre_release_sample_reads = int(sample_contract["sample_count"])
+    if passage_release_root is not None:
+        grouped.metadata["distributed_passage_audit"].update(
+            {
+                "optimization": "disabled_per_rank_full_audit",
+                "local_rank": int(os.environ.get("LOCAL_RANK", "0")),
+                "full_logical_audit_execution_count": 1,
+                "full_audit_scheduling": build_audit_schedule,
+                "training_run_exclusivity": (
+                    _training_run_exclusivity_snapshot(args)
+                ),
+                "local_rank_cpu_affinity": (
+                    dict(local_rank_cpu_affinity)
+                    if local_rank_cpu_affinity is not None
+                    else None
+                ),
+                "preflight_sample_contract_reads": (
+                    pre_release_sample_reads
+                ),
+                "internal_environment_clean": not any(
+                    name in os.environ
+                    for name in PASSAGE_INTERNAL_ENVIRONMENT
+                ),
+            }
+        )
     with open_dict(cfg):
         cfg.contextworld_benchmark = {
             "adapter": "ContextWorldGroupedDataModule",
             "benchmark_config": str(args.benchmark_config.resolve()),
             "model_id": args.model_id,
             "profile": args.profile,
+            "training_method": training_method,
+            "training_objective": training_objective,
             "training_plan": training_plan,
+            "distributed_execution_contract": (
+                distributed_execution_contract
+            ),
             "data": grouped.metadata,
+            "initialization_checkpoint": initialization_spec,
+            "frozen_model_modules": frozen_module_spec,
+            "model_input_boundary": sample_contract[
+                "collated_batch_audit"
+            ],
+            "diagnostics": {
+                "loss_trace_interval_optimizer_steps": 20,
+                "gradient_trace_steps": list(
+                    args.diagnostic_checkpoint_step
+                ),
+                "model_checkpoint_steps": list(
+                    args.diagnostic_checkpoint_step
+                ),
+            },
         }
 
     if args.preflight_only:
@@ -945,19 +2213,98 @@ def run(args) -> dict:
             "stable_worldmodel": {
                 "repo": str(stable_repo),
                 "commit": stable_commit,
-                "training_entry": str(stable_repo / "scripts/train/lewm.py"),
+                "training_entry": str(
+                    stable_repo
+                    / f"scripts/train/{training_method}.py"
+                ),
+                "training_entry_sha256": _sha256(
+                    stable_repo
+                    / f"scripts/train/{training_method}.py"
+                ),
+                "logger_entry": str(
+                    stable_repo / "stable_worldmodel/loggers.py"
+                ),
+                "logger_entry_sha256": _sha256(
+                    stable_repo / "stable_worldmodel/loggers.py"
+                ),
+            },
+            "logger": {
+                **OmegaConf.to_container(
+                    cfg.contextworld_logger,
+                    resolve=True,
+                ),
+                "initialized": False,
+                "reason": "preflight_does_not_create_external_logger",
             },
             "model_contract": {
-                "class": "stable_worldmodel.wm.lewm.lewm.LeWM",
+                "class": (
+                    "stable_worldmodel.wm.lewm.lewm.LeWM"
+                    if training_method == "lewm"
+                    else "stable_worldmodel.wm.pldm.pldm.PLDM"
+                ),
+                "training_method": training_method,
+                "training_objective": training_objective,
                 "action_block": 5,
                 "history_size": 3,
+                "raw_batch_keys": sample_contract[
+                    "collated_batch_audit"
+                ]["raw_keys"],
+                "model_boundary_keys": sample_contract[
+                    "collated_batch_audit"
+                ]["model_boundary_keys"],
+                "privileged_fields_at_model_boundary": sample_contract[
+                    "collated_batch_audit"
+                ]["privileged_fields_at_model_boundary"],
+            },
+            "initialization_checkpoint": (
+                {
+                    "configured": True,
+                    "applied": False,
+                    "reason": "preflight_hash_audit_only",
+                    **initialization_spec,
+                }
+                if initialization_spec is not None
+                else {"configured": False, "applied": False}
+            ),
+            "frozen_model_modules": {
+                **frozen_module_spec,
+                "applied": False,
+                "reason": "preflight_does_not_instantiate_model",
+            },
+            "diagnostics": {
+                "initialized": False,
+                "reason": "preflight_declares_but_does_not_write_traces",
+                "loss_trace_interval_optimizer_steps": 20,
+                "gradient_trace_steps": list(
+                    args.diagnostic_checkpoint_step
+                ),
+                "model_checkpoint_steps": list(
+                    args.diagnostic_checkpoint_step
+                ),
             },
             "sample_contract": sample_contract,
             "training_plan": training_plan,
+            "distributed_execution_contract": (
+                distributed_execution_contract
+            ),
             "data": grouped.metadata,
         }
         write_json(args.report.resolve(), report)
         return report
+
+    passage_train_gate = None
+    passage_val_gate = None
+    if passage_release_root is not None:
+        passage_train_gate = PassageReleaseGatedDataset(
+            grouped.train,
+            split="train",
+        )
+        passage_val_gate = PassageReleaseGatedDataset(
+            grouped.val,
+            split="validation",
+        )
+        grouped.train = passage_train_gate
+        grouped.val = passage_val_gate
 
     spt_runtime = _configure_spt_for_controlled_checkpointing(spt)
 
@@ -992,13 +2339,33 @@ def run(args) -> dict:
         ),
     )
 
-    if args.profile in {"formal", "additive"} and torch.cuda.device_count() < args.devices:
+    if (
+        args.profile in CONTROLLED_PROFILES
+        and torch.cuda.device_count() < args.devices
+    ):
         raise RuntimeError(
-            f"{args.profile.title()} training requires {args.devices} visible CUDA devices; "
+            f"{args.profile.title()} training requires {args.devices} "
+            "visible CUDA devices; "
             f"found {torch.cuda.device_count()}"
         )
 
     model = hydra.utils.instantiate(cfg.model)
+    initialization_audit = _apply_initialization_checkpoint(
+        model,
+        swm=swm,
+        specification=initialization_spec,
+        cache_dir=output_root,
+        resume_checkpoint=manager_resume_checkpoint,
+    )
+    if frozen_module_spec["configured"] and manager_resume_checkpoint is not None:
+        raise ValueError(
+            "The representation-freeze diagnostic requires a fresh "
+            "model-only initialization, not a full-state resume"
+        )
+    frozen_module_audit = _apply_frozen_modules(
+        model,
+        frozen_module_spec,
+    )
     optimizers = {
         "model_opt": {
             "modules": "model",
@@ -1021,12 +2388,181 @@ def run(args) -> dict:
             "frequency": args.accumulate_grad_batches,
         }
     }
-    module = spt.Module(
-        model=model,
-        sigreg=SIGReg(**cfg.loss.sigreg.kwargs),
+    module_components = {"model": model}
+    loss_components = {}
+    if training_method == "lewm":
+        loss_components["sigreg"] = SIGReg(**cfg.loss.sigreg.kwargs)
+        if any(
+            bool(cfg.loss.get(name).enabled)
+            for name in ("std", "std_t", "cov", "cov_t")
+            if cfg.loss.get(name) is not None
+        ):
+            loss_components["vc_reg"] = VCReg()
+        base_forward = pinned_train.lejepa_forward
+    else:
+        module_components["idm"] = hydra.utils.instantiate(cfg.idm)
+        loss_components.update(
+            {
+                "pldm": PLDMLoss(),
+                "path_straight": TemporalStraighteningLoss(),
+            }
+        )
+        base_forward = pinned_train.pldm_forward
+
+    gradient_trace_path = run_dir / "gradient_trace.jsonl"
+
+    class GradientTraceModule(spt.Module):
+        """Record globally averaged, pre-clip module gradient norms."""
+
+        _model_module_names = (
+            "encoder",
+            "projector",
+            "predictor",
+            "pred_proj",
+            "action_encoder",
+        )
+
+        def __init__(
+            self,
+            *module_args,
+            gradient_trace_path: Path,
+            diagnostic_steps: list[int],
+            accumulation_steps: int,
+            **module_kwargs,
+        ) -> None:
+            super().__init__(*module_args, **module_kwargs)
+            self.gradient_trace_path = gradient_trace_path
+            self.gradient_diagnostic_steps = tuple(
+                sorted(set(int(step) for step in diagnostic_steps))
+            )
+            self.gradient_accumulation_steps = int(accumulation_steps)
+            self._diagnostic_batch_idx: int | None = None
+            self._gradient_recorded_steps: set[int] = set()
+            if self.gradient_trace_path.is_file():
+                for line in self.gradient_trace_path.read_text(
+                    encoding="utf-8"
+                ).splitlines():
+                    if line.strip():
+                        self._gradient_recorded_steps.add(
+                            int(json.loads(line)["optimizer_step"])
+                        )
+
+        @staticmethod
+        def _gradient_energy(parameters, *, device):
+            energy = torch.zeros((), dtype=torch.float32, device=device)
+            for parameter in parameters:
+                if parameter.grad is not None:
+                    energy = energy + parameter.grad.detach().float().pow(
+                        2
+                    ).sum()
+            return energy
+
+        def training_step(self, batch, batch_idx):
+            self._diagnostic_batch_idx = int(batch_idx)
+            return super().training_step(batch, batch_idx)
+
+        def after_manual_backward(self) -> None:
+            batch_idx = self._diagnostic_batch_idx
+            if batch_idx is None:
+                raise RuntimeError(
+                    "Gradient tracing did not observe the training batch index"
+                )
+            if (
+                batch_idx + 1
+            ) % self.gradient_accumulation_steps != 0:
+                return
+
+            optimizer_step = int(self.trainer.global_step) + 1
+            if (
+                optimizer_step not in self.gradient_diagnostic_steps
+                or optimizer_step in self._gradient_recorded_steps
+            ):
+                return
+
+            device = self.trainer.strategy.root_device
+            group_names = [
+                name
+                for name in self._model_module_names
+                if hasattr(self.model, name)
+            ]
+            group_modules = [
+                getattr(self.model, name) for name in group_names
+            ]
+            if hasattr(self, "idm"):
+                group_names.append("idm")
+                group_modules.append(self.idm)
+            energies = torch.stack(
+                [
+                    self._gradient_energy(
+                        component.parameters(),
+                        device=device,
+                    )
+                    for component in group_modules
+                ]
+                + [
+                    self._gradient_energy(
+                        self.model.parameters(),
+                        device=device,
+                    )
+                ]
+            )
+            if (
+                torch.distributed.is_available()
+                and torch.distributed.is_initialized()
+            ):
+                torch.distributed.all_reduce(
+                    energies,
+                    op=torch.distributed.ReduceOp.SUM,
+                )
+                energies.div_(float(self.trainer.world_size))
+            norm_names = [*group_names, "model_total"]
+            norms = {
+                name: float(value)
+                for name, value in zip(
+                    norm_names,
+                    energies.clamp_min(0).sqrt().cpu().tolist(),
+                    strict=True,
+                )
+            }
+            if self.trainer.is_global_zero:
+                row = {
+                    "schema_version": 1,
+                    "optimizer_step": optimizer_step,
+                    "training_method": training_method,
+                    "training_objective": training_objective["name"],
+                    "world_size": int(self.trainer.world_size),
+                    "measurement": "after_backward_before_gradient_clip",
+                    "gradient_norms": norms,
+                }
+                with self.gradient_trace_path.open(
+                    "a", encoding="utf-8"
+                ) as handle:
+                    handle.write(
+                        json.dumps(row, ensure_ascii=False) + "\n"
+                    )
+                logger = self.trainer.logger
+                if logger is not None:
+                    logger.log_metrics(
+                        {
+                            (
+                                "diagnostics/"
+                                f"gradient_norm_{name}_pre_clip"
+                            ): value
+                            for name, value in norms.items()
+                        },
+                        step=optimizer_step,
+                    )
+            self._gradient_recorded_steps.add(optimizer_step)
+
+    module = GradientTraceModule(
+        **module_components,
+        **loss_components,
+        gradient_trace_path=gradient_trace_path,
+        diagnostic_steps=args.diagnostic_checkpoint_step,
+        accumulation_steps=args.accumulate_grad_batches,
         forward=partial(
             _lejepa_forward_with_manual_accumulation,
-            base_forward=pinned_train.lejepa_forward,
+            base_forward=base_forward,
             cfg=cfg,
             accumulation_steps=args.accumulate_grad_batches,
         ),
@@ -1038,14 +2574,6 @@ def run(args) -> dict:
     module._optimizer_index_to_name[0] = "model_opt"
     data_module = spt.data.DataModule(train=train_loader, val=val_loader)
 
-    output_root = args.output_root.resolve()
-    run_dir = output_root / "checkpoints" / args.run_name
-    resume_checkpoint = run_dir / "last.ckpt"
-    manager_resume_checkpoint = _validate_resume_policy(
-        run_dir=run_dir,
-        checkpoint_path=resume_checkpoint,
-        policy=args.resume_policy,
-    )
     loaded_checkpoint = (
         _full_state_checkpoint_metadata(
             manager_resume_checkpoint,
@@ -1220,6 +2748,82 @@ def run(args) -> dict:
             self._observe_loader_generator(self.pending_state)
             self.verified_on_train_start = True
 
+    class LossTrace(Callback):
+        """Persist globally averaged loss components without an external logger."""
+
+        def __init__(self, path: Path, interval: int = 20) -> None:
+            self.path = path
+            self.interval = int(interval)
+            self.last_recorded_step = -1
+            self.records_written = 0
+
+        def on_train_batch_end(
+            self, trainer, pl_module, outputs, batch, batch_idx
+        ) -> None:
+            if not isinstance(outputs, dict):
+                raise RuntimeError(
+                    "Loss tracing requires the StablePretraining state dict"
+                )
+            step = int(trainer.global_step)
+            target = int(args.expected_optimizer_steps)
+            if not (
+                step == 1
+                or step == target
+                or step % self.interval == 0
+            ):
+                return
+            if step == self.last_recorded_step:
+                return
+            names = sorted(
+                key
+                for key, value in outputs.items()
+                if "loss" in key
+                and torch.is_tensor(value)
+                and value.numel() == 1
+            )
+            if "loss" not in names or "pred_loss" not in names:
+                raise RuntimeError(
+                    f"Loss trace is missing total/prediction loss: {names}"
+                )
+            values = torch.stack(
+                [
+                    outputs[name].detach().float().reshape(())
+                    for name in names
+                ]
+            )
+            if (
+                torch.distributed.is_available()
+                and torch.distributed.is_initialized()
+            ):
+                torch.distributed.all_reduce(
+                    values,
+                    op=torch.distributed.ReduceOp.SUM,
+                )
+                values.div_(float(trainer.world_size))
+            if trainer.is_global_zero:
+                row = {
+                    "schema_version": 1,
+                    "optimizer_step": step,
+                    "epoch": int(trainer.current_epoch) + 1,
+                    "training_method": training_method,
+                    "training_objective": training_objective["name"],
+                    "world_size": int(trainer.world_size),
+                    "losses": {
+                        name: float(value)
+                        for name, value in zip(
+                            names,
+                            values.cpu().tolist(),
+                            strict=True,
+                        )
+                    },
+                }
+                with self.path.open("a", encoding="utf-8") as handle:
+                    handle.write(
+                        json.dumps(row, ensure_ascii=False) + "\n"
+                    )
+                self.records_written += 1
+            self.last_recorded_step = step
+
     class SavePretrainedAtEpochEnd(Callback):
         def on_train_epoch_end(self, trainer, pl_module) -> None:
             if not trainer.is_global_zero:
@@ -1231,6 +2835,445 @@ def run(args) -> dict:
                 filename=f"weights_epoch_{trainer.current_epoch + 1}.pt",
                 cache_dir=str(output_root),
             )
+
+    class SavePretrainedAtDiagnosticSteps(Callback):
+        """Save model-only snapshots at predeclared optimizer steps."""
+
+        def __init__(self, steps: list[int]) -> None:
+            self.steps = tuple(sorted(set(int(step) for step in steps)))
+            self.saved_steps: list[int] = []
+
+        def on_train_batch_end(
+            self, trainer, pl_module, outputs, batch, batch_idx
+        ) -> None:
+            step = int(trainer.global_step)
+            if (
+                not trainer.is_global_zero
+                or step not in self.steps
+                or step in self.saved_steps
+            ):
+                return
+            filename = f"weights_step_{step}.pt"
+            swm.wm.utils.save_pretrained(
+                pl_module.model,
+                run_name=args.run_name,
+                config=cfg,
+                filename=filename,
+                cache_dir=str(output_root),
+            )
+            path = run_dir / filename
+            if not path.is_file():
+                raise RuntimeError(
+                    f"Diagnostic model checkpoint was not saved: {path}"
+                )
+            self.saved_steps.append(step)
+
+    class MaintainFrozenModuleEvalMode(Callback):
+        """Prevent frozen BatchNorm buffers from changing during training."""
+
+        def _apply(self, pl_module) -> None:
+            for name in frozen_module_audit["modules"]:
+                getattr(pl_module.model, name).eval()
+
+        def on_fit_start(self, trainer, pl_module) -> None:
+            self._apply(pl_module)
+
+        def on_train_batch_start(
+            self, trainer, pl_module, batch, batch_idx
+        ) -> None:
+            self._apply(pl_module)
+
+        def on_validation_batch_start(
+            self, trainer, pl_module, batch, batch_idx, dataloader_idx=0
+        ) -> None:
+            self._apply(pl_module)
+
+    class PassageStorageContract(Callback):
+        """Release real Dataset reads after every rank independently audits."""
+
+        def __init__(self) -> None:
+            self.required = bool(
+                grouped.metadata.get("formal_build_report_audit", {}).get(
+                    "required",
+                    False,
+                )
+            )
+            self.report: dict | None = None
+            self.release_consensus_completed = False
+
+        def on_fit_start(self, trainer, pl_module) -> None:
+            if not self.required:
+                self.release_consensus_completed = True
+                return
+            if passage_train_gate is None or passage_val_gate is None:
+                raise RuntimeError("Passage Dataset gates were not installed")
+            active_groups = [
+                name
+                for name in grouped.metadata["groups"]
+                if name.startswith("passage_")
+            ]
+            if len(active_groups) != 1:
+                raise RuntimeError(
+                    "Passage training must have one independently audited "
+                    f"group, observed={active_groups}"
+                )
+            logical = grouped.metadata["groups"][active_groups[0]][
+                "catalog_split_audit"
+            ]["logical_content_audit"]
+            full_audit_passed = bool(
+                logical.get("passed") is True
+                and int(logical.get("shards_verified", 0)) > 0
+                and int(logical.get("episodes_verified", 0)) > 0
+            )
+            storage_report = None
+            storage_error = None
+            revalidation_schedule_receipt = None
+            try:
+                release_lock = getattr(
+                    args, "_passage_release_lock", {}
+                )
+                if release_lock.get("mode") != "shared":
+                    raise RuntimeError(
+                        "Passage revalidation lock order requires the "
+                        "release shared lock to be held first"
+                    )
+                with hidden_passage_audit_scheduling_lock(
+                    passage_release_root,
+                    shared=parallel_passage_audits,
+                ) as revalidation_schedule:
+                    storage_report = (
+                        revalidate_hidden_passage_training_storage(
+                            args.benchmark_config.resolve(),
+                            repo_root=REPO_ROOT,
+                        )
+                    )
+                revalidation_schedule_receipt = dict(
+                    revalidation_schedule
+                )
+            except Exception as exc:
+                storage_error = f"{type(exc).__name__}: {exc}"
+                if revalidation_schedule_receipt is None and (
+                    "revalidation_schedule" in locals()
+                ):
+                    revalidation_schedule_receipt = dict(
+                        revalidation_schedule
+                    )
+            revalidation_schedule_receipt = dict(
+                revalidation_schedule_receipt or {}
+            )
+            revalidation_schedule_receipt.update(
+                {
+                    "release_shared_lock_held": (
+                        getattr(args, "_passage_release_lock", {}).get(
+                            "mode"
+                        )
+                        == "shared"
+                    ),
+                    "collective_unlocked": bool(
+                        revalidation_schedule_receipt.get("released")
+                    ),
+                }
+            )
+            revalidation_lock_ready = bool(
+                revalidation_schedule_receipt.get("acquired") is True
+                and revalidation_schedule_receipt.get("released") is True
+                and revalidation_schedule_receipt.get("mode")
+                == expected_audit_mode
+                and revalidation_schedule_receipt.get("policy")
+                == audit_scheduling_contract["policy"]
+                and revalidation_schedule_receipt.get("protocol")
+                == audit_scheduling_contract["lock_protocol"]
+                and revalidation_schedule_receipt.get(
+                    "path_identity_verified"
+                )
+                is True
+                and revalidation_schedule_receipt.get(
+                    "path_identity_verified_after_acquire"
+                )
+                is True
+                and revalidation_schedule_receipt.get(
+                    "descriptor_inheritable"
+                )
+                is False
+                and revalidation_schedule_receipt.get(
+                    "fork_child_close_registered"
+                )
+                is True
+                and revalidation_schedule_receipt[
+                    "release_shared_lock_held"
+                ]
+                is True
+                and revalidation_schedule_receipt[
+                    "collective_unlocked"
+                ]
+                is True
+            )
+            full_audit_schedule = dict(build_audit_schedule or {})
+            full_audit_lock_ready = bool(
+                full_audit_schedule.get("acquired") is True
+                and full_audit_schedule.get("released") is True
+                and full_audit_schedule.get("mode")
+                == expected_audit_mode
+                and full_audit_schedule.get("policy")
+                == audit_scheduling_contract["policy"]
+                and full_audit_schedule.get("protocol")
+                == audit_scheduling_contract["lock_protocol"]
+                and full_audit_schedule.get("path_identity_verified") is True
+                and full_audit_schedule.get(
+                    "path_identity_verified_after_acquire"
+                )
+                is True
+                and full_audit_schedule.get("descriptor_inheritable") is False
+                and full_audit_schedule.get(
+                    "fork_child_close_registered"
+                )
+                is True
+                and full_audit_schedule.get(
+                    "release_shared_lock_held"
+                )
+                is True
+                and full_audit_schedule.get("collective_unlocked") is True
+            )
+            train_before = passage_train_gate.receipt()
+            val_before = passage_val_gate.receipt()
+            cpu_affinity_ready = bool(
+                (
+                    not parallel_passage_audits
+                    and local_rank_cpu_affinity is None
+                )
+                or (
+                    parallel_passage_audits
+                    and isinstance(local_rank_cpu_affinity, dict)
+                    and local_rank_cpu_affinity.get("passed") is True
+                    and int(
+                        local_rank_cpu_affinity.get("local_rank", -1)
+                    )
+                    == int(trainer.global_rank)
+                    and int(
+                        local_rank_cpu_affinity.get(
+                            "cpus_per_rank",
+                            -1,
+                        )
+                    )
+                    == 8
+                    and local_rank_cpu_affinity.get("cpu_ids")
+                    == list(
+                        range(
+                            int(trainer.global_rank) * 8,
+                            (int(trainer.global_rank) + 1) * 8,
+                        )
+                    )
+                )
+            )
+            local_receipt = {
+                "rank": int(trainer.global_rank),
+                "passed": int(
+                    full_audit_passed
+                    and storage_report is not None
+                    and full_audit_lock_ready
+                    and revalidation_lock_ready
+                    and cpu_affinity_ready
+                    and train_before["pre_release_calls"] == 0
+                    and train_before["pre_release_items"] == 0
+                    and val_before["pre_release_calls"] == 0
+                    and val_before["pre_release_items"] == 0
+                    and not any(
+                        name in os.environ
+                        for name in PASSAGE_INTERNAL_ENVIRONMENT
+                    )
+                ),
+                "full_logical_audit_count": 1,
+                "storage_revalidation_count": int(
+                    storage_report is not None
+                ),
+                "train_pre_release_calls": train_before[
+                    "pre_release_calls"
+                ],
+                "train_pre_release_items": train_before[
+                    "pre_release_items"
+                ],
+                "val_pre_release_calls": val_before[
+                    "pre_release_calls"
+                ],
+                "val_pre_release_items": val_before[
+                    "pre_release_items"
+                ],
+                "internal_environment_clean": int(
+                    not any(
+                        name in os.environ
+                        for name in PASSAGE_INTERNAL_ENVIRONMENT
+                    )
+                ),
+                "full_audit_lock_acquired": int(
+                    full_audit_schedule.get("acquired") is True
+                ),
+                "full_audit_lock_released": int(
+                    full_audit_schedule.get("released") is True
+                ),
+                "full_audit_release_shared_held": int(
+                    full_audit_schedule.get(
+                        "release_shared_lock_held"
+                    )
+                    is True
+                ),
+                "full_audit_collective_unlocked": int(
+                    full_audit_schedule.get("collective_unlocked") is True
+                ),
+                "full_audit_path_identity_verified": int(
+                    full_audit_schedule.get(
+                        "path_identity_verified"
+                    )
+                    is True
+                ),
+                "full_audit_path_identity_verified_after_acquire": int(
+                    full_audit_schedule.get(
+                        "path_identity_verified_after_acquire"
+                    )
+                    is True
+                ),
+                "full_audit_descriptor_noninheritable": int(
+                    full_audit_schedule.get(
+                        "descriptor_inheritable"
+                    )
+                    is False
+                ),
+                "full_audit_fork_child_close_registered": int(
+                    full_audit_schedule.get(
+                        "fork_child_close_registered"
+                    )
+                    is True
+                ),
+                "full_audit_wait_milliseconds": (
+                    _lock_seconds_to_milliseconds(
+                        full_audit_schedule,
+                        "wait_seconds",
+                    )
+                ),
+                "full_audit_hold_milliseconds": (
+                    _lock_seconds_to_milliseconds(
+                        full_audit_schedule,
+                        "hold_seconds",
+                    )
+                ),
+                "full_audit_sample_contract_reads": int(
+                    full_audit_schedule.get(
+                        "sample_contract_reads_inside_lock",
+                        -1,
+                    )
+                ),
+                "revalidation_lock_acquired": int(
+                    revalidation_schedule_receipt.get("acquired") is True
+                ),
+                "revalidation_lock_released": int(
+                    revalidation_schedule_receipt.get("released") is True
+                ),
+                "revalidation_release_shared_held": int(
+                    revalidation_schedule_receipt.get(
+                        "release_shared_lock_held"
+                    )
+                    is True
+                ),
+                "revalidation_collective_unlocked": int(
+                    revalidation_schedule_receipt.get(
+                        "collective_unlocked"
+                    )
+                    is True
+                ),
+                "revalidation_path_identity_verified": int(
+                    revalidation_schedule_receipt.get(
+                        "path_identity_verified"
+                    )
+                    is True
+                ),
+                "revalidation_path_identity_verified_after_acquire": int(
+                    revalidation_schedule_receipt.get(
+                        "path_identity_verified_after_acquire"
+                    )
+                    is True
+                ),
+                "revalidation_descriptor_noninheritable": int(
+                    revalidation_schedule_receipt.get(
+                        "descriptor_inheritable"
+                    )
+                    is False
+                ),
+                "revalidation_fork_child_close_registered": int(
+                    revalidation_schedule_receipt.get(
+                        "fork_child_close_registered"
+                    )
+                    is True
+                ),
+                "revalidation_wait_milliseconds": (
+                    _lock_seconds_to_milliseconds(
+                        revalidation_schedule_receipt,
+                        "wait_seconds",
+                    )
+                ),
+                "revalidation_hold_milliseconds": (
+                    _lock_seconds_to_milliseconds(
+                        revalidation_schedule_receipt,
+                        "hold_seconds",
+                    )
+                ),
+            }
+            receipts = _distributed_passage_full_audit_consensus(
+                strategy=trainer.strategy,
+                torch_module=torch,
+                device=pl_module.device,
+                local_receipt=local_receipt,
+                expected_world_size=int(trainer.world_size),
+            )
+            passage_train_gate.release()
+            passage_val_gate.release()
+            self.release_consensus_completed = True
+            self.report = {
+                **dict(storage_report or {}),
+                "optimization": "disabled_per_rank_full_audit",
+                "local_storage_error": storage_error,
+                "local_full_audit_scheduling": full_audit_schedule,
+                "local_revalidation_scheduling": (
+                    revalidation_schedule_receipt
+                ),
+                "full_logical_audit_execution_count": int(
+                    trainer.world_size
+                ),
+                "storage_revalidation_execution_count": int(
+                    trainer.world_size
+                ),
+                "rank_receipts": receipts,
+                "expected_rank_receipts": int(trainer.world_size),
+                "rank_coverage_passed": (
+                    [row["rank"] for row in receipts]
+                    == list(range(int(trainer.world_size)))
+                ),
+                "rank_cpu_affinity_contract": (
+                    distributed_execution_contract.get(
+                        "rank_cpu_affinity"
+                    )
+                ),
+                "local_rank_cpu_affinity": (
+                    dict(local_rank_cpu_affinity)
+                    if local_rank_cpu_affinity is not None
+                    else None
+                ),
+                "all_rank_cpu_affinity_checked_before_consensus": (
+                    parallel_passage_audits
+                ),
+                "all_ranks_accepted_before_first_batch": True,
+                "train_gate_before_release": train_before,
+                "validation_gate_before_release": val_before,
+                "training_dataloader_reads_before_release": sum(
+                    row["train_pre_release_items"] for row in receipts
+                ),
+                "validation_dataloader_reads_before_release": sum(
+                    row["val_pre_release_items"] for row in receipts
+                ),
+                "gates_opened_only_after_consensus": (
+                    passage_train_gate.released
+                    and passage_val_gate.released
+                ),
+                "passed": True,
+            }
 
     class TrainingContract(Callback):
         def __init__(self) -> None:
@@ -1316,6 +3359,13 @@ def run(args) -> dict:
         def on_train_batch_start(
             self, trainer, pl_module, batch, batch_idx
         ) -> None:
+            if (
+                passage_storage_contract.required
+                and not passage_storage_contract.release_consensus_completed
+            ):
+                raise RuntimeError(
+                    "Training batch was read before the passage audit gate"
+                )
             active_name = pl_module._optimizer_index_to_name.get(0)
             active_frequency = pl_module._optimizer_frequencies.get(
                 active_name
@@ -1379,7 +3429,13 @@ def run(args) -> dict:
                 )
 
     rng_checkpoint = FullStateRNGCheckpoint()
+    passage_storage_contract = PassageStorageContract()
     training_contract = TrainingContract()
+    loss_trace_path = run_dir / "loss_trace.jsonl"
+    loss_trace = LossTrace(loss_trace_path, interval=20)
+    diagnostic_checkpoints = SavePretrainedAtDiagnosticSteps(
+        args.diagnostic_checkpoint_step
+    )
     if (
         args.stop_after_optimizer_step is not None
         and args.stop_after_optimizer_step
@@ -1415,9 +3471,13 @@ def run(args) -> dict:
         save_on_train_epoch_end=True,
     )
     callbacks = [
+        MaintainFrozenModuleEvalMode(),
         rng_checkpoint,
         SavePretrainedAtEpochEnd(),
+        diagnostic_checkpoints,
+        passage_storage_contract,
         training_contract,
+        loss_trace,
         state_checkpoint,
     ]
     # stable_pretraining registers environment-dump callbacks through a
@@ -1425,8 +3485,14 @@ def run(args) -> dict:
     # write host metadata into the repository, so this benchmark supplies
     # only its explicit callbacks.
     callback_connector._load_external_callbacks = lambda _group: []
-    distributed_execution_contract = _load_distributed_execution_contract(
-        args.benchmark_config, devices=args.devices
+    trainer_strategy = _trainer_strategy_kwargs(
+        distributed_execution_contract,
+        ddp_strategy_class=DDPStrategy,
+    )
+    experiment_logger = _build_training_logger_preserving_rng(
+        cfg,
+        builder=build_training_logger,
+        torch_module=torch,
     )
     trainer = pl.Trainer(
         max_epochs=trainer_max_epochs,
@@ -1439,7 +3505,7 @@ def run(args) -> dict:
         # optimizer frequency plus the explicit loss scaling above.
         accumulate_grad_batches=1,
         callbacks=callbacks,
-        logger=False,
+        logger=experiment_logger,
         enable_checkpointing=True,
         enable_model_summary=False,
         default_root_dir=str(run_dir),
@@ -1447,6 +3513,7 @@ def run(args) -> dict:
         limit_train_batches=args.limit_train_batches,
         limit_val_batches=args.limit_val_batches,
         deterministic=True,
+        **trainer_strategy,
     )
     manager = spt.Manager(
         trainer=trainer,
@@ -1459,6 +3526,10 @@ def run(args) -> dict:
     manager()
 
     completed_scheduler = trainer.lr_scheduler_configs[0].scheduler
+    frozen_module_audit = _finalize_frozen_modules(
+        module.model,
+        frozen_module_audit,
+    )
 
     training_complete = int(trainer.global_step) == args.expected_optimizer_steps
     if args.stop_after_optimizer_step is None and not training_complete:
@@ -1511,6 +3582,128 @@ def run(args) -> dict:
     if not reload_equal:
         raise RuntimeError("Saved pretrained model does not exactly reload")
 
+    if not loss_trace_path.is_file():
+        raise RuntimeError(f"Missing loss trace: {loss_trace_path}")
+    loss_trace_rows = [
+        json.loads(line)
+        for line in loss_trace_path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    loss_trace_steps = [
+        int(row["optimizer_step"]) for row in loss_trace_rows
+    ]
+    if (
+        not loss_trace_rows
+        or loss_trace_steps != sorted(set(loss_trace_steps))
+        or loss_trace_steps[-1] != int(trainer.global_step)
+    ):
+        raise RuntimeError(
+            "Loss trace is incomplete or has duplicate/out-of-order steps: "
+            f"{loss_trace_steps}"
+        )
+    loss_trace_audit = {
+        "path": str(loss_trace_path),
+        "sha256": _sha256(loss_trace_path),
+        "records": len(loss_trace_rows),
+        "first_optimizer_step": loss_trace_steps[0],
+        "last_optimizer_step": loss_trace_steps[-1],
+        "interval_optimizer_steps": loss_trace.interval,
+        "loss_keys": sorted(
+            {
+                key
+                for row in loss_trace_rows
+                for key in row["losses"]
+            }
+        ),
+        "passed": True,
+    }
+    completed_diagnostic_steps = [
+        int(step)
+        for step in args.diagnostic_checkpoint_step
+        if int(step) <= int(trainer.global_step)
+    ]
+    diagnostic_checkpoint_rows = []
+    for step in completed_diagnostic_steps:
+        checkpoint_path = run_dir / f"weights_step_{step}.pt"
+        if not checkpoint_path.is_file():
+            raise RuntimeError(
+                "Missing declared diagnostic model checkpoint: "
+                f"{checkpoint_path}"
+            )
+        diagnostic_checkpoint_rows.append(
+            {
+                "optimizer_step": step,
+                "path": str(checkpoint_path),
+                "sha256": _sha256(checkpoint_path),
+            }
+        )
+    diagnostic_checkpoint_audit = {
+        "configured": bool(args.diagnostic_checkpoint_step),
+        "requested_optimizer_steps": list(
+            args.diagnostic_checkpoint_step
+        ),
+        "completed_optimizer_steps": completed_diagnostic_steps,
+        "saved_this_invocation": list(
+            diagnostic_checkpoints.saved_steps
+        ),
+        "checkpoints": diagnostic_checkpoint_rows,
+        "passed": True,
+    }
+
+    if args.diagnostic_checkpoint_step:
+        if not gradient_trace_path.is_file():
+            raise RuntimeError(
+                f"Missing declared gradient trace: {gradient_trace_path}"
+            )
+        gradient_trace_rows = [
+            json.loads(line)
+            for line in gradient_trace_path.read_text(
+                encoding="utf-8"
+            ).splitlines()
+            if line.strip()
+        ]
+        gradient_trace_steps = [
+            int(row["optimizer_step"]) for row in gradient_trace_rows
+        ]
+        if gradient_trace_steps != completed_diagnostic_steps:
+            raise RuntimeError(
+                "Gradient trace steps do not match the completed diagnostic "
+                "checkpoint contract: "
+                f"trace={gradient_trace_steps}, "
+                f"expected={completed_diagnostic_steps}"
+            )
+        if any(
+            row.get("measurement")
+            != "after_backward_before_gradient_clip"
+            or "model_total" not in row.get("gradient_norms", {})
+            for row in gradient_trace_rows
+        ):
+            raise RuntimeError(
+                "Gradient trace is missing the pre-clip model norm contract"
+            )
+        gradient_trace_audit = {
+            "configured": True,
+            "path": str(gradient_trace_path),
+            "sha256": _sha256(gradient_trace_path),
+            "records": len(gradient_trace_rows),
+            "optimizer_steps": gradient_trace_steps,
+            "gradient_norm_keys": sorted(
+                {
+                    key
+                    for row in gradient_trace_rows
+                    for key in row["gradient_norms"]
+                }
+            ),
+            "measurement": "after_backward_before_gradient_clip",
+            "passed": True,
+        }
+    else:
+        gradient_trace_audit = {
+            "configured": False,
+            "optimizer_steps": [],
+            "passed": True,
+        }
+
     report = {
         "schema_version": 1,
         "run_kind": args.run_kind,
@@ -1522,15 +3715,45 @@ def run(args) -> dict:
             "repo": str(stable_repo),
             "commit": stable_commit,
             "training_entry": str(
-                stable_repo / "scripts/train/lewm.py"
+                stable_repo / f"scripts/train/{training_method}.py"
             ),
+            "training_entry_sha256": _sha256(
+                stable_repo / f"scripts/train/{training_method}.py"
+            ),
+            "logger_entry": str(
+                stable_repo / "stable_worldmodel/loggers.py"
+            ),
+            "logger_entry_sha256": _sha256(
+                stable_repo / "stable_worldmodel/loggers.py"
+            ),
+        },
+        "logger": {
+            **OmegaConf.to_container(
+                cfg.contextworld_logger,
+                resolve=True,
+            ),
+            "initialized": experiment_logger is not None,
+            "local_loss_trace": str(loss_trace_path),
+            "local_gradient_trace": (
+                str(gradient_trace_path)
+                if args.diagnostic_checkpoint_step
+                else None
+            ),
+            "training_rng_preserved_during_initialization": True,
         },
         "model": {
             "class": f"{type(model).__module__}.{type(model).__name__}",
+            "training_method": training_method,
+            "training_objective": training_objective,
             "parameters": sum(value.numel() for value in model.parameters()),
             "action_block": 5,
             "history_size": 3,
+            "input_boundary": sample_contract[
+                "collated_batch_audit"
+            ],
         },
+        "initialization_checkpoint": initialization_audit,
+        "frozen_model_modules": frozen_module_audit,
         "training": {
             "global_step": int(trainer.global_step),
             "current_epoch": int(trainer.current_epoch),
@@ -1603,6 +3826,9 @@ def run(args) -> dict:
             "limit_train_batches": args.limit_train_batches,
             "limit_val_batches": args.limit_val_batches,
             "external_callbacks_disabled": True,
+            "loss_trace": loss_trace_audit,
+            "module_gradient_trace": gradient_trace_audit,
+            "diagnostic_checkpoints": diagnostic_checkpoint_audit,
             "expected_optimizer_steps": args.expected_optimizer_steps,
             "expected_warmup_steps": args.expected_warmup_steps,
             "scheduler_last_epoch": int(completed_scheduler.last_epoch),
@@ -1614,6 +3840,85 @@ def run(args) -> dict:
         },
         "sample_contract": sample_contract,
         "data": grouped.metadata,
+        "pre_batch_storage_revalidation": (
+            passage_storage_contract.report
+            if passage_storage_contract.required
+            else {"required": False, "passed": True}
+        ),
+        "distributed_passage_audit": (
+            {
+                "required": True,
+                "optimization": "disabled_per_rank_full_audit",
+                "full_logical_audit_execution_count": int(
+                    trainer.world_size
+                ),
+                "storage_revalidation_execution_count": (
+                    passage_storage_contract.report[
+                        "storage_revalidation_execution_count"
+                    ]
+                ),
+                "every_rank_executed_full_logical_audit": True,
+                "attested_view_rank_count": 0,
+                "rank_receipts_before_first_batch": (
+                    passage_storage_contract.report["rank_receipts"]
+                ),
+                "expected_rank_receipts": int(trainer.world_size),
+                "rank_coverage_passed": (
+                    passage_storage_contract.report[
+                        "rank_coverage_passed"
+                    ]
+                ),
+                "all_ranks_accepted_before_first_batch": (
+                    passage_storage_contract.report[
+                        "all_ranks_accepted_before_first_batch"
+                    ]
+                ),
+                "training_dataloader_reads_before_release": (
+                    passage_storage_contract.report[
+                        "training_dataloader_reads_before_release"
+                    ]
+                ),
+                "validation_dataloader_reads_before_release": (
+                    passage_storage_contract.report[
+                        "validation_dataloader_reads_before_release"
+                    ]
+                ),
+                "preflight_sample_contract_reads_per_rank": (
+                    pre_release_sample_reads
+                ),
+                "preflight_sample_contract_reads_are_not_training_reads": True,
+                "audit_scheduling_contract": (
+                    distributed_execution_contract["audit_scheduling"]
+                ),
+                "local_full_audit_scheduling": (
+                    passage_storage_contract.report[
+                        "local_full_audit_scheduling"
+                    ]
+                ),
+                "local_revalidation_scheduling": (
+                    passage_storage_contract.report[
+                        "local_revalidation_scheduling"
+                    ]
+                ),
+                "training_run_exclusivity": (
+                    _training_run_exclusivity_snapshot(args)
+                ),
+                "train_gate_final": (
+                    passage_train_gate.receipt()
+                    if passage_train_gate is not None
+                    else None
+                ),
+                "validation_gate_final": (
+                    passage_val_gate.receipt()
+                    if passage_val_gate is not None
+                    else None
+                ),
+                "internal_attestation_used": False,
+                "passed": True,
+            }
+            if passage_storage_contract.required
+            else {"required": False, "passed": True}
+        ),
         "artifacts": {
             "run_dir": str(run_dir),
             "pretrained": str(pretrained_path),
@@ -1625,6 +3930,9 @@ def run(args) -> dict:
                 resume_checkpoint.is_file()
             ),
             "full_state_checkpoint": saved_checkpoint,
+            "loss_trace": loss_trace_audit,
+            "module_gradient_trace": gradient_trace_audit,
+            "diagnostic_checkpoints": diagnostic_checkpoint_audit,
         },
         "save_load_exact": reload_equal,
     }
@@ -1633,9 +3941,99 @@ def run(args) -> dict:
     return report
 
 
+def run(args) -> dict:
+    """Hold the passage release read lock from preflight through fit."""
+
+    _reject_internal_passage_environment()
+    try:
+        benchmark_config = resolve_contextworld_path(
+            args.benchmark_config,
+            repo_root=REPO_ROOT,
+        )
+        release_root = hidden_passage_training_release_root(
+            benchmark_config,
+            repo_root=REPO_ROOT,
+            model_id=args.model_id,
+        )
+        if release_root is None:
+            return _run_with_release_lock_held(args)
+        args._passage_release_root = release_root
+        with hidden_passage_release_lock(
+            release_root,
+            exclusive=False,
+        ) as release_lock:
+            args._passage_release_lock = dict(release_lock)
+            local_rank_text = os.environ.get("LOCAL_RANK")
+            if local_rank_text is None:
+                local_rank = 0
+            else:
+                try:
+                    local_rank = int(local_rank_text)
+                except ValueError as exc:
+                    raise RuntimeError(
+                        "LOCAL_RANK must be an integer for the frozen "
+                        "single-node passage topology"
+                    ) from exc
+            if not 0 <= local_rank < int(args.devices):
+                raise RuntimeError(
+                    "LOCAL_RANK is outside the frozen single-node passage "
+                    f"topology: rank={local_rank}, devices={args.devices}"
+                )
+            child_admission = None
+            if local_rank > 0:
+                child_admission = (
+                    verify_hidden_passage_training_run_parent(
+                        release_root
+                    )
+                )
+            early_distributed_contract = (
+                _load_distributed_execution_contract(
+                    benchmark_config,
+                    devices=int(args.devices),
+                    passage_model=True,
+                )
+            )
+            rank_cpu_affinity_contract = early_distributed_contract.get(
+                "rank_cpu_affinity"
+            )
+            if local_rank > 0:
+                args._passage_training_run_lock = {
+                    "role": "lightning_nonzero_local_rank",
+                    "coordinator_lock_acquired": False,
+                    "coordinator_lock_held_by_local_rank_zero": True,
+                    "child_admission": child_admission,
+                }
+                args._passage_rank_cpu_affinity = (
+                    _apply_passage_rank_cpu_affinity(
+                        contract=rank_cpu_affinity_contract,
+                        local_rank=local_rank,
+                        devices=int(args.devices),
+                    )
+                )
+                return _run_with_release_lock_held(args)
+            with hidden_passage_training_run_lock(
+                release_root
+            ) as training_run_lock:
+                args._passage_training_run_lock = training_run_lock
+                args._passage_rank_cpu_affinity = (
+                    _apply_passage_rank_cpu_affinity(
+                        contract=rank_cpu_affinity_contract,
+                        local_rank=local_rank,
+                        devices=int(args.devices),
+                    )
+                )
+                return _run_with_release_lock_held(args)
+    finally:
+        for name in PASSAGE_INTERNAL_ENVIRONMENT:
+            os.environ.pop(name, None)
+
+
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="Train a TwoRoom Step-1 model with pinned StableWM LeWM"
+        description=(
+            "Train a TwoRoom model with a benchmark-selected, pinned "
+            "StableWM LeWM or PLDM objective"
+        )
     )
     parser.add_argument(
         "--model-id",
@@ -1644,14 +4042,22 @@ def parse_args():
     )
     parser.add_argument("--run-name", required=True)
     parser.add_argument("--profile", choices=tuple(PROFILE_DEFAULTS), default="smoke")
-    parser.add_argument("--run-kind", choices=("adapter_smoke", "pilot", "confirmation"), default=None)
+    parser.add_argument(
+        "--run-kind",
+        choices=("adapter_smoke", "pilot", "confirmation"),
+        default=None,
+    )
     parser.add_argument(
         "--output-root",
         type=Path,
         default=artifact_path("training/runs", repo_root=REPO_ROOT),
     )
     parser.add_argument("--report", type=Path, required=True)
-    parser.add_argument("--benchmark-config", type=Path, default=REPO_ROOT / "configs/benchmark/tworoom_step1_v1.yaml")
+    parser.add_argument(
+        "--benchmark-config",
+        type=Path,
+        default=REPO_ROOT / "configs/benchmark/tworoom_step1_v1.yaml",
+    )
     parser.add_argument(
         "--original-h5",
         type=Path,
@@ -1663,6 +4069,79 @@ def parse_args():
     )
     parser.add_argument("--stablewm-repo", default="../stable-worldmodel")
     parser.add_argument("--stablewm-ref", default=PINNED_STABLEWM)
+    parser.add_argument(
+        "--lewm-std-weight",
+        type=float,
+        default=0.0,
+        help=(
+            "Optional LeWM VCReg std weight. The root-cause confirmation "
+            "candidate uses 18 together with --lewm-cov-weight 12."
+        ),
+    )
+    parser.add_argument(
+        "--lewm-cov-weight",
+        type=float,
+        default=0.0,
+        help=(
+            "Optional LeWM VCReg covariance weight. Zero preserves the "
+            "native LeWM objective."
+        ),
+    )
+    parser.add_argument(
+        "--diagnostic-checkpoint-step",
+        action="append",
+        type=int,
+        default=[],
+        help=(
+            "Save an additional read-only-analysis model checkpoint after "
+            "this optimizer step. May be repeated."
+        ),
+    )
+    parser.add_argument(
+        "--logger-backend",
+        choices=("none", "swanlab", "wandb"),
+        default="none",
+        help=(
+            "Experiment logger. The shell launcher defaults to swanlab; "
+            "direct Python calls remain offline unless explicitly enabled."
+        ),
+    )
+    parser.add_argument("--swanlab-project", default=None)
+    parser.add_argument("--swanlab-workspace", default=None)
+    parser.add_argument("--swanlab-experiment-name", default=None)
+    parser.add_argument("--swanlab-id", default=None)
+    parser.add_argument("--swanlab-logdir", default=None)
+    parser.add_argument("--swanlab-mode", default=None)
+    parser.add_argument(
+        "--swanlab-collect-hardware",
+        action="store_true",
+    )
+    parser.add_argument(
+        "--swanlab-hardware-monitor",
+        action="store_true",
+    )
+    parser.add_argument(
+        "--swanlab-log-hyperparams",
+        action="store_true",
+    )
+    parser.add_argument(
+        "--initialization-checkpoint",
+        type=Path,
+        default=None,
+        help=(
+            "Optional model-only initialization checkpoint. When the "
+            "benchmark config declares one, this override must resolve to "
+            "the same file."
+        ),
+    )
+    parser.add_argument(
+        "--initialization-checkpoint-sha256",
+        default=None,
+        help=(
+            "Required SHA-256 when --initialization-checkpoint is supplied. "
+            "This initializes model weights only; it is not a resume."
+        ),
+    )
     parser.add_argument(
         "--resume-policy",
         choices=("auto", "never", "required"),
@@ -1697,6 +4176,27 @@ def parse_args():
     )
     parser.add_argument("--preflight-only", action="store_true")
     args = _apply_profile(parser.parse_args())
+    if args.lewm_std_weight < 0.0 or args.lewm_cov_weight < 0.0:
+        parser.error("LeWM std/cov weights must be non-negative")
+    if (args.lewm_std_weight, args.lewm_cov_weight) not in {
+        (0.0, 0.0),
+        (18.0, 12.0),
+    }:
+        parser.error(
+            "The controlled runner supports only native LeWM weights 0/0 "
+            "or the diagnosed std/cov candidate 18/12"
+        )
+    args.diagnostic_checkpoint_step = sorted(
+        set(args.diagnostic_checkpoint_step)
+    )
+    if any(
+        step <= 0 or step > args.expected_optimizer_steps
+        for step in args.diagnostic_checkpoint_step
+    ):
+        parser.error(
+            "Diagnostic checkpoint steps must be within the optimizer "
+            "budget"
+        )
     if args.stop_after_optimizer_step is not None:
         if args.profile != "smoke":
             parser.error(

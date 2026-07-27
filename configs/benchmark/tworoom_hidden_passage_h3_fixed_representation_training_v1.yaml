@@ -1,0 +1,306 @@
+schema_version: 1
+benchmark: tworoom_hidden_passage_history3_fixed_representation_training_v1
+status: formal_protocol_infrastructure_amended_before_gate_scoring
+preregistered_date: "2026-07-24"
+infrastructure_amendment:
+  date: "2026-07-24"
+  reason: >-
+    单节点上存在无关的高负载作业，逐进程完整数据校核若强制串行会超过 DDP
+    rendezvous 等待时间。改为同一训练根进程内最多 8 个只读校核并行。
+  unchanged:
+    - model_and_initialization
+    - frozen_modules
+    - training_and_validation_data_bytes
+    - training_seeds
+    - optimizer_and_scheduler
+    - optimizer_steps_and_logical_draws
+    - evaluation_catalogs_and_gates
+  confirmation_policy: >-
+    基础设施修订前产生的 checkpoint 不进入结论；三个训练种子全部在本修订下重跑。
+
+question: >-
+  固定原始 H3 的图像编码器与投影层、保持两种真实下一帧在 latent 中可分后，
+  双规则合成训练能否让模型根据三帧历史选择正确的门通行结果？
+
+stable_worldmodel:
+  repo: ../stable-worldmodel
+  commit: 5864b74980f6ed328fd0045e777b3865962eff43
+
+data:
+  # 原始 TwoRoom 只固定划分、归一化和初始化身份，不进入续训采样。
+  original_read_only: ../../data/world_model/quentinll/lewm-tworooms/tworoom.h5
+  original_split:
+    strategy: episode_heldout
+    seed: 3072
+    train_fraction: 0.9
+    heldout_view: artifacts/splits/tworoom_original_episode_holdout_s3072.h5
+    heldout_manifest: artifacts/splits/tworoom_original_episode_holdout_s3072.json
+  frozen_normalizer:
+    path: artifacts/splits/tworoom_original_train_s3072_normalizer.json
+    sha256: 7a5be7ea867bced446c1671b0b2c0ff6450ffc61e1a7bdbbfc5eaa0942f635db
+    protocol: tworoom_original_train_s3072_unbiased_zscore_v1
+    statistics_scope: original_9000_train_episodes_only
+  training_exclusion_manifest:
+    path: artifacts/evaluation/history3/hidden_passage_validation_v2/training_exclusion_manifest.json
+    sha256: d732ca66061b7f16436d7897e570da3626957b1bda0a94ab0e7125d98f14eee9
+    content_sha256: c23f079e6e9119fd4320d6209f992ca98b1d81a889c6127ade087a447c2aea0c
+    query_count: 300
+  formal_build_report:
+    path: artifacts/synthesis/hidden_passage_h3_v1/formal/build_report.json
+    sha256: bd3bde3da3bc97c67c4f9eb1ed87f4a41b50c25c9709ce6b64c4f9a69b9c556a
+    benchmark: tworoom_hidden_passage_history3_training_data_v1
+    scale: formal
+  catalogs:
+    passage_passable: artifacts/synthesis/hidden_passage_h3_v1/formal/catalogs/tworoom_hidden_passage_h3_passable_v1.json
+    passage_blocked: artifacts/synthesis/hidden_passage_h3_v1/formal/catalogs/tworoom_hidden_passage_h3_blocked_v1.json
+    passage_mixed: artifacts/synthesis/hidden_passage_h3_v1/formal/catalogs/tworoom_hidden_passage_h3_mixed_v1.json
+
+passage_support:
+  passage_passable:
+    train: [1]
+    validation: [1]
+  passage_blocked:
+    train: [0]
+    validation: [0]
+  passage_mixed:
+    train: [0, 1]
+    validation: [0, 1]
+  eval_only_door_positions:
+    [30, 34, 38, 42, 46, 50, 54, 58, 62, 66, 70, 74, 78, 82, 86,
+     90, 94, 98, 102, 106, 110, 114, 118, 122, 126, 130, 134, 138,
+     142, 146, 150, 154, 158, 162, 166, 170, 174, 178, 182, 186, 190,
+     194]
+  requirements:
+    - training_and_loader_validation_exclude_every_eval_only_door_position
+    - training_catalog_ood_test_is_empty
+    - passable_and_blocked_shards_are_paired_by_split_and_pair_id
+    - mixed_catalog_is_the_exact_union_of_both_single_rule_catalogs
+
+paired_collection_contract:
+  passage_rules:
+    pair_identity: [split, pair_id]
+    allowed_difference: passage.open
+    passable_value: 1
+    blocked_value: 0
+    equal_manifest_fields:
+      - split
+      - regime
+      - stable_worldmodel_commit
+      - pixel_codec
+      - seed_group
+      - pair_id
+    equal_manifest_count_fields:
+      - episode_count
+      - clip_count
+      - rows_per_episode
+      - raw_rows
+    equal_episode_fields:
+      - pair_id
+      - direction
+      - door_position
+      - doorway_offset_px
+      - action_sha256
+      - initial_pixels_sha256
+      - query_pixels_sha256
+      - goal_pixels_sha256
+      - model_input_keys
+      - passed
+    allowed_episode_differences:
+      - rule
+      - passage_open
+      - middle_pixels_sha256
+      - future_pixels_sha256
+      - model_pixels_sha256
+      - model_proprio_sha256
+      - raw_pixels_sha256
+      - raw_proprio_sha256
+      - raw_state_sha256
+      - raw_variation_passage_open_sha256
+
+data_quality:
+  groups:
+    passage_passable:
+      require_complete_synthesis_report: true
+      required_pixel_codec: {format: png, compress_level: 1, lossless: true}
+      balance_by_factor: passage.open
+      exact_train_scenarios: 96
+      exact_validation_scenarios: 16
+      exact_test_scenarios: 0
+      exact_train_clips: 7680
+      exact_validation_clips: 1280
+      exact_test_clips: 0
+      factor_support_contract:
+        factor: passage.open
+        expected_by_split:
+          train: [1]
+          validation: [1]
+      minimum_raw_train_clips: 7680
+      maximum_formal_mean_draws_per_raw_clip: 137.0
+      minimum_train_scenarios: 96
+      minimum_validation_scenarios: 16
+      required_catalog_sha256: 0cbcc0c29a54184e6884b1046489bdcda9035cfb3a7c1b5e7f39e0cd3eaed727
+      required_manifest_sha256: 249f955abd6dde28ed44ae14ecf9a5190fc2c4f224f00e324ce344dbbf0f0f4f
+      required_synthesis_report_sha256: 39703527973037e3ba520a7116d06db02e59845f7a7b06c5fc339de1fe1f0174
+    passage_blocked:
+      require_complete_synthesis_report: true
+      required_pixel_codec: {format: png, compress_level: 1, lossless: true}
+      balance_by_factor: passage.open
+      exact_train_scenarios: 96
+      exact_validation_scenarios: 16
+      exact_test_scenarios: 0
+      exact_train_clips: 7680
+      exact_validation_clips: 1280
+      exact_test_clips: 0
+      factor_support_contract:
+        factor: passage.open
+        expected_by_split:
+          train: [0]
+          validation: [0]
+      minimum_raw_train_clips: 7680
+      maximum_formal_mean_draws_per_raw_clip: 137.0
+      minimum_train_scenarios: 96
+      minimum_validation_scenarios: 16
+      required_catalog_sha256: 8a4ee0c475147a0d1e0af9459720f4c0f8b0d3c755871b7670f296d34609ad59
+      required_manifest_sha256: 1bcaa18c1fedc5d1ca074abea21687984b61461d346f74270652ee902c178d75
+      required_synthesis_report_sha256: 3115887559fd52a7359b6e10cf1ebcfe971d7147fefd7f5c56071f234bea245d
+    passage_mixed:
+      require_complete_synthesis_report: true
+      required_pixel_codec: {format: png, compress_level: 1, lossless: true}
+      balance_by_factor: passage.open
+      exact_train_scenarios: 192
+      exact_validation_scenarios: 32
+      exact_test_scenarios: 0
+      exact_train_clips: 15360
+      exact_validation_clips: 2560
+      exact_test_clips: 0
+      factor_support_contract:
+        factor: passage.open
+        expected_by_split:
+          train: [0, 1]
+          validation: [0, 1]
+      minimum_raw_train_clips: 15360
+      maximum_formal_mean_draws_per_raw_clip: 69.0
+      minimum_train_scenarios: 192
+      minimum_validation_scenarios: 32
+      required_catalog_sha256: 6a0ecfd6f954d27f33a3f4a517213dbf6cc6b3d1bfa34e31421797c9b9e2d61c
+      required_manifest_sha256: 14a82fce15d351c66d19d138d5463a91295574bb50bf2b0072de07a449489617
+      required_synthesis_report_sha256: 11221fd0bde2bb5bab75639cabc43262bffa68894cf8f4cd29b37ec09006afb8
+
+training_protocol:
+  architecture: stable_worldmodel_lewm_history3
+  history_tokens: 3
+  raw_steps_per_action_block: 5
+  model_visible_fields: [pixels, action]
+  diagnostic_only_fields: [proprio]
+  synthetic_only: true
+  initialization_checkpoint:
+    path: artifacts/training/runs/checkpoints/h3_origheldout_s3072/weights_final_step_6420.pt
+    sha256: 7d141b86cca49145444a69bff89c71ede69e8cf8252bfb933e656c3e2e962b54
+    config_sha256: 44b5bde83fbc91634ef84acbdba9a75d3436568ed72266c9a5aa057653f9162b
+    role: model_weight_initialization_only_not_resume
+  normalizer_source: frozen_original_training_split_only
+  frozen_model_modules: [encoder, projector]
+  force_frozen_modules_eval_mode: true
+  representation_contract:
+    target_representation: original_h3_encoder_and_projector
+    target_parameters_update: false
+    target_running_statistics_update: false
+    required_audit:
+      - encoder_initial_and_final_state_sha256_equal
+      - projector_initial_and_final_state_sha256_equal
+      - both_modules_kept_in_eval_mode
+  paired_training_seeds: [3072, 4096, 5120]
+  early_stopping: false
+  checkpoint_selection: final_fixed_step
+  distributed_execution:
+    strategy: ddp
+    transport_configuration: framework_defaults_with_frozen_rendezvous_timeout
+    rendezvous_timeout_seconds: 7200
+    rendezvous_timeout_scope: passage_multi_gpu_only
+    audit_scheduling:
+      policy: sibling_shared_flock
+      maximum_concurrency: 8
+      scope: per_rank_full_audit_and_fit_start_storage_revalidation
+      lock_protocol: contextworld.hidden_passage_h3.audit_scheduling_lock.v2
+      lock_order: release_shared_then_audit_shared
+      collective_holds_lock: false
+      topology_scope: single_node_8gpu
+      concurrent_training_runs_per_release: 1
+    rank_cpu_affinity:
+      policy: local_rank_disjoint_contiguous_from_zero
+      cpus_per_rank: 8
+      expected_world_size: 8
+      scope: full_rank_process
+      apply_before_stableworldmodel_and_lance_import: true
+    training_run_exclusivity:
+      protocol: contextworld.hidden_passage_h3.training_run_lock.v1
+      policy: one_root_training_run_per_release
+      maximum_concurrency: 1
+      blocking: false
+      scope: full_root_training_or_preflight_call
+      held_through_report_snapshot: true
+      nonzero_rank_admission: direct_parent_holds_root_training_lock
+    primary_formal_launch: fresh
+    resume_role: disaster_recovery_only
+    resume_scope: complete_epoch_boundary_only
+  group_sampling:
+    H3_Passage_MixedRules_FrozenRepresentation: {passage_mixed: 1.0}
+  fairness_contract:
+    matched_previous_mixed_rule_recipe:
+      - initialization_checkpoint_bytes
+      - original_train_normalizer_bytes
+      - synthetic_training_catalog_bytes
+      - architecture_and_history_length
+      - training_seeds
+      - logical_optimizer_draws
+      - optimizer_and_scheduler
+    intentional_difference: encoder_and_projector_are_fixed
+  profiles:
+    passage_pilot:
+      optimizer_steps: 256
+      effective_global_batch: 1024
+      total_logical_draws: 262144
+    passage_formal:
+      optimizer_steps: 1024
+      effective_global_batch: 1024
+      total_logical_draws: 1048576
+
+models:
+  - model_id: H3_Passage_MixedRules_FrozenRepresentation
+    display_name: 固定原始图像表示的双规则模型
+    training_groups: [passage_mixed]
+
+evaluation_gate:
+  stage_1_train_seen:
+    required_training_seeds: [3072, 4096, 5120]
+    all_three_must_pass: true
+    per_model_per_true_future_per_history: 50x6
+  stage_2_unseen_door_validation:
+    locked_until_stage_1_passes: true
+    required_training_seeds: [3072, 4096, 5120]
+    all_three_must_pass: true
+    per_model_per_true_future_per_history: 50x6
+
+artifacts:
+  training_root: artifacts/training/runs
+  reports: artifacts/training/reports
+  logs: artifacts/training/logs
+  hash_freeze_gate: >-
+    正式 build report 及三个 catalog、manifest、synthesis report 的 SHA-256
+    已在训练前冻结；任一字节变化都会阻止 passage_formal 启动。
+  frozen_inputs:
+    validation_v2:
+      - data.training_exclusion_manifest.path
+      - data.training_exclusion_manifest.sha256
+      - data.training_exclusion_manifest.content_sha256
+    formal_training_data:
+      - data.formal_build_report.sha256
+      - data_quality.groups.passage_passable.required_catalog_sha256
+      - data_quality.groups.passage_passable.required_manifest_sha256
+      - data_quality.groups.passage_passable.required_synthesis_report_sha256
+      - data_quality.groups.passage_blocked.required_catalog_sha256
+      - data_quality.groups.passage_blocked.required_manifest_sha256
+      - data_quality.groups.passage_blocked.required_synthesis_report_sha256
+      - data_quality.groups.passage_mixed.required_catalog_sha256
+      - data_quality.groups.passage_mixed.required_manifest_sha256
+      - data_quality.groups.passage_mixed.required_synthesis_report_sha256

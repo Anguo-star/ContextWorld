@@ -1902,8 +1902,7 @@ def validate_exact_tworoom_replay(
 
     import io
     from PIL import Image
-    from stable_worldmodel.envs.two_room.env import TwoRoomEnv
-
+    from .environments import make_raw_contextworld_environment
     from .lance import encode_frame
 
     required = {
@@ -1968,7 +1967,10 @@ def validate_exact_tworoom_replay(
             decoded = np.asarray(image.convert("RGB"))
         return encoded_match, bool(np.array_equal(decoded, frame))
 
-    env = TwoRoomEnv(render_mode="rgb_array")
+    env = make_raw_contextworld_environment(
+        scenario.env_id,
+        render_mode="rgb_array",
+    )
     try:
         apply_tworoom_reset_constraints(env, scenario.reset_constraints)
         for episode_index, (offset, length) in enumerate(

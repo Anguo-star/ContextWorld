@@ -1,0 +1,143 @@
+schema_version: 1
+benchmark: tworoom_hidden_passage_history3_validation_v1
+status: preregistered_before_independent_catalog_generation_and_scoring
+date: "2026-07-23"
+
+source_protocol: configs/benchmark/tworoom_hidden_passage_h3_feasibility_v1.yaml
+
+stable_worldmodel:
+  repo: ../stable-worldmodel
+  commit: 5864b74980f6ed328fd0045e777b3865962eff43
+
+history3:
+  history_tokens: 3
+  raw_steps_per_action_block: 5
+  query_future_blocks: 1
+  true_future_rules: [passable, blocked]
+  history_conditions:
+    observed_passable: 看见智能体穿过门的历史
+    observed_blocked: 看见智能体被门挡住的历史
+    did_not_attempt_crossing: 没有尝试穿门的历史
+  all_three_histories_use_identical_actions: true
+  all_three_histories_end_at_identical_query: true
+  no_crossing_attempt_is_continuous_environment_history: true
+
+data:
+  split: validation
+  generation:
+    catalog_seed: 20260723
+    assignment_seed: 20260724
+    # 这 42 个位置全部只属于 Eval。即使最终只抽取其中 300 个
+    # direction/offset 模板，训练构建器也必须排除完整位置列表。
+    eval_only_door_positions: &eval_only_door_positions
+      - 30
+      - 34
+      - 38
+      - 42
+      - 46
+      - 50
+      - 54
+      - 58
+      - 62
+      - 66
+      - 70
+      - 74
+      - 78
+      - 82
+      - 86
+      - 90
+      - 94
+      - 98
+      - 102
+      - 106
+      - 110
+      - 114
+      - 118
+      - 122
+      - 126
+      - 130
+      - 134
+      - 138
+      - 142
+      - 146
+      - 150
+      - 154
+      - 158
+      - 162
+      - 166
+      - 170
+      - 174
+      - 178
+      - 182
+      - 186
+      - 190
+      - 194
+    candidate_door_positions: *eval_only_door_positions
+    doorway_offsets_px: [11.0, 12.0, 13.0, 14.0]
+    directions: [left_to_right, right_to_left]
+    candidate_templates: 336
+    selected_unique_queries: 300
+  training_exclusion:
+    exclude_all_eval_only_door_positions: true
+    exclude_selected_template_ids: true
+    exclude_selected_query_pixel_hashes: true
+    fail_closed_if_exclusion_manifest_is_missing: true
+
+evaluation:
+  eval_seeds: [42, 43, 44, 45, 46, 47]
+  eval_seed_semantics: disjoint_deterministic_query_partitions
+  unique_queries_per_seed: 50
+  direction_counts_per_seed:
+    left_to_right: 25
+    right_to_left: 25
+  unique_queries: 300
+  matrix_cells: 6
+  records_per_checkpoint: 1800
+  batch_size: 64
+  environment_calls_during_scoring: 0
+
+adapter:
+  implementation: StableWorldModelLeWMAdapter
+  normalizer: artifacts/splits/tworoom_original_train_s3072_normalizer.json
+  model_input_keys: [pixels, action]
+  privileged_fields_forbidden:
+    - passage.open
+    - state
+    - goal_state
+    - door.position
+    - template_id
+    - true_future
+
+metrics:
+  primary: frozen_true_next_frame_native_latent_mse
+  paired_effects:
+    - other_rule_history_loss_minus_same_rule_history_loss
+    - no_crossing_attempt_history_loss_minus_same_rule_history_loss
+  additional:
+    - strict_win_rate
+    - two_target_latent_classification
+    - paired_symmetric_contrast
+    - eval_seed_and_direction_sign_consistency
+  unchanged_query_relative_loss:
+    enabled: false
+    reason: blocked_true_future_is_exactly_the_unchanged_query
+  raw_latent_mse_cross_checkpoint_comparison_allowed: false
+
+gates:
+  minimum_middle_state_gap_px: 8.0
+  minimum_future_state_gap_px: 20.0
+  query_pixels_unique: 300
+  each_eval_seed_has_unique_queries: 50
+  each_eval_seed_direction_has_unique_queries: 25
+  all_history_actions_identical: true
+  all_history_queries_identical: true
+  no_crossing_attempt_rule_invariant: true
+  offline_true_futures_frozen_before_scoring: true
+  score_records_per_checkpoint: 1800
+  same_history_below_both_comparisons_for_each_true_rule: true
+  paired_effects_positive_in_every_eval_seed_direction_cell: true
+
+artifacts:
+  output_root: artifacts/evaluation/history3/hidden_passage_validation_v1
+  catalog: artifacts/evaluation/history3/hidden_passage_validation_v1/catalog.json
+  training_exclusion_manifest: artifacts/evaluation/history3/hidden_passage_validation_v1/training_exclusion_manifest.json

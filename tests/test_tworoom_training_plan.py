@@ -502,9 +502,14 @@ def test_manual_accumulation_scales_only_fit_loss() -> None:
         return {"loss": torch.tensor(6.0), "pred_loss": torch.tensor(4.0)}
 
     module = object()
+    batch = {
+        "pixels": torch.zeros(1, 4, 3, 2, 2),
+        "action": torch.zeros(1, 4, 10),
+        "proprio": torch.full((1, 4, 2), float("nan")),
+    }
     fit = _lejepa_forward_with_manual_accumulation(
         module,
-        {"x": 1},
+        batch,
         "fit",
         base_forward=base_forward,
         cfg={"history": 3},
@@ -512,7 +517,7 @@ def test_manual_accumulation_scales_only_fit_loss() -> None:
     )
     validation = _lejepa_forward_with_manual_accumulation(
         module,
-        {"x": 2},
+        batch,
         "validate",
         base_forward=base_forward,
         cfg={"history": 3},
@@ -523,6 +528,7 @@ def test_manual_accumulation_scales_only_fit_loss() -> None:
     assert fit["pred_loss"].item() == 4.0
     assert validation["loss"].item() == 6.0
     assert len(calls) == 2
+    assert all(tuple(call[1]) == ("pixels", "action") for call in calls)
 
 
 def test_two_scaled_microbatch_backwards_match_mean_objective_update() -> None:

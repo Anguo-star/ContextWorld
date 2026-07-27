@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import subprocess
@@ -26,6 +27,33 @@ from contextworld.synthesis.manifest import write_json
 DEFAULT_CONFIG = (
     ROOT / "configs/benchmark/tworoom_speed_cube_eval_v2.yaml"
 )
+
+
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _validate_declared_sources(config: dict[str, Any]) -> None:
+    """Bind optional prerequisite artifacts before any model is scored."""
+
+    for name, identity in config.get("source_identity", {}).items():
+        if not isinstance(identity, dict):
+            continue
+        if "path" not in identity or "sha256" not in identity:
+            continue
+        path = resolve_contextworld_path(identity["path"], repo_root=ROOT)
+        if not path.is_file():
+            raise FileNotFoundError(f"Missing source {name}: {path}")
+        observed = _sha256(path)
+        if observed != str(identity["sha256"]):
+            raise ValueError(
+                f"Frozen source hash changed for {name}: "
+                f"expected={identity['sha256']} observed={observed}"
+            )
 
 
 @dataclass(frozen=True)
@@ -291,6 +319,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     config = yaml.safe_load(
         args.config.read_text(encoding="utf-8")
     )
+    _validate_declared_sources(config)
     jobs = _jobs(args, config)
     missing = [
         str(job.checkpoint)
