@@ -1,6 +1,6 @@
 schema_version: 1
 release_id: contextworld_tworoom_door_rule_icl_history3_v1
-release_status: validation_release_candidate
+release_status: public_test_release_candidate
 candidate_date: "2026-07-26"
 
 scope:
@@ -11,6 +11,7 @@ scope:
   raw_steps_per_action_block: 5
   prediction_horizon_action_blocks: 1
   public_track: unseen_door_positions
+  public_test_included: true
   sealed_test_included: false
 
 runtime:
@@ -22,17 +23,18 @@ runtime:
     repository: https://github.com/Anguo-star/ContextWorld
     package_version: 0.1.0
     source_sha256:
-      contextworld/benchmarks/__init__.py: a78522cdd595cdaa74d58889557ccf39f860ff843d6e38c66a6582b10b64651f
-      contextworld/benchmarks/adapters.py: 39ec1841c39d6b056aca476c137f549c6b7a4017c425d09c04e036ce08ff3c8b
-      contextworld/benchmarks/door_icl_data.py: 606f49af0a58102d0d2551c1f3add64d6018e331ae798563dfa1b02700cadaec
+      contextworld/benchmarks/__init__.py: 9859331914ce8c8ad356949161fa521ed7d59378e4d6eaf7203b9f71ad7ef4b8
+      contextworld/benchmarks/causal_data_contract.py: 202d8a1cc57ac9ec24924f0e995cc42b8fea7b026d55465e8f7cdb102759788e
+      contextworld/benchmarks/adapters.py: a1bf037ea4da49842163142563323a26a3eb11fca9a81f6dc4070d5688805c67
+      contextworld/benchmarks/door_icl_data.py: b032dd3add7d6d9a8dff95ba31501ce398dbcad758085eb664a6712f35824458
       contextworld/benchmarks/door_icl_score.py: 9d729fd46934b57090d4fce4f536b9fcc9ac55770b41916b33bda543f5c3688f
       contextworld/benchmarks/door_icl_cli.py: 7c0dc1a98239b3d5ce3906d589f2d4fcf9a471f27f93cfec2aa3c3fc61e239e2
       contextworld/evaluation/hidden_passage_validation.py: a4111c97363a13e542b2113f884b8300260ee67140f2b9455fe184ef86dd44c6
-      contextworld/paths.py: 6e64b151a4a6c439cd93a81ee1a7b83694e07bd53b24623cd73b0d9f9147c125
-      contextworld/training/tworoom_data.py: 35f42dd1dc282bd8edcf6fa4397b178cb51af203b57317629d1abb0b64b2b361
-      scripts/run_h3_hidden_passage_train.sh: bbb6b94aa96693cf7d5209349412c015b7556b45d51f1ff0d76ce93c749c5d20
-      scripts/train_tworoom_step1.py: 60cf0c5c0e7508f507036f5fb171fa4323365a61ae23bb74ab9e6c484204c4db
-      pyproject.toml: bd419760f4c1dd40ed7256429b64b5e4e3c1f127ee499fc8ae02e0d1baeb9e12
+      contextworld/paths.py: d401ee87b5a803f37323a2fb4632fb3686bfec5472a817d431ec6e05d9a3447f
+      contextworld/training/tworoom_data.py: 4affd45f137a00d42cce0c90b9f7de5668eda4d9feb80dc9ef369bae6c94c3c8
+      scripts/run_h3_hidden_passage_train.sh: 7ab8216bc1063571c8b0f82ea3456fc327296b130325eb9c24bd95d95fca7080
+      scripts/train_tworoom_step1.py: c4bcd96772eff8044b5ab90ce71081283f526118589f0c0f0d845e0851611c5c
+      pyproject.toml: e104f6441b00395181083c434c3cdce8a7d93da76dd2e01793a77b8f8cca827e
   stable_worldmodel:
     source: https://github.com/galilai-group/stable-worldmodel
     repo: ../stable-worldmodel
@@ -40,7 +42,7 @@ runtime:
 
 training:
   data_protocol: configs/benchmark/tworoom_hidden_passage_h3_training_data_v1.yaml
-  data_protocol_sha256: c9ab2054c3421582d3464634e574711f3035686b41a11c4fc610bc9442bc5f82
+  data_protocol_sha256: c13d1778ccab068fcc20cd1f08593cce0accd97903b36a9da73f7b14f021da21
   paired_training_seeds: [3072, 4096, 5120]
   synthetic_only: true
   hidden_rules:
@@ -50,40 +52,40 @@ training:
   loader_validation_door_positions: 16
   eval_only_door_positions: 42
   build_report: artifacts/synthesis/hidden_passage_h3_v1/formal/build_report.json
-  build_report_sha256: bd3bde3da3bc97c67c4f9eb1ed87f4a41b50c25c9709ce6b64c4f9a69b9c556a
+  build_report_sha256: f69a1c83664af800892c026836bf4a9cd0a0b0703cd9c23f4031e8d4d55efbbe
   artifact_tree:
     root: artifacts/synthesis/hidden_passage_h3_v1/formal
     files: 1130
-    bytes: 346650036
-    sha256: 92aafee7db5d45f4bfe50cfea4fca22656929fa1d7855b23fc0435a5ddded5e1
+    bytes: 346647747
+    sha256: 370a9822f2d545c7d3c3d458ef07a628e91535df762733af9ce8ba650414c1c6
   groups:
     passage_passable:
       catalog: artifacts/synthesis/hidden_passage_h3_v1/formal/catalogs/tworoom_hidden_passage_h3_passable_v1.json
-      catalog_sha256: 0cbcc0c29a54184e6884b1046489bdcda9035cfb3a7c1b5e7f39e0cd3eaed727
+      catalog_sha256: efeb6ab7775ec56c9b12021dcf2d378e0fa55fa65e58820e8434556f8f6c6cdd
       manifest: artifacts/synthesis/hidden_passage_h3_v1/formal/manifests/tworoom_hidden_passage_h3_passable_v1.jsonl
       manifest_sha256: 249f955abd6dde28ed44ae14ecf9a5190fc2c4f224f00e324ce344dbbf0f0f4f
       report: artifacts/synthesis/hidden_passage_h3_v1/formal/reports/tworoom_hidden_passage_h3_passable_v1.json
-      report_sha256: 39703527973037e3ba520a7116d06db02e59845f7a7b06c5fc339de1fe1f0174
+      report_sha256: c63333a4e8aa816a50e93a2740fd3b02bb198c8cfa4107bd5dccc6c81e08593a
       train_scenarios: 96
       validation_scenarios: 16
       test_scenarios: 0
     passage_blocked:
       catalog: artifacts/synthesis/hidden_passage_h3_v1/formal/catalogs/tworoom_hidden_passage_h3_blocked_v1.json
-      catalog_sha256: 8a4ee0c475147a0d1e0af9459720f4c0f8b0d3c755871b7670f296d34609ad59
+      catalog_sha256: b1c79c70b762711aad95dde9d65c65bbf2bad1efe02bb7bf7ee3d5e1375bb010
       manifest: artifacts/synthesis/hidden_passage_h3_v1/formal/manifests/tworoom_hidden_passage_h3_blocked_v1.jsonl
       manifest_sha256: 1bcaa18c1fedc5d1ca074abea21687984b61461d346f74270652ee902c178d75
       report: artifacts/synthesis/hidden_passage_h3_v1/formal/reports/tworoom_hidden_passage_h3_blocked_v1.json
-      report_sha256: 3115887559fd52a7359b6e10cf1ebcfe971d7147fefd7f5c56071f234bea245d
+      report_sha256: 63e8c7f72be8c7cd17d4da2403a480af8532de1be9b4cdc430cae118a417fe8d
       train_scenarios: 96
       validation_scenarios: 16
       test_scenarios: 0
     passage_mixed:
       catalog: artifacts/synthesis/hidden_passage_h3_v1/formal/catalogs/tworoom_hidden_passage_h3_mixed_v1.json
-      catalog_sha256: 6a0ecfd6f954d27f33a3f4a517213dbf6cc6b3d1bfa34e31421797c9b9e2d61c
+      catalog_sha256: 187915f7e2771df40e88dc5a3b9d44ac87c204967e1ac4e2632046ce7b41ecb2
       manifest: artifacts/synthesis/hidden_passage_h3_v1/formal/manifests/tworoom_hidden_passage_h3_mixed_v1.jsonl
       manifest_sha256: 14a82fce15d351c66d19d138d5463a91295574bb50bf2b0072de07a449489617
       report: artifacts/synthesis/hidden_passage_h3_v1/formal/reports/tworoom_hidden_passage_h3_mixed_v1.json
-      report_sha256: 11221fd0bde2bb5bab75639cabc43262bffa68894cf8f4cd29b37ec09006afb8
+      report_sha256: 1974969a5dc75a0f535e2941d5eb967324bf27b4bfea36202e2d6af5be55fb15
       train_scenarios: 192
       validation_scenarios: 32
       test_scenarios: 0
@@ -91,7 +93,7 @@ training:
     checkpoint: artifacts/training/runs/checkpoints/h3_origheldout_s3072/weights_final_step_6420.pt
     checkpoint_sha256: 7d141b86cca49145444a69bff89c71ede69e8cf8252bfb933e656c3e2e962b54
     checkpoint_config: artifacts/training/runs/checkpoints/h3_origheldout_s3072/config.json
-    checkpoint_config_sha256: 44b5bde83fbc91634ef84acbdba9a75d3436568ed72266c9a5aa057653f9162b
+    checkpoint_config_sha256: cd9ef9e2efde4527e36b6467d6a4efd120ab466d6a9f8a4aa41cdb7b56c4eddf
     role: Stable-WorldModel reference initialization only
   upstream_original_h5:
     source: https://huggingface.co/datasets/quentinll/lewm-tworooms
@@ -102,25 +104,13 @@ training:
     sha256: 129a36aa93ea0de488d2bcc876e396de9e3907bf66c6aae6394e542ef6a6d623
     role: frozen normalizer and reference-training provenance
   recipes:
-    lewm_joint:
-      display_name: LeWM 双规则联合训练
-      model_id: H3_Passage_MixedRules
-      adapter: lewm
-      shell_variant: mixed
-      config: configs/benchmark/tworoom_hidden_passage_h3_training_v1.yaml
-      config_sha256: af0cb6133a397715108f5d02a51b08d3b82d3acf8c9c04cdda63f3d278b29192
-      training_seeds: [3072, 4096, 5120]
-      optimizer_steps: 1024
-      effective_global_batch: 1024
-      total_logical_draws: 1048576
-      reference_result: failed_0_of_3
     lewm_fixed_representation:
       display_name: LeWM 双规则训练，固定原始图像表示
       model_id: H3_Passage_MixedRules_FrozenRepresentation
       adapter: lewm
       shell_variant: fixed-mixed
       config: configs/benchmark/tworoom_hidden_passage_h3_fixed_representation_training_v1.yaml
-      config_sha256: 499ab4e47951e179929165454da1a154d32b3395661e8e2a36ec45a195bf4d50
+      config_sha256: 321780e88e6c7feae42a8e2d2586f47a7db43efb222b7bc4fb2d458e5b422751
       training_seeds: [3072, 4096, 5120]
       optimizer_steps: 1024
       effective_global_batch: 1024
@@ -132,7 +122,7 @@ training:
       adapter: pldm
       shell_variant: pldm-mixed
       config: configs/benchmark/tworoom_hidden_passage_h3_pldm_training_v1.yaml
-      config_sha256: a8dade2870f403a8144193b9a8f70280878f8e7ed0a9b1ce2172b3504aef95c6
+      config_sha256: f963008d0f89f49d2e0e97c9e6ddf495eebecf21695af6b47cb593b5aff099aa
       training_seeds: [3072, 4096, 5120]
       optimizer_steps: 1024
       effective_global_batch: 1024
@@ -142,16 +132,16 @@ training:
 evaluation:
   track: unseen_door_positions
   protocol: configs/benchmark/tworoom_hidden_passage_h3_fixed_representation_validation_v2.yaml
-  protocol_sha256: 16b5e20c43077c374cfb394a77b2fe56d45068489954021e7545f1e80833faa3
+  protocol_sha256: 0e14f1c7e9248d8a3bbbc4c82a1dbd3648fc4a6c8ee1325974776426d1497b5d
   catalog: artifacts/evaluation/history3/hidden_passage_validation_v2/catalog.json
   catalog_sha256: d5356582f658070bb41972873720e29add04e2d6ca2e637bc0bc7bd57f204551
   build_report: artifacts/evaluation/history3/hidden_passage_validation_v2/build_report.json
-  build_report_sha256: 0f46d698779eb8e36cde3077d28f9fb0870d0ef55f88a026c061182ff98d3efd
+  build_report_sha256: 1a980eb864e1210d491bc851ded5684c6ab79dee65dd2291cd93abd1a2267e24
   training_exclusion_manifest: artifacts/evaluation/history3/hidden_passage_validation_v2/training_exclusion_manifest.json
   training_exclusion_manifest_sha256: d732ca66061b7f16436d7897e570da3626957b1bda0a94ab0e7125d98f14eee9
   content_manifest_sha256: c23f079e6e9119fd4320d6209f992ca98b1d81a889c6127ade087a447c2aea0c
   normalizer: artifacts/splits/tworoom_original_train_s3072_normalizer.json
-  normalizer_sha256: 7a5be7ea867bced446c1671b0b2c0ff6450ffc61e1a7bdbbfc5eaa0942f635db
+  normalizer_sha256: a9e4b443bbac0d7a4e2d9d9f84d40ac40936556ffadfc7af0b0ce4fe4afed42c
   eval_seeds: [42, 43, 44, 45, 46, 47]
   queries_per_eval_seed: 50
   queries: 300
@@ -172,14 +162,15 @@ evaluation:
      194]
   artifact_tree:
     root: artifacts/evaluation/history3/hidden_passage_validation_v2
-    files: 321
-    bytes: 38161005
-    sha256: 0476b07f881c57e9f9a061a948f63ed9e23b7c56b19c3330b4ad4d783d644c19
+    files: 303
+    bytes: 17232280
+    sha256: b6d7fa1a00bb7601914cd97c53f87cf98f1ece86d902cd00647953bf2ca69beb
 
 scoring:
-  primary: frozen_true_next_frame_native_latent_mse
+  primary: correct_target_choice_rate
   target_encoder: each_checkpoint_native_frozen_encoder
   raw_latent_mse_cross_checkpoint_comparison_allowed: false
+  latent_distance_role: within_checkpoint_target_choice_only
   reader_metrics:
     - correct_target_choice_rate
     - correct_history_win_rate
@@ -207,49 +198,73 @@ scoring:
         - blocked/same_vs_other_rule_history
         - passable/matching_history_two_target_margin
         - blocked/matching_history_two_target_margin
+  original_task_retention:
+    evaluation: standard_tworoom_cem
+    stable_worldmodel_ref: 5864b74980f6ed328fd0045e777b3865962eff43
+    query_catalog:
+      path: >-
+        artifacts/evaluation/history3/original_ability_reconstruction/original_heldout_eval_catalog.json
+      sha256: 08233c6755c8f6f358f5fe35f84e7cfed626b922be0eeaba8f7392c7741b4b34
+    normalizer:
+      path: artifacts/splits/tworoom_original_train_s3072_normalizer.json
+      sha256: a9e4b443bbac0d7a4e2d9d9f84d40ac40936556ffadfc7af0b0ce4fe4afed42c
+    eval_seeds: [42, 43, 44, 45, 46, 47]
+    queries_per_eval_seed: 50
+    evaluations_per_checkpoint: 300
+    baseline_successes: 273
+    maximum_allowed_success_drop: 15
+    minimum_successes_per_checkpoint: 258
+    claim_unit: one_checkpoint_300_independent_queries
+    cross_checkpoint_pooling_allowed: false
 
 reference_results:
-  lewm_baselines:
-    root: artifacts/evaluation/history3/hidden_passage_validation_v2
-    files: 321
-    bytes: 38161005
-    sha256: 0476b07f881c57e9f9a061a948f63ed9e23b7c56b19c3330b4ad4d783d644c19
   lewm_fixed_representation:
+    model_id: H3_Passage_MixedRules_FrozenRepresentation
     root: artifacts/evaluation/history3/hidden_passage_fixed_representation_validation_rule_switch_v2
-    files: 5
-    bytes: 4196390
-    sha256: 599b99c9c7a6231f7fca49627e5a66f714fe0e91e4f98325764a9395729b02e7
-  pldm:
+    aggregate: aggregate_rule_switch_v2.json
+    result_pattern: results/h3_passage_fixed_representation_s{seed}.json
+    training_seeds: [3072, 4096, 5120]
+    files: 4
+    bytes: 4182391
+    sha256: b203f6d8271d92f9f3b979bb9fc70e9bc19ed9da4b3e36e09141b053f07c0b58
+  pldm_joint:
+    model_id: H3_Passage_MixedRules_PLDMObjective
     root: artifacts/evaluation/history3/hidden_passage_pldm_objective_validation_rule_switch_v2
-    files: 7
-    bytes: 8362375
-    sha256: 90ef8c11c244053902b9f13929e419864678c6b1baec1bc1bd69eb7b86db6a37
+    aggregate: aggregate_rule_switch_v2.json
+    result_pattern: results/h3_pldm_objective_mixed_rules_s{seed}.json
+    training_seeds: [3072, 4096, 5120]
+    files: 4
+    bytes: 4176504
+    sha256: b09ae7e8ccfd946cb57f9221508aa8a678a19601b86dfd179e90adf8302d7d99
+  original_task_retention:
+    kind: result_tree
+    root: artifacts/evaluation/history3/door_rule_cem_retention_v1
+    files: 87
+    bytes: 1903618
+    sha256: 10bf06ad0828ff713152799645c63214f93115f8ab0b3a60aea85eb1edb5225d
+    summary: final_summary.json
+    summary_sha256: d26b70d5703cb44326820600133fe54a1dd761014fd24036cdbb7cf3a25d848a
+    request: request.json
+    request_sha256: 600f45cd3642b897f966b4240bad11ea6577754e663f202c7b8410ceaa7a6dce
+    file_manifest: file_manifest.json
+    file_manifest_sha256: d5656ff5ed3e39c261f1a520e84e0f9ad9a406b45461909049100161f6730e33
 reference_summary:
-  original_lewm:
-    correct_target_choice_rate: 0.5000
-    correct_history_win_rate: 0.5133
-    passed_training_seeds: 0
-    evaluated_training_seeds: 1
-  lewm_joint:
-    correct_target_choice_rate: 0.5033
-    correct_history_win_rate: 0.5383
-    passed_training_seeds: 0
-    evaluated_training_seeds: 3
   lewm_fixed_representation:
     correct_target_choice_rate: 1.0000
     correct_history_win_rate: 1.0000
     passed_training_seeds: 3
     evaluated_training_seeds: 3
+    original_task_cem_successes: [197, 189, 187]
+    original_task_retention_passed_seeds: 0
   pldm_joint:
     correct_target_choice_rate: 0.9933
     correct_history_win_rate: 0.9967
     passed_training_seeds: 3
     evaluated_training_seeds: 3
-  pldm_fixed_representation:
-    correct_target_choice_rate: 1.0000
-    correct_history_win_rate: 1.0000
-    passed_training_seeds: 3
-    evaluated_training_seeds: 3
+    original_task_cem_successes: [135, 132, 146]
+    original_task_retention_passed_seeds: 0
+  original_model:
+    original_task_cem_successes: 273
 
 distribution:
   release_kind: local_technical_release_candidate

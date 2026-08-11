@@ -1,0 +1,357 @@
+schema_version: 1
+release_id: contextworld_pusht_motion_damping_icl_history3_v1
+release_status: public_test_release_candidate
+candidate_date: "2026-08-03"
+
+scope:
+  environment: PushT
+  capability: infer_post_contact_motion_decay_from_recent_motion
+  display_name_zh: PushT 运动阻尼 ICL
+  history_tokens: 3
+  context_transitions: 2
+  raw_steps_per_action_block: 5
+  prediction_horizon_action_blocks: 1
+  damping_values: [0.2, 1.0]
+  damping_labels:
+    0.2: 运动衰减较快
+    1.0: 不额外衰减
+  fixed_effective_contact_friction: 0.25
+  public_test_included: true
+  sealed_test_included: false
+
+runtime:
+  supported_adapters:
+    - stable_worldmodel_lewm_motion_damping
+    - stable_worldmodel_pldm_motion_damping
+  extension_contract: >-
+    contextworld.benchmarks.adapters.MotionDampingICLModelAdapter
+  contextworld:
+    repository: https://github.com/Anguo-star/ContextWorld
+    package_version: 0.1.0
+  stable_worldmodel:
+    source: https://github.com/galilai-group/stable-worldmodel
+    repo: ../stable-worldmodel
+    expected_ref: 875e607fc08aa72eacb94d5d178127804134cc06
+    source_policy: >-
+      The exact file hashes under identity fix the reference implementation
+      used to produce the reported result.
+
+identity:
+  causal_data_contract:
+    path: contextworld/benchmarks/causal_data_contract.py
+    sha256: 202d8a1cc57ac9ec24924f0e995cc42b8fea7b026d55465e8f7cdb102759788e
+  public_api:
+    path: contextworld/benchmarks/__init__.py
+    sha256: 9859331914ce8c8ad356949161fa521ed7d59378e4d6eaf7203b9f71ad7ef4b8
+  adapters:
+    path: contextworld/benchmarks/adapters.py
+    sha256: a1bf037ea4da49842163142563323a26a3eb11fca9a81f6dc4070d5688805c67
+  data_api:
+    path: contextworld/benchmarks/motion_damping_icl_data.py
+    sha256: 35fac22d854ab9bcb52ff61c67de945ff0750a1fcf7b461b45e08e3e93b62def
+  score_api:
+    path: contextworld/benchmarks/motion_damping_icl_score.py
+    sha256: 19c15640f493d473b5d79e1f4d31e1c50a6be5d9bcf5414dcbd6246166ec14be
+  paired_latent_response_api:
+    path: contextworld/benchmarks/paired_latent_response.py
+    sha256: 92dc5cf019491f59596c3a0b59d918f04ad2290e124eab11d669537ac20d6ff5
+  command_line:
+    path: contextworld/benchmarks/motion_damping_icl_cli.py
+    sha256: 38a0cfc7af0d48a19a3d9e1a86169ec95bc1ecf1c56c1a7a49061279c0456595
+  reference_trainer:
+    path: scripts/run_pusht_motion_damping_h3_train.py
+    sha256: 2009b57a3c7870d48424a459958dc20c86e5fd6e720c0eb2f4c9aae136dffa6e
+  shared_reference_trainer:
+    path: scripts/run_pusht_contact_friction_h3_train.py
+    sha256: 2c2b75b48d96f06369b98d78527068bb8e29fbf7042fa956b9a9b7832d9d2d28
+  mixed_training_engine:
+    path: scripts/run_pusht_hidden_actuation_mixed.py
+    sha256: 322980de4c5ea7cccd2eca0b0cacc2bc669f3805d264bd12d4952cc0bed89495
+  reference_development_evaluator:
+    path: scripts/run_pusht_hidden_actuation_pilot.py
+    sha256: 51d0c25a51058c577f7d90b3d38e194e2fdd4c0595a9e58f7b8efd28d33a21f1
+  development_decision:
+    path: scripts/decide_pusht_motion_damping_h3_development.py
+    sha256: 660d5dbdecfc68a7c6a59d6b20a46c023595ebef1cdd3806672c800b4c60153c
+  reference_matrix_runner:
+    path: scripts/run_pusht_motion_damping_h3_matrix.py
+    sha256: 2cf6b171bc944a68fe021c605232283a798825ba5d055c068317c1a57924aabc
+  shared_reference_matrix_runner:
+    path: scripts/run_pusht_contact_friction_h3_matrix.py
+    sha256: b33713ad92ce8d816c80618e27957e6ddc6987b7ef1fc29cab6daaab948efe38
+  reference_evaluation_runner:
+    path: scripts/eval_pusht_motion_damping_h3_matrix.py
+    sha256: 337fd6fe0e5b225612b0efb2a6cb366c6dd6150b2b22f76d9603942625e273a0
+  shared_reference_evaluation_runner:
+    path: scripts/eval_pusht_contact_friction_h3_matrix.py
+    sha256: dbf2862c07cb3b9ea1ab9cfd4e14ca59b743a3dbf534d431d39ec6551abed98c
+  standard_cem_runner:
+    path: scripts/eval_pusht_standard_cem_retention.py
+    sha256: e72d555e36e57112bece2dad8a7c66965f9312e7191d573e2728a9ef5a89b2a5
+  standard_cem_aggregator:
+    path: scripts/aggregate_pusht_motion_damping_strict_causal_cem.py
+    sha256: d29d14cf8fcb7c8e64dd8dd3dc71ca4a2d3c33fc76a306ecb32d39429e6383c7
+  data_builder:
+    path: scripts/build_pusht_motion_damping_h3_data.py
+    sha256: 55f49db89de52d2acdb46ad57371d5ef7dab11ca58a334ef7ee70eb4269d5f9c
+  causal_physics_contract:
+    path: contextworld/evaluation/pusht_motion_damping_h3.py
+    sha256: 53384df6a80fe220469f7ae276f64a8cdfe9cab80eadde4c226aa648f9540950
+  strict_release_auditor:
+    path: scripts/audit_pusht_motion_damping_strict_release.py
+    sha256: 3e8d5c30bd493e793374651d2cf3738bc770cf82c4261daf285e1e47a8b113ea
+  history_identifiability_auditor:
+    path: scripts/audit_pusht_motion_damping_history_identifiability.py
+    sha256: ce4916554a161e6b32cc1c64cf525a2f03ccd52e7b7d7686d245135553455616
+  stablewm_lewm_config:
+    path: ../stable-worldmodel/scripts/train/config/lewm.yaml
+    sha256: af5511e0d4096cc5c5625d9723959b17e709a60a7c02a306e0c264f9afd4637f
+  stablewm_pldm_config:
+    path: ../stable-worldmodel/scripts/train/config/pldm.yaml
+    sha256: e03191b338289cf0577e9bf60283ba1ce13f6b04dc5d7a340a32ac47d53badbb
+  stablewm_lewm_model:
+    path: ../stable-worldmodel/stable_worldmodel/wm/lewm/lewm.py
+    sha256: f29797b1ed2b90b4977f38a953d251e8be8df6c8cfe7b59bb4c00bfd609f0d8f
+  stablewm_pldm_model:
+    path: ../stable-worldmodel/stable_worldmodel/wm/pldm/pldm.py
+    sha256: 983f5ed0059e3f9b635ded962603374c35dbb8ccbdef611923800a990ded5618
+  stablewm_loss:
+    path: ../stable-worldmodel/stable_worldmodel/wm/loss.py
+    sha256: 940e048c945581134ee9f5cb5fe5818d8d40176d0f3b6cebd803b6a422a0a512
+  stablewm_loader:
+    path: ../stable-worldmodel/stable_worldmodel/wm/utils.py
+    sha256: 50d55db114c514363f25103e32282ebd18a1d437f2622d1facec4fa4e76a9ab0
+  path_resolution:
+    path: contextworld/paths.py
+    sha256: d401ee87b5a803f37323a2fb4632fb3686bfec5472a817d431ec6e05d9a3447f
+  package:
+    path: pyproject.toml
+    sha256: e104f6441b00395181083c434c3cdce8a7d93da76dd2e01793a77b8f8cca827e
+
+data:
+  protocol: pusht_motion_damping_history3_strict_causal_release_v3
+  artifact_tree:
+    root: artifacts/synthesis/pusht_motion_damping_h3_release_v4
+    files: 14
+    bytes: 1964833659
+    sha256: ed996393fd4f4a84b07deaa577ec190cc2a59a96a6c313bdaea266cf408377ab
+  manifest_sha256: 48246aa4ae4a13d5b1c9677ba37a92fe114129027745f8e258137a016899563b
+  pair_counts:
+    train: 8192
+    loader_validation: 256
+    validation: 256
+  public_split_names:
+    train: Training
+    loader_validation: Development
+    validation: Public Test
+  lance_tables:
+    train: train.lance
+    loader_validation: loader_validation.lance
+    validation: validation.lance
+  artifacts:
+    manifest:
+      path: artifacts/synthesis/pusht_motion_damping_h3_release_v4/manifest.json
+      sha256: 48246aa4ae4a13d5b1c9677ba37a92fe114129027745f8e258137a016899563b
+    build_report:
+      path: artifacts/synthesis/pusht_motion_damping_h3_release_v4/build_report.json
+      sha256: f3dbc72761d4c05eee21ed3a6475993068c55410fb930f5b11d741af2aa3a046
+    request:
+      path: artifacts/synthesis/pusht_motion_damping_h3_release_v4/request.json
+      sha256: 8fb9dbcc182280fb6e387bf750dbf01f076f4de983be69755c147148688b0558
+    strict_causal_audit:
+      path: artifacts/synthesis/pusht_motion_damping_h3_release_v4/strict_causal_audit.json
+      sha256: 2afeb362342f0e00cfa23998e12a26a8a40e060f168193af2bc4a274bb22f78a
+    portability_receipt:
+      path: >-
+        artifacts/synthesis/pusht_motion_damping_h3_release_v4/portability_receipt.json
+      sha256: 2c9b29b901c150e48df4663a4429ce35df72e75ddbe67d8094741ecadfd819a3
+    history_identifiability_audit:
+      path: artifacts/evaluation/history3/pusht_motion_damping_release_v1/release_audit/rgb_only_history_observability.json
+      sha256: 368501a139e59dc929273e5813109878067a26a7fb04b0fc097f7515aebcf0ea
+  model_visible_fields: [pixels, action]
+  privileged_columns_not_exposed_to_model:
+    - hidden_motion_damping
+    - hidden_mode
+    - physics_state
+    - pair_id
+    - catalog_index
+  causal_chain:
+    x0_requirement: >-
+      The two conditions need not share the same x0 within one pair. Each x0
+      is a real simulator state, and forward/reverse twins exchange the two x0
+      images so that x0 alone predicts the hidden mode with 50% accuracy.
+    transition_requirement: >-
+      Every x0 -> x1 -> x2 -> x3 transition is produced by one continuous
+      simulator trajectory. No state is installed and no simulator is rebuilt
+      after x0.
+    paired_query_requirement: >-
+      At x2 the two trajectories have the same full 12-dimensional state,
+      identical RGB, and the same query action, while their histories and real
+      x3 futures differ.
+    clean_replay_role: >-
+      A fresh-simulator replay is audit-only. It confirms that invisible
+      solver cache does not change x3 and is never used to build a target.
+  causal_hard_gates:
+    state_installations_after_x0: 0
+    query_simulator_recreated: false
+    maximum_pair_full_state_gap: 0.00000001
+    maximum_pair_query_pixel_difference: 0
+    maximum_pair_query_action_difference: 0
+    maximum_arbiter_count_from_x0_through_x3: 0
+    x0_rgb_hash_multisets_identical_across_modes: true
+    maximum_x0_only_static_bayes_accuracy: 0.5
+    maximum_train_to_public_x0_geometry_classifier_accuracy: 0.55
+    minimum_history_effect_px_equivalent: 3.0
+    minimum_true_future_effect_px: 2.0
+    full_clean_replay_conditions: 17408
+    maximum_continuous_vs_clean_x3_full_state_gap: 0
+    maximum_continuous_vs_clean_x3_pixel_difference: 0
+  observed_minima:
+    minimum_history_response_gap_px_equivalent: 3.839123525706262
+    minimum_true_future_block_position_gap_px: 2.15279685089254
+  isolation:
+    train_loader_validation_query_hash_overlap: 0
+    train_validation_query_hash_overlap: 0
+    loader_validation_validation_query_hash_overlap: 0
+    template_id_overlap: 0
+
+training:
+  stable_worldmodel_loader:
+    format: Lance
+    frameskip: 5
+    num_steps: 4
+    keys_to_load: [pixels, action]
+    pair_episode_order: [faster_decay, no_extra_decay]
+  upstream:
+    original_h5:
+      role: action_normalization_and_source_replay_provenance
+      environment_variable: CONTEXTWORLD_PUSHT_H5
+      bundled_artifact_path: upstream/stable-worldmodel/pusht_expert_train.h5
+      bytes: 46300921856
+    original_lance:
+      role: standard_pusht_training_rows
+      environment_variable: CONTEXTWORLD_PUSHT_LANCE
+      bundled_artifact_path: upstream/stable-worldmodel/lewm_pusht.lance
+      bytes: 14304260783
+    initialization:
+      role: common_reference_initialization
+      environment_variable: CONTEXTWORLD_PUSHT_INIT_CHECKPOINT
+      bundled_artifact_path: >-
+        upstream/stable-worldmodel/pusht_lewm_baseline_seed3073_weights.ckpt
+      bytes: 216789801
+      sha256: 9f13b2c28bb909338047e08d62bf6eb16ea3616cb53e57cfa9b5072b43db1c59
+  reference_matrix:
+    status: failed_development
+    training_seeds: [14321, 14322, 14323]
+    completed_development_seeds: [14321]
+    remaining_seeds_run: false
+    public_model_scoring_opened: false
+    common:
+      optimizer_steps: 8192
+      fixed_checkpoint_step: 8192
+      batch_size: 128
+      original_pusht_samples_per_batch: 64
+      motion_damping_samples_per_batch: 64
+      complete_motion_damping_pairs_per_batch: 32
+      learning_rate: 0.00005
+      weight_decay: 0.001
+      gradient_clip_norm: 1.0
+      mixed_precision: bfloat16
+      checkpoint_selection: fixed_final_optimizer_step
+      loader_validation_monitor_steps: [1024, 2048, 4096, 8192]
+      development_used_for_recipe_selection: true
+      development_used_for_checkpoint_selection: false
+      public_test_used_for_recipe_or_checkpoint_selection: false
+    reported_endpoint:
+      model_family: LeWM
+      recipe: mixed_frozen_image_paired_future_ranking_twin_1p00
+      training_seed: 14321
+      optimizer_step: 8192
+
+evaluation:
+  development:
+    role: recipe_selection_and_gate_at_fixed_checkpoint_step
+    pair_count: 256
+    lance_table: loader_validation.lance
+  track: public_motion_damping_test_strict_causal_v4
+  model_evaluation_status: not_opened_after_failed_development
+  pair_count: 256
+  condition_count: 512
+  lance_table: validation.lance
+  source: frozen_offline_real_simulator_futures
+  online_environment_calls_for_prediction_track: 0
+  query_image_hash_overlap_with_training_or_development: 0
+  public_test_access_policy: open_once_after_recipe_freeze
+  action_normalization:
+    source: original_pusht_h5_population_zscore
+    mean: [-0.007812564261257648, 0.006860687397420406]
+    std_population: [0.20846743881702423, 0.2067486196756363]
+
+scoring:
+  hidden_future_prediction:
+    target: each_checkpoint_native_encoder_of_real_x3
+    public_primary: correct_future_rate
+    cross_checkpoint_absolute_mse_comparison_allowed: false
+    metrics:
+      - correct_future_rate
+      - correct_history_rate
+      - context_switch_rate
+      - worst_damping_correct_future_rate
+    internal_anti_spoof_metrics:
+      - latent_response.target_latent_separation.passed
+      - latent_response.response_gain
+      - latent_response.normalized_response_error
+    anti_spoofing_contract:
+      role: internal_validity_gate_not_public_primary_score
+      normalization: within_checkpoint_real_target_response
+      response_gain_anchors: {no_history_response: 0.0, real_response: 1.0}
+      normalized_response_error_anchors: {real_response: 0.0, no_history_response: 1.0}
+      legacy_results_require_checkpoint_rescore: true
+    gates:
+      correct_future_rate_minimum: 0.95
+      correct_history_rate_minimum: 0.95
+      context_switch_rate_minimum: 0.95
+      worst_damping_correct_future_rate_minimum: 0.90
+      target_latent_separation_required: true
+      response_gain_minimum: 0.50
+      normalized_response_error_strict_maximum: 1.00
+  method_level:
+    training_seeds_required: 3
+    all_three_checkpoints_must_pass: true
+  original_task_retention:
+    evaluation: standard_pusht_cem
+    episodes_per_checkpoint: 300
+    eval_seeds: [42, 43, 44, 45, 46, 47]
+    episodes_per_eval_seed: 50
+    baseline_checkpoint:
+      role: original_pusht_lewm_baseline_seed3073
+      environment_variable: CONTEXTWORLD_PUSHT_INIT_CHECKPOINT
+      sha256: 9f13b2c28bb909338047e08d62bf6eb16ea3616cb53e57cfa9b5072b43db1c59
+    noninferiority_success_minimum: 210
+    baseline_margin_successes: 15
+    both_fixed_and_baseline_relative_checks_required: true
+    status: not_run_failed_development
+
+reference_results:
+  current_decision:
+    path: >-
+      artifacts/evaluation/history3/pusht_motion_damping_release_v1/failed_development.json
+    sha256: 0932697a16cd9ea3c45f5961c11e7aecec790a7f7f954a3d5422470bba96bc61
+
+claim_boundary:
+  status: benchmark_data_ready_reference_model_failed_development
+  current_claim: >-
+    v4 的 Training、Development 和 Public Test 数据、四项主预测规则以及三项
+    latent 响应防伪门已经固定。旧 LeWM 参考结果未通过主预测门，因此仍是有效的
+    legacy negative；没有打开 Public Test 模型评分，也不能声称已经学会该能力。
+  positive_claim_requirement: >-
+    新参考方法必须先通过 Development，再在三个独立训练种子上通过 Public Test，
+    并满足原始 PushT 任务保持要求，才能形成正向参考结论。
+
+distribution:
+  release_kind: local_benchmark_data_scoring_and_negative_reference_result
+  code_license_status: not_declared
+  generated_data_license_status: not_declared
+  public_download_status: not_configured
+  public_artifact_urls: []
+  export_grants_redistribution_rights: false

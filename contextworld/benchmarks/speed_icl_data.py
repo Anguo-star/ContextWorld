@@ -11,7 +11,17 @@ from typing import Any, Iterator
 import numpy as np
 import yaml
 
-from contextworld.paths import repository_root, resolve_contextworld_path
+from contextworld.benchmarks.causal_data_contract import (
+    audit_causal_data_contract,
+)
+from contextworld.benchmarks.speed_release_shadow import (
+    audit_speed_portable_shadow,
+)
+from contextworld.paths import (
+    artifact_root,
+    repository_root,
+    resolve_contextworld_path,
+)
 
 
 DEFAULT_RELEASE_CONFIG = (
@@ -75,6 +85,21 @@ def load_speed_icl_release(
         raise ValueError(f"Unsupported Speed ICL release config: {config_path}")
     if payload.get("release_id") != "contextworld_tworoom_speed_icl_history3_v1":
         raise ValueError(f"Unexpected release id in {config_path}")
+    status = payload.get("release_status")
+    if status is not None and status not in {
+        "validation_release_candidate",
+        "validation_release",
+        "public_test_release_candidate",
+        "public_test_release",
+    }:
+        raise ValueError("Unsupported Speed ICL release status")
+    scope = payload.get("scope", {})
+    if str(status).startswith("public_test_") and (
+        scope.get("public_test_included") is not True
+    ):
+        raise ValueError("Speed ICL v1 must include Public Test")
+    if status is not None and scope.get("sealed_test_included") is not False:
+        raise ValueError("Speed ICL v1 must not include sealed Test")
     return {**payload, "_config_path": str(config_path)}
 
 
@@ -88,7 +113,15 @@ def resolve_original_h5(
     value = explicit or os.environ.get(str(original["environment_variable"]))
     if value is not None:
         return Path(value).expanduser().resolve()
-    return resolve_contextworld_path(original["local_fallback"], repo_root=repo_root)
+    bundled = original.get("bundled_artifact_path")
+    if bundled:
+        candidate = artifact_root(repo_root) / str(bundled)
+        if candidate.is_file():
+            return candidate.resolve()
+    raise ValueError(
+        "Original TwoRoom H5 is not installed; set "
+        f"{original['environment_variable']!r} or provide the bundled artifact"
+    )
 
 
 @dataclass(frozen=True)
@@ -307,7 +340,7 @@ class SpeedICLEvalDataset:
     def describe(self) -> dict[str, Any]:
         return {
             "track": self.track,
-            "catalog": str(self.catalog_path),
+            "catalog": str(self.track_config["catalog"]),
             "catalog_sha256": self.track_config["catalog_sha256"],
             "reference_speeds": list(self.reference_speeds),
             "history_conditions": list(self.conditions),
@@ -332,7 +365,7 @@ def _audit_file(
     exists = path.is_file()
     observed = _sha256(path) if exists else None
     return {
-        "path": str(path),
+        "path": str(value),
         "exists": exists,
         "expected_sha256": str(expected_sha256),
         "observed_sha256": observed,
@@ -409,7 +442,7 @@ def audit_speed_icl_release(
             )
             file_audits.append(
                 {
-                    "path": str(data_root),
+                    "path": str(row["data_root"]),
                     "observed_scenario_counts": observed_counts,
                     "expected_scenario_counts": expected_counts,
                     "all_scenario_paths_exist": paths_exist,
@@ -427,7 +460,7 @@ def audit_speed_icl_release(
                 }
             )
     evaluation = release["evaluation"]
-    for name in ("normalizer", "build_report"):
+    for name in ("normalizer", "build_report", "causal_data_audit"):
         file_audits.append(
             _audit_file(
                 evaluation[name],
@@ -435,6 +468,77 @@ def audit_speed_icl_release(
                 repo_root=root,
             )
         )
+    causal_report_path = resolve_contextworld_path(
+        evaluation["causal_data_audit"], repo_root=root
+    )
+    causal_report = (
+        json.loads(causal_report_path.read_text(encoding="utf-8"))
+        if causal_report_path.is_file()
+        else {}
+    )
+    causal_checks = causal_report.get("checks", {})
+    causal_measurements = causal_report.get("measurements", {})
+    causal_counts = causal_report.get("counts", {})
+    causal_contract = audit_causal_data_contract(
+        component_id="tworoom_speed_icl",
+        evidence_scope=(
+            f"{int(causal_counts.get('bundles', 0))} Public Test query "
+            f"bundles / {int(causal_counts.get('condition_trajectories', 0))} "
+            "condition trajectories"
+        ),
+        continuous_environment_trajectory=bool(
+            causal_checks.get(
+                "every_history_is_a_continuous_two_transition_chain"
+            )
+            and causal_checks.get(
+                "natural_transition_residual_within_1e_4_px"
+            )
+        ),
+        state_installations_after_x0=int(
+            causal_measurements.get("state_installations_after_x0", -1)
+        ),
+        query_simulator_recreated=bool(
+            causal_measurements.get("query_simulator_recreated", True)
+        ),
+        maximum_query_state_gap=(
+            0.0
+            if causal_checks.get("x2_query_is_exactly_paired")
+            else float("inf")
+        ),
+        query_state_tolerance=0.0,
+        query_pixels_exact=bool(
+            causal_checks.get("x2_query_is_exactly_paired")
+        ),
+        query_actions_exact=bool(
+            causal_checks.get("future_actions_are_exactly_paired")
+        ),
+        history_effect_present=bool(
+            causal_checks.get("history_reveals_speed")
+        ),
+        true_future_effect_present=bool(
+            causal_checks.get("real_future_depends_on_speed")
+        ),
+        x0_policy="shared_visible_start",
+        x0_static_leakage_check_passed=bool(
+            causal_checks.get(
+                "common_x0_is_exact_across_history_conditions_and_speeds"
+            )
+        ),
+        evidence=(
+            evaluation["causal_data_audit"],
+            "scripts/audit_tworoom_speed_causal_data.py",
+            evaluation["build_report"],
+        ),
+    )
+    for row in release.get("reference_results", {}).values():
+        if (
+            isinstance(row, dict)
+            and "path" in row
+            and "sha256" in row
+        ):
+            file_audits.append(
+                _audit_file(row["path"], row["sha256"], repo_root=root)
+            )
     payload_count = 0
     payload_hashes_verified = 0
     eval_track_audits = {}
@@ -442,7 +546,9 @@ def audit_speed_icl_release(
         audit = _audit_file(
             row["catalog"], row["catalog_sha256"], repo_root=root
         )
-        catalog_path = Path(audit["path"])
+        catalog_path = resolve_contextworld_path(
+            row["catalog"], repo_root=root
+        )
         if audit["passed"]:
             catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
             payload_count += len(catalog["bundles"])
@@ -490,9 +596,10 @@ def audit_speed_icl_release(
                 row["catalog"], row["catalog_sha256"], repo_root=root
             )
             if audit["passed"]:
-                catalog = json.loads(
-                    Path(audit["path"]).read_text(encoding="utf-8")
+                catalog_path = resolve_contextworld_path(
+                    row["catalog"], repo_root=root
                 )
+                catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
                 payloads_exist = True
                 payload_hashes_pass = True
                 for bundle in catalog["bundles"]:
@@ -539,7 +646,7 @@ def audit_speed_icl_release(
         else None
     )
     original_audit = {
-        "path": str(original_path),
+        "path": str(original_expected["bundled_artifact_path"]),
         "source": original_expected["source"],
         "license": original_expected["license"],
         "exists": original_exists,
@@ -557,23 +664,36 @@ def audit_speed_icl_release(
             )
         ),
     }
+    portable_shadow = audit_speed_portable_shadow(release, repo_root=root)
     passed = (
         original_audit["passed"]
         and all(row["passed"] for row in code_audits)
         and all(row["passed"] for row in file_audits)
         and all(row["passed"] for row in eval_track_audits.values())
         and all(row["passed"] for row in planning_audits.values())
+        and causal_contract["passed"]
+        and causal_report.get("passed") is True
+        and portable_shadow["passed"]
     )
+    config_path = Path(release["_config_path"])
+    try:
+        portable_config = config_path.relative_to(root).as_posix()
+    except ValueError:
+        portable_config = config_path.name
     return {
         "schema_version": 1,
         "release_id": release["release_id"],
         "status": "passed" if passed else "failed",
-        "release_config": str(Path(release["_config_path"])),
-        "artifact_root_override": os.environ.get("CONTEXTWORLD_ARTIFACT_ROOT"),
+        "release_config": portable_config,
+        "artifact_root_override_active": bool(
+            os.environ.get("CONTEXTWORLD_ARTIFACT_ROOT")
+        ),
         "original_h5": original_audit,
         "contextworld_code": code_audits,
         "release_files": file_audits,
         "evaluation_tracks": eval_track_audits,
+        "causal_data_contract": causal_contract,
+        "portable_shadow": portable_shadow,
         "planning_assets": planning_audits,
         "planning_payload_hashes_verified": planning_payload_hashes_verified,
         "eval_payloads": payload_count,
@@ -719,6 +839,14 @@ def export_speed_icl_artifacts(
                 ),
             ]
         )
+    entries.extend(
+        (specification["path"], "file")
+        for specification in release.get("reference_results", {}).values()
+        if isinstance(specification, dict)
+        and "path" in specification
+        and "sha256" in specification
+        and str(specification["path"]).startswith("artifacts/")
+    )
     unique_entries = []
     seen = set()
     for logical, kind in entries:
@@ -782,7 +910,7 @@ def export_speed_icl_artifacts(
         "schema_version": 1,
         "release_id": release["release_id"],
         "status": "passed",
-        "artifact_root": str(destination),
+        "artifact_root": ".",
         "mode": mode,
         "includes_original_h5": False,
         "original_h5_source": release["training"]["original"]["source"],
@@ -794,7 +922,7 @@ def export_speed_icl_artifacts(
         json.dumps(payload, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
-    return {**payload, "inventory": str(inventory_path)}
+    return {**payload, "inventory": "release/inventory.json"}
 
 
 __all__ = [

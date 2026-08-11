@@ -1,0 +1,81 @@
+schema_version: 1
+benchmark: contextworld_tworoom_action_delay_icl_history7_v1
+status: public_evaluation_contract
+release_date: "2026-08-03"
+
+purpose: >-
+  检查模型是否能从七帧历史识别动作延迟，并据此预测离线保存的真实下一帧。
+  这是 Action Delay ICL 的核心能力评测；不依赖 CEM，也不要求多步训练。
+
+frozen_validation:
+  catalog:
+    path: artifacts/evaluation/history7/action_delay_validation_v1/catalog.json
+    sha256: 5a3fc1a53c05cc4e6f97f7b7544c48aaaf6033550b70a63899eab35ee46fafca
+    content_manifest_sha256: >-
+      e8d75d1ac1496dd340ce0a504e51e976dddff667915b3f9a49fe2a6e6c323923
+  build_report:
+    path: artifacts/evaluation/history7/action_delay_validation_v1/build_report.json
+    sha256: d212602e4234b77a8293c3106afad331f3fa8ce0110417fbea8e6539df388c46
+  audit_report:
+    path: artifacts/evaluation/history7/action_delay_validation_v1/audit_report.json
+    sha256: 2bb40f31df51f4c130de06797cda9d63d5050a40a5781cdebaaa7f84189e836d
+  training_exclusion_manifest:
+    path: >-
+      artifacts/evaluation/history7/action_delay_validation_v1/training_exclusion_manifest.json
+    sha256: 5fb8322249c4a3d1445363359fad6f9ff3f356348e9f1941ea8da51adbf9b69b
+  eval_seeds: [42, 43, 44, 45, 46, 47]
+  queries_per_eval_seed: 50
+  distinct_queries: 300
+  delay_values: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+  model_visible_fields: [pixels, action]
+  online_environment_calls: 0
+
+core_metric:
+  name: one_step_real_future_physical_group_accuracy
+  description: >-
+    对每个 History 条件，模型只预测一步；把预测 latent 与同一 query 的所有
+    离线真实下一帧 latent 比较，取 loss 最小的物理结果。延迟 0、1、2、3、4
+    各是一类；延迟 5 至 10 在一个五步动作块内都不会执行当前动作，真实下一帧
+    相同，因此合并为一类。
+  physical_groups:
+    - [0]
+    - [1]
+    - [2]
+    - [3]
+    - [4]
+    - [5, 6, 7, 8, 9, 10]
+  aggregation: >-
+    先在每个 query 内计算六个物理组的等权平均，再对 300 个 query 平均。
+    因此延迟 5 至 10 不会因包含六个数值而获得六倍权重。
+  uncertainty:
+    method: paired_query_bootstrap
+    resamples: 10000
+    random_seed: 2026073002
+    confidence_level: 0.95
+
+primary_gate:
+  applies_to: each_pldm_training_seed
+  required_training_seeds: [3072, 4096, 5120]
+  every_seed_required: true
+  physical_group_macro_accuracy_minimum: 0.75
+  minimum_physical_group_accuracy: 0.60
+  paired_query_bootstrap_95_percent_lower_bound_minimum: 0.70
+
+controls:
+  lewm:
+    seeds: [3072, 4096, 5120]
+    role: same_data_same_budget_model_family_control
+    required_to_pass_primary_gate: false
+  original_cem_retention:
+    role: confirm_benchmark_training_does_not_damage_existing_planning_ability
+    required_after_primary_gate: true
+
+claim_boundary:
+  proves_if_passed: >-
+    在冻结的 History=7 条件下，模型能依据历史改变一步预测，并选中正确的真实
+    下一帧物理结果。
+  does_not_prove:
+    - 长历史泛化
+    - 未见延迟数值外推
+    - 多步自回归稳定性
+    - 隐藏动作延迟下的 CEM 规划成功率

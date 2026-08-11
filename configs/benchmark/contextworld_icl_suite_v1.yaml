@@ -1,25 +1,54 @@
 schema_version: 1
 release_id: contextworld_icl_benchmark_suite_v1
-release_status: validation_release_candidate
-candidate_date: "2026-07-26"
+release_status: public_test_release_candidate
+candidate_date: "2026-08-03"
 
 scope:
-  environment: TwoRoom
-  history_tokens: 3
-  components: [speed, door]
+  environments: [TwoRoom, PushT, Reacher]
+  history_tokens: [3, 7]
+  components:
+    [speed, door, action_delay, action_strength, contact_friction, motion_damping,
+     robot_arm_mass, portal_exit]
+  public_test_included: true
   sealed_test_included: false
+
+model_interface:
+  primary_model_type: latent_world_model
+  input: recent_rgb_frames_and_environment_actions
+  output: predicted_future_latents
+  target: real_simulator_future_encoded_by_the_same_frozen_model
+  decoder_required: false
+  raw_latent_loss_cross_model_comparison_allowed: false
+  cross_model_score: calibrated_per_query_correctness_on_identical_queries
+
+public_results:
+  formal_reference_rows: 10
+  components_with_formal_results:
+    [speed, door, action_delay, action_strength, robot_arm_mass, portal_exit]
+  specification:
+    path: >-
+      artifacts/evaluation/contextworld_icl_suite_v1_release/public_scoreboard_spec.json
+    sha256: 0cbc03f21524c16594ae06404ee03f58f251fdaedf315c8bc109731f3663dd84
+  scoreboard:
+    path: >-
+      artifacts/evaluation/contextworld_icl_suite_v1_release/public_scoreboard.json
+    sha256: 389d29a375087609f0780ebb62a1fceb9687ae5bd600b1886405d83f2d450c3a
 
 repository:
   url: https://github.com/Anguo-star/ContextWorld
   package_version: 0.1.0
   source_sha256:
-    contextworld/benchmarks/__init__.py: a78522cdd595cdaa74d58889557ccf39f860ff843d6e38c66a6582b10b64651f
-    contextworld/benchmarks/suite_data.py: 5e190af78d0154ce372faa06b28cf29f1523bdc69cd0391db641833d51736665
-    contextworld/benchmarks/suite_cli.py: 79417e0b97c9f80ae5c0ab21d259d9b31d013790c0da5eae3afcb241abae41ba
-    pyproject.toml: bd419760f4c1dd40ed7256429b64b5e4e3c1f127ee499fc8ae02e0d1baeb9e12
+    contextworld/benchmarks/__init__.py: 9859331914ce8c8ad356949161fa521ed7d59378e4d6eaf7203b9f71ad7ef4b8
+    contextworld/benchmarks/causal_data_contract.py: 202d8a1cc57ac9ec24924f0e995cc42b8fea7b026d55465e8f7cdb102759788e
+    contextworld/benchmarks/adapters.py: a1bf037ea4da49842163142563323a26a3eb11fca9a81f6dc4070d5688805c67
+    contextworld/benchmarks/public_score.py: 136dda5d9c090f1f465bd6a5367fbf5bb3e79ec19cdc2a0e9383193e7f428240
+    contextworld/benchmarks/public_score_cli.py: 362bba8bb05cafcf2c36f863dddace09cb19c512666c7770ea6c46117553fc2d
+    contextworld/benchmarks/suite_data.py: c45603a7ff3ade0b4fab38e242886b8a850ff9b8e4e48d78c881aefd0e156c3b
+    contextworld/benchmarks/suite_cli.py: cb0c36dbb567c0c847c96f8b904c647c2bdba7829febb992a59e3dfccd623c9d
+    pyproject.toml: e104f6441b00395181083c434c3cdce8a7d93da76dd2e01793a77b8f8cca827e
   public_document:
     path: docs/ContextWorld_ICL_Benchmark.md
-    sha256: 14dc54d332c9a21fcde520e32271cf5b559af75975c9094987d8490ae14d1fb0
+    sha256: 19c06c358bebbe3aea979ef6bce04b11dbff05041dafb5a5a726caa9b7fc7803
 
 bundle:
   top_level_entries: [README.md, benchmark]
@@ -31,6 +60,20 @@ bundle:
   artifact_root_environment: CONTEXTWORLD_ARTIFACT_ROOT
   upstream_original_environment: CONTEXTWORLD_TWOROOM_H5
   upstream_original_bundle_path: benchmark/upstream/lewm-tworooms/tworoom.h5
+  tworoom_upstream_lance_environment: CONTEXTWORLD_TWOROOM_LANCE
+  tworoom_upstream_lance_bundle_path: >-
+    benchmark/upstream/stable-worldmodel/lewm_tworoom.lance
+  pusht_upstream_environments:
+    original_h5: CONTEXTWORLD_PUSHT_H5
+    original_lance: CONTEXTWORLD_PUSHT_LANCE
+    initialization_checkpoint: CONTEXTWORLD_PUSHT_INIT_CHECKPOINT
+  pusht_upstream_bundle_root: benchmark/upstream/stable-worldmodel
+  reacher_upstream_environments:
+    original_h5: CONTEXTWORLD_REACHER_H5
+    original_lance: CONTEXTWORLD_REACHER_LANCE
+    lewm_initial_checkpoint: CONTEXTWORLD_REACHER_LEWM_INIT_CHECKPOINT
+    pldm_initial_checkpoint: CONTEXTWORLD_REACHER_PLDM_INIT_CHECKPOINT
+  reacher_upstream_bundle_root: benchmark/upstream/stable-worldmodel
 
 components:
   speed:
@@ -38,25 +81,119 @@ components:
     capability: infer_hidden_agent_speed_from_recent_interaction
     release_id: contextworld_tworoom_speed_icl_history3_v1
     release_config: configs/benchmark/tworoom_speed_icl_release_v1.yaml
-    release_config_sha256: 62c2938ea6d345c135950097800d5c781013c5504de37a57b3642cc114c7ccd2
+    release_config_sha256: 09b6d25b2343ea7da8133043d9230961c3d970b72530b7b61bf16b9f59c5d9e5
     bundled_release_config: benchmark/releases/speed.yaml
     cli: contextworld-speed
-    status: validation_release
+    status: public_test_release_candidate
+    benchmark_component_status: ready
+    reference_result_status: passed_public_test_3_of_3
     training_data_included: true
-    validation_data_included: true
-    reference_results_included: false
+    public_test_data_included: true
+    reference_results_included: true
     upstream_original_h5_included: true
   door:
     display_name: TwoRoom History=3 Door Rule ICL
     capability: infer_hidden_door_passability_from_recent_interaction
     release_id: contextworld_tworoom_door_rule_icl_history3_v1
     release_config: configs/benchmark/tworoom_door_icl_release_v1.yaml
-    release_config_sha256: 9bbd448eb5bf7d40fc46ced46b90170871f8233f8e34c54d897534cfcafdf4c0
+    release_config_sha256: b1ef53d52fe9679b180f119b9a0b9e2ac88e8a171f8efb3aca860eb73f3067e0
     bundled_release_config: benchmark/releases/door.yaml
     cli: contextworld-door
-    status: validation_release_candidate
+    status: public_test_release_candidate
+    benchmark_component_status: ready
+    reference_result_status: passed_public_test_3_of_3
     training_data_included: true
-    validation_data_included: true
+    public_test_data_included: true
+    reference_results_included: true
+    upstream_original_h5_included: true
+  action_delay:
+    display_name: TwoRoom History=7 Action Delay ICL
+    capability: infer_hidden_action_delay_from_recent_interaction
+    release_id: contextworld_tworoom_action_delay_icl_history7_v1
+    release_config: configs/benchmark/tworoom_action_delay_icl_release_v1.yaml
+    release_config_sha256: d1577bb7cdc3277afb43c9151856d06ff7d6769f8cc29eb8f4fb044dd17939a3
+    bundled_release_config: benchmark/releases/action_delay.yaml
+    cli: contextworld-action-delay
+    status: public_test_release_candidate
+    benchmark_component_status: ready
+    reference_result_status: passed_public_test_3_of_3
+    training_data_included: true
+    public_test_data_included: true
+    reference_results_included: true
+    upstream_original_h5_included: true
+  action_strength:
+    display_name: PushT History=3 Pusher Movement Scale ICL
+    capability: infer_action_strength_from_recent_interaction
+    release_id: contextworld_pusht_action_strength_icl_history3_v1
+    release_config: configs/benchmark/pusht_action_strength_icl_release_v1.yaml
+    release_config_sha256: c828cad3ab33765f97c46c14b2436350083589497e548868b6a3341ef63ba9ab
+    bundled_release_config: benchmark/releases/action_strength.yaml
+    cli: contextworld-action-strength
+    status: public_test_release_candidate
+    benchmark_component_status: ready
+    reference_result_status: passed_public_test_3_of_3
+    training_data_included: true
+    public_test_data_included: true
+    reference_results_included: true
+    upstream_original_data_included: true
+  contact_friction:
+    display_name: PushT History=3 Contact Friction ICL
+    capability: infer_pusher_object_contact_friction_from_recent_interaction
+    release_id: contextworld_pusht_contact_friction_icl_history3_v1
+    release_config: configs/benchmark/pusht_contact_friction_icl_release_v1.yaml
+    release_config_sha256: d67831ebb3334f875e58aab449ad535ac7d1d1851df4f888daef6af71f73abab
+    bundled_release_config: benchmark/releases/contact_friction.yaml
+    cli: contextworld-contact-friction
+    status: public_test_release_candidate
+    benchmark_component_status: ready
+    reference_result_status: failed_development
+    training_data_included: true
+    public_test_data_included: true
+    reference_results_included: true
+    upstream_original_data_included: true
+  motion_damping:
+    display_name: PushT History=3 Motion Damping ICL
+    capability: infer_post_contact_motion_decay_from_recent_interaction
+    release_id: contextworld_pusht_motion_damping_icl_history3_v1
+    release_config: configs/benchmark/pusht_motion_damping_icl_release_v1.yaml
+    release_config_sha256: 0352400cc5ec98b422f2a0ab6e84bc120d779631ed2d0a84dbd21c0b26f98dd2
+    bundled_release_config: benchmark/releases/motion_damping.yaml
+    cli: contextworld-motion-damping
+    status: public_test_release_candidate
+    benchmark_component_status: ready
+    reference_result_status: failed_development
+    training_data_included: true
+    public_test_data_included: true
+    reference_results_included: true
+    upstream_original_data_included: true
+  robot_arm_mass:
+    display_name: Reacher History=3 Robot Arm Mass ICL
+    capability: infer_robot_arm_mass_from_recent_torque_response
+    release_id: contextworld_reacher_arm_mass_icl_history3_v1
+    release_config: configs/benchmark/reacher_arm_mass_icl_release_v1.yaml
+    release_config_sha256: 8e1ab85fed8d5f6b8718f0173b67a0749a92a4a8c09917e044cde9c2fbb9eeca
+    bundled_release_config: benchmark/releases/robot_arm_mass.yaml
+    cli: contextworld-reacher-arm-mass
+    status: public_test_release_candidate
+    benchmark_component_status: ready
+    reference_result_status: passed_public_test_3_of_3
+    training_data_included: true
+    public_test_data_included: true
+    reference_results_included: true
+    upstream_original_data_included: true
+  portal_exit:
+    display_name: TwoRoom History=3 Portal Exit Location ICL
+    capability: infer_hidden_portal_exit_location_from_recent_interaction
+    release_id: contextworld_tworoom_portal_exit_icl_history3_v1
+    release_config: configs/benchmark/tworoom_portal_exit_icl_release_v1.yaml
+    release_config_sha256: 66ec85bbc826835d1c5a72d3153c831f2e074578c604a9bd90e05ad8d6fbe58e
+    bundled_release_config: benchmark/releases/portal_exit.yaml
+    cli: contextworld-portal-exit
+    status: public_test_release_candidate
+    benchmark_component_status: ready
+    reference_result_status: failed_public_test_0_of_3
+    training_data_included: true
+    public_test_data_included: true
     reference_results_included: true
     upstream_original_h5_included: true
 
@@ -66,12 +203,30 @@ extension:
       - unique_component_id
       - frozen_release_yaml
       - training_data_contract
-      - validation_data_contract
+      - development_data_contract
+      - public_test_data_contract
       - scoring_contract
       - model_adapter_contract
+      - causal_data_contract
       - audit_function
       - command_line_entry
       - one_section_in_public_document
+  public_document_template:
+    subsections:
+      - 任务目标
+      - 数据构成
+      - 评测方法
+      - 基线表现
+      - 适用范围
+    component_sections:
+      speed: 6.1 速度
+      door: 6.2 门通行规则
+      action_delay: 6.3 动作延迟
+      action_strength: 6.4 推手移动幅度
+      contact_friction: 6.5 接触摩擦
+      motion_damping: 6.6 运动阻尼
+      robot_arm_mass: 6.7 机械臂质量
+      portal_exit: 6.8 传送门出口位置
   rule: >-
     新能力只能作为新的 component 注册。不得新增并列的总入口文档、
     独立 artifact root 或另一套顶层发布结构。

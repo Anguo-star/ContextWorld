@@ -1780,10 +1780,419 @@ def validate_speed_frame_skip_oracle(config: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def validate_action_delay_temporal_oracle(
+    config: dict[str, Any],
+) -> dict[str, Any]:
+    """Prove the hidden action-delay semantics used by the History=3 task.
+
+    Every delay receives the same reset, five probe commands, five zero
+    commands, and five query commands.  The probe result exposes the delay.
+    The zero block then flushes the command queue so that every delay reaches
+    the exact same query state and pixels with an all-zero pending queue.
+    Repeating the probe command from that common query produces one distinct
+    true future for each delay.
+    """
+
+    from contextworld.evaluation.action_delay_env import (
+        ACTION_DELAY_FACTOR,
+        make_action_delay_env,
+    )
+
+    delays = tuple(int(value) for value in config.get("delays", range(5)))
+    if (
+        not delays
+        or len(set(delays)) != len(delays)
+        or any(value < 0 or value > 4 for value in delays)
+    ):
+        raise ValueError(
+            "action_delay_temporal_oracle delays must be unique integers "
+            "within [0, 4]"
+        )
+    block_steps = int(config.get("raw_steps_per_action_block", 5))
+    if block_steps <= max(delays):
+        raise ValueError(
+            "raw_steps_per_action_block must be larger than every delay"
+        )
+    speed = float(config.get("agent_speed", 7.0))
+    seed = int(config.get("seed", 20260726))
+    raw_cases = config.get("cases")
+    if raw_cases is None:
+        raw_cases = (
+            {
+                "name": "up",
+                "state": [50.0, 30.0],
+                "target_state": [205.0, 205.0],
+                "action": [0.0, 1.0],
+            },
+            {
+                "name": "down",
+                "state": [75.0, 194.0],
+                "target_state": [205.0, 205.0],
+                "action": [0.0, -1.0],
+            },
+        )
+
+    def as_numpy(value: Any) -> np.ndarray:
+        if hasattr(value, "detach"):
+            value = value.detach().cpu().numpy()
+        return np.asarray(value).copy()
+
+    def all_equal(values: list[np.ndarray]) -> bool:
+        return bool(
+            values
+            and all(np.array_equal(values[0], value) for value in values[1:])
+        )
+
+    def all_pairwise_distinct(values: list[np.ndarray]) -> bool:
+        return all(
+            not np.array_equal(left, right)
+            for left_index, left in enumerate(values)
+            for right in values[left_index + 1 :]
+        )
+
+    def reset_options(
+        delay: int,
+        state: np.ndarray,
+        target: np.ndarray,
+    ) -> dict[str, Any]:
+        return {
+            "variation": (),
+            "variation_values": {
+                "agent.speed": np.asarray([speed], dtype=np.float32),
+                ACTION_DELAY_FACTOR: delay,
+            },
+            "state": state.copy(),
+            "target_state": target.copy(),
+        }
+
+    def reference_pixel(
+        state: np.ndarray,
+        target: np.ndarray,
+        case_seed: int,
+    ) -> np.ndarray:
+        reference = make_action_delay_env(render_mode="rgb_array")
+        try:
+            reference.reset(
+                seed=case_seed,
+                options=reset_options(0, state, target),
+            )
+            return reference.render().copy()
+        finally:
+            reference.close()
+
+    case_reports: list[dict[str, Any]] = []
+    for case_index, raw_case in enumerate(raw_cases):
+        case_seed = seed + case_index
+        state = np.asarray(raw_case["state"], dtype=np.float32)
+        target = np.asarray(raw_case["target_state"], dtype=np.float32)
+        action = np.clip(
+            np.asarray(raw_case["action"], dtype=np.float32),
+            -1.0,
+            1.0,
+        )
+        zero = np.zeros_like(action)
+        command_trace = (
+            [action] * block_steps
+            + [zero] * block_steps
+            + [action] * block_steps
+        )
+        rollouts: list[dict[str, Any]] = []
+
+        for delay in delays:
+            env = make_action_delay_env(render_mode="rgb_array")
+            try:
+                initial_observation, _ = env.reset(
+                    seed=case_seed,
+                    options=reset_options(delay, state, target),
+                )
+                initial_pixel = env.render().copy()
+                factor_readback = bool(
+                    env.action_delay_steps == delay
+                    and env._contextworld_action_delay_readback == delay
+                )
+                observations: list[np.ndarray] = []
+                pixels: list[np.ndarray] = []
+                executed_actions: list[np.ndarray] = []
+                pending_at_query: np.ndarray | None = None
+                ended = False
+                query_index = 2 * block_steps - 1
+                for command_index, command in enumerate(command_trace):
+                    observation, _, terminated, truncated, info = env.step(
+                        command
+                    )
+                    observations.append(as_numpy(observation))
+                    pixels.append(env.render().copy())
+                    executed_actions.append(
+                        np.asarray(
+                            info["contextworld.executed_action"],
+                            dtype=np.float32,
+                        ).copy()
+                    )
+                    ended = ended or terminated or truncated
+                    if command_index == query_index:
+                        pending_at_query = env.pending_actions()
+
+                middle_index = block_steps - 1
+                future_index = 3 * block_steps - 1
+                expected_executed = [
+                    (
+                        zero
+                        if command_index < delay
+                        else command_trace[command_index - delay]
+                    )
+                    for command_index in range(len(command_trace))
+                ]
+                executed_trace_exact = all(
+                    np.array_equal(observed, expected)
+                    for observed, expected in zip(
+                        executed_actions, expected_executed
+                    )
+                )
+                expected_middle = (
+                    state + speed * (block_steps - delay) * action
+                )
+                expected_query = state + speed * block_steps * action
+                expected_future = (
+                    expected_query
+                    + speed * (block_steps - delay) * action
+                )
+                phase_states = (
+                    state,
+                    observations[middle_index][:2],
+                    observations[query_index][:2],
+                    observations[future_index][:2],
+                )
+                phase_pixels = (
+                    initial_pixel,
+                    pixels[middle_index],
+                    pixels[query_index],
+                    pixels[future_index],
+                )
+                pixel_state_alignment = all(
+                    np.array_equal(
+                        pixel,
+                        reference_pixel(
+                            np.asarray(phase_state, dtype=np.float32),
+                            target,
+                            case_seed,
+                        ),
+                    )
+                    for phase_state, pixel in zip(
+                        phase_states, phase_pixels
+                    )
+                )
+                pending_queue_zero = bool(
+                    pending_at_query is not None
+                    and pending_at_query.shape == (delay, 2)
+                    and np.array_equal(
+                        pending_at_query,
+                        np.zeros((delay, 2), dtype=np.float32),
+                    )
+                )
+            finally:
+                env.close()
+
+            state_trajectory_exact = bool(
+                np.allclose(
+                    observations[middle_index][:2],
+                    expected_middle,
+                    atol=1e-6,
+                )
+                and np.allclose(
+                    observations[query_index][:2],
+                    expected_query,
+                    atol=1e-6,
+                )
+                and np.allclose(
+                    observations[future_index][:2],
+                    expected_future,
+                    atol=1e-6,
+                )
+            )
+            rollouts.append(
+                {
+                    "delay_steps": delay,
+                    "factor_readback": factor_readback,
+                    "initial_observation": as_numpy(
+                        initial_observation
+                    ),
+                    "initial_pixel": initial_pixel,
+                    "middle_state": observations[middle_index][:2],
+                    "middle_pixel": pixels[middle_index],
+                    "query_observation": observations[query_index],
+                    "query_pixel": pixels[query_index],
+                    "future_state": observations[future_index][:2],
+                    "future_pixel": pixels[future_index],
+                    "expected_middle_state": expected_middle,
+                    "expected_query_state": expected_query,
+                    "expected_future_state": expected_future,
+                    "state_trajectory_exact": state_trajectory_exact,
+                    "executed_trace_exact": executed_trace_exact,
+                    "pending_queue_zero_at_query": pending_queue_zero,
+                    "pixel_state_alignment": pixel_state_alignment,
+                    "no_collision_or_early_termination": not ended,
+                }
+            )
+
+        initial_observations = [
+            rollout["initial_observation"] for rollout in rollouts
+        ]
+        initial_pixels = [
+            rollout["initial_pixel"] for rollout in rollouts
+        ]
+        middle_states = [
+            rollout["middle_state"] for rollout in rollouts
+        ]
+        middle_pixels = [
+            rollout["middle_pixel"] for rollout in rollouts
+        ]
+        query_observations = [
+            rollout["query_observation"] for rollout in rollouts
+        ]
+        query_pixels = [
+            rollout["query_pixel"] for rollout in rollouts
+        ]
+        future_states = [
+            rollout["future_state"] for rollout in rollouts
+        ]
+        future_pixels = [
+            rollout["future_pixel"] for rollout in rollouts
+        ]
+
+        reset_hidden = bool(
+            all_equal(initial_observations) and all_equal(initial_pixels)
+        )
+        history_distinguishes_delays = bool(
+            all_pairwise_distinct(middle_states)
+            and all_pairwise_distinct(middle_pixels)
+        )
+        query_exactly_matched = bool(
+            all_equal(query_observations) and all_equal(query_pixels)
+        )
+        futures_distinguish_delays = bool(
+            all_pairwise_distinct(future_states)
+            and all_pairwise_distinct(future_pixels)
+        )
+        rollout_checks_passed = all(
+            rollout["factor_readback"]
+            and rollout["state_trajectory_exact"]
+            and rollout["executed_trace_exact"]
+            and rollout["pending_queue_zero_at_query"]
+            and rollout["pixel_state_alignment"]
+            and rollout["no_collision_or_early_termination"]
+            for rollout in rollouts
+        )
+        passed = bool(
+            rollout_checks_passed
+            and reset_hidden
+            and history_distinguishes_delays
+            and query_exactly_matched
+            and futures_distinguish_delays
+        )
+        case_reports.append(
+            {
+                "case": case_index,
+                "name": raw_case.get("name", f"case_{case_index}"),
+                "passed": passed,
+                "state": state.tolist(),
+                "target_state": target.tolist(),
+                "action": action.tolist(),
+                "reset_observation_and_pixels_equal": reset_hidden,
+                "history_midpoints_distinguish_delays": (
+                    history_distinguishes_delays
+                ),
+                "query_observation_and_pixels_exactly_equal": (
+                    query_exactly_matched
+                ),
+                "true_futures_distinguish_delays": (
+                    futures_distinguish_delays
+                ),
+                "rollouts": [
+                    {
+                        key: (
+                            value.tolist()
+                            if isinstance(value, np.ndarray)
+                            else value
+                        )
+                        for key, value in rollout.items()
+                        if key
+                        not in {
+                            "initial_observation",
+                            "initial_pixel",
+                            "middle_pixel",
+                            "query_observation",
+                            "query_pixel",
+                            "future_pixel",
+                        }
+                    }
+                    for rollout in rollouts
+                ],
+            }
+        )
+
+    evidence = {
+        "factor_readback": all(
+            rollout["factor_readback"]
+            for case in case_reports
+            for rollout in case["rollouts"]
+        ),
+        "state_transition": all(
+            case["history_midpoints_distinguish_delays"]
+            and case["query_observation_and_pixels_exactly_equal"]
+            and case["true_futures_distinguish_delays"]
+            and all(
+                rollout["state_trajectory_exact"]
+                and rollout["no_collision_or_early_termination"]
+                for rollout in case["rollouts"]
+            )
+            for case in case_reports
+        ),
+        "pixel_transition": all(
+            case["reset_observation_and_pixels_equal"]
+            and case["history_midpoints_distinguish_delays"]
+            and case["query_observation_and_pixels_exactly_equal"]
+            and case["true_futures_distinguish_delays"]
+            and all(
+                rollout["pixel_state_alignment"]
+                for rollout in case["rollouts"]
+            )
+            for case in case_reports
+        ),
+        "temporal_alignment": all(
+            all(
+                rollout["executed_trace_exact"]
+                and rollout["pending_queue_zero_at_query"]
+                for rollout in case["rollouts"]
+            )
+            for case in case_reports
+        ),
+    }
+    return {
+        "passed": bool(
+            case_reports
+            and all(case["passed"] for case in case_reports)
+            and all(evidence.values())
+        ),
+        "semantics": (
+            "the history midpoint identifies the hidden command delay; a "
+            "zero-action flush makes the query identical across delays; the "
+            "same query action then yields one distinct true future per delay"
+        ),
+        "delays": list(delays),
+        "agent_speed": speed,
+        "raw_steps_per_action_block": block_steps,
+        "cases": case_reports,
+        "evidence": evidence,
+    }
+
+
 def atom_oracle_runners() -> dict[str, Any]:
     """Return every executable atom oracle known to this generator."""
 
     return {
+        "action_delay_temporal_oracle": (
+            validate_action_delay_temporal_oracle
+        ),
         "speed_frame_skip_oracle": validate_speed_frame_skip_oracle,
         "door_position_pixel_oracle": validate_door_position_pixel_oracle,
         "door_position_passage_oracle": (

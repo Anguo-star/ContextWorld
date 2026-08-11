@@ -1,0 +1,281 @@
+schema_version: 1
+release_id: contextworld_pusht_contact_friction_icl_history3_v1
+release_status: public_test_release_candidate
+candidate_date: "2026-08-03"
+
+scope:
+  environment: PushT
+  capability: infer_pusher_object_contact_friction_from_recent_interaction
+  display_name_zh: PushT 接触摩擦 ICL
+  history_tokens: 3
+  context_transitions: 2
+  raw_steps_per_action_block: 5
+  prediction_horizon_action_blocks: 1
+  friction_values: [0.05, 0.80]
+  friction_labels:
+    0.05: 推手与物体之间的接触摩擦较小
+    0.80: 推手与物体之间的接触摩擦较大
+  excluded_factor: post_release_motion_damping
+  public_test_included: true
+  sealed_test_included: false
+
+runtime:
+  supported_adapters:
+    - stable_worldmodel_lewm_contact_friction
+    - stable_worldmodel_pldm_contact_friction
+  extension_contract: >-
+    contextworld.benchmarks.adapters.ContactFrictionICLModelAdapter
+  contextworld:
+    repository: https://github.com/Anguo-star/ContextWorld
+    package_version: 0.1.0
+  stable_worldmodel:
+    source: https://github.com/galilai-group/stable-worldmodel
+    repo: ../stable-worldmodel
+    expected_ref: 875e607fc08aa72eacb94d5d178127804134cc06
+
+identity:
+  public_api:
+    path: contextworld/benchmarks/__init__.py
+    sha256: 9859331914ce8c8ad356949161fa521ed7d59378e4d6eaf7203b9f71ad7ef4b8
+  adapters:
+    path: contextworld/benchmarks/adapters.py
+    sha256: a1bf037ea4da49842163142563323a26a3eb11fca9a81f6dc4070d5688805c67
+  data_api:
+    path: contextworld/benchmarks/contact_friction_icl_data.py
+    sha256: 38a27d96d6bfed8cfece9253c5175472c6198508166200b08fe90f1f54072ef4
+  score_api:
+    path: contextworld/benchmarks/contact_friction_icl_score.py
+    sha256: 4c47a425b1cec82eb3f35cafb8a8ca123d5f2b2268db865bf29bc75403c9273a
+  paired_latent_response_api:
+    path: contextworld/benchmarks/paired_latent_response.py
+    sha256: 92dc5cf019491f59596c3a0b59d918f04ad2290e124eab11d669537ac20d6ff5
+  command_line:
+    path: contextworld/benchmarks/contact_friction_icl_cli.py
+    sha256: 1ffe78d0c7024bafdab0e5d2f1b43e0a37c1eb4fab505b92a1de763640de9478
+  reference_trainer:
+    path: scripts/run_pusht_contact_friction_h3_train.py
+    sha256: 2c2b75b48d96f06369b98d78527068bb8e29fbf7042fa956b9a9b7832d9d2d28
+  reference_matrix_runner:
+    path: scripts/run_pusht_contact_friction_h3_matrix.py
+    sha256: b33713ad92ce8d816c80618e27957e6ddc6987b7ef1fc29cab6daaab948efe38
+  reference_evaluation_runner:
+    path: scripts/eval_pusht_contact_friction_h3_matrix.py
+    sha256: dbf2862c07cb3b9ea1ab9cfd4e14ca59b743a3dbf534d431d39ec6551abed98c
+  data_builder:
+    path: scripts/build_pusht_contact_friction_h3_data.py
+    sha256: 0197cd7d89d123a87f7bf7ffb9a613b4cfe320cc58e71f6881f12dfe6e126d6b
+  expanded_release_auditor:
+    path: scripts/audit_pusht_contact_friction_expanded_release.py
+    sha256: 333436612466004edf76d0789dd14dfe16a056088e59ddb08d3fd5ade76bde9b
+  causal_physics_contract:
+    path: contextworld/evaluation/pusht_contact_friction_h3.py
+    sha256: 106c0b16f6b5464e1637673beba38d03ca0e5e8019aa82005d94cc34ed576988
+  common_causal_audit:
+    path: contextworld/benchmarks/causal_data_contract.py
+    sha256: 202d8a1cc57ac9ec24924f0e995cc42b8fea7b026d55465e8f7cdb102759788e
+
+data:
+  release_version: pusht_contact_friction_h3_release_v3
+  protocol: pusht_contact_friction_history3_strict_continuous_v2
+  artifact_tree:
+    root: artifacts/synthesis/pusht_contact_friction_h3_release_v3
+    files: 13
+    bytes: 1030165054
+    sha256: bec565b20a959fd73249ab11b00d5899914fce91193d898b00c6eb6b26c01913
+  manifest_sha256: cbb9b1a1c030a3c66ea8acbf25c5e1a302f1c43907beeadcdc9d8bd1e989f3d5
+  pair_counts:
+    train: 8192
+    loader_validation: 256
+    validation: 256
+  lance_tables:
+    train: train.lance
+    loader_validation: loader_validation.lance
+    validation: validation.lance
+  table_sha256:
+    train: 4e02302f6be798891210b4e08ab668f167dd8a9f34ea6a454305eb31c29a871c
+    loader_validation: 5b8576f2f8220bf1f2b323799732169837b29b3195a3900f8883f8f3cc62a825
+    validation: 64d373dfd63f488fc2f7081a441c6781160e55f87d8e03f0da1ff6051c6f1a8d
+  artifacts:
+    manifest:
+      path: artifacts/synthesis/pusht_contact_friction_h3_release_v3/manifest.json
+      sha256: cbb9b1a1c030a3c66ea8acbf25c5e1a302f1c43907beeadcdc9d8bd1e989f3d5
+    build_report:
+      path: artifacts/synthesis/pusht_contact_friction_h3_release_v3/build_report.json
+      sha256: b3f27a8c276f1d7e02f7fa9414dd20d91f5e4e030487ed63ba43e8436625ad11
+    request:
+      path: artifacts/synthesis/pusht_contact_friction_h3_release_v3/request.json
+      sha256: 4f9047dd13cd5f54947ebb058a6249e2c406616992aa67dfd9e42161ad6b6545
+    portability_receipt:
+      path: >-
+        artifacts/synthesis/pusht_contact_friction_h3_release_v3/portability_receipt.json
+      sha256: 01a6fc2519807b3de9f3d47f5a53233c79520da57247bbf4f3fc341c58a346d1
+    expanded_release_audit:
+      path: >-
+        artifacts/evaluation/history3/pusht_contact_friction_h3_strict_v3/expanded_data_release_audit.json
+      sha256: 0ca8f869abfbd173f838dca50a2ccde3248bfb8ad87f3c935cb68bb76db8b3c7
+  causal_pair_contents:
+    - 两种摩擦条件从同一个可见起点出发，并执行完全相同的动作
+    - 起点之后不写入状态，也不重建模拟器；两条轨迹都由环境连续向前运行
+    - 历史接触结束后至少连续三步无接触，再自然到达共同的当前状态
+    - 当前画面和查询动作完全相同，完整物理状态差异不超过 0.00001
+    - 相同当前状态和动作产生两个由真实模拟器生成、可区分的下一帧
+  query_boundary:
+    implementation: >-
+      每个条件从 x0 到 x3 只使用同一个模拟器连续向前运行；干净模拟器重放
+      只用于核验缓存，不参与任何保存到数据集的画面或状态生成。
+    state_installations_after_x0: 0
+    query_simulator_recreated: false
+    query_full_state_tolerance: 0.00001
+    minimum_contact_free_steps_before_query: 3
+  observed_bounds:
+    maximum_query_full_state_gap: 0.000003672055015613296
+    maximum_natural_query_target_residual: 0.000009915253770031995
+    maximum_clean_replay_full_state_gap: 0.00000000000028421709430404
+    minimum_history_response_gap_px_equivalent: 3.2745836136105053
+    minimum_true_future_block_position_gap_px: 4.348971250378296
+    model_visible_x0_mode_accuracy: 0.5
+  isolation:
+    train_loader_validation_query_hash_overlap: 0
+    train_validation_query_hash_overlap: 0
+    loader_validation_validation_query_hash_overlap: 0
+    template_id_overlap: 0
+
+training:
+  stable_worldmodel_loader:
+    format: Lance
+    frameskip: 5
+    num_steps: 4
+    keys_to_load: [pixels, action]
+    pair_episode_order: [low_friction, high_friction]
+  model_visible_fields: [pixels, action]
+  privileged_columns_not_exposed_to_model:
+    - hidden_contact_friction
+    - hidden_mode
+    - physics_state
+    - pair_id
+    - catalog_index
+  upstream:
+    original_h5:
+      role: action_normalization_and_source_replay_provenance
+      environment_variable: CONTEXTWORLD_PUSHT_H5
+      bundled_artifact_path: upstream/stable-worldmodel/pusht_expert_train.h5
+      bytes: 46300921856
+    original_lance:
+      role: standard_pusht_training_rows
+      environment_variable: CONTEXTWORLD_PUSHT_LANCE
+      bundled_artifact_path: upstream/stable-worldmodel/lewm_pusht.lance
+      bytes: 14304260783
+    initialization:
+      role: common_reference_initialization
+      environment_variable: CONTEXTWORLD_PUSHT_INIT_CHECKPOINT
+      bundled_artifact_path: >-
+        upstream/stable-worldmodel/pusht_lewm_baseline_seed3073_weights.ckpt
+      bytes: 216789801
+      sha256: 9f13b2c28bb909338047e08d62bf6eb16ea3616cb53e57cfa9b5072b43db1c59
+  reference_matrix:
+    status: failed_development
+    training_seeds: [13313, 13314, 13315]
+    completed_development_seeds: [13313]
+    remaining_seeds_run: false
+    public_model_scoring_opened: false
+    common:
+      initialization: original_pusht_lewm_baseline_seed3073
+      optimizer_steps: 8192
+      batch_size: 128
+      original_pusht_samples_per_batch: 64
+      contact_friction_samples_per_batch: 64
+      complete_contact_friction_pairs_per_batch: 32
+      learning_rate: 0.00005
+      weight_decay: 0.001
+      gradient_clip_norm: 1.0
+      mixed_precision: bfloat16
+      checkpoint_selection: fixed_final_optimizer_step
+      fixed_checkpoint_step: 8192
+      loader_validation_monitor_steps: [1, 8, 32, 128, 512, 1024, 2048, 4096, 8192]
+      development_used_for_recipe_selection: true
+      development_used_for_checkpoint_selection: false
+      public_test_used_for_recipe_or_checkpoint_selection: false
+    reported_endpoint:
+      model_family: LeWM
+      recipe: mixed_frozen_image_paired_future_matching_1p00
+      training_seed: 13313
+      optimizer_step: 8192
+
+evaluation:
+  development:
+    role: recipe_selection_and_gate_at_fixed_checkpoint_step
+    pair_count: 256
+    lance_table: loader_validation.lance
+  track: independent_contact_friction_public_test
+  model_evaluation_status: not_opened_after_failed_development
+  pair_count: 256
+  condition_count: 512
+  lance_table: validation.lance
+  source: frozen_offline_real_simulator_futures
+  online_environment_calls_for_prediction_track: 0
+  query_image_hash_overlap_with_training_or_development: 0
+  action_normalization:
+    source: original_pusht_h5_population_zscore
+    mean: [-0.007812564261257648, 0.006860687397420406]
+    std_population: [0.20846743881702423, 0.2067486196756363]
+
+scoring:
+  hidden_future_prediction:
+    target: each_checkpoint_native_frozen_encoder
+    public_primary: correct_future_rate
+    cross_checkpoint_absolute_mse_comparison_allowed: false
+    metrics:
+      - correct_future_rate
+      - correct_history_rate
+      - context_switch_rate
+      - worst_friction_correct_future_rate
+    internal_anti_spoof_metrics:
+      - latent_response.target_latent_separation.passed
+      - latent_response.response_gain
+      - latent_response.normalized_response_error
+    anti_spoofing_contract:
+      role: internal_validity_gate_not_public_primary_score
+      normalization: within_checkpoint_real_target_response
+      response_gain_anchors: {no_history_response: 0.0, real_response: 1.0}
+      normalized_response_error_anchors: {real_response: 0.0, no_history_response: 1.0}
+      legacy_results_require_checkpoint_rescore: true
+    gates:
+      correct_future_rate_minimum: 0.95
+      correct_history_rate_minimum: 0.95
+      context_switch_rate_minimum: 0.95
+      worst_friction_correct_future_rate_minimum: 0.90
+      target_latent_separation_required: true
+      response_gain_minimum: 0.50
+      normalized_response_error_strict_maximum: 1.00
+    method_claim:
+      required_training_seeds: 3
+      all_three_checkpoints_must_pass: true
+  original_task_retention:
+    status: not_run_after_failed_development
+    independent_standard_pusht_cem_episodes: 300
+    noninferiority_success_minimum: 210
+    requirement_before_positive_reference_claim: true
+
+reference_results:
+  current_decision:
+    path: >-
+      artifacts/evaluation/history3/pusht_contact_friction_h3_strict_v3/development_decision.json
+    sha256: 4bcde3edd9aff6010a2d9bd25f4a3d7014a073b95734052555b8714a787801d2
+
+claim_boundary:
+  status: benchmark_data_ready_reference_model_failed_development
+  current_claim: >-
+    v3 的 Training、Development 和 Public Test 数据、四项主预测规则以及三项
+    latent 响应防伪门已经固定。旧 LeWM 参考结果未通过主预测门，因此仍是有效的
+    legacy negative；没有打开 Public Test 模型评分，也不能声称已经学会该能力。
+  positive_claim_requirement: >-
+    新参考方法必须先通过 Development，再在三个独立训练种子上通过 Public Test，
+    并满足原始 PushT 任务保持要求，才能形成正向参考结论。
+
+distribution:
+  release_kind: local_benchmark_data_scoring_and_negative_reference_result
+  code_license_status: not_declared
+  generated_data_license_status: not_declared
+  public_download_status: not_configured
+  public_artifact_urls: []
+  export_grants_redistribution_rights: false

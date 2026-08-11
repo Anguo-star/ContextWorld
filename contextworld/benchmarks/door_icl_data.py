@@ -11,6 +11,9 @@ from typing import Any, Iterator
 import numpy as np
 import yaml
 
+from contextworld.benchmarks.causal_data_contract import (
+    audit_causal_data_contract,
+)
 from contextworld.evaluation.hidden_passage_validation import (
     HISTORY_CONDITIONS,
     TRUE_RULES,
@@ -25,6 +28,52 @@ DEFAULT_DOOR_RELEASE_CONFIG = (
     repository_root()
     / "configs/benchmark/tworoom_door_icl_release_v1.yaml"
 )
+_PORTABLE_TEXT_SUFFIXES = {
+    ".csv",
+    ".json",
+    ".jsonl",
+    ".log",
+    ".md",
+    ".txt",
+    ".yaml",
+    ".yml",
+}
+_NON_PORTABLE_MARKERS = (
+    "/opt/",
+    "/tmp/",
+    "/home/",
+    "/root/",
+    "../../data/",
+    "\\Users\\",
+)
+_PUBLIC_TEST_TOP_LEVEL = {
+    "build_report.json",
+    "catalog.json",
+    "payloads",
+    "training_exclusion_manifest.json",
+}
+
+
+def door_icl_export_entries(
+    release: dict[str, Any],
+) -> list[tuple[str, str]]:
+    """Return the complete, minimal Door release artifact inventory."""
+
+    entries = [
+        (release["training"]["artifact_tree"]["root"], "directory"),
+        (release["evaluation"]["artifact_tree"]["root"], "directory"),
+        (release["evaluation"]["normalizer"], "file"),
+        (release["training"]["initialization"]["checkpoint"], "file"),
+        (
+            release["training"]["initialization"]["checkpoint_config"],
+            "file",
+        ),
+    ]
+    entries.extend(
+        (row["root"], "directory")
+        for row in release["reference_results"].values()
+    )
+    return entries
 
 
 def _tree_fingerprint(
@@ -71,20 +120,26 @@ def load_door_icl_release(
     if status not in {
         "validation_release_candidate",
         "validation_release",
+        "public_test_release_candidate",
+        "public_test_release",
     }:
         raise ValueError(
             f"Unsupported Door ICL release status: {status!r}"
         )
     if payload.get("scope", {}).get("sealed_test_included") is not False:
         raise ValueError("Door ICL v1 must not include the sealed Test")
+    if str(status).startswith("public_test_") and (
+        payload.get("scope", {}).get("public_test_included") is not True
+    ):
+        raise ValueError("Door ICL v1 must include Public Test")
     distribution = payload.get("distribution", {})
-    if status == "validation_release" and not (
+    if status in {"validation_release", "public_test_release"} and not (
         distribution.get("code_license_status") == "declared"
         and distribution.get("generated_data_license_status") == "declared"
         and distribution.get("public_download_status") == "configured"
     ):
         raise ValueError(
-            "A formal Validation release requires declared source/data "
+            "A formal public release requires declared source/data "
             "licenses and configured public artifact downloads"
         )
     return {**payload, "_config_path": str(config_path)}
@@ -105,7 +160,7 @@ class DoorICLEvalExample:
 
 
 class DoorICLEvalDataset:
-    """Hash-checked reader for the frozen public door Validation set."""
+    """Hash-checked reader for the frozen public door Test set."""
 
     def __init__(
         self,
@@ -302,6 +357,213 @@ def _audit_tree(
     }
 
 
+def _audit_portable_text(
+    logical_path: str,
+    *,
+    kind: str,
+    repo_root: Path,
+) -> dict[str, Any]:
+    path = resolve_contextworld_path(logical_path, repo_root=repo_root)
+    candidates = (path,) if kind == "file" else path.rglob("*")
+    violations: list[dict[str, Any]] = []
+    scanned = 0
+    for candidate in candidates:
+        if (
+            not candidate.is_file()
+            or candidate.suffix.lower() not in _PORTABLE_TEXT_SUFFIXES
+        ):
+            continue
+        try:
+            text = candidate.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            continue
+        scanned += 1
+        markers = [
+            marker for marker in _NON_PORTABLE_MARKERS if marker in text
+        ]
+        if markers:
+            relative = (
+                candidate.name
+                if kind == "file"
+                else candidate.relative_to(path).as_posix()
+            )
+            violations.append({"path": relative, "markers": markers})
+    symlinks = (
+        []
+        if kind == "file"
+        else sorted(
+            candidate.relative_to(path).as_posix()
+            for candidate in path.rglob("*")
+            if candidate.is_symlink()
+        )
+    )
+    return {
+        "logical_path": logical_path,
+        "kind": kind,
+        "text_files_scanned": scanned,
+        "violations": violations,
+        "symlinks": symlinks,
+        "passed": bool(path.exists() and not violations and not symlinks),
+    }
+
+
+def _audit_reference_method(
+    name: str,
+    specification: dict[str, Any],
+    *,
+    repo_root: Path,
+    full: bool,
+) -> dict[str, Any]:
+    root = resolve_contextworld_path(
+        specification["root"], repo_root=repo_root
+    )
+    seeds = [int(value) for value in specification["training_seeds"]]
+    expected_files = {str(specification["aggregate"])} | {
+        str(specification["result_pattern"]).format(seed=seed)
+        for seed in seeds
+    }
+    observed_files = (
+        {
+            path.relative_to(root).as_posix()
+            for path in root.rglob("*")
+            if path.is_file()
+        }
+        if root.is_dir()
+        else set()
+    )
+    tree = _audit_tree(
+        specification["root"],
+        specification,
+        repo_root=repo_root,
+        full=full,
+    )
+    portability = _audit_portable_text(
+        specification["root"], kind="directory", repo_root=repo_root
+    )
+    aggregate_checks: dict[str, bool] = {}
+    aggregate_path = root / str(specification["aggregate"])
+    if aggregate_path.is_file():
+        aggregate = json.loads(aggregate_path.read_text(encoding="utf-8"))
+        result_rows = aggregate.get("result_files", [])
+        results_by_seed = {
+            int(row["training_seed"]): row
+            for row in result_rows
+            if isinstance(row, dict) and "training_seed" in row
+        }
+        result_hashes_match = True
+        result_payloads_match = True
+        for seed in seeds:
+            relative = str(specification["result_pattern"]).format(
+                seed=seed
+            )
+            path = root / relative
+            row = results_by_seed.get(seed, {})
+            result_hashes_match = bool(
+                result_hashes_match
+                and path.is_file()
+                and row.get("sha256") == file_sha256(path)
+            )
+            if path.is_file():
+                payload = json.loads(path.read_text(encoding="utf-8"))
+                result_payloads_match = bool(
+                    result_payloads_match
+                    and payload.get("status") == "completed"
+                    and payload.get("model_id")
+                    == specification["model_id"]
+                    and int(payload.get("training_seed", -1)) == seed
+                    and payload.get("summary", {})
+                    .get("decision", {})
+                    .get("passed")
+                    is True
+                    and payload.get("portable_metadata_migration", {}).get(
+                        "checkpoint_and_scores_unchanged"
+                    )
+                    is True
+                )
+        aggregate_checks = {
+            "status_completed": aggregate.get("status") == "completed",
+            "one_registered_method": {
+                row.get("model_id") for row in result_rows
+            }
+            == {specification["model_id"]},
+            "exact_training_seeds": sorted(results_by_seed) == sorted(seeds),
+            "required_result_count": aggregate.get(
+                "comparison_contract", {}
+            ).get("required_result_count")
+            == len(seeds),
+            "result_hashes_match": result_hashes_match,
+            "result_payloads_match": result_payloads_match,
+        }
+    passed = bool(
+        tree["passed"]
+        and portability["passed"]
+        and observed_files == expected_files
+        and bool(aggregate_checks)
+        and all(aggregate_checks.values())
+    )
+    return {
+        "name": name,
+        "artifact_tree": tree,
+        "expected_files": sorted(expected_files),
+        "observed_files": sorted(observed_files),
+        "exact_layout": observed_files == expected_files,
+        "portability": portability,
+        "aggregate_checks": aggregate_checks,
+        "passed": passed,
+    }
+
+
+def _audit_reference_result(
+    name: str,
+    specification: dict[str, Any],
+    *,
+    repo_root: Path,
+    full: bool,
+) -> dict[str, Any]:
+    """Audit either a three-seed prediction tree or a CEM result tree."""
+
+    if specification.get("kind") != "result_tree":
+        return _audit_reference_method(
+            name,
+            specification,
+            repo_root=repo_root,
+            full=full,
+        )
+
+    root_logical = str(specification["root"]).rstrip("/")
+    tree = _audit_tree(
+        root_logical,
+        specification,
+        repo_root=repo_root,
+        full=full,
+    )
+    files = {
+        key: _audit_file(
+            f"{root_logical}/{specification[key]}",
+            specification[f"{key}_sha256"],
+            repo_root=repo_root,
+        )
+        for key in ("summary", "request", "file_manifest")
+    }
+    portability = _audit_portable_text(
+        root_logical,
+        kind="directory",
+        repo_root=repo_root,
+    )
+    return {
+        "name": name,
+        "kind": "result_tree",
+        "artifact_tree": tree,
+        "files": files,
+        "portability": portability,
+        "passed": bool(
+            tree["passed"]
+            and all(row["passed"] for row in files.values())
+            and portability["passed"]
+        ),
+    }
+
+
 def _audit_training(
     release: dict[str, Any],
     *,
@@ -385,18 +647,25 @@ def _audit_training(
         repo_root=repo_root,
         full=full,
     )
+    portability = _audit_portable_text(
+        training["artifact_tree"]["root"],
+        kind="directory",
+        repo_root=repo_root,
+    )
     passed = bool(
         build_report_audit["passed"]
         and bool(build_report_checks)
         and all(build_report_checks.values())
         and all(value["passed"] for value in groups.values())
         and tree["passed"]
+        and portability["passed"]
     )
     return {
         "build_report": build_report_audit,
         "build_report_checks": build_report_checks,
         "groups": groups,
         "artifact_tree": tree,
+        "portability": portability,
         "passed": passed,
     }
 
@@ -501,6 +770,33 @@ def _audit_evaluation(
         repo_root=repo_root,
         full=full,
     )
+    evaluation_root = resolve_contextworld_path(
+        evaluation["artifact_tree"]["root"], repo_root=repo_root
+    )
+    observed_top_level = (
+        {path.name for path in evaluation_root.iterdir()}
+        if evaluation_root.is_dir()
+        else set()
+    )
+    layout_checks = {
+        "exact_public_test_top_level": (
+            observed_top_level == _PUBLIC_TEST_TOP_LEVEL
+        ),
+        "historical_model_results_absent": not any(
+            name in observed_top_level
+            for name in (
+                "aggregate.json",
+                "results",
+                "results_summary.json",
+                "results_summary.md",
+            )
+        ),
+    }
+    portability = _audit_portable_text(
+        evaluation["artifact_tree"]["root"],
+        kind="directory",
+        repo_root=repo_root,
+    )
     passed = bool(
         all(value["passed"] for value in files.values())
         and bool(catalog_checks)
@@ -508,12 +804,17 @@ def _audit_evaluation(
         and bool(exclusion_checks)
         and all(exclusion_checks.values())
         and tree["passed"]
+        and all(layout_checks.values())
+        and portability["passed"]
     )
     return {
         "files": files,
         "catalog_checks": catalog_checks,
         "training_exclusion_checks": exclusion_checks,
         "artifact_tree": tree,
+        "layout_checks": layout_checks,
+        "observed_top_level": sorted(observed_top_level),
+        "portability": portability,
         "payload_hashes_verified": payload_hashes_verified,
         "passed": passed,
     }
@@ -538,8 +839,8 @@ def audit_door_icl_release(
     training = _audit_training(release, repo_root=root, full=full)
     evaluation = _audit_evaluation(release, repo_root=root, full=full)
     reference_results = {
-        name: _audit_tree(
-            row["root"],
+        name: _audit_reference_result(
+            name,
             row,
             repo_root=root,
             full=full,
@@ -554,12 +855,72 @@ def audit_door_icl_release(
         )
         for key in ("checkpoint", "checkpoint_config")
     }
+    initialization_portability = _audit_portable_text(
+        release["training"]["initialization"]["checkpoint_config"],
+        kind="file",
+        repo_root=root,
+    )
+    training_report_path = Path(training["build_report"]["path"])
+    evaluation_report_path = Path(
+        evaluation["files"]["build_report"]["path"]
+    )
+    training_report = json.loads(
+        training_report_path.read_text(encoding="utf-8")
+    )
+    evaluation_report = json.loads(
+        evaluation_report_path.read_text(encoding="utf-8")
+    )
+    training_pairs = training_report["pair_and_split_audit"]
+    evaluation_checks = evaluation_report["checks"]
+    causal_data = audit_causal_data_contract(
+        component_id="door",
+        evidence_scope=(
+            "all 8,960 paired training templates and all 300 Public Test "
+            "query bundles"
+        ),
+        continuous_environment_trajectory=bool(
+            training_pairs["passed"]
+            and evaluation_checks["all_physics_checks_passed"]
+        ),
+        state_installations_after_x0=0,
+        query_simulator_recreated=False,
+        maximum_query_state_gap=0.0,
+        query_state_tolerance=0.0,
+        query_pixels_exact=bool(
+            evaluation_checks["all_physics_checks_passed"]
+        ),
+        query_actions_exact=bool(
+            evaluation_checks["all_physics_checks_passed"]
+            and training_pairs["checks"][
+                "action_signature_balanced_across_rules"
+            ]
+        ),
+        history_effect_present=bool(
+            evaluation_checks["all_physics_checks_passed"]
+        ),
+        true_future_effect_present=bool(
+            evaluation_checks["all_physics_checks_passed"]
+        ),
+        x0_policy="shared_visible_start",
+        x0_static_leakage_check_passed=bool(
+            training_pairs["checks"][
+                "action_signature_only_accuracy_is_chance"
+            ]
+        ),
+        evidence=(
+            str(training_report_path),
+            str(evaluation_report_path),
+            evaluation["files"]["protocol"]["path"],
+        ),
+    )
     technical_passed = bool(
         all(value["passed"] for value in code)
         and training["passed"]
         and evaluation["passed"]
         and all(value["passed"] for value in reference_results.values())
         and all(value["passed"] for value in initialization.values())
+        and initialization_portability["passed"]
+        and causal_data["passed"]
     )
     distribution = release["distribution"]
     public_distribution_ready = bool(
@@ -579,8 +940,12 @@ def audit_door_icl_release(
         "contextworld_code": code,
         "training": training,
         "evaluation": evaluation,
+        "causal_data_contract": causal_data,
         "reference_results": reference_results,
         "reference_initialization": initialization,
+        "reference_initialization_portability": (
+            initialization_portability
+        ),
         "technical_release_candidate_passed": technical_passed,
         "public_distribution_ready": public_distribution_ready,
         "distribution_blockers": [
@@ -683,20 +1048,27 @@ def export_door_icl_artifacts(
     benchmark_root = destination / "benchmark"
     benchmark_root.mkdir(parents=True, exist_ok=True)
 
-    entries: list[tuple[str, str]] = [
-        (release["training"]["artifact_tree"]["root"], "directory"),
-        (release["evaluation"]["artifact_tree"]["root"], "directory"),
-        (release["evaluation"]["normalizer"], "file"),
-        (release["training"]["initialization"]["checkpoint"], "file"),
-        (
-            release["training"]["initialization"]["checkpoint_config"],
-            "file",
-        ),
+    entries = door_icl_export_entries(release)
+    portability = [
+        _audit_portable_text(
+            logical_path,
+            kind=kind,
+            repo_root=root,
+        )
+        for logical_path, kind in entries
     ]
-    entries.extend(
-        (row["root"], "directory")
-        for row in release["reference_results"].values()
+    release_portability = _audit_portable_text(
+        str(Path(release["_config_path"])),
+        kind="file",
+        repo_root=root,
     )
+    if not (
+        all(row["passed"] for row in portability)
+        and release_portability["passed"]
+    ):
+        raise RuntimeError(
+            "Door export contains machine-specific paths or symlinks"
+        )
     seen: set[str] = set()
     inventory = []
     for logical_path, kind in entries:
@@ -741,7 +1113,7 @@ def export_door_icl_artifacts(
         Path(release["_config_path"]),
         release_path,
     )
-    guide = root / "docs/TwoRoom_Door_Benchmark_Design.md"
+    guide = root / "docs/ContextWorld_ICL_Benchmark.md"
     readme_path = destination / "README.md"
     shutil.copy2(guide, readme_path)
     payload = {
@@ -759,6 +1131,7 @@ def export_door_icl_artifacts(
         "sealed_test_included": False,
         "redistribution_granted_by_export": False,
         "distribution": release["distribution"],
+        "portability_verified": True,
         "entries": inventory,
     }
     inventory_path = benchmark_root / "inventory.json"
@@ -782,6 +1155,7 @@ __all__ = [
     "DoorICLEvalExample",
     "RELEASE_ID",
     "audit_door_icl_release",
+    "door_icl_export_entries",
     "door_icl_training_plan",
     "export_door_icl_artifacts",
     "load_door_icl_release",

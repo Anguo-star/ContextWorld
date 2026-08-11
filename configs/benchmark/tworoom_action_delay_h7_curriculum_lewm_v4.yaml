@@ -1,0 +1,157 @@
+schema_version: 1
+benchmark: tworoom_action_delay_history7_curriculum_lewm_v4
+status: public_reference_training_recipe
+release_date: "2026-08-03"
+
+question: >-
+  与 v4 PLDM 使用相同的两阶段单步数据、采样和预算时，LeWM 是否能学会
+  六种动作延迟一步物理结果？
+
+stable_worldmodel:
+  repo: ../stable-worldmodel
+  commit: ad2bc44579f2b5b65c004fd2c9d8edc8ebaa43ce
+
+data:
+  original_read_only: upstream/lewm-tworooms/tworoom.h5
+  original_split:
+    strategy: episode_heldout
+    seed: 3072
+    train_fraction: 0.9
+  frozen_normalizer:
+    path: artifacts/splits/tworoom_original_train_s3072_normalizer.json
+    sha256: a9e4b443bbac0d7a4e2d9d9f84d40ac40936556ffadfc7af0b0ce4fe4afed42c
+    protocol: tworoom_original_train_s3072_unbiased_zscore_v1
+    statistics_scope: original_9000_train_episodes_only
+  formal_build_report:
+    path: artifacts/synthesis/action_delay_h7_core_training_v3/build_report.json
+    sha256: 3592f93a1b7e09879a9d9c66f37007bcb7ebc4d51bbcaaf44d240e778c46cbbe
+  validation_exclusion_manifest:
+    path: >-
+      artifacts/evaluation/history7/action_delay_validation_v1/training_exclusion_manifest.json
+    sha256: 5fb8322249c4a3d1445363359fad6f9ff3f356348e9f1941ea8da51adbf9b69b
+    query_count: 300
+  catalogs:
+    action_delay_paired: >-
+      artifacts/synthesis/action_delay_h7_core_training_v3/catalogs/tworoom_action_delay_h7_core_training_v3.json
+
+data_quality:
+  groups:
+    action_delay_paired:
+      require_complete_synthesis_report: true
+      required_pixel_codec: {format: png, compress_level: 1, lossless: true}
+      allowed_clip_start_raw_steps: [0]
+      balance_by_factor: action.delay_steps
+      balance_factor_value_groups:
+        - [0]
+        - [1]
+        - [2]
+        - [3]
+        - [4]
+        - [5, 6, 7, 8, 9, 10]
+      exact_train_scenarios: 352
+      exact_validation_scenarios: 66
+      exact_test_scenarios: 0
+      minimum_raw_train_clips: 56320
+      minimum_train_scenarios: 352
+      minimum_validation_scenarios: 66
+      maximum_formal_mean_draws_per_raw_clip: 10.0
+      factor_support_contract:
+        factor: action.delay_steps
+        expected_by_split:
+          train: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+          validation: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+      required_catalog_sha256: f3423d27047505d4e4b3945d20feec940d70ed0b190f93b9f8fb7d6991ccc69e
+      required_manifest_sha256: fc1e7df418f50f5634d6f303df1bbfb91793dccb357baf0db7cbecba013f0951
+      required_synthesis_report_sha256: 166ae90e0bd4f5f8e3b67a4a09efb92b1709fb1cee4fae4fef9493ea28180696
+
+training_protocol:
+  architecture: stable_worldmodel_lewm_history7
+  training_method: lewm
+  history_tokens: 7
+  num_preds: 1
+  raw_steps_per_action_block: 5
+  model_visible_fields: [pixels, action]
+  training_profile: icl_core_v3
+  curriculum:
+    stage_1:
+      role: coarse_delay_icl_initialization
+      data_delays: [0, 4, 8]
+      optimizer_steps: 1024
+      checkpoint_by_training_seed:
+        "3072":
+          path: >-
+            artifacts/training/runs/checkpoints/h7_action_delay_paired_lewm_formal_s3072/weights_final_step_1024.pt
+          sha256: deb594026aa0c55898aee3e50d1b959364432ddeda83ea9327b00d197acb7710
+          config_sha256: c3c35b581c02aad4441353512544e4c2a6e1dc321fe3f3f05201189f116316ad
+        "4096":
+          path: >-
+            artifacts/training/runs/checkpoints/h7_action_delay_paired_lewm_formal_s4096/weights_final_step_1024.pt
+          sha256: c74ca7659c2551c2ca93f981676438e72b3e279903ef683e9a6d65e4f42bfb0b
+          config_sha256: d8fa860a5db0b609160df67bd52a90e13186646744da603221909ecf76ff49e2
+        "5120":
+          path: >-
+            artifacts/training/runs/checkpoints/h7_action_delay_paired_lewm_formal_s5120/weights_final_step_1024.pt
+          sha256: 29e453a94ffebc109849a71166cfbe8826f6e074c85e84041a5430e465cde522
+          config_sha256: 54db2644ceda774cc18832743e637a7dbfa91b68faf644c7d307f23beb0eed30
+    stage_2:
+      role: full_delay_refinement
+      data_delays: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+      one_step_physical_groups:
+        - [0]
+        - [1]
+        - [2]
+        - [3]
+        - [4]
+        - [5, 6, 7, 8, 9, 10]
+      optimizer_steps: 1024
+      initialization_is_model_weights_only_not_resume: true
+  temporal_prediction_loss:
+    mode: normalized_transition_weights
+    transition_weights: [1, 1, 1, 1, 1, 1, 7]
+    normalization: divide_by_sum_of_weights
+    applies_to: all_training_groups
+  paired_training_seeds: [3072, 4096, 5120]
+  early_stopping: false
+  checkpoint_selection: final_fixed_step
+  group_sampling:
+    H7_ActionDelay_Curriculum_v4_LeWM:
+      {original: 0.5, action_delay_paired: 0.5}
+  budget:
+    stage_2_optimizer_steps: 1024
+    stage_2_effective_global_batch: 1024
+    stage_2_total_logical_draws: 1048576
+    stage_2_original_draws: 524288
+    stage_2_synthetic_draws: 524288
+    stage_2_logical_epochs: 2
+    stage_2_epoch_size_global: 524288
+    stage_2_mean_synthetic_draws_per_raw_clip: 9.309090909090909
+
+models:
+  - model_id: H7_ActionDelay_Curriculum_v4_LeWM
+    display_name: 粗到细单步训练的 History=7 LeWM
+    training_groups: [original, action_delay_paired]
+
+validation:
+  core_protocol: configs/benchmark/tworoom_action_delay_h7_core_icl_v2.yaml
+  catalog: artifacts/evaluation/history7/action_delay_validation_v1/catalog.json
+  catalog_sha256: 5a3fc1a53c05cc4e6f97f7b7544c48aaaf6033550b70a63899eab35ee46fafca
+  delays: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+  distinct_queries: 300
+  eval_seeds: [42, 43, 44, 45, 46, 47]
+  queries_per_eval_seed: 50
+  core_future_horizon_action_blocks: 1
+  online_environment_during_model_scoring: false
+
+gates:
+  pldm_is_primary_positive_control: true
+  lewm_is_same_data_same_budget_descriptive_control: true
+  multistep_training_required: false
+
+execution:
+  gpu_count: 8
+  batch_size_per_device: 128
+  gradient_accumulation_steps: 1
+  effective_global_batch: 1024
+  precision: bf16-mixed
+  data_workers_per_rank: 6
+  reference_runs_completed: true

@@ -1,0 +1,59 @@
+schema_version: 1
+protocol_id: pusht_action_strength_history3_strict_causal_data_v1
+status: frozen_release_protocol
+environment: PushT
+capability: infer_action_strength_from_recent_interaction
+history_tokens: 3
+
+data:
+  training_pairs: 2048
+  development_pairs: 256
+  public_test_pairs: 256
+  strength_values: [60.0, 140.0]
+  raw_steps_per_action_block: 5
+  model_frames_per_episode: [0, 5, 10, 15]
+  source: original_pusht_expert_replay
+  split_rule:
+    source_episodes_disjoint: true
+    query_pixel_hashes_disjoint: true
+
+strict_causal_chain:
+  description: >-
+    Each low/high trajectory starts from x0 and advances only through PushT
+    simulator steps. The simulator is not recreated and no state is installed
+    after x0. The two trajectories must naturally meet at the same fully
+    observed x2 before the shared query action is applied.
+  state_installations_after_x0: 0
+  query_simulator_recreated: false
+  x2_full_state_dimensions: 12
+  x2_full_state_max_abs_tolerance: 1.0e-5
+  x2_query_pixel_difference: 0
+  query_action_max_abs_difference: 0.0
+  history_must_differ: true
+  real_future_must_differ: true
+
+distribution_gate:
+  features:
+    - agent_x
+    - agent_y
+    - block_x
+    - block_y
+    - block_angle_sin
+    - block_angle_cos
+    - agent_block_distance
+    - goal_block_x
+    - goal_block_y
+    - query_action_x
+    - query_action_y
+    - query_action_magnitude
+  normalization: original_replay_interquartile_range
+  normalized_wasserstein_median_maximum: 0.25
+  normalized_wasserstein_p90_maximum: 0.50
+  median_reduction_vs_narrow_v1_minimum: 0.50
+  reuse_rule: >-
+    A prior distribution audit may be inherited only when every selected
+    source template, source-row receipt, candidate-pool hash, and episode
+    partition receipt is byte-for-byte identical. The new release must issue
+    a new audit that names and hashes both the prior audit and the strict
+    manifest; it must also enforce the strict causal-chain gate.
+

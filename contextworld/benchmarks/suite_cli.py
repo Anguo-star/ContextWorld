@@ -11,6 +11,7 @@ from contextworld.benchmarks.suite_data import (
     audit_icl_suite_release,
     export_icl_suite_artifacts,
     load_icl_suite_release,
+    load_public_scoreboard,
 )
 from contextworld.synthesis.manifest import write_json
 
@@ -72,9 +73,15 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     audit.add_argument("--original-h5", type=Path, default=None)
     audit.add_argument("--output", type=Path, default=None)
 
+    results = subparsers.add_parser(
+        "results",
+        help="Print the frozen compact public reference-result table",
+    )
+    results.add_argument("--output", type=Path, default=None)
+
     export = subparsers.add_parser(
         "export",
-        help="Export one README plus one integrated Speed-and-Door data tree",
+        help="Export one README plus the integrated benchmark data tree",
     )
     export.add_argument("--destination", type=Path, required=True)
     export.add_argument("--mode", choices=("copy", "symlink"), default="copy")
@@ -82,8 +89,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--without-upstream-original",
         action="store_true",
         help=(
-            "Create a smaller package that requires users to fetch the "
-            "upstream TwoRoom H5 separately"
+            "Create a smaller package without upstream TwoRoom, PushT or "
+            "Reacher training data and initialization checkpoints"
         ),
     )
     export.add_argument("--output", type=Path, default=None)
@@ -101,8 +108,10 @@ def main(argv: list[str] | None = None) -> None:
         }
         payload["commands"] = {
             "suite": "contextworld-benchmark",
-            "speed": suite["components"]["speed"]["cli"],
-            "door": suite["components"]["door"]["cli"],
+            **{
+                component_id: suite["components"][component_id]["cli"]
+                for component_id in COMPONENT_IDS
+            },
         }
     elif args.command == "audit":
         payload = audit_icl_suite_release(
@@ -111,6 +120,8 @@ def main(argv: list[str] | None = None) -> None:
             full=args.full,
             original_h5=args.original_h5,
         )
+    elif args.command == "results":
+        payload = load_public_scoreboard(args.release_config)
     elif args.command == "export":
         payload = export_icl_suite_artifacts(
             args.destination,

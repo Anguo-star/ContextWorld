@@ -15,7 +15,7 @@ stable_worldmodel:
 
 data:
   # 原始 TwoRoom 只固定划分、归一化和初始化身份，不进入续训采样。
-  original_read_only: ../../data/world_model/quentinll/lewm-tworooms/tworoom.h5
+  original_read_only: artifacts/upstream/lewm-tworooms/tworoom.h5
   original_split:
     strategy: episode_heldout
     seed: 3072
@@ -24,7 +24,7 @@ data:
     heldout_manifest: artifacts/splits/tworoom_original_episode_holdout_s3072.json
   frozen_normalizer:
     path: artifacts/splits/tworoom_original_train_s3072_normalizer.json
-    sha256: 7a5be7ea867bced446c1671b0b2c0ff6450ffc61e1a7bdbbfc5eaa0942f635db
+    sha256: a9e4b443bbac0d7a4e2d9d9f84d40ac40936556ffadfc7af0b0ce4fe4afed42c
     protocol: tworoom_original_train_s3072_unbiased_zscore_v1
     statistics_scope: original_9000_train_episodes_only
   training_exclusion_manifest:
@@ -34,7 +34,7 @@ data:
     query_count: 300
   formal_build_report:
     path: artifacts/synthesis/hidden_passage_h3_v1/formal/build_report.json
-    sha256: bd3bde3da3bc97c67c4f9eb1ed87f4a41b50c25c9709ce6b64c4f9a69b9c556a
+    sha256: f69a1c83664af800892c026836bf4a9cd0a0b0703cd9c23f4031e8d4d55efbbe
     benchmark: tworoom_hidden_passage_history3_training_data_v1
     scale: formal
   catalogs:
@@ -125,9 +125,9 @@ data_quality:
       maximum_formal_mean_draws_per_raw_clip: 137.0
       minimum_train_scenarios: 96
       minimum_validation_scenarios: 16
-      required_catalog_sha256: 0cbcc0c29a54184e6884b1046489bdcda9035cfb3a7c1b5e7f39e0cd3eaed727
+      required_catalog_sha256: efeb6ab7775ec56c9b12021dcf2d378e0fa55fa65e58820e8434556f8f6c6cdd
       required_manifest_sha256: 249f955abd6dde28ed44ae14ecf9a5190fc2c4f224f00e324ce344dbbf0f0f4f
-      required_synthesis_report_sha256: 39703527973037e3ba520a7116d06db02e59845f7a7b06c5fc339de1fe1f0174
+      required_synthesis_report_sha256: c63333a4e8aa816a50e93a2740fd3b02bb198c8cfa4107bd5dccc6c81e08593a
     passage_blocked:
       require_complete_synthesis_report: true
       required_pixel_codec: {format: png, compress_level: 1, lossless: true}
@@ -147,9 +147,9 @@ data_quality:
       maximum_formal_mean_draws_per_raw_clip: 137.0
       minimum_train_scenarios: 96
       minimum_validation_scenarios: 16
-      required_catalog_sha256: 8a4ee0c475147a0d1e0af9459720f4c0f8b0d3c755871b7670f296d34609ad59
+      required_catalog_sha256: b1c79c70b762711aad95dde9d65c65bbf2bad1efe02bb7bf7ee3d5e1375bb010
       required_manifest_sha256: 1bcaa18c1fedc5d1ca074abea21687984b61461d346f74270652ee902c178d75
-      required_synthesis_report_sha256: 3115887559fd52a7359b6e10cf1ebcfe971d7147fefd7f5c56071f234bea245d
+      required_synthesis_report_sha256: 63e8c7f72be8c7cd17d4da2403a480af8532de1be9b4cdc430cae118a417fe8d
     passage_mixed:
       require_complete_synthesis_report: true
       required_pixel_codec: {format: png, compress_level: 1, lossless: true}
@@ -169,9 +169,9 @@ data_quality:
       maximum_formal_mean_draws_per_raw_clip: 69.0
       minimum_train_scenarios: 192
       minimum_validation_scenarios: 32
-      required_catalog_sha256: 6a0ecfd6f954d27f33a3f4a517213dbf6cc6b3d1bfa34e31421797c9b9e2d61c
+      required_catalog_sha256: 187915f7e2771df40e88dc5a3b9d44ac87c204967e1ac4e2632046ce7b41ecb2
       required_manifest_sha256: 14a82fce15d351c66d19d138d5463a91295574bb50bf2b0072de07a449489617
-      required_synthesis_report_sha256: 11221fd0bde2bb5bab75639cabc43262bffa68894cf8f4cd29b37ec09006afb8
+      required_synthesis_report_sha256: 1974969a5dc75a0f535e2941d5eb967324bf27b4bfea36202e2d6af5be55fb15
 
 training_protocol:
   architecture: stable_worldmodel_pldm_history3
@@ -184,7 +184,7 @@ training_protocol:
   initialization_checkpoint:
     path: artifacts/training/runs/checkpoints/h3_origheldout_s3072/weights_final_step_6420.pt
     sha256: 7d141b86cca49145444a69bff89c71ede69e8cf8252bfb933e656c3e2e962b54
-    config_sha256: 44b5bde83fbc91634ef84acbdba9a75d3436568ed72266c9a5aa057653f9162b
+    config_sha256: cd9ef9e2efde4527e36b6467d6a4efd120ab466d6a9f8a4aa41cdb7b56c4eddf
     role: model_weight_initialization_only_not_resume
   normalizer_source: frozen_original_training_split_only
   paired_training_seeds: [3072, 4096, 5120]

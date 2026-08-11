@@ -1,23 +1,33 @@
-# ContextWorld Documentation
+# 文档导航
 
-## Benchmark guide
+## 公开阅读入口
 
-[ContextWorld：视觉世界模型的上下文规则学习基准](ContextWorld_ICL_Benchmark.md)
-是 v1 的公开入口，包含：
+外部读者只需要阅读两份文件：
 
-- Benchmark 的研究问题与任务定义；
-- Speed 和 Door Rule 的 Training、Validation 与隔离方式；
-- 评分指标、参考结果和报告规范；
-- 安装、数据审计、训练与评测命令；
-- 版本范围与扩展接口。
+1. 项目首页 [`README.md`](../README.md)：一分钟了解 Benchmark 和运行入口；
+2. 正式文档 [ContextWorld ICL Benchmark](ContextWorld_ICL_Benchmark.md)：完整任务定义、
+   数据、评分、原始模型与训练后模型的对比结果，以及使用方法。
 
-## Technical references
+八个能力不再分别维护公开说明，避免重复内容和版本漂移。每项能力在正式文档中都使用
+“任务目标、数据构成、评测方法、基线表现、适用范围”五段统一结构。
 
-以下资料用于复现实验或追溯设计过程，不是使用 Benchmark 的前置阅读：
+> [ContextWorld ICL Benchmark](ContextWorld_ICL_Benchmark.md)
 
-- `protocols/`：冻结实验协议与审计证据；
-- `reference/`：数据卡与实现参考；
-- Speed、Door Rule 专项报告：更完整的组件分析；
-- `archive/`：历史计划和阶段快照。
+| 能力 | 主文档 | 机器配置 | 独立命令 |
+|---|---|---|---|
+| 速度 | [6.1 速度](ContextWorld_ICL_Benchmark.md#61-速度) | `configs/benchmark/tworoom_speed_icl_release_v1.yaml` | `contextworld-speed` |
+| 门通行规则 | [6.2 门通行规则](ContextWorld_ICL_Benchmark.md#62-门通行规则) | `configs/benchmark/tworoom_door_icl_release_v1.yaml` | `contextworld-door` |
+| 动作延迟 | [6.3 动作延迟](ContextWorld_ICL_Benchmark.md#63-动作延迟) | `configs/benchmark/tworoom_action_delay_icl_release_v1.yaml` | `contextworld-action-delay` |
+| 推手移动幅度 | [6.4 推手移动幅度](ContextWorld_ICL_Benchmark.md#64-推手移动幅度) | `configs/benchmark/pusht_action_strength_icl_release_v1.yaml` | `contextworld-action-strength` |
+| 接触摩擦 | [6.5 接触摩擦](ContextWorld_ICL_Benchmark.md#65-接触摩擦) | `configs/benchmark/pusht_contact_friction_icl_release_v1.yaml` | `contextworld-contact-friction` |
+| 运动阻尼 | [6.6 运动阻尼](ContextWorld_ICL_Benchmark.md#66-运动阻尼) | `configs/benchmark/pusht_motion_damping_icl_release_v1.yaml` | `contextworld-motion-damping` |
+| 机械臂质量 | [6.7 机械臂质量](ContextWorld_ICL_Benchmark.md#67-机械臂质量) | `configs/benchmark/reacher_arm_mass_icl_release_v1.yaml` | `contextworld-reacher-arm-mass` |
+| 传送门出口位置 | [6.8 传送门出口位置](ContextWorld_ICL_Benchmark.md#68-传送门出口位置) | `configs/benchmark/tworoom_portal_exit_icl_release_v1.yaml` | `contextworld-portal-exit` |
 
-若技术附录中的阶段性表述与公开指南不同，以公开指南及对应 release YAML 为准。
+## 复现材料
+
+- `protocols/`：实验执行前冻结的协议与审计说明；
+- `archive/`：已经结束的阶段材料；
+- `reference/`：第三方工程与运行环境说明。
+
+这些材料解释结果怎样得到，但不是发布说明，也不替代统一主文档中的当前结论。

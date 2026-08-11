@@ -13,6 +13,7 @@ from datetime import timedelta
 from contextlib import nullcontext
 from functools import partial
 from pathlib import Path
+from typing import Any
 
 import yaml
 
@@ -97,6 +98,7 @@ CONTROLLED_PROFILES = {
     "formal",
     "additive",
     "icl_formal",
+    "icl_core_v3",
     "passage_pilot",
     "passage_formal",
 }
@@ -149,6 +151,20 @@ PROFILE_DEFAULTS = {
         "epoch_size": 262_144,
         "validation_epoch_size": 8_192,
         "max_epochs": 4,
+        "batch_size": 128,
+        "num_workers": 6,
+        "devices": 8,
+        "precision": "bf16-mixed",
+        "accumulate_grad_batches": 1,
+        "limit_train_batches": 1.0,
+        "limit_val_batches": 1.0,
+        "expected_optimizer_steps": 1_024,
+    },
+    "icl_core_v3": {
+        "run_kind": "confirmation",
+        "epoch_size": 524_288,
+        "validation_epoch_size": 8_192,
+        "max_epochs": 2,
         "batch_size": 128,
         "num_workers": 6,
         "devices": 8,
@@ -771,11 +787,18 @@ def _distributed_passage_full_audit_consensus(
     return sorted(receipts, key=lambda row: row["rank"])
 
 
-def _project_lewm_model_batch(batch):
+def _project_lewm_model_batch(
+    batch,
+    *,
+    sequence_steps: int = 4,
+):
     """Fail closed at the LeWM boundary: only images and actions are visible."""
 
     import torch
 
+    sequence_steps = int(sequence_steps)
+    if sequence_steps < 2:
+        raise ValueError("LeWM sequence_steps must be at least 2")
     required = ("pixels", "action")
     missing = [key for key in required if key not in batch]
     if missing:
@@ -785,14 +808,23 @@ def _project_lewm_model_batch(batch):
         raise TypeError("LeWM pixels and action inputs must be tensors")
     pixels = visible["pixels"]
     actions = visible["action"]
-    if pixels.ndim != 5 or pixels.shape[1] != 4 or pixels.shape[2] != 3:
+    if (
+        pixels.ndim != 5
+        or pixels.shape[1] != sequence_steps
+        or pixels.shape[2] != 3
+    ):
         raise ValueError(
-            "LeWM pixels must have shape [batch,4,3,height,width], got "
+            "LeWM pixels must have shape "
+            f"[batch,{sequence_steps},3,height,width], got "
             f"{tuple(pixels.shape)}"
         )
-    if actions.ndim != 3 or tuple(actions.shape[1:]) != (4, 10):
+    if actions.ndim != 3 or tuple(actions.shape[1:]) != (
+        sequence_steps,
+        10,
+    ):
         raise ValueError(
-            "LeWM actions must have shape [batch,4,10], got "
+            "LeWM actions must have shape "
+            f"[batch,{sequence_steps},10], got "
             f"{tuple(actions.shape)}"
         )
     return visible
@@ -806,15 +838,41 @@ def _lejepa_forward_with_manual_accumulation(
     base_forward,
     cfg,
     accumulation_steps: int,
+    training_method: str | None = None,
+    temporal_prediction_loss: dict | None = None,
 ):
     """Preserve per-rank batch statistics while accumulating exact gradients."""
 
-    state = base_forward(
-        self,
-        _project_lewm_model_batch(batch),
-        stage,
-        cfg,
+    sequence_steps = int(batch["pixels"].shape[1])
+    if hasattr(cfg, "wm"):
+        configured_steps = (
+            int(cfg.wm.history_size) + int(cfg.wm.num_preds)
+        )
+        if sequence_steps != configured_steps:
+            raise ValueError(
+                "Batch length differs from the configured temporal contract: "
+                f"{sequence_steps} != {configured_steps}"
+            )
+    projected = _project_lewm_model_batch(
+        batch,
+        sequence_steps=sequence_steps,
     )
+    if temporal_prediction_loss and temporal_prediction_loss["configured"]:
+        if training_method not in {"lewm", "pldm"}:
+            raise ValueError(
+                "Temporal prediction weighting requires an explicit "
+                "LeWM or PLDM training method"
+            )
+        state = _temporal_weighted_forward(
+            self,
+            projected,
+            stage,
+            cfg,
+            training_method=training_method,
+            specification=temporal_prediction_loss,
+        )
+    else:
+        state = base_forward(self, projected, stage, cfg)
     if stage == "fit" and accumulation_steps > 1:
         # StablePretraining's manual optimizer frequency delays optimizer.step,
         # but its stock training_step does not call rescale_loss_for_grad_acc.
@@ -823,29 +881,186 @@ def _lejepa_forward_with_manual_accumulation(
     return state
 
 
-def _sample_contract(dataset, count: int = 8) -> dict:
+def _weighted_transition_mse(prediction, target, weights):
+    """Average every transition internally, then apply normalized time weights."""
+
     import torch
 
+    if prediction.shape != target.shape:
+        raise ValueError(
+            "Prediction and target shapes differ: "
+            f"{tuple(prediction.shape)} != {tuple(target.shape)}"
+        )
+    if prediction.ndim < 3:
+        raise ValueError(
+            "Temporal prediction tensors must have batch, time, and feature "
+            f"dimensions, got {tuple(prediction.shape)}"
+        )
+    value = torch.as_tensor(
+        weights,
+        dtype=prediction.dtype,
+        device=prediction.device,
+    )
+    if value.ndim != 1 or value.numel() != prediction.shape[1]:
+        raise ValueError(
+            "Temporal weights must match the predicted transition count: "
+            f"{tuple(value.shape)} versus {prediction.shape[1]}"
+        )
+    if not bool(torch.isfinite(value).all()) or not bool((value > 0).all()):
+        raise ValueError("Temporal prediction weights must be finite and positive")
+    per_transition = (
+        (prediction - target)
+        .square()
+        .flatten(start_dim=2)
+        .mean(dim=2)
+    )
+    weighted = (
+        (per_transition * value.unsqueeze(0)).sum(dim=1) / value.sum()
+    ).mean()
+    return {
+        "weighted": weighted,
+        "unweighted": per_transition.mean(),
+        "final_transition": per_transition[:, -1].mean(),
+        "per_transition": per_transition.mean(dim=0),
+    }
+
+
+def _temporal_weighted_forward(
+    self,
+    batch,
+    stage,
+    cfg,
+    *,
+    training_method: str,
+    specification: dict,
+):
+    """Native StableWM forward with only prediction-time reduction changed."""
+
+    import torch
+
+    batch["action"] = torch.nan_to_num(batch["action"], 0.0)
+    output = self.model.encode(batch)
+    emb = output["emb"]
+    act_emb = output["act_emb"]
+    history = int(cfg.wm.history_size)
+    num_preds = int(cfg.wm.num_preds)
+    target = emb[:, num_preds:]
+    prediction = self.model.predict(
+        emb[:, :history],
+        act_emb[:, :history],
+    )
+    prediction_losses = _weighted_transition_mse(
+        prediction,
+        target,
+        specification["transition_weights"],
+    )
+    output["pred_loss"] = prediction_losses["weighted"]
+    output["pred_loss_unweighted"] = prediction_losses["unweighted"]
+    output["pred_loss_final_transition"] = prediction_losses[
+        "final_transition"
+    ]
+
+    if training_method == "lewm":
+        regularizer_name = str(
+            cfg.loss.get("regularizer", "sigreg")
+        ).lower()
+        if regularizer_name == "conditional_sigreg":
+            raise ValueError(
+                "The paired Action Delay repair uses the native unconditional "
+                "LeWM representation regularizer"
+            )
+        regularizer_cfg = cfg.loss.get(regularizer_name)
+        regularizer_loss_key = f"{regularizer_name}_loss"
+        output[regularizer_loss_key] = getattr(
+            self, regularizer_name
+        )(emb.transpose(0, 1))
+        output["loss"] = (
+            output["pred_loss"]
+            + regularizer_cfg.weight * output[regularizer_loss_key]
+        )
+        active_vcreg_names = [
+            name
+            for name in ("std", "std_t", "cov", "cov_t")
+            if cfg.loss.get(name) is not None
+            and cfg.loss.get(name).enabled
+        ]
+        if active_vcreg_names:
+            output.update(self.vc_reg(emb))
+        for name in active_vcreg_names:
+            output["loss"] = (
+                output["loss"]
+                + cfg.loss.get(name).weight * output[f"{name}_loss"]
+            )
+    elif training_method == "pldm":
+        output["idm_emb"] = torch.cat(
+            [emb[:, 1:], emb[:, :-1]],
+            dim=-1,
+        )
+        output["act_label"] = batch["action"][:, :-1].detach()
+        output["act_pred"] = self.idm(output["idm_emb"])
+        output["temp_straight_loss"] = self.path_straight(emb)
+        output.update(
+            self.pldm(emb, output["act_pred"], output["act_label"])
+        )
+        output["loss"] = output["pred_loss"]
+        for name, loss_cfg in cfg.loss.items():
+            loss_key = f"{name}_loss"
+            if not loss_cfg.enabled or loss_key not in output:
+                continue
+            output["loss"] = (
+                output["loss"] + loss_cfg.weight * output[loss_key]
+            )
+    else:
+        raise ValueError(f"Unsupported training method {training_method!r}")
+
+    losses = {
+        f"{stage}/{name}": value.detach()
+        for name, value in output.items()
+        if "loss" in name
+    }
+    self.log_dict(losses, on_step=True, sync_dist=True)
+    return output
+
+
+def _sample_contract(
+    dataset,
+    count: int = 8,
+    *,
+    history_tokens: int = 3,
+    num_preds: int = 1,
+) -> dict:
+    import torch
+
+    history_tokens = int(history_tokens)
+    num_preds = int(num_preds)
+    sequence_steps = history_tokens + num_preds
+    if history_tokens < 1 or num_preds < 1:
+        raise ValueError("history_tokens and num_preds must be positive")
     indices = list(range(min(count, len(dataset))))
     samples = dataset.__getitems__(indices)
     expected = {
-        "pixels": [4, 3, 224, 224],
-        "action": [4, 10],
-        "proprio": [4, 2],
+        "pixels": [sequence_steps, 3, 224, 224],
+        "action": [sequence_steps, 10],
+        "proprio": [sequence_steps, 2],
     }
     observed = {
         key: list(samples[0][key].shape) for key in sorted(expected)
     }
     if observed != expected:
         raise RuntimeError(
-            f"History-3 training sample contract mismatch: {observed}"
+            "Training sample sequence contract mismatch: "
+            f"history={history_tokens}, num_preds={num_preds}, "
+            f"observed={observed}"
         )
     for sample in samples[1:]:
         shapes = {key: list(sample[key].shape) for key in sorted(expected)}
         if shapes != expected:
             raise RuntimeError(f"Cross-group sample shape mismatch: {shapes}")
     collated = torch.utils.data.default_collate(samples)
-    projected = _project_lewm_model_batch(collated)
+    projected = _project_lewm_model_batch(
+        collated,
+        sequence_steps=sequence_steps,
+    )
     raw_keys = sorted(collated)
     model_boundary_keys = list(projected)
     privileged = {
@@ -864,6 +1079,9 @@ def _sample_contract(dataset, count: int = 8) -> dict:
         )
     return {
         "passed": True,
+        "history_tokens": history_tokens,
+        "num_preds": num_preds,
+        "sequence_steps": sequence_steps,
         "sample_count": len(samples),
         "shapes": observed,
         "keys": sorted(samples[0]),
@@ -981,36 +1199,157 @@ def _training_method(benchmark_config: Path) -> str:
     return method
 
 
-def _training_objective_spec(training_method: str, cfg) -> dict:
+def _training_sequence_contract(benchmark_config: Path) -> dict[str, int]:
+    """Read the model-visible temporal shape from one benchmark config."""
+
+    with benchmark_config.open("r", encoding="utf-8") as handle:
+        benchmark = yaml.safe_load(handle)
+    protocol = benchmark.get("training_protocol", {})
+    history_tokens = int(protocol.get("history_tokens", 3))
+    num_preds = int(protocol.get("num_preds", 1))
+    raw_steps_per_action_block = int(
+        protocol.get("raw_steps_per_action_block", 5)
+    )
+    if history_tokens < 1:
+        raise ValueError("training_protocol.history_tokens must be positive")
+    if num_preds < 1:
+        raise ValueError("training_protocol.num_preds must be positive")
+    if raw_steps_per_action_block != 5:
+        raise ValueError(
+            "The controlled TwoRoom runner requires five raw steps per "
+            "model action block"
+        )
+    return {
+        "history_tokens": history_tokens,
+        "num_preds": num_preds,
+        "sequence_steps": history_tokens + num_preds,
+        "raw_steps_per_action_block": raw_steps_per_action_block,
+    }
+
+
+def _temporal_prediction_loss_spec(
+    benchmark_config: Path,
+    *,
+    predicted_transitions: int,
+) -> dict:
+    """Load an optional, preregistered transition-weighting rule."""
+
+    with benchmark_config.open("r", encoding="utf-8") as handle:
+        benchmark = yaml.safe_load(handle)
+    declared = benchmark.get("training_protocol", {}).get(
+        "temporal_prediction_loss"
+    )
+    if declared is None:
+        return {
+            "configured": False,
+            "mode": "uniform_mean",
+            "transition_weights": [1.0] * int(predicted_transitions),
+            "normalization": "divide_by_sum_of_weights",
+            "applies_to": "all_training_groups",
+        }
+    if not isinstance(declared, dict):
+        raise ValueError(
+            "training_protocol.temporal_prediction_loss must be a mapping"
+        )
+    mode = str(declared.get("mode", ""))
+    weights = [
+        float(value) for value in declared.get("transition_weights", [])
+    ]
+    normalization = str(declared.get("normalization", ""))
+    applies_to = str(declared.get("applies_to", ""))
+    checks = {
+        "mode": mode == "normalized_transition_weights",
+        "length": len(weights) == int(predicted_transitions),
+        "positive": bool(weights) and all(value > 0.0 for value in weights),
+        "finite": all(math.isfinite(value) for value in weights),
+        "normalization": normalization == "divide_by_sum_of_weights",
+        "scope": applies_to == "all_training_groups",
+    }
+    if not all(checks.values()):
+        failed = [name for name, passed in checks.items() if not passed]
+        raise ValueError(
+            "Invalid temporal prediction loss specification: "
+            f"{failed}"
+        )
+    return {
+        "configured": True,
+        "mode": mode,
+        "transition_weights": weights,
+        "normalized_transition_weight": [
+            value / sum(weights) for value in weights
+        ],
+        "normalization": normalization,
+        "applies_to": applies_to,
+    }
+
+
+def _training_objective_spec(
+    training_method: str,
+    cfg,
+    *,
+    temporal_prediction_loss: dict | None = None,
+) -> dict:
     """Return the explicit model-loss contract stored in every report."""
 
     if training_method == "lewm":
-        return {
-            "name": (
-                "native_lewm_plus_std_cov"
-                if bool(cfg.loss.std.enabled)
-                and bool(cfg.loss.cov.enabled)
-                else "native_lewm"
-            ),
+        regularizer_name = str(
+            cfg.loss.get("regularizer", "sigreg")
+        ).lower()
+        regularizer_cfg = cfg.loss.get(regularizer_name)
+        if regularizer_cfg is None:
+            raise ValueError(
+                "Missing active LeWM representation regularizer config: "
+                f"{regularizer_name}"
+            )
+        if bool(cfg.loss.std.enabled) and bool(cfg.loss.cov.enabled):
+            objective_name = "native_lewm_plus_std_cov"
+        elif regularizer_name == "visreg":
+            objective_name = "lewm_visreg"
+        elif float(regularizer_cfg.weight) != 0.09:
+            objective_name = "lewm_sigreg_weight_sweep"
+        else:
+            objective_name = "native_lewm"
+        result = {
+            "name": objective_name,
             "prediction_target_detached": False,
             "prediction_weight": 1.0,
-            "sigreg_weight": float(cfg.loss.sigreg.weight),
+            "representation_regularizer": regularizer_name,
+            "regularizer_weight": float(regularizer_cfg.weight),
+            "regularizer_kwargs": dict(regularizer_cfg.kwargs),
+            "sigreg_weight": (
+                float(cfg.loss.sigreg.weight)
+                if regularizer_name == "sigreg"
+                else 0.0
+            ),
+            "visreg_weight": (
+                float(cfg.loss.visreg.weight)
+                if regularizer_name == "visreg"
+                else 0.0
+            ),
             "std_enabled": bool(cfg.loss.std.enabled),
             "std_weight": float(cfg.loss.std.weight),
             "cov_enabled": bool(cfg.loss.cov.enabled),
             "cov_weight": float(cfg.loss.cov.weight),
         }
-    return {
-        "name": "native_pldm",
-        "prediction_target_detached": False,
-        "prediction_weight": 1.0,
-        "std_weight": float(cfg.loss.std.weight),
-        "std_t_weight": float(cfg.loss.std_t.weight),
-        "cov_weight": float(cfg.loss.cov.weight),
-        "cov_t_weight": float(cfg.loss.cov_t.weight),
-        "temp_align_weight": float(cfg.loss.temp_align.weight),
-        "idm_weight": float(cfg.loss.idm.weight),
-    }
+    else:
+        result = {
+            "name": "native_pldm",
+            "prediction_target_detached": False,
+            "prediction_weight": 1.0,
+            "std_weight": float(cfg.loss.std.weight),
+            "std_t_weight": float(cfg.loss.std_t.weight),
+            "cov_weight": float(cfg.loss.cov.weight),
+            "cov_t_weight": float(cfg.loss.cov_t.weight),
+            "temp_align_weight": float(cfg.loss.temp_align.weight),
+            "idm_weight": float(cfg.loss.idm.weight),
+        }
+    if temporal_prediction_loss and temporal_prediction_loss["configured"]:
+        return {
+            **result,
+            "name": f"{result['name']}_temporal_weighted",
+            "temporal_prediction_loss": temporal_prediction_loss,
+        }
+    return result
 
 
 def _apply_frozen_modules(model, specification: dict) -> dict:
@@ -1161,6 +1500,36 @@ def _initialization_checkpoint_spec(
             "Initialization checkpoint role must explicitly be model-only, "
             f"observed={role!r}"
         )
+    temporal_adaptation = declared.get("temporal_adaptation")
+    if temporal_adaptation is not None:
+        if not isinstance(temporal_adaptation, dict):
+            raise ValueError(
+                "initialization_checkpoint.temporal_adaptation must be a "
+                "mapping"
+            )
+        required = {
+            "parameter",
+            "strategy",
+            "source_history_tokens",
+            "target_history_tokens",
+            "align_corners",
+            "source_anchor_target_indices",
+        }
+        missing = sorted(required - set(temporal_adaptation))
+        if missing:
+            raise ValueError(
+                "Initialization temporal adaptation is incomplete: "
+                f"missing={missing}"
+            )
+        if (
+            temporal_adaptation["strategy"]
+            != "linear_interpolation"
+            or temporal_adaptation["align_corners"] is not True
+        ):
+            raise ValueError(
+                "The controlled runner only supports linear temporal "
+                "position interpolation with align_corners=true"
+            )
 
     if cli_path is not None and declared.get("path") is not None:
         declared_path = resolve_contextworld_path(
@@ -1189,7 +1558,134 @@ def _initialization_checkpoint_spec(
         "optimizer_state_loaded": False,
         "scheduler_state_loaded": False,
         "hash_audit_passed": True,
+        "temporal_adaptation": temporal_adaptation,
     }
+
+
+def _tensor_sha256(value) -> str:
+    import torch
+
+    tensor = value.detach().cpu().contiguous()
+    digest = hashlib.sha256()
+    digest.update(str(tensor.dtype).encode("utf-8"))
+    digest.update(str(tuple(tensor.shape)).encode("utf-8"))
+    digest.update(tensor.reshape(-1).view(torch.uint8).numpy().tobytes())
+    return digest.hexdigest()
+
+
+def _adapt_temporal_position_embedding(
+    source_state: dict,
+    target_state: dict,
+    *,
+    specification: dict[str, Any],
+) -> tuple[dict, dict[str, Any]]:
+    """Expand one learned temporal position table under a frozen contract."""
+
+    import torch
+    import torch.nn.functional as functional
+
+    parameter = str(specification["parameter"])
+    source_history = int(specification["source_history_tokens"])
+    target_history = int(specification["target_history_tokens"])
+    anchors = [
+        int(value)
+        for value in specification["source_anchor_target_indices"]
+    ]
+    if source_history < 2 or target_history <= source_history:
+        raise ValueError(
+            "Temporal initialization requires target history to be longer "
+            "than a source history of at least two tokens"
+        )
+    if set(source_state) != set(target_state):
+        raise RuntimeError(
+            "Initialization checkpoint state keys differ from the H7 model: "
+            f"source_only={sorted(set(source_state) - set(target_state))}, "
+            f"target_only={sorted(set(target_state) - set(source_state))}"
+        )
+    if parameter not in source_state:
+        raise KeyError(
+            f"Temporal initialization parameter is absent: {parameter}"
+        )
+    source = source_state[parameter].detach().cpu()
+    target = target_state[parameter].detach().cpu()
+    expected_source_shape = (1, source_history, source.shape[-1])
+    expected_target_shape = (1, target_history, source.shape[-1])
+    if tuple(source.shape) != expected_source_shape:
+        raise ValueError(
+            f"Source temporal position shape differs: {tuple(source.shape)} "
+            f"!= {expected_source_shape}"
+        )
+    if tuple(target.shape) != expected_target_shape:
+        raise ValueError(
+            f"Target temporal position shape differs: {tuple(target.shape)} "
+            f"!= {expected_target_shape}"
+        )
+    shape_mismatches = {
+        name: {
+            "source": list(value.shape),
+            "target": list(target_state[name].shape),
+        }
+        for name, value in source_state.items()
+        if name != parameter
+        and tuple(value.shape) != tuple(target_state[name].shape)
+    }
+    if shape_mismatches:
+        raise RuntimeError(
+            "Temporal initialization found additional shape differences: "
+            f"{shape_mismatches}"
+        )
+
+    numerator = target_history - 1
+    denominator = source_history - 1
+    if any((index * numerator) % denominator for index in range(source_history)):
+        raise ValueError(
+            "Every source position must align exactly to a target index"
+        )
+    expected_anchors = [
+        index * numerator // denominator
+        for index in range(source_history)
+    ]
+    if anchors != expected_anchors:
+        raise ValueError(
+            "Declared temporal anchors differ from align_corners geometry: "
+            f"{anchors} != {expected_anchors}"
+        )
+
+    interpolated = functional.interpolate(
+        source.to(dtype=torch.float32).transpose(1, 2),
+        size=target_history,
+        mode="linear",
+        align_corners=True,
+    ).transpose(1, 2)
+    interpolated = interpolated.to(dtype=target.dtype)
+    if not torch.isfinite(interpolated).all():
+        raise RuntimeError("Temporal position interpolation is non-finite")
+    if not all(
+        torch.equal(interpolated[:, target_index], source[:, source_index])
+        for source_index, target_index in enumerate(anchors)
+    ):
+        raise RuntimeError(
+            "Temporal position interpolation did not preserve source anchors"
+        )
+
+    adapted = dict(source_state)
+    adapted[parameter] = interpolated
+    audit = {
+        "parameter": parameter,
+        "strategy": "linear_interpolation",
+        "align_corners": True,
+        "source_history_tokens": source_history,
+        "target_history_tokens": target_history,
+        "source_shape": list(source.shape),
+        "target_shape": list(interpolated.shape),
+        "source_anchor_target_indices": anchors,
+        "source_tensor_sha256": _tensor_sha256(source),
+        "adapted_tensor_sha256": _tensor_sha256(interpolated),
+        "source_anchors_preserved_exactly": True,
+        "only_declared_tensor_shape_changed": True,
+        "passed": True,
+    }
+    return adapted, audit
 
 
 def _apply_initialization_checkpoint(
@@ -1200,6 +1696,8 @@ def _apply_initialization_checkpoint(
     cache_dir: Path,
     resume_checkpoint: Path | None,
 ) -> dict[str, Any]:
+    import torch
+
     if specification is None:
         return {
             "configured": False,
@@ -1219,27 +1717,81 @@ def _apply_initialization_checkpoint(
         cache_dir=str(cache_dir),
     )
     source_hash = _state_dict_sha256(source)
-    result = model.load_state_dict(source.state_dict(), strict=True)
+    temporal_adaptation = specification.get("temporal_adaptation")
+    if temporal_adaptation is None:
+        state = source.state_dict()
+        adaptation_audit = {
+            "required": False,
+            "passed": True,
+        }
+    else:
+        state, adaptation_audit = _adapt_temporal_position_embedding(
+            source.state_dict(),
+            model.state_dict(),
+            specification=temporal_adaptation,
+        )
+        adaptation_audit = {
+            "required": True,
+            **adaptation_audit,
+        }
+    result = model.load_state_dict(state, strict=True)
     if result.missing_keys or result.unexpected_keys:
         raise RuntimeError(
             "Initialization checkpoint state keys differ from the model: "
             f"missing={result.missing_keys}, unexpected={result.unexpected_keys}"
         )
     initialized_hash = _state_dict_sha256(model)
-    if initialized_hash != source_hash:
+    if temporal_adaptation is None and initialized_hash != source_hash:
         raise RuntimeError(
             "Initialization checkpoint did not load exactly into the model"
         )
+    if temporal_adaptation is not None:
+        parameter = str(temporal_adaptation["parameter"])
+        source_state = source.state_dict()
+        initialized_state = model.state_dict()
+        unchanged = {
+            name: torch.equal(
+                value.detach().cpu(),
+                initialized_state[name].detach().cpu(),
+            )
+            for name, value in source_state.items()
+            if name != parameter
+        }
+        if not unchanged or not all(unchanged.values()):
+            raise RuntimeError(
+                "Non-temporal initialization tensors changed: "
+                f"{[name for name, value in unchanged.items() if not value]}"
+            )
+        expected_adapted, _ = _adapt_temporal_position_embedding(
+            source_state,
+            initialized_state,
+            specification=temporal_adaptation,
+        )
+        if not torch.equal(
+            initialized_state[parameter].detach().cpu(),
+            expected_adapted[parameter].detach().cpu(),
+        ):
+            raise RuntimeError(
+                "Loaded temporal position tensor differs from the frozen "
+                "interpolation"
+            )
+        adaptation_audit["unchanged_parameter_tensors"] = len(unchanged)
+        adaptation_audit["all_other_parameter_tensors_exact"] = True
     return {
         **metadata,
         "applied": True,
-        "reason": "fresh_model_weight_initialization",
+        "reason": (
+            "fresh_model_weight_initialization"
+            if temporal_adaptation is None
+            else "fresh_model_weight_initialization_with_frozen_temporal_expansion"
+        ),
         "source_model_class": (
             f"{type(source).__module__}.{type(source).__name__}"
         ),
         "source_state_sha256": source_hash,
         "initialized_state_sha256": initialized_hash,
-        "state_exact": True,
+        "state_exact": temporal_adaptation is None,
+        "temporal_adaptation_audit": adaptation_audit,
     }
 
 
@@ -1362,6 +1914,8 @@ def _compose_model_config(
     args,
     *,
     training_method: str,
+    history_tokens: int = 3,
+    num_preds: int = 1,
 ):
     import hydra
     from omegaconf import open_dict
@@ -1382,8 +1936,13 @@ def _compose_model_config(
         cfg.trainer.precision = args.precision
         cfg.loader.batch_size = args.batch_size
         cfg.loader.num_workers = args.num_workers
+        cfg.wm.history_size = int(history_tokens)
+        cfg.wm.num_preds = int(num_preds)
         cfg.model.action_encoder.input_dim = 10
         if training_method == "lewm":
+            cfg.loss.regularizer = args.lewm_regularizer
+            cfg.loss.sigreg.weight = args.lewm_sigreg_weight
+            cfg.loss.visreg.weight = args.lewm_visreg_weight
             cfg.loss.std.enabled = args.lewm_std_weight > 0.0
             cfg.loss.std.weight = args.lewm_std_weight
             cfg.loss.cov.enabled = args.lewm_cov_weight > 0.0
@@ -1734,6 +2293,7 @@ def _load_distributed_execution_contract(
     *,
     devices: int,
     passage_model: bool = False,
+    audit_concurrency: int | None = None,
 ) -> dict:
     """Load the recovery contract without changing the DDP transport.
 
@@ -1802,7 +2362,30 @@ def _load_distributed_execution_contract(
         if passage_model and devices > 1
         else None
     )
-    audit_scheduling = declared.get("audit_scheduling")
+    if audit_concurrency is not None:
+        if not passage_model:
+            raise ValueError(
+                "Audit concurrency override is passage-only"
+            )
+        if audit_concurrency not in {1, 8}:
+            raise ValueError(
+                "Passage audit concurrency must be exactly 1 or 8"
+            )
+        audit_scheduling = (
+            SERIAL_AUDIT_SCHEDULING_CONTRACT
+            if audit_concurrency == 1
+            else PARALLEL_AUDIT_SCHEDULING_CONTRACT
+        )
+        rank_cpu_affinity = (
+            None
+            if audit_concurrency == 1
+            else PARALLEL_RANK_CPU_AFFINITY_CONTRACT
+        )
+        audit_scheduling_source = "controlled_cli_override"
+    else:
+        audit_scheduling = declared.get("audit_scheduling")
+        rank_cpu_affinity = declared.get("rank_cpu_affinity")
+        audit_scheduling_source = "benchmark_config"
     if (
         passage_model
         and audit_scheduling not in AUDIT_SCHEDULING_CONTRACTS
@@ -1817,7 +2400,6 @@ def _load_distributed_execution_contract(
         raise ValueError(
             "Non-passage training must not declare passage audit scheduling"
         )
-    rank_cpu_affinity = declared.get("rank_cpu_affinity")
     if (
         passage_model
         and audit_scheduling == PARALLEL_AUDIT_SCHEDULING_CONTRACT
@@ -1942,6 +2524,7 @@ def _load_distributed_execution_contract(
             applied_timeout is not None
         ),
         "audit_scheduling": audit_scheduling,
+        "audit_scheduling_source": audit_scheduling_source,
         "rank_cpu_affinity": rank_cpu_affinity,
         "training_run_exclusivity": training_run_exclusivity,
         "primary_formal_launch": declared.get("primary_formal_launch"),
@@ -2003,17 +2586,28 @@ def _run_with_release_lock_held(args) -> dict:
         SIGReg,
         TemporalStraighteningLoss,
         VCReg,
+        VISRegLoss,
     )
     from stable_worldmodel.loggers import build_training_logger
 
     pl.seed_everything(args.seed, workers=True)
     training_method = _training_method(args.benchmark_config.resolve())
+    sequence_contract = _training_sequence_contract(
+        args.benchmark_config.resolve()
+    )
+    temporal_prediction_loss = _temporal_prediction_loss_spec(
+        args.benchmark_config.resolve(),
+        predicted_transitions=sequence_contract["history_tokens"],
+    )
     if training_method != "lewm" and (
-        args.lewm_std_weight != 0.0
+        args.lewm_regularizer != "sigreg"
+        or args.lewm_sigreg_weight != 0.09
+        or args.lewm_visreg_weight != 0.09
+        or args.lewm_std_weight != 0.0
         or args.lewm_cov_weight != 0.0
     ):
         raise ValueError(
-            "LeWM std/cov weights cannot be applied to a PLDM training "
+            "LeWM objective overrides cannot be applied to a PLDM training "
             "configuration"
         )
     pinned_train = _load_pinned_train_module(
@@ -2024,8 +2618,14 @@ def _run_with_release_lock_held(args) -> dict:
         stable_repo,
         args,
         training_method=training_method,
+        history_tokens=sequence_contract["history_tokens"],
+        num_preds=sequence_contract["num_preds"],
     )
-    training_objective = _training_objective_spec(training_method, cfg)
+    training_objective = _training_objective_spec(
+        training_method,
+        cfg,
+        temporal_prediction_loss=temporal_prediction_loss,
+    )
     initialization_spec = _initialization_checkpoint_spec(
         args,
         benchmark_config=args.benchmark_config.resolve(),
@@ -2060,6 +2660,7 @@ def _run_with_release_lock_held(args) -> dict:
         args.benchmark_config,
         devices=args.devices,
         passage_model=passage_release_root is not None,
+        audit_concurrency=args.audit_concurrency,
     )
     local_rank_cpu_affinity = getattr(
         args,
@@ -2095,13 +2696,17 @@ def _run_with_release_lock_held(args) -> dict:
             epoch_size=args.epoch_size,
             validation_epoch_size=args.validation_epoch_size,
             original_h5=args.original_h5,
-            frameskip=5,
-            num_steps=4,
+            frameskip=sequence_contract["raw_steps_per_action_block"],
+            num_steps=sequence_contract["sequence_steps"],
             img_size=224,
             seed=args.data_split_seed,
             expected_stablewm_commit=stable_commit,
         )
-        sample_contract = _sample_contract(grouped.train)
+        sample_contract = _sample_contract(
+            grouped.train,
+            history_tokens=sequence_contract["history_tokens"],
+            num_preds=sequence_contract["num_preds"],
+        )
     build_audit_schedule = (
         dict(build_audit_schedule)
         if build_audit_schedule is not None
@@ -2244,8 +2849,11 @@ def _run_with_release_lock_held(args) -> dict:
                 ),
                 "training_method": training_method,
                 "training_objective": training_objective,
-                "action_block": 5,
-                "history_size": 3,
+                "action_block": sequence_contract[
+                    "raw_steps_per_action_block"
+                ],
+                "history_size": sequence_contract["history_tokens"],
+                "num_preds": sequence_contract["num_preds"],
                 "raw_batch_keys": sample_contract[
                     "collated_batch_audit"
                 ]["raw_keys"],
@@ -2391,7 +2999,15 @@ def _run_with_release_lock_held(args) -> dict:
     module_components = {"model": model}
     loss_components = {}
     if training_method == "lewm":
-        loss_components["sigreg"] = SIGReg(**cfg.loss.sigreg.kwargs)
+        regularizer_name = str(cfg.loss.regularizer).lower()
+        regularizer_classes = {
+            "sigreg": SIGReg,
+            "visreg": VISRegLoss,
+        }
+        regularizer_cfg = cfg.loss.get(regularizer_name)
+        loss_components[regularizer_name] = regularizer_classes[
+            regularizer_name
+        ](**regularizer_cfg.kwargs)
         if any(
             bool(cfg.loss.get(name).enabled)
             for name in ("std", "std_t", "cov", "cov_t")
@@ -2565,6 +3181,8 @@ def _run_with_release_lock_held(args) -> dict:
             base_forward=base_forward,
             cfg=cfg,
             accumulation_steps=args.accumulate_grad_batches,
+            training_method=training_method,
+            temporal_prediction_loss=temporal_prediction_loss,
         ),
         optim=optimizers,
     )
@@ -3275,6 +3893,101 @@ def _run_with_release_lock_held(args) -> dict:
                 "passed": True,
             }
 
+    class CudaMemoryAudit(Callback):
+        def __init__(self) -> None:
+            self.report: dict[str, Any] = {
+                "configured": True,
+                "passed": False,
+            }
+
+        def on_fit_start(self, trainer, pl_module) -> None:
+            device = torch.device("cuda", torch.cuda.current_device())
+            torch.cuda.reset_peak_memory_stats(device)
+
+        def on_fit_end(self, trainer, pl_module) -> None:
+            device = torch.device("cuda", torch.cuda.current_device())
+            torch.cuda.synchronize(device)
+            properties = torch.cuda.get_device_properties(
+                device
+            )
+            local = torch.tensor(
+                [
+                    int(trainer.global_rank),
+                    int(torch.cuda.max_memory_allocated(device)),
+                    int(torch.cuda.max_memory_reserved(device)),
+                    int(torch.cuda.memory_allocated(device)),
+                    int(torch.cuda.memory_reserved(device)),
+                    int(properties.total_memory),
+                ],
+                dtype=torch.int64,
+                device=device,
+            )
+            gathered = trainer.strategy.all_gather(local)
+            if gathered.ndim == 1:
+                gathered = gathered.unsqueeze(0)
+            values = gathered.detach().cpu().tolist()
+            rows = []
+            for (
+                rank,
+                peak_allocated,
+                peak_reserved,
+                final_allocated,
+                final_reserved,
+                total_memory,
+            ) in sorted(values, key=lambda row: int(row[0])):
+                rows.append(
+                    {
+                        "rank": int(rank),
+                        "peak_allocated_bytes": int(peak_allocated),
+                        "peak_reserved_bytes": int(peak_reserved),
+                        "final_allocated_bytes": int(final_allocated),
+                        "final_reserved_bytes": int(final_reserved),
+                        "total_memory_bytes": int(total_memory),
+                    }
+                )
+            ranks = [row["rank"] for row in rows]
+            maximum_reserved = max(
+                row["peak_reserved_bytes"] for row in rows
+            )
+            minimum_total = min(
+                row["total_memory_bytes"] for row in rows
+            )
+            self.report = {
+                "configured": True,
+                "measurement": (
+                    "torch_cuda_peak_from_fit_start_through_fit_end"
+                ),
+                "bytes_per_mib": 1024 * 1024,
+                "rank_count": len(rows),
+                "per_rank": rows,
+                "maximum_peak_allocated_bytes": max(
+                    row["peak_allocated_bytes"] for row in rows
+                ),
+                "maximum_peak_reserved_bytes": maximum_reserved,
+                "minimum_total_memory_bytes": minimum_total,
+                "minimum_reserved_headroom_bytes": (
+                    minimum_total - maximum_reserved
+                ),
+                "maximum_peak_reserved_fraction": (
+                    maximum_reserved / minimum_total
+                ),
+                "rank_coverage_exact": ranks
+                == list(range(int(trainer.world_size))),
+                "all_ranks_below_total_memory": all(
+                    row["peak_reserved_bytes"]
+                    < row["total_memory_bytes"]
+                    for row in rows
+                ),
+                "passed": (
+                    ranks == list(range(int(trainer.world_size)))
+                    and all(
+                        row["peak_reserved_bytes"]
+                        < row["total_memory_bytes"]
+                        for row in rows
+                    )
+                ),
+            }
+
     class TrainingContract(Callback):
         def __init__(self) -> None:
             self.microbatches_seen = 0
@@ -3470,8 +4183,10 @@ def _run_with_release_lock_held(args) -> dict:
         every_n_epochs=1,
         save_on_train_epoch_end=True,
     )
+    cuda_memory_audit = CudaMemoryAudit()
     callbacks = [
         MaintainFrozenModuleEvalMode(),
+        cuda_memory_audit,
         rng_checkpoint,
         SavePretrainedAtEpochEnd(),
         diagnostic_checkpoints,
@@ -3525,6 +4240,11 @@ def _run_with_release_lock_held(args) -> dict:
     )
     manager()
 
+    if cuda_memory_audit.report.get("passed") is not True:
+        raise RuntimeError(
+            "CUDA memory audit did not cover every training rank: "
+            f"{cuda_memory_audit.report}"
+        )
     completed_scheduler = trainer.lr_scheduler_configs[0].scheduler
     frozen_module_audit = _finalize_frozen_modules(
         module.model,
@@ -3746,8 +4466,11 @@ def _run_with_release_lock_held(args) -> dict:
             "training_method": training_method,
             "training_objective": training_objective,
             "parameters": sum(value.numel() for value in model.parameters()),
-            "action_block": 5,
-            "history_size": 3,
+            "action_block": sequence_contract[
+                "raw_steps_per_action_block"
+            ],
+            "history_size": sequence_contract["history_tokens"],
+            "num_preds": sequence_contract["num_preds"],
             "input_boundary": sample_contract[
                 "collated_batch_audit"
             ],
@@ -3777,6 +4500,7 @@ def _run_with_release_lock_held(args) -> dict:
             ),
             "multi_worker_runtime_exercised": args.num_workers > 0,
             "distributed_runtime_exercised": int(trainer.world_size) > 1,
+            "cuda_memory": cuda_memory_audit.report,
             "adapter_gradient_accumulation_steps": (
                 args.accumulate_grad_batches
             ),
@@ -3991,6 +4715,7 @@ def run(args) -> dict:
                     benchmark_config,
                     devices=int(args.devices),
                     passage_model=True,
+                    audit_concurrency=args.audit_concurrency,
                 )
             )
             rank_cpu_affinity_contract = early_distributed_contract.get(
@@ -4069,6 +4794,34 @@ def parse_args():
     )
     parser.add_argument("--stablewm-repo", default="../stable-worldmodel")
     parser.add_argument("--stablewm-ref", default=PINNED_STABLEWM)
+    parser.add_argument(
+        "--audit-concurrency",
+        type=int,
+        choices=(1, 8),
+        default=None,
+        help=(
+            "Controlled passage audit scheduling override. The selected "
+            "safe contract and its source are embedded in the report."
+        ),
+    )
+    parser.add_argument(
+        "--lewm-regularizer",
+        choices=("sigreg", "visreg"),
+        default="sigreg",
+        help="Select the single active LeWM marginal regularizer.",
+    )
+    parser.add_argument(
+        "--lewm-sigreg-weight",
+        type=float,
+        default=0.09,
+        help="Weight in prediction + weight * SIGReg.",
+    )
+    parser.add_argument(
+        "--lewm-visreg-weight",
+        type=float,
+        default=0.09,
+        help="Weight in prediction + weight * VISReg.",
+    )
     parser.add_argument(
         "--lewm-std-weight",
         type=float,
@@ -4176,8 +4929,38 @@ def parse_args():
     )
     parser.add_argument("--preflight-only", action="store_true")
     args = _apply_profile(parser.parse_args())
-    if args.lewm_std_weight < 0.0 or args.lewm_cov_weight < 0.0:
-        parser.error("LeWM std/cov weights must be non-negative")
+    if (
+        args.lewm_sigreg_weight < 0.0
+        or args.lewm_visreg_weight < 0.0
+        or args.lewm_std_weight < 0.0
+        or args.lewm_cov_weight < 0.0
+    ):
+        parser.error("LeWM regularizer weights must be non-negative")
+    if args.lewm_regularizer == "sigreg":
+        if args.lewm_sigreg_weight not in {
+            0.09,
+            0.3,
+            0.9,
+            1.3,
+            1.65,
+            2.05,
+        }:
+            parser.error(
+                "Controlled SIGReg sweep supports weights "
+                "0.09, 0.3, 0.9, 1.3, 1.65, or 2.05"
+            )
+        if args.lewm_visreg_weight != 0.09:
+            parser.error(
+                "--lewm-visreg-weight may only change when VISReg is active"
+            )
+    elif args.lewm_sigreg_weight != 0.09:
+        parser.error(
+            "--lewm-sigreg-weight may only change when SIGReg is active"
+        )
+    if args.lewm_regularizer == "visreg" and (
+        args.lewm_std_weight != 0.0 or args.lewm_cov_weight != 0.0
+    ):
+        parser.error("VISReg screen cannot be combined with VCReg probes")
     if (args.lewm_std_weight, args.lewm_cov_weight) not in {
         (0.0, 0.0),
         (18.0, 12.0),
@@ -4185,6 +4968,16 @@ def parse_args():
         parser.error(
             "The controlled runner supports only native LeWM weights 0/0 "
             "or the diagnosed std/cov candidate 18/12"
+        )
+    if (
+        (args.lewm_std_weight, args.lewm_cov_weight) == (18.0, 12.0)
+        and (
+            args.lewm_regularizer != "sigreg"
+            or args.lewm_sigreg_weight != 0.09
+        )
+    ):
+        parser.error(
+            "The std/cov mechanism probe must retain native SIGReg at 0.09"
         )
     args.diagnostic_checkpoint_step = sorted(
         set(args.diagnostic_checkpoint_step)

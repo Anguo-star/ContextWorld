@@ -1,0 +1,327 @@
+schema_version: 1
+release_id: contextworld_tworoom_portal_exit_icl_history3_v1
+release_status: public_test_release_candidate
+candidate_date: "2026-08-02"
+
+scope:
+  environment: TwoRoom
+  capability: infer_hidden_portal_exit_location_from_recent_interaction
+  display_name_zh: TwoRoom 传送门出口位置 ICL
+  history_tokens: 3
+  context_transitions: 2
+  raw_steps_per_action_block: 5
+  prediction_horizon_action_blocks: 1
+  hidden_exit_modes: [near_border, farther_from_border]
+  public_test_included: true
+  sealed_test_included: false
+
+runtime:
+  supported_adapters:
+    - stable_worldmodel_lewm_portal_exit
+    - stable_worldmodel_pldm_portal_exit
+  extension_contract: >-
+    contextworld.benchmarks.adapters.PortalExitICLModelAdapter
+  contextworld:
+    repository: https://github.com/Anguo-star/ContextWorld
+    package_version: 0.1.0
+  stable_worldmodel:
+    source: https://github.com/galilai-group/stable-worldmodel
+    repo: ../stable-worldmodel
+    expected_ref: 875e607fc08aa72eacb94d5d178127804134cc06
+
+identity:
+  common_causal_audit:
+    path: contextworld/benchmarks/causal_data_contract.py
+    sha256: 202d8a1cc57ac9ec24924f0e995cc42b8fea7b026d55465e8f7cdb102759788e
+  public_api:
+    path: contextworld/benchmarks/__init__.py
+    sha256: 9859331914ce8c8ad356949161fa521ed7d59378e4d6eaf7203b9f71ad7ef4b8
+  adapters:
+    path: contextworld/benchmarks/adapters.py
+    sha256: a1bf037ea4da49842163142563323a26a3eb11fca9a81f6dc4070d5688805c67
+  data_api:
+    path: contextworld/benchmarks/portal_exit_icl_data.py
+    sha256: f9f7d57897acbdb0c9d387a3c8c354a0556f1f1ed345bce42c934a3f02133e9d
+  score_api:
+    path: contextworld/benchmarks/portal_exit_icl_score.py
+    sha256: 06af68ba40f23de16bf5b24837b2afc77c9b8f410682a8710b91059da1d0d313
+  paired_latent_response_api:
+    path: contextworld/benchmarks/paired_latent_response.py
+    sha256: 92dc5cf019491f59596c3a0b59d918f04ad2290e124eab11d669537ac20d6ff5
+  command_line:
+    path: contextworld/benchmarks/portal_exit_icl_cli.py
+    sha256: 364f0ae6b98fd6d651d7fb99157e262fae4564e48795be1589100e89a3d8e4f3
+  reference_trainer:
+    path: scripts/run_tworoom_portal_exit_h3_train.py
+    sha256: 4e5127f7b1ffb0e29ca99c7f295e163718cf4eaf00bf71da18397aaf6656d87d
+  shared_reference_trainer:
+    path: scripts/run_pusht_contact_friction_h3_train.py
+    sha256: 2c2b75b48d96f06369b98d78527068bb8e29fbf7042fa956b9a9b7832d9d2d28
+  reference_matrix_runner:
+    path: scripts/run_tworoom_portal_exit_h3_matrix.py
+    sha256: 0f20f67009f58686f1c23d53c0d8a78ad1e5a66834c31a6cf13f8ed6ef93f9ad
+  shared_reference_matrix_runner:
+    path: scripts/run_pusht_contact_friction_h3_matrix.py
+    sha256: b33713ad92ce8d816c80618e27957e6ddc6987b7ef1fc29cab6daaab948efe38
+  development_evaluator:
+    path: scripts/eval_tworoom_portal_exit_h3_matrix.py
+    sha256: e1d7fa233d5d6ad3e89fbd9f6fcda109bea718815669c5042c4542dc4f0e40e7
+  public_test_evaluator:
+    path: scripts/eval_tworoom_portal_exit_h3_public_test.py
+    sha256: a1ffe38e6796b3f0096b4c2cc229f585422c380ff0747bb3dcc86db50cacdfd7
+  reference_training_aggregator:
+    path: scripts/aggregate_tworoom_portal_exit_reference_training.py
+    sha256: 1813ceff454fb91c097b6847ad9b06a62cecaccd74bcba704f74ec7e46ef6dfd
+  original_task_retention_runner:
+    path: scripts/run_tworoom_portal_exit_original_task_cem.py
+    sha256: ef0687a48ec9748bca54b4d78dfc43af6ddeb15a5446a70d9fd64d17c3e8b823
+  original_task_retention_aggregator:
+    path: scripts/aggregate_tworoom_portal_exit_original_task_retention.py
+    sha256: 1dc243a5d1679f6733248203d939438d9a6f2d36b4d4b0c386414b70db6c060a
+  data_builder:
+    path: scripts/build_tworoom_portal_exit_h3_data.py
+    sha256: e9993d05e1ec129b18f3f8ec42bdd86f73715d0ceee6d60cb8fcd7011fc37469
+  portal_environment:
+    path: contextworld/evaluation/portal_exit_env.py
+    sha256: 4571ac6e581a8b302f14632f231514e437d747311ba73c79af94891198a340e1
+  causal_pair_contract:
+    path: contextworld/evaluation/portal_exit_h3.py
+    sha256: 4e60b6beee5dcf10860f272c74882fb46e62d9edb61cb8ae5526bee58c31123a
+  path_resolution:
+    path: contextworld/paths.py
+    sha256: d401ee87b5a803f37323a2fb4632fb3686bfec5472a817d431ec6e05d9a3447f
+  package:
+    path: pyproject.toml
+    sha256: e104f6441b00395181083c434c3cdce8a7d93da76dd2e01793a77b8f8cca827e
+
+data:
+  protocol: tworoom_portal_exit_history3_release_v1
+  artifact_tree:
+    root: artifacts/synthesis/tworoom_portal_exit_h3_release_v1
+    files: 12
+    bytes: 145146689
+    sha256: 53a6029c24ccf3e3637e5c9f26c3268ed27d1723272687f4d71de28dacb4d22f
+  manifest_sha256: 4ad3b02b4b3b9e031b52b0bc88a6197c0c2e4108131870c2acf83e30d791d8a9
+  pair_counts:
+    train: 2048
+    loader_validation: 256
+    validation: 256
+  public_split_names:
+    train: Training
+    loader_validation: Development
+    validation: Public Test
+  lance_tables:
+    train: train.lance
+    loader_validation: loader_validation.lance
+    validation: validation.lance
+  artifacts:
+    manifest:
+      path: artifacts/synthesis/tworoom_portal_exit_h3_release_v1/manifest.json
+      sha256: 4ad3b02b4b3b9e031b52b0bc88a6197c0c2e4108131870c2acf83e30d791d8a9
+    build_report:
+      path: artifacts/synthesis/tworoom_portal_exit_h3_release_v1/build_report.json
+      sha256: 09ab8a491970e2bd689f4688575131146ca8425b55fa7ba82c61fce3a20d5f22
+    request:
+      path: artifacts/synthesis/tworoom_portal_exit_h3_release_v1/request.json
+      sha256: 797efaed0f8e9197f631c666b41e1a3fe7fc3d26466fad276cb9fd600c9b96c2
+  isolation:
+    train_loader_validation_query_hash_overlap: 0
+    train_validation_query_hash_overlap: 0
+    loader_validation_validation_query_hash_overlap: 0
+    template_id_overlap: 0
+  observed_minima:
+    minimum_history_exit_gap_px: 15.0
+    minimum_true_future_gap_px: 15.0
+    maximum_query_state_gap: 0.0
+  causal_pair_contents:
+    - 两种出口规则从相同状态出发，执行完全相同的探测动作
+    - 三帧历史展示不同出口位置，因此历史能够提供隐藏规则信息
+    - 两条轨迹用连续环境动作回到完全相同的当前画面和状态
+    - 当前动作完全相同，模拟器产生两个不同出口位置的真实下一帧
+
+training:
+  stable_worldmodel_loader:
+    format: Lance
+    frameskip: 5
+    num_steps: 4
+    keys_to_load: [pixels, action]
+    pair_episode_order: [near_border, farther_from_border]
+  model_visible_fields: [pixels, action]
+  privileged_columns_not_exposed_to_model:
+    - hidden_portal_exit
+    - hidden_mode
+    - pair_id
+    - catalog_index
+  initialization:
+    checkpoint: artifacts/training/runs/checkpoints/h3_origheldout_s3072/weights_final_step_6420.pt
+    checkpoint_sha256: 7d141b86cca49145444a69bff89c71ede69e8cf8252bfb933e656c3e2e962b54
+    frozen_normalizer: artifacts/splits/tworoom_original_train_s3072_normalizer.json
+    frozen_normalizer_sha256: a9e4b443bbac0d7a4e2d9d9f84d40ac40936556ffadfc7af0b0ce4fe4afed42c
+  upstream:
+    original_h5:
+      role: standard_tworoom_provenance
+      environment_variable: CONTEXTWORLD_TWOROOM_H5
+      bundled_artifact_path: upstream/lewm-tworooms/tworoom.h5
+      bytes: 12775849984
+      sha256: 129a36aa93ea0de488d2bcc876e396de9e3907bf66c6aae6394e542ef6a6d623
+    original_lance:
+      role: standard_tworoom_training_rows
+      source_symbol: upstream_original_tworoom_lance
+      environment_variable: CONTEXTWORLD_TWOROOM_LANCE
+      bundled_artifact_path: upstream/stable-worldmodel/lewm_tworoom.lance
+      bytes: 4080707708
+  reference_matrix:
+    status: completed_failed_prediction_gate
+    training_seeds: [15321, 15322, 15323]
+    common:
+      optimizer_steps: 4096
+      batch_size: 128
+      original_tworoom_samples_per_batch: 64
+      portal_exit_samples_per_batch: 64
+      complete_portal_pairs_per_batch: 32
+      learning_rate: 0.00005
+      weight_decay: 0.001
+      gradient_clip_norm: 1.0
+      mixed_precision: bfloat16
+      checkpoint_selection: fixed_final_optimizer_step
+      fixed_checkpoint_step: 4096
+      development_monitor_steps: [512, 1024, 2048, 4096]
+      development_used_for_model_selection: true
+      public_test_used_for_model_selection: false
+    models:
+      LeWM:
+        objective: >-
+          frozen_pretrained_image_encoder_plus_standard_tworoom_prediction_and_paired_real_future_fit
+        runner_variant: mixed_frozen_image_paired_future_fit_1p00
+        hidden_labels_used: false
+        pair_adjacency_used_only_by_training_loss: true
+        checkpoints:
+          - seed: 15321
+            path: >-
+              artifacts/evaluation/history3/tworoom_portal_exit_h3_release_v1/development_recipe_screen/lewm_paired_fit_seed15321/mixed_frozen_image_paired_future_fit_1p00_step4096.pt
+            sha256: 3958d06460880d9d13557b52ee6f2c9ab4e68d8b5a5e567c7665187bbd30e799
+          - seed: 15322
+            path: >-
+              artifacts/evaluation/history3/tworoom_portal_exit_h3_release_v1/development_recipe_screen/lewm_paired_fit_seed15322/mixed_frozen_image_paired_future_fit_1p00_step4096.pt
+            sha256: 68efaec1f924560ae653bc315211da8a8d74c4c1899ab32dd48724152739073f
+          - seed: 15323
+            path: >-
+              artifacts/evaluation/history3/tworoom_portal_exit_h3_release_v1/development_recipe_screen/lewm_paired_fit_seed15323/mixed_frozen_image_paired_future_fit_1p00_step4096.pt
+            sha256: 7b0a043410a78bd838635e9367fe1e4af22422f7fe645542d7c020043cc5ce4d
+      PLDM:
+        objective: official_pldm_vcreg_and_temporal_alignment
+        runner_variant: mixed_pldm_joint
+        hidden_labels_used: false
+    formal_decision:
+      each_model_requires_three_distinct_checkpoints: true
+      each_checkpoint_must_pass_prediction_gate: true
+
+evaluation:
+  track: public_portal_exit_test
+  pair_count: 256
+  condition_count: 512
+  lance_table: validation.lance
+  source: frozen_offline_real_simulator_futures
+  online_environment_calls: 0
+  query_image_hash_overlap_with_training_or_development: 0
+  action_normalization:
+    source: original_tworoom_training_split
+    mean: [0.0031402341986976924, -0.051594576296864605]
+    std_unbiased: [0.867571689163936, 0.8688840167517821]
+
+scoring:
+  hidden_future_prediction:
+    target: each_checkpoint_native_frozen_encoder
+    public_primary: correct_future_rate
+    cross_checkpoint_absolute_mse_comparison_allowed: false
+    metrics:
+      - correct_future_rate
+      - correct_history_rate
+      - context_switch_rate
+      - worst_exit_correct_future_rate
+    internal_anti_spoof_metrics:
+      - latent_response.target_latent_separation.passed
+      - latent_response.response_gain
+      - latent_response.normalized_response_error
+    anti_spoofing_contract:
+      role: internal_validity_gate_not_public_primary_score
+      normalization: within_checkpoint_real_target_response
+      response_gain_anchors: {no_history_response: 0.0, real_response: 1.0}
+      normalized_response_error_anchors: {real_response: 0.0, no_history_response: 1.0}
+      legacy_results_require_checkpoint_rescore: true
+    gates:
+      correct_future_rate_minimum: 0.95
+      correct_history_rate_minimum: 0.95
+      context_switch_rate_minimum: 0.95
+      worst_exit_correct_future_rate_minimum: 0.90
+      target_latent_separation_required: true
+      response_gain_minimum: 0.50
+      normalized_response_error_strict_maximum: 1.00
+      bootstrap_lower_bound_minimum:
+        correct_future_rate: 0.90
+        correct_history_rate: 0.90
+        context_switch_rate: 0.90
+        worst_exit_correct_future_rate: 0.85
+    uncertainty:
+      method: paired_query_bootstrap
+      unit: portal_exit_query_pair
+      resamples: 10000
+      confidence_level: 0.95
+      random_seed: 2026080205
+  method_level:
+    training_seeds_required: 3
+    all_three_checkpoints_must_pass: true
+  original_task_retention:
+    evaluation: standard_tworoom_cem
+    episodes_per_checkpoint: 300
+    eval_seeds: [42, 43, 44, 45, 46, 47]
+    episodes_per_eval_seed: 50
+    query_catalog:
+      path: >-
+        artifacts/evaluation/history3/original_ability_reconstruction/original_heldout_eval_catalog.json
+      sha256: 08233c6755c8f6f358f5fe35f84e7cfed626b922be0eeaba8f7392c7741b4b34
+    query_data:
+      path: artifacts/splits/tworoom_original_episode_holdout_s3072.h5
+      bytes: 2629676
+      sha256: 7e78254f70445231df4ccf2fd2b7994dfc5954e2085d61400518bd2336fa66bc
+    noninferiority_margin_successes: 15
+    gate: >-
+      每个 LeWM 微调 checkpoint 的成功次数不得比原始 LeWM checkpoint
+      少超过 15/300；原始模型与微调模型使用相同评测随机种子、数据、
+      CEM 参数和执行预算。
+    status: completed
+    baseline_success_count: 273
+    LeWM_success_counts: [276, 271, 266]
+    success_deltas_from_baseline: [3, -2, -7]
+    checkpoints_passed: 3
+
+reference_results:
+  final_release_summary:
+    path: >-
+      artifacts/evaluation/history3/tworoom_portal_exit_h3_release_v1/final_release_summary.json
+    sha256: ee28e90a8ceaabd7e49bad7137a082c9f05502074af27494846873e9bc294913
+  latent_response_summary:
+    path: >-
+      artifacts/evaluation/history3/tworoom_portal_exit_h3_release_v1/latent_response_summary.json
+    sha256: b7c9ebfcbd22e4c94f87e0a4d837e3f6580638c0c0a271d8e828893052ec99f3
+
+claim_boundary:
+  current: >-
+    物理与数据审计、三种子训练和一次性 Public Test 已完成。配对真实未来训练的
+    LeWM 将正确出口判断从基础模型的 50.20% 提高到三种子平均 83.92%，但 LeWM
+    和 PLDM 均为 0/3 通过冻结门槛，不能声称传送门出口位置 ICL 已稳定解决。
+    LeWM 的 latent 响应防伪门为 3/3 通过，但不能替代未通过的主预测门。
+    三个 LeWM 的标准 TwoRoom CEM 成功次数为 276/300、271/300 和 266/300，
+    相对基础模型 273/300 分别变化 +3、-2 和 -7，3/3 通过原任务保持要求。
+  does_not_prove:
+    - 已学会任意传送门数量或任意出口数量
+    - 已完成多步传送规划
+    - 已完成传送门出口与其他隐藏规则的组合 ICL
+
+distribution:
+  release_kind: local_data_and_scoring_release_candidate
+  code_license_status: not_declared
+  generated_data_license_status: not_declared
+  public_download_status: not_configured
+  public_artifact_urls: []
+  export_grants_redistribution_rights: false

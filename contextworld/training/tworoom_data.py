@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
@@ -19,7 +20,7 @@ from contextworld.evaluation.hidden_passage_h3_data import (
     shard_completion_marker_path,
     verify_hidden_passage_shard_completion,
 )
-from contextworld.paths import resolve_contextworld_path
+from contextworld.paths import artifact_root, resolve_contextworld_path
 
 from .groups import (
     ConcatenatedDataset,
@@ -35,6 +36,7 @@ from .episode_split import (
 
 
 MODEL_COLUMNS = ("pixels", "action", "proprio")
+TWOROOM_H5_ENV = "CONTEXTWORLD_TWOROOM_H5"
 CATALOG_BY_GROUP = {
     "speed": "speed",
     "speed_single_v2": "speed_single_v2",
@@ -49,6 +51,7 @@ CATALOG_BY_GROUP = {
     "passage_tiny_overfit": "passage_tiny_overfit",
     "action_delay_single": "action_delay_single",
     "action_delay_multi": "action_delay_multi",
+    "action_delay_paired": "action_delay_paired",
     "speed_door_composition": "speed_door_composition",
 }
 PASSAGE_GROUPS = (
@@ -322,7 +325,7 @@ def _load_training_exclusion_manifest(
         specification.get("query_count", 300)
     )
     if (
-        payload.get("schema_version") != 1
+        payload.get("schema_version") not in (1, 2)
         or not isinstance(records, list)
         or payload.get("query_count") != expected_query_count
         or len(records) != expected_query_count
@@ -2197,22 +2200,68 @@ def _factor_balanced_group(
     *,
     factors_by_path: dict[Path, dict[str, Any]],
     factor_key: str,
+    factor_value_groups: list[list[Any]] | None = None,
 ) -> tuple[ScenarioBalancedDataset, dict[str, Any]]:
     grouped: dict[str, list[Any]] = {}
     display_values: dict[str, Any] = {}
+    value_to_group: dict[str, str] = {}
+    if factor_value_groups is not None:
+        if not factor_value_groups or any(
+            not values for values in factor_value_groups
+        ):
+            raise ValueError(
+                "balance_factor_value_groups must contain non-empty groups"
+            )
+        for values in factor_value_groups:
+            group_identity = json.dumps(values, sort_keys=True)
+            for value in values:
+                value_identity = json.dumps(value, sort_keys=True)
+                if value_identity in value_to_group:
+                    raise ValueError(
+                        "A factor value appears in multiple balance groups: "
+                        f"{value!r}"
+                    )
+                value_to_group[value_identity] = group_identity
+            display_values[group_identity] = list(values)
     for path, scenario in zip(paths, scenarios):
         value = factors_by_path[path][factor_key]
-        identity = json.dumps(value, sort_keys=True)
+        value_identity = json.dumps(value, sort_keys=True)
+        identity = (
+            value_identity
+            if factor_value_groups is None
+            else value_to_group.get(value_identity)
+        )
+        if identity is None:
+            raise ValueError(
+                f"Factor value {value!r} is not assigned to a balance group"
+            )
         grouped.setdefault(identity, []).append(scenario)
-        display_values[identity] = value
+        if factor_value_groups is None:
+            display_values[identity] = value
+    if factor_value_groups is not None:
+        missing = sorted(set(display_values) - set(grouped))
+        if missing:
+            raise ValueError(
+                "Configured balance groups are absent from the data: "
+                f"{[display_values[value] for value in missing]}"
+            )
     factor_datasets = [
         ConcatenatedDataset(grouped[identity]) for identity in sorted(grouped)
     ]
     balanced = ScenarioBalancedDataset(factor_datasets)
     return balanced, {
-        "strategy": "factor_value_balanced_scenario_proportional",
+        "strategy": (
+            "factor_value_group_balanced_scenario_proportional"
+            if factor_value_groups is not None
+            else "factor_value_balanced_scenario_proportional"
+        ),
         "factor_key": factor_key,
-        "factor_values": len(grouped),
+        "factor_values": (
+            len(value_to_group)
+            if factor_value_groups is not None
+            else len(grouped)
+        ),
+        "balance_groups": len(grouped),
         "scenarios_per_factor": {
             identity: len(grouped[identity]) for identity in sorted(grouped)
         },
@@ -2282,6 +2331,7 @@ def _lance_scenarios(
     frameskip: int,
     num_steps: int,
     transform,
+    allowed_clip_start_raw_steps: list[int] | None = None,
 ) -> list[Any]:
     scenarios = []
     for path in paths:
@@ -2292,6 +2342,28 @@ def _lance_scenarios(
             keys_to_load=list(MODEL_COLUMNS),
             transform=transform,
         )
+        if allowed_clip_start_raw_steps is not None:
+            allowed = {
+                int(value) for value in allowed_clip_start_raw_steps
+            }
+            if not allowed or min(allowed) < 0:
+                raise ValueError(
+                    "allowed_clip_start_raw_steps must contain "
+                    "non-negative values"
+                )
+            available = set(dataset.clip_indices)
+            expected = {
+                (episode_index, start)
+                for episode_index in range(len(dataset.lengths))
+                for start in allowed
+            }
+            missing = sorted(expected - available)
+            if missing:
+                raise ValueError(
+                    f"Training scenario {path} does not contain the "
+                    f"required aligned clips: {missing[:5]}"
+                )
+            dataset.clip_indices = sorted(expected)
         if len(dataset) <= 0:
             raise ValueError(
                 f"Training scenario {path} has no clips for "
@@ -2299,6 +2371,52 @@ def _lance_scenarios(
             )
         scenarios.append(dataset)
     return scenarios
+
+
+def resolve_tworoom_original_h5(
+    configured: str | Path,
+    *,
+    repo_root: Path,
+    explicit: Path | None = None,
+) -> Path:
+    """Resolve the public TwoRoom source without a machine-specific path.
+
+    Formal recipes use ``upstream/lewm-tworooms/tworoom.h5``.  A published
+    Suite places that file below its benchmark root; a source checkout may set
+    ``CONTEXTWORLD_TWOROOM_H5`` instead.  ``explicit`` remains the highest
+    priority for existing launchers and tests.
+    """
+
+    if explicit is not None:
+        candidate = Path(explicit).expanduser().resolve()
+        if not candidate.is_file():
+            raise FileNotFoundError(candidate)
+        return candidate
+    environment = os.environ.get(TWOROOM_H5_ENV)
+    if environment:
+        candidate = Path(environment).expanduser().resolve()
+        if not candidate.is_file():
+            raise FileNotFoundError(candidate)
+        return candidate
+
+    logical = Path(configured)
+    candidates = [resolve_contextworld_path(logical, repo_root=repo_root)]
+    if logical.parts and logical.parts[0] == "upstream":
+        candidates.extend(
+            [
+                (repo_root / logical).resolve(),
+                (repo_root / "artifacts" / logical).resolve(),
+                (artifact_root(repo_root) / logical).resolve(),
+            ]
+        )
+    for candidate in dict.fromkeys(candidates):
+        if candidate.is_file():
+            return candidate
+    raise FileNotFoundError(
+        "TwoRoom H5 is not installed. Set "
+        f"{TWOROOM_H5_ENV} or place it at "
+        f"{(repo_root / logical).resolve()}"
+    )
 
 
 def build_tworoom_grouped_data(
@@ -2384,15 +2502,11 @@ def build_tworoom_grouped_data(
             config,
             repo_root=repo_root,
         )
-    original_path = (
-        Path(original_h5).expanduser().resolve()
-        if original_h5 is not None
-        else resolve_contextworld_path(
-            config["data"]["original_read_only"], repo_root=repo_root
-        )
+    original_path = resolve_tworoom_original_h5(
+        config["data"]["original_read_only"],
+        repo_root=repo_root,
+        explicit=original_h5,
     )
-    if not original_path.is_file():
-        raise FileNotFoundError(original_path)
 
     original = swm.data.HDF5Dataset(
         path=original_path,
@@ -2591,6 +2705,9 @@ def build_tworoom_grouped_data(
             frameskip=frameskip,
             num_steps=num_steps,
             transform=transform,
+            allowed_clip_start_raw_steps=quality.get(
+                "allowed_clip_start_raw_steps"
+            ),
         )
         val_scenarios = _lance_scenarios(
             swm,
@@ -2598,6 +2715,9 @@ def build_tworoom_grouped_data(
             frameskip=frameskip,
             num_steps=num_steps,
             transform=transform,
+            allowed_clip_start_raw_steps=quality.get(
+                "allowed_clip_start_raw_steps"
+            ),
         )
         balance_by_factor = quality.get("balance_by_factor")
         if balance_by_factor:
@@ -2609,12 +2729,18 @@ def build_tworoom_grouped_data(
                 train_scenarios,
                 factors_by_path=factors_by_path,
                 factor_key=str(balance_by_factor),
+                factor_value_groups=quality.get(
+                    "balance_factor_value_groups"
+                ),
             )
             val_groups[group], val_balancing = _factor_balanced_group(
                 val_paths,
                 val_scenarios,
                 factors_by_path=factors_by_path,
                 factor_key=str(balance_by_factor),
+                factor_value_groups=quality.get(
+                    "balance_factor_value_groups"
+                ),
             )
         elif quality.get("sampling_strategy") == "concatenated_raw_clips":
             train_groups[group] = ConcatenatedDataset(train_scenarios)
@@ -2665,6 +2791,9 @@ def build_tworoom_grouped_data(
             "pixel_codec": split_audit["pixel_codec"],
             "quality_requirements": quality,
             "static_quality_gates": static_gates,
+            "allowed_clip_start_raw_steps": quality.get(
+                "allowed_clip_start_raw_steps"
+            ),
         }
 
     train = LogicalGroupDataset(

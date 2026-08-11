@@ -1,428 +1,443 @@
-# ContextWorld：视觉世界模型的上下文规则学习基准
+# ContextWorld：Latent 世界模型的上下文学习评测
 
-ContextWorld 用于评测视觉世界模型能否从短期交互历史中识别当前环境的隐藏规则，并在
-不更新模型参数的情况下，将该规则用于未来预测。
+ContextWorld 用于评测 latent 世界模型能否从最近几步交互中识别隐藏的环境规律，并据此预测下一状态。模型在测试时不更新参数，也不能读取模拟器中的速度、门规则、动作延迟或物体质量等隐藏变量。
 
-v1 首先在 TwoRoom 环境中发布两项 History=3 任务：
+本项目主要面向 JEPA、LeWM 和 PLDM 等 latent 世界模型。评测不要求图像解码器，也不使用像素重建质量作为分数。仓库提供训练集、开发集、公开测试集、评分程序、参考基线和数据完整性审计。
 
-| 任务 | 隐藏规则 | 主要评测目标 |
-|---|---|---|
-| Speed | 智能体执行动作时移动多快 | 根据历史校准多步运动预测 |
-| Door Rule | 外观相同的门能否通过 | 根据历史选择正确的穿门结果 |
+## 1. 快速开始
 
-本版本包含训练数据、离线 Validation、评分工具和参考结果。隐藏 Test 不包含在发布包
-中。
+安装项目并查看 Benchmark：
 
-## 1. 基准概览
+```bash
+pip install -e .
 
-### 1.1 研究问题
-
-传统视觉预测可以直接利用当前画面中的物体、位置和几何信息。ContextWorld 关注另一类
-问题：当前画面不足以确定未来，模型必须结合刚刚发生的交互才能识别环境规则。
-
-以门任务为例，相同的门洞在一种环境中可以通过，在另一种环境中会阻挡智能体。当前
-画面和待执行动作完全相同，区别只存在于历史中。模型只有在看见之前的穿门结果后，
-才能正确预测下一次交互。
-
-这里的“上下文学习”特指推理时利用历史信息。评测过程中不进行梯度更新，也不修改
-checkpoint。
-
-### 1.2 History=3
-
-模型输入由三张连续 RGB 画面及其动作组成：
-
-```text
-观察 x0 --动作 u0--> 观察 x1 --动作 u1--> 当前观察 x2
+contextworld-benchmark info
+contextworld-benchmark results
+contextworld-benchmark audit --full
 ```
 
-模型看不到环境参数、坐标、规则标签或真实未来。所有用于评分的隐藏状态只保存在数据
-构建与审计记录中，不进入模型输入。
+评测一个模型时，选择对应任务并提供模型适配器和检查点。下面以 PushT 推手移动幅度为例：
 
-### 1.3 共同设计原则
+```bash
+contextworld-action-strength eval \
+  --adapter lewm \
+  --checkpoint /path/to/model.ckpt \
+  --model-name my-model \
+  --output /path/to/result.json
+```
 
-两项任务遵守同一套实验原则：
+八项任务的命令如下：
 
-- 固定当前画面和未来动作，只改变历史中展示的环境规则；
-- 提前运行环境并保存真实未来，模型评分阶段不再调用环境；
-- 每个 Eval 条件使用 `50 个 query × 6 个 Eval seed = 300` 个样本；
-- 单个 checkpoint 只产生描述性结果；
-- 训练方法的正式结果需要三个训练种子全部通过；
-- 预测准确性与 CEM 规划成功率分开报告。
-
-## 2. 任务定义
-
-### 2.1 Speed：从历史识别移动速度
-
-Speed 任务的当前画面不包含速度字段。模型需要根据相同动作在历史中造成的画面位移，
-判断当前环境移动得较慢还是较快。
-
-评测假设短期历史与待预测未来来自同一个稳定环境。对于每个参考速度，数据同时提供：
-
-- 与参考速度相同的历史；
-- 比参考速度慢的历史；
-- 比参考速度快的历史。
-
-范围外评测使用四档历史速度。历史条件只是受控比较，不向模型提供“正确”或“错误”
-标签。
-
-模型从真实三帧历史开始，连续预测第 1、2、3 和 5 个 action block 的未来。每个
-action block 对应 5 个原始环境步，中间不会用真实帧替换模型预测。
-
-### 2.2 Door Rule：从历史识别门的通行规则
-
-Door Rule 任务包含两种隐藏规则：
-
-| 规则 | 执行穿门动作后的真实结果 |
+| 任务 | 命令 |
 |---|---|
-| Passable | 智能体穿过墙 |
-| Blocked | 智能体停在墙边 |
+| TwoRoom 速度 | `contextworld-speed` |
+| TwoRoom 门通行规则 | `contextworld-door` |
+| TwoRoom 动作延迟 | `contextworld-action-delay` |
+| PushT 推手移动幅度 | `contextworld-action-strength` |
+| PushT 接触摩擦 | `contextworld-contact-friction` |
+| PushT 运动阻尼 | `contextworld-motion-damping` |
+| Reacher 机械臂质量 | `contextworld-reacher-arm-mass` |
+| TwoRoom 传送门出口位置 | `contextworld-portal-exit` |
 
-两种规则使用相同的门外观、当前画面和穿门动作。评测为同一个 query 提供三种历史：
+每个任务命令均提供以下子命令：
 
-| 历史条件 | 历史中发生的交互 | 在评分中的作用 |
-|---|---|---|
-| Observed passable | 智能体成功穿过门 | 应支持 Passable 预测 |
-| Observed blocked | 智能体撞门后停下 | 应支持 Blocked 预测 |
-| No attempt | 智能体没有尝试穿门 | 仅用于观察默认倾向 |
+- `info`：查看数据、评分规则和通过标准；
+- `audit --full`：校验数据、代码和结果文件；
+- `eval`：评测指定模型；
+- `train-plan` 或训练脚本的 `--dry-run`：查看参考训练配方，不启动训练。
 
-`No attempt` 没有展示门规则，因此没有唯一正确答案，不参与能力通过判定。
+## 2. Benchmark 包含什么
 
-Door Rule 与可见门位置泛化不同。门的位置可以从当前画面中直接看到；本任务隐藏的是
-门的物理通行规则。
+ContextWorld 目前覆盖三个环境和八种隐藏规律。
 
-## 3. 数据集
+| 任务 | 环境 | 历史长度 | 模型需要从历史中判断什么 | 参考基线状态 |
+|---|---|---:|---|---|
+| 速度 | TwoRoom | 3 | 相同动作会移动多远 | LeWM 在训练范围内通过 |
+| 门通行规则 | TwoRoom | 3 | 外观相同的门能否通过 | LeWM、PLDM 通过；规划能力退化 |
+| 动作延迟 | TwoRoom | 7 | 动作等待多少步才生效 | PLDM 通过，LeWM 未通过 |
+| 推手移动幅度 | PushT | 3 | 同一指令让推手移动较短还是较远 | LeWM 通过 |
+| 接触摩擦 | PushT | 3 | 推手接触物体时摩擦较小还是较大 | LeWM 未通过开发集 |
+| 运动阻尼 | PushT | 3 | 物体离开推手后减速较快还是较慢 | LeWM 未通过开发集 |
+| 机械臂质量 | Reacher | 3 | 相同力矩下机械臂较轻还是较重 | LeWM 通过，PLDM 未通过 |
+| 传送门出口位置 | TwoRoom | 3 | 进入相同入口后会从哪里离开 | LeWM、PLDM 均未通过 |
 
-### 3.1 发布包
+“参考基线未通过”不表示任务不能使用。八项任务均提供数据和评分接口；该状态只说明仓库附带的参考训练方法尚未解决对应任务。
 
-完整数据包约 25 GiB，顶层结构为：
+## 3. 评测协议
 
-```text
-ContextWorld-ICL-Benchmark-v1/
-├── README.md
-└── benchmark/
-    ├── suite.yaml
-    ├── inventory.json
-    ├── releases/
-    │   ├── speed.yaml
-    │   └── door.yaml
-    ├── synthesis/
-    ├── evaluation/
-    ├── splits/
-    ├── training/
-    └── upstream/
-        └── lewm-tworooms/
-            └── tworoom.h5
-```
+### 3.1 模型输入与输出
 
-`README.md` 是本说明文档。`benchmark/` 是统一数据根目录，其中的 YAML 和 JSON
-记录数据身份、评分规则和文件哈希，由工具自动读取。
+每个样本由历史上下文（History）和待预测状态（Query）组成：
 
-### 3.2 Speed 训练数据
+- 历史上下文包含最近的真实画面和已经执行的动作，用于展示隐藏规律造成的物理响应；
+- 待预测状态包含当前画面和下一步动作；
+- 模型输出执行该动作后的未来 latent。
 
-| 数据集 | 内容 | 大小 |
-|---|---|---:|
-| Original TwoRoom | 原始 `agent.speed=5` 数据 | 12,775,849,984 bytes |
-| Single-speed control | 合成速度固定为 5 | 6,405,310,504 bytes |
-| Multi-speed target | 32 个合成速度，范围 2.6～7.9 | 6,478,493,614 bytes |
+模型不能读取隐藏规律的名称或数值，也不能在评测过程中更新权重。只有当预测随历史中展示的规律改变，并接近模拟器产生的真实未来，才算正确。
 
-正式训练对照为：
+### 3.2 连续的真实轨迹
+
+一步配对任务使用以下因果链：
 
 ```text
-Single-speed control = 50% Original + 50% Single-speed
-Multi-speed target   = 50% Original + 50% Multi-speed
+x0 --u0--> x1 --u1--> x2（当前状态）--u2--> x3（真实下一状态）
 ```
 
-两组使用相同的场景请求、样本量、模型结构、normalizer、优化器、训练步数和
-checkpoint 选择方式。两组之间唯一有意改变的是合成数据中是否包含速度变化。
+每条轨迹都由同一个模拟器连续向前执行。`x1`、`x2` 和 `x3` 不能通过瞬移、手工写入状态或重新创建模拟器得到。
 
-### 3.3 Speed Validation
+一对样本分别使用两种隐藏规律。两条轨迹在查询时具有相同的当前状态 `x2`、查询动作 `u2` 和可见输入，但产生不同的真实未来 `x3`。模型必须利用历史中的物理响应区分两种规律。
 
-| 评测轨道 | 参考速度 | 与 Multi-speed 训练集的关系 |
-|---|---|---|
-| Seen | 3.1 / 5.1 / 7.0 | 训练中精确出现 |
-| Interpolation | 3.4 / 4.8 / 6.9 | 训练中未出现，但位于 2.6～7.9 内 |
-| Extrapolation low | 1.75 / 1.95 / 2.15 / 2.35 | 低于训练范围 |
-| Extrapolation high | 8.25 / 8.75 / 9.50 / 10.25 | 高于训练范围 |
+部分任务不要求两条轨迹共享 `x0`。遇到这种情况，数据生成器会交换两种规律的起点，并检查仅凭起点无法预测标签，防止模型利用无关线索。
 
-离线预测集包含 4,200 个 query payload。每个 payload 保存 History=3 输入、未来动作
-以及 h1、h2、h3、h5 的真实未来画面。
+### 3.3 数据划分
 
-发布包还提供固定候选动作和 CEM 规划数据，用于分析预测变化是否改善动作排序与闭环
-任务表现。规划结果属于支持性指标，不替代真实未来预测。
+- **训练集（Training）**用于训练模型；
+- **开发集（Development）**用于选择训练配方和超参数；
+- **公开测试集（Public Test）**用于报告最终结果。
 
-### 3.4 Door Rule 训练数据
+三个划分的场景、生成模板和查询哈希互不重叠。公开测试集不应参与模型选择或反复调参。
 
-Door Rule 数据由 TwoRoom 环境真实执行动作生成，不使用图像生成模型。每个场景成对
-生成 Passable 和 Blocked 两条轨迹；一对轨迹的门位置、起点、动作和采样设置相同，
-只改变隐藏通行规则。
+TwoRoom 任务常用六个数据生成种子，每个种子生成 50 个场景，共 300 个不同的查询。这里的种子用于生成不同的位置、方向和房间结构，不是对同一个查询重复加噪声。
 
-| 数据划分 | 门位置 | Clip 数量 |
-|---|---:|---:|
-| Training | 96 | 每种规则 7,680；合计 15,360 |
-| Loader Validation | 16 | 每种规则 1,280；合计 2,560 |
-| Benchmark Validation | 42 | 300 个独立 query |
+PushT、Reacher 和传送门出口位置任务通常包含 256 对查询。每对查询各有两种隐藏条件，因此每个模型检查点需要完成 512 次条件预测。
 
-门规则模型从同一个原始 History=3 LeWM checkpoint 初始化，并沿用原始 normalizer。
-门规则续训只采样成对合成数据，不混入 Original TwoRoom 样本。
+## 4. 评分方法
 
-### 3.5 Door Rule Validation
+### 4.1 Decoder-free latent 评测
 
-Validation 使用训练中完全未出现的 42 个门位置。六个 Eval seed 各包含 50 个 query，
-左右两个穿门方向各占 25 个。
-
-每个 query 保存：
-
-- 三种 History=3 输入；
-- 同一个待执行穿门动作；
-- Passable 和 Blocked 两张真实下一帧。
-
-因此，每个 checkpoint 共运行 900 次模型预测并计算 1,800 条目标 loss。评分阶段的
-在线环境调用数为 0，也不使用 CEM。
-
-### 3.6 数据隔离与完整性
-
-发布审计检查：
-
-- Training、Loader Validation 与 Benchmark Validation 的场景和门位置隔离；
-- query 图像、模板 ID 和 payload 哈希不与训练数据重合；
-- 配对轨迹除目标隐藏规则外保持一致；
-- 速度参数的环境 readback 与真实未来一致；
-- payload、catalog、normalizer、checkpoint 和代码文件的 SHA-256；
-- 所有 Eval seed 和每个条件的样本数。
-
-## 4. 评测方法
-
-### 4.1 真实未来 latent 误差
-
-每个 checkpoint 使用自己的冻结 Encoder 编码真实未来：
+评测直接比较预测 latent 与真实未来的 latent：
 
 ```text
-L_h = MSE(
-    模型自回归得到的预测 latent_h,
-    冻结 Encoder 编码的真实未来画面_h
-)
+历史上下文 + 当前画面 + 动作 ──被测模型──> 预测 latent z_hat
+模拟器真实下一帧 ──该模型的冻结目标编码器──> 目标 latent z
 ```
 
-不同 checkpoint 的 latent 尺度可能不同，因此原始 MSE 只用于同一个 checkpoint
-内部的配对比较，不能直接用于跨模型排名。
+真实下一帧已保存在测试集中，单步预测评测不需要在线运行模拟器。评分器只调用模型的编码器和 latent 预测器，不调用图像解码器。
 
-### 4.2 Speed 指标
+不同模型可以使用不同维度和尺度的 latent。距离只在同一个模型检查点的 latent 空间内计算，随后转换成任务正确或错误。不同模型的原始 latent MSE 没有共同单位，不能直接比较。
 
-| 指标 | 计算方式 | 解释 |
-|---|---|---|
-| Loss ratio | 同速度历史 loss ÷ 其他历史平均 loss | 越低越好；1 表示没有平均优势 |
-| Query win rate | 同速度历史优于其他历史平均值的 query 比例 | 衡量优势覆盖多少样本 |
-| Strict win rate | 同速度历史同时优于每一种其他历史的 query 比例 | 更严格的稳定性指标 |
+### 4.2 ICL 正确率
 
-四条速度轨道和四个预测 horizon 分开报告，不合并成一个总分。
+每个测试查询产生一个任务层面的正确或错误判断，所有查询的平均值即为 ICL 正确率：
 
-### 4.3 Door Rule 指标
+- 两种隐藏规律的配对任务：预测是否更接近当前规律对应的真实未来；
+- 门通行规则：预测是否更接近真实的“通过”或“被阻挡”结果；
+- 动作延迟：预测是否属于真实下一步对应的物理响应组；
+- 速度：由真实速度生成的历史是否同时优于另外两档速度历史。
 
-| 指标 | 计算方式 | 解释 |
-|---|---|---|
-| Next-frame choice accuracy | 有规则证据的历史是否选择正确真实下一帧 | 模型是否判断对门规则 |
-| History-guidance accuracy | 正确历史是否比相反历史带来更低 loss | 历史是否把预测推向正确结果 |
+同一任务中，不同模型使用完全相同的公开测试查询，因此正确率可以直接比较。若要声明模型 A 优于模型 B，还需要对相同查询的成对结果进行 bootstrap；只有正确率差的 95% 置信区间下界大于 0，才认为 A 稳定优于 B。
 
-正式通过还要求两个方向、六个 Eval seed 和 bootstrap 置信区间均满足冻结门槛，且两张
-真实下一帧在该 checkpoint 的 latent 中可以区分。
+不同任务测量的能力和难度不同。ContextWorld 分别报告每项任务，不计算跨任务平均分或 Suite 总分。
 
-### 4.4 方法级结果
+### 4.3 评分有效性
 
-单个 checkpoint 的通过结果只描述该模型。要报告一种训练方法稳定获得能力，需要训练
-种子 `3072、4096、5120` 的三个 checkpoint 全部通过。
+正确率之外，评分程序还会检查：
 
-Speed 的训练归因还要求 Multi-speed target 在三个配对种子上稳定优于
-Single-speed control。
+- 两种真实未来在被测模型的 latent 中能够区分；
+- 改变历史上下文会改变模型预测；
+- 预测变化的方向与真实未来一致；
+- 最弱隐藏条件和不同方向的样本均达到最低要求。
+
+连续配对任务还会使用同一模型检查点的真实目标响应对预测响应进行归一化。该检查可以排除“模型几乎不使用历史，只因距离微小差异碰巧选对目标”的假阳性。归一化响应和原始 latent 误差用于验证分数是否可信，不用于跨模型排名。
+
+### 4.4 多训练种子与规划能力
+
+参考训练方法使用三个独立训练种子。三个模型检查点分别评分，只有三者都达到任务标准，才记为该方法通过。结果中的“3/3”表示三个检查点分别通过，而不是把三个检查点的预测合并后计算一次分数。
+
+对于包含规划的环境，Benchmark 还报告原任务的 CEM 规划保持结果：
+
+- ICL 正确率衡量模型是否根据历史识别了隐藏规律；
+- CEM 成功率衡量加入新训练数据后，原有规划能力是否明显退化。
+
+两项结果分别报告，不合成为一个分数。某个方法可能学会隐藏规律，但同时损害原任务规划能力。
 
 ## 5. 参考结果
 
-### 5.1 Speed
+下表把未使用该能力训练集的“原始模型”与训练后模型分开列出。这样可以同时回答两个问题：新训练是否带来了 ICL 能力，以及它是否损害了原有规划能力。
 
-下表报告 Multi-speed target 的 `loss ratio / strict win rate`：
+- 原始模型一般只有一个参考检查点，表中标为“原始”；
+- 训练后结果来自三个独立训练种子，ICL 列报告三者平均，CEM 列同时给出平均值和三个单独结果；
+- “未评测”表示没有与现行公开测试协议一致的结果，不以旧指标或其他检查点代替。
 
-| 评测轨道 | h1 | h5 | 判定 |
-|---|---:|---:|---|
-| Seen | 0.104× / 97.0% | 0.328× / 81.3% | h1/h2/h3/h5 全部通过 |
-| Interpolation | 0.114× / 95.3% | 0.348× / 79.7% | h1/h2/h3/h5 全部通过 |
-| Extrapolation low | 0.998× / 26.2% | 0.995× / 25.9% | 全部未通过 |
-| Extrapolation high | 1.062× / 25.2% | 0.989× / 32.6% | 全部未通过 |
+| 任务 | 模型 | 训练状态 | ICL 主分数 | ICL 判定 | 原任务 CEM 成功率 | 规划判定 |
+|---|---|---|---:|---|---|---|
+| 速度 | LeWM | 原始 | 未按现行主指标评测 | 未判定 | 91.00%（273/300） | 参考值 |
+| 速度 | LeWM | 原 TwoRoom + 多速度数据 | 95.26% | 通过（3/3） | 平均 95.89%；96.33%、94.67%、96.67% | 保持 |
+| 门通行规则 | LeWM | 原始 | 50.00% | 未通过（单检查点） | 91.00%（273/300） | 参考值 |
+| 门通行规则 | LeWM | 固定图像编码器，使用门数据 | 100.00% | 通过（3/3） | 平均 63.67%；65.67%、63.00%、62.33% | 未保持 |
+| 门通行规则 | PLDM | 从同一原始 LeWM 初始化，使用门数据 | 99.33% | 通过（3/3） | 平均 45.89%；45.00%、44.00%、48.67% | 未保持 |
+| 动作延迟 | LeWM | 原始 | 未按现行 History=7 协议评测 | 未判定 | 91.00%（273/300） | 参考值 |
+| 动作延迟 | LeWM | 使用动作延迟数据 | 32.43% | 未通过（0/3） | 平均 97.33%；97.33%、97.33%、97.33% | 保持 |
+| 动作延迟 | PLDM | 两阶段动作延迟训练 | 93.36% | 通过（3/3） | 平均 96.22%；95.00%、97.33%、96.33% | 保持 |
+| 推手移动幅度 | LeWM | 原始 | 50.00% | 未通过（单检查点） | 75.00%（225/300） | 参考值 |
+| 推手移动幅度 | LeWM | 原 PushT + 移动幅度数据 | 96.61% | 通过（3/3） | 平均 74.67%；74.67%、72.00%、77.33% | 保持 |
+| 机械臂质量 | LeWM | 原始 | 50.00% | 未通过（单检查点） | 54.67%（164/300） | 参考值 |
+| 机械臂质量 | LeWM | 固定图像编码器，使用质量数据 | 76.11% | 通过（3/3） | 平均 54.00%；54.33%、54.33%、53.33% | 保持 |
+| 机械臂质量 | PLDM | 原始 | 50.39% | 未通过（单检查点） | 未评测（无同检查点 CEM） | 未判定 |
+| 机械臂质量 | PLDM | 使用质量数据 | 63.15% | 未通过（0/3） | 未评测 | 未判定 |
+| 传送门出口位置 | LeWM | 原始 | 50.20% | 未通过（单检查点） | 91.00%（273/300） | 参考值 |
+| 传送门出口位置 | LeWM | 固定图像编码器，使用出口数据 | 83.92% | 未通过（0/3） | 平均 90.33%；92.00%、90.33%、88.67% | 保持 |
+| 传送门出口位置 | PLDM | 使用出口数据 | 59.31% | 未通过（0/3） | 未评测 | 未判定 |
 
-Multi-speed target 在训练已见速度和区间内未见速度上均通过最长 h5 评测；低端和高端
-范围外速度均未通过。当前证据支持训练范围内的速度适应与插值，不支持范围外外推。
+对于门通行规则、动作延迟和传送门出口位置，PLDM 实验是从同一个原始 TwoRoom LeWM 检查点切换训练目标后继续训练，不存在可单独列出的“原始 TwoRoom PLDM”。因此表中不会虚构一行 PLDM 原始分数。Reacher 同时有 LeWM 和 PLDM 两个独立基础检查点，所以可以分别报告。
 
-### 5.2 Door Rule
+表中最明确的前后变化是：推手移动幅度的 LeWM 从 50.00% 提高到 96.61%，且 PushT CEM 基本不变；机械臂质量的 LeWM 从 50.00% 提高到 76.11%，且 Reacher CEM 基本不变；门通行规则的两种训练方法都学会了一步规则判断，却明显损害了 TwoRoom CEM。
 
-| 模型与训练方式 | 下一帧判断正确率 | 历史引导正确率 | 通过种子 |
-|---|---:|---:|---:|
-| Original History=3 LeWM | 50.00% | 51.33% | 0/1 |
-| LeWM joint training | 50.33% | 53.83% | 0/3 |
-| LeWM frozen representation | 100.00% | 100.00% | 3/3 |
-| PLDM joint training | 99.33% | 99.67% | 3/3 |
-| PLDM frozen representation | 100.00% | 100.00% | 3/3 |
-
-`Frozen representation` 从原始 LeWM checkpoint 初始化，并冻结其 Encoder 和
-Projector；它不是随机初始化 Encoder。
-
-PLDM joint training 在相同初始化、数据和训练预算下 3/3 通过，说明 Door Rule 数据
-与评测能够支持端到端学习。LeWM joint training 的失败属于模型训练问题，不构成
-Benchmark 数据无效的证据。
-
-## 6. 安装与数据准备
-
-### 6.1 安装代码
+接触摩擦和运动阻尼的参考 LeWM 没有达到开发集标准，因而没有使用公开测试集或运行正式 CEM。这两项的开发集结果见 6.5 和 6.6。机器可读结果可通过以下命令获得：
 
 ```bash
-git clone https://github.com/Anguo-star/ContextWorld.git
-git clone https://github.com/galilai-group/stable-worldmodel ../stable-worldmodel
-git -C ../stable-worldmodel checkout 5864b74980f6ed328fd0045e777b3865962eff43
-pip install -e .
+contextworld-benchmark results
 ```
 
-### 6.2 配置数据路径
+## 6. 任务定义
 
-解压数据包后：
+### 6.1 速度
+
+#### 任务目标
+
+模型根据最近两次移动，判断相同动作在当前 TwoRoom 环境中会移动多远。
+
+#### 数据构成
+
+参考配方将原 TwoRoom 数据与 32 档合成速度数据各占一半。公开测试分为训练中见过的速度、训练范围内未见速度、低于训练范围和高于训练范围四组；每个参考速度包含 300 个不同查询。
+
+#### 评测方法
+
+主要指标是训练范围内未见速度的一步严格正确率：真实速度生成的历史必须同时优于另外两档速度历史。每个参考速度和数据生成种子还需要保持一致方向，三个多速度模型也必须优于相同训练种子的单速度对照模型。1、2、3、5 步真实 latent 预测与 50、75、100 步 CEM 用于分析多步预测和规划表现。
+
+#### 基线表现
+
+原始 LeWM 的 TwoRoom CEM 为 273/300；由于原始速度结果使用过旧版评分方式，本文不把它与现行 ICL 主分数直接并列。训练后的三个多速度 LeWM 正确率分别为 94.89%、95.00% 和 95.89%，平均 95.26%，并稳定优于同种子的单速度对照模型。训练范围内的 1、2、3、5 步评测均通过；低于和高于训练范围的平均正确率分别为 26.19% 和 25.19%，均未通过。三个模型的原 TwoRoom CEM 分别为 289/300、284/300 和 290/300，均保持基础规划能力。
+
+#### 适用范围
+
+结果表明 History=3 能支持训练范围内的速度适应和未见速度插值，不代表模型能够外推到任意速度。
+
+### 6.2 门通行规则
+
+#### 任务目标
+
+模型根据历史中的穿门或碰壁结果，判断外观相同的门在当前环境中能否通过。
+
+#### 数据构成
+
+训练集覆盖 96 个门位置，开发集覆盖 16 个门位置，公开测试集使用训练中从未出现的 42 个门位置。公开测试集包含 300 个不同场景，两个穿门方向各占一半。
+
+#### 评测方法
+
+每个查询保存模拟器真实产生的“可通过”和“被阻挡”下一帧。主要指标是模型选择真实结果的正确率。评分程序还检查两种结果在 latent 中可分、历史确实改变判断，并分别验证两个穿门方向。原 TwoRoom CEM 对每个模型检查点评测 300 个相同查询，允许的最大下降为 15 次成功。
+
+#### 基线表现
+
+原始 LeWM 的 ICL 正确率为 50.00%，CEM 为 273/300。使用门数据训练后，固定预训练图像编码器的 LeWM 达到 100.00%，PLDM 达到 99.33%，两个方法的三个训练种子均通过 ICL。但三个 LeWM 的 CEM 只有 197、189、187/300，三个 PLDM 只有 135、132、146/300，均未达到 258/300 的规划保持标准。PLDM 由同一个原始 LeWM 检查点初始化，因此本任务没有独立的原始 PLDM 分数。
+
+#### 适用范围
+
+该任务验证一步门规则判断，不验证多步闭环穿门规划。当前参考训练方法会显著损害原 TwoRoom 规划能力。
+
+### 6.3 动作延迟
+
+#### 任务目标
+
+模型根据较长历史判断动作等待多少步才生效，并预测下一步真实物理响应。延迟范围为 0 至 10 个原始环境步。
+
+#### 数据构成
+
+任务使用 History=7。训练先覆盖差异明显的延迟 0、4、8，再覆盖完整的 0 至 10。公开测试集包含 300 个不同查询，每个查询保存 11 种延迟的真实轨迹。
+
+#### 评测方法
+
+根据真实下一步结果，将延迟分为 0、1、2、3、4 和 5–10 六个物理响应组。六组在每个查询内等权，再对 300 个查询求平均。通过标准为总体正确率至少 75%、最弱组至少 60%、配对 bootstrap 下界至少 70%，并要求三个训练种子分别满足标准。
+
+#### 基线表现
+
+原始 LeWM 的 CEM 为 273/300，但未按现行 History=7 协议评测 ICL，因此没有可直接比较的原始 ICL 分数。使用动作延迟训练集后，两阶段 PLDM 的三个正确率为 93.06%、93.22% 和 93.81%，均通过；使用相同数据和训练预算的 LeWM 为 33.00%、32.11% 和 32.17%，均未通过。两个方法都保持了原 TwoRoom CEM。
+
+#### 适用范围
+
+该结果验证 History=7 下的一步延迟响应，不验证未见延迟外推、多步自回归或隐藏延迟下的闭环规划。
+
+### 6.4 推手移动幅度
+
+#### 任务目标
+
+模型根据近期交互判断同一个二维动作会让 PushT 推手移动较短还是较远。两档环境参数为 60 和 140。
+
+#### 数据构成
+
+训练集包含 2,048 对场景，开发集和公开测试集各包含 256 对。参考配方混合原 PushT 数据与配对移动幅度数据。所有保存状态均来自连续模拟器轨迹。
+
+#### 评测方法
+
+主要指标是模型在两档条件下选择真实下一状态的正确率。评分程序同时验证历史使用、预测切换、最弱条件和 latent 响应。标准 PushT CEM 对每个模型检查点运行 300 次，规划保持标准为至少 210/300。
+
+#### 基线表现
+
+原始 PushT LeWM 的 ICL 正确率为 50.00%，标准 PushT CEM 为 225/300。加入移动幅度数据后，三个 LeWM 的正确率为 97.07%、96.48% 和 96.29%，平均 96.61%，均通过。它们的标准 PushT CEM 为 224/300、216/300 和 232/300，均保持基础规划能力。
+
+#### 适用范围
+
+该结果验证两档推手移动幅度的一步适应，不验证连续幅度估计、范围外外推或其他 PushT 动力学。
+
+### 6.5 接触摩擦
+
+#### 任务目标
+
+模型根据推手与物体接触时的历史响应，判断接触摩擦较小还是较大。两档摩擦系数为 0.05 和 0.80，运动阻尼保持不变。
+
+#### 数据构成
+
+数据集包含 8,192 对训练样本、256 对开发样本和 256 对公开测试样本。配对查询的当前完整物理状态误差不超过 `1e-5`，三个划分之间没有查询或生成模板重叠。
+
+#### 评测方法
+
+主要指标是模型选择真实下一状态的正确率。开发集还要求正确历史、预测切换和最弱摩擦条件分别达到标准。参考方法未达到开发集标准，因此没有使用公开测试集或运行 CEM。
+
+#### 基线表现
+
+参考 LeWM 在开发集上的真实未来正确率为 96.09%，但正确历史使用率为 90.23%，低于 95% 的标准。其余两个训练种子和公开测试集均未评测。
+
+#### 适用范围
+
+数据、评分程序和因果审计可用于评测新模型；现有结果不能说明参考 LeWM 已学会接触摩擦 ICL。
+
+### 6.6 运动阻尼
+
+#### 任务目标
+
+PushT 是零重力平面。该任务根据接触结束后的运动历史，判断物体减速较快还是较慢。两档阻尼为 0.2 和 1.0，接触摩擦保持不变。
+
+#### 数据构成
+
+数据集包含 8,192 对训练样本、256 对开发样本和 256 对公开测试样本。配对场景在查询时具有相同的 12 维物理状态、画面和动作；正反样本交换起点，使仅凭起点预测标签的准确率为 50%。全部 17,408 条条件均可由干净模拟器重放。
+
+#### 评测方法
+
+主要指标是模型选择真实下一状态的正确率。开发集还要求正确历史、预测切换和最弱阻尼条件达到标准。参考方法未达到开发集标准，因此没有使用公开测试集或运行 CEM。
+
+#### 基线表现
+
+参考 LeWM 在开发集上的真实未来正确率为 97.46%，但正确历史使用率为 52.93%，低于 95% 的标准。其余两个训练种子和公开测试集均未评测。
+
+#### 适用范围
+
+任务数据、评分程序和历史可观测性已通过审计；现有结果不能说明参考 LeWM 已学会运动阻尼 ICL。
+
+### 6.7 机械臂质量
+
+#### 任务目标
+
+模型根据相同力矩下的近期运动，判断 Reacher 机械臂的主体与末端较轻还是较重。两档密度为 500 和 1500；环境实际改变 `arm` 主体连杆和 `finger` 末端球，`hand` 第二连杆保持原始密度。
+
+#### 数据构成
+
+训练集包含 2,048 对场景，开发集和公开测试集各包含 256 对。配对查询共享当前画面、完整状态和查询动作，历史与真实下一状态展示两档质量造成的不同响应。
+
+#### 评测方法
+
+主要指标是模型选择真实下一状态的正确率。评分程序还检查正确历史、预测切换、最弱质量条件、bootstrap 和 latent 响应。三个训练种子需要分别达到标准。标准 Reacher CEM 相对对应基础模型最多允许减少 15/300 次成功。
+
+#### 基线表现
+
+原始 LeWM 和原始 PLDM 的 ICL 正确率分别为 50.00% 和 50.39%，都没有表现出机械臂质量 ICL。使用质量数据训练后，固定预训练图像编码器的 LeWM 三个正确率为 76.17%、76.56% 和 75.59%，均通过；PLDM 为 63.48%、62.70% 和 63.28%，均未通过。原始 LeWM 的 CEM 为 164/300，三个训练后 LeWM 为 163、163、160/300，均保持规划能力。原始和训练后 PLDM 的 CEM 都未在同一检查点上评测。
+
+#### 适用范围
+
+该结果验证两档机械臂质量的一步 ICL，不验证连续质量估计、范围外外推或多步闭环控制。
+
+### 6.8 传送门出口位置
+
+#### 任务目标
+
+模型根据历史中的传送结果，判断进入同一个入口后会从靠近边界还是离边界更远的位置出现。
+
+#### 数据构成
+
+训练集包含 2,048 对场景，开发集和公开测试集各包含 256 对。两种规律各自从真实起点连续向前执行，在查询前汇合到相同当前状态；相同当前画面和动作随后对应两个模拟器真实出口。
+
+#### 评测方法
+
+主要指标是模型选择真实出口下一状态的正确率。评分程序还检查正确历史、预测切换、最弱出口条件、bootstrap 和 latent 响应。三个训练种子需要分别达到标准。原 TwoRoom CEM 最多允许比基础模型减少 15/300 次成功。
+
+#### 基线表现
+
+原始 LeWM 的 ICL 正确率为 50.20%，CEM 为 273/300。使用出口位置数据训练后，LeWM 三个正确率为 85.55%、83.20% 和 83.01%，仍未通过完整标准；PLDM 为 59.77%、58.59% 和 59.57%，同样均未通过。LeWM 的 latent 响应检查通过，但主预测指标未通过。三个训练后 LeWM 的 CEM 为 276、271、266/300，均保持规划能力；PLDM 没有独立原始检查点，训练后 CEM 也未评测。
+
+#### 适用范围
+
+该任务已具备训练和评分条件，但参考方法尚未稳定解决。它不验证连续出口坐标、范围外出口或多步传送规划。
+
+## 7. 接入新的 latent 世界模型
+
+当前代码直接支持 Stable-WorldModel 中的 LeWM 和 PLDM。其他模型需要实现 `contextworld.benchmarks.adapters.LatentWorldModelAdapter`，提供：
+
+- `encode_pixels`：使用模型的冻结目标编码器，将真实未来画面编码为目标 latent；
+- `rollout_latents`：根据历史上下文、当前画面和查询动作预测未来 latent；
+- `protocol`：声明历史长度、动作组织方式和预测步数；
+- `metadata` 与 `frozen_state_hash`：记录模型身份，并确认评测前后权重没有变化。
+
+适配器不需要提供图像解码器，也不要求固定的 latent 维度或网络结构。
+
+跨模型比较必须使用相同公开测试集和相同查询 ID 的任务正确率。请勿直接比较不同模型的原始 latent MSE。
+
+## 8. 结果复现与数据获取
+
+### 8.1 结果文件
+
+完整结果应记录任务 release ID、公开测试集 manifest SHA、代码版本、训练配方、三个训练种子、模型检查点 SHA、逐种子 ICL 正确率和原任务 CEM 状态。
+
+统一结果文件可由机器可读规范生成：
 
 ```bash
-export CONTEXTWORLD_BENCHMARK=/path/to/ContextWorld-ICL-Benchmark-v1
-export CONTEXTWORLD_ARTIFACT_ROOT=$CONTEXTWORLD_BENCHMARK/benchmark
-export CONTEXTWORLD_TWOROOM_H5=$CONTEXTWORLD_BENCHMARK/benchmark/upstream/lewm-tworooms/tworoom.h5
+contextworld-scoreboard \
+  --input /path/to/formal-results.json \
+  --output /path/to/scoreboard.json
 ```
 
-### 6.3 验证数据
+### 8.2 数据路径
 
-完整审计会重新计算训练数据树、原始 H5 和全部 Eval payload 的哈希：
+从源码运行时，可通过环境变量指定 ContextWorld 产物和 Stable-WorldModel 上游数据：
 
 ```bash
-contextworld-benchmark \
-  --release-config $CONTEXTWORLD_BENCHMARK/benchmark/suite.yaml \
-  audit --full
+export CONTEXTWORLD_ARTIFACT_ROOT=/path/to/contextworld-artifacts
+export CONTEXTWORLD_TWOROOM_H5=/path/to/tworoom.h5
+export CONTEXTWORLD_TWOROOM_LANCE=/path/to/lewm_tworoom.lance
+export CONTEXTWORLD_PUSHT_H5=/path/to/pusht_expert_train.h5
+export CONTEXTWORLD_PUSHT_LANCE=/path/to/lewm_pusht.lance
+export CONTEXTWORLD_PUSHT_INIT_CHECKPOINT=/path/to/pusht_lewm_weights.ckpt
+export CONTEXTWORLD_REACHER_H5=/path/to/reacher.h5
+export CONTEXTWORLD_REACHER_LANCE=/path/to/lewm_reacher.lance
+export CONTEXTWORLD_REACHER_LEWM_INIT_CHECKPOINT=/path/to/reacher_lewm_weights.ckpt
+export CONTEXTWORLD_REACHER_PLDM_INIT_CHECKPOINT=/path/to/reacher_pldm_weights.ckpt
 ```
 
-输出 `passed=true` 后，数据包才可用于正式 Validation。
-
-只检查其中一个任务：
+### 8.3 导出完整 Benchmark
 
 ```bash
-contextworld-benchmark \
-  --release-config $CONTEXTWORLD_BENCHMARK/benchmark/suite.yaml \
-  audit --component speed
-
-contextworld-benchmark \
-  --release-config $CONTEXTWORLD_BENCHMARK/benchmark/suite.yaml \
-  audit --component door
+contextworld-benchmark export \
+  --destination /path/to/contextworld-release \
+  --mode copy
 ```
 
-## 7. 运行评测
+导出目录包含一个入口文档和统一的 `benchmark/` 数据目录：
 
-### 7.1 Speed
-
-检查冻结训练配方：
-
-```bash
-contextworld-speed \
-  --release-config $CONTEXTWORLD_BENCHMARK/benchmark/releases/speed.yaml \
-  train-plan \
-  --recipe multi_speed_target \
-  --seed 3072
+```text
+README.md
+benchmark/
+  suite.yaml
+  inventory.json
+  releases/
 ```
 
-评测一个 LeWM checkpoint：
+`suite.yaml` 描述全部任务，`releases/` 保存各任务配置，`inventory.json` 保存文件清单与哈希。机器可读的参考结果也会随导出目录提供。
 
-```bash
-contextworld-speed \
-  --release-config $CONTEXTWORLD_BENCHMARK/benchmark/releases/speed.yaml \
-  eval \
-  --checkpoint /path/to/weights.pt \
-  --model-name my-speed-model \
-  --training-role multi_speed_target \
-  --training-seed 3072 \
-  --output speed-s3072.json
-```
+## 9. 适用范围与已知限制
 
-完整方法报告需要三个 Multi-speed target 结果和三个同种子的 Single-speed control
-结果，并使用 `contextworld-speed aggregate` 汇总。
+ContextWorld 的结论仅覆盖本文列出的环境、隐藏规律、历史长度和参数范围。当前任务不用于证明：
 
-### 7.2 Door Rule
+- 一个模型能够同时解决全部八项能力；
+- 模型能够处理多种隐藏规律同时变化；
+- 模型能够外推到任意未见参数；
+- 一步预测能力必然转化为所有任务上的闭环规划能力。
 
-查看参考训练命令：
-
-```bash
-contextworld-door \
-  --release-config $CONTEXTWORLD_BENCHMARK/benchmark/releases/door.yaml \
-  train-plan \
-  --recipe pldm_joint \
-  --training-seed 3072
-```
-
-评测一个 PLDM 或 LeWM checkpoint：
-
-```bash
-contextworld-door \
-  --release-config $CONTEXTWORLD_BENCHMARK/benchmark/releases/door.yaml \
-  eval \
-  --adapter pldm \
-  --checkpoint /path/to/weights.pt \
-  --model-name my-door-model \
-  --training-recipe my-method \
-  --training-seed 3072 \
-  --output door-s3072.json
-```
-
-三个训练种子分别评测后，使用 `contextworld-door score` 重新计算并汇总方法结果。
-
-## 8. 结果报告规范
-
-公开结果应同时给出：
-
-- ContextWorld release ID；
-- component release ID；
-- checkpoint SHA-256；
-- 模型 adapter 与训练配方；
-- 训练种子和 Eval seed；
-- 每条轨道、每个 horizon 的独立结果；
-- 单 checkpoint 结果或三种子方法结果；
-- 是否运行完整 `50×6`；
-- 是否包含固定候选或 CEM 支持性评测。
-
-不应：
-
-- 将原始 latent MSE 跨 checkpoint 直接比较；
-- 将 loss ratio 称为准确率；
-- 将有限预算下的 CEM 成功率单独解释为上下文学习；
-- 将 Validation 结果描述为隐藏 Test 排行榜；
-- 将 Speed 的区间内插值扩大为任意速度外推；
-- 将 Door 的一步预测扩大为长距离导航能力。
-
-## 9. 复现范围与版本管理
-
-统一发布由 `benchmark/suite.yaml` 固定代码文件、组件 release、公开文档和数据清单。
-`contextworld-benchmark audit` 会检查代码与数据是否属于同一版本。
-
-v1 的结论范围为：
-
-- TwoRoom；
-- History=3；
-- Speed 的 h1/h2/h3/h5 离线真实未来；
-- Door Rule 的一步离线真实未来；
-- Validation 数据；
-- Stable-WorldModel LeWM，以及 Door 的 PLDM 参考实现。
-
-v1 不包含隐藏 Test、History>3、Door 长距离规划或多因素组合任务。
-
-当前代码和数据已形成可完整审计的 Validation release candidate。正式公共分发还需要
-在代码仓中声明源码与自产数据许可证，并配置稳定的公开下载地址。
-
-## 10. 扩展新的 ContextWorld 任务
-
-新增任务作为新的 component 注册到统一 suite，不建立另一套数据根或并列总文档。
-每个 component 需要提供：
-
-1. 冻结的任务与数据清单；
-2. Training、Validation 和隔离审计；
-3. 模型 adapter；
-4. 评分器与方法级门槛；
-5. 命令行入口；
-6. 本文中的任务、数据、指标和结果章节。
-
-Action Delay、更长 History 和组合因素可以沿用这一结构加入后续版本，同时保持统一的
-安装方式、数据根和结果格式。
+公开测试集用于最终结果报告，不应替代开发集进行调参。当前仓库可完成本地技术审计和导出；公开分发前还需要补充代码与生成数据许可证以及稳定下载地址。

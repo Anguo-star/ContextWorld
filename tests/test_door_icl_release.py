@@ -16,6 +16,7 @@ from contextworld.benchmarks.door_icl_data import (
     DoorICLEvalDataset,
     RELEASE_ID,
     _tree_fingerprint,
+    door_icl_export_entries,
     load_door_icl_release,
 )
 from contextworld.benchmarks.door_icl_score import (
@@ -173,13 +174,51 @@ def _release_config(tmp_path: Path) -> Path:
     return path
 
 
-def test_default_release_is_validation_only() -> None:
+def test_default_release_includes_public_test() -> None:
     release = load_door_icl_release()
-    assert release["release_status"] == "validation_release_candidate"
+    assert release["release_status"] == "public_test_release_candidate"
+    assert release["scope"]["public_test_included"] is True
     assert release["scope"]["sealed_test_included"] is False
     assert release["evaluation"]["queries"] == 300
     assert release["evaluation"]["model_predictions_per_checkpoint"] == 900
     assert release["evaluation"]["loss_records_per_checkpoint"] == 1800
+
+
+def test_default_release_contains_only_current_reference_methods() -> None:
+    release = load_door_icl_release()
+    assert set(release["reference_results"]) == {
+        "lewm_fixed_representation",
+        "pldm_joint",
+        "original_task_retention",
+    }
+    assert set(release["training"]["recipes"]) == {
+        "lewm_fixed_representation",
+        "pldm_joint",
+    }
+    for name in ("lewm_fixed_representation", "pldm_joint"):
+        specification = release["reference_results"][name]
+        assert specification["files"] == 4
+        assert specification["training_seeds"] == [3072, 4096, 5120]
+    retention = release["reference_results"]["original_task_retention"]
+    assert retention["kind"] == "result_tree"
+    assert retention["files"] == 87
+
+
+def test_door_export_inventory_excludes_historical_diagnostics() -> None:
+    release = load_door_icl_release()
+    entries = door_icl_export_entries(release)
+    logical_paths = {path for path, _kind in entries}
+    assert len(entries) == 8
+    assert (
+        "artifacts/evaluation/history3/hidden_passage_validation_v2"
+        in logical_paths
+    )
+    assert (
+        "artifacts/evaluation/history3/door_rule_cem_retention_v1"
+        in logical_paths
+    )
+    assert not any("lewm_baselines" in path for path in logical_paths)
+    assert not any("feasibility" in path for path in logical_paths)
 
 
 def test_tree_fingerprint_detects_same_size_content_change(

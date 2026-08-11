@@ -24,21 +24,29 @@ IMAGENET_STD = (0.229, 0.224, 0.225)
 
 @dataclass(frozen=True)
 class AdapterProtocol:
-    """Input/output contract required by the Speed ICL evaluator."""
+    """Input/output contract for a latent-world-model evaluator.
+
+    A model encodes simulator-rendered target frames and predicts future
+    latents in that same checkpoint-native space.  ContextWorld never asks it
+    to reconstruct pixels, so a decoder is neither required nor called.
+    """
 
     history_tokens: int
     action_block_raw_steps: int
     action_dim: int
     future_action_blocks: int
     native_target_encoder: bool = True
+    decoder_required: bool = False
 
 
 class SpeedICLModelAdapter(ABC):
-    """Model-independent boundary used by the public Speed ICL scorer.
+    """Model-independent latent boundary used by public ICL scorers.
 
     Adapters receive raw uint8 RGB frames and raw environment actions.  This
     keeps model-specific image transforms, action normalization and latent
-    representation choices outside the benchmark dataset.
+    representation choices outside the benchmark dataset.  The evaluator
+    compares predictions only with targets encoded by the same frozen model;
+    it never requires a generative image decoder.
     """
 
     @property
@@ -89,6 +97,9 @@ class StableWorldModelLeWMAdapter(SpeedICLModelAdapter):
     """Tested adapter for the pinned Stable-WorldModel LeWM checkpoint format."""
 
     adapter_id = "stable_worldmodel_lewm_v1"
+    required_history_tokens = 3
+    maximum_future_action_blocks = 5
+    raw_action_dim = 2
 
     def __init__(
         self,
@@ -102,22 +113,40 @@ class StableWorldModelLeWMAdapter(SpeedICLModelAdapter):
     ) -> None:
         self.model = model.to(device).eval()
         self.model.requires_grad_(False)
-        setattr(self.model, "history_size", 3)
+        setattr(self.model, "history_size", self.required_history_tokens)
         setattr(self.model, "interpolate_pos_encoding", True)
-        inferred = infer_model_protocol(self.model, action_dim=2)
+        action_dim = int(self.raw_action_dim)
+        if action_dim <= 0:
+            raise ValueError(f"Invalid raw action dimension: {action_dim}")
+        normalizer_mean = np.asarray(action_standardizer.mean)
+        normalizer_std = np.asarray(action_standardizer.std)
+        if (
+            normalizer_mean.ndim == 0
+            or normalizer_std.ndim == 0
+            or normalizer_mean.shape[-1] != action_dim
+            or normalizer_std.shape[-1] != action_dim
+        ):
+            raise ValueError(
+                "Action normalizer dimension does not match the adapter "
+                f"protocol: expected {action_dim}, got "
+                f"mean={normalizer_mean.shape}, std={normalizer_std.shape}"
+            )
+        inferred = infer_model_protocol(self.model, action_dim=action_dim)
         self._protocol = AdapterProtocol(
             history_tokens=int(inferred["history_size"]),
             action_block_raw_steps=int(inferred["action_block"]),
-            action_dim=2,
-            future_action_blocks=5,
+            action_dim=action_dim,
+            future_action_blocks=self.maximum_future_action_blocks,
         )
-        if self._protocol.history_tokens != 3:
+        if self._protocol.history_tokens != self.required_history_tokens:
             raise RuntimeError(
-                f"Speed ICL v1 requires History-3, got {self._protocol}"
+                f"{self.adapter_id} requires History-"
+                f"{self.required_history_tokens}, got {self._protocol}"
             )
         if self._protocol.action_block_raw_steps != 5:
             raise RuntimeError(
-                f"Speed ICL v1 requires action block 5, got {self._protocol}"
+                f"{self.adapter_id} requires action block 5, got "
+                f"{self._protocol}"
             )
         self.checkpoint = checkpoint.resolve()
         self.checkpoint_sha256 = file_sha256(self.checkpoint)
@@ -258,10 +287,13 @@ class StableWorldModelLeWMAdapter(SpeedICLModelAdapter):
                     history_size=self.protocol.history_tokens,
                 )["predicted_emb"][:, 0]
                 predicted = result[:, self.protocol.history_tokens :]
-                # ``action_tensor`` has one action token per transition.  A
-                # History-3 input consumes two context actions, so T actions
-                # request T-2 future predictions.
-                expected_future = action_tensor.shape[1] - 2
+                # ``action_tensor`` has one token per transition.  History H
+                # consumes H-1 context actions, so T action tokens request
+                # T-(H-1) future predictions.
+                expected_future = (
+                    action_tensor.shape[1]
+                    - (self.protocol.history_tokens - 1)
+                )
                 if not 1 <= expected_future <= self.protocol.future_action_blocks:
                     raise ValueError(
                         f"Requested unsupported future length {expected_future}"
@@ -286,16 +318,273 @@ class StableWorldModelPLDMAdapter(StableWorldModelLeWMAdapter):
     adapter_id = "stable_worldmodel_pldm_v1"
 
 
-# Door and Speed use the same raw-pixel/action interface.  This public alias
-# lets integrations describe their purpose without inheriting a speed-named
-# type; existing Speed integrations remain fully compatible.
+class StableWorldModelLeWMHistory7Adapter(StableWorldModelLeWMAdapter):
+    """LeWM adapter for the History-7 Action Delay benchmark."""
+
+    adapter_id = "stable_worldmodel_lewm_history7_v1"
+    required_history_tokens = 7
+    maximum_future_action_blocks = 3
+
+
+class StableWorldModelPLDMHistory7Adapter(StableWorldModelPLDMAdapter):
+    """PLDM adapter for the History-7 Action Delay benchmark."""
+
+    adapter_id = "stable_worldmodel_pldm_history7_v1"
+    required_history_tokens = 7
+    maximum_future_action_blocks = 3
+
+
+class StableWorldModelLeWMActionStrengthAdapter(
+    StableWorldModelLeWMAdapter
+):
+    """History-3 LeWM adapter with the frozen PushT action statistics."""
+
+    adapter_id = "stable_worldmodel_lewm_action_strength_v1"
+
+    @classmethod
+    def from_checkpoint(
+        cls,
+        checkpoint: Path,
+        *,
+        action_mean: tuple[float, float] | list[float],
+        action_std: tuple[float, float] | list[float],
+        repo_root: Path,
+        stablewm_repo: str,
+        stablewm_ref: str,
+        device: str,
+    ) -> "StableWorldModelLeWMActionStrengthAdapter":
+        checkpoint = Path(checkpoint).expanduser().resolve()
+        swm, stable_repo, stable_commit = load_stable_worldmodel(
+            repo_root, stablewm_repo, stablewm_ref
+        )
+        model = load_pretrained_cost_model(
+            checkpoint,
+            swm,
+            cache_dir=artifact_path(
+                "evaluation/model_cache",
+                repo_root=repo_root,
+            ),
+        )
+        return cls(
+            model=model,
+            checkpoint=checkpoint,
+            stable_repo=stable_repo,
+            stable_commit=stable_commit,
+            action_standardizer=ColumnStandardizer(
+                np.asarray(action_mean, dtype=np.float32)[None],
+                np.asarray(action_std, dtype=np.float32)[None],
+            ),
+            device=device,
+        )
+
+
+class StableWorldModelPLDMActionStrengthAdapter(
+    StableWorldModelLeWMActionStrengthAdapter
+):
+    """History-3 PLDM adapter for PushT Action Strength checkpoints."""
+
+    adapter_id = "stable_worldmodel_pldm_action_strength_v1"
+
+
+class StableWorldModelLeWMContactFrictionAdapter(
+    StableWorldModelLeWMActionStrengthAdapter
+):
+    """History-3 LeWM adapter for PushT Contact Friction checkpoints."""
+
+    adapter_id = "stable_worldmodel_lewm_contact_friction_v1"
+
+
+class StableWorldModelPLDMContactFrictionAdapter(
+    StableWorldModelLeWMContactFrictionAdapter
+):
+    """History-3 PLDM adapter for PushT Contact Friction checkpoints."""
+
+    adapter_id = "stable_worldmodel_pldm_contact_friction_v1"
+
+
+class StableWorldModelLeWMMotionDampingAdapter(
+    StableWorldModelLeWMActionStrengthAdapter
+):
+    """History-3 LeWM adapter for PushT Motion Damping checkpoints."""
+
+    adapter_id = "stable_worldmodel_lewm_motion_damping_v1"
+
+
+class StableWorldModelPLDMMotionDampingAdapter(
+    StableWorldModelLeWMMotionDampingAdapter
+):
+    """History-3 PLDM adapter for PushT Motion Damping checkpoints."""
+
+    adapter_id = "stable_worldmodel_pldm_motion_damping_v1"
+
+
+class StableWorldModelLeWMPortalExitAdapter(
+    StableWorldModelLeWMActionStrengthAdapter
+):
+    """History-3 LeWM adapter for the TwoRoom Portal Exit benchmark."""
+
+    adapter_id = "stable_worldmodel_lewm_portal_exit_v1"
+
+
+class StableWorldModelPLDMPortalExitAdapter(
+    StableWorldModelLeWMPortalExitAdapter
+):
+    """History-3 PLDM adapter for the TwoRoom Portal Exit benchmark."""
+
+    adapter_id = "stable_worldmodel_pldm_portal_exit_v1"
+
+
+class StableWorldModelLeWMReacherArmMassAdapter(
+    StableWorldModelLeWMActionStrengthAdapter
+):
+    """History-3 LeWM adapter for Reacher arm-mass checkpoints."""
+
+    adapter_id = "stable_worldmodel_lewm_reacher_arm_mass_v1"
+    model_config_name = "lewm"
+    action_input_dim = 10
+
+    @classmethod
+    def from_checkpoint(
+        cls,
+        checkpoint: Path,
+        *,
+        action_mean: tuple[float, float] | list[float],
+        action_std: tuple[float, float] | list[float],
+        repo_root: Path,
+        stablewm_repo: str,
+        stablewm_ref: str,
+        device: str,
+    ) -> "StableWorldModelLeWMReacherArmMassAdapter":
+        checkpoint = Path(checkpoint).expanduser().resolve()
+        if checkpoint.suffix == ".pt":
+            return super().from_checkpoint(
+                checkpoint,
+                action_mean=action_mean,
+                action_std=action_std,
+                repo_root=repo_root,
+                stablewm_repo=stablewm_repo,
+                stablewm_ref=stablewm_ref,
+                device=device,
+            )
+        if checkpoint.suffix != ".ckpt":
+            raise ValueError(
+                "Reacher adapter expects a .pt or legacy .ckpt checkpoint"
+            )
+
+        import torch
+        from hydra.utils import instantiate
+        from omegaconf import OmegaConf, open_dict
+
+        _, stable_repo, stable_commit = load_stable_worldmodel(
+            repo_root, stablewm_repo, stablewm_ref
+        )
+        config = OmegaConf.load(
+            stable_repo
+            / f"scripts/train/config/{cls.model_config_name}.yaml"
+        )
+        with open_dict(config):
+            config.model.action_encoder.input_dim = cls.action_input_dim
+        model = instantiate(config.model)
+        payload = torch.load(
+            checkpoint, map_location="cpu", weights_only=False
+        )
+        state = payload.get("state_dict") if isinstance(payload, dict) else None
+        if not isinstance(state, dict):
+            raise ValueError(
+                f"Legacy Reacher checkpoint has no state_dict: {checkpoint}"
+            )
+        model_state = {
+            name.removeprefix("model."): value
+            for name, value in state.items()
+            if name.startswith("model.")
+        }
+        if not model_state:
+            raise ValueError(
+                f"Legacy Reacher checkpoint has no model.* tensors: {checkpoint}"
+            )
+        model.load_state_dict(model_state, strict=True)
+        return cls(
+            model=model,
+            checkpoint=checkpoint,
+            stable_repo=stable_repo,
+            stable_commit=stable_commit,
+            action_standardizer=ColumnStandardizer(
+                np.asarray(action_mean, dtype=np.float32)[None],
+                np.asarray(action_std, dtype=np.float32)[None],
+            ),
+            device=device,
+        )
+
+
+class StableWorldModelPLDMReacherArmMassAdapter(
+    StableWorldModelLeWMReacherArmMassAdapter
+):
+    """History-3 PLDM adapter for Reacher arm-mass checkpoints."""
+
+    adapter_id = "stable_worldmodel_pldm_reacher_arm_mass_v1"
+    model_config_name = "pldm"
+
+
+class StableWorldModelLeWMCubeGraspRuleAdapter(
+    StableWorldModelLeWMReacherArmMassAdapter
+):
+    """History-3 LeWM adapter for the Cube grasp-rule benchmark."""
+
+    adapter_id = "stable_worldmodel_lewm_cube_grasp_rule_v1"
+    model_config_name = "lewm"
+    raw_action_dim = 5
+    action_input_dim = 25
+
+
+class StableWorldModelPLDMCubeGraspRuleAdapter(
+    StableWorldModelLeWMCubeGraspRuleAdapter
+):
+    """History-3 PLDM adapter for the Cube grasp-rule benchmark."""
+
+    adapter_id = "stable_worldmodel_pldm_cube_grasp_rule_v1"
+    model_config_name = "pldm"
+
+
+# These components use the same raw-pixel/action boundary.  Public aliases
+# let integrations describe the tested capability without inheriting a
+# speed-named type; existing Speed integrations remain fully compatible.
+LatentWorldModelAdapter = SpeedICLModelAdapter
 DoorICLModelAdapter = SpeedICLModelAdapter
+ActionDelayICLModelAdapter = SpeedICLModelAdapter
+ActionStrengthICLModelAdapter = SpeedICLModelAdapter
+ContactFrictionICLModelAdapter = SpeedICLModelAdapter
+MotionDampingICLModelAdapter = SpeedICLModelAdapter
+PortalExitICLModelAdapter = SpeedICLModelAdapter
+ReacherArmMassICLModelAdapter = SpeedICLModelAdapter
+CubeGraspRuleICLModelAdapter = SpeedICLModelAdapter
 
 
 __all__ = [
+    "ActionStrengthICLModelAdapter",
+    "ContactFrictionICLModelAdapter",
+    "MotionDampingICLModelAdapter",
+    "PortalExitICLModelAdapter",
+    "ReacherArmMassICLModelAdapter",
+    "CubeGraspRuleICLModelAdapter",
+    "LatentWorldModelAdapter",
     "AdapterProtocol",
+    "ActionDelayICLModelAdapter",
     "DoorICLModelAdapter",
     "SpeedICLModelAdapter",
+    "StableWorldModelLeWMActionStrengthAdapter",
+    "StableWorldModelLeWMContactFrictionAdapter",
     "StableWorldModelLeWMAdapter",
+    "StableWorldModelLeWMHistory7Adapter",
+    "StableWorldModelPLDMActionStrengthAdapter",
+    "StableWorldModelPLDMContactFrictionAdapter",
+    "StableWorldModelLeWMMotionDampingAdapter",
+    "StableWorldModelLeWMPortalExitAdapter",
+    "StableWorldModelLeWMReacherArmMassAdapter",
+    "StableWorldModelPLDMMotionDampingAdapter",
+    "StableWorldModelPLDMPortalExitAdapter",
+    "StableWorldModelPLDMReacherArmMassAdapter",
+    "StableWorldModelLeWMCubeGraspRuleAdapter",
+    "StableWorldModelPLDMCubeGraspRuleAdapter",
     "StableWorldModelPLDMAdapter",
+    "StableWorldModelPLDMHistory7Adapter",
 ]

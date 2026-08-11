@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "contextworld"
 version = "0.1.0"
-description = "Composable context-shift data synthesis for world models"
+description = "A benchmark for in-context hidden-dynamics learning in latent world models"
 requires-python = ">=3.10"
 dependencies = [
   "numpy>=1.24",
@@ -16,8 +16,15 @@ dependencies = [
 contextworld-smoke = "contextworld.synthesis.smoke:main"
 contextworld-synthesize = "contextworld.synthesis.smoke:main"
 contextworld-benchmark = "contextworld.benchmarks.suite_cli:main"
+contextworld-scoreboard = "contextworld.benchmarks.public_score_cli:main"
 contextworld-speed = "contextworld.benchmarks.speed_icl_cli:main"
 contextworld-door = "contextworld.benchmarks.door_icl_cli:main"
+contextworld-action-delay = "contextworld.benchmarks.action_delay_icl_cli:main"
+contextworld-action-strength = "contextworld.benchmarks.action_strength_icl_cli:main"
+contextworld-contact-friction = "contextworld.benchmarks.contact_friction_icl_cli:main"
+contextworld-motion-damping = "contextworld.benchmarks.motion_damping_icl_cli:main"
+contextworld-portal-exit = "contextworld.benchmarks.portal_exit_icl_cli:main"
+contextworld-reacher-arm-mass = "contextworld.benchmarks.reacher_arm_mass_icl_cli:main"
 
 [tool.setuptools.packages.find]
 include = ["contextworld*"]

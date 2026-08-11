@@ -13,7 +13,7 @@ import time
 from collections import Counter, defaultdict
 from concurrent.futures import ProcessPoolExecutor
 from contextlib import contextmanager
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from pathlib import Path
 from typing import Any, Iterable, Iterator
 
@@ -51,6 +51,13 @@ from .hidden_passage_lance import (
     WATCHED_VARIATIONS,
     _collection_actions,
     _model_blocks,
+)
+from .speed_door_rule_composition import (
+    simulate_template as simulate_speed_door_rule_template,
+    validate_factor_grid as validate_speed_door_rule_factor_grid,
+)
+from .speed_door_rule_v2_feasibility import (
+    validate_v2_training_factor_grid,
 )
 
 
@@ -662,6 +669,7 @@ class HiddenPassageEpisodePlan:
     collection_actions: np.ndarray
     expected_hashes: dict[str, str]
     pair_metrics: dict[str, Any]
+    agent_speed: float = 5.0
 
     @property
     def template_id(self) -> str:
@@ -1397,6 +1405,15 @@ def episode_plans_for_door(
     scale: str,
     door_position: int,
 ) -> dict[str, list[HiddenPassageEpisodePlan]]:
+    if str(config["protocol"].get("task", "hidden_passage")) in {
+        "speed_door_rule_composition",
+        "speed_door_rule_composition_v2",
+    }:
+        return _composition_episode_plans_for_door(
+            config,
+            scale=scale,
+            door_position=door_position,
+        )
     gates = config["gates"]
     plans = {rule: [] for rule in RULE_NAMES}
     for template in templates_for_door(
@@ -1449,8 +1466,105 @@ def episode_plans_for_door(
                     ).astype(np.float32),
                     expected_hashes=_expected_hashes(references[rule]),
                     pair_metrics=pair_metrics,
+                    agent_speed=float(config["protocol"]["agent_speed"]),
                 )
             )
+    return plans
+
+
+def _speed_slug(speed: float) -> str:
+    return f"{float(speed):05.2f}".replace(".", "p")
+
+
+def _composition_episode_plans_for_door(
+    config: dict[str, Any],
+    *,
+    scale: str,
+    door_position: int,
+) -> dict[str, list[HiddenPassageEpisodePlan]]:
+    protocol = config["protocol"]
+    speeds = tuple(map(float, protocol["agent_speeds"]))
+    if not speeds or tuple(sorted(speeds)) != speeds:
+        raise ValueError(
+            "Composition agent_speeds must be non-empty and increasing"
+        )
+    plans = {rule: [] for rule in RULE_NAMES}
+    for base_template in templates_for_door(
+        config,
+        scale=scale,
+        door_position=door_position,
+    ):
+        references = {
+            (speed, rule): simulate_speed_door_rule_template(
+                base_template,
+                speed=speed,
+                rule=rule,
+                protocol=protocol,
+            )
+            for speed in speeds
+            for rule in RULE_NAMES
+        }
+        if protocol["task"] == "speed_door_rule_composition_v2":
+            validation = validate_v2_training_factor_grid(
+                base_template,
+                references,
+                speeds=speeds,
+                thresholds=config["gates"],
+            )
+        else:
+            validation = validate_speed_door_rule_factor_grid(
+                base_template,
+                references,
+                speeds=speeds,
+                thresholds=config["gates"],
+            )
+        if not validation["passed"]:
+            failed = sorted(
+                key
+                for key, passed in validation["checks"].items()
+                if not passed
+            )
+            raise RuntimeError(
+                "Speed-door-rule factor grid failed for "
+                f"{base_template.template_id}: {failed}"
+            )
+        pair_metrics = {
+            "minimum_middle_rule_centroid_gap_px": validation[
+                "minimum_middle_rule_centroid_gap_px"
+            ],
+            "minimum_middle_adjacent_speed_centroid_gap_px": validation[
+                "minimum_middle_adjacent_speed_centroid_gap_px"
+            ],
+            "minimum_future_rule_state_gap_px": validation[
+                "minimum_future_rule_state_gap_px"
+            ],
+            "minimum_future_adjacent_speed_centroid_gap_px": validation[
+                "minimum_future_adjacent_speed_centroid_gap_px"
+            ],
+            "query_state": validation["query_state"],
+        }
+        for speed_index, speed in enumerate(speeds):
+            template = replace(
+                base_template,
+                template_id=(
+                    f"{base_template.template_id}-"
+                    f"s{speed_index:02d}v{_speed_slug(speed)}"
+                ),
+            )
+            for rule in RULE_NAMES:
+                reference = references[(speed, rule)]
+                plans[rule].append(
+                    HiddenPassageEpisodePlan(
+                        template=template,
+                        rule=rule,
+                        collection_actions=_collection_actions(
+                            reference
+                        ).astype(np.float32),
+                        expected_hashes=_expected_hashes(reference),
+                        pair_metrics=pair_metrics,
+                        agent_speed=speed,
+                    )
+                )
     return plans
 
 
@@ -1511,10 +1625,16 @@ def _variation_values(
     *,
     rule: str,
     config: dict[str, Any],
+    agent_speed: float | None = None,
 ) -> dict[str, Any]:
+    speed = (
+        float(config["protocol"]["agent_speed"])
+        if agent_speed is None
+        else float(agent_speed)
+    )
     return {
         "agent.speed": np.asarray(
-            [float(config["protocol"]["agent_speed"])],
+            [speed],
             dtype=np.float32,
         ),
         "door.number": int(config["protocol"]["door_number"]),
@@ -1555,6 +1675,7 @@ def _episode_iterator(
                         plan.template,
                         rule=plan.rule,
                         config=config,
+                        agent_speed=plan.agent_speed,
                     ),
                     "state": np.asarray(
                         plan.template.reset_state,
@@ -1890,7 +2011,7 @@ def audit_hidden_passage_shard(
             ),
             "stored_speed_constant": _allclose_constant(
                 episode["variation_agent_speed"],
-                [5.0],
+                np.asarray([plan.agent_speed], dtype=np.float32),
             ),
             "stored_door_number_constant": _allclose_constant(
                 episode["variation_door_number"],
@@ -1930,6 +2051,7 @@ def audit_hidden_passage_shard(
                 "pair_id": plan.template_id,
                 "rule": plan.rule,
                 "passage_open": PASSAGE_RULES[plan.rule],
+                "agent_speed": float(plan.agent_speed),
                 "direction": plan.template.direction,
                 "door_position": plan.template.door_position,
                 "doorway_offset_px": plan.template.doorway_offset_px,
@@ -2250,7 +2372,12 @@ def _scenario_manifest_record(
         "factors": {
             PASSAGE_FACTOR: PASSAGE_RULES[shard.rule],
             "door.position": [shard.door_position] * 3,
-            "agent.speed": [5.0],
+            "agent.speed": sorted(
+                {
+                    float(row["agent_speed"])
+                    for row in episode_rows
+                }
+            ),
         },
         "rule": shard.rule,
         "output_path": portable_contextworld_path(
@@ -2451,6 +2578,17 @@ def _catalog_payload(
             "passage_open_values": [
                 PASSAGE_RULES[rule] for rule in GROUP_RULES[group]
             ],
+        },
+        "speed_support": {
+            split: sorted(
+                {
+                    float(speed)
+                    for record in selected
+                    if record["split"] == split
+                    for speed in record["factors"]["agent.speed"]
+                }
+            )
+            for split in SPLITS
         },
         "counts": {
             split: {
@@ -2957,6 +3095,15 @@ def build_hidden_passage_h3_data(
             "directions": _scale_axes(config, scale)[0],
             "doorway_offsets_px": _scale_axes(config, scale)[1],
             "wall_distances_px": _scale_axes(config, scale)[2],
+            "agent_speeds": list(
+                map(
+                    float,
+                    config["protocol"].get(
+                        "agent_speeds",
+                        [config["protocol"]["agent_speed"]],
+                    ),
+                )
+            ),
         },
         "pair_and_split_audit": pair_and_split,
         "validation_exclusion_audit": validation_exclusion,

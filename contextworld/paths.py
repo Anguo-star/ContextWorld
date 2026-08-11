@@ -41,6 +41,9 @@ def resolve_contextworld_path(
         return path.resolve()
     root = (repo_root or repository_root()).resolve()
     if path.parts and path.parts[0] == LEGACY_ARTIFACT_PREFIX:
+        bundled = (root / path).resolve()
+        if bundled.exists():
+            return bundled
         return artifact_root(root).joinpath(*path.parts[1:]).resolve()
     return (root / path).resolve()
 

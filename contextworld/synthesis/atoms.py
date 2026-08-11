@@ -163,11 +163,49 @@ class PassageOpenAtom(VariationAtom):
         )
 
 
+class ActionDelayAtom(VariationAtom):
+    """Hidden raw-step delay between a command and its physical effect."""
+
+    kind = "action_delay"
+    factor_key = "action.delay_steps"
+    pixel_effect = "temporal_dynamics"
+    required_oracles = ("action_delay_temporal_oracle",)
+    minimum = 0
+    maximum = 4
+
+    def compile(self, value: Any) -> CompiledAtom:
+        if isinstance(value, (bool, np.bool_)):
+            raise AtomValidationError(
+                "action_delay must be an integer in [0, 4]"
+            )
+        try:
+            delay = int(value)
+        except (TypeError, ValueError) as exc:
+            raise AtomValidationError(
+                "action_delay must be an integer in [0, 4]"
+            ) from exc
+        try:
+            is_integer = float(value) == float(delay)
+        except (TypeError, ValueError):
+            is_integer = False
+        if not is_integer or not self.minimum <= delay <= self.maximum:
+            raise AtomValidationError(
+                "action_delay must be an integer in [0, 4]"
+            )
+        return CompiledAtom(
+            kind=self.kind,
+            factor_key=self.factor_key,
+            factor_value=delay,
+            variation_value=delay,
+        )
+
+
 def tworoom_atom_registry() -> dict[str, VariationAtom]:
     atoms: tuple[VariationAtom, ...] = (
         AgentSpeedAtom(),
         DoorPositionAtom(),
         PassageOpenAtom(),
+        ActionDelayAtom(),
     )
     for atom in atoms:
         if atom.pixel_effect not in PIXEL_EFFECT_CONTRACTS:

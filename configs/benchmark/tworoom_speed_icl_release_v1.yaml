@@ -1,6 +1,6 @@
 schema_version: 1
 release_id: contextworld_tworoom_speed_icl_history3_v1
-release_status: validation_release
+release_status: public_test_release_candidate
 released_date: "2026-07-21"
 
 scope:
@@ -15,6 +15,7 @@ scope:
     - unseen_interpolation
     - extrapolation_low
     - extrapolation_high
+  public_test_included: true
   sealed_test_included: false
 
 runtime:
@@ -23,26 +24,30 @@ runtime:
     repository: https://github.com/Anguo-star/ContextWorld
     package_version: 0.1.0
     source_sha256:
-      contextworld/benchmarks/adapters.py: 39ec1841c39d6b056aca476c137f549c6b7a4017c425d09c04e036ce08ff3c8b
-      contextworld/benchmarks/speed_icl_data.py: 445acf65238e42b43a549eaa66f75861213b48b42c346edc7d10fe703734614f
+      contextworld/benchmarks/adapters.py: a1bf037ea4da49842163142563323a26a3eb11fca9a81f6dc4070d5688805c67
+      contextworld/benchmarks/causal_data_contract.py: 202d8a1cc57ac9ec24924f0e995cc42b8fea7b026d55465e8f7cdb102759788e
+      contextworld/benchmarks/speed_icl_data.py: 7b382d7931e7bbe8907b67e092e396f3c8aa05fe64cb8e5c25721c3fed2ba148
+      contextworld/benchmarks/speed_release_shadow.py: 149f3521803fdc7884e72592a63fdb7891f63342d69c1b354cb23bb0f650456f
       contextworld/benchmarks/speed_icl_score.py: 9132192e25274d4ff18d67ea967771a879b5edee6f9f2e47713e896555825c48
       contextworld/benchmarks/speed_icl_cli.py: 04df96b0c474fca1baa35a5dcb2a897f177e018b25af3c3cc37cec0dd4caa328
       contextworld/evaluation/icl_model.py: d9386f688ad268dc6f712d9ee41910ac7097bee8016a2efa84cd193cd02ee69c
       contextworld/evaluation/protocol.py: a80ca5d5f67f39ea5d82a14d7960d8f30ff64c85dc81268631e242092ec7cf05
-      contextworld/paths.py: 6e64b151a4a6c439cd93a81ee1a7b83694e07bd53b24623cd73b0d9f9147c125
-      contextworld/training/tworoom_data.py: 35f42dd1dc282bd8edcf6fa4397b178cb51af203b57317629d1abb0b64b2b361
+      contextworld/paths.py: d401ee87b5a803f37323a2fb4632fb3686bfec5472a817d431ec6e05d9a3447f
+      contextworld/training/tworoom_data.py: 4affd45f137a00d42cce0c90b9f7de5668eda4d9feb80dc9ef369bae6c94c3c8
       contextworld/synthesis/stablewm.py: dcb66bb9965bcc8597955443e71860483051ab003d071345ff434b153757e1d5
       contextworld/synthesis/manifest.py: 8882069ba2e4c0810d7694db68526335c46aea70e204dafacc5ac962796867e8
-      scripts/train_tworoom_step1.py: 60cf0c5c0e7508f507036f5fb171fa4323365a61ae23bb74ab9e6c484204c4db
+      scripts/train_tworoom_step1.py: c4bcd96772eff8044b5ab90ce71081283f526118589f0c0f0d845e0851611c5c
       scripts/eval_tworoom_speed_cube_fixed_candidate.py: 978bf4b81c96381a7c5c37a9560cd36d4df4560ab5688387826f3b757f5ce637
       scripts/eval_tworoom_speed_cube_planning.py: 22184323ec39ab049c94df2c73af31465c6ebcf881b2d351d112756afe7e794c
-      configs/benchmark/tworoom_speed_isolated_v2.yaml: 583bb7a807b670b63a6b60b5f466354a3d68c946b2d684595e28e7e646df0165
-      configs/benchmark/tworoom_original_ability_reconstruction_v1.yaml: 3737e422cc0b32ded74000668e292457611c7c8b639813d2cae258717f5cc40c
+      scripts/audit_tworoom_speed_causal_data.py: 992767b6dab47d724b455f856e574ee14315f9fef5949798a0dadfebd55a0887
+      scripts/build_tworoom_speed_portable_shadow.py: ec07af6e351882791c43743854c7d8c5dc6ebee8b98479d041f93a0d6612465f
+      configs/benchmark/tworoom_speed_isolated_v2.yaml: d4d438c10f6ca4f5a74d5a1725fd00e5b81b11c2d28a9a58d771c6903666eae1
+      configs/benchmark/tworoom_original_ability_reconstruction_v1.yaml: 65e3da088a3cff18a66f407b0d03c740b250ead86da5f94d2456f67588fb9bf0
       configs/benchmark/tworoom_speed_multistep_extrap_v5.yaml: 2d45894614da32f29266051bdb3a54d1a2f0d07683e02ac7739353cc84214db9
       configs/benchmark/tworoom_speed_cube_eval_v2.yaml: 387e5bd678ccf04e5ced9cd967b218f2014feefade09a0c5ab6989e2df62f2e9
   stable_worldmodel:
     source: https://github.com/galilai-group/stable-worldmodel
-    repo: ../stable-worldmodel
+    repo: upstream/stable-worldmodel
     expected_ref: 5864b74980f6ed328fd0045e777b3865962eff43
   extension_contract: contextworld.benchmarks.adapters.SpeedICLModelAdapter
 
@@ -54,7 +59,7 @@ training:
     license: MIT
     filename: tworoom.h5
     environment_variable: CONTEXTWORLD_TWOROOM_H5
-    local_fallback: ../../data/world_model/quentinll/lewm-tworooms/tworoom.h5
+    bundled_artifact_path: upstream/lewm-tworooms/tworoom.h5
     bytes: 12775849984
     sha256: 129a36aa93ea0de488d2bcc876e396de9e3907bf66c6aae6394e542ef6a6d623
     split:
@@ -64,6 +69,7 @@ training:
       heldout_episodes: 1000
   recipes:
     original_reference:
+      display_name: 只用原 TwoRoom 数据训练的基础能力对照
       model_id: M_origheldout
       benchmark_config: configs/benchmark/tworoom_original_ability_reconstruction_v1.yaml
       profile: formal
@@ -74,6 +80,7 @@ training:
       groups: {original: 1.0}
       required_for_method_submission: false
     single_speed_control:
+      display_name: 原 TwoRoom 数据与单一速度合成数据各占一半
       model_id: M_speed_single_v2
       benchmark_config: configs/benchmark/tworoom_speed_isolated_v2.yaml
       profile: additive
@@ -84,6 +91,7 @@ training:
       groups: {original: 0.5, speed_single_v2: 0.5}
       required_for_method_submission: true
     multi_speed_target:
+      display_name: 原 TwoRoom 数据与 32 档速度合成数据各占一半
       model_id: M_speed_multi_v2
       benchmark_config: configs/benchmark/tworoom_speed_isolated_v2.yaml
       profile: additive
@@ -97,11 +105,11 @@ training:
     single_speed_control:
       data_root: artifacts/synthesis/data/tworoom_speed_single_matched_v2
       catalog: artifacts/synthesis/catalogs/tworoom_speed_single_matched_v2.json
-      catalog_sha256: ed6f15758e47547c6ad78763fda8f8f07af14349ce0b95b2e6614eb85c58d959
+      catalog_sha256: 69823c341aa55cf5b48db3d6daba9fea2ed20c246ba25a6e224e8a778bf3955b
       manifest: artifacts/synthesis/manifests/tworoom_speed_single_matched_v2.jsonl
       manifest_sha256: ebd8a0dd5c6a03f3a10c4eb0e24745ebec5eb512ca57ab792fd522258fe44b69
       report: artifacts/synthesis/reports/tworoom_speed_single_matched_v2.json
-      report_sha256: cb5299e597d0f41015f27ee8a96886792a48daeddd55743b64f82ca2f1a9d97a
+      report_sha256: 5cd4b8faa430f89c2d4bfbcb4fa44ea1bab3c42aa61956dd5c59dd2517c3ddb8
       train_scenarios: 512
       validation_scenarios: 96
       data_tree_files: 1824
@@ -111,11 +119,11 @@ training:
     multi_speed_target:
       data_root: artifacts/synthesis/data/tworoom_speed_full_v1
       catalog: artifacts/synthesis/catalogs/tworoom_speed_full_v1.json
-      catalog_sha256: d614f07fe73ddec0e0e86e1918dfb90f7a80eff5c2ef9b04d4c3d21742cfda34
+      catalog_sha256: a8ab2fed2602ade7e00e5a9ebb0b0a6ecb29ab41bc0645bda185bab71cbd8c1d
       manifest: artifacts/synthesis/manifests/tworoom_speed_full_v1.jsonl
       manifest_sha256: 1815b2b4b6d2a03249b0f6642b4adc779554c65a7114c57e3731556d74024290
       report: artifacts/synthesis/reports/tworoom_speed_full_v1.json
-      report_sha256: 9b386989107e1fa1b09b82076b3cbfcff2673075c8985fecf5b47a4fd846b490
+      report_sha256: a0ffaeb90947a854d70d54a542a1d519c8e9bdc66aa2c0693e2aabb02c568241
       train_scenarios: 512
       validation_scenarios: 96
       data_tree_files: 1824
@@ -129,9 +137,11 @@ training:
 evaluation:
   source_protocol: configs/benchmark/tworoom_speed_multistep_extrap_v5.yaml
   normalizer: artifacts/splits/tworoom_original_train_s3072_normalizer.json
-  normalizer_sha256: 7a5be7ea867bced446c1671b0b2c0ff6450ffc61e1a7bdbbfc5eaa0942f635db
+  normalizer_sha256: a9e4b443bbac0d7a4e2d9d9f84d40ac40936556ffadfc7af0b0ce4fe4afed42c
   build_report: artifacts/evaluation/history3/speed_multistep_extrap_v5/catalogs/build_report.json
-  build_report_sha256: 9a97022680b424431c57ca5788498d1c82a0dc2e28dcff8e04f0cb7019e8326f
+  build_report_sha256: bacc4d64a4cd6f6f24c268b1667c90347c23719eca3ac7c094224dee08f22b6d
+  causal_data_audit: artifacts/evaluation/history3/speed_continuous_causal_audit.json
+  causal_data_audit_sha256: 35498c5a7fcb0c9b0cf42ded3c0e3a6412aafb67fa7f0fcd471f42839b18aec2
   eval_seeds: [42, 43, 44, 45, 46, 47]
   queries_per_reference_speed_per_seed: 50
   tracks:
@@ -183,7 +193,7 @@ planning:
   runtime: stable_worldmodel_only
   source_protocol: configs/benchmark/tworoom_speed_cube_eval_v2.yaml
   build_report: artifacts/evaluation/history3/speed_isolated_v2/catalogs/build_report.json
-  build_report_sha256: 22045e89e8326b038d96c09e4ca45db473e1c6da8aba5eaff486c47a6842ff89
+  build_report_sha256: ced88250892f759f36180320af4c636b4e055988fd4b8cd20ccb82496644a91a
   eval_seeds: [42, 43, 44, 45, 46, 47]
   evaluations_per_speed_condition_per_seed: 50
   tracks:
@@ -214,3 +224,32 @@ planning:
       - final_distance_px
       - normalized_distance_auc
       - steps_to_success
+
+reference_results:
+  one_step_prediction:
+    path: artifacts/evaluation/history3/speed_next_latent_v4/final_summary.json
+    sha256: 9a28952d18f8eb14738ff27e032623fc686ea71793e5c2afc0bb3a543f2e229c
+  multistep_and_extrapolation:
+    path: artifacts/evaluation/history3/speed_multistep_extrap_v5/final_summary.json
+    sha256: b49b5cc10ae30286f2a28fa6a2fd66c342626bede67ddbc51156ad0b4252acc7
+  planning_and_retention:
+    path: artifacts/evaluation/history3/speed_isolated_v2/final_summary.json
+    sha256: 3f07b2405405037f843f40858ec4586260b75351af4b88e7c61179396bb09030
+
+portable_shadow:
+  root: artifacts
+  owned_file_tree:
+    files: 19
+    bytes: 18676032
+    sha256: ef40861d801afe54aabf0cbd42d6de16da02dee36939b2f4f0d7a76c4ad314bc
+  shared_files:
+    - artifacts/splits/tworoom_original_train_s3072_normalizer.json
+  catalog_directories:
+    artifacts/evaluation/history3/speed_multistep_extrap_v5/catalogs:
+      files: 5
+      bytes: 10598363
+      sha256: 62784691aa3c10de3b9e5b1dc1c16a20582750795bdc4cc6c561f58581785618
+    artifacts/evaluation/history3/speed_isolated_v2/catalogs:
+      files: 4
+      bytes: 538489
+      sha256: f49a086937991499426a84efa608a8deabfa44d0acf6b65a3593bd24116b833f

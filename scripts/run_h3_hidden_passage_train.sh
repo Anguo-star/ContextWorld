@@ -86,6 +86,48 @@ case "$VARIANT" in
     DIAGNOSTIC_CHECKPOINTS=1
     AUDIT_CONCURRENCY=8
     ;;
+  lewm-sigreg-0p3-mixed)
+    MODEL_ID=H3_Passage_MixedRules
+    RUN_PREFIX=h3_passage_mixed_rules_lewm_sigreg0p3
+    OBJECTIVE_ARGS=(--lewm-sigreg-weight 0.3)
+    DIAGNOSTIC_CHECKPOINTS=1
+    AUDIT_CONCURRENCY=8
+    ;;
+  lewm-sigreg-0p9-mixed)
+    MODEL_ID=H3_Passage_MixedRules
+    RUN_PREFIX=h3_passage_mixed_rules_lewm_sigreg0p9
+    OBJECTIVE_ARGS=(--lewm-sigreg-weight 0.9)
+    DIAGNOSTIC_CHECKPOINTS=1
+    AUDIT_CONCURRENCY=8
+    ;;
+  lewm-sigreg-1p3-mixed)
+    MODEL_ID=H3_Passage_MixedRules
+    RUN_PREFIX=h3_passage_mixed_rules_lewm_sigreg1p3
+    OBJECTIVE_ARGS=(--lewm-sigreg-weight 1.3)
+    DIAGNOSTIC_CHECKPOINTS=1
+    AUDIT_CONCURRENCY=8
+    ;;
+  lewm-sigreg-1p65-mixed)
+    MODEL_ID=H3_Passage_MixedRules
+    RUN_PREFIX=h3_passage_mixed_rules_lewm_sigreg1p65
+    OBJECTIVE_ARGS=(--lewm-sigreg-weight 1.65)
+    DIAGNOSTIC_CHECKPOINTS=1
+    AUDIT_CONCURRENCY=8
+    ;;
+  lewm-sigreg-2p05-mixed)
+    MODEL_ID=H3_Passage_MixedRules
+    RUN_PREFIX=h3_passage_mixed_rules_lewm_sigreg2p05
+    OBJECTIVE_ARGS=(--lewm-sigreg-weight 2.05)
+    DIAGNOSTIC_CHECKPOINTS=1
+    AUDIT_CONCURRENCY=8
+    ;;
+  lewm-visreg-mixed)
+    MODEL_ID=H3_Passage_MixedRules
+    RUN_PREFIX=h3_passage_mixed_rules_lewm_visreg0p09
+    OBJECTIVE_ARGS=(--lewm-regularizer visreg --lewm-visreg-weight 0.09)
+    DIAGNOSTIC_CHECKPOINTS=1
+    AUDIT_CONCURRENCY=8
+    ;;
   fixed-mixed)
     MODEL_ID=H3_Passage_MixedRules_FrozenRepresentation
     RUN_PREFIX=h3_passage_mixed_rules_fixed_representation_v2
@@ -105,7 +147,7 @@ case "$VARIANT" in
     AUDIT_CONCURRENCY=8
     ;;
   *)
-    echo "第一个参数必须是 passable、blocked、mixed、lewm-std-cov-mixed、fixed-mixed、pldm-mixed、pldm-fixed-mixed 或 all" >&2
+    echo "第一个参数必须是 passable、blocked、mixed、lewm-std-cov-mixed、lewm-sigreg-0p3-mixed、lewm-sigreg-0p9-mixed、lewm-sigreg-1p3-mixed、lewm-sigreg-1p65-mixed、lewm-sigreg-2p05-mixed、lewm-visreg-mixed、fixed-mixed、pldm-mixed、pldm-fixed-mixed 或 all" >&2
     exit 2
     ;;
 esac
@@ -245,6 +287,7 @@ echo "[hidden-passage-h3] variant=$VARIANT mode=$MODE run=$RUN_NAME seed=$TRAINI
   --data-split-seed "$DATA_SPLIT_SEED" \
   --stablewm-repo "$STABLEWM_REPO" \
   --stablewm-ref "$STABLEWM_REF" \
+  --audit-concurrency "$AUDIT_CONCURRENCY" \
   "${OBJECTIVE_ARGS[@]}" \
   "${LOGGER_ARGS[@]}" \
   "${ORIGINAL_ARGS[@]}" \

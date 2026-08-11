@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 import numpy as np
+import pytest
 import yaml
 
 from contextworld.benchmarks.adapters import (
@@ -13,9 +14,18 @@ from contextworld.benchmarks.adapters import (
 from contextworld.benchmarks.speed_icl_data import (
     SpeedICLEvalDataset,
     _array_sha256,
+    _audit_file,
     _sha256,
     _tree_fingerprint,
+    export_speed_icl_artifacts,
     load_speed_icl_release,
+)
+from contextworld.benchmarks.speed_release_shadow import (
+    SpeedMetadataPathError,
+    absolute_json_paths,
+    audit_speed_portable_shadow,
+    copy_speed_catalog_shadow,
+    sanitize_speed_release_metadata,
 )
 from contextworld.benchmarks.speed_icl_score import (
     aggregate_speed_icl_method,
@@ -167,8 +177,9 @@ def _make_release(tmp_path: Path) -> Path:
 
 def test_public_release_config_loads() -> None:
     release = load_speed_icl_release()
-    assert release["release_status"] == "validation_release"
+    assert release["release_status"] == "public_test_release_candidate"
     assert release["runtime"]["supported_adapter"] == "stable_worldmodel_lewm"
+    assert release["scope"]["public_test_included"] is True
     assert release["scope"]["sealed_test_included"] is False
 
 
@@ -187,6 +198,187 @@ def test_training_tree_fingerprint_detects_content_changes(
     second = _tree_fingerprint(root, hash_contents=True)
     assert second["bytes"] == first["bytes"]
     assert second["sha256"] != first["sha256"]
+
+
+def test_speed_metadata_sanitizer_is_fail_closed(tmp_path: Path) -> None:
+    repo = tmp_path / "ContextWorld"
+    canonical = tmp_path / "context_world"
+    original = tmp_path / "quentinll/tworoom.h5"
+    stablewm = tmp_path / "stable-worldmodel"
+    value = {
+        "artifact": str(canonical / "evaluation/result.json"),
+        "config": str(repo / "configs/release.yaml"),
+        "original": str(original),
+        "stablewm": str(stablewm),
+        "metric": 0.25,
+    }
+    portable = sanitize_speed_release_metadata(
+        value,
+        repo_root=repo,
+        canonical_artifact_root=canonical,
+        original_h5=original,
+        stable_worldmodel_root=stablewm,
+    )
+    assert portable == {
+        "artifact": "artifacts/evaluation/result.json",
+        "config": "configs/release.yaml",
+        "original": "upstream/lewm-tworooms/tworoom.h5",
+        "stablewm": "upstream/stable-worldmodel",
+        "metric": 0.25,
+    }
+    with pytest.raises(SpeedMetadataPathError, match="unknown absolute"):
+        sanitize_speed_release_metadata(
+            {"bad": str(tmp_path / "unknown/file.json")},
+            repo_root=repo,
+            canonical_artifact_root=canonical,
+            original_h5=original,
+            stable_worldmodel_root=stablewm,
+        )
+
+
+def test_catalog_shadow_is_complete_and_preserves_payloads(
+    tmp_path: Path,
+) -> None:
+    repo = tmp_path / "ContextWorld"
+    canonical = tmp_path / "context_world"
+    original = tmp_path / "quentinll/tworoom.h5"
+    stablewm = tmp_path / "stable-worldmodel"
+    source = canonical / "evaluation/catalogs"
+    source.mkdir(parents=True)
+    report = {
+        "config": {"path": str(repo / "configs/release.yaml")},
+        "catalog": str(source / "track.json"),
+        "stable_worldmodel": {"repo": str(stablewm)},
+        "score": 0.75,
+    }
+    (source / "build_report.json").write_text(
+        json.dumps(report), encoding="utf-8"
+    )
+    payload = {"bundles": [], "passed": True}
+    (source / "track.json").write_text(
+        json.dumps(payload), encoding="utf-8"
+    )
+    source_payload_hash = _sha256(source / "track.json")
+    target = repo / "artifacts/evaluation/catalogs"
+    result = copy_speed_catalog_shadow(
+        source,
+        target,
+        repo_root=repo,
+        canonical_artifact_root=canonical,
+        original_h5=original,
+        stable_worldmodel_root=stablewm,
+    )
+    assert sorted(path.name for path in target.iterdir()) == [
+        "build_report.json",
+        "track.json",
+    ]
+    assert _sha256(target / "track.json") == source_payload_hash
+    assert result["payload_sha256"] == {"track.json": source_payload_hash}
+    assert absolute_json_paths(
+        json.loads((target / "build_report.json").read_text())
+    ) == []
+    assert len(
+        absolute_json_paths(
+            json.loads((source / "build_report.json").read_text())
+        )
+    ) == 3
+
+
+def test_file_audit_reports_logical_path(tmp_path: Path) -> None:
+    path = tmp_path / "artifacts/value.json"
+    path.parent.mkdir(parents=True)
+    path.write_text("{}\n", encoding="utf-8")
+    audit = _audit_file(
+        "artifacts/value.json", _sha256(path), repo_root=tmp_path
+    )
+    assert audit["path"] == "artifacts/value.json"
+    assert audit["passed"] is True
+
+
+def test_export_inventory_contains_only_portable_paths(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo = tmp_path / "repo"
+    data_root = repo / "artifacts/synthetic/data"
+    data_root.mkdir(parents=True)
+    (data_root / "payload.bin").write_bytes(b"payload")
+    files = {
+        "artifacts/synthetic/catalog.json": "{}\n",
+        "artifacts/synthetic/manifest.jsonl": "{}\n",
+        "artifacts/synthetic/report.json": "{}\n",
+        "artifacts/splits/normalizer.json": "{}\n",
+    }
+    for logical, content in files.items():
+        path = repo / logical
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(content, encoding="utf-8")
+    for logical in (
+        "artifacts/evaluation/history3/"
+        "speed_multistep_extrap_v5/catalogs",
+        "artifacts/evaluation/history3/"
+        "speed_multistep_extrap_v5/payloads",
+    ):
+        path = repo / logical
+        path.mkdir(parents=True)
+        (path / "value.json").write_text("{}\n", encoding="utf-8")
+    release_path = repo / "configs/release.yaml"
+    release_path.parent.mkdir(parents=True)
+    release_path.write_text("schema_version: 1\n", encoding="utf-8")
+    release = {
+        "release_id": "contextworld_tworoom_speed_icl_history3_v1",
+        "_config_path": str(release_path),
+        "training": {
+            "original": {"source": "https://example.test/tworoom.h5"},
+            "synthetic": {
+                "multi_speed_target": {
+                    "data_root": "artifacts/synthetic/data",
+                    "catalog": "artifacts/synthetic/catalog.json",
+                    "manifest": "artifacts/synthetic/manifest.jsonl",
+                    "report": "artifacts/synthetic/report.json",
+                    "data_tree_files": 1,
+                    "data_tree_bytes": 7,
+                    "data_tree_sha256": "unused",
+                }
+            },
+        },
+        "evaluation": {"normalizer": "artifacts/splits/normalizer.json"},
+        "reference_results": {},
+    }
+    monkeypatch.setattr(
+        "contextworld.benchmarks.speed_icl_data.load_speed_icl_release",
+        lambda _path: release,
+    )
+    destination = tmp_path / "export"
+    result = export_speed_icl_artifacts(
+        destination,
+        release_config=release_path,
+        repo_root=repo,
+        include_single_speed_control=False,
+    )
+    inventory = json.loads(
+        (destination / "release/inventory.json").read_text(encoding="utf-8")
+    )
+    assert result["artifact_root"] == "."
+    assert result["inventory"] == "release/inventory.json"
+    assert absolute_json_paths(inventory) == []
+
+
+def test_formal_speed_shadow_is_portable_and_exact() -> None:
+    release = load_speed_icl_release()
+    root = Path(__file__).resolve().parents[1]
+    audit = audit_speed_portable_shadow(release, repo_root=root)
+    assert audit["owned_file_tree"]["missing"] == []
+    assert audit["owned_file_tree"]["files"] == 19
+    for name in (
+        "tworoom_speed_single_matched_v2.jsonl",
+        "tworoom_speed_full_v1.jsonl",
+    ):
+        assert (root / "artifacts/synthesis/manifests" / name).is_file()
+    assert audit["absolute_json_paths"] == []
+    assert all(
+        row["passed"] for row in audit["catalog_directories"].values()
+    )
+    assert audit["formal_results_only"] is True
 
 
 def test_lazy_eval_dataset_and_model_score(tmp_path: Path) -> None:

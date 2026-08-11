@@ -1,0 +1,374 @@
+schema_version: 1
+release_id: contextworld_pusht_action_strength_icl_history3_v1
+release_status: public_test_release_candidate
+candidate_date: "2026-08-03"
+
+scope:
+  environment: PushT
+  capability: infer_action_strength_from_recent_interaction
+  display_name_zh: PushT 推手移动幅度 ICL
+  history_tokens: 3
+  context_transitions: 2
+  raw_steps_per_action_block: 5
+  prediction_horizon_action_blocks: 1
+  strength_values: [60, 140]
+  strength_labels:
+    60: 相同指令下推手移动幅度较小
+    140: 相同指令下推手移动幅度较大
+  public_test_included: true
+  sealed_test_included: false
+
+runtime:
+  supported_adapters:
+    - stable_worldmodel_lewm_action_strength
+    - stable_worldmodel_pldm_action_strength
+  extension_contract: >-
+    contextworld.benchmarks.adapters.ActionStrengthICLModelAdapter
+  contextworld:
+    repository: https://github.com/Anguo-star/ContextWorld
+    package_version: 0.1.0
+  stable_worldmodel:
+    source: https://github.com/galilai-group/stable-worldmodel
+    repo: ../stable-worldmodel
+    expected_ref: 875e607fc08aa72eacb94d5d178127804134cc06
+
+identity:
+  public_api:
+    path: contextworld/benchmarks/__init__.py
+    sha256: 9859331914ce8c8ad356949161fa521ed7d59378e4d6eaf7203b9f71ad7ef4b8
+  adapters:
+    path: contextworld/benchmarks/adapters.py
+    sha256: a1bf037ea4da49842163142563323a26a3eb11fca9a81f6dc4070d5688805c67
+  data_api:
+    path: contextworld/benchmarks/action_strength_icl_data.py
+    sha256: 7f1453b36e94483f24903f422e84700bcb4df4fe17f731dead3cf659578b692a
+  score_api:
+    path: contextworld/benchmarks/action_strength_icl_score.py
+    sha256: 66490e14fc98a87288bad74c0c531e8ab7a1da3a4a70610374e65d75e3e68cee
+  paired_latent_response_api:
+    path: contextworld/benchmarks/paired_latent_response.py
+    sha256: 92dc5cf019491f59596c3a0b59d918f04ad2290e124eab11d669537ac20d6ff5
+  command_line:
+    path: contextworld/benchmarks/action_strength_icl_cli.py
+    sha256: c455f2803f2bfc841e74348c797c3f4365b1afb0e229ef18e941b38bcc285db1
+  published_reference_runner:
+    path: scripts/run_pusht_hidden_actuation_mixed.py
+    sha256: 322980de4c5ea7cccd2eca0b0cacc2bc669f3805d264bd12d4952cc0bed89495
+  planning_runner:
+    path: scripts/eval_pusht_replay_matched_hidden_cem.py
+    sha256: 0b20a46a852cf447da3a292183c72c23dc42a5f7c24f25ff6ccea5e13e5aecef
+  retention_runner:
+    path: scripts/eval_pusht_standard_cem_retention.py
+    sha256: e72d555e36e57112bece2dad8a7c66965f9312e7191d573e2728a9ef5a89b2a5
+  causal_data_contract:
+    path: contextworld/evaluation/pusht_replay_matched_hidden_actuation.py
+    sha256: 07f41579c84f6ae008ed27f8d3554e44d0da7c9bcecb4441db390ecdd7abe5b2
+  common_causal_audit:
+    path: contextworld/benchmarks/causal_data_contract.py
+    sha256: 202d8a1cc57ac9ec24924f0e995cc42b8fea7b026d55465e8f7cdb102759788e
+  environment_contract:
+    path: contextworld/evaluation/pusht_hidden_actuation.py
+    sha256: 851da1cab6d4303401792027795fc39e1475a4c3a4430b25fed53472741d877c
+  strict_data_protocol:
+    path: configs/benchmark/pusht_action_strength_strict_causal_data_v1.yaml
+    sha256: b5be4dc5cd0097f1e5fb138bc59dfb9cc6e1a0cb90ec65c127220089b4371c3a
+  strict_distribution_auditor:
+    path: scripts/audit_pusht_action_strength_strict_distribution.py
+    sha256: 311c7c72e2d8963cd9204a526910c937272d4e31aaed1ce7c52e7f0b7dea5ffc
+  strict_release_auditor:
+    path: scripts/audit_pusht_action_strength_strict_release.py
+    sha256: 7c46cd41967e20e38a2d6f9964aa1c000e38187fcfe4a819851a68b8abb8bd91
+  strict_result_auditor:
+    path: scripts/audit_pusht_action_strength_strict_results.py
+    sha256: 06e722eff41bf9d8825c1a006eafeea7fff937b6eb8543602a5761c02eb3cc38
+
+training:
+  reference_training_seeds: [13313, 13314, 13315]
+  train_pairs: 2048
+  validation_pairs: 256
+  pair_contents:
+    - 两个条件从相同可见起点出发并执行相同动作
+    - History=3 展示相同指令下较小和较大的推手移动幅度
+    - 两条轨迹连续运行并自然汇合到相同当前状态
+    - 相同当前画面和查询动作产生两个真实、可区分的下一帧
+  artifact_tree:
+    root: artifacts/synthesis/pusht_action_strength_h3_release_v1
+    files: 11
+    bytes: 603212653
+    sha256: 263d3730e04ca7239f45e55d86d0844e2b1ee88e419b679a3134e911d8cd2095
+  manifest_sha256: 61551e3aba02d33b4411548bbdc123c3926191f0892bb1f8aac8b8736d4531f0
+  lance_tables:
+    train: train.lance
+    validation: validation.lance
+  artifacts:
+    manifest:
+      path: artifacts/synthesis/pusht_action_strength_h3_release_v1/manifest.json
+      sha256: 61551e3aba02d33b4411548bbdc123c3926191f0892bb1f8aac8b8736d4531f0
+    build_report:
+      path: artifacts/synthesis/pusht_action_strength_h3_release_v1/build_report.json
+      sha256: 459a47a94800d2138188db08cff034d9ba71031a8db5a5441bd35ec1655c2081
+    distribution_audit:
+      path: artifacts/synthesis/pusht_action_strength_h3_release_v1/distribution_audit.json
+      sha256: 361be5df98fed1282bf823b431279b320051d7e9b9eab591c1d87e566bce09d1
+    request:
+      path: artifacts/synthesis/pusht_action_strength_h3_release_v1/request.json
+      sha256: c222772e7d51d3d9fb9053722ef14956c8228d513c8c3b1867cabbf5731cd4a4
+    portability_receipt:
+      path: >-
+        artifacts/synthesis/pusht_action_strength_h3_release_v1/portability_receipt.json
+      sha256: 5aa0c2c9ee92a96ffed9d374dad2c6806bdb721f4ebb0ec8b692fae49ff390da
+    strict_release_audit:
+      path: >-
+        artifacts/evaluation/history3/pusht_action_strength_h3_release_v1/strict_causal_data_compatibility_audit.json
+      sha256: e4449cb31ccdcec4608aef1a70a896078c8c56ab8dc0246ef77888a7437446a8
+  distribution_match:
+    audited_features: 12
+    normalized_wasserstein_median: 0.094987
+    normalized_wasserstein_p90: 0.274770
+    median_maximum: 0.25
+    p90_maximum: 0.50
+    passed: true
+  upstream:
+    original_h5:
+      role: action_normalization_and_source_replay_provenance
+      source_symbol: upstream_original_h5
+      environment_variable: CONTEXTWORLD_PUSHT_H5
+      bundled_artifact_path: upstream/stable-worldmodel/pusht_expert_train.h5
+      bytes: 46300921856
+      sha256: b6ebd9ac94bbe9e383f6e7a9cd92d74e9aa665ea57b758ed3717b0ee7df8d4fb
+    original_lance:
+      role: standard_push_t_training_rows
+      source_symbol: upstream_original_lance
+      environment_variable: CONTEXTWORLD_PUSHT_LANCE
+      bundled_artifact_path: upstream/stable-worldmodel/lewm_pusht.lance
+      bytes: 14304260783
+  initialization:
+    role: Stable-WorldModel reference initialization only
+    source_symbol: upstream_initial_lewm_checkpoint
+    environment_variable: CONTEXTWORLD_PUSHT_INIT_CHECKPOINT
+    bundled_artifact_path: >-
+      upstream/stable-worldmodel/pusht_lewm_baseline_seed3073_weights.ckpt
+    bytes: 216789801
+    sha256: 9f13b2c28bb909338047e08d62bf6eb16ea3616cb53e57cfa9b5072b43db1c59
+  contrast_scales:
+    role: reference_method_input_not_benchmark_requirement
+    path: >-
+      artifacts/evaluation/history3/pusht_action_strength_h3_release_v1/reference_training_scales.json
+    sha256: 25cf3723e99114cde6c6fc866336c3e71c5e169347be03773f199899eacbbc5d
+  recipes:
+    reference_method:
+      display_name: 原 PushT 与推手移动幅度数据混合，并加入动力学响应约束的 LeWM
+      runner_variant: mixed_dynamics_response_sigreg_0p02
+      optimizer_steps: 4096
+      batch_size: 128
+      original_batch_size: 64
+      uses_contrast_scales: true
+      method_specific_reference_recipe: true
+
+evaluation:
+  track: independent_replay_matched_public_test
+  pair_count: 256
+  condition_count: 512
+  lance_table: validation.lance
+  minimum_true_future_block_gap_px: 15.0
+  source_episode_overlap_with_training_or_development: 0
+  query_image_hash_overlap_with_training_or_development: 0
+  online_environment_calls_for_prediction_track: 0
+  manifest_sha256: 5abb504ea57f9525944fdbc75c418cfba2bc4afbe1a8f0b3fea2c489b3f62092
+  artifact_tree:
+    root: artifacts/evaluation/history3/pusht_action_strength_h3_public_test_v1
+    files: 7
+    bytes: 67467739
+    sha256: 35a436b7160afe66e66abe558c893dcdbf52b412799ad5cdf5fa4a33b3fa19bc
+  artifacts:
+    manifest:
+      path: >-
+        artifacts/evaluation/history3/pusht_action_strength_h3_public_test_v1/manifest.json
+      sha256: 5abb504ea57f9525944fdbc75c418cfba2bc4afbe1a8f0b3fea2c489b3f62092
+    build_report:
+      path: >-
+        artifacts/evaluation/history3/pusht_action_strength_h3_public_test_v1/build_report.json
+      sha256: c591c6e2231defc8a2bfc83118526f3cb164d22fe27c8b75acb9aee44edbc53a
+    request:
+      path: >-
+        artifacts/evaluation/history3/pusht_action_strength_h3_public_test_v1/request.json
+      sha256: e04618950ccc74de1101a1b26f2cc6599adeac40d3ee54f4d45a1673bb1b4246
+    portability_receipt:
+      path: >-
+        artifacts/evaluation/history3/pusht_action_strength_h3_public_test_v1/portability_receipt.json
+      sha256: b380130036a7c9f22eacc8a6eb1b007c32dcdef53c4e2486db069a3e292b2f85
+    planning_oracle_report:
+      path: >-
+        artifacts/evaluation/history3/pusht_action_strength_h3_release_v1/action_planning_oracle_report.json
+      sha256: 85cab4f66cf7bf625d3697b200f0aea0e0017b2db7980235a38bc6527d941d1e
+  action_normalization:
+    source: original_pusht_h5_population_zscore
+    mean: [-0.007812564261257648, 0.006860687397420406]
+    std_population: [0.20846743881702423, 0.2067486196756363]
+  planning_oracle:
+    path: >-
+      artifacts/evaluation/history3/pusht_action_strength_h3_release_v1/action_planning_oracle.json
+    sha256: 30eb50f33b1478a02110fcf11ccf613b061f3b1c5aea8fc77421429a91fb917a
+    condition_count: 512
+    amplitude_grid_size: 101
+    causal_execution: replay_x0_to_x1_to_x2_before_each_candidate
+
+scoring:
+  hidden_future_prediction:
+    target: each_checkpoint_native_frozen_encoder
+    public_primary: correct_future_rate
+    cross_checkpoint_absolute_mse_comparison_allowed: false
+    metrics:
+      - correct_future_rate
+      - correct_history_rate
+      - rule_switch_rate
+      - worst_strength_correct_future_rate
+    internal_anti_spoof_metrics:
+      - latent_response.target_latent_separation.passed
+      - latent_response.response_gain
+      - latent_response.normalized_response_error
+    anti_spoofing_contract:
+      role: internal_validity_gate_not_public_primary_score
+      normalization: within_checkpoint_real_target_response
+      response_gain_anchors: {no_history_response: 0.0, real_response: 1.0}
+      normalized_response_error_anchors: {real_response: 0.0, no_history_response: 1.0}
+      legacy_results_require_checkpoint_rescore: true
+    gates:
+      correct_future_rate_minimum: 0.95
+      correct_history_rate_minimum: 0.95
+      rule_switch_rate_minimum: 0.95
+      worst_strength_correct_future_rate_minimum: 0.90
+      target_latent_separation_required: true
+      response_gain_minimum: 0.50
+      normalized_response_error_strict_maximum: 1.00
+    method_claim:
+      required_training_seeds: 3
+      all_three_checkpoints_must_pass: true
+  action_planning:
+    planner: CEM
+    candidate_action: exact_query_action_times_amplitude
+    amplitude_bounds: [0.0, 1.0]
+    candidates: 300
+    iterations: 30
+    topk: 30
+    physical_oracle_grid_size: 101
+    primary_metric: correct_action_region_rate
+    correct_action_region_rate_minimum: 0.90
+    method_claim:
+      required_training_seeds: 3
+      all_three_checkpoints_must_pass: true
+  original_task_retention:
+    eval_seeds: [42, 43, 44, 45, 46, 47]
+    queries_per_seed: 50
+    independent_cem_episodes: 300
+    query_catalog_sha256: da974c821e3fa0f232ac59538e0c79cc2cb9a80ea4bb4a62b910c66c278ce2d4
+    standard_only_successes: 225
+    noninferiority_minimum_successes: 210
+    method_claim:
+      required_training_seeds: 3
+      all_three_checkpoints_must_pass: true
+
+reference_method:
+  status: passed
+  current_anti_spoof_gate_status: passed_3_of_3
+  artifact_tree:
+    root: artifacts/evaluation/history3/pusht_action_strength_h3_release_v1
+    files: 26
+    bytes: 217250121
+    sha256: c9cc76d0e0a5a67c53ead868581bb56a42ef6fc32a5ae0c09d2728bb65f8eaef
+  training_recipe: mixed_dynamics_response_sigreg_0p02
+  optimizer_steps: 4096
+  training_seeds: [13313, 13314, 13315]
+  reused_after_strict_causal_repair:
+    checkpoint_retraining_required: false
+    model_visible_training_bytes_identical: true
+    model_visible_development_bytes_identical: true
+    model_visible_public_test_bytes_identical: true
+  per_seed:
+    13313:
+      checkpoint:
+        path: >-
+          artifacts/evaluation/history3/pusht_action_strength_h3_release_v1/seed_13313/checkpoint.pt
+        sha256: d16e7fb870eb78c891e74f1354ffebc4220c9b67b93d2e2b704588bbffdc1ebf
+      correct_future_rate: 0.970703125
+      correct_history_rate: 0.982421875
+      rule_switch_rate: 0.99609375
+      worst_strength_correct_future_rate: 0.94921875
+      correct_action_region_rate: 0.974609375
+      standard_cem_successes: 224
+      standard_cem_evaluations: 300
+      all_gates_passed: true
+    13314:
+      checkpoint:
+        path: >-
+          artifacts/evaluation/history3/pusht_action_strength_h3_release_v1/seed_13314/checkpoint.pt
+        sha256: 49cdc065a9a08b5fcfc38fbf316cf9cae0d6104a57f71a4f69c3f6664f846132
+      correct_future_rate: 0.96484375
+      correct_history_rate: 0.986328125
+      rule_switch_rate: 0.99609375
+      worst_strength_correct_future_rate: 0.94140625
+      correct_action_region_rate: 0.970703125
+      standard_cem_successes: 216
+      standard_cem_evaluations: 300
+      all_gates_passed: true
+    13315:
+      checkpoint:
+        path: >-
+          artifacts/evaluation/history3/pusht_action_strength_h3_release_v1/seed_13315/checkpoint.pt
+        sha256: 697e3bf33713ce56c0bbcb1c207ef325bcf8768f1ed5dc7efb115a25f8356a04
+      correct_future_rate: 0.962890625
+      correct_history_rate: 0.984375
+      rule_switch_rate: 0.99609375
+      worst_strength_correct_future_rate: 0.94140625
+      correct_action_region_rate: 0.974609375
+      standard_cem_successes: 232
+      standard_cem_evaluations: 300
+      all_gates_passed: true
+  aggregate:
+    correct_future_rate_mean: 0.9661458333333334
+    correct_history_rate_mean: 0.984375
+    rule_switch_rate_mean: 0.99609375
+    worst_strength_correct_future_rate_mean: 0.9440104166666666
+    correct_action_region_rate_mean: 0.9733072916666666
+    standard_cem_successes: 672
+    standard_cem_evaluations: 900
+    all_three_seeds_passed: true
+
+reference_results:
+  latent_response_summary:
+    path: >-
+      artifacts/evaluation/history3/pusht_action_strength_h3_release_v1/latent_response_summary.json
+    sha256: 0c339187d06ede34969cc172a5baefa834ad92cb1bfa2832e95b12254e8e1313
+  reference_method_summary:
+    path: >-
+      artifacts/evaluation/history3/pusht_action_strength_h3_release_v1/reference_method_summary.json
+    sha256: f44af9a1eed55243670b2f18a24e4c7e730a6a64b0fe62bf73b42a12dd2d01da
+  strict_causal_data_compatibility_audit:
+    path: >-
+      artifacts/evaluation/history3/pusht_action_strength_h3_release_v1/strict_causal_data_compatibility_audit.json
+    sha256: e4449cb31ccdcec4608aef1a70a896078c8c56ab8dc0246ef77888a7437446a8
+  strict_result_compatibility_audit:
+    path: >-
+      artifacts/evaluation/history3/pusht_action_strength_h3_release_v1/strict_result_compatibility_audit.json
+    sha256: 5f1505f9998ce29b11c338c0935f1ac654fb04018c9ecc91767ec4d168174876
+
+claim_boundary:
+  current_claim: >-
+    数据与因果配对已经审计；三个参考 LeWM checkpoint 同时通过四项预测门、
+    latent 响应防伪门、动作区域选择和标准 PushT CEM 非劣门。
+  historical_evidence: >-
+    latent 响应防伪门加入前，三个 checkpoint 已通过四项排序指标、动作区域选择
+    和标准 PushT CEM 非劣门；新评分确认该结果并非只靠正确排序获得。
+  does_not_prove:
+    - 所有模型都能学会推手移动幅度 ICL
+    - 能外推到训练范围外的连续推手移动幅度
+    - 已学会摩擦、质量或其他隐藏动力学
+    - 动作振幅已经精确到连续最优值
+
+distribution:
+  release_kind: local_technical_release_candidate
+  code_license_status: not_declared
+  generated_data_license_status: not_declared
+  public_download_status: not_configured
+  public_artifact_urls: []
+  export_grants_redistribution_rights: false
