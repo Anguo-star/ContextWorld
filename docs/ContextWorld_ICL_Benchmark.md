@@ -65,9 +65,9 @@ ContextWorld 目前覆盖三个环境和八种隐藏规律。
 
 除上述八项正式组件外，当前还有一个尚未发布的研发候选：Cube 夹爪携带规则
 （History=3）。它的 v4r1 Training、Development 和原任务 CEM 留存已完成，LeWM
-三个训练种子通过，PLDM 三个训练种子未通过；Public Test 仍为
-`closed_not_read_not_scored`。该候选不属于当前 Suite，也没有公开命令或 Public 分数，
-详细状态见 6.9。
+三个训练种子通过，PLDM 三个训练种子未通过；一次性 Public 前冻结已完成，当前状态为
+`authorized_not_generated_not_opened_not_read_not_scored`。Public 数据、score 和 decision
+路径仍不存在。该候选不属于当前 Suite，也没有公开命令或 Public 分数，详细状态见 6.9。
 
 ## 3. 评测协议
 
@@ -195,7 +195,7 @@ PushT、Reacher 和传送门出口位置任务通常包含 256 对查询。每�
 contextworld-benchmark results
 ```
 
-### 5.1 未发布 Development 候选结果
+### 5.1 未发布候选结果与 Public 前冻结状态
 
 下表只报告尚未进入 Public Test 的 Development 结果，不属于公开结果表，也不能用于
 Suite 排名或发布声明。
@@ -206,7 +206,9 @@ Suite 排名或发布声明。
 | Cube 夹爪携带规则 | PLDM，联合训练 | 平均 50.13%；50.20%、50.20%、50.00% | 未通过（0/3） | 未运行 | 未判定 |
 
 LeWM 三个 CEM 检查点相对同一 baseline 分别减少 12、15 和 13 次成功，均未超过预注册
-的 15/300 非劣效边界。Public split 未生成、未哈希、未打开、未读取、未评分。
+的 15/300 非劣效边界。2026-08-14 完成的一次性 Public 前冻结只授权上述三个 LeWM
+checkpoint；PLDM 不在授权矩阵内。Public split 仍未生成、未哈希、未打开、未读取、未
+评分。
 
 ## 6. 任务定义
 
@@ -386,7 +388,7 @@ PushT 是零重力平面。该任务根据接触结束后的运动历史，判�
 
 该任务已具备训练和评分条件，但参考方法尚未稳定解决。它不验证连续出口坐标、范围外出口或多步传送规划。
 
-### 6.9 Cube 夹爪携带规则（Development 候选）
+### 6.9 Cube 夹爪携带规则（Public 前冻结候选）
 
 #### 任务目标
 
@@ -412,6 +414,10 @@ latent separation、response gain 和 normalized response error 检查。方法�
 检查点全部通过。通过 Development 的模型族还要在 300 个共享 query 上完成原 Cube CEM
 留存；每个候选最多允许比 baseline 少 15 次成功。
 
+Public 前冻结固定只评测 LeWM 的 17321、17322、17323 三个 step-4096 checkpoint，设备
+依次为 `cuda:0`、`cuda:1`、`cuda:2`，batch size 为 64。评分命名空间和不可逆访问标记
+必须先于 Public Lance 读取创建；访问后的任何失败都禁止在同一命名空间重跑。
+
 #### 基线表现
 
 训练后 LeWM 三个 Development 正确率为 77.93%、77.34% 和 77.15%，三个检查点全部
@@ -422,8 +428,9 @@ CEM 为 198/300，训练后 LeWM 为 186、183、185/300，相对差值为 -12�
 #### 适用范围
 
 当前结果只验证二值夹爪携带规则的一步 Development ICL 和原 Cube 规划能力保持，不验证
-连续夹持强度、范围外规则或多步闭环适应。Public Test 仍关闭，因此该能力不是当前八项
-Suite 的组件，没有公开 CLI、Public 分数或发布声明。
+连续夹持强度、范围外规则或多步闭环适应。Public Test 已获得一次性执行授权但尚未执行，
+数据、score 和 decision 均不存在；因此该能力仍不是当前八项 Suite 的组件，没有公开
+CLI、Public 分数或发布声明。
 
 ## 7. 接入新的 latent 世界模型
 

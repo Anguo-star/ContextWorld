@@ -1,6 +1,6 @@
-# Cube Gripper-Carry History=3 v4r1：Public 前交接状态
+# Cube Gripper-Carry History=3 v4r1：Public 前冻结交接状态
 
-状态日期：2026-08-13。本文是研发状态索引，不是预注册、冻结回执或发布声明。机器判定
+状态日期：2026-08-14。本文是研发状态索引，不是预注册、冻结回执或发布声明。机器判定
 以文末列出的 JSON 及其 SHA256 为准。
 
 ## 任务目标
@@ -51,12 +51,15 @@ PLDM 的真实未来正确率为 50.00%–50.20%，三个 checkpoint 均未通�
 ## 适用范围与发布边界
 
 当前可以声明：v4r1 数据已通过 Development 数据门；LeWM 在三个训练种子上通过参考
-Development，并保持原 Cube CEM 能力。不能声明 Public Test 分数、正式 release、统一
-Suite 成员或公开 CLI。结果也不验证连续夹持强度、范围外规则、多步闭环适应或 PLDM
-已经解决该任务。
+Development，并保持原 Cube CEM 能力；一次性 Public 评测与发布授权已经完成前访问
+冻结。不能声明 Public Test 分数、正式 release、统一 Suite 成员或公开 CLI。结果也不
+验证连续夹持强度、范围外规则、多步闭环适应或 PLDM 已经解决该任务。
 
-下一步只能是另行冻结一次性的 Public 评测与发布授权。在该授权发生前，Public 必须保持
-`closed_not_read_not_scored`。
+冻结授权只包含 LeWM 的 17321、17322、17323 三个固定 step-4096 checkpoint；PLDM 被
+排除。当前 Public 状态为
+`authorized_not_generated_not_opened_not_read_not_scored`，数据、score 和 decision 路径
+仍不存在。下一步只能在明确授权后执行这一轮不可逆的一次性 Public campaign；一旦生成
+或访问失败，同一命名空间不得重跑，必须另行预注册恢复方案。
 
 ## 冻结证据入口
 
@@ -66,5 +69,11 @@ Suite 成员或公开 CLI。结果也不验证连续夹持强度、范围外规�
 - 原任务留存判定：
   `artifacts/evaluation/history3/cube_gripper_carry_h3_development_v4r1/original_task_retention_decision_v2.json`，
   SHA256 `12dbe11eb4cf025359987962dfd869e73e0deb0ecb0eca007fad727889a07ef0`；
+- Public release v1 预注册：
+  `configs/benchmark/cube_gripper_carry_h3_v4r1_public_release_prereg_v1.yaml`，
+  SHA256 `633589015d23279a859b20d3ce02d6804fb25ced95858e4a419f733d8794903c`；
+- Public 前冻结回执：
+  `artifacts/evaluation/history3/cube_gripper_carry_h3_public_release_v1/public_release_freeze_receipt_v1.json`，
+  SHA256 `9215a8fbb74677717d088df536f26f62922667f501a1b168481df1c8007066c7`；
 - 留存 v1 的零 episode EGL 基础设施失败已独立归档；v2 只把 render backend 改为
   OSMesa，科学 query、checkpoint、CEM 参数和门槛均未改变。
