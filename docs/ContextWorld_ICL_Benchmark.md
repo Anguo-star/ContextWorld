@@ -65,9 +65,10 @@ ContextWorld 目前覆盖三个环境和八种隐藏规律。
 
 除上述八项正式组件外，当前还有一个尚未发布的研发候选：Cube 夹爪携带规则
 （History=3）。它的 v4r1 Training、Development 和原任务 CEM 留存已完成，LeWM
-三个训练种子通过，PLDM 三个训练种子未通过；一次性 Public 前冻结已完成，当前状态为
-`authorized_not_generated_not_opened_not_read_not_scored`。Public 数据、score 和 decision
-路径仍不存在。该候选不属于当前 Suite，也没有公开命令或 Public 分数，详细状态见 6.9。
+三个训练种子通过，PLDM 三个训练种子未通过。首个一次性 Public 生成尝试完成 256/256
+配对后，在写发布成功回执前因元数据封装缺陷失败；没有 Public 数据发布、模型读取、评分
+或 decision。原数据命名空间已消耗且不得重用。该候选不属于当前 Suite，也没有公开命令
+或 Public 分数，详细状态见 6.9。
 
 ## 3. 评测协议
 
@@ -195,7 +196,7 @@ PushT、Reacher 和传送门出口位置任务通常包含 256 对查询。每�
 contextworld-benchmark results
 ```
 
-### 5.1 未发布候选结果与 Public 前冻结状态
+### 5.1 未发布候选结果与 Public 执行状态
 
 下表只报告尚未进入 Public Test 的 Development 结果，不属于公开结果表，也不能用于
 Suite 排名或发布声明。
@@ -206,9 +207,10 @@ Suite 排名或发布声明。
 | Cube 夹爪携带规则 | PLDM，联合训练 | 平均 50.13%；50.20%、50.20%、50.00% | 未通过（0/3） | 未运行 | 未判定 |
 
 LeWM 三个 CEM 检查点相对同一 baseline 分别减少 12、15 和 13 次成功，均未超过预注册
-的 15/300 非劣效边界。2026-08-14 完成的一次性 Public 前冻结只授权上述三个 LeWM
-checkpoint；PLDM 不在授权矩阵内。Public split 仍未生成、未哈希、未打开、未读取、未
-评分。
+的 15/300 非劣效边界。2026-08-14 的 Public v1 冻结只授权上述三个 LeWM checkpoint；
+PLDM 不在授权矩阵内。唯一生成尝试在临时 staging 中完成 256/256 配对及数据门后，因
+`request` 缺少 preregistration/freeze-receipt 身份而未能发布。模型没有读取 Public，评分
+矩阵没有启动；恢复必须使用新的预注册和全新命名空间。
 
 ## 6. 任务定义
 
@@ -388,7 +390,7 @@ PushT 是零重力平面。该任务根据接触结束后的运动历史，判�
 
 该任务已具备训练和评分条件，但参考方法尚未稳定解决。它不验证连续出口坐标、范围外出口或多步传送规划。
 
-### 6.9 Cube 夹爪携带规则（Public 前冻结候选）
+### 6.9 Cube 夹爪携带规则（Public 生成失败，待恢复）
 
 #### 任务目标
 
@@ -402,8 +404,9 @@ v4r1 包含 2,048 个 Training 配对和 256 个 Development 配对。每个 spl
 `endpoint4`、`plateau`、`ramp4`、`front_hold` 四种动作模板间严格均衡；Training 与
 Development 的 source episode、动作 profile、场景模板、配对内容和 query 像素均不
 相交。五维扰动向量 `p` 满足 `sum(p)=0`、`p[-1]=0` 和
-`dot([4,3,2,1,0], p)=1`。配对条件共享 query 状态、像素和动作。当前版本没有生成
-Public split。
+`dot([4,3,2,1,0], p)=1`。配对条件共享 query 状态、像素和动作。Public v1 尝试在
+临时 staging 中生成并校验了 256 个配对，四模板各 64 个；发布封装失败后临时树被清理，
+正式 Public root 只保留不可覆盖的开始和失败回执，没有 Lance 表或 `_SUCCESS.json`。
 
 #### 评测方法
 
@@ -428,9 +431,9 @@ CEM 为 198/300，训练后 LeWM 为 186、183、185/300，相对差值为 -12�
 #### 适用范围
 
 当前结果只验证二值夹爪携带规则的一步 Development ICL 和原 Cube 规划能力保持，不验证
-连续夹持强度、范围外规则或多步闭环适应。Public Test 已获得一次性执行授权但尚未执行，
-数据、score 和 decision 均不存在；因此该能力仍不是当前八项 Suite 的组件，没有公开
-CLI、Public 分数或发布声明。
+连续夹持强度、范围外规则或多步闭环适应。Public v1 生成尝试已因基础设施元数据缺陷结束，
+不是模型或科学数据门失败；原命名空间不得重跑。当前没有已发布 Public 数据、score 或
+decision，因此该能力仍不是当前八项 Suite 的组件，没有公开 CLI、Public 分数或发布声明。
 
 ## 7. 接入新的 latent 世界模型
 

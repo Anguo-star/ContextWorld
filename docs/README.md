@@ -31,7 +31,7 @@
 
 | 能力 | 主文档 | 冻结进展 | 发布状态 |
 |---|---|---|---|
-| Cube 夹爪携带规则 | [6.9 Cube 夹爪携带规则](ContextWorld_ICL_Benchmark.md#69-cube-夹爪携带规则public-前冻结候选) | [Public 前冻结交接状态](protocols/Cube_Gripper_Carry_History3_v4r1_Pre_Public_Handoff.md) | Development 与 CEM 留存通过；一次性 Public campaign 已冻结授权但未执行 |
+| Cube 夹爪携带规则 | [6.9 Cube 夹爪携带规则](ContextWorld_ICL_Benchmark.md#69-cube-夹爪携带规则public-生成失败待恢复) | [Public v1 失败与恢复边界](protocols/Cube_Gripper_Carry_History3_v4r1_Public_v1_Generation_Failure.md) | Development 与 CEM 留存通过；Public v1 生成在发布前因元数据缺陷失败，原命名空间已封存 |
 
 ## 复现材料
 

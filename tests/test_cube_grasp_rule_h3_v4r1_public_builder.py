@@ -132,6 +132,109 @@ def test_public_catalog_is_deterministic_balanced_and_prior_disjoint(
     )
 
 
+def test_public_generation_success_binds_authorization_identities(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    prereg = tmp_path / "prereg.yaml"
+    freeze = tmp_path / "freeze.json"
+    source = tmp_path / "source.h5"
+    prereg.write_text("frozen: true\n", encoding="utf-8")
+    freeze.write_text('{"frozen": true}\n', encoding="utf-8")
+    source.write_bytes(b"source")
+    output = tmp_path / "public"
+    prereg_logical_path = "configs/benchmark/public_recovery.yaml"
+    freeze_logical_path = "artifacts/evaluation/public_recovery/freeze.json"
+    authorization = SimpleNamespace(
+        public_root=output,
+        preregistration_path=prereg,
+        freeze_receipt_path=freeze,
+        preregistration={
+            "identity": {"preregistration_path": prereg_logical_path}
+        },
+        freeze_receipt={
+            "frozen_inputs": {
+                "source_h5": {"path": str(source), "sha256": "0" * 64}
+            }
+        },
+        freeze_receipt_identity={
+            "path": freeze_logical_path,
+            "sha256": "1" * 64,
+            "size_bytes": freeze.stat().st_size,
+        },
+    )
+    monkeypatch.setattr(
+        public_builder, "load_public_authorization", lambda **_: authorization
+    )
+    monkeypatch.setattr(
+        public_builder,
+        "_source_identity",
+        lambda *_: {"path": str(source), "sha256": "0" * 64, "size_bytes": 6},
+    )
+    monkeypatch.setattr(
+        public_builder,
+        "_public_exclusion_audit",
+        lambda *_args, **_kwargs: _exclusions(),
+    )
+    monkeypatch.setattr(
+        public_builder,
+        "build_public_catalog",
+        lambda *_args, **_kwargs: ([], {"candidate_pool_count": 0}),
+    )
+    monkeypatch.setattr(
+        development_builder,
+        "build_split",
+        lambda *_args, **_kwargs: {
+            "prior_episode_and_content_exclusion": {
+                "accepted_overlap": {
+                    "source_episode_count": 0,
+                    "action_profile_id_count": 0,
+                    "scene_template_content_hash_count": 0,
+                    "pair_content_hash_count": 0,
+                    "query_pixel_hash_count": 0,
+                }
+            },
+            "all_causal_checks_passed": True,
+            "fresh_simulator_replay": {"passed": True},
+            "maximum_query_physical_gap": 0.0,
+            "maximum_query_simulator_state_gap": 0.0,
+            "maximum_state_installations_after_x0": 0,
+            "passed": True,
+        },
+    )
+    captured: dict[str, dict] = {}
+
+    def fake_publish(staged: Path, _output: Path, *, success_payload: dict) -> dict:
+        captured["request"] = json.loads(
+            (staged / "request.json").read_text(encoding="utf-8")
+        )
+        captured["success"] = dict(success_payload)
+        return {"success_marker": {}, "published_tree": {}}
+
+    monkeypatch.setattr(public_builder, "_publish", fake_publish)
+
+    result = public_builder.build_public_data(
+        source=source,
+        preregistration=prereg,
+        freeze_receipt=freeze,
+        output=output,
+        staging_root=Path("/tmp"),
+        workers=16,
+        jpeg_quality=95,
+    )
+
+    expected_preregistration = public_builder.file_identity(
+        prereg, logical_path=prereg_logical_path
+    )
+    expected_freeze = public_builder.file_identity(
+        freeze, logical_path=public_builder.portable_contextworld_path(freeze)
+    )
+    assert result["status"] == "public_data_generated_not_model_scored"
+    assert captured["request"]["preregistration"] == expected_preregistration
+    assert captured["request"]["freeze_receipt"] == expected_freeze
+    assert captured["success"]["preregistration"] == expected_preregistration
+    assert captured["success"]["freeze_receipt"] == expected_freeze
+
+
 def test_public_generation_failure_persists_consumed_namespace(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

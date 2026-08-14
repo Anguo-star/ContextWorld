@@ -457,6 +457,18 @@ def build_public_data(
             request = {
                 "schema_version": 1,
                 "protocol_id": PROTOCOL,
+                "preregistration": file_identity(
+                    authorization.preregistration_path,
+                    logical_path=authorization.preregistration["identity"][
+                        "preregistration_path"
+                    ],
+                ),
+                "freeze_receipt": file_identity(
+                    authorization.freeze_receipt_path,
+                    logical_path=portable_contextworld_path(
+                        authorization.freeze_receipt_path
+                    ),
+                ),
                 "split": PUBLIC_SPLIT,
                 "pair_count": PUBLIC_PAIR_COUNT,
                 "workers": DEFAULT_WORKERS,

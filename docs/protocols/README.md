@@ -28,13 +28,13 @@
 
 | 能力 | 当前状态 | 冻结材料 |
 |---|---|---|
-| Cube Gripper-Carry（History=3） | v4r1 数据、三种子参考训练和 Development 已完成；LeWM 3/3 通过，PLDM 0/3；LeWM 原 Cube CEM 留存 3/3 通过；Public Test 仍为 `closed_not_read_not_scored` | [Public 前交接状态](Cube_Gripper_Carry_History3_v4r1_Pre_Public_Handoff.md)、[v4r1 数据恢复协议](Cube_Gripper_Carry_History3_Development_v4r1_Recovery_Protocol.md)、[参考训练 v3 协议](Cube_Gripper_Carry_History3_v4r1_Reference_Training_v3_Protocol.md)、[CEM 留存 v2 协议](Cube_Gripper_Carry_History3_v4r1_Original_Task_Retention_v2_Protocol.md) |
+| Cube Gripper-Carry（History=3） | v4r1 数据、三种子参考训练和 Development 已完成；LeWM 3/3 通过，PLDM 0/3；LeWM 原 Cube CEM 留存 3/3 通过；Public v1 生成在发布前因元数据缺陷失败，未被模型读取或评分 | [Public v1 失败与恢复边界](Cube_Gripper_Carry_History3_v4r1_Public_v1_Generation_Failure.md)、[Public 前历史交接](Cube_Gripper_Carry_History3_v4r1_Pre_Public_Handoff.md)、[v4r1 数据恢复协议](Cube_Gripper_Carry_History3_Development_v4r1_Recovery_Protocol.md)、[参考训练 v3 协议](Cube_Gripper_Carry_History3_v4r1_Reference_Training_v3_Protocol.md)、[CEM 留存 v2 协议](Cube_Gripper_Carry_History3_v4r1_Original_Task_Retention_v2_Protocol.md) |
 
 Cube 的早期 `cube_gripper_carry_icl_release_v1.yaml` 仍是已失败的旧 Development 快照，
 不能替代 v4r1 冻结链，也不授权 Public 评分、Suite 登记或发布声明。当前有效的非 Public
 判定分别是 `reference_development_decision_v3.json` 和
-`original_task_retention_decision_v2.json`；只有另行冻结一次性 Public 评测后，才能生成
-新的发布配置。
+`original_task_retention_decision_v2.json`。Public v1 原命名空间已经消耗；只有新的恢复
+预注册、freeze 和明确授权完成后，才可能重新生成 Public 数据或提出发布配置。
 
 ## 历史材料怎样阅读
 

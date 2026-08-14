@@ -3,6 +3,12 @@
 状态日期：2026-08-14。本文是研发状态索引，不是预注册、冻结回执或发布声明。机器判定
 以文末列出的 JSON 及其 SHA256 为准。
 
+状态更新：本文记录的 Public 前状态已被 2026-08-14 的唯一生成尝试取代。该尝试在临时
+staging 中完成 256/256 配对后，因发布回执缺少 preregistration/freeze-receipt 身份而
+失败；正式 Public root 未发布 Lance 数据，模型未读、未评分。原命名空间已消耗，后续
+只能走新的恢复预注册。详见
+[Public v1 失败与恢复边界](Cube_Gripper_Carry_History3_v4r1_Public_v1_Generation_Failure.md)。
+
 ## 任务目标
 
 模型只看到最近三帧画面和动作，需要根据历史中的方块响应判断当前夹爪规则是
@@ -18,8 +24,8 @@ Training 与 Development 的 source episode、动作 profile、场景模板、�
 
 每个扰动向量 `p` 满足 `sum(p)=0`、`p[-1]=0`，以及
 `dot([4,3,2,1,0], p)=1`（绝对容差 `1e-6`）。配对条件共享 query 状态、像素和五维动作，
-历史及真实未来由模拟器因隐藏规则不同而产生可辨识差异。Public split 未生成、未哈希、
-未打开、未读取、未评分。
+历史及真实未来由模拟器因隐藏规则不同而产生可辨识差异。Public v1 的临时 staging 数据
+已生成并完成内部完整性构建，但没有发布为正式 Public split；模型未读取、未评分。
 
 ## 评测方法
 
@@ -51,15 +57,15 @@ PLDM 的真实未来正确率为 50.00%–50.20%，三个 checkpoint 均未通�
 ## 适用范围与发布边界
 
 当前可以声明：v4r1 数据已通过 Development 数据门；LeWM 在三个训练种子上通过参考
-Development，并保持原 Cube CEM 能力；一次性 Public 评测与发布授权已经完成前访问
-冻结。不能声明 Public Test 分数、正式 release、统一 Suite 成员或公开 CLI。结果也不
+Development，并保持原 Cube CEM 能力；Public v1 生成因发布元数据缺陷在发布前失败。
+不能声明 Public Test 分数、正式 release、统一 Suite 成员或公开 CLI。结果也不
 验证连续夹持强度、范围外规则、多步闭环适应或 PLDM 已经解决该任务。
 
 冻结授权只包含 LeWM 的 17321、17322、17323 三个固定 step-4096 checkpoint；PLDM 被
 排除。当前 Public 状态为
-`authorized_not_generated_not_opened_not_read_not_scored`，数据、score 和 decision 路径
-仍不存在。下一步只能在明确授权后执行这一轮不可逆的一次性 Public campaign；一旦生成
-或访问失败，同一命名空间不得重跑，必须另行预注册恢复方案。
+`generation_failed_before_publication_not_model_read_not_scored`：原 root 只含开始与失败
+回执，score 和 decision 路径不存在。同一命名空间不得重跑；新的生成或评分必须先完成
+独立恢复预注册、全新 freeze 和明确授权。
 
 ## 冻结证据入口
 
