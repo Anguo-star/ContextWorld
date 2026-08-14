@@ -8,7 +8,7 @@
 2. 正式文档 [ContextWorld ICL Benchmark](ContextWorld_ICL_Benchmark.md)：完整任务定义、
    数据、评分、原始模型与训练后模型的对比结果，以及使用方法。
 
-八个能力不再分别维护公开说明，避免重复内容和版本漂移。每项能力在正式文档中都使用
+八个正式能力不再分别维护公开说明，避免重复内容和版本漂移。每项能力在正式文档中都使用
 “任务目标、数据构成、评测方法、基线表现、适用范围”五段统一结构。
 
 > [ContextWorld ICL Benchmark](ContextWorld_ICL_Benchmark.md)
@@ -23,6 +23,15 @@
 | 运动阻尼 | [6.6 运动阻尼](ContextWorld_ICL_Benchmark.md#66-运动阻尼) | `configs/benchmark/pusht_motion_damping_icl_release_v1.yaml` | `contextworld-motion-damping` |
 | 机械臂质量 | [6.7 机械臂质量](ContextWorld_ICL_Benchmark.md#67-机械臂质量) | `configs/benchmark/reacher_arm_mass_icl_release_v1.yaml` | `contextworld-reacher-arm-mass` |
 | 传送门出口位置 | [6.8 传送门出口位置](ContextWorld_ICL_Benchmark.md#68-传送门出口位置) | `configs/benchmark/tworoom_portal_exit_icl_release_v1.yaml` | `contextworld-portal-exit` |
+
+## 未发布研发候选
+
+研发候选沿用相同的五段文档模板，但不计入上述八项 Suite，也不提供公开命令或 Public
+分数。
+
+| 能力 | 主文档 | 冻结进展 | 发布状态 |
+|---|---|---|---|
+| Cube 夹爪携带规则 | [6.9 Cube 夹爪携带规则](ContextWorld_ICL_Benchmark.md#69-cube-夹爪携带规则development-候选) | [Public 前交接状态](protocols/Cube_Gripper_Carry_History3_v4r1_Pre_Public_Handoff.md) | Development 与 CEM 留存通过；Public 关闭 |
 
 ## 复现材料
 

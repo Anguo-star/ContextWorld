@@ -1,0 +1,163 @@
+schema_version: 1
+preregistration_id: contextworld_cube_gripper_carry_h3_v4r1_cem_retention_v1
+protocol_id: cube_gripper_carry_rule_history3_v4r1_original_task_cem_retention_v1
+status: preregistered_before_original_task_retention
+date: "2026-08-13"
+phase: post_development_original_task_retention_only
+claim_limit: >-
+  Authorizes only one paired standard original-Cube CEM run for the original
+  LeWM baseline and the three LeWM v3 checkpoints that passed Development.
+  Public Test, release claims, and suite registration remain unauthorized.
+
+scope:
+  environment: Cube
+  capability: does_gripper_lift_move_the_cube
+  history_tokens: 3
+  context_transitions: 2
+  raw_action_dim: 5
+  raw_steps_per_action_block: 5
+  flattened_action_input_dim: 25
+  passing_families: [lewm]
+  failed_development_families: [pldm]
+  public_test_included: false
+  sealed_test_included: false
+
+prior_development:
+  reference_preregistration: {path: configs/benchmark/cube_gripper_carry_h3_v4r1_reference_training_prereg_v3.yaml, sha256: 08e70e50bd0ba32854169e2c33e5ba9db470f1900b7f01b929c2219ccf1c37c4, size_bytes: 21713}
+  reference_freeze: {path: artifacts/evaluation/history3/cube_gripper_carry_h3_development_v4r1/reference_training_freeze_receipt_v3.json, sha256: 9642ba064e018031badaeee2dedb98fe24f28e42598d7e91c5891120ec895174, size_bytes: 19828}
+  training_matrix: {path: artifacts/evaluation/history3/cube_gripper_carry_h3_development_v4r1/reference_training_v3/matrix_report.json, sha256: 00f27a9e76c8c1169044d35500f8e140d9015bac29a58bd420935ac48098a478, size_bytes: 175394}
+  development_score: {path: artifacts/evaluation/history3/cube_gripper_carry_h3_development_v4r1/reference_development_score_v3/matrix_score.json, sha256: e17beeefb2fcfce6e0220507aadb22611a737688cc069c0db89a58cf89dcf355, size_bytes: 1715446}
+  development_decision: {path: artifacts/evaluation/history3/cube_gripper_carry_h3_development_v4r1/reference_development_decision_v3.json, sha256: 797e5a9722435257fae55e1f9d97424cc77d2d3779576833322b84160375954f, size_bytes: 4211}
+
+runtime:
+  stable_worldmodel:
+    source: https://github.com/galilai-group/stable-worldmodel
+    repo: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/context_world/upstream/stable-worldmodel-875e607fc08aa72e
+    expected_ref: 875e607fc08aa72eacb94d5d178127804134cc06
+    isolated_clean_worktree_required: true
+    required_files:
+      upstream_plan_evaluator: {path: scripts/plan/eval_wm.py, sha256: 6b40fae8509199fecf7ae3df0ebf3f8f891e8f787ef9865ce4e9539d36371323, size_bytes: 10119}
+      cube_plan_config: {path: scripts/plan/config/cube.yaml, sha256: 27cbd60e530e7bcd26ad90ff42a6a25e1743e08d1e3f75ccabf104b4d35dc5a5, size_bytes: 1131}
+      lewm_model_config: {path: scripts/train/config/lewm.yaml, sha256: 847cd7fcf22837b416007b7118eeae091928e72bc991ad3d01563b9393616afb, size_bytes: 3671}
+      data_api: {path: stable_worldmodel/data/__init__.py, sha256: 3eed1b7599048f2cb441f8a5f16a29a9c18e1e354dec0bb66022b371b46a9284, size_bytes: 1867}
+      dataset_api: {path: stable_worldmodel/data/dataset.py, sha256: f0b0027cfc9c3341a93b15b957596c2c0bc62fc2b48a609a4814eeaf89a47982, size_bytes: 16606}
+      hdf5_loader: {path: stable_worldmodel/data/formats/hdf5.py, sha256: afe836ec706acc6c55450f3c936a5898b57ed65a999695af25b4b59cd14d10f3, size_bytes: 11662}
+      model_loader: {path: stable_worldmodel/wm/utils.py, sha256: 50d55db114c514363f25103e32282ebd18a1d437f2622d1facec4fa4e76a9ab0, size_bytes: 5984}
+      lewm_model: {path: stable_worldmodel/wm/lewm/lewm.py, sha256: f29797b1ed2b90b4977f38a953d251e8be8df6c8cfe7b59bb4c00bfd609f0d8f, size_bytes: 5425}
+      lewm_modules: {path: stable_worldmodel/wm/lewm/module.py, sha256: 3a6209baf30c11f77a5f6637282a1821fc62cea827438a97b23933caab51d8c7, size_bytes: 8062}
+      world_model_policy: {path: stable_worldmodel/policy.py, sha256: 4967e7e3d5b20eb7a1d0b00e5d60fd701cce1c750ae7ec4a9b02529b9366db22, size_bytes: 17816}
+      cem_solver: {path: stable_worldmodel/solver/cem.py, sha256: a6662e7f1f2c6ecaf0a8527255d531aa05ed583339aabdf2798d0206382ef51b, size_bytes: 10080}
+      vector_world: {path: stable_worldmodel/world/world.py, sha256: 39318b81ed151d8556d8540f460a63eedaed0ce4b2211ce0af9f8200e7d83bde, size_bytes: 22880}
+      cube_environment: {path: stable_worldmodel/envs/ogbench/cube_env.py, sha256: 143e5e81f424ff7a4d7fdde287dee88b722c09082a6fc9e68721839788e94c19, size_bytes: 69156}
+
+identity:
+  retention_contract: {path: contextworld/benchmarks/cube_original_task_retention.py, sha256: 9f1e07e4876c9ef097ba10e3a678f4fdf7f9eb89433bc7afdb38ef39dc2a9c79, size_bytes: 32797}
+  cem_evaluator: {path: scripts/eval_cube_original_task_cem_frozen.py, sha256: f653e4d8c7750859a94f2c98973bd1f99ecd0ddb936a507f4f8e4938878ba91b, size_bytes: 24013}
+  retention_matrix_runner: {path: scripts/run_cube_original_task_retention_matrix.py, sha256: dc326e022f664531186efbae6c13edd5d78017e2be52a870e42feba1869cd7cd, size_bytes: 8702}
+  retention_freezer: {path: scripts/freeze_cube_original_task_retention_v1.py, sha256: 5ee853c4293242ddfb4818babafec271fe93e7a424590c4de79d9a15369c0acb, size_bytes: 7978}
+  retention_finalizer: {path: scripts/finalize_cube_original_task_retention_v1.py, sha256: dea28ec7f38e3ae85db94d01681fadb6006dfd0a67cfc31ce83c00b73dd59852, size_bytes: 5692}
+  retention_protocol: {path: docs/protocols/Cube_Gripper_Carry_History3_v4r1_Original_Task_Retention_v1_Protocol.md, sha256: e0b135ef3d2b44851cc222035eefd15aa3f7f7fae19bf2a77b4b0b2d3f90877a, size_bytes: 4750}
+  retention_tests: {path: tests/test_cube_original_task_retention.py, sha256: b4c74b97a2a82a4e15e72925bd72121763874aa5d972842d4b0297e91c577b51, size_bytes: 5030}
+  path_resolution: {path: contextworld/paths.py, sha256: d401ee87b5a803f37323a2fb4632fb3686bfec5472a817d431ec6e05d9a3447f, size_bytes: 2160}
+
+data:
+  original_h5:
+    role: original_cube_query_source_and_action_normalization
+    source_symbol: upstream_original_cube_h5
+    path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-cube/ogbench/cube_single_expert.h5
+    expected_identity:
+      sha256: 0664d507c4ff12009010644c9ae950836f954e700c172ccf22e7423af1a55625
+      size_bytes: 101942558720
+      row_count: 2010000
+      episode_count: 10000
+      action_dim: 5
+  public_test_data_used: false
+
+authorization:
+  baseline:
+    kind: baseline
+    model_family: lewm
+    model_name: baseline_lewm
+    checkpoint: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-cube/ckpt/cube_lewm_baseline_seed3073/cube_lewm_baseline_seed3073_weights.ckpt
+    checkpoint_identity: {sha256: d10f75cc62e8de0aab21ee486719127cb593bb5ed6a86902f2a6ad213d8ba0d8, size_bytes: 216791529}
+    config: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-cube/ckpt/cube_lewm_baseline_seed3073/config.yaml
+    config_identity: {sha256: 864b84e3fd89b09a63ff7da3c59b96eacdc37c51d41bb73896e182929f0554b5, size_bytes: 3033}
+  candidates:
+    - kind: candidate
+      model_family: lewm
+      model_name: lewm_seed17321
+      training_seed: 17321
+      checkpoint: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/context_world/evaluation/history3/cube_gripper_carry_h3_development_v4r1/reference_training_v3/lewm_seed17321/mixed_frozen_image_paired_future_fit_1p00_step4096.pt
+      checkpoint_identity: {sha256: b7a9380bee03b057c2290a61bd71933b6ccbb693c803079a77822457b7359b70, size_bytes: 72282568}
+      config: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/context_world/evaluation/history3/cube_gripper_carry_h3_development_v4r1/reference_training_v3/lewm_seed17321/config.json
+      config_identity: {sha256: 4ec5e6bf8351ff6650fb93bb1f1708444a1b1a506b49fd4a2aea35f307003e6f, size_bytes: 1139}
+      training_report: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/context_world/evaluation/history3/cube_gripper_carry_h3_development_v4r1/reference_training_v3/lewm_seed17321/training_report.json
+      training_report_identity: {sha256: 196c054664463b09838effbd5ae574a8432820e3028d7363cd2fab496116727c, size_bytes: 36879}
+    - kind: candidate
+      model_family: lewm
+      model_name: lewm_seed17322
+      training_seed: 17322
+      checkpoint: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/context_world/evaluation/history3/cube_gripper_carry_h3_development_v4r1/reference_training_v3/lewm_seed17322/mixed_frozen_image_paired_future_fit_1p00_step4096.pt
+      checkpoint_identity: {sha256: 8a5c72abcb8bb068cd0d6fbfb8d1b5c81df3c32f2d77b57ba1b6b10c607c43f5, size_bytes: 72282568}
+      config: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/context_world/evaluation/history3/cube_gripper_carry_h3_development_v4r1/reference_training_v3/lewm_seed17322/config.json
+      config_identity: {sha256: 4ec5e6bf8351ff6650fb93bb1f1708444a1b1a506b49fd4a2aea35f307003e6f, size_bytes: 1139}
+      training_report: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/context_world/evaluation/history3/cube_gripper_carry_h3_development_v4r1/reference_training_v3/lewm_seed17322/training_report.json
+      training_report_identity: {sha256: 9065273274f5d9cc1b3b05619feb298eb0ba2f85f37a3b479adf96e0714dce72, size_bytes: 36861}
+    - kind: candidate
+      model_family: lewm
+      model_name: lewm_seed17323
+      training_seed: 17323
+      checkpoint: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/context_world/evaluation/history3/cube_gripper_carry_h3_development_v4r1/reference_training_v3/lewm_seed17323/mixed_frozen_image_paired_future_fit_1p00_step4096.pt
+      checkpoint_identity: {sha256: cf35f84bc6776c43a735318ad55847b9de0dda32f263af36053243c51d3ad54e, size_bytes: 72282568}
+      config: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/context_world/evaluation/history3/cube_gripper_carry_h3_development_v4r1/reference_training_v3/lewm_seed17323/config.json
+      config_identity: {sha256: 4ec5e6bf8351ff6650fb93bb1f1708444a1b1a506b49fd4a2aea35f307003e6f, size_bytes: 1139}
+      training_report: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/context_world/evaluation/history3/cube_gripper_carry_h3_development_v4r1/reference_training_v3/lewm_seed17323/training_report.json
+      training_report_identity: {sha256: a04f7659304cea7c90dc6bc3a08a65b09e4d65527b17d292bb1f54a127b52400, size_bytes: 36880}
+
+evaluation:
+  task: cube
+  standard: stable_worldmodel_original_cube_cem
+  eval_seeds: [42, 43, 44]
+  queries_per_eval_seed: 100
+  episodes_per_checkpoint: 300
+  checkpoint_count: 4
+  total_cem_episodes: 1200
+  lewm_parameter_count: 18034628
+  goal_offset_steps: 25
+  eval_budget: 50
+  history_len: 3
+  horizon: 5
+  receding_horizon: 5
+  action_block: 5
+  cem_samples: 300
+  cem_iterations: 30
+  cem_topk: 30
+  mujoco_gl: egl
+  videos_written: false
+  baseline_and_candidates_share_frozen_queries: true
+  noninferiority_margin_successes: 15
+  candidate_gate: candidate_successes_greater_than_or_equal_to_baseline_minus_15
+  all_three_candidates_must_pass: true
+  public_test_opened: false
+
+public_test:
+  access_status: closed_not_read_not_scored
+  generated: false
+  opened: false
+  read: false
+  hashed: false
+  scored: false
+  validation_lance_access_allowed: false
+
+planned_artifacts:
+  freeze_receipt: artifacts/evaluation/history3/cube_gripper_carry_h3_development_v4r1/original_task_retention_freeze_receipt_v1.json
+  query_catalog: artifacts/evaluation/history3/cube_gripper_carry_h3_development_v4r1/original_task_retention_query_catalog_v1.json
+  retention_root: artifacts/evaluation/history3/cube_gripper_carry_h3_development_v4r1/original_task_retention_v1
+  retention_decision: artifacts/evaluation/history3/cube_gripper_carry_h3_development_v4r1/original_task_retention_decision_v1.json
+
+prohibited_claims:
+  - public_test_score_or_generalization
+  - release_candidate_or_public_release
+  - suite_membership
+  - pldm_retention
+  - retention_passed_before_all_three_candidates_complete

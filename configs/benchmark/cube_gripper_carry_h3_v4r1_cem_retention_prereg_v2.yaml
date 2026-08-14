@@ -1,0 +1,74 @@
+schema_version: 1
+preregistration_id: contextworld_cube_gripper_carry_h3_v4r1_cem_retention_v2
+protocol_id: cube_gripper_carry_rule_history3_v4r1_original_task_cem_retention_v2
+status: preregistered_before_original_task_retention_recovery
+date: "2026-08-13"
+phase: post_development_original_task_retention_recovery_only
+claim_limit: >-
+  Authorizes a new-namespace recovery of the zero-episode v1 EGL
+  infrastructure failure. Only the render backend changes to OSMesa. Public
+  Test, release claims, and suite registration remain unauthorized.
+
+predecessor:
+  preregistration: {path: configs/benchmark/cube_gripper_carry_h3_v4r1_cem_retention_prereg_v1.yaml, sha256: cc9f12e22df6158683b71ad18bc3180fcb6f558d309b67e18455f43fbc7d48fa, size_bytes: 11882}
+  freeze_receipt: {path: artifacts/evaluation/history3/cube_gripper_carry_h3_development_v4r1/original_task_retention_freeze_receipt_v1.json, sha256: 9758e59e5b9233075bb087d083c92444dfd2593c04ca06a804380f69716b2f8f, size_bytes: 17687}
+  query_catalog: {path: artifacts/evaluation/history3/cube_gripper_carry_h3_development_v4r1/original_task_retention_query_catalog_v1.json, sha256: 0ebf7fa68078f76e1172cb47ef594129acc5563ed148ef4dafbd96b4c855d725, size_bytes: 13971}
+  matrix_request: {path: artifacts/evaluation/history3/cube_gripper_carry_h3_development_v4r1/original_task_retention_v1/matrix_request.json, sha256: fa63b8ec73383e6e1a729165226b73e5b7e1751614814c4ff33c2bd54b40b755, size_bytes: 9587}
+  matrix_report: {path: artifacts/evaluation/history3/cube_gripper_carry_h3_development_v4r1/original_task_retention_v1/matrix_report.json, sha256: 2dc2b189ce893549030b0a649b1fb3c6fb6210eb65596848f72eb8864d12278a, size_bytes: 3126}
+  failure_receipt: {path: artifacts/evaluation/history3/cube_gripper_carry_h3_development_v4r1/original_task_retention_v1/infrastructure_failure_receipt.json, sha256: b42a1b7c49883ee4438b2a9b9596611291693256cef07b225cf0e6bbdd7a34f6, size_bytes: 7404}
+
+recovery:
+  classification: render_backend_initialization_failure_not_scientific_failure
+  prior_cem_episodes_completed: 0
+  prior_world_evaluate_calls: 0
+  only_authorized_change:
+    field: evaluation.mujoco_gl
+    before: egl
+    after: osmesa
+    scientific_query_or_cem_parameter_changed: false
+  frozen_query_catalog_sha256: 0ebf7fa68078f76e1172cb47ef594129acc5563ed148ef4dafbd96b4c855d725
+  data_changed: false
+  query_catalog_changed: false
+  checkpoint_changed: false
+  evaluation_seed_changed: false
+  cem_parameter_changed: false
+  noninferiority_gate_changed: false
+  public_test_access_changed: false
+  v1_namespace_reusable: false
+  new_namespace_required: true
+
+evaluation_override:
+  mujoco_gl: osmesa
+  environment_preflight_required: true
+  environment_preflight_num_envs: 1
+  environment_preflight_world_evaluate_called: false
+  environment_preflight_cem_episodes_consumed: 0
+
+identity:
+  retention_contract: {path: contextworld/benchmarks/cube_original_task_retention_v2.py, sha256: 40ab598c9bd92e69903c2a0164625e3e6265fde355d81c15370ad376c2ddc215, size_bytes: 18181}
+  cem_evaluator: {path: scripts/eval_cube_original_task_cem_frozen_v2.py, sha256: 37441739517e9f7fdf1f2d4d1801f6c9ba4e6c9f4904591ebdcec3423b7bc50d, size_bytes: 2862}
+  retention_matrix_runner: {path: scripts/run_cube_original_task_retention_matrix_v2.py, sha256: 372c585b8cd19260b73dda14fc4f3ca1b4397317b8be7e6e6875b12d332654d0, size_bytes: 842}
+  retention_freezer: {path: scripts/freeze_cube_original_task_retention_v2.py, sha256: 0e607defea3eeffe48403cbea94cc53c6f1108fa1ef8b080bf8bea7d8eb33444, size_bytes: 928}
+  retention_finalizer: {path: scripts/finalize_cube_original_task_retention_v2.py, sha256: b64463e651e60ad7350936a8e41d5117d3d7545ef785184cbd10256eb493168b, size_bytes: 5935}
+  retention_protocol: {path: docs/protocols/Cube_Gripper_Carry_History3_v4r1_Original_Task_Retention_v2_Protocol.md, sha256: 1ea3aaeae6db44bad62e6cb8aa05e26a6cee27b85dfe8254df2dc67b292a2a49, size_bytes: 2820}
+  retention_tests: {path: tests/test_cube_original_task_retention_v2.py, sha256: 5035038e1c8bbd79d6619409691dc070ca55e0b93aca803fa97ae42d2c893034, size_bytes: 3224}
+  v1_failure_archiver: {path: scripts/archive_cube_original_task_retention_v1_failure.py, sha256: ff73f6fc9a0c58f98010d29f70976fc968c1f8d7d456c8b096ae2e23061eb9e0, size_bytes: 7570}
+  v1_retention_contract_core: {path: contextworld/benchmarks/cube_original_task_retention.py, sha256: 9f1e07e4876c9ef097ba10e3a678f4fdf7f9eb89433bc7afdb38ef39dc2a9c79, size_bytes: 32797}
+  v1_cem_evaluator_core: {path: scripts/eval_cube_original_task_cem_frozen.py, sha256: f653e4d8c7750859a94f2c98973bd1f99ecd0ddb936a507f4f8e4938878ba91b, size_bytes: 24013}
+  v1_retention_matrix_runner_core: {path: scripts/run_cube_original_task_retention_matrix.py, sha256: dc326e022f664531186efbae6c13edd5d78017e2be52a870e42feba1869cd7cd, size_bytes: 8702}
+  v1_retention_freezer_core: {path: scripts/freeze_cube_original_task_retention_v1.py, sha256: 5ee853c4293242ddfb4818babafec271fe93e7a424590c4de79d9a15369c0acb, size_bytes: 7978}
+
+planned_artifacts:
+  freeze_receipt: artifacts/evaluation/history3/cube_gripper_carry_h3_development_v4r1/original_task_retention_freeze_receipt_v2.json
+  query_catalog: artifacts/evaluation/history3/cube_gripper_carry_h3_development_v4r1/original_task_retention_query_catalog_v2.json
+  retention_root: artifacts/evaluation/history3/cube_gripper_carry_h3_development_v4r1/original_task_retention_v2
+  retention_decision: artifacts/evaluation/history3/cube_gripper_carry_h3_development_v4r1/original_task_retention_decision_v2.json
+
+public_test:
+  access_status: closed_not_read_not_scored
+  generated: false
+  opened: false
+  read: false
+  hashed: false
+  scored: false
+  validation_lance_access_allowed: false

@@ -1,0 +1,156 @@
+output_model_name: cube_lewm_baseline_seed3073
+exp_name: ${output_model_name}
+subdir: ckpt/cube_lewm_baseline_seed3073
+num_workers: 6
+train_split: 0.9
+seed: 3073
+img_size: 224
+patch_size: 14
+encoder_scale: tiny
+dump_object: true
+image_noise:
+  type: gaussian_noise
+  std_min: 0.0
+  std_max: 0
+  noise_prob: 0
+  apply_to_val: false
+encoder:
+  projection_head:
+    norm_fn: batchnorm1d
+    hidden_dim: 2048
+trainer:
+  max_epochs: 10
+  devices: auto
+  accelerator: gpu
+  precision: bf16
+  gradient_clip_val: 1.0
+loader:
+  batch_size: 128
+  num_workers: ${num_workers}
+  persistent_workers: true
+  prefetch_factor: 3
+  pin_memory: true
+optimizer:
+  type: AdamW
+  lr: 5.0e-05
+  weight_decay: 0.001
+logger_backend: swanlab
+swanlab:
+  enabled: true
+  config:
+    project: worldmodels
+    workspace: qunteam
+    experiment_name: ${exp_name}
+    logdir: /tmp/swanlab
+wandb:
+  enabled: true
+  config:
+    entity: qun-team
+    project: worldmodels
+    name: ${exp_name}
+    id: ${subdir}
+    resume: allow
+    log_model: false
+wm:
+  type: lewm
+  history_size: 3
+  num_preds: 1
+  embed_dim: 192
+  action_dim: 5
+  observation_dim: 28
+predictor:
+  depth: 6
+  heads: 16
+  mlp_dim: 2048
+  dim_head: 64
+  dropout: 0.1
+  emb_dropout: 0.0
+loss:
+  pred:
+    space: raw
+    target_view: perturbed
+  generic_latent_consistency:
+    enabled: false
+  snap_acpc:
+    enabled: false
+  paired_view_control:
+    enabled: false
+  in_forward_noise_control:
+    enabled: false
+  target_stop_grad: false
+  sigreg:
+    weight: 0.09
+    kwargs:
+      knots: 17
+      num_proj: 1024
+    warmup:
+      type: none
+      mode: replace
+      epochs: 0
+      decay_epochs: 0
+      num_proj: 1024
+      weight: null
+  temporal_hinge:
+    weight: 0.0
+    margin: 0.1
+    squared: true
+    dynamic:
+      enabled: false
+      base_margin: 0.5
+      min_margin: 0.05
+      max_margin: 1.0
+  inverse_dynamics:
+    weight: 0.0
+    hidden_dim: ${wm.embed_dim}
+    detach_input: false
+  transition_distance:
+    weight: 0.0
+    hidden_dim: ${wm.embed_dim}
+    metric: l2
+    detach_input: true
+  hetero:
+    enabled: false
+    mode: loss
+    logvar_hidden_dim: 256
+    probe_weight: 1.0
+    s_min: -4.0
+    s_max: 4.0
+    tau_floor: 1.0e-06
+  action_gate:
+    enabled: false
+    mode: full
+    dgc_noise_std_max: null
+    dgc_knn_k: 5
+    intervention: none
+    delta_scale: 0.25
+    num_delta_samples: 4
+    warmup_epochs: 3
+    ema_momentum: 0.99
+    delta_norm_floor: 1.0e-06
+    log_a_floor: 1.0e-08
+    w_min: 0.2
+    w_max: 1.0
+  adaptive_consistency:
+    enabled: false
+    weight: 0.0
+    noise_std_min: 0.0
+    noise_std_max: 0.04
+    noise_prob: 1.0
+    distance: l2
+    detach_origin: true
+    detach_clean: null
+    require_action_gate: true
+data:
+  dataset:
+    name: ogbench/cube_single_expert
+    num_steps: ${eval:'max(${wm.num_preds}, ${oc.select:loss.rollout.steps,0}) + ${wm.history_size}'}
+    frameskip: 5
+    keys_to_load:
+      - pixels
+      - action
+      - observation
+    keys_to_cache:
+      - action
+      - observation
+    keys_to_merge:
+      proprio: proprio

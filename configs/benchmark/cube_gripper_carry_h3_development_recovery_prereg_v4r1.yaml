@@ -1,0 +1,261 @@
+schema_version: 1
+protocol_id: cube_gripper_carry_rule_history3_development_v4
+scientific_protocol_id: cube_gripper_carry_rule_history3_development_v4
+recovery_authorization_id: cube_gripper_carry_h3_development_v4r1
+status: preregistered_before_v4r1_recovery_build
+date: "2026-08-12"
+phase: development_only
+claim_limit: >-
+  This is an infrastructure-recovery authorization for the unchanged Cube v4
+  scientific protocol. It authorizes one v4r1 Training/Development build and,
+  only after a complete _SUCCESS.json publication, one frozen RGB-history
+  probe. It does not authorize Public Test, reference-model training or
+  scoring, a release claim, or suite registration.
+
+recovery_inputs:
+  original_v4_preregistration:
+    path: artifacts/evaluation/history3/cube_gripper_carry_h3_development_v4/failed_attempt_v1_snapshots/prereg_v4.yaml
+    sha256: f8f940bd01c0dfbc7c822e8c5885e517ba6ec2ccffda64801655f45aa847761f
+    size_bytes: 28730
+  original_v4_freeze_receipt:
+    path: artifacts/evaluation/history3/cube_gripper_carry_h3_development_v4/development_prereg_freeze_receipt_v1.json
+    sha256: a58549ec9d5856345d4fea72ca7a7690a74204e54062ec909080c336b77af837
+    size_bytes: 9765
+  old_final_prior_receipt:
+    path: artifacts/evaluation/history3/cube_gripper_carry_h3_development_v4/prior_episode_exclusions_final_v1.json
+    sha256: 8c181529c3012cf89ecf8390d595093d256449d909c5e911297f78ed997161b4
+    size_bytes: 736689
+  infrastructure_failure_decision:
+    path: artifacts/evaluation/history3/cube_gripper_carry_h3_development_v4/development_decision_infrastructure_failure_v1.json
+    sha256: 5f159f58eac81894fda36013a309d356a9d80d0b01a7224e43d5880813b2ea75
+    size_bytes: 2054086
+  failed_formal_attempt_receipt:
+    path: artifacts/evaluation/history3/cube_gripper_carry_h3_development_v4/failed_formal_attempt_receipt_v1.json
+    sha256: 5f20da08a538f2fd0c72c5c172e64cb2359a2e5bdad1746cf2c4249bbf739936
+    size_bytes: 1956930
+  query_reconstruction_receipt:
+    path: artifacts/evaluation/history3/cube_gripper_carry_h3_development_v4/failed_formal_attempt_query_reconstruction_receipt_v1.json
+    sha256: a85c3343464cbbea5c13ac167d419c87bbd5b8ce942767900af171db8474e5e0
+    size_bytes: 2215188
+  v4r1_action_support_audit:
+    path: artifacts/evaluation/history3/cube_gripper_carry_h3_development_v4r1/action_support_audit_v2.json
+    sha256: d35c06992c99680cceb6b0c29a5018772ace6a9af013928ee9894f29c6397001
+    size_bytes: 23847
+  source_h5:
+    symbol: upstream_cube_single_expert_h5
+    path_recorded: false
+    sha256: 0664d507c4ff12009010644c9ae950836f954e700c172ccf22e7423af1a55625
+    size_bytes: 101942558720
+    row_count: 2010000
+    episode_count: 10000
+
+scientific_protocol_contract:
+  unchanged_from_original_v4: true
+  history_tokens: 3
+  context_transitions: 2
+  prediction_horizon_action_blocks: 1
+  raw_steps_per_action_block: 5
+  can_hold_vertical_force_coupling_n: 0.40
+  hidden_modes: [cannot_hold, can_hold]
+  action_temporal_pattern: [p, negative_p, p, terminal_zero]
+  action_anchor_ids: [endpoint4, plateau, ramp4, front_hold]
+  sum_p_target: 0.0
+  final_p_target: 0.0
+  displacement_moment_weights: [4.0, 3.0, 2.0, 1.0, 0.0]
+  displacement_moment_target: 1.0
+  constraint_absolute_tolerance: 1.0e-6
+  jpeg_quality: 95
+  query_state_and_pixels_equal_across_modes: true
+  paired_actions_bitwise_equal: true
+  no_state_installation_after_x0: true
+
+recovery_contract:
+  failure_class: infrastructure_lance_atomic_rename_eperm
+  original_v4_formal_attempt_consumed: true
+  retry_under_original_v4_preregistration_authorized: false
+  original_failed_tree_immutable: true
+  scientific_protocol_changed: false
+  recovery_build_attempts_authorized: 1
+  builder_or_lance_smoke_attempts_authorized: 0
+  rgb_history_probe_attempts_authorized: 1
+  formal_catalog_index_offset: 2000000
+  formal_catalog_offset_four_aligned: true
+  failed_batch_identities_must_be_excluded: true
+
+data_contract:
+  logical_output_root: artifacts/synthesis/cube_gripper_carry_rule_h3_development_v4r1
+  authorized_splits: [train, loader_validation]
+  pair_counts:
+    train: 2048
+    loader_validation: 256
+  workers: 16
+  episodes_per_pair: 2
+  rows_per_pair: 8
+  pairs_per_anchor:
+    train: 512
+    loader_validation: 64
+  formal_catalog_index_offset: 2000000
+  catalog_index_offset_modulo_anchor_count: 0
+  source_episode_overlap_between_splits_required: 0
+  action_profile_overlap_between_splits_required: 0
+  scene_template_overlap_between_splits_required: 0
+  pair_content_overlap_between_splits_required: 0
+  query_pixel_overlap_between_splits_required: 0
+
+storage_publication_contract:
+  staging_root_class: local_tmp_filesystem
+  default_staging_root: /tmp
+  lance_commit_completed_on_local_staging: true
+  lance_reopened_and_verified_before_publish: true
+  local_staging_contains_success_marker: false
+  destination_creation: x_exclusive_copytree
+  copy_function: shutil.copy2
+  dirs_exist_ok: false
+  source_destination_file_receipts_must_match: true
+  source_destination_lance_identities_must_match: true
+  nonempty_directory_rename_used: false
+  success_marker_name: _SUCCESS.json
+  success_marker_written_last: true
+  failed_copy_marked_complete: false
+
+recovery_prior_exclusion_contract:
+  old_prior:
+    source_episodes: {count: 2321, sha256: 9722ad14b5f1852e53e8bf176480fa6d2a18ca26c15e2056f124991a0f6ace63}
+    action_profile_ids: {count: 2322, sha256: 637dc3d084524e02cee2284654e829e33613bd55d737dd3d24d7e24591dceee1}
+    scene_template_content_hashes: {count: 2330, sha256: a78c47bdba0534630e19febab31789d278f470260e2397f7910ec1f6fcb73912}
+    pair_content_hashes: {count: 2330, sha256: ec4033f984ff6eae1e7b20b26f1a460ea1662f192be335c51f5df4293941d006}
+    query_pixel_hashes: {count: 2330, sha256: 7e3701dac3e229d902318088f4c9a1a38e018bf28a68a643c2a2f59d41365c1e}
+  failed_attempt:
+    source_episodes: {count: 2048, sha256: 21e842365ad64b5c7282ae868c28140ec5c487ab1b7e4cdaf28ab9f053b02bbf}
+    action_profile_ids: {count: 2048, sha256: 54056db3cac5d1a58b66ead41f8a339892ff48217e05c4b85cd2c9243a078552}
+    scene_template_content_hashes: {count: 2048, sha256: ae0be9df0c4789a3419bca6a30f42ec3b4f085dc38485e6aa67c75362f5a2153}
+    pair_content_hashes: {count: 2048, sha256: 5e13c6b92d264281b3fee073bd112d73f61962c04f6c57bf5c47493e66842458}
+    query_pixel_hashes: {count: 2048, sha256: 7965e7748c44f1a304b1003b6c30f7894a60318318a7b8bc6bc553aa192d6353}
+  required_union:
+    source_episodes: {count: 4369, sha256: a2167602269492d464e7f07b2a4c1c8ba3e8c46fc1df4791ba69cd0e6027a021}
+    action_profile_ids: {count: 4370, sha256: a65e5534e0db40617126e5c916c650b273e7554247e145bdd3b5bf28a36c3b16}
+    scene_template_content_hashes: {count: 4378, sha256: a5437c01f480e3ad6a22b90f2d31f8cda9bec2a029889fc0ffc8794ba7d89dbc}
+    pair_content_hashes: {count: 4378, sha256: 58404c522605e0129d4c3a59680e4a8143a9eb2d651a05d34c4dc5ebd37826f7}
+    query_pixel_hashes: {count: 4378, sha256: 7a54a31c301b780af492153122eaaa095dfc9af384d95bb5a4875c2795f05b4e}
+  old_prior_failed_attempt_overlap_required_zero: true
+  all_five_identity_classes_required: true
+  finalizer_required_after_recovery_freeze: true
+
+recovery_capacity_check:
+  role: non_scientific_deterministic_population_capacity
+  eligible_before_old_prior: 9998
+  removed_by_old_prior: 2321
+  eligible_after_old_prior: 7677
+  failed_train_source_episode_count: 2048
+  failed_train_old_prior_overlap: 0
+  eligible_after_recovery_union: 5629
+  candidate_pool_required: 4608
+  candidate_pool_margin: 1021
+  runtime_recheck_required: true
+  used_to_select_scientific_parameters: false
+
+action_support_authorization:
+  authorizing_audit_id: cube_gripper_carry_h3_v4r1_action_support_v2
+  authorizing_artifact: artifacts/evaluation/history3/cube_gripper_carry_h3_development_v4r1/action_support_audit_v2.json
+  candidate_profile_counts: {train: 4096, loader_validation: 512}
+  total_candidate_profiles: 4608
+  v1_audit_id: cube_gripper_carry_h3_v4r1_action_support_v1
+  v1_status: superseded_non_authorizing_incomplete_candidate_pool_coverage
+  v1_total_profiles: 2304
+  v1_authorizes_recovery_freeze: false
+  v2_is_only_authorizing_action_support_input: true
+
+rgb_history_probe:
+  attempts_authorized: 1
+  run_only_after_complete_success_marker: true
+  recipe_unchanged_from_v4: true
+  thresholds_unchanged_from_v4: true
+  recipe:
+    input: decoded_x0_x1_x2_rgb_only
+    resize_shape: [16, 16]
+    resize_interpolation: Pillow_Resampling_BILINEAR
+    arithmetic_dtype: float64
+    fixed_feature: flatten(2*x1-x0-x2)_C_order
+    standard_scaler_fit_split_only: train
+    estimator: StandardScaler_then_RidgeClassifier_alpha_1
+    label_encoding: {cannot_hold: 0, can_hold: 1}
+  thresholds:
+    overall_accuracy_minimum: 0.75
+    worst_mode_accuracy_minimum: 0.70
+    worst_anchor_family_accuracy_minimum: 0.70
+    pair_cluster_bootstrap_lower_bound_minimum: 0.70
+    label_permutation_mean_accuracy_maximum: 0.60
+    x0_only_accuracy_maximum: 0.51
+    query_only_accuracy_maximum: 0.51
+    action_only_accuracy_maximum: 0.51
+  trusted_input_contract:
+    required_explicit_cli_options: [--artifact-root, --prereg, --freeze-receipt, --prior-exclusion-receipt, --output]
+    authorization_documents_read_before_artifact_root: true
+    preregistration_status: preregistered_before_v4r1_recovery_build
+    freeze_receipt_status: frozen_before_v4r1_recovery_build
+    prior_exclusion_receipt_id: cube_gripper_carry_h3_v4r1_prior_exclusions_final_v1
+    prior_exclusion_receipt_status: frozen_before_v4r1_recovery_build
+    freeze_receipt_must_bind_exact_preregistration: true
+    prior_exclusion_receipt_must_bind_exact_preregistration_and_freeze: true
+    metadata_files_parsed_before_lance_open: [request.json, build_report.json, manifest.json]
+    success_marker_must_exactly_bind_metadata_files: true
+    request_must_bind_exact_freeze_and_prior_receipts: true
+    build_report_request_must_equal_request_json: true
+    manifest_must_bind_exact_prior_and_files: true
+    metadata_protocol_recovery_splits_public_closure_revalidated: true
+    input_bytes_reverified_after_lance_reads: true
+    public_shaped_cli_paths_rejected: true
+    symlinks_rejected: true
+    artifact_root_path_recorded: false
+
+public_test:
+  access_status: closed_not_read_not_scored
+  validation_lance_access_allowed: false
+  generated: false
+  opened: false
+  read: false
+  hashed: false
+  scored: false
+
+reference_model_phase:
+  training_and_scoring_authorized: false
+  trainer_invoked: false
+  optimizer_steps_authorized: 0
+  optimizer_steps_run: 0
+  checkpoint_creation_authorized: false
+reference_model_training_or_scoring_authorized: false
+
+identity:
+  base_v2_physics: {path: contextworld/evaluation/cube_grasp_rule_h3.py, sha256: b266ce0c3014bcc79a4b88b5ae60315e9efd8e956a85e7400910907322bde937, size_bytes: 17738}
+  v3_physics_dependency: {path: contextworld/evaluation/cube_grasp_rule_h3_v3.py, sha256: 45860ac696499458ca2e950735aa1fea67e1670cd36071968c386fba27beb0b9, size_bytes: 27514}
+  common_causal_contract: {path: contextworld/benchmarks/causal_data_contract.py, sha256: 202d8a1cc57ac9ec24924f0e995cc42b8fea7b026d55465e8f7cdb102759788e, size_bytes: 3674}
+  v4_physics: {path: contextworld/evaluation/cube_grasp_rule_h3_v4.py, sha256: a96e8be3ab9131347ef77fbe58bbb943043d6216321f28a2148cd66eef361178, size_bytes: 23033}
+  v4_builder: {path: scripts/build_cube_grasp_rule_h3_v4_data.py, sha256: e0a2f62fdb1ea82b562e214ce41b0d6de671978ac6d6d091f567f9bb65a161c3, size_bytes: 148319}
+  v4_physics_tests: {path: tests/test_cube_grasp_rule_h3_v4.py, sha256: 9d1cd14d96ec210c54dd56804bf20e2ea76da935bf1e2b9a3186706dc51a69f6, size_bytes: 14556}
+  v4_builder_tests: {path: tests/test_cube_grasp_rule_h3_v4_builder.py, sha256: f1a76a3fb25eba5a753b63f680957147a7c443a421d6497f0fe7df256dffdaf2, size_bytes: 75861}
+  v4_action_support_audit: {path: scripts/audit_cube_grasp_rule_h3_v4_action_support.py, sha256: 3b6d2d6b9563dd2060410d996beaafb48d17efb6471c3c20f88d69c76755016b, size_bytes: 46342}
+  v4_action_support_audit_tests: {path: tests/test_cube_grasp_rule_h3_v4_action_support.py, sha256: be1d3499aaca286e3e4fea55500774c93223f78dfb3215b74b6b47f304989f3b, size_bytes: 24916}
+  v4_probe: {path: scripts/probe_cube_grasp_rule_h3_v4_rgb_history.py, sha256: fd39f6ac3c488f1f0515628ef20d61d6e8ed1a483d151712166fe5683acff00f, size_bytes: 116230}
+  v4_probe_tests: {path: tests/test_cube_grasp_rule_h3_v4_rgb_history.py, sha256: c1bf23706bb8f37fde869062b11dab73816393101533c686436b8fa70ac89dd8, size_bytes: 45844}
+  v4r1_prior_finalizer: {path: scripts/finalize_cube_grasp_rule_h3_v4r1_prior_exclusions.py, sha256: cf7f971cfe9eb5910f2225694933045ca9734d5756f8b6a186374d98ddd4d8a4, size_bytes: 44934}
+  v4r1_prior_finalizer_tests: {path: tests/test_finalize_cube_grasp_rule_h3_v4r1_prior_exclusions.py, sha256: 749d345c77f5eb819d85318dfec51bd064454034ff8731f46f3e5821ddc79a5b, size_bytes: 26089}
+  recovery_freezer: {path: scripts/freeze_cube_grasp_rule_h3_v4r1_recovery.py, sha256: 36e7101fcf23b6bf09906917cc4b06e69c07a99dc1e06111e2237e52d57f020f, size_bytes: 69618}
+  recovery_freezer_tests: {path: tests/test_cube_grasp_rule_h3_v4r1_recovery_freeze.py, sha256: f6a9241e3e1e5477996411018ab75826651b63068f57b8137177f34122c8d7ed, size_bytes: 43201}
+  recovery_protocol_document: {path: docs/protocols/Cube_Gripper_Carry_History3_Development_v4r1_Recovery_Protocol.md, sha256: 2e5e73b8beb5eb9dcf2593193fdd008ba329b337f300708dc43fc0355351b6be, size_bytes: 8925}
+
+planned_artifacts:
+  recovery_freeze_receipt: artifacts/evaluation/history3/cube_gripper_carry_h3_development_v4r1/development_recovery_freeze_receipt_v1.json
+  recovery_prior_exclusion_receipt: artifacts/evaluation/history3/cube_gripper_carry_h3_development_v4r1/prior_episode_exclusions_final_v1.json
+  action_support_audit: artifacts/evaluation/history3/cube_gripper_carry_h3_development_v4r1/action_support_audit_v2.json
+  build_root: artifacts/synthesis/cube_gripper_carry_rule_h3_development_v4r1
+  success_marker: artifacts/synthesis/cube_gripper_carry_rule_h3_development_v4r1/_SUCCESS.json
+  rgb_history_probe: artifacts/evaluation/history3/cube_gripper_carry_h3_development_v4r1/rgb_history_probe_v1.json
+  development_decision: artifacts/evaluation/history3/cube_gripper_carry_h3_development_v4r1/development_decision.json
+
+prohibited_claims:
+  - original_v4_attempt_retried
+  - scientific_v4_changed_for_recovery
+  - reference_model_learned_hidden_rule
+  - public_test_score_or_generalization
+  - release_candidate_or_public_release
+  - suite_membership

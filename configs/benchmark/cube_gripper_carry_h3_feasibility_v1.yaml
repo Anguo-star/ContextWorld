@@ -1,0 +1,287 @@
+schema_version: 1
+benchmark: cube_gripper_carry_history3_feasibility_v1
+status: completed_history3_physical_feasibility_passed_formal_data_pending
+date: "2026-08-08"
+claim_limit: physical_identifiability_only_not_a_model_icl_result
+
+question: >-
+  当前 query 的完整物理状态、画面和动作相同时，模型能否只根据最近两次
+  “夹爪上移—方块响应”判断夹爪当前是否能带动方块，并预测真实下一帧？
+
+naming:
+  display_name_zh: Cube 夹爪携带规则 ICL
+  display_name_en: Cube Gripper-Carry Rule ICL
+  controlled_factor: gripper_vertical_motion_couples_to_cube
+  hidden_modes: [cannot_hold, can_hold]
+  hidden_values: {cannot_hold: 0.0, can_hold: 1.0}
+
+environment:
+  family: OGBench Cube
+  source_dataset: ogbench/cube_single_expert
+  source_symbol: upstream_cube_h5
+  source_environment_variable: CONTEXTWORLD_CUBE_H5
+  source_rows: 2010000
+  source_episodes: 10000
+  eligible_source_episodes: 9998
+  source_size_bytes: 101942558720
+  transition_rule: >-
+    MuJoCo generalized-force coupling changes whether gripper vertical motion
+    exerts force on the cube; it never edits qpos or qvel after x0.
+  visible_geometry_identical_across_modes: true
+
+protocol:
+  history_tokens: 3
+  context_transitions: 2
+  raw_steps_per_action_block: 5
+  prediction_horizon_action_blocks: 1
+  sequence:
+    - shared_visible_x0
+    - shared_lift_probe_reveals_the_hidden_rule
+    - shared_recovery_reaches_the_exact_query
+    - repeated_lift_probe_produces_rule_dependent_real_future
+  continuous_environment_trajectory: true
+  state_installations_after_x0: 0
+  query_simulator_recreated: false
+  initial_pixels_bitwise_equal: true
+  query_pixels_bitwise_equal: true
+  actions_bitwise_equal_across_modes: true
+  model_visible_fields: [pixels, action]
+  privileged_audit_fields:
+    - hidden_grasp_enabled
+    - physical_state
+    - complete_mujoco_state
+    - pair_id
+    - source_episode
+
+gates:
+  maximum_query_simulator_state_gap: 1.0e-12
+  maximum_prequery_object_state_residual: 1.0e-12
+  minimum_history_cube_height_gap_m: 0.008
+  minimum_true_future_cube_height_gap_m: 0.008
+  minimum_history_changed_rgb_values: 100
+  minimum_true_future_changed_rgb_values: 100
+  no_state_installation_after_x0: true
+  deterministic_replay: true
+  cross_split_query_hash_overlap: 0
+  cross_split_template_id_overlap: 0
+  cross_split_source_episode_overlap: 0
+
+search:
+  pool_master_seed: 2026080310
+  candidate_pool_multiplier: 2
+  catalog_seeds:
+    train: 2026080311
+    loader_validation: 2026080312
+    validation: 2026080313
+  frozen_before_formal_build: true
+
+feasibility_result:
+  execution_status: completed
+  output_role: local_smoke_not_a_release_artifact
+  pair_counts:
+    train: 4
+    loader_validation: 2
+    validation: 2
+  attempted_candidates:
+    train: 4
+    loader_validation: 2
+    validation: 2
+  accepted_pairs: 8
+  minimum_history_cube_height_gap_m: 0.009450605139136314
+  minimum_true_future_cube_height_gap_m: 0.009450605139136314
+  minimum_history_changed_rgb_values: 282
+  minimum_true_future_changed_rgb_values: 339
+  maximum_query_simulator_state_gap: 5.204170427930421e-18
+  maximum_prequery_object_state_residual: 5.204170427930421e-18
+  maximum_state_installations_after_x0: 0
+  all_cross_split_overlaps: 0
+  causal_data_contract_passed: true
+  build_report_sha256: fe116de0bc063b8e5b6715af408b2ba69bf821a98c866fcedb39a91602604b90
+  manifest_sha256: 0e37002f39282d3928b15226a0d9b838ddf5c1e1b8d5ff300cb63c0a56868b2b
+  passed: true
+
+formal_data:
+  status: completed_passed
+  protocol: cube_gripper_carry_rule_history3_release_v1
+  artifact_root: artifacts/synthesis/cube_gripper_carry_rule_h3_release_v2
+  artifact_tree:
+    files: 12
+    bytes: 211115796
+    sha256: b356ebbb065b759943e370aee15db01b844b722190844b17f6b689375faa9f62
+  manifest_sha256: d0be84560590d719f33c3a9b3f8726c7b6943a2ffbf540d45f1b802976a4be20
+  pair_counts:
+    train: 2048
+    loader_validation: 256
+    validation: 256
+  public_split_names:
+    train: Training
+    loader_validation: Development
+    validation: Public Test
+  jpeg_quality: 95
+  worker_count: 16
+  build_attempts:
+    nfs_direct_attempt:
+      status: infrastructure_failed_after_training_generation
+      accepted_training_pairs: 2048
+      attempted_training_candidates: 2048
+      development_started: false
+      public_test_started: false
+      build_report_written: false
+      manifest_written: false
+      failure: >-
+        LanceError Generic LocalFileSystem was unable to atomically rename its
+        commit file on the NFS mount (Operation not permitted, os error 1).
+      interpretation: data_generation_passed_but_no_dataset_was_committed
+    local_disk_retry:
+      status: completed_promoted_and_byte_verified
+      staging_root_role: local_only_until_complete_audit
+      promotion_rule: >-
+        Copy finalized files to artifacts only after all three Lance tables,
+        build_report and manifest exist; then recheck byte hashes and row counts.
+      source_and_destination_tree_hash_equal: true
+  result:
+    attempted_candidates:
+      train: 2048
+      loader_validation: 256
+      validation: 256
+    accepted_pairs:
+      train: 2048
+      loader_validation: 256
+      validation: 256
+    acceptance_rate: 1.0
+    minimum_history_cube_height_gap_m: 0.009450603276491165
+    minimum_true_future_cube_height_gap_m: 0.009450603276491165
+    minimum_history_changed_rgb_values: 166
+    minimum_true_future_changed_rgb_values: 235
+    maximum_query_simulator_state_gap: 5.204170427930421e-18
+    maximum_prequery_object_state_residual: 1.1102230246251565e-15
+    maximum_state_installations_after_x0: 0
+    all_cross_split_overlaps: 0
+    causal_data_contract_passed: true
+    passed: true
+
+upstream_inputs:
+  original_h5:
+    role: action_normalization_and_source_replay_provenance
+    source_symbol: upstream_original_cube_h5
+    environment_variable: CONTEXTWORLD_CUBE_H5
+    bundled_artifact_path: upstream/stable-worldmodel/cube_single_expert.h5
+    rows: 2010000
+    bytes: 101942558720
+  original_lance:
+    role: standard_cube_training_rows
+    source_symbol: upstream_original_cube_lance
+    environment_variable: CONTEXTWORLD_CUBE_LANCE
+    bundled_artifact_path: upstream/stable-worldmodel/lewm_cube.lance
+    rows: 2010000
+    files: 4
+    bytes: 19218282930
+  initial_checkpoints:
+    lewm:
+      source_symbol: upstream_cube_lewm_initial_checkpoint
+      environment_variable: CONTEXTWORLD_CUBE_LEWM_INIT_CHECKPOINT
+      bundled_artifact_path: >-
+        upstream/stable-worldmodel/cube_lewm_baseline_seed3073/cube_lewm_baseline_seed3073_weights.ckpt
+      bytes: 216791529
+      sha256: d10f75cc62e8de0aab21ee486719127cb593bb5ed6a86902f2a6ad213d8ba0d8
+      config_relative_to_checkpoint: config.yaml
+      config_bytes: 3033
+      config_sha256: 864b84e3fd89b09a63ff7da3c59b96eacdc37c51d41bb73896e182929f0554b5
+      config_portable_source: configs/upstream/cube_lewm_checkpoint.yaml
+      config_portable_bytes: 3043
+      config_portable_sha256: ce8a57878ec596dc2b3fb8ed349166ea0c7ed110ad1f4c31ab1db26f746dd492
+    pldm:
+      source_symbol: upstream_cube_pldm_initial_checkpoint
+      environment_variable: CONTEXTWORLD_CUBE_PLDM_INIT_CHECKPOINT
+      bundled_artifact_path: >-
+        upstream/stable-worldmodel/cube_pldm_baseline_seed3073/cube_pldm_baseline_seed3073_weights.ckpt
+      bytes: 219328980
+      sha256: 9212dda85d4e6cb9ecb45f9916a4eac6ff6531cba6b39641210c4f23d757ebc6
+      config_relative_to_checkpoint: config.yaml
+      config_bytes: 1960
+      config_sha256: fd29c44e9265de25b81c1989fc6bd3bc07fdf9fa9ffc8f5ea26054ff925f2230
+      config_portable_source: configs/upstream/cube_pldm_checkpoint.yaml
+      config_portable_bytes: 1970
+      config_portable_sha256: 5207126e1132a4eb77eff57cdf4c1bf379a4cc4fdf121adf23359b12322bfbd9
+
+reference_matrix:
+  status: preregistered_not_executed
+  training_seeds: [3072, 3073, 3074]
+  models: [LeWM, PLDM]
+  recipes:
+    LeWM: mixed_frozen_image_paired_future_fit_1p00
+    PLDM: mixed_pldm_joint
+  common:
+    optimizer_steps: 4096
+    fixed_checkpoint_step: 4096
+    batch_size: 128
+    original_cube_samples_per_batch: 64
+    gripper_carry_samples_per_batch: 64
+    complete_gripper_carry_pairs_per_batch: 32
+    learning_rate: 5.0e-05
+    weight_decay: 0.001
+    gradient_clip_norm: 1.0
+    mixed_precision: bfloat16
+    development_monitor_steps: [512, 1024, 2048, 4096]
+    development_used_for_checkpoint_selection: false
+    public_test_used_for_recipe_or_checkpoint_selection: false
+  development_first_rule: >-
+    Run seed 3072 on Development first. Open the remaining fixed jobs only
+    after the data, loader and training path pass their preregistered checks.
+  public_test_rule: >-
+    Public Test remains sealed during recipe work and is opened once for the
+    frozen three-seed method after Development decisions are complete.
+
+action_normalization:
+  source: original_cube_h5_finite_actions_population_zscore
+  finite_action_rows: 2000000
+  excluded_nonfinite_rows: 10000
+  mean:
+    - 0.010884696617722511
+    - -0.003141433000564575
+    - 0.002646582666784525
+    - 0.00042392866453155875
+    - 0.1592525690793991
+  std_population:
+    - 0.28941982984542847
+    - 0.393716961145401
+    - 0.6431365013122559
+    - 0.3928016126155853
+    - 0.2503073513507843
+
+scoring_preregistration:
+  bootstrap:
+    resamples: 10000
+    random_seed: 2026080314
+    confidence_level: 0.95
+  gates:
+    correct_future_rate_minimum: 0.75
+    correct_history_rate_minimum: 0.75
+    context_switch_rate_minimum: 0.90
+    worst_rule_correct_future_rate_minimum: 0.70
+    target_latent_separation_required: true
+    response_gain_minimum: 0.50
+    normalized_response_error_strict_maximum: 1.00
+  bootstrap_lower_bound_minimum:
+    correct_future_rate: 0.70
+    correct_history_rate: 0.70
+    context_switch_rate: 0.85
+  method_level:
+    training_seeds_required: 3
+    all_three_checkpoints_must_pass: true
+
+original_task_retention:
+  status: preregistered_not_executed
+  evaluation: standard_cube_cem
+  episodes_per_checkpoint: 300
+  eval_seeds: [42, 43, 44]
+  episodes_per_eval_seed: 100
+  noninferiority_margin_successes: 15
+
+decision:
+  physical_history3_feasibility_passed: true
+  formal_data_build_authorized: true
+  public_test_opened: false
+  public_api_registration_allowed: false
+  suite_registration_allowed: false
+  next_step: freeze_data_ready_release_and_run_seed3072_development

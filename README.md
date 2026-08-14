@@ -25,6 +25,10 @@ Test）、模拟器生成的真实未来、评分代码和完整性审计。参�
 每项任务把模型在相同 query 上的判断换算为 0/1 正确结果，因此不同模型可以在同一任务
 内直接比较正确率。不同模型的 raw latent loss 不可直接比较，也不会跨任务求平均。
 
+Cube 夹爪携带规则（History=3）目前作为未发布研发候选记录在主 Benchmark 文档 6.9：
+LeWM 已通过三种子 Development 和原 Cube CEM 留存，PLDM 未通过 Development；Public
+Test 仍关闭。它尚未计入上述八项任务、统一 Suite 或公开命令。
+
 ## 快速开始
 
 ```bash

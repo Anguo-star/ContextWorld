@@ -63,6 +63,12 @@ ContextWorld 目前覆盖三个环境和八种隐藏规律。
 
 “参考基线未通过”不表示任务不能使用。八项任务均提供数据和评分接口；该状态只说明仓库附带的参考训练方法尚未解决对应任务。
 
+除上述八项正式组件外，当前还有一个尚未发布的研发候选：Cube 夹爪携带规则
+（History=3）。它的 v4r1 Training、Development 和原任务 CEM 留存已完成，LeWM
+三个训练种子通过，PLDM 三个训练种子未通过；Public Test 仍为
+`closed_not_read_not_scored`。该候选不属于当前 Suite，也没有公开命令或 Public 分数，
+详细状态见 6.9。
+
 ## 3. 评测协议
 
 ### 3.1 模型输入与输出
@@ -188,6 +194,19 @@ PushT、Reacher 和传送门出口位置任务通常包含 256 对查询。每�
 ```bash
 contextworld-benchmark results
 ```
+
+### 5.1 未发布 Development 候选结果
+
+下表只报告尚未进入 Public Test 的 Development 结果，不属于公开结果表，也不能用于
+Suite 排名或发布声明。
+
+| 任务 | 模型与训练配方 | Development 真实未来正确率 | Development 判定 | 原任务 CEM | 留存判定 |
+|---|---|---:|---|---|---|
+| Cube 夹爪携带规则 | LeWM，固定图像编码器并拟合配对真实未来 | 平均 77.47%；77.93%、77.34%、77.15% | 通过（3/3） | baseline 198/300；训练后 186、183、185/300 | 保持（3/3） |
+| Cube 夹爪携带规则 | PLDM，联合训练 | 平均 50.13%；50.20%、50.20%、50.00% | 未通过（0/3） | 未运行 | 未判定 |
+
+LeWM 三个 CEM 检查点相对同一 baseline 分别减少 12、15 和 13 次成功，均未超过预注册
+的 15/300 非劣效边界。Public split 未生成、未哈希、未打开、未读取、未评分。
 
 ## 6. 任务定义
 
@@ -366,6 +385,45 @@ PushT 是零重力平面。该任务根据接触结束后的运动历史，判�
 #### 适用范围
 
 该任务已具备训练和评分条件，但参考方法尚未稳定解决。它不验证连续出口坐标、范围外出口或多步传送规划。
+
+### 6.9 Cube 夹爪携带规则（Development 候选）
+
+#### 任务目标
+
+模型根据最近三帧中夹爪与方块的响应，判断当前隐藏规则是夹爪不能携带方块
+（`cannot_hold`）还是能够携带方块（`can_hold`），并预测共享 query 动作对应的真实
+下一状态。
+
+#### 数据构成
+
+v4r1 包含 2,048 个 Training 配对和 256 个 Development 配对。每个 split 在
+`endpoint4`、`plateau`、`ramp4`、`front_hold` 四种动作模板间严格均衡；Training 与
+Development 的 source episode、动作 profile、场景模板、配对内容和 query 像素均不
+相交。五维扰动向量 `p` 满足 `sum(p)=0`、`p[-1]=0` 和
+`dot([4,3,2,1,0], p)=1`。配对条件共享 query 状态、像素和动作。当前版本没有生成
+Public split。
+
+#### 评测方法
+
+LeWM 和 PLDM 各使用训练种子 17321、17322、17323，并在固定 4,096 optimizer step
+检查点上评测 Development。每个检查点必须同时满足真实未来正确率至少 75%、正确历史
+至少 75%、上下文切换至少 90%、最弱规则至少 70%，并通过 paired bootstrap、target
+latent separation、response gain 和 normalized response error 检查。方法级要求三个
+检查点全部通过。通过 Development 的模型族还要在 300 个共享 query 上完成原 Cube CEM
+留存；每个候选最多允许比 baseline 少 15 次成功。
+
+#### 基线表现
+
+训练后 LeWM 三个 Development 正确率为 77.93%、77.34% 和 77.15%，三个检查点全部
+通过；PLDM 为 50.20%、50.20% 和 50.00%，三个检查点均未通过。原始 LeWM 的标准 Cube
+CEM 为 198/300，训练后 LeWM 为 186、183、185/300，相对差值为 -12、-15、-13，三者
+均通过留存门。PLDM 因 Development 未通过，没有运行 CEM。
+
+#### 适用范围
+
+当前结果只验证二值夹爪携带规则的一步 Development ICL 和原 Cube 规划能力保持，不验证
+连续夹持强度、范围外规则或多步闭环适应。Public Test 仍关闭，因此该能力不是当前八项
+Suite 的组件，没有公开 CLI、Public 分数或发布声明。
 
 ## 7. 接入新的 latent 世界模型
 

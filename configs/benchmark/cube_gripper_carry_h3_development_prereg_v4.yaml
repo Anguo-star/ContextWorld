@@ -1,0 +1,695 @@
+schema_version: 1
+preregistration_id: contextworld_cube_gripper_carry_h3_development_v4
+protocol_id: cube_gripper_carry_rule_history3_development_v4
+status: preregistered_before_first_v4_build
+date: "2026-08-12"
+phase: development_only
+claim_limit: >-
+  This preregistration authorizes exactly one first-and-formal Cube v4
+  Training/Development data build, its frozen action-support and causal
+  audits, and exactly one frozen RGB-history probe. It does not authorize a
+  v4 builder/Lance smoke, reference-model training or scoring, Public Test
+  access, a release claim, or suite registration.
+
+question: >-
+  Does the sole 0.30 N to 0.40 N vertical-force-coupling change make the
+  unchanged Cube History=3 causal history signal recoverable by the unchanged
+  v3 RGB probe on a wholly new, prior-content-disjoint Training/Development
+  population, without reading or scoring Public Test?
+
+scientific_change:
+  sole_change: can_hold_vertical_force_coupling_n
+  v3_baseline_vertical_force_coupling_n: 0.30
+  v4_vertical_force_coupling_n: 0.40
+  capability_semantics_unchanged: true
+  history3_causal_sequence_unchanged: true
+  action_profiles_and_constraints_unchanged_except_new_seeds: true
+  semantics_unchanged:
+    - hidden_rule_changes_only_qfrc_applied_during_mj_step
+    - gravity_compensation_and_force_direction
+    - continuous_x0_x1_x2_x3_trajectory
+    - no_state_installation_after_x0
+    - same_query_state_and_pixels_across_modes
+    - paired_actions_bitwise_equal
+    - four_v3_action_anchor_families
+    - constrained_profile_perturbation_distribution
+    - train_and_loader_validation_pair_counts
+    - source_filter_and_catalog_policy
+    - jpeg_camera_and_schema
+    - causal_and_action_support_thresholds
+    - rgb_probe_feature_estimator_controls_and_thresholds
+  prohibited_additional_changes:
+    - signed_or_absolute_temporal_delta_features
+    - 32x32_features
+    - roi_or_crop_features
+    - learned_feature_or_hyperparameter_search
+    - changed_action_anchors_or_perturbation_range
+    - changed_causal_or_probe_thresholds
+  non_scientific_population_isolation:
+    formal_catalog_index_offset: 1000000
+    reason: >-
+      Two pre-freeze real-MuJoCo regression pairs had already instantiated
+      v4 train catalog indices 0 and 1. The four-aligned formal namespace
+      prevents content reuse while leaving the anchor families, perturbation
+      distribution, coefficient range, split seeds, pair counts, scene RNG,
+      causal semantics, probe recipe, and thresholds unchanged.
+    chosen_without_formal_or_probe_result: true
+
+prior_evidence:
+  v3_failed_development_decision:
+    disposition: immutable_failed_decision_and_mandatory_v4_baseline
+    path: >-
+      artifacts/evaluation/history3/cube_gripper_carry_h3_development_v3/development_decision.json
+    sha256: 29bbb54031646fbc42ec83482c65e0ef4a5e55526360337926d1648b0ff4a24c
+    status: failed_development
+  v3_rgb_history_probe:
+    disposition: immutable_failed_primary_gate
+    path: >-
+      artifacts/evaluation/history3/cube_gripper_carry_h3_development_v3/rgb_history_probe.json
+    sha256: 2c58e23acb3ef6a806fdf798b2988c1d2cd02cfdd55e4fb352f985fa3e008e2b
+    observed_overall_accuracy: 0.7421875
+    frozen_minimum: 0.75
+    other_gates_passed: true
+    interpretation: >-
+      v3 failed because its frozen overall RGB-history accuracy missed the
+      frozen threshold. Passing controls and integrity checks do not reverse
+      that decision.
+  v3_to_v4_exploratory_diagnostic:
+    disposition: design_only_not_gate_not_confirmation
+    path: >-
+      /tmp/contextworld_cube_gripper_carry_h3_v3_to_v4_exploratory_diagnostic_20260812.json
+    sha256: f5f5064d96107e70e13ec3e623ecbe644eaf36554d7bf2075c0714064e78f306
+    reused_old_v3_training_and_development: true
+    public_test_opened_read_hashed_or_scored: false
+    reference_model_training_or_scoring: false
+    cannot_validate_v4: true
+    design_decisions:
+      signed_delta_feature_rejected: true
+      absolute_delta_feature_rejected: true
+      resolution_32x32_rejected: true
+      roi_or_crop_feature_rejected: true
+      frozen_v3_probe_retained: true
+    isolation_rule: >-
+      Every old-v3 source episode and every old-v3 action, scene, pair, and
+      query content identity is excluded from formal v4.
+  coupling_feasibility_pilot:
+    disposition: nonformal_design_feasibility_not_a_frozen_gate
+    path: >-
+      artifacts/evaluation/history3/cube_gripper_carry_h3_development_v4/coupling_feasibility.json
+    sha256: b9050fb203904bbc0dc8aec2c32e5b950567b1014cb91fb923338f1979cacad7
+    selection_seed: 2026081207
+    source_scene_count: 16
+    coupling_candidates_n: [0.30, 0.40, 0.45, 0.50]
+    evaluated_pair_count: 64
+    selected_unique_coupling_n: 0.40
+    selection_basis_only:
+      - physical_history_and_future_height_gap_amplitude
+      - rendered_rgb_change_amplitude
+      - unchanged_causal_integrity
+      - smallest_conservative_strengthening_above_failed_v3
+    selection_did_not_use:
+      - classifier_or_probe_accuracy
+      - reference_model_training_or_scoring
+      - public_test
+    unchanged_during_pilot:
+      - v3_four_action_anchors
+      - paired_x0
+      - bitwise_equal_paired_actions
+      - continuous_p_negative_p_p_trajectory
+      - sum_p_zero_final_p_zero_and_displacement_moment_one
+      - camera_jpeg95_and_16x16_probe_preprocessing
+    reuse_in_formal_v4: forbidden
+
+frozen_evidence:
+  coupling_pilot:
+    path: >-
+      artifacts/evaluation/history3/cube_gripper_carry_h3_development_v4/coupling_feasibility.json
+    sha256: b9050fb203904bbc0dc8aec2c32e5b950567b1014cb91fb923338f1979cacad7
+    size_bytes: 82453
+  exploratory_diagnostic:
+    path: >-
+      artifacts/evaluation/history3/cube_gripper_carry_h3_development_v4/v3_failure_exploratory_diagnostic.json
+    sha256: f5f5064d96107e70e13ec3e623ecbe644eaf36554d7bf2075c0714064e78f306
+    size_bytes: 245183
+  v3_failed_development_decision:
+    path: >-
+      artifacts/evaluation/history3/cube_gripper_carry_h3_development_v3/development_decision.json
+    sha256: 29bbb54031646fbc42ec83482c65e0ef4a5e55526360337926d1648b0ff4a24c
+    size_bytes: 18244
+  action_feasibility_report:
+    path: >-
+      artifacts/evaluation/history3/cube_gripper_carry_h3_development_v3/action_template_feasibility_input.json
+    sha256: 20dd1f7f629f569719886360c6ffca004a44df17e8632e55f7d37a1c400ed055
+    size_bytes: 18480
+  action_feasibility_narrative:
+    path: >-
+      artifacts/evaluation/history3/cube_gripper_carry_h3_development_v3/action_template_feasibility_input.md
+    sha256: 1fda903a8f351b251b137483109d620b99157e8a3cefac9f2d3eccdde0c776e8
+    size_bytes: 4433
+  v4_action_support_audit:
+    path: >-
+      artifacts/evaluation/history3/cube_gripper_carry_h3_development_v4/action_support_audit_formal_namespace_v2.json
+    sha256: 98bdcd168d4ae131008496bc437c7876c78d0f41f0e5f5507be3184f3fbe46e3
+    size_bytes: 22462
+  v4_preformal_content_receipt:
+    path: >-
+      artifacts/evaluation/history3/cube_gripper_carry_h3_development_v4/preformal_content_receipt_v1.json
+    sha256: 972f95fc9c2f46b1ba1c239e5a45f0ccaeb2c88345c925efc1f8b571b6ce31f6
+    size_bytes: 53429
+
+scope:
+  environment: OGBench Cube single
+  history_tokens: 3
+  context_transitions: 2
+  raw_steps_per_action_block: 5
+  prediction_horizon_action_blocks: 1
+  hidden_modes: [cannot_hold, can_hold]
+  model_visible_fields: [pixels, action]
+  privileged_fields_not_exposed_to_model:
+    - hidden_grasp_enabled
+    - hidden_mode
+    - physical_state
+    - complete_mujoco_state
+    - pair_id
+    - action_anchor_id
+    - action_profile_id
+    - catalog_index
+    - source_row
+    - source_episode
+    - source_step
+    - episode_idx
+    - model_step_idx
+    - split
+    - scene_template_content_hash
+    - pair_content_hash
+
+protocol:
+  continuous_sequence: [x0, probe_to_x1, recovery_to_x2, query_to_x3]
+  state_installations_after_x0: 0
+  query_simulator_recreated: false
+  hidden_transition_input: mode_dependent_qfrc_applied_only
+  can_hold_vertical_force_coupling_n: 0.40
+  action_layout:
+    raw_action_dimension: 5
+    z_sequence: "[p, -p, p]"
+    unchanged_axes: [0, 1, 3]
+    unchanged_axis_value: 0.0
+    gripper_channel: 4
+    action_anchor_families:
+      endpoint4:
+        p: [0.33333334, 0.0, 0.0, -0.33333334, 0.0]
+        gripper: 0.4
+        anchor_joint_15_step_nrmse: 0.2867
+      plateau:
+        p: [0.25, 0.25, -0.25, -0.25, 0.0]
+        gripper: 0.4
+        anchor_joint_15_step_nrmse: 0.2925
+      ramp4:
+        p: [0.3, 0.1, -0.1, -0.3, 0.0]
+        gripper: 0.5
+        anchor_joint_15_step_nrmse: 0.2914
+      front_hold:
+        p: [0.2, 0.2, 0.0, -0.4, 0.0]
+        gripper: 0.5
+        anchor_joint_15_step_nrmse: 0.2963
+    perturbation:
+      basis:
+        - [1.0, 0.0, -3.0, 2.0, 0.0]
+        - [0.0, 1.0, -2.0, 1.0, 0.0]
+      normalize_each_basis: true
+      coefficient_distribution: independent_uniform
+      coefficient_range: [-0.02, 0.02]
+      split_specific_deterministic_seeds:
+        train: 2026081201
+        loader_validation: 2026081202
+      content_overlap_between_splits_allowed: false
+    terminal_format_action_block:
+      shape: [5, 5]
+      value: all_zero_float32
+      included_in_action_profile_content_hash: true
+  profile_constraints:
+    sum_p_target: 0.0
+    final_p_target: 0.0
+    displacement_moment_weights: [4.0, 3.0, 2.0, 1.0, 0.0]
+    displacement_moment_target: 1.0
+    absolute_tolerance: 1.0e-6
+
+data_contract:
+  artifact_root: >-
+    artifacts/synthesis/cube_gripper_carry_rule_h3_development_v4
+  authorized_splits:
+    train:
+      display_name: Training
+      pair_count: 2048
+      episode_count: 4096
+      row_count: 16384
+      pairs_per_anchor_family: 512
+      lance_table: train.lance
+    loader_validation:
+      display_name: Development
+      pair_count: 256
+      episode_count: 512
+      row_count: 2048
+      pairs_per_anchor_family: 64
+      lance_table: loader_validation.lance
+  pair_count_must_be_divisible_by_anchor_count: true
+  modes_per_pair: 2
+  frames_per_mode: 4
+  jpeg_quality: 95
+  pixel_shape: [224, 224, 3]
+  pixel_dtype: uint8_before_jpeg
+  exact_anchor_balance_required_per_split: true
+  exact_mode_balance_required_per_anchor: true
+  actions_bitwise_equal_across_hidden_modes: true
+  source_episode_overlap_between_active_splits_required: 0
+  action_profile_content_hash_overlap_between_active_splits_required: 0
+  scene_template_content_hash_overlap_between_active_splits_required: 0
+  pair_content_hash_overlap_between_active_splits_required: 0
+  query_pixel_hash_overlap_between_active_splits_required: 0
+  formal_v4_against_all_v3_pilot_and_preformal_content_overlap_required: 0
+
+source_and_catalog:
+  source_symbol: upstream_cube_single_expert_h5
+  source_path_is_not_identity: true
+  formal_source_must_be_supplied_explicitly: true
+  frozen_source_identity:
+    row_count: 2010000
+    episode_count: 10000
+    size_bytes: 101942558720
+    sha256: 0664d507c4ff12009010644c9ae950836f954e700c172ccf22e7423af1a55625
+    action_dataset:
+      name: action
+      shape: [2010000, 5]
+      dtype: float32
+      finite_row_count: 2000000
+      excluded_nonfinite_row_count: 10000
+      row_major_little_endian_float32_sha256: e94371078958ee8ad62edba91435841714c293ea9684ae6523a03574793faa40
+      finite_rows_content_sha256: ea2cf67d4b7500981298499d76de0129bdc46e50da05e160f81d12e24edfc80b
+      population_std_float32: [0.28941983, 0.39371696, 0.64313650, 0.39280161, 0.25030735]
+      population_std_float32_sha256: 3929f3ba78d594bb372f48f14c588e0f42c8f33e83b6a2312b3f872d1e222954
+      gripper_maximum: 0.9075843095779419
+  eligible_row_selection:
+    one_best_row_per_source_episode: true
+    order_key: [effector_cube_distance, source_row, source_step]
+    proprio_gripper_contact_minimum: 0.8
+    proprio_gripper_opening_range_inclusive: [0.45, 0.68]
+    cube_z_range_m_inclusive: [0.017, 0.024]
+    effector_cube_distance_m_maximum: 0.008
+    source_step_range_inclusive: [5, 160]
+  candidate_pool_multiplier: 2
+  candidate_assignment_seed: 2026081200
+  formal_catalog_index_namespace:
+    catalog_index_offset: 1000000
+    local_index_policy: zero_based_contiguous_within_each_split
+    catalog_index_formula: V4_FORMAL_CATALOG_INDEX_OFFSET_plus_local_index
+    offset_positive_and_four_anchor_aligned: true
+    scene_rng_task_and_candidate_id_continue_to_use_local_index: true
+    prior_preformal_catalog_indices_excluded: [0, 1]
+  scene_catalog_seed_by_split:
+    train: 2026081201
+    loader_validation: 2026081202
+  action_profile_seed_by_split:
+    train: 2026081201
+    loader_validation: 2026081202
+
+prior_episode_exclusion:
+  basis_receipt:
+    path: >-
+      artifacts/evaluation/history3/cube_gripper_carry_h3_development_v4/prior_episode_exclusions_basis_v1.json
+    sha256: fd02914c9e3157df2a7ea9766ca9c712130def2deb371f932777535f6f0ce59f
+    size_bytes: 27364
+    status: frozen_before_first_v4_data_build
+    excluded_source_episode_count: 2320
+    excluded_source_episode_ids_sha256: 6a61cc77e5f2c769ce006a9dbbd3e7a16187ed59fbf5beec2f025713b68ac152
+    composition:
+      formal_v3_source_episodes: 2304
+      coupling_pilot_source_episodes: 16
+      overlap: 0
+      v3_smoke_source_episodes_are_formal_v3_subsets: true
+  basis_episode_count: 2320
+  basis_episode_ids_sha256: 6a61cc77e5f2c769ce006a9dbbd3e7a16187ed59fbf5beec2f025713b68ac152
+  final_receipt_required_after_prereg_freeze: true
+  final_receipt_must_bind:
+    - current_v4_preregistration_sha256
+    - current_v4_freeze_receipt_sha256
+    - frozen_source_h5_identity
+    - exact_basis_receipt_sha256
+    - v3_formal_build_report
+    - every_v3_smoke_build_report
+    - v3_exploratory_diagnostic
+    - v4_coupling_pilot
+    - every_authorized_v4_preformal_artifact
+  coverage_roles_required:
+    v3_formal: true
+    v3_smokes: true
+    v3_pilots: true
+    v4_preformal_smokes_and_pilots: true
+  pre_v4_smoke_content_union_counts:
+    action_profile_ids: 2304
+    scene_template_content_hashes: 2312
+    pair_content_hashes: 2312
+    query_pixel_hashes: 2312
+    note: >-
+      These are the frozen pre-v4-Lance-smoke counts. V3 smoke source
+      episodes are subsets of formal v3, but their scene, pair, and query
+      content is not wholly a subset and therefore expands those unions.
+  preformal_v4_content_receipt:
+    excluded_source_episode_count: 17
+    action_profile_ids: 18
+    scene_template_content_hashes: 18
+    pair_content_hashes: 18
+    query_pixel_hashes: 18
+    includes_real_mujoco_catalog_indices: [0, 1]
+    formal_catalog_offset: 1000000
+  expected_final_prior_exclusion_union_counts:
+    excluded_source_episodes: 2321
+    action_profile_ids: 2322
+    scene_template_content_hashes: 2330
+    pair_content_hashes: 2330
+    query_pixel_hashes: 2330
+  prior_content_fields_required:
+    - action_profile_ids
+    - scene_template_content_hashes
+    - pair_content_hashes
+    - query_pixel_hashes
+  formal_zero_overlap_required_against_prior:
+    - source_episode
+    - action_profile_id
+    - scene_template_content_hash
+    - pair_content_hash
+    - query_pixel_hash
+  no_v4_builder_or_lance_smoke: true
+  reason_no_v4_builder_or_lance_smoke: >-
+    The formal builder uses the same deterministic profile factory. A builder
+    smoke would consume formal profile IDs and then require excluding them,
+    conflicting with the preregistered formal population. The formal build is
+    therefore the first v4 Lance build.
+  authorized_preformal_validation_only:
+    coupling_pilot: 16_scenes_times_4_couplings_equals_64_pairs
+    direct_real_mujoco_v4_pairs: 2
+    fixture_regression_tests: true
+    lance_output: false
+  refinalization_rule: >-
+    If any newly authorized preformal artifact is created after a final
+    receipt, the old final receipt is superseded without overwrite and the
+    finalizer must emit a newer receipt containing that artifact before the
+    formal build. Under this preregistration no v4 builder/Lance smoke is
+    authorized.
+  formal_build_must_use_latest_nonoverwriting_final_receipt: true
+  smoke_or_pilot_rows_may_be_promoted_or_reused: false
+
+identifier_contract:
+  action_anchor_id:
+    role: shared_support_stratum
+    cardinality: 4
+    cross_split_overlap_expected: 4
+  action_profile_id:
+    role: concrete_float32_action_content_identity
+    construction: sha256_of_actual_float32_action_blocks_without_split_or_ids
+    unique_within_each_split: true
+    cross_split_overlap_expected: 0
+  pair_id:
+    role: operational_split_specific_row_grouping_only
+    content_disjointness_evidence: false
+    cross_split_overlap_expected: 0
+  scene_template_content_hash:
+    role: canonical_scene_generation_input_identity
+    construction: >-
+      canonical hash of source row/episode/step, simulator seed, task id,
+      qpos, control, cube color, and target position; excludes split,
+      candidate IDs, anchor IDs, and action profile IDs
+    cross_split_overlap_expected: 0
+  pair_content_hash:
+    role: canonical_scene_plus_action_content_identity
+    construction: sha256_of_scene_template_content_hash_and_action_profile_id
+    cross_split_overlap_expected: 0
+  query_pixel_hash:
+    role: rendered_query_content_identity
+    cross_split_overlap_expected: 0
+  rule: >-
+    Split/version prefixes must never disguise identical action, scene, pair,
+    or query content as disjoint.
+  canonicalization:
+    action_dtype: little_endian_float32_on_this_frozen_builder
+    action_shape: [4, 5, 5]
+    byte_layout: contiguous_c_order
+    metadata_included_in_hash: false
+
+action_support:
+  policy: shared_families_disjoint_profiles
+  interpretation: >-
+    The unchanged four anchor families are shared support strata. Every
+    concrete profile is unique within a split, disjoint across active splits,
+    and disjoint from all v3, pilot, and preformal content. Development tests
+    unseen profiles only inside the four frozen family neighborhoods.
+  per_profile_required:
+    finite_five_axis_actions: true
+    constraints_passed: true
+    normalized_distance_from_anchor_reported: true
+    conservative_nearest_original_h5_joint_15_step_nrmse_maximum: 0.5
+    action_absolute_maximum: 1.0
+    gripper_maximum: 0.9075843095779419
+  aggregate_required:
+    audited_profile_count: 2304
+    train_profile_count: 2048
+    loader_validation_profile_count: 256
+    zero_failed_profiles: true
+
+causal_gates:
+  thresholds_unchanged_from_v3: true
+  initial_pixels_bitwise_equal: true
+  initial_complete_simulator_state_gap_maximum: 0.0
+  history_cube_height_gap_m_minimum: 0.008
+  history_changed_rgb_values_minimum: 100
+  prequery_object_state_residual_maximum: 1.0e-12
+  query_physical_state_gap_maximum: 1.0e-12
+  query_complete_simulator_state_gap_maximum: 1.0e-12
+  query_pixels_bitwise_equal: true
+  actions_bitwise_equal_across_hidden_modes: true
+  true_future_cube_height_gap_m_minimum: 0.008
+  true_future_changed_rgb_values_minimum: 100
+  deterministic_replay: true
+  fresh_simulator_replay_required: true
+  fresh_replay_complete_state_gap_maximum: 1.0e-12
+  fresh_replay_pixels_bitwise_equal: true
+  fresh_replay_actions_bitwise_equal: true
+  zero_failed_saved_pairs: true
+
+learnability_gates:
+  recipe_unchanged_from_v3: true
+  thresholds_unchanged_from_v3: true
+  rgb_history_probe:
+    fit_split: train
+    fit_display_name: Training
+    evaluate_split_once: loader_validation
+    evaluate_display_name: Development
+    input: decoded_x0_x1_x2_rgb_only
+    forbidden_inputs: [x3, action, physical_state, hidden_fields, ids, row_order]
+    x3_pixel_bytes_read_allowed: false
+    x3_metadata_and_action_read_for_content_audit_only: true
+    decoder: Pillow_Image_open_convert_RGB
+    channel_order: RGB
+    resize:
+      shape: [16, 16]
+      interpolation: Pillow_Resampling_BILINEAR
+    arithmetic_dtype: float64
+    fixed_feature: "flatten(2*x1-x0-x2)_C_order"
+    standard_scaler_fit_split_only: train
+    estimator: StandardScaler_then_RidgeClassifier_alpha_1
+    label_encoding: {cannot_hold: 0, can_hold: 1}
+    decision_rule: sklearn_RidgeClassifier_predict
+    overall_accuracy_minimum: 0.75
+    worst_mode_accuracy_minimum: 0.70
+    worst_anchor_family_accuracy_minimum: 0.70
+    pair_cluster_bootstrap_lower_bound_minimum: 0.70
+    bootstrap_unit: pair_cluster_stratified_by_anchor_family
+    bootstrap_resamples: 10000
+    bootstrap_seed: 2026081203
+    negative_controls:
+      label_permutation:
+        repetitions: 16
+        seed: 2026081204
+        mean_accuracy_maximum: 0.60
+      x0_only_accuracy_maximum: 0.51
+      query_only_accuracy_maximum: 0.51
+      action_only_accuracy_maximum: 0.51
+
+attempt_budget_and_stop_rules:
+  v4_builder_lance_smoke_attempts_authorized: 0
+  formal_build_attempts_authorized: 1
+  formal_build_is_first_v4_lance_build: true
+  rgb_probe_attempts_authorized: 1
+  model_training_or_scoring_attempts_authorized: 0
+  public_test_attempts_authorized: 0
+  on_formal_build_failure:
+    - write_failed_development_with_exact_failure_stage
+    - do_not_run_rgb_probe_when_its_inputs_are_invalid
+    - do_not_rebuild_under_this_preregistration
+    - keep_public_test_closed
+  on_rgb_probe_failure:
+    - preserve_complete_failed_probe_report
+    - write_failed_development_with_failure_stage_rgb_probe
+    - do_not_change_feature_threshold_or_data
+    - do_not_rerun_under_this_preregistration
+    - do_not_train_reference_models
+    - keep_public_test_closed
+  infrastructure_exception_rule: >-
+    An attempt that fails before producing scientifically inspectable output
+    remains an immutable archived attempt. Any retry requires a newly frozen
+    preregistration; it cannot be silently classified as the sole attempt.
+
+reference_model_phase:
+  training_and_scoring_authorized: false
+  positive_reference_claim_authorized: false
+  next_step_if_this_prereg_passes: >-
+    Freeze a separate reference-training preregistration containing complete
+    LeWM and PLDM recipes, seeds, runners, scorers, checkpoints, selection
+    rules, and per-file identities before any optimizer step or model score.
+
+public_test:
+  canonical_split: validation
+  display_name: Public Test
+  access_status: closed_not_read_not_scored
+  validation_lance_access_allowed: false
+  opened: false
+  read: false
+  hashed: false
+  scored: false
+  generated_by_this_protocol: false
+  used_for_data_or_action_design: false
+  used_for_recipe_or_threshold_selection: false
+  used_for_checkpoint_selection: false
+  model_scoring_opened: false
+  opening_condition: separate_release_freeze_after_passed_development
+  on_development_failure: remain_closed_and_require_new_preregistration
+  prohibition: >-
+    Cube validation.lance/Public Test must not be opened, scanned, sampled,
+    decoded, profiled, or used to derive statistics, hashes, features,
+    thresholds, profiles, recipes, checkpoints, or claims.
+
+decision_rules:
+  on_data_support_causal_or_probe_failure:
+    - write_status_failed_development
+    - record_exact_failure_stage
+    - do_not_train_reference_models
+    - keep_public_test_closed
+  on_all_data_support_causal_and_probe_gates_pass:
+    - write_status_passed_development
+    - record_scope_as_data_readiness_only
+    - require_separate_reference_training_preregistration
+    - keep_public_test_closed
+  allowed_receipt_statuses: [passed_development, failed_development]
+  passed_development_scope: data_ready_not_model_ready_not_release_ready
+  data_ready_implies_release_ready: false
+
+identity:
+  dirty_worktree_rule: per_file_sha256_and_freeze_receipt_are_authoritative
+  base_v2_physics:
+    path: contextworld/evaluation/cube_grasp_rule_h3.py
+    sha256: b266ce0c3014bcc79a4b88b5ae60315e9efd8e956a85e7400910907322bde937
+  v3_physics_dependency:
+    path: contextworld/evaluation/cube_grasp_rule_h3_v3.py
+    sha256: 45860ac696499458ca2e950735aa1fea67e1670cd36071968c386fba27beb0b9
+    required_because: >-
+      v4 imports CubeGraspRuleV3Simulator and the private
+      _fresh_replay_mode_audit helper from this exact file.
+  common_causal_contract:
+    path: contextworld/benchmarks/causal_data_contract.py
+    sha256: 202d8a1cc57ac9ec24924f0e995cc42b8fea7b026d55465e8f7cdb102759788e
+  v4_physics:
+    path: contextworld/evaluation/cube_grasp_rule_h3_v4.py
+    sha256: 886a9a3147b7f6b29db70c6cb85b017befb5209fccdc12aeb6147d2aca9b829b
+  v4_builder:
+    path: scripts/build_cube_grasp_rule_h3_v4_data.py
+    sha256: b1ac55103f66754149466c75ef51dd6f5676497e9c92afb04137e5dc3df433df
+    depends_on_common_causal_contract: true
+  v4_physics_tests:
+    path: tests/test_cube_grasp_rule_h3_v4.py
+    sha256: 31dcf03f821adaf5e816deff810f6783652350167f60d5724e986934a27f1c1d
+  v4_builder_tests:
+    path: tests/test_cube_grasp_rule_h3_v4_builder.py
+    sha256: cf4509c555ccb903fc45be0df989db65d646c6251ed09cfdb780b661ed08f447
+  v4_action_support_audit:
+    path: scripts/audit_cube_grasp_rule_h3_v4_action_support.py
+    sha256: b5ef1658036589f32a256194c1bac1247a2d86d230d5888a68ae910dc913ecb8
+  v4_action_support_audit_tests:
+    path: tests/test_cube_grasp_rule_h3_v4_action_support.py
+    sha256: d7d5362b3bf2558e23ec67f1d797334f8f34ad4de586b479de88573877dc3395
+  v4_probe:
+    path: scripts/probe_cube_grasp_rule_h3_v4_rgb_history.py
+    sha256: 66408cfbee0314fbdac62f807b19e8e9a2b5215f8bd47d4cc9d0332e341d96a5
+  v4_probe_tests:
+    path: tests/test_cube_grasp_rule_h3_v4_rgb_history.py
+    sha256: d5179b34ae3853ef8298348d7788694b00e4bd2bc195694d7ca836419fe3d0dc
+  prior_basis_freezer:
+    path: scripts/freeze_cube_grasp_rule_h3_v4_prior_episode_exclusions.py
+    sha256: cdd0486b97b40961b085998c2b55e17abcaa243ec698f5f5fe75bc88c3cc6fe3
+  prior_basis_freezer_tests:
+    path: tests/test_cube_grasp_rule_h3_v4_prior_episode_exclusions.py
+    sha256: 0455de75340bbb7e0b67acc598a3fdca36d3cd78dd3645e8e7d23960a4986256
+  preformal_content_freezer:
+    path: scripts/freeze_cube_grasp_rule_h3_v4_preformal_content.py
+    sha256: d9b5680ca4ea82a4ba06574685809121c6d06cdf18357f705e875ef952c9e4cc
+  preformal_content_freezer_tests:
+    path: tests/test_cube_grasp_rule_h3_v4_preformal_content.py
+    sha256: 5587eeb9104aea2425f23fc5b077e44d95851ad96af55bbde5bfdb18d773c750
+  prior_finalizer:
+    path: scripts/finalize_cube_grasp_rule_h3_v4_prior_exclusions.py
+    sha256: 75ebda68f3367844c59bbe54f787e0f3879826afbcac00fc44a3a3a343df71e4
+  prior_finalizer_tests:
+    path: tests/test_finalize_cube_grasp_rule_h3_v4_prior_exclusions.py
+    sha256: a2050f7526c8fbd97eceee11a0c3805c6a71999e1f2e739deb4b1b168872ff82
+  prereg_freezer:
+    path: scripts/freeze_cube_grasp_rule_h3_v4_development.py
+    sha256: 002777e47d581625b1a1d0964dc57cb50e96582d4f7302d4c72df645f1d29334
+  prereg_freezer_tests:
+    path: tests/test_cube_grasp_rule_h3_v4_freeze.py
+    sha256: 80d0a2366f5964e22b4b20588228e95edc3109b02756fe2d3d95c8e4c122bb8e
+  protocol_document:
+    path: docs/protocols/Cube_Gripper_Carry_History3_Development_v4_Protocol.md
+    sha256: e25952842dd7538085e041bb4ebc6ca502240f9cfa3cc8c4a2a368228f1f58ea
+  freeze_receipt:
+    path: >-
+      artifacts/evaluation/history3/cube_gripper_carry_h3_development_v4/development_prereg_freeze_receipt_v1.json
+    rule: stores_prereg_sha256_without_self_hash_recursion
+  final_prior_exclusion_receipt:
+    path_rule: >-
+      artifacts/evaluation/history3/cube_gripper_carry_h3_development_v4/prior_episode_exclusions_final_vN.json
+    rule: nonoverwriting_monotonic_version_bound_to_current_prereg_and_freeze
+
+planned_artifacts:
+  build_request: >-
+    artifacts/synthesis/cube_gripper_carry_rule_h3_development_v4/request.json
+  build_report: >-
+    artifacts/synthesis/cube_gripper_carry_rule_h3_development_v4/build_report.json
+  manifest: >-
+    artifacts/synthesis/cube_gripper_carry_rule_h3_development_v4/manifest.json
+  action_support_audit: >-
+    artifacts/evaluation/history3/cube_gripper_carry_h3_development_v4/action_support_audit_formal_namespace_v2.json
+  rgb_history_probe: >-
+    artifacts/evaluation/history3/cube_gripper_carry_h3_development_v4/rgb_history_probe.json
+  development_decision: >-
+    artifacts/evaluation/history3/cube_gripper_carry_h3_development_v4/development_decision.json
+  excluded_until_separate_preregistration:
+    - training_config
+    - training_provenance
+    - checkpoint
+    - reference_development_eval
+    - public_test_eval
+    - suite_registration
+    - release_manifest
+
+prohibited_claims:
+  - reference_model_learned_the_hidden_rule
+  - public_test_score_or_generalization
+  - three_seed_stability
+  - cube_cem_retention
+  - release_candidate_or_public_release
+  - public_cli_or_suite_membership
+  - generalization_beyond_the_four_anchor_neighborhoods
+  - continuous_coupling_estimation
+  - multi_step_or_closed_loop_planning
+  - causal_generalization_beyond_audited_pairs
+  - physical_or_rgb_probe_implies_reference_model_pass
+  - data_ready_implies_release_ready
+  - real_robot_grasping_or_contact_ability

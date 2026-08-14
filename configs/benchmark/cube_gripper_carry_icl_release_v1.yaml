@@ -1,0 +1,420 @@
+schema_version: 1
+release_id: contextworld_cube_gripper_carry_icl_history3_v1
+release_status: data_ready_reference_failed_development
+data_ready_date: "2026-08-08"
+
+scope:
+  environment: Cube
+  capability: does_gripper_lift_move_the_cube
+  display_name_zh: Cube 夹爪携带规则 ICL
+  history_tokens: 3
+  context_transitions: 2
+  raw_steps_per_action_block: 5
+  prediction_horizon_action_blocks: 1
+  grasp_modes: [cannot_hold, can_hold]
+  hidden_values: {cannot_hold: 0.0, can_hold: 1.0}
+  public_test_included: true
+  sealed_test_included: false
+
+runtime:
+  supported_adapters:
+    - stable_worldmodel_lewm_cube_grasp_rule_v1
+    - stable_worldmodel_pldm_cube_grasp_rule_v1
+  extension_contract: >-
+    contextworld.benchmarks.adapters.CubeGraspRuleICLModelAdapter
+  contextworld:
+    repository: https://github.com/Anguo-star/ContextWorld
+    package_version: 0.1.0
+  stable_worldmodel:
+    source: https://github.com/galilai-group/stable-worldmodel
+    repo: ../stable-worldmodel
+    expected_ref: 875e607fc08aa72eacb94d5d178127804134cc06
+
+identity:
+  feasibility_preregistration:
+    path: configs/benchmark/cube_gripper_carry_h3_feasibility_v1.yaml
+    sha256: 227c09344ea7ad765adf0852ec422432a78bb8666c278557d0ad853fd224fe48
+  common_causal_audit:
+    path: contextworld/benchmarks/causal_data_contract.py
+    sha256: 202d8a1cc57ac9ec24924f0e995cc42b8fea7b026d55465e8f7cdb102759788e
+  adapters:
+    path: contextworld/benchmarks/adapters.py
+    sha256: a1bf037ea4da49842163142563323a26a3eb11fca9a81f6dc4070d5688805c67
+  data_api:
+    path: contextworld/benchmarks/cube_grasp_rule_icl_data.py
+    sha256: 3b8f281c2714f6edba823cbab0a5ede4e9abdfe5f877a562e28030e4e51e6bd7
+  score_api:
+    path: contextworld/benchmarks/cube_grasp_rule_icl_score.py
+    sha256: f9618596ca92d8030d5915979ac0805c314329e8aea2abfc57c5facde770a1fd
+  paired_latent_response_api:
+    path: contextworld/benchmarks/paired_latent_response.py
+    sha256: 92dc5cf019491f59596c3a0b59d918f04ad2290e124eab11d669537ac20d6ff5
+  private_command_line:
+    path: contextworld/benchmarks/cube_grasp_rule_icl_cli.py
+    sha256: 46248f84a29028b595e52033cd935cd94fbae5600289e737b7d579b5be792b71
+  causal_physics_contract:
+    path: contextworld/evaluation/cube_grasp_rule_h3.py
+    sha256: b266ce0c3014bcc79a4b88b5ae60315e9efd8e956a85e7400910907322bde937
+  data_builder:
+    path: scripts/build_cube_grasp_rule_h3_data.py
+    sha256: d7fe3dd37d0790a422a7a4d156c34a15ea2f8f50a951ca8cc56803a96087aa15
+  reference_trainer:
+    path: scripts/run_cube_grasp_rule_h3_train.py
+    sha256: 51519e307b75b7057ccaaab5a41c1c866d298e0929442522cd4789d7a53457f6
+  shared_component_trainer:
+    path: scripts/run_pusht_contact_friction_h3_train.py
+    sha256: 2c2b75b48d96f06369b98d78527068bb8e29fbf7042fa956b9a9b7832d9d2d28
+  shared_training_engine:
+    path: scripts/run_pusht_hidden_actuation_mixed.py
+    sha256: 322980de4c5ea7cccd2eca0b0cacc2bc669f3805d264bd12d4952cc0bed89495
+  reference_matrix_runner:
+    path: scripts/run_cube_grasp_rule_h3_matrix.py
+    sha256: b6f7e59a3d42b3a9aa3afb54ce0cb23f7284bff6a88f3b29ee2c299d722890b2
+  reference_evaluation_runner:
+    path: scripts/eval_cube_grasp_rule_h3_matrix.py
+    sha256: 9385da3e64b25b75a131dd8789cb9eaba3f24eaa2a61ddecbecd62e6a3d8ca07
+  original_task_retention_runner:
+    path: scripts/eval_cube_original_task_cem.py
+    sha256: 7ff14f2a0deefded13479db2d8428715a0619c1cb1f125a6cbce4a4c57b67c35
+  path_resolution:
+    path: contextworld/paths.py
+    sha256: d401ee87b5a803f37323a2fb4632fb3686bfec5472a817d431ec6e05d9a3447f
+  lewm_checkpoint_config:
+    path: configs/upstream/cube_lewm_checkpoint.yaml
+    sha256: ce8a57878ec596dc2b3fb8ed349166ea0c7ed110ad1f4c31ab1db26f746dd492
+  pldm_checkpoint_config:
+    path: configs/upstream/cube_pldm_checkpoint.yaml
+    sha256: 5207126e1132a4eb77eff57cdf4c1bf379a4cc4fdf121adf23359b12322bfbd9
+  contract_tests:
+    path: tests/test_cube_grasp_rule_h3.py
+    sha256: 4370ede1c74fc5a7e060249aa381d6788fe417a3677e3c141f63579fc837e1f0
+
+data:
+  release_version: cube_gripper_carry_rule_h3_release_v2
+  protocol: cube_gripper_carry_rule_history3_release_v1
+  artifact_tree:
+    root: artifacts/synthesis/cube_gripper_carry_rule_h3_release_v2
+    files: 12
+    bytes: 211115796
+    sha256: b356ebbb065b759943e370aee15db01b844b722190844b17f6b689375faa9f62
+  manifest_sha256: d0be84560590d719f33c3a9b3f8726c7b6943a2ffbf540d45f1b802976a4be20
+  pair_counts:
+    train: 2048
+    loader_validation: 256
+    validation: 256
+  public_split_names:
+    train: Training
+    loader_validation: Development
+    validation: Public Test
+  lance_tables:
+    train: train.lance
+    loader_validation: loader_validation.lance
+    validation: validation.lance
+  table_sha256:
+    train: 89ca2469611f6d654246b8c10dc0738ec3878b9b44716798fdd85b1ba42ec32e
+    loader_validation: ceefcde1ec801b4bcf9ee7e33cb6cc78fe7b3945fbaed2699301d9a52d759eac
+    validation: 68d64ea8d3581a7fe9bf14ef7513c9cc62211f86f9a47df143971400837e36d3
+  artifacts:
+    manifest:
+      path: artifacts/synthesis/cube_gripper_carry_rule_h3_release_v2/manifest.json
+      sha256: d0be84560590d719f33c3a9b3f8726c7b6943a2ffbf540d45f1b802976a4be20
+    build_report:
+      path: artifacts/synthesis/cube_gripper_carry_rule_h3_release_v2/build_report.json
+      sha256: 9b02e43001be6688742d1eac7a38788513a5c010dea2b955c0467633462aa25a
+    request:
+      path: artifacts/synthesis/cube_gripper_carry_rule_h3_release_v2/request.json
+      sha256: c4b2eb40c915fe6a3790302ef7e8a6f657b099e633eeb20ee0ef8d1e01325bca
+  causal_pair_contents:
+    - 两种规则从相同可见 x0 出发并执行完全相同的五维动作
+    - 三帧历史中的方块升降响应不同，因此历史能够提供携带规则信息
+    - 两条轨迹连续运行并自然恢复到相同的当前画面和完整 MuJoCo 状态
+    - 相同当前状态和查询动作产生两个由真实模拟器生成、可区分的下一帧
+  query_boundary:
+    continuous_environment_trajectory: true
+    state_installations_after_x0: 0
+    query_simulator_recreated: false
+    query_simulator_state_tolerance: 1.0e-12
+    query_pixels_bitwise_equal: true
+    query_actions_bitwise_equal: true
+  observed_bounds:
+    minimum_history_cube_height_gap_m: 0.009450603276491165
+    minimum_true_future_cube_height_gap_m: 0.009450603276491165
+    minimum_history_changed_rgb_values: 166
+    minimum_true_future_changed_rgb_values: 235
+    maximum_query_physical_gap: 0.0
+    maximum_query_simulator_state_gap: 5.204170427930421e-18
+    maximum_prequery_object_state_residual: 1.1102230246251565e-15
+  isolation:
+    train_loader_validation_query_hash_overlap: 0
+    train_validation_query_hash_overlap: 0
+    loader_validation_validation_query_hash_overlap: 0
+    template_id_overlap: 0
+    source_episode_overlap: 0
+
+training:
+  stable_worldmodel_loader:
+    format: Lance
+    frameskip: 5
+    num_steps: 4
+    keys_to_load: [pixels, action]
+    pair_episode_order: [cannot_hold, can_hold]
+  model_visible_fields: [pixels, action]
+  privileged_columns_not_exposed_to_model:
+    - hidden_grasp_enabled
+    - hidden_mode
+    - physical_state
+    - pair_id
+    - catalog_index
+    - source_row
+    - source_episode
+  upstream:
+    original_h5:
+      role: action_normalization_and_source_replay_provenance
+      source_symbol: upstream_original_cube_h5
+      environment_variable: CONTEXTWORLD_CUBE_H5
+      bundled_artifact_path: upstream/stable-worldmodel/cube_single_expert.h5
+      rows: 2010000
+      bytes: 101942558720
+    original_lance:
+      role: standard_cube_training_rows
+      source_symbol: upstream_original_cube_lance
+      environment_variable: CONTEXTWORLD_CUBE_LANCE
+      bundled_artifact_path: upstream/stable-worldmodel/lewm_cube.lance
+      rows: 2010000
+      files: 4
+      bytes: 19218282930
+  reference_matrix:
+    status: failed_development
+    training_seeds: [3072, 3073, 3074]
+    completed_development_seeds: [3072]
+    completed_development_jobs:
+      - {model: LeWM, seed: 3072, optimizer_step: 4096}
+      - {model: PLDM, seed: 3072, optimizer_step: 4096}
+    remaining_seeds_run: false
+    public_model_scoring_opened: false
+    initial_checkpoints:
+      lewm:
+        role: Stable-WorldModel LeWM reference initialization only
+        source_symbol: upstream_cube_lewm_initial_checkpoint
+        environment_variable: CONTEXTWORLD_CUBE_LEWM_INIT_CHECKPOINT
+        bundled_artifact_path: >-
+          upstream/stable-worldmodel/cube_lewm_baseline_seed3073/cube_lewm_baseline_seed3073_weights.ckpt
+        bytes: 216791529
+        sha256: d10f75cc62e8de0aab21ee486719127cb593bb5ed6a86902f2a6ad213d8ba0d8
+        config_relative_to_checkpoint: config.yaml
+        config_bytes: 3033
+        config_sha256: 864b84e3fd89b09a63ff7da3c59b96eacdc37c51d41bb73896e182929f0554b5
+        config_portable_source: configs/upstream/cube_lewm_checkpoint.yaml
+        config_portable_bytes: 3043
+        config_portable_sha256: ce8a57878ec596dc2b3fb8ed349166ea0c7ed110ad1f4c31ab1db26f746dd492
+      pldm:
+        role: Stable-WorldModel PLDM reference initialization only
+        source_symbol: upstream_cube_pldm_initial_checkpoint
+        environment_variable: CONTEXTWORLD_CUBE_PLDM_INIT_CHECKPOINT
+        bundled_artifact_path: >-
+          upstream/stable-worldmodel/cube_pldm_baseline_seed3073/cube_pldm_baseline_seed3073_weights.ckpt
+        bytes: 219328980
+        sha256: 9212dda85d4e6cb9ecb45f9916a4eac6ff6531cba6b39641210c4f23d757ebc6
+        config_relative_to_checkpoint: config.yaml
+        config_bytes: 1960
+        config_sha256: fd29c44e9265de25b81c1989fc6bd3bc07fdf9fa9ffc8f5ea26054ff925f2230
+        config_portable_source: configs/upstream/cube_pldm_checkpoint.yaml
+        config_portable_bytes: 1970
+        config_portable_sha256: 5207126e1132a4eb77eff57cdf4c1bf379a4cc4fdf121adf23359b12322bfbd9
+    common:
+      optimizer_steps: 4096
+      fixed_checkpoint_step: 4096
+      loader_validation_monitor_steps: [512, 1024, 2048, 4096]
+      batch_size: 128
+      original_cube_samples_per_batch: 64
+      gripper_carry_samples_per_batch: 64
+      complete_gripper_carry_pairs_per_batch: 32
+      learning_rate: 0.00005
+      weight_decay: 0.001
+      gradient_clip_norm: 1.0
+      mixed_precision: bfloat16
+      checkpoint_selection: fixed_final_optimizer_step
+      development_used_for_model_selection: false
+      development_used_as_preregistered_release_gate: true
+      public_test_used_for_recipe_or_checkpoint_selection: false
+    models:
+      LeWM:
+        variant: mixed_frozen_image_paired_future_fit_1p00
+        hidden_labels_used: false
+        paired_training_rows_required: true
+      PLDM:
+        variant: mixed_pldm_joint
+        hidden_labels_used: false
+    formal_decision:
+      first_development_seed: 3072
+      each_model_requires_three_distinct_checkpoints: true
+      each_checkpoint_must_pass_prediction_gate: true
+      public_test_stays_closed_until_development_decision: true
+    reported_endpoint:
+      model_family: LeWM
+      recipe: mixed_frozen_image_paired_future_fit_1p00
+      training_seed: 3072
+      optimizer_step: 4096
+    reported_endpoints:
+      lewm:
+        model_family: LeWM
+        recipe: mixed_frozen_image_paired_future_fit_1p00
+        training_seed: 3072
+        optimizer_step: 4096
+      pldm:
+        model_family: PLDM
+        recipe: mixed_pldm_joint
+        training_seed: 3072
+        optimizer_step: 4096
+    development_results:
+      LeWM:
+        correct_future_rate: 0.642578125
+        correct_history_rate: 0.685546875
+        context_switch_rate: 0.9765625
+        worst_rule_correct_future_rate: 0.5703125
+        passed: false
+      PLDM:
+        correct_future_rate: 0.50390625
+        correct_history_rate: 0.541015625
+        context_switch_rate: 0.8125
+        worst_rule_correct_future_rate: 0.42578125
+        passed: false
+
+evaluation:
+  development:
+    role: preregistered_gate_at_fixed_checkpoint_step
+    pair_count: 256
+    lance_table: loader_validation.lance
+  track: independent_cube_gripper_carry_public_test
+  model_evaluation_status: not_opened_after_failed_development
+  pair_count: 256
+  condition_count: 512
+  lance_table: validation.lance
+  source: frozen_offline_real_simulator_futures
+  online_environment_calls_for_prediction_track: 0
+  query_image_hash_overlap_with_training_or_development: 0
+  action_normalization:
+    source: original_cube_h5_finite_actions_population_zscore
+    finite_action_rows: 2000000
+    excluded_nonfinite_rows: 10000
+    mean:
+      - 0.010884696617722511
+      - -0.003141433000564575
+      - 0.002646582666784525
+      - 0.00042392866453155875
+      - 0.1592525690793991
+    std_population:
+      - 0.28941982984542847
+      - 0.393716961145401
+      - 0.6431365013122559
+      - 0.3928016126155853
+      - 0.2503073513507843
+
+scoring:
+  hidden_future_prediction:
+    target: each_checkpoint_native_frozen_encoder
+    public_primary: correct_future_rate
+    cross_checkpoint_absolute_mse_comparison_allowed: false
+    metrics:
+      - correct_future_rate
+      - correct_history_rate
+      - context_switch_rate
+      - worst_rule_correct_future_rate
+      - joint_icl_pair_success_rate
+    internal_anti_spoof_metrics:
+      - latent_response.target_latent_separation.passed
+      - latent_response.response_gain
+      - latent_response.normalized_response_error
+    anti_spoofing_contract:
+      role: internal_validity_gate_not_public_primary_score
+      normalization: within_checkpoint_real_target_response
+      response_gain_anchors: {no_history_response: 0.0, real_response: 1.0}
+      normalized_response_error_anchors: {real_response: 0.0, no_history_response: 1.0}
+      legacy_results_require_checkpoint_rescore: true
+    gates:
+      correct_future_rate_minimum: 0.75
+      correct_history_rate_minimum: 0.75
+      context_switch_rate_minimum: 0.90
+      worst_rule_correct_future_rate_minimum: 0.70
+      target_latent_separation_required: true
+      response_gain_minimum: 0.50
+      normalized_response_error_strict_maximum: 1.00
+    uncertainty:
+      method: paired_query_bootstrap
+      unit: rule_matched_query_pair
+      resamples: 10000
+      confidence_level: 0.95
+      random_seed: 2026080314
+      lower_bound_minimum:
+        correct_future_rate: 0.70
+        correct_history_rate: 0.70
+        context_switch_rate: 0.85
+  method_level:
+    training_seeds_required: 3
+    all_three_checkpoints_must_pass: true
+  original_task_retention:
+    status: not_run_after_failed_development
+    evaluation: standard_cube_cem
+    episodes_per_checkpoint: 300
+    eval_seeds: [42, 43, 44]
+    episodes_per_eval_seed: 100
+    noninferiority_margin_successes: 15
+    requirement_before_positive_reference_claim: true
+
+reference_results:
+  development_decision:
+    path: >-
+      artifacts/evaluation/history3/cube_gripper_carry_h3_release_v1/development_decision.json
+    sha256: dcc96aa70b4d16825f18d87d4fbfb1086ba3bcd14334a373d1c143c600e8fa9a
+  lewm_config:
+    path: >-
+      artifacts/evaluation/history3/cube_gripper_carry_h3_release_v1/development_seed3072/lewm/config.json
+    sha256: 4ec5e6bf8351ff6650fb93bb1f1708444a1b1a506b49fd4a2aea35f307003e6f
+  lewm_training_provenance:
+    path: >-
+      artifacts/evaluation/history3/cube_gripper_carry_h3_release_v1/development_seed3072/lewm/training_provenance.json
+    sha256: 1731b2c89407b264c994fe2a09b6612a4b8cbe981fb3159764cfebcd3895e962
+  lewm_training_report:
+    path: >-
+      artifacts/evaluation/history3/cube_gripper_carry_h3_release_v1/development_seed3072/lewm/training_report.json
+    sha256: d38d1d6204f839ab03e405f8ede952518cf8b3e3f7d2c1cccc146c0ebe149c63
+  lewm_checkpoint:
+    path: >-
+      artifacts/evaluation/history3/cube_gripper_carry_h3_release_v1/development_seed3072/lewm/mixed_frozen_image_paired_future_fit_1p00_step4096.pt
+    sha256: a5887d9e597046e8d9a5d1477d86e1745fa59d414a433e766fce3626aacdbbbc
+  pldm_config:
+    path: >-
+      artifacts/evaluation/history3/cube_gripper_carry_h3_release_v1/development_seed3072/pldm/config.json
+    sha256: 399293c6f5838befc7a5494cb725cf862fd0927cb1f08039b184a97ca823946a
+  pldm_training_provenance:
+    path: >-
+      artifacts/evaluation/history3/cube_gripper_carry_h3_release_v1/development_seed3072/pldm/training_provenance.json
+    sha256: 64e636a19a4a5313522edb02747aedb364afe50edf78cf1fb2f1feddb463a004
+  pldm_training_report:
+    path: >-
+      artifacts/evaluation/history3/cube_gripper_carry_h3_release_v1/development_seed3072/pldm/training_report.json
+    sha256: 08085e8e59385256931347b743172d348302dfa372d9f56599ba798ff92fb20a
+  pldm_checkpoint:
+    path: >-
+      artifacts/evaluation/history3/cube_gripper_carry_h3_release_v1/development_seed3072/pldm/mixed_pldm_joint_step4096.pt
+    sha256: 84e220adc1eb64a0b2370605c9d9990e119ca11acb58d2f1f36c42913e88a500
+
+claim_boundary:
+  status: benchmark_data_ready_reference_failed_development
+  current_claim: >-
+    History=3 的三段数据和评分合同已经固定。LeWM 与 PLDM 的 seed 3072
+    固定 4096-step 参考配方均未通过 Development 主预测门；Public 模型评分、
+    剩余训练种子和 CEM 保持测试均未运行。
+  prohibited_claims:
+    - reference_model_learned_the_hidden_rule
+    - public_test_model_score
+    - original_cube_task_retained
+    - public_cli_or_suite_membership
+
+distribution:
+  release_kind: private_benchmark_data_scoring_and_negative_development_result
+  code_license_status: not_declared
+  generated_data_license_status: not_declared
+  public_download_status: not_configured
+  public_artifact_urls: []
+  export_grants_redistribution_rights: false

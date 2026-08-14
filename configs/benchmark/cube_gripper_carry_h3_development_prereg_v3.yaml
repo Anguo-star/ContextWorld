@@ -1,0 +1,494 @@
+schema_version: 1
+preregistration_id: contextworld_cube_gripper_carry_h3_development_v3
+protocol_id: cube_gripper_carry_rule_history3_development_v3
+status: amended_after_superseded_non_evidentiary_smoke_before_formal_build_or_model_scoring
+date: "2026-08-11"
+phase: development_only
+claim_limit: >-
+  This preregistration authorizes only the Cube v3 Training/Development data
+  rebuild, action-support and causal audits, and the frozen RGB-history probe.
+  It does not authorize reference-model training or scoring, Public Test
+  access, a release claim, or suite registration.
+
+amendment:
+  amendment_id: source_cli_enforcement_v2
+  reason: >-
+    A read-only contract audit found that the preregistration required an
+    explicit source path while the frozen builder still exposed a machine-
+    local default, and that its source symbol was shorter than the normative
+    source symbol. The smoke process completed before cancellation reached
+    it, but the output is superseded and excluded from all evidence.
+  detection_timing: during_first_smoke_before_final_result_inspection
+  scientific_result_used_to_choose_amendment: false
+  changed_fields_only:
+    - builder_requires_explicit_source_cli_argument
+    - builder_source_symbol_is_upstream_cube_single_expert_h5
+    - freeze_receipt_advanced_to_v2_without_overwrite
+  unchanged:
+    - action_profiles_and_seeds
+    - pair_counts_and_split_policy
+    - causal_and_support_gates
+    - rgb_probe_recipe_and_thresholds
+    - public_test_closure
+  superseded_preregistration:
+    sha256: 4d2a52a88239c559bd706bb59d9c11e855efae41e847695fe04d5ef2c925c3b5
+  superseded_freeze_receipt:
+    path: >-
+      artifacts/evaluation/history3/cube_gripper_carry_h3_development_v3/development_prereg_freeze_receipt.json
+    sha256: d37a38af93760431cd2205229bcc362114ba38b4bf06603aeafccc3a28846773
+  superseded_smoke:
+    local_path_recorded_for_audit_only: >-
+      /tmp/contextworld_cube_gripper_carry_h3_v3_smoke_32_8_20260811
+    pair_counts: {train: 32, loader_validation: 8}
+    tree_sha256: cc12bdc2cfbb88b7fad71468d24f7ffe88bd49e14a11f464c7d147ba7647befc
+    request_sha256: d154b83c281311c595fff336b393ecaa7d936109dd116e8f1e23f8808dffd904
+    build_report_sha256: 64e7a004f3a56ab2a9522cb16811ed49ddffdc6d31e4844125e8a816984834cf
+    manifest_sha256: 58826e27801d4f391c1e59dbfb3fe898205f125286147440a49f89f8481d3ca4
+    promoted_or_reused: false
+    used_for_threshold_recipe_or_model_selection: false
+    public_test_opened_or_generated: false
+  next_evidentiary_build_requires_v2_receipt: true
+
+question: >-
+  Can four pair-balanced, family-shared but content-disjoint action-profile
+  neighborhoods produce a strictly causal Cube History=3 Training/Development
+  dataset whose hidden carry rule is recoverable from RGB history, without
+  reading or scoring Public Test?
+
+scope:
+  environment: OGBench Cube single
+  history_tokens: 3
+  context_transitions: 2
+  raw_steps_per_action_block: 5
+  prediction_horizon_action_blocks: 1
+  hidden_modes: [cannot_hold, can_hold]
+  model_visible_fields: [pixels, action]
+  privileged_fields_not_exposed_to_model:
+    - hidden_grasp_enabled
+    - hidden_mode
+    - physical_state
+    - complete_mujoco_state
+    - pair_id
+    - action_anchor_id
+    - action_profile_id
+    - catalog_index
+    - source_row
+    - source_episode
+    - source_step
+    - episode_idx
+    - model_step_idx
+    - split
+    - scene_template_content_hash
+    - pair_content_hash
+
+frozen_v2_baseline:
+  disposition: immutable_failed_development_baseline
+  feasibility_config:
+    path: configs/benchmark/cube_gripper_carry_h3_feasibility_v1.yaml
+    sha256: 227c09344ea7ad765adf0852ec422432a78bb8666c278557d0ad853fd224fe48
+  release_config:
+    path: configs/benchmark/cube_gripper_carry_icl_release_v1.yaml
+    sha256: a44d8270150c3ff99812a9edec05e66048604a6fc5535f276979d4463041726a
+  development_decision:
+    path: >-
+      artifacts/evaluation/history3/cube_gripper_carry_h3_release_v1/development_decision.json
+    sha256: dcc96aa70b4d16825f18d87d4fbfb1086ba3bcd14334a373d1c143c600e8fa9a
+  implementation:
+    path: contextworld/evaluation/cube_grasp_rule_h3.py
+    sha256: b266ce0c3014bcc79a4b88b5ae60315e9efd8e956a85e7400910907322bde937
+  data_builder:
+    path: scripts/build_cube_grasp_rule_h3_data.py
+    sha256: d7fe3dd37d0790a422a7a4d156c34a15ea2f8f50a951ca8cc56803a96087aa15
+  observed_development:
+    lewm_correct_future_rate: 0.642578125
+    pldm_correct_future_rate: 0.50390625
+  action_support:
+    exact_profiles: 1
+    nearest_original_h5_joint_15_step_nrmse: 0.9893
+    original_h5_windows_at_or_below_nrmse_0p5: 0
+
+hypothesis:
+  primary: >-
+    Four balanced action families with split-disjoint constrained profile
+    instances reduce joint action OOD and remove the single-sequence shortcut
+    while preserving the same causal History=3 signal.
+  not_primary:
+    - Training_vs_Development_split_mismatch
+    - original_replay_gradient_conflict
+    - insufficient_LeWM_capacity_to_fit_any_cube_pairs
+  training_risks_to_audit_after_data_passes:
+    - paired_signal_is_small_relative_to_scene_variation
+    - every_v2_LeWM_step_was_clipped_at_gradient_norm_1
+    - PLDM_pair_conditional_response_collapse
+
+protocol:
+  continuous_sequence: [x0, probe_to_x1, recovery_to_x2, query_to_x3]
+  state_installations_after_x0: 0
+  query_simulator_recreated: false
+  hidden_transition_input: mode_dependent_qfrc_applied_only
+  action_layout:
+    raw_action_dimension: 5
+    z_sequence: "[p, -p, p]"
+    unchanged_axes: [0, 1, 3]
+    unchanged_axis_value: 0.0
+    gripper_channel: 4
+    action_anchor_families:
+      endpoint4:
+        p: [0.33333334, 0.0, 0.0, -0.33333334, 0.0]
+        gripper: 0.4
+        anchor_joint_15_step_nrmse: 0.2867
+      plateau:
+        p: [0.25, 0.25, -0.25, -0.25, 0.0]
+        gripper: 0.4
+        anchor_joint_15_step_nrmse: 0.2925
+      ramp4:
+        p: [0.3, 0.1, -0.1, -0.3, 0.0]
+        gripper: 0.5
+        anchor_joint_15_step_nrmse: 0.2914
+      front_hold:
+        p: [0.2, 0.2, 0.0, -0.4, 0.0]
+        gripper: 0.5
+        anchor_joint_15_step_nrmse: 0.2963
+    perturbation:
+      basis:
+        - [1.0, 0.0, -3.0, 2.0, 0.0]
+        - [0.0, 1.0, -2.0, 1.0, 0.0]
+      normalize_each_basis: true
+      coefficient_distribution: independent_uniform
+      coefficient_range: [-0.02, 0.02]
+      split_specific_deterministic_seeds:
+        train: 2026081101
+        loader_validation: 2026081102
+      content_overlap_between_splits_allowed: false
+    terminal_format_action_block:
+      shape: [5, 5]
+      value: all_zero_float32
+      included_in_action_profile_content_hash: true
+  profile_constraints:
+    sum_p_target: 0.0
+    final_p_target: 0.0
+    displacement_moment_weights: [4.0, 3.0, 2.0, 1.0, 0.0]
+    displacement_moment_target: 1.0
+    absolute_tolerance: 1.0e-6
+
+data_contract:
+  artifact_root: >-
+    artifacts/synthesis/cube_gripper_carry_rule_h3_development_v3
+  authorized_splits:
+    train:
+      display_name: Training
+      pair_count: 2048
+      episode_count: 4096
+      row_count: 16384
+      pairs_per_anchor_family: 512
+      lance_table: train.lance
+    loader_validation:
+      display_name: Development
+      pair_count: 256
+      episode_count: 512
+      row_count: 2048
+      pairs_per_anchor_family: 64
+      lance_table: loader_validation.lance
+  pair_count_must_be_divisible_by_anchor_count: true
+  modes_per_pair: 2
+  frames_per_mode: 4
+  jpeg_quality: 95
+  pixel_shape: [224, 224, 3]
+  pixel_dtype: uint8_before_jpeg
+  exact_anchor_balance_required_per_split: true
+  exact_mode_balance_required_per_anchor: true
+  actions_bitwise_equal_across_hidden_modes: true
+  source_episode_overlap_between_splits_required: 0
+  scene_template_content_hash_overlap_between_splits_required: 0
+  pair_content_hash_overlap_between_splits_required: 0
+  query_pixel_hash_overlap_between_splits_required: 0
+  action_profile_content_hash_overlap_between_splits_required: 0
+
+source_and_catalog:
+  source_symbol: upstream_cube_single_expert_h5
+  source_path_is_not_identity: true
+  formal_source_must_be_supplied_explicitly: true
+  frozen_source_identity:
+    row_count: 2010000
+    episode_count: 10000
+    size_bytes: 101942558720
+    sha256: 0664d507c4ff12009010644c9ae950836f954e700c172ccf22e7423af1a55625
+    action_dataset:
+      name: action
+      shape: [2010000, 5]
+      dtype: float32
+      finite_row_count: 2000000
+      excluded_nonfinite_row_count: 10000
+      row_major_little_endian_float32_sha256: e94371078958ee8ad62edba91435841714c293ea9684ae6523a03574793faa40
+      finite_rows_content_sha256: ea2cf67d4b7500981298499d76de0129bdc46e50da05e160f81d12e24edfc80b
+      population_std_float32: [0.28941983, 0.39371696, 0.64313650, 0.39280161, 0.25030735]
+      population_std_float32_sha256: 3929f3ba78d594bb372f48f14c588e0f42c8f33e83b6a2312b3f872d1e222954
+      gripper_maximum: 0.9075843095779419
+  eligible_row_selection:
+    one_best_row_per_source_episode: true
+    order_key: [effector_cube_distance, source_row, source_step]
+    proprio_gripper_contact_minimum: 0.8
+    proprio_gripper_opening_range_inclusive: [0.45, 0.68]
+    cube_z_range_m_inclusive: [0.017, 0.024]
+    effector_cube_distance_m_maximum: 0.008
+    source_step_range_inclusive: [5, 160]
+  candidate_pool_multiplier: 2
+  candidate_assignment_seed: 2026081100
+  scene_catalog_seed_by_split:
+    train: 2026081101
+    loader_validation: 2026081102
+  action_profile_seed_by_split:
+    train: 2026081101
+    loader_validation: 2026081102
+
+action_support:
+  policy: shared_families_disjoint_profiles
+  interpretation: >-
+    The four anchor families are shared support strata, while every sampled
+    concrete float32 action profile is unique within a split and disjoint
+    between Training and Development. Development therefore measures unseen
+    profiles inside the four frozen family neighborhoods, not unseen-family
+    or unrestricted action generalization.
+  feasibility_evidence:
+    report: >-
+      artifacts/evaluation/history3/cube_gripper_carry_h3_development_v3/action_template_feasibility_input.json
+    sha256: 20dd1f7f629f569719886360c6ffca004a44df17e8632e55f7d37a1c400ed055
+    narrative_report: >-
+      artifacts/evaluation/history3/cube_gripper_carry_h3_development_v3/action_template_feasibility_input.md
+    narrative_sha256: 1fda903a8f351b251b137483109d620b99157e8a3cefac9f2d3eccdde0c776e8
+    scope: original_h5_plus_training_source_states_only
+  original_h5_finite_action_rows: 2000000
+  original_h5_joint_windows: 1860000
+  v2_gripper_value: 1.0
+  original_h5_gripper_maximum: 0.9075843095779419
+  v3_gripper_values: [0.4, 0.5]
+  per_profile_required:
+    finite_five_axis_actions: true
+    constraints_passed: true
+    normalized_distance_from_anchor_reported: true
+    conservative_nearest_original_h5_joint_15_step_nrmse_maximum: 0.5
+    action_absolute_maximum: 1.0
+    gripper_maximum: 0.9075843095779419
+  aggregate_required:
+    audited_profile_count: 2304
+    train_profile_count: 2048
+    loader_validation_profile_count: 256
+    zero_failed_profiles: true
+
+identifier_contract:
+  action_anchor_id:
+    role: shared_support_stratum
+    cardinality: 4
+    cross_split_overlap_expected: 4
+  action_profile_id:
+    role: concrete_float32_action_content_identity
+    construction: sha256_of_actual_float32_action_blocks_without_split_or_ids
+    unique_within_each_split: true
+    cross_split_overlap_expected: 0
+  pair_id:
+    role: operational_split_specific_row_grouping_only
+    content_disjointness_evidence: false
+    cross_split_overlap_expected: 0
+  scene_template_content_hash:
+    role: canonical_scene_generation_input_identity
+    construction: >-
+      canonical hash of source row/episode/step, simulator seed, task id,
+      qpos, control, cube color, and target position; excludes split,
+      candidate IDs, anchor IDs, and action profile IDs
+    cross_split_overlap_expected: 0
+  pair_content_hash:
+    role: canonical_scene_plus_action_content_identity
+    construction: sha256_of_scene_template_content_hash_and_action_profile_id
+    cross_split_overlap_expected: 0
+  query_pixel_hash:
+    role: rendered_query_content_identity
+    cross_split_overlap_expected: 0
+  rule: >-
+    Split prefixes must never be used to disguise identical action or scene
+    content as disjoint.
+  canonicalization:
+    action_dtype: little_endian_float32_on_this_frozen_builder
+    action_shape: [4, 5, 5]
+    byte_layout: contiguous_c_order
+    metadata_included_in_hash: false
+
+causal_gates:
+  initial_pixels_bitwise_equal: true
+  initial_complete_simulator_state_gap_maximum: 0.0
+  history_cube_height_gap_m_minimum: 0.008
+  history_changed_rgb_values_minimum: 100
+  prequery_object_state_residual_maximum: 1.0e-12
+  query_physical_state_gap_maximum: 1.0e-12
+  query_complete_simulator_state_gap_maximum: 1.0e-12
+  query_pixels_bitwise_equal: true
+  actions_bitwise_equal_across_hidden_modes: true
+  true_future_cube_height_gap_m_minimum: 0.008
+  true_future_changed_rgb_values_minimum: 100
+  deterministic_replay: true
+  fresh_simulator_replay_required: true
+  fresh_replay_complete_state_gap_maximum: 1.0e-12
+  fresh_replay_pixels_bitwise_equal: true
+  fresh_replay_actions_bitwise_equal: true
+  zero_failed_saved_pairs: true
+
+learnability_gates:
+  rgb_history_probe:
+    fit_split: train
+    fit_display_name: Training
+    evaluate_split_once: loader_validation
+    evaluate_display_name: Development
+    input: decoded_x0_x1_x2_rgb_only
+    forbidden_inputs: [x3, action, physical_state, hidden_fields, ids, row_order]
+    x3_pixel_bytes_read_allowed: false
+    x3_metadata_and_action_read_for_content_audit_only: true
+    decoder: Pillow_Image_open_convert_RGB
+    channel_order: RGB
+    resize:
+      shape: [16, 16]
+      interpolation: Pillow_Resampling_BILINEAR
+    arithmetic_dtype: float64
+    fixed_feature: "flatten(2*x1-x0-x2)_C_order"
+    standard_scaler_fit_split_only: train
+    estimator: StandardScaler_then_RidgeClassifier_alpha_1
+    label_encoding: {cannot_hold: 0, can_hold: 1}
+    decision_rule: sklearn_RidgeClassifier_predict
+    overall_accuracy_minimum: 0.75
+    worst_mode_accuracy_minimum: 0.70
+    worst_anchor_family_accuracy_minimum: 0.70
+    pair_cluster_bootstrap_lower_bound_minimum: 0.70
+    bootstrap_unit: pair_cluster_stratified_by_anchor_family
+    bootstrap_resamples: 10000
+    bootstrap_seed: 2026081103
+    negative_controls:
+      label_permutation:
+        repetitions: 16
+        seed: 2026081104
+        mean_accuracy_maximum: 0.60
+      x0_only_accuracy_maximum: 0.51
+      query_only_accuracy_maximum: 0.51
+      action_only_accuracy_maximum: 0.51
+
+reference_model_phase:
+  training_and_scoring_authorized: false
+  positive_reference_claim_authorized: false
+  next_step_if_this_prereg_passes: >-
+    Freeze a separate reference-training preregistration containing complete
+    LeWM and PLDM recipes, seeds, runners, scorers, checkpoints, selection
+    rules, and per-file identities before any optimizer step or model scoring.
+
+public_test:
+  canonical_split: validation
+  display_name: Public Test
+  access_status: closed_not_read_not_scored
+  validation_lance_access_allowed: false
+  generated_by_this_protocol: false
+  used_for_data_or_action_design: false
+  used_for_recipe_selection: false
+  used_for_checkpoint_selection: false
+  used_for_threshold_selection: false
+  model_scoring_opened: false
+  opening_condition: separate_release_freeze_after_passed_development
+  on_development_failure: remain_closed_and_require_new_preregistration
+  prohibition: >-
+    Cube validation.lance/Public Test must not be opened, scanned, sampled,
+    decoded, profiled, or used to derive statistics, hashes, features,
+    thresholds, profiles, recipes, checkpoints, or claims.
+
+decision_rules:
+  on_data_or_probe_failure:
+    - write_status_failed_development
+    - record_failure_stage_as_data_contract_action_support_causal_or_rgb_probe
+    - do_not_train_reference_models
+    - keep_public_test_closed
+  on_all_data_and_probe_gates_pass:
+    - write_status_passed_development
+    - record_scope_as_data_readiness_only
+    - require_separate_reference_training_preregistration
+    - keep_public_test_closed
+  allowed_receipt_statuses: [passed_development, failed_development]
+  passed_development_scope: data_readiness_only_not_reference_model_or_public
+
+identity:
+  contextworld_git_head_at_prereg_draft: ccb3526b0f9bb8392f710f0c7d82940effaef18e
+  dirty_worktree_rule: per_file_sha256_and_freeze_receipt_are_authoritative
+  common_causal_contract:
+    path: contextworld/benchmarks/causal_data_contract.py
+    sha256: 202d8a1cc57ac9ec24924f0e995cc42b8fea7b026d55465e8f7cdb102759788e
+  v3_physics:
+    path: contextworld/evaluation/cube_grasp_rule_h3_v3.py
+    sha256: 45860ac696499458ca2e950735aa1fea67e1670cd36071968c386fba27beb0b9
+  v3_builder:
+    path: scripts/build_cube_grasp_rule_h3_v3_data.py
+    sha256: 07488131987a2122aa7abd6643a7b7ae32a005e7fc65eb844c9200c69a966e86
+  v3_physics_tests:
+    path: tests/test_cube_grasp_rule_h3_v3.py
+    sha256: ff0533c68f2ed8e47138aa370bdcdc43aa27151612d42ab7c000f048c9dcef6a
+  v3_builder_tests:
+    path: tests/test_cube_grasp_rule_h3_v3_builder.py
+    sha256: 7f6c7b95f56abf590f31149348b58658bc45db367d8b49937aacd08ab35b9d10
+  protocol_document:
+    path: docs/protocols/Cube_Gripper_Carry_History3_Development_v3_Protocol.md
+    sha256: 5f5afc1464f22121291a33130c8a6d1517545b520d5688d780242cae288bdf3c
+  action_support_audit:
+    path: scripts/audit_cube_grasp_rule_h3_v3_action_support.py
+    sha256: 7abb173a2fef8cede11711825eee35b1fa1637f92f772e6c5b5ea0b2c395a7c2
+  action_support_audit_tests:
+    path: tests/test_cube_grasp_rule_h3_v3_action_support.py
+    sha256: 8b4626b75213ff4f22c3b5e2dfb816ff522a446004f3a124a1a287faff09463b
+  rgb_history_probe:
+    path: scripts/probe_cube_grasp_rule_h3_v3_rgb_history.py
+    sha256: 24bce6aa97b1a0b04c48dcc4029707f9602019cce707624779895201e81a133c
+  rgb_history_probe_tests:
+    path: tests/test_cube_grasp_rule_h3_v3_rgb_history.py
+    sha256: 01d5759153005ba02cac170d1dcb8a2b46573b8ccdf0d6b447d2ca3c10896c2c
+  prereg_freezer:
+    path: scripts/freeze_cube_grasp_rule_h3_v3_development.py
+    sha256: acc598101a2b4d6c59da8da17bb2ba4fd960f61cf2beb7ca4ddbb5fec7f032e9
+  prereg_freezer_tests:
+    path: tests/test_cube_grasp_rule_h3_v3_freeze.py
+    sha256: 945186eddf2036c3f44472e3f9a9fb1a76f602648afc0e3b42fec59d330dba4b
+  freeze_receipt:
+    path: >-
+      artifacts/evaluation/history3/cube_gripper_carry_h3_development_v3/development_prereg_freeze_receipt_v2.json
+    rule: stores_prereg_sha256_without_self_hash_recursion
+
+planned_artifacts:
+  build_request: >-
+    artifacts/synthesis/cube_gripper_carry_rule_h3_development_v3/request.json
+  build_report: >-
+    artifacts/synthesis/cube_gripper_carry_rule_h3_development_v3/build_report.json
+  manifest: >-
+    artifacts/synthesis/cube_gripper_carry_rule_h3_development_v3/manifest.json
+  source_and_catalog_receipt: >-
+    artifacts/synthesis/cube_gripper_carry_rule_h3_development_v3/request.json
+  profile_and_scene_overlap_audit: >-
+    artifacts/synthesis/cube_gripper_carry_rule_h3_development_v3/build_report.json
+  action_support_audit: >-
+    artifacts/evaluation/history3/cube_gripper_carry_h3_development_v3/action_support_audit.json
+  causal_and_clean_replay_audit: >-
+    artifacts/synthesis/cube_gripper_carry_rule_h3_development_v3/build_report.json
+  rgb_history_probe: >-
+    artifacts/evaluation/history3/cube_gripper_carry_h3_development_v3/rgb_history_probe.json
+  development_decision: >-
+    artifacts/evaluation/history3/cube_gripper_carry_h3_development_v3/development_decision.json
+  excluded_until_separate_preregistration:
+    - training_config
+    - training_provenance
+    - checkpoint
+    - reference_development_eval
+    - public_test_eval
+
+prohibited_claims:
+  - reference_model_learned_the_hidden_rule
+  - public_test_score_or_generalization
+  - three_seed_stability
+  - cube_cem_retention
+  - release_candidate_or_public_release
+  - public_cli_or_suite_membership
+  - generalization_beyond_the_four_anchor_neighborhoods
+  - continuous_coupling_estimation
+  - multi_step_or_closed_loop_planning
+  - causal_generalization_beyond_audited_pairs
+  - physical_or_rgb_probe_implies_reference_model_pass
+  - unseen_profile_generalization_without_passing_content_disjointness_gate
+  - real_robot_grasping_or_contact_ability
