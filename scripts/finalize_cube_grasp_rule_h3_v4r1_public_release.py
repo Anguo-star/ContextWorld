@@ -57,8 +57,11 @@ def finalize_public_release(
     freeze_receipt: Path,
     score_root: Path,
     output: Path,
+    authorization_loader: Any | None = None,
+    decision_id: str = "contextworld_cube_gripper_carry_h3_v4r1_public_release_decision_v1",
 ) -> dict[str, Any]:
-    authorization = load_public_authorization(
+    authorization_loader = authorization_loader or load_public_authorization
+    authorization = authorization_loader(
         preregistration_path=preregistration,
         freeze_receipt_path=freeze_receipt,
     )
@@ -272,6 +275,8 @@ def finalize_public_release(
         or request.get("training_or_checkpoint_selection") is not False
         or request.get("threshold_or_recipe_changes") is not False
         or request.get("rerun_authorized") is not False
+        or request.get("recovery_authorization_id")
+        != authorization.preregistration.get("recovery_authorization_id")
         or not runtime_preflight_valid
     ):
         raise RuntimeError("Cube Public matrix request contract drifted")
@@ -312,7 +317,7 @@ def finalize_public_release(
     )
     decision = {
         "schema_version": 1,
-        "decision_id": "contextworld_cube_gripper_carry_h3_v4r1_public_release_decision_v1",
+        "decision_id": decision_id,
         "preregistration_id": authorization.preregistration[
             "preregistration_id"
         ],
@@ -384,6 +389,14 @@ def finalize_public_release(
             else "package the data/scoring release candidate with an explicit negative reference result"
         ),
     }
+    recovery_authorization_id = authorization.preregistration.get(
+        "recovery_authorization_id"
+    )
+    if recovery_authorization_id is not None:
+        decision["recovery_authorization_id"] = recovery_authorization_id
+        decision["authorization_chain"]["recovery_lineage"] = dict(
+            authorization.preregistration["recovery_lineage"]
+        )
     _write_json_x(output, decision)
     return decision
 

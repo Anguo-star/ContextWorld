@@ -367,8 +367,10 @@ def build_public_data(
     staging_root: Path,
     workers: int,
     jpeg_quality: int,
+    authorization_loader: Any | None = None,
 ) -> dict[str, Any]:
-    authorization = load_public_authorization(
+    authorization_loader = authorization_loader or load_public_authorization
+    authorization = authorization_loader(
         preregistration_path=preregistration,
         freeze_receipt_path=freeze_receipt,
         require_public_absent=True,

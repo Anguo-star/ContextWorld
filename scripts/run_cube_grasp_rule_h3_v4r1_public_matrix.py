@@ -105,8 +105,10 @@ def run_public_matrix(
     output: Path,
     devices: Sequence[str],
     batch_size: int,
+    authorization_loader: Any | None = None,
 ) -> dict[str, Any]:
-    authorization = load_public_authorization(
+    authorization_loader = authorization_loader or load_public_authorization
+    authorization = authorization_loader(
         preregistration_path=preregistration,
         freeze_receipt_path=freeze_receipt,
     )
@@ -182,6 +184,11 @@ def run_public_matrix(
             "rerun_authorized": False,
             "created_at_utc": _utc_now(),
         }
+        recovery_authorization_id = authorization.preregistration.get(
+            "recovery_authorization_id"
+        )
+        if recovery_authorization_id is not None:
+            request["recovery_authorization_id"] = recovery_authorization_id
         _write_json_x(request_path, request)
         _write_json_x(
             access_path,
