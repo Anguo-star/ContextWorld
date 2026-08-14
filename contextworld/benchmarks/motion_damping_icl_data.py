@@ -303,12 +303,22 @@ def audit_motion_damping_icl_release(
         for name, specification in group.items():
             path = resolve_contextworld_path(specification["path"], repo_root=root)
             observed = file_sha256(path) if path.is_file() else None
+            identity_matched = observed == specification["sha256"]
+            required_for_release_audit = specification.get(
+                "required_for_release_audit", True
+            )
             files[f"{group_name}.{name}"] = {
                 "path": str(path),
                 "exists": path.is_file(),
                 "expected_sha256": specification["sha256"],
                 "observed_sha256": observed,
-                "passed": observed == specification["sha256"],
+                "identity_matched": identity_matched,
+                "required_for_release_audit": required_for_release_audit,
+                "role": specification.get("role"),
+                "drift_policy": specification.get("drift_policy"),
+                "passed": bool(
+                    identity_matched or not required_for_release_audit
+                ),
             }
     data_root = resolve_contextworld_path(
         release["data"]["artifact_tree"]["root"], repo_root=root

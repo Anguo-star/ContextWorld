@@ -1,0 +1,146 @@
+schema_version: 1
+registration_id: contextworld_cube_gripper_carry_h3_v4r1_suite_registration_recovery_v2
+component_id: cube_gripper_carry
+release_id: contextworld_cube_gripper_carry_icl_history3_v4r1
+suite_release_id: contextworld_icl_benchmark_suite_v2
+status: suite_registration_infrastructure_recovery_preregistered
+registered_date: "2026-08-14"
+
+scope:
+  purpose: recover_suite_registration_after_uncommitted_v1_staging
+  environment: Cube
+  capability: infer_hidden_gripper_carry_rule_from_recent_interaction
+  history_tokens: 3
+  public_test_already_completed: true
+  public_test_rerun_authorized: false
+  training_or_checkpoint_selection_authorized: false
+  threshold_or_recipe_change_authorized: false
+  prior_registration_namespace_mutation_authorized: false
+
+prior_failed_registration:
+  registration_id: contextworld_cube_gripper_carry_h3_v4r1_suite_registration_v1
+  registration_root: artifacts/evaluation/history3/cube_gripper_carry_h3_v4r1_suite_registration_v1
+  preregistration:
+    path: configs/benchmark/cube_gripper_carry_h3_v4r1_suite_registration_prereg_v1.yaml
+    sha256: e2c030b4517165508f2729b9b109a516dc787615dc119b9ed33b7beab59beb3d
+    size_bytes: 8927
+  freeze_receipt:
+    path: artifacts/evaluation/history3/cube_gripper_carry_h3_v4r1_suite_registration_v1/registration_freeze_receipt_v1.json
+    sha256: f5416fe60761a6ecabc1471776a460862e036ad9aa472e6e979a9acdb4422af9
+    size_bytes: 28889
+  failed_staging:
+    path: artifacts/evaluation/history3/cube_gripper_carry_h3_v4r1_suite_registration_v1/.suite_v2_copy_export_v1.staging
+    files: 11609
+    bytes: 25861414526
+    sha256: 4dc46df3f9188391069eeebb2339b1197238269f4113e332e6d43bf84eae35e9
+  anchors:
+    readme:
+      path: artifacts/evaluation/history3/cube_gripper_carry_h3_v4r1_suite_registration_v1/.suite_v2_copy_export_v1.staging/README.md
+      sha256: eea66e21dff410a3029469d692db981d83b8d6d6bcc520a499c1a0fa5dfe9c4a
+      size_bytes: 30464
+    inventory:
+      path: artifacts/evaluation/history3/cube_gripper_carry_h3_v4r1_suite_registration_v1/.suite_v2_copy_export_v1.staging/benchmark/inventory.json
+      sha256: 01aac3484bd510578c752798c179d89206b1b8e37b48d34d0d188616a6a1de51
+      size_bytes: 11836
+    suite_config:
+      path: artifacts/evaluation/history3/cube_gripper_carry_h3_v4r1_suite_registration_v1/.suite_v2_copy_export_v1.staging/benchmark/suite.yaml
+      sha256: 3c4af2a646bf0266a7b113a7318c89a08c94c0ff7cd66c552516aef1b98a610d
+      size_bytes: 13337
+    cube_release_config:
+      path: artifacts/evaluation/history3/cube_gripper_carry_h3_v4r1_suite_registration_v1/.suite_v2_copy_export_v1.staging/benchmark/releases/cube_gripper_carry.yaml
+      sha256: 54d916016b5fad5fe41c04376f7ee9892f89b6556b95da87daed7f676642c17a
+      size_bytes: 15050
+  required_semantics:
+    membership_active: false
+    membership_status: pending_registration_internal_audit
+    suite_decision_path: artifacts/evaluation/history3/cube_gripper_carry_h3_v4r1_suite_registration_v1/registration_decision_v1.json
+  formal_outputs_required_absent:
+    - artifacts/evaluation/history3/cube_gripper_carry_h3_v4r1_suite_registration_v1/component_release_audit_v1.json
+    - artifacts/evaluation/history3/cube_gripper_carry_h3_v4r1_suite_registration_v1/suite_v2_audit_v1.json
+    - artifacts/evaluation/history3/cube_gripper_carry_h3_v4r1_suite_registration_v1/suite_v2_export_audit_v1.json
+    - artifacts/evaluation/history3/cube_gripper_carry_h3_v4r1_suite_registration_v1/registration_decision_v1.json
+    - artifacts/evaluation/history3/cube_gripper_carry_h3_v4r1_suite_registration_v1/suite_v2_copy_export_v1
+  operational_observation:
+    authoritative_for_recovery: false
+    operation: os.replace(export_staging, export_destination)
+    errno: 1
+    exception: PermissionError
+    message: Operation not permitted
+    traceback_artifact_registered: false
+    claim_boundary: >-
+      The interactive stderr established the failing operation, but no
+      standalone traceback artifact was preregistered. This note is not an
+      authorization basis: only the preserved staging tree and absence of all
+      formal outputs are frozen machine-auditable evidence.
+  preservation:
+    delete_authorized: false
+    rename_authorized: false
+    repair_or_retry_in_place_authorized: false
+    reuse_as_recovery_export_source_authorized: false
+
+recovery_contract:
+  strategy: direct_one_use_export_reservation_no_directory_rename
+  export_destination_reserved_before_component_or_suite_audit: true
+  reservation_operation: mkdir_exist_ok_false
+  directory_rename_authorized: false
+  prior_failed_staging_as_export_source_authorized: false
+  prior_failed_namespace_delete_or_repair_authorized: false
+  source_full_audit_required: true
+  bundle_full_reaudit_required: true
+  formal_audit_json_written_after_bundle_reaudit: true
+  registration_decision_written_last: true
+  registration_decision_is_only_membership_commit_marker: true
+  partial_outputs_grant_membership: false
+  failed_recovery_requires_new_preregistration: true
+  cube_public_test_rerun_authorized: false
+  cube_formal_checkpoint_open_authorized: false
+  machine_specific_paths_allowed_in_export: false
+  symlinks_allowed: false
+
+registration_gates:
+  component_full_audit_required: true
+  suite_v2_full_audit_required: true
+  direct_copy_export_required: true
+  exported_bundle_full_reaudit_required: true
+  suite_v2_components: 9
+  formal_scoreboard_rows: 11
+  formal_scoreboard_components: 7
+  suite_v1_components: 8
+  suite_v1_formal_scoreboard_rows: 10
+  suite_v1_cube_absent: true
+
+planned_repository_outputs:
+  release_config: configs/benchmark/cube_gripper_carry_h3_v4r1_icl_release_v1.yaml
+  suite_config: configs/benchmark/contextworld_icl_suite_v2_recovery_v2.yaml
+  suite_data_api: contextworld/benchmarks/suite_data.py
+  historical_registration_contract: contextworld/benchmarks/cube_grasp_rule_suite_registration.py
+  recovery_contract: contextworld/benchmarks/cube_grasp_rule_suite_registration_recovery.py
+  recovery_freezer: scripts/freeze_cube_grasp_rule_h3_v4r1_suite_registration_recovery_v2.py
+  recovery_finalizer: scripts/finalize_cube_grasp_rule_h3_v4r1_suite_registration_recovery_v2.py
+  public_document: docs/ContextWorld_ICL_Benchmark.md
+
+planned_artifacts:
+  registration_freeze_receipt: artifacts/evaluation/history3/cube_gripper_carry_h3_v4r1_suite_registration_recovery_v2/registration_freeze_receipt_v2.json
+  suite_export: artifacts/evaluation/history3/cube_gripper_carry_h3_v4r1_suite_registration_recovery_v2/suite_v2_copy_export_v2
+  export_reservation: artifacts/evaluation/history3/cube_gripper_carry_h3_v4r1_suite_registration_recovery_v2/export_reservation_v2.json
+  copy_complete: artifacts/evaluation/history3/cube_gripper_carry_h3_v4r1_suite_registration_recovery_v2/suite_v2_copy_complete_v2.json
+  component_audit: artifacts/evaluation/history3/cube_gripper_carry_h3_v4r1_suite_registration_recovery_v2/component_release_audit_v2.json
+  suite_audit: artifacts/evaluation/history3/cube_gripper_carry_h3_v4r1_suite_registration_recovery_v2/suite_v2_audit_v2.json
+  export_audit: artifacts/evaluation/history3/cube_gripper_carry_h3_v4r1_suite_registration_recovery_v2/suite_v2_export_audit_v2.json
+  registration_decision: artifacts/evaluation/history3/cube_gripper_carry_h3_v4r1_suite_registration_recovery_v2/registration_decision_v2.json
+
+allowed_claim_after_all_gates_pass:
+  benchmark_component_status: ready
+  reference_result_status: passed_public_test_3_of_3
+  suite_membership: contextworld_icl_benchmark_suite_v2
+  distribution: local_technical_release_candidate
+  registration_recovery: direct_reservation_v2
+
+prohibited_claims:
+  - cube_public_test_was_rerun_during_registration_recovery
+  - cube_formal_checkpoint_was_opened_during_registration_recovery
+  - prior_failed_registration_namespace_was_deleted_renamed_or_repaired
+  - prior_failed_staging_was_promoted_or_reused
+  - directory_rename_was_used_by_recovery_v2
+  - suite_v1_was_rewritten_as_a_nine_component_release
+  - public_distribution_ready_without_license_and_download_configuration

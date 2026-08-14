@@ -26,7 +26,7 @@ contextworld-action-strength eval \
   --output /path/to/result.json
 ```
 
-八项任务的命令如下：
+九项任务的命令如下：
 
 | 任务 | 命令 |
 |---|---|
@@ -38,8 +38,10 @@ contextworld-action-strength eval \
 | PushT 运动阻尼 | `contextworld-motion-damping` |
 | Reacher 机械臂质量 | `contextworld-reacher-arm-mass` |
 | TwoRoom 传送门出口位置 | `contextworld-portal-exit` |
+| Cube 夹爪携带规则 | `contextworld-cube-gripper-carry` |
 
-每个任务命令均提供以下子命令：
+每个正式任务命令均提供 `info`、`audit` 和 `eval`；部分任务还提供方法级 `score`、
+`train-plan` 或训练脚本的 `--dry-run`：
 
 - `info`：查看数据、评分规则和通过标准；
 - `audit --full`：校验数据、代码和结果文件；
@@ -48,7 +50,7 @@ contextworld-action-strength eval \
 
 ## 2. Benchmark 包含什么
 
-ContextWorld 目前覆盖三个环境和八种隐藏规律。
+ContextWorld 目前覆盖四个环境和九种隐藏规律。
 
 | 任务 | 环境 | 历史长度 | 模型需要从历史中判断什么 | 参考基线状态 |
 |---|---|---:|---|---|
@@ -60,15 +62,9 @@ ContextWorld 目前覆盖三个环境和八种隐藏规律。
 | 运动阻尼 | PushT | 3 | 物体离开推手后减速较快还是较慢 | LeWM 未通过开发集 |
 | 机械臂质量 | Reacher | 3 | 相同力矩下机械臂较轻还是较重 | LeWM 通过，PLDM 未通过 |
 | 传送门出口位置 | TwoRoom | 3 | 进入相同入口后会从哪里离开 | LeWM、PLDM 均未通过 |
+| 夹爪携带规则 | Cube | 3 | 相同夹爪动作能否携带方块 | LeWM 通过；PLDM 未进入 Public |
 
-“参考基线未通过”不表示任务不能使用。八项任务均提供数据和评分接口；该状态只说明仓库附带的参考训练方法尚未解决对应任务。
-
-除上述八项正式组件外，当前还有一个尚未发布的研发候选：Cube 夹爪携带规则
-（History=3）。它的 v4r1 Training、Development 和原任务 CEM 留存已完成，LeWM
-三个训练种子通过，PLDM 三个训练种子未通过。首个一次性 Public 生成尝试完成 256/256
-配对后，在写发布成功回执前因元数据封装缺陷失败；没有 Public 数据发布、模型读取、评分
-或 decision。原数据命名空间已消耗且不得重用。该候选不属于当前 Suite，也没有公开命令
-或 Public 分数，详细状态见 6.9。
+“参考基线未通过”不表示任务不能使用。九项任务均提供数据和评分接口；该状态只说明仓库附带的参考训练方法尚未解决对应任务。Cube 的旧 Public v1 失败命名空间仍作为历史证据原样保留；Suite v2 候选组件来自独立预注册的 Public recovery v1 与 v4r1 便携投影，成员资格仅由 canonical registration decision 激活，详细边界见 6.9。
 
 ## 3. 评测协议
 
@@ -185,6 +181,7 @@ PushT、Reacher 和传送门出口位置任务通常包含 256 对查询。每�
 | 传送门出口位置 | LeWM | 原始 | 50.20% | 未通过（单检查点） | 91.00%（273/300） | 参考值 |
 | 传送门出口位置 | LeWM | 固定图像编码器，使用出口数据 | 83.92% | 未通过（0/3） | 平均 90.33%；92.00%、90.33%、88.67% | 保持 |
 | 传送门出口位置 | PLDM | 使用出口数据 | 59.31% | 未通过（0/3） | 未评测 | 未判定 |
+| Cube 夹爪携带规则 | LeWM | 固定图像编码器，拟合配对真实未来 | 78.45% | 通过（3/3） | 平均 61.56%；62.00%、61.00%、61.67% | 保持 |
 
 对于门通行规则、动作延迟和传送门出口位置，PLDM 实验是从同一个原始 TwoRoom LeWM 检查点切换训练目标后继续训练，不存在可单独列出的“原始 TwoRoom PLDM”。因此表中不会虚构一行 PLDM 原始分数。Reacher 同时有 LeWM 和 PLDM 两个独立基础检查点，所以可以分别报告。
 
@@ -196,21 +193,30 @@ PushT、Reacher 和传送门出口位置任务通常包含 256 对查询。每�
 contextworld-benchmark results
 ```
 
-### 5.1 未发布候选结果与 Public 执行状态
+### 5.1 Cube Public recovery 边界
 
-下表只报告尚未进入 Public Test 的 Development 结果，不属于公开结果表，也不能用于
-Suite 排名或发布声明。
+Cube 首个 Public v1 命名空间因发布元数据封装失败而永久封存；它没有被修补或重用。
+随后执行的 Public recovery v1 使用新的预注册、freeze、数据与评分命名空间，仅授权固定的
+三个 LeWM step-4096 checkpoint。恢复结果 3/3 通过，且 Public 从未用于训练、配方选择或
+checkpoint 选择。PLDM 未获 Public 授权，因此正式结果只有一行 LeWM；发布后的外部模型
+可以运行同一离线评测，但其输出固定标记为不能修改冻结参考结果、不能进入正式 scoreboard、
+也不构成 reference rerun。
 
-| 任务 | 模型与训练配方 | Development 真实未来正确率 | Development 判定 | 原任务 CEM | 留存判定 |
-|---|---|---:|---|---|---|
-| Cube 夹爪携带规则 | LeWM，固定图像编码器并拟合配对真实未来 | 平均 77.47%；77.93%、77.34%、77.15% | 通过（3/3） | baseline 198/300；训练后 186、183、185/300 | 保持（3/3） |
-| Cube 夹爪携带规则 | PLDM，联合训练 | 平均 50.13%；50.20%、50.20%、50.00% | 未通过（0/3） | 未运行 | 未判定 |
+Suite v2 配置中的 `benchmark_component_status: ready` 只表示组件技术门已经具备，不单独
+授予成员资格。首次 Suite-registration v1 完成 source/full、copy 和 bundle/full 后只留下
+未提交 staging；三份正式 audit、正式 export 与 decision 均未产生，因此该候选永久未激活。
+旧 staging 的完整树身份被 recovery v2 预注册，但它保持原位且不会被移动或作为新 export
+来源。只有 infrastructure recovery v2 的 canonical `registration_decision_v2.json` 同时
+记录 `status: suite_registration_passed` 和 `passed: true` 时，Cube 的 Suite v2 成员资格才
+生效。
 
-LeWM 三个 CEM 检查点相对同一 baseline 分别减少 12、15 和 13 次成功，均未超过预注册
-的 15/300 非劣效边界。2026-08-14 的 Public v1 冻结只授权上述三个 LeWM checkpoint；
-PLDM 不在授权矩阵内。唯一生成尝试在临时 staging 中完成 256/256 配对及数据门后，因
-`request` 缺少 preregistration/freeze-receipt 身份而未能发布。模型没有读取 Public，评分
-矩阵没有启动；恢复必须使用新的预注册和全新命名空间。
+这一规则由默认 `info`、`audit`、`results` 和 `export` 入口强制执行：decision 缺失、字段
+不一致或任一登记证据的 SHA256/字节数漂移都会拒绝操作。Recovery v2 不依赖目录 rename：
+它先独占保留新的最终 export 目录，再从 canonical source 逐文件 exclusive fresh-copy，登记
+copy manifest/tree identity，完成 bundle/full 后才写正式 audit，decision 仍是最后写入且
+唯一的 commit marker。任一中间产物均不授予成员资格；失败的命名空间不得删除或原地重试，
+必须另行预注册恢复。交互式 stderr 中的目录改名异常没有独立预注册日志，因此只作为非权威
+运营说明；机器授权仅依赖旧 staging 身份、正式输出缺失和 recovery v2 的完整冻结链。
 
 ## 6. 任务定义
 
@@ -390,7 +396,7 @@ PushT 是零重力平面。该任务根据接触结束后的运动历史，判�
 
 该任务已具备训练和评分条件，但参考方法尚未稳定解决。它不验证连续出口坐标、范围外出口或多步传送规划。
 
-### 6.9 Cube 夹爪携带规则（Public 生成失败，待恢复）
+### 6.9 Cube 夹爪携带规则
 
 #### 任务目标
 
@@ -400,40 +406,42 @@ PushT 是零重力平面。该任务根据接触结束后的运动历史，判�
 
 #### 数据构成
 
-v4r1 包含 2,048 个 Training 配对和 256 个 Development 配对。每个 split 在
+v4r1 包含 2,048 个 Training 配对、256 个 Development 配对和 256 个 Public Test 配对。每个 split 在
 `endpoint4`、`plateau`、`ramp4`、`front_hold` 四种动作模板间严格均衡；Training 与
 Development 的 source episode、动作 profile、场景模板、配对内容和 query 像素均不
 相交。五维扰动向量 `p` 满足 `sum(p)=0`、`p[-1]=0` 和
-`dot([4,3,2,1,0], p)=1`。配对条件共享 query 状态、像素和动作。Public v1 尝试在
-临时 staging 中生成并校验了 256 个配对，四模板各 64 个；发布封装失败后临时树被清理，
-正式 Public root 只保留不可覆盖的开始和失败回执，没有 Lance 表或 `_SUCCESS.json`。
+`dot([4,3,2,1,0], p)=1`。配对条件共享 query 状态、像素和动作。三个 split 的 source
+episode、精确动作 profile、场景模板、配对内容和 query 像素均不相交。Public recovery v1
+四模板各 64 对；正式便携投影包含三张 Lance 表、provenance 与不可变成功回执。
 
 #### 评测方法
 
-LeWM 和 PLDM 各使用训练种子 17321、17322、17323，并在固定 4,096 optimizer step
-检查点上评测 Development。每个检查点必须同时满足真实未来正确率至少 75%、正确历史
+Development 阶段比较 LeWM 与 PLDM；Public recovery 冻结只授权 LeWM 训练种子
+17321、17322、17323 的固定 4,096 optimizer-step checkpoint。每个检查点必须同时满足真实未来正确率至少 75%、正确历史
 至少 75%、上下文切换至少 90%、最弱规则至少 70%，并通过 paired bootstrap、target
 latent separation、response gain 和 normalized response error 检查。方法级要求三个
 检查点全部通过。通过 Development 的模型族还要在 300 个共享 query 上完成原 Cube CEM
 留存；每个候选最多允许比 baseline 少 15 次成功。
 
-Public 前冻结固定只评测 LeWM 的 17321、17322、17323 三个 step-4096 checkpoint，设备
-依次为 `cuda:0`、`cuda:1`、`cuda:2`，batch size 为 64。评分命名空间和不可逆访问标记
-必须先于 Public Lance 读取创建；访问后的任何失败都禁止在同一命名空间重跑。
+正式参考结果从已冻结的 recovery receipt、三 seed 结果、矩阵 aggregate 和 CEM 留存判定
+重算；不重新读取 checkpoint。外部模型评测在独立输出路径运行，不能使用三枚正式参考
+checkpoint，也不能写入 recovery、projection、release config 或源码文档路径。
 
 #### 基线表现
 
-训练后 LeWM 三个 Development 正确率为 77.93%、77.34% 和 77.15%，三个检查点全部
-通过；PLDM 为 50.20%、50.20% 和 50.00%，三个检查点均未通过。原始 LeWM 的标准 Cube
+训练后 LeWM 三个 Public 正确率为 77.73%、79.10% 和 78.52%，平均 78.45%，三个检查点
+全部通过。PLDM 在 Development 为 50.20%、50.20% 和 50.00%，三个检查点均未通过，且
+未进入 Public。原始 LeWM 的标准 Cube
 CEM 为 198/300，训练后 LeWM 为 186、183、185/300，相对差值为 -12、-15、-13，三者
 均通过留存门。PLDM 因 Development 未通过，没有运行 CEM。
 
 #### 适用范围
 
-当前结果只验证二值夹爪携带规则的一步 Development ICL 和原 Cube 规划能力保持，不验证
-连续夹持强度、范围外规则或多步闭环适应。Public v1 生成尝试已因基础设施元数据缺陷结束，
-不是模型或科学数据门失败；原命名空间不得重跑。当前没有已发布 Public 数据、score 或
-decision，因此该能力仍不是当前八项 Suite 的组件，没有公开 CLI、Public 分数或发布声明。
+当前结果只验证二值夹爪携带规则的一步 Public ICL 和原 Cube 规划能力保持，不验证连续
+夹持强度、范围外规则或多步闭环适应。旧 Public v1 的失败不是模型或科学数据门失败，原
+命名空间仍不得重跑；Suite v2 使用独立 Public recovery 与 registration recovery v2 身份
+链，且成员资格以 canonical registration decision v2 为唯一授权。当前发布是依赖本地源码 checkout 与外部上游输入的技术
+候选，不是自包含分发包；许可证和公共下载地址尚未配置。
 
 ## 7. 接入新的 latent 世界模型
 
@@ -503,7 +511,7 @@ benchmark/
 
 ContextWorld 的结论仅覆盖本文列出的环境、隐藏规律、历史长度和参数范围。当前任务不用于证明：
 
-- 一个模型能够同时解决全部八项能力；
+- 一个模型能够同时解决全部九项能力；
 - 模型能够处理多种隐藏规律同时变化；
 - 模型能够外推到任意未见参数；
 - 一步预测能力必然转化为所有任务上的闭环规划能力。

@@ -42,13 +42,13 @@ identity:
     sha256: 202d8a1cc57ac9ec24924f0e995cc42b8fea7b026d55465e8f7cdb102759788e
   public_api:
     path: contextworld/benchmarks/__init__.py
-    sha256: 9859331914ce8c8ad356949161fa521ed7d59378e4d6eaf7203b9f71ad7ef4b8
+    sha256: ae7fdb24aeaefb6cec66f22f83329e8edfca0cbf686059836b9acdb2684a99ea
   adapters:
     path: contextworld/benchmarks/adapters.py
     sha256: a1bf037ea4da49842163142563323a26a3eb11fca9a81f6dc4070d5688805c67
   data_api:
     path: contextworld/benchmarks/motion_damping_icl_data.py
-    sha256: 35fac22d854ab9bcb52ff61c67de945ff0750a1fcf7b461b45e08e3e93b62def
+    sha256: db8c60fd1468bfb40026eafbc154483e6c651dcf2bbe846e81934b73f266b3ec
   score_api:
     path: contextworld/benchmarks/motion_damping_icl_score.py
     sha256: 19c15640f493d473b5d79e1f4d31e1c50a6be5d9bcf5414dcbd6246166ec14be
@@ -118,6 +118,12 @@ identity:
   stablewm_loss:
     path: ../stable-worldmodel/stable_worldmodel/wm/loss.py
     sha256: 940e048c945581134ee9f5cb5fe5818d8d40176d0f3b6cebd803b6a422a0a512
+    role: frozen_reference_training_provenance
+    required_for_release_audit: false
+    drift_policy: >-
+      The negative reference result remains bound to this frozen hash through
+      its training receipt; an active sibling checkout may contain later loss
+      experiments because release data/scoring audits do not execute training.
   stablewm_loader:
     path: ../stable-worldmodel/stable_worldmodel/wm/utils.py
     sha256: 50d55db114c514363f25103e32282ebd18a1d437f2622d1facec4fa4e76a9ab0
@@ -126,7 +132,7 @@ identity:
     sha256: d401ee87b5a803f37323a2fb4632fb3686bfec5472a817d431ec6e05d9a3447f
   package:
     path: pyproject.toml
-    sha256: e104f6441b00395181083c434c3cdce8a7d93da76dd2e01793a77b8f8cca827e
+    sha256: bfb434fc0078f77badb17c7dbf1d0432bdf78dd7fa38e33d7bc69a1dcee542bd
 
 data:
   protocol: pusht_motion_damping_history3_strict_causal_release_v3

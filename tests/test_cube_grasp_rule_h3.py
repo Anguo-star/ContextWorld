@@ -41,11 +41,12 @@ CUBE_SOURCE = Path(
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_cube_stays_private_until_release_gates_complete() -> None:
-    assert not any("Cube" in name for name in public_benchmarks.__all__)
-    assert "contextworld-cube" not in (ROOT / "pyproject.toml").read_text(
-        encoding="utf-8"
-    )
+def test_legacy_cube_v1_stays_out_of_suite_v1_while_v4r1_is_public() -> None:
+    assert "CubeGraspRuleV4R1ICLEvalDataset" in public_benchmarks.__all__
+    assert "audit_cube_grasp_rule_v4r1_icl_release" in public_benchmarks.__all__
+    assert "contextworld-cube-gripper-carry" in (
+        ROOT / "pyproject.toml"
+    ).read_text(encoding="utf-8")
     assert "cube" not in (
         ROOT / "configs/benchmark/contextworld_icl_suite_v1.yaml"
     ).read_text(encoding="utf-8").lower()

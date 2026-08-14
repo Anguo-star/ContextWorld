@@ -4,6 +4,7 @@ import hashlib
 import json
 import os
 import shutil
+import stat
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -23,6 +24,19 @@ from contextworld.benchmarks.action_strength_icl_data import (
 from contextworld.benchmarks.contact_friction_icl_data import (
     audit_contact_friction_icl_release,
     load_contact_friction_icl_release,
+)
+from contextworld.benchmarks.cube_grasp_rule_v4r1_icl_data import (
+    audit_cube_grasp_rule_v4r1_icl_release,
+    load_cube_grasp_rule_v4r1_icl_release,
+)
+from contextworld.benchmarks.cube_grasp_rule_suite_registration import (
+    file_identity as _registered_file_identity,
+    resolve_no_symlink_contextworld_path,
+    tree_identity as _registered_tree_identity,
+)
+from contextworld.benchmarks.cube_grasp_rule_suite_registration_recovery import (
+    RECOVERY_REGISTRATION_ID as CUBE_SUITE_REGISTRATION_ID,
+    RECOVERY_REGISTRATION_ROOT,
 )
 from contextworld.benchmarks.motion_damping_icl_data import (
     audit_motion_damping_icl_release,
@@ -58,9 +72,15 @@ from contextworld.paths import repository_root, resolve_contextworld_path
 
 
 SUITE_RELEASE_ID = "contextworld_icl_benchmark_suite_v1"
+SUITE_V2_RELEASE_ID = "contextworld_icl_benchmark_suite_v2"
+SUPPORTED_SUITE_RELEASE_IDS = {SUITE_RELEASE_ID, SUITE_V2_RELEASE_ID}
 DEFAULT_SUITE_RELEASE_CONFIG = (
     repository_root()
     / "configs/benchmark/contextworld_icl_suite_v1.yaml"
+)
+DEFAULT_SUITE_V2_RELEASE_CONFIG = (
+    repository_root()
+    / "configs/benchmark/contextworld_icl_suite_v2_recovery_v2.yaml"
 )
 COMPONENT_IDS = (
     "speed",
@@ -72,6 +92,7 @@ COMPONENT_IDS = (
     "robot_arm_mass",
     "portal_exit",
 )
+SUITE_V2_COMPONENT_IDS = (*COMPONENT_IDS, "cube_gripper_carry")
 REFERENCE_RESULT_STATUSES = {
     "speed": "passed_public_test_3_of_3",
     "door": "passed_public_test_3_of_3",
@@ -82,6 +103,70 @@ REFERENCE_RESULT_STATUSES = {
     "robot_arm_mass": "passed_public_test_3_of_3",
     "portal_exit": "failed_public_test_0_of_3",
 }
+SUITE_V2_REFERENCE_RESULT_STATUSES = {
+    **REFERENCE_RESULT_STATUSES,
+    "cube_gripper_carry": "passed_public_test_3_of_3",
+}
+SUITE_V2_REGISTRATION_DECISION = (
+    f"{RECOVERY_REGISTRATION_ROOT}/registration_decision_v2.json"
+)
+SUITE_V2_RECOVERY_EXPORT = (
+    f"{RECOVERY_REGISTRATION_ROOT}/suite_v2_copy_export_v2"
+)
+SUITE_V2_CONFIG_LOGICAL_PATH = (
+    "configs/benchmark/contextworld_icl_suite_v2_recovery_v2.yaml"
+)
+SUITE_V2_PRE_RECOVERY_DECISION = (
+    "artifacts/evaluation/history3/"
+    "cube_gripper_carry_h3_v4r1_suite_registration_v1/"
+    "registration_decision_v1.json"
+)
+SUITE_V2_REQUIRED_EVIDENCE_PATHS = {
+    "preregistration": (
+        "configs/benchmark/"
+        "cube_gripper_carry_h3_v4r1_"
+        "suite_registration_recovery_v2_prereg.yaml"
+    ),
+    "freeze_receipt": (
+        "artifacts/evaluation/history3/"
+        "cube_gripper_carry_h3_v4r1_suite_registration_recovery_v2/"
+        "registration_freeze_receipt_v2.json"
+    ),
+    "cube_release_config": (
+        "configs/benchmark/"
+        "cube_gripper_carry_h3_v4r1_icl_release_v1.yaml"
+    ),
+    "suite_v2_config": SUITE_V2_CONFIG_LOGICAL_PATH,
+    "suite_v1_historical_config": (
+        "configs/benchmark/contextworld_icl_suite_v1.yaml"
+    ),
+    "component_audit": (
+        "artifacts/evaluation/history3/"
+        "cube_gripper_carry_h3_v4r1_suite_registration_recovery_v2/"
+        "component_release_audit_v2.json"
+    ),
+    "suite_audit": (
+        "artifacts/evaluation/history3/"
+        "cube_gripper_carry_h3_v4r1_suite_registration_recovery_v2/"
+        "suite_v2_audit_v2.json"
+    ),
+    "export_audit": (
+        "artifacts/evaluation/history3/"
+        "cube_gripper_carry_h3_v4r1_suite_registration_recovery_v2/"
+        "suite_v2_export_audit_v2.json"
+    ),
+    "export_reservation": (
+        "artifacts/evaluation/history3/"
+        "cube_gripper_carry_h3_v4r1_suite_registration_recovery_v2/"
+        "export_reservation_v2.json"
+    ),
+    "copy_complete": (
+        "artifacts/evaluation/history3/"
+        "cube_gripper_carry_h3_v4r1_suite_registration_recovery_v2/"
+        "suite_v2_copy_complete_v2.json"
+    ),
+}
+_SUITE_V2_REGISTRATION_AUDIT_CAPABILITY = object()
 
 
 def _sha256(path: Path) -> str:
@@ -92,6 +177,423 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _validate_suite_v2_membership_authority(
+    suite: dict[str, Any],
+) -> dict[str, Any]:
+    authority = suite.get("membership_authority")
+    expected = {
+        "config_alone_grants_membership": False,
+        "activation_condition": "passed_registration_decision_v2",
+        "registration_id": CUBE_SUITE_REGISTRATION_ID,
+        "decision_path": SUITE_V2_REGISTRATION_DECISION,
+        "decision_is_commit_marker": True,
+        "partial_outputs_grant_membership": False,
+        "failed_finalization_requires_new_preregistration": True,
+        "recovery_protocol": "direct_one_use_export_reservation_no_directory_rename",
+        "prior_failed_registration_id": (
+            "contextworld_cube_gripper_carry_h3_v4r1_suite_registration_v1"
+        ),
+        "directory_rename_authorized": False,
+        "prior_failed_staging_reuse_authorized": False,
+    }
+    historical = {
+        "config_alone_grants_membership": False,
+        "activation_condition": "passed_registration_decision_v1",
+        "decision_path": SUITE_V2_PRE_RECOVERY_DECISION,
+        "decision_is_commit_marker": True,
+        "partial_outputs_grant_membership": False,
+        "failed_finalization_requires_new_preregistration": True,
+    }
+    if not isinstance(authority, dict) or not (
+        all(authority.get(key) == value for key, value in expected.items())
+        or all(
+            authority.get(key) == value for key, value in historical.items()
+        )
+    ):
+        raise ValueError("Suite v2 membership authority is not fail-closed")
+    return authority
+
+
+def _audit_registered_identity(
+    identity: Any,
+    *,
+    expected_path: str,
+    repo_root: Path,
+) -> dict[str, Any]:
+    if not isinstance(identity, dict) or identity.get("path") != expected_path:
+        raise RuntimeError(
+            f"Suite v2 decision evidence path drifted: {expected_path}"
+        )
+    expected_sha256 = identity.get("sha256")
+    expected_size = identity.get("size_bytes")
+    if not isinstance(expected_sha256, str) or len(expected_sha256) != 64:
+        raise RuntimeError(
+            f"Suite v2 decision evidence hash is invalid: {expected_path}"
+        )
+    if type(expected_size) is not int or expected_size < 0:
+        raise RuntimeError(
+            f"Suite v2 decision evidence size is invalid: {expected_path}"
+        )
+    path = resolve_no_symlink_contextworld_path(
+        expected_path,
+        repo_root=repo_root,
+        label=f"Suite v2 decision evidence {expected_path}",
+    )
+    if not path.is_file():
+        raise RuntimeError(
+            f"Suite v2 decision evidence is missing: {expected_path}"
+        )
+    observed_sha256 = _sha256(path)
+    observed_size = path.stat().st_size
+    if observed_sha256 != expected_sha256 or observed_size != expected_size:
+        raise RuntimeError(
+            f"Suite v2 decision evidence identity drifted: {expected_path}"
+        )
+    return {
+        "path": str(path),
+        "logical_path": expected_path,
+        "sha256": observed_sha256,
+        "size_bytes": observed_size,
+        "passed": True,
+    }
+
+
+def _validate_recovery_v2_export_commit(
+    evidence: dict[str, Any],
+    evidence_audits: dict[str, dict[str, Any]],
+    *,
+    repo_root: Path,
+) -> dict[str, Any]:
+    """Revalidate the recovery receipts and the complete committed export."""
+
+    reservation = _read_json_object(
+        Path(evidence_audits["export_reservation"]["path"])
+    )
+    copy_complete = _read_json_object(
+        Path(evidence_audits["copy_complete"]["path"])
+    )
+    expected_reservation_keys = {
+        "schema_version",
+        "registration_id",
+        "status",
+        "export_path",
+        "reservation_operation",
+        "directory_rename_authorized",
+        "prior_failed_staging_reuse_authorized",
+        "registration_decision_is_only_membership_commit_marker",
+        "partial_outputs_grant_membership",
+        "preregistration",
+        "freeze_receipt",
+        "passed",
+    }
+    if (
+        set(reservation) != expected_reservation_keys
+        or reservation.get("schema_version") != 1
+        or reservation.get("registration_id")
+        != CUBE_SUITE_REGISTRATION_ID
+        or reservation.get("status")
+        != "direct_export_exclusively_reserved"
+        or reservation.get("export_path") != SUITE_V2_RECOVERY_EXPORT
+        or reservation.get("reservation_operation")
+        != "mkdir_exist_ok_false"
+        or reservation.get("directory_rename_authorized") is not False
+        or reservation.get("prior_failed_staging_reuse_authorized")
+        is not False
+        or reservation.get(
+            "registration_decision_is_only_membership_commit_marker"
+        )
+        is not True
+        or reservation.get("partial_outputs_grant_membership") is not False
+        or reservation.get("preregistration")
+        != evidence.get("preregistration")
+        or reservation.get("freeze_receipt")
+        != evidence.get("freeze_receipt")
+        or reservation.get("passed") is not True
+    ):
+        raise RuntimeError(
+            "Suite v2 membership is not active: export reservation drifted"
+        )
+
+    expected_copy_complete_keys = {
+        "schema_version",
+        "registration_id",
+        "status",
+        "export_path",
+        "export_tree",
+        "copy_manifest",
+        "fresh_copy_from_canonical_sources",
+        "prior_failed_staging_reused",
+        "prior_failed_namespace_mutated",
+        "directory_rename_used",
+        "exclusive_file_creation_required",
+        "passed",
+    }
+    if (
+        set(copy_complete) != expected_copy_complete_keys
+        or copy_complete.get("schema_version") != 1
+        or copy_complete.get("registration_id")
+        != CUBE_SUITE_REGISTRATION_ID
+        or copy_complete.get("status") != "fresh_direct_copy_complete"
+        or copy_complete.get("export_path") != SUITE_V2_RECOVERY_EXPORT
+        or copy_complete.get("fresh_copy_from_canonical_sources") is not True
+        or copy_complete.get("prior_failed_staging_reused") is not False
+        or copy_complete.get("prior_failed_namespace_mutated") is not False
+        or copy_complete.get("directory_rename_used") is not False
+        or copy_complete.get("exclusive_file_creation_required") is not True
+        or copy_complete.get("passed") is not True
+    ):
+        raise RuntimeError(
+            "Suite v2 membership is not active: copy-complete receipt drifted"
+        )
+
+    export_path = resolve_no_symlink_contextworld_path(
+        SUITE_V2_RECOVERY_EXPORT,
+        repo_root=repo_root,
+        label="Suite v2 recovery committed export",
+    )
+    observed_tree = _registered_tree_identity(export_path)
+    if copy_complete.get("export_tree") != observed_tree:
+        raise RuntimeError(
+            "Suite v2 membership is not active: committed export tree drifted"
+        )
+    inventory_logical = (
+        f"{SUITE_V2_RECOVERY_EXPORT}/benchmark/inventory.json"
+    )
+    inventory_path = export_path / "benchmark/inventory.json"
+    observed_manifest = _registered_file_identity(
+        inventory_path,
+        logical_path=inventory_logical,
+    )
+    if copy_complete.get("copy_manifest") != observed_manifest:
+        raise RuntimeError(
+            "Suite v2 membership is not active: export manifest drifted"
+        )
+    inventory = _read_json_object(inventory_path)
+    activation = inventory.get("membership_activation")
+    if (
+        inventory.get("schema_version") != 1
+        or inventory.get("release_id") != SUITE_V2_RELEASE_ID
+        or inventory.get("status") != "passed"
+        or inventory.get("mode") != "copy"
+        or inventory.get("components") != list(SUITE_V2_COMPONENT_IDS)
+        or not isinstance(activation, dict)
+        or activation.get("active") is not False
+        or activation.get("status")
+        != "pending_registration_internal_audit"
+        or activation.get("decision_path") != SUITE_V2_REGISTRATION_DECISION
+        or activation.get("partial_outputs_grant_membership") is not False
+    ):
+        raise RuntimeError(
+            "Suite v2 membership is not active: export inventory drifted"
+        )
+    export_audit = _read_json_object(
+        Path(evidence_audits["export_audit"]["path"])
+    )
+    copy_export = export_audit.get("copy_export")
+    bundle_reaudit = export_audit.get("bundle_reaudit")
+    direct_commit = export_audit.get("direct_export_commit")
+    prior_registration = export_audit.get("prior_failed_registration")
+    if (
+        export_audit.get("status") != "passed"
+        or export_audit.get("passed") is not True
+        or export_audit.get("copy_completion") != copy_complete
+        or not isinstance(copy_export, dict)
+        or copy_export.get("status") != "passed"
+        or copy_export.get("mode") != "copy"
+        or copy_export.get("destination") != str(export_path)
+        or copy_export.get("components") != list(SUITE_V2_COMPONENT_IDS)
+        or not isinstance(direct_commit, dict)
+        or direct_commit.get("direct_target_exclusively_reserved") is not True
+        or direct_commit.get("fresh_copy_tree_identity_verified") is not True
+        or direct_commit.get(
+            "bundle_reaudit_completed_before_formal_audit_writes"
+        )
+        is not True
+        or direct_commit.get("directory_rename_used") is not False
+        or direct_commit.get("committed_destination") != str(export_path)
+        or direct_commit.get(
+            "registration_decision_is_only_membership_commit_marker"
+        )
+        is not True
+        or not isinstance(bundle_reaudit, dict)
+        or bundle_reaudit.get("passed") is not True
+        or not isinstance(prior_registration, dict)
+        or prior_registration.get("registration_id")
+        != "contextworld_cube_gripper_carry_h3_v4r1_suite_registration_v1"
+        or prior_registration.get("staging_reused") is not False
+        or prior_registration.get("namespace_mutated") is not False
+        or export_audit.get("cube_public_test_rerun") is not False
+        or export_audit.get("cube_formal_checkpoint_opened") is not False
+    ):
+        raise RuntimeError(
+            "Suite v2 membership is not active: export audit drifted"
+        )
+    return {
+        "export_path": str(export_path),
+        "tree_identity": observed_tree,
+        "manifest": observed_manifest,
+        "reservation_passed": True,
+        "copy_complete_passed": True,
+        "passed": True,
+    }
+
+
+def _require_suite_membership_activation(
+    suite: dict[str, Any],
+    *,
+    repo_root: Path | None = None,
+    registration_capability: object | None = None,
+) -> dict[str, Any]:
+    """Implement the Suite v2 gate, including a private finalizer capability."""
+
+    root = (repo_root or repository_root()).resolve()
+    if suite.get("release_id") != SUITE_V2_RELEASE_ID:
+        return {
+            "required": False,
+            "active": True,
+            "status": "not_required_for_suite_v1",
+            "passed": True,
+        }
+
+    authority = _validate_suite_v2_membership_authority(suite)
+    if authority["decision_path"] == SUITE_V2_PRE_RECOVERY_DECISION:
+        raise RuntimeError(
+            "Suite v2 membership is not active: the pre-recovery candidate "
+            "is permanently uncommitted"
+        )
+    if registration_capability is not None and (
+        registration_capability is not _SUITE_V2_REGISTRATION_AUDIT_CAPABILITY
+    ):
+        raise RuntimeError("Invalid Suite v2 registration-audit capability")
+    if registration_capability is _SUITE_V2_REGISTRATION_AUDIT_CAPABILITY:
+        return {
+            "required": True,
+            "active": False,
+            "status": "pending_registration_internal_audit",
+            "decision_path": authority["decision_path"],
+            "partial_outputs_grant_membership": False,
+            "passed": True,
+        }
+
+    decision_path = resolve_no_symlink_contextworld_path(
+        authority["decision_path"],
+        repo_root=root,
+        label="Suite v2 canonical registration decision",
+    )
+    if not decision_path.is_file():
+        raise RuntimeError(
+            "Suite v2 membership is not active: canonical registration "
+            "decision is missing"
+        )
+    decision = _read_json_object(decision_path)
+    claims = decision.get("claims")
+    gates = decision.get("gate_summary")
+    evidence = decision.get("evidence")
+    if (
+        decision.get("schema_version") != 1
+        or decision.get("registration_id") != CUBE_SUITE_REGISTRATION_ID
+        or decision.get("suite_release_id") != SUITE_V2_RELEASE_ID
+        or decision.get("release_id")
+        != suite["components"]["cube_gripper_carry"]["release_id"]
+        or decision.get("status") != "suite_registration_passed"
+        or decision.get("passed") is not True
+        or not isinstance(claims, dict)
+        or claims.get("suite_membership") != SUITE_V2_RELEASE_ID
+        or claims.get("suite_membership_granted") is not True
+        or claims.get("registration_decision_is_commit_marker") is not True
+        or claims.get("partial_outputs_grant_membership") is not False
+        or claims.get("registration_recovery") != "direct_reservation_v2"
+        or claims.get("recovery_of_registration")
+        != "contextworld_cube_gripper_carry_h3_v4r1_suite_registration_v1"
+        or claims.get("prior_failed_staging_reused") is not False
+        or claims.get("prior_failed_namespace_mutated") is not False
+        or claims.get("directory_rename_used") is not False
+        or claims.get("direct_target_exclusively_reserved") is not True
+        or claims.get("fresh_copy_manifest_verified") is not True
+        or not isinstance(gates, dict)
+        or gates.get("component_full_audit") is not True
+        or gates.get("suite_v2_full_audit") is not True
+        or gates.get("portable_copy_export") is not True
+        or gates.get("exported_bundle_full_reaudit") is not True
+        or gates.get("components") != 9
+        or gates.get("formal_scoreboard_rows") != 11
+        or gates.get("formal_scoreboard_components") != 7
+        or gates.get("suite_v1_components") != 8
+        or gates.get("suite_v1_formal_scoreboard_rows") != 10
+        or gates.get("suite_v1_cube_absent") is not True
+        or gates.get("direct_target_exclusively_reserved") is not True
+        or gates.get("fresh_copy_tree_identity_verified") is not True
+        or gates.get("directory_rename_used") is not False
+        or not isinstance(evidence, dict)
+        or evidence.get("formal_reference_rows") != 11
+        or evidence.get("formal_reference_components") != 7
+        or evidence.get("cube_rows") != 1
+        or evidence.get("cube_family") != "lewm"
+        or evidence.get("external_results_included") is not False
+        or evidence.get("passed") is not True
+    ):
+        raise RuntimeError(
+            "Suite v2 membership is not active: registration decision failed "
+            "its exact contract"
+        )
+
+    expected_evidence_paths = {
+        **SUITE_V2_REQUIRED_EVIDENCE_PATHS,
+        "specification": suite["public_results"]["specification"]["path"],
+        "scoreboard": suite["public_results"]["scoreboard"]["path"],
+    }
+    evidence_audits = {
+        name: _audit_registered_identity(
+            evidence.get(name),
+            expected_path=logical_path,
+            repo_root=root,
+        )
+        for name, logical_path in expected_evidence_paths.items()
+    }
+    suite_path = Path(suite["_config_path"])
+    suite_identity = evidence["suite_v2_config"]
+    if (
+        _sha256(suite_path) != suite_identity["sha256"]
+        or suite_path.stat().st_size != suite_identity["size_bytes"]
+    ):
+        raise RuntimeError(
+            "Suite v2 membership is not active: loaded suite config is not "
+            "the registered config"
+        )
+    for name in ("component_audit", "suite_audit", "export_audit"):
+        payload = _read_json_object(Path(evidence_audits[name]["path"]))
+        if payload.get("passed") is not True:
+            raise RuntimeError(
+                f"Suite v2 decision references a failed audit: {name}"
+            )
+    export_commit = _validate_recovery_v2_export_commit(
+        evidence,
+        evidence_audits,
+        repo_root=root,
+    )
+    return {
+        "required": True,
+        "active": True,
+        "status": "suite_registration_passed",
+        "decision_path": str(decision_path),
+        "decision_is_commit_marker": True,
+        "partial_outputs_grant_membership": False,
+        "evidence": evidence_audits,
+        "export_commit": export_commit,
+        "passed": True,
+    }
+
+
+def require_suite_membership_activation(
+    suite: dict[str, Any],
+    *,
+    repo_root: Path | None = None,
+) -> dict[str, Any]:
+    """Require the canonical Suite v2 decision and all registered evidence."""
+
+    return _require_suite_membership_activation(suite, repo_root=repo_root)
+
+
 def load_icl_suite_release(
     path: Path | str = DEFAULT_SUITE_RELEASE_CONFIG,
 ) -> dict[str, Any]:
@@ -99,7 +601,7 @@ def load_icl_suite_release(
     payload = yaml.safe_load(config_path.read_text(encoding="utf-8"))
     if not isinstance(payload, dict) or payload.get("schema_version") != 1:
         raise ValueError(f"Unsupported ICL suite config: {config_path}")
-    if payload.get("release_id") != SUITE_RELEASE_ID:
+    if payload.get("release_id") not in SUPPORTED_SUITE_RELEASE_IDS:
         raise ValueError(f"Unexpected ICL suite release id: {config_path}")
     if payload.get("release_status") not in {
         "validation_release_candidate",
@@ -128,9 +630,19 @@ def load_icl_suite_release(
     components = payload.get("components")
     if not isinstance(components, dict):
         raise ValueError("ICL suite components must be a mapping")
-    if tuple(components) != COMPONENT_IDS:
+    expected_components = (
+        SUITE_V2_COMPONENT_IDS
+        if payload["release_id"] == SUITE_V2_RELEASE_ID
+        else COMPONENT_IDS
+    )
+    expected_result_statuses = (
+        SUITE_V2_REFERENCE_RESULT_STATUSES
+        if payload["release_id"] == SUITE_V2_RELEASE_ID
+        else REFERENCE_RESULT_STATUSES
+    )
+    if tuple(components) != expected_components:
         raise ValueError(
-            f"ICL suite components must be ordered as {COMPONENT_IDS}"
+            f"ICL suite components must be ordered as {expected_components}"
         )
     for component_id, component in components.items():
         if component.get("release_id") is None:
@@ -141,7 +653,7 @@ def load_icl_suite_release(
             )
         if (
             component.get("reference_result_status")
-            != REFERENCE_RESULT_STATUSES[component_id]
+            != expected_result_statuses[component_id]
         ):
             raise ValueError(
                 f"{component_id} reference result status is not frozen"
@@ -182,9 +694,11 @@ def load_icl_suite_release(
     if (
         not isinstance(formal_components, list)
         or not formal_components
-        or not set(formal_components).issubset(COMPONENT_IDS)
+        or not set(formal_components).issubset(expected_components)
     ):
         raise ValueError("Invalid components_with_formal_results")
+    if payload["release_id"] == SUITE_V2_RELEASE_ID:
+        _validate_suite_v2_membership_authority(payload)
     return {**payload, "_config_path": str(config_path)}
 
 
@@ -340,6 +854,10 @@ def load_public_scoreboard(
 
     root = (repo_root or repository_root()).resolve()
     suite = load_icl_suite_release(release_config)
+    require_suite_membership_activation(
+        suite,
+        repo_root=root,
+    )
     audit = _audit_public_results(suite, repo_root=root)
     if not audit["passed"]:
         raise RuntimeError("Public scoreboard audit failed")
@@ -355,7 +873,8 @@ def _audit_public_document_template(
     section_titles = template["component_sections"]
     lines = document_path.read_text(encoding="utf-8").splitlines()
     observed: dict[str, list[str]] = {}
-    for component_id in COMPONENT_IDS:
+    component_ids = tuple(suite["components"])
+    for component_id in component_ids:
         section_heading = f"### {section_titles[component_id]}"
         try:
             start = lines.index(section_heading) + 1
@@ -380,7 +899,7 @@ def _audit_public_document_template(
         "observed_subsections": observed,
         "passed": all(
             observed[component_id] == expected_subsections
-            for component_id in COMPONENT_IDS
+            for component_id in component_ids
         ),
     }
 
@@ -559,20 +1078,27 @@ def _enforce_component_causal_gate(
     return causal_gate
 
 
-def audit_icl_suite_release(
+def _audit_icl_suite_release_impl(
     *,
     release_config: Path | str = DEFAULT_SUITE_RELEASE_CONFIG,
     repo_root: Path | None = None,
     components: Iterable[str] | None = None,
     full: bool = False,
     original_h5: Path | str | None = None,
+    registration_capability: object | None = None,
 ) -> dict[str, Any]:
     root = (repo_root or repository_root()).resolve()
     suite = load_icl_suite_release(release_config)
-    selected = tuple(COMPONENT_IDS if components is None else components)
-    if not selected or not set(selected).issubset(COMPONENT_IDS):
+    membership_activation = _require_suite_membership_activation(
+        suite,
+        repo_root=root,
+        registration_capability=registration_capability,
+    )
+    suite_component_ids = tuple(suite["components"])
+    selected = tuple(suite_component_ids if components is None else components)
+    if not selected or not set(selected).issubset(suite_component_ids):
         raise ValueError(
-            f"components must be a non-empty subset of {COMPONENT_IDS}"
+            f"components must be a non-empty subset of {suite_component_ids}"
         )
     if len(selected) != len(set(selected)):
         raise ValueError("components must be unique")
@@ -762,6 +1288,25 @@ def audit_icl_suite_release(
                 != portal_exit_release["release_id"]
             ):
                 component_audits[component_id]["passed"] = False
+        elif component_id == "cube_gripper_carry":
+            cube_release = load_cube_grasp_rule_v4r1_icl_release(component_path)
+            component_audits[component_id] = (
+                audit_cube_grasp_rule_v4r1_icl_release(
+                    release_config=component_path,
+                    repo_root=root,
+                    full=full,
+                    layout=(
+                        "bundle"
+                        if component_path.parent.name == "releases"
+                        else "source"
+                    ),
+                )
+            )
+            if (
+                component_audits[component_id]["release_id"]
+                != cube_release["release_id"]
+            ):
+                component_audits[component_id]["passed"] = False
         else:  # pragma: no cover - selected ids are validated above
             raise AssertionError(f"Unhandled benchmark component: {component_id}")
 
@@ -788,6 +1333,7 @@ def audit_icl_suite_release(
         "release_id": suite["release_id"],
         "status": "passed" if technical_passed else "failed",
         "release_config": suite["_config_path"],
+        "membership_activation": membership_activation,
         "artifact_root_override": os.environ.get(
             "CONTEXTWORLD_ARTIFACT_ROOT"
         ),
@@ -824,6 +1370,43 @@ def audit_icl_suite_release(
         ],
         "passed": technical_passed,
     }
+
+
+def audit_icl_suite_release(
+    *,
+    release_config: Path | str = DEFAULT_SUITE_RELEASE_CONFIG,
+    repo_root: Path | None = None,
+    components: Iterable[str] | None = None,
+    full: bool = False,
+    original_h5: Path | str | None = None,
+) -> dict[str, Any]:
+    return _audit_icl_suite_release_impl(
+        release_config=release_config,
+        repo_root=repo_root,
+        components=components,
+        full=full,
+        original_h5=original_h5,
+    )
+
+
+def _audit_icl_suite_release_for_registration(
+    *,
+    release_config: Path | str = DEFAULT_SUITE_V2_RELEASE_CONFIG,
+    repo_root: Path | None = None,
+    components: Iterable[str] | None = None,
+    full: bool = False,
+    original_h5: Path | str | None = None,
+) -> dict[str, Any]:
+    """Run only the preregistered pre-decision finalizer audit."""
+
+    return _audit_icl_suite_release_impl(
+        release_config=release_config,
+        repo_root=repo_root,
+        components=components,
+        full=full,
+        original_h5=original_h5,
+        registration_capability=_SUITE_V2_REGISTRATION_AUDIT_CAPABILITY,
+    )
 
 
 def _speed_export_entries(release: dict[str, Any]) -> list[tuple[str, str]]:
@@ -1117,6 +1700,14 @@ def _portal_exit_export_entries(
     return entries
 
 
+def _cube_gripper_carry_export_entries(
+    release: dict[str, Any],
+) -> list[tuple[str, str]]:
+    """Export only the audited portable projection, never raw recovery receipts."""
+
+    return [(str(release["data"]["artifact_tree"]["root"]), "directory")]
+
+
 def _artifact_target(benchmark_root: Path, logical_path: str) -> Path:
     relative = Path(logical_path)
     if not relative.parts or relative.parts[0] != "artifacts":
@@ -1211,24 +1802,124 @@ def _deduplicate_export_entries(
     return result
 
 
-def export_icl_suite_artifacts(
+def _exclusive_copy_file(source: Path, target: Path) -> None:
+    metadata = os.lstat(source)
+    if not stat.S_ISREG(metadata.st_mode) or source.is_symlink():
+        raise RuntimeError(f"Exclusive export source is not a regular file: {source}")
+    target.parent.mkdir(parents=True, exist_ok=True)
+    if target.parent.is_symlink() or not target.parent.is_dir():
+        raise RuntimeError(f"Exclusive export parent is unsafe: {target.parent}")
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
+    flags |= getattr(os, "O_NOFOLLOW", 0)
+    descriptor = os.open(target, flags, metadata.st_mode & 0o777)
+    try:
+        with os.fdopen(descriptor, "wb") as destination:
+            descriptor = -1
+            with source.open("rb") as stream:
+                shutil.copyfileobj(stream, destination, 8 * 1024 * 1024)
+            destination.flush()
+            os.fsync(destination.fileno())
+    finally:
+        if descriptor >= 0:
+            os.close(descriptor)
+    if target.stat().st_size != metadata.st_size:
+        raise RuntimeError(f"Exclusive export copy size mismatch: {target}")
+
+
+def _exclusive_copy_tree(source: Path, target: Path) -> None:
+    metadata = os.lstat(source)
+    if not stat.S_ISDIR(metadata.st_mode) or source.is_symlink():
+        raise RuntimeError(f"Exclusive export source is not a directory: {source}")
+    target.mkdir()
+    for child in sorted(source.rglob("*")):
+        destination = target / child.relative_to(source)
+        child_metadata = os.lstat(child)
+        if stat.S_ISDIR(child_metadata.st_mode) and not child.is_symlink():
+            destination.mkdir()
+        elif stat.S_ISREG(child_metadata.st_mode) and not child.is_symlink():
+            _exclusive_copy_file(child, destination)
+        else:
+            raise RuntimeError(
+                f"Exclusive export source contains a symlink or special node: {child}"
+            )
+
+
+def _copy_export_file(
+    source: Path, target: Path, *, exclusive: bool
+) -> None:
+    if exclusive:
+        _exclusive_copy_file(source, target)
+    else:
+        shutil.copy2(source, target)
+
+
+def _copy_export_tree(
+    source: Path, target: Path, *, exclusive: bool
+) -> None:
+    if exclusive:
+        _exclusive_copy_tree(source, target)
+    else:
+        shutil.copytree(source, target)
+
+
+def _write_export_inventory(
+    path: Path, payload: dict[str, Any], *, exclusive: bool
+) -> None:
+    content = (json.dumps(payload, indent=2, sort_keys=True) + "\n").encode()
+    if not exclusive:
+        path.write_bytes(content)
+        return
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
+    flags |= getattr(os, "O_NOFOLLOW", 0)
+    descriptor = os.open(path, flags, 0o644)
+    try:
+        with os.fdopen(descriptor, "wb") as stream:
+            descriptor = -1
+            stream.write(content)
+            stream.flush()
+            os.fsync(stream.fileno())
+    finally:
+        if descriptor >= 0:
+            os.close(descriptor)
+
+
+def _export_icl_suite_artifacts_impl(
     destination: Path | str,
     *,
     release_config: Path | str = DEFAULT_SUITE_RELEASE_CONFIG,
     repo_root: Path | None = None,
     mode: str = "copy",
     include_upstream_original: bool = True,
+    registration_capability: object | None = None,
 ) -> dict[str, Any]:
     """Export one README plus one integrated benchmark data directory."""
 
     if mode not in {"copy", "symlink"}:
         raise ValueError("Export mode must be 'copy' or 'symlink'")
+    exclusive_copy = (
+        registration_capability
+        is _SUITE_V2_REGISTRATION_AUDIT_CAPABILITY
+    )
+    if exclusive_copy and mode != "copy":
+        raise ValueError("Registration recovery export must use copy mode")
     root = (repo_root or repository_root()).resolve()
     suite = load_icl_suite_release(release_config)
+    membership_activation = _require_suite_membership_activation(
+        suite,
+        repo_root=root,
+        registration_capability=registration_capability,
+    )
     _assert_frozen_export_inputs(suite, repo_root=root)
     destination = Path(destination).expanduser().resolve()
     if destination.exists() and any(destination.iterdir()):
         raise FileExistsError(f"Export destination is not empty: {destination}")
+    if exclusive_copy and (
+        not destination.is_dir() or destination.is_symlink()
+    ):
+        raise RuntimeError(
+            "Registration recovery must exclusively reserve the export "
+            "directory before copying"
+        )
 
     speed_config = resolve_contextworld_path(
         suite["components"]["speed"]["release_config"],
@@ -1262,6 +1953,14 @@ def export_icl_suite_artifacts(
         suite["components"]["portal_exit"]["release_config"],
         repo_root=root,
     )
+    cube_config = (
+        resolve_contextworld_path(
+            suite["components"]["cube_gripper_carry"]["release_config"],
+            repo_root=root,
+        )
+        if "cube_gripper_carry" in suite["components"]
+        else None
+    )
     speed_release = load_speed_icl_release(speed_config)
     door_release = load_door_icl_release(door_config)
     action_delay_release = load_action_delay_icl_release(
@@ -1280,6 +1979,11 @@ def export_icl_suite_artifacts(
         robot_arm_mass_config
     )
     portal_exit_release = load_portal_exit_icl_release(portal_exit_config)
+    cube_release = (
+        load_cube_grasp_rule_v4r1_icl_release(cube_config)
+        if cube_config is not None
+        else None
+    )
 
     reacher_checkpoint_configs = tuple(
         (
@@ -1303,6 +2007,11 @@ def export_icl_suite_artifacts(
         + _motion_damping_export_entries(motion_damping_release)
         + _robot_arm_mass_export_entries(robot_arm_mass_release)
         + _portal_exit_export_entries(portal_exit_release)
+        + (
+            _cube_gripper_carry_export_entries(cube_release)
+            if cube_release is not None
+            else []
+        )
         + [
             (suite["public_results"][key]["path"], "file")
             for key in ("specification", "scoreboard")
@@ -1312,7 +2021,8 @@ def export_icl_suite_artifacts(
     entries = _deduplicate_export_entries(entries, repo_root=root)
     _assert_portable_export_entries(entries, repo_root=root)
 
-    destination.mkdir(parents=True, exist_ok=True)
+    if not exclusive_copy:
+        destination.mkdir(parents=True, exist_ok=True)
     benchmark_root = destination / "benchmark"
     benchmark_root.mkdir()
     seen: set[str] = set()
@@ -1330,7 +2040,7 @@ def export_icl_suite_artifacts(
             if mode == "symlink":
                 target.symlink_to(source)
             else:
-                shutil.copy2(source, target)
+                _copy_export_file(source, target, exclusive=exclusive_copy)
             inventory_entries.append(
                 {
                     "logical_path": logical_path,
@@ -1345,7 +2055,7 @@ def export_icl_suite_artifacts(
             if mode == "symlink":
                 target.symlink_to(source, target_is_directory=True)
             else:
-                shutil.copytree(source, target)
+                _copy_export_tree(source, target, exclusive=exclusive_copy)
             inventory_entries.append(
                 {
                     "logical_path": logical_path,
@@ -1369,7 +2079,11 @@ def export_icl_suite_artifacts(
         if mode == "symlink":
             original_target.symlink_to(original_source)
         else:
-            shutil.copy2(original_source, original_target)
+            _copy_export_file(
+                original_source,
+                original_target,
+                exclusive=exclusive_copy,
+            )
         original_entry = {
             "logical_path": "upstream/lewm-tworooms/tworoom.h5",
             "kind": "file",
@@ -1404,7 +2118,11 @@ def export_icl_suite_artifacts(
                     target_is_directory=True,
                 )
             else:
-                shutil.copytree(portal_lance_source, portal_lance_target)
+                _copy_export_tree(
+                    portal_lance_source,
+                    portal_lance_target,
+                    exclusive=exclusive_copy,
+                )
             tworoom_lance_entry = {
                 "logical_path": (
                     "upstream/stable-worldmodel/lewm_tworoom.lance"
@@ -1458,9 +2176,13 @@ def export_icl_suite_artifacts(
                     target_is_directory=(kind == "directory"),
                 )
             elif kind == "directory":
-                shutil.copytree(source, target)
+                _copy_export_tree(
+                    source, target, exclusive=exclusive_copy
+                )
             else:
-                shutil.copy2(source, target)
+                _copy_export_file(
+                    source, target, exclusive=exclusive_copy
+                )
             specification = (
                 action_strength_release["training"]["initialization"]
                 if name == "initial_checkpoint"
@@ -1546,9 +2268,13 @@ def export_icl_suite_artifacts(
                     target_is_directory=(kind == "directory"),
                 )
             elif kind == "directory":
-                shutil.copytree(source, target)
+                _copy_export_tree(
+                    source, target, exclusive=exclusive_copy
+                )
             else:
-                shutil.copy2(source, target)
+                _copy_export_file(
+                    source, target, exclusive=exclusive_copy
+                )
             entry = {
                 "logical_path": target.relative_to(benchmark_root).as_posix(),
                 "kind": kind,
@@ -1576,7 +2302,9 @@ def export_icl_suite_artifacts(
             if mode == "symlink":
                 target.symlink_to(source)
             else:
-                shutil.copy2(source, target)
+                _copy_export_file(
+                    source, target, exclusive=exclusive_copy
+                )
             entry = {
                 "logical_path": target.relative_to(benchmark_root).as_posix(),
                 "kind": "file",
@@ -1589,44 +2317,67 @@ def export_icl_suite_artifacts(
 
     releases_dir = benchmark_root / "releases"
     releases_dir.mkdir()
-    shutil.copy2(speed_config, releases_dir / "speed.yaml")
-    shutil.copy2(door_config, releases_dir / "door.yaml")
-    shutil.copy2(
+    _copy_export_file(
+        speed_config, releases_dir / "speed.yaml", exclusive=exclusive_copy
+    )
+    _copy_export_file(
+        door_config, releases_dir / "door.yaml", exclusive=exclusive_copy
+    )
+    _copy_export_file(
         action_delay_config,
         releases_dir / "action_delay.yaml",
+        exclusive=exclusive_copy,
     )
-    shutil.copy2(
+    _copy_export_file(
         action_strength_config,
         releases_dir / "action_strength.yaml",
+        exclusive=exclusive_copy,
     )
-    shutil.copy2(
+    _copy_export_file(
         contact_friction_config,
         releases_dir / "contact_friction.yaml",
+        exclusive=exclusive_copy,
     )
-    shutil.copy2(
+    _copy_export_file(
         motion_damping_config,
         releases_dir / "motion_damping.yaml",
+        exclusive=exclusive_copy,
     )
-    shutil.copy2(
+    _copy_export_file(
         robot_arm_mass_config,
         releases_dir / "robot_arm_mass.yaml",
+        exclusive=exclusive_copy,
     )
-    shutil.copy2(
+    _copy_export_file(
         portal_exit_config,
         releases_dir / "portal_exit.yaml",
+        exclusive=exclusive_copy,
     )
-    shutil.copy2(Path(suite["_config_path"]), benchmark_root / "suite.yaml")
+    if cube_config is not None:
+        _copy_export_file(
+            cube_config,
+            releases_dir / "cube_gripper_carry.yaml",
+            exclusive=exclusive_copy,
+        )
+    _copy_export_file(
+        Path(suite["_config_path"]),
+        benchmark_root / "suite.yaml",
+        exclusive=exclusive_copy,
+    )
     document = resolve_contextworld_path(
         suite["repository"]["public_document"]["path"],
         repo_root=root,
     )
-    shutil.copy2(document, destination / "README.md")
+    _copy_export_file(
+        document, destination / "README.md", exclusive=exclusive_copy
+    )
 
     payload = {
         "schema_version": 1,
         "release_id": suite["release_id"],
         "status": "passed",
         "release_kind": "local_technical_release_candidate",
+        "membership_activation": membership_activation,
         "mode": mode,
         "top_level_entries": ["README.md", "benchmark"],
         "benchmark_root": "benchmark",
@@ -1648,6 +2399,15 @@ def export_icl_suite_artifacts(
                 "benchmark/releases/robot_arm_mass.yaml"
             ),
             "portal_exit": "benchmark/releases/portal_exit.yaml",
+            **(
+                {
+                    "cube_gripper_carry": (
+                        "benchmark/releases/cube_gripper_carry.yaml"
+                    )
+                }
+                if cube_config is not None
+                else {}
+            ),
         },
         "public_results": (
             {
@@ -1663,7 +2423,7 @@ def export_icl_suite_artifacts(
             if "public_results" in suite
             else {}
         ),
-        "components": list(COMPONENT_IDS),
+        "components": list(suite["components"]),
         "includes_upstream_original_h5": include_upstream_original,
         "public_test_included": True,
         "sealed_test_included": False,
@@ -1672,9 +2432,10 @@ def export_icl_suite_artifacts(
         "entries": inventory_entries,
     }
     inventory_path = benchmark_root / "inventory.json"
-    inventory_path.write_text(
-        json.dumps(payload, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
+    _write_export_inventory(
+        inventory_path,
+        payload,
+        exclusive=exclusive_copy,
     )
     return {
         **payload,
@@ -1747,11 +2508,53 @@ def export_icl_suite_artifacts(
     }
 
 
+def export_icl_suite_artifacts(
+    destination: Path | str,
+    *,
+    release_config: Path | str = DEFAULT_SUITE_RELEASE_CONFIG,
+    repo_root: Path | None = None,
+    mode: str = "copy",
+    include_upstream_original: bool = True,
+) -> dict[str, Any]:
+    return _export_icl_suite_artifacts_impl(
+        destination,
+        release_config=release_config,
+        repo_root=repo_root,
+        mode=mode,
+        include_upstream_original=include_upstream_original,
+    )
+
+
+def _export_icl_suite_artifacts_for_registration(
+    destination: Path | str,
+    *,
+    release_config: Path | str = DEFAULT_SUITE_V2_RELEASE_CONFIG,
+    repo_root: Path | None = None,
+    mode: str = "copy",
+    include_upstream_original: bool = True,
+) -> dict[str, Any]:
+    """Export only inside the preregistered pre-decision finalizer."""
+
+    return _export_icl_suite_artifacts_impl(
+        destination,
+        release_config=release_config,
+        repo_root=repo_root,
+        mode=mode,
+        include_upstream_original=include_upstream_original,
+        registration_capability=_SUITE_V2_REGISTRATION_AUDIT_CAPABILITY,
+    )
+
+
 __all__ = [
     "COMPONENT_IDS",
     "DEFAULT_SUITE_RELEASE_CONFIG",
+    "DEFAULT_SUITE_V2_RELEASE_CONFIG",
     "SUITE_RELEASE_ID",
+    "SUITE_V2_COMPONENT_IDS",
+    "SUITE_V2_RELEASE_ID",
     "audit_icl_suite_release",
     "export_icl_suite_artifacts",
     "load_icl_suite_release",
+    "load_public_scoreboard",
+    "require_suite_membership_activation",
 ]

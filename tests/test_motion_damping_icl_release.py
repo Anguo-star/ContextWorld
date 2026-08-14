@@ -80,6 +80,10 @@ def test_release_data_and_public_test_are_auditable() -> None:
     ]
     assert audit["reference_result"]["public_model_scoring_opened"] is False
     assert audit["reference_result"]["positive_reference_claim"] is False
+    loss_identity = audit["files"]["identity.stablewm_loss"]
+    assert loss_identity["required_for_release_audit"] is False
+    assert loss_identity["passed"] is True
+    assert loss_identity["role"] == "frozen_reference_training_provenance"
 
 
 def test_compact_negative_reference_decision_is_public_safe() -> None:

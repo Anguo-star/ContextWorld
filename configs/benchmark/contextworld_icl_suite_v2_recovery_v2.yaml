@@ -1,14 +1,14 @@
 schema_version: 1
-release_id: contextworld_icl_benchmark_suite_v1
+release_id: contextworld_icl_benchmark_suite_v2
 release_status: public_test_release_candidate
-candidate_date: "2026-08-03"
+candidate_date: "2026-08-14"
 
 scope:
-  environments: [TwoRoom, PushT, Reacher]
+  environments: [TwoRoom, PushT, Reacher, Cube]
   history_tokens: [3, 7]
   components:
     [speed, door, action_delay, action_strength, contact_friction, motion_damping,
-     robot_arm_mass, portal_exit]
+     robot_arm_mass, portal_exit, cube_gripper_carry]
   public_test_included: true
   sealed_test_included: false
 
@@ -22,17 +22,36 @@ model_interface:
   cross_model_score: calibrated_per_query_correctness_on_identical_queries
 
 public_results:
-  formal_reference_rows: 10
+  formal_reference_rows: 11
   components_with_formal_results:
-    [speed, door, action_delay, action_strength, robot_arm_mass, portal_exit]
+    [speed, door, action_delay, action_strength, robot_arm_mass, portal_exit,
+     cube_gripper_carry]
   specification:
-    path: >-
-      artifacts/evaluation/contextworld_icl_suite_v1_release/public_scoreboard_spec.json
-    sha256: 0cbc03f21524c16594ae06404ee03f58f251fdaedf315c8bc109731f3663dd84
+    path: artifacts/evaluation/contextworld_icl_suite_v2_release/public_scoreboard_spec.json
+    sha256: 0ee79cc901f4126b06eb800a7ef95a34b748f1b60fcf6c6c60f4e7646d4aa787
   scoreboard:
-    path: >-
-      artifacts/evaluation/contextworld_icl_suite_v1_release/public_scoreboard.json
-    sha256: 389d29a375087609f0780ebb62a1fceb9687ae5bd600b1886405d83f2d450c3a
+    path: artifacts/evaluation/contextworld_icl_suite_v2_release/public_scoreboard.json
+    sha256: 43d1adb676d7b882b7d6a9518781cec440f7f40fa2b57f5e8cbe95cb748ecd2f
+
+membership_authority:
+  config_alone_grants_membership: false
+  activation_condition: passed_registration_decision_v2
+  registration_id: contextworld_cube_gripper_carry_h3_v4r1_suite_registration_recovery_v2
+  decision_path: artifacts/evaluation/history3/cube_gripper_carry_h3_v4r1_suite_registration_recovery_v2/registration_decision_v2.json
+  decision_is_commit_marker: true
+  partial_outputs_grant_membership: false
+  failed_finalization_requires_new_preregistration: true
+  recovery_protocol: direct_one_use_export_reservation_no_directory_rename
+  prior_failed_registration_id: contextworld_cube_gripper_carry_h3_v4r1_suite_registration_v1
+  directory_rename_authorized: false
+  prior_failed_staging_reuse_authorized: false
+  note: >-
+    benchmark_component_status denotes technical readiness; Cube Suite v2
+    membership is effective only when the recovery-v2 canonical registration
+    decision has status suite_registration_passed and passed true. The
+    pre-recovery v1 candidate remains permanently uncommitted; its staging is
+    preserved and is neither moved nor reused. Any failed recovery leaves
+    non-authoritative partial outputs and requires a new preregistration.
 
 repository:
   url: https://github.com/Anguo-star/ContextWorld
@@ -44,7 +63,16 @@ repository:
     contextworld/benchmarks/public_score.py: 136dda5d9c090f1f465bd6a5367fbf5bb3e79ec19cdc2a0e9383193e7f428240
     contextworld/benchmarks/public_score_cli.py: 362bba8bb05cafcf2c36f863dddace09cb19c512666c7770ea6c46117553fc2d
     contextworld/benchmarks/suite_data.py: 841dc75d4fe9174f66212885c4c8e1871666e07df390c482c0ce68819dc755c8
-    contextworld/benchmarks/suite_cli.py: cb0c36dbb567c0c847c96f8b904c647c2bdba7829febb992a59e3dfccd623c9d
+    contextworld/benchmarks/suite_v2_cli.py: 016881878f7c726997906323f89c12ecd061eac696d73c7a68fdbb5b76c4f7aa
+    contextworld/benchmarks/cube_grasp_rule_v4r1_icl_data.py: 483114c93b222bd2549c7356db331168a3703751c0890870e2f59aa0ca853032
+    contextworld/benchmarks/cube_grasp_rule_v4r1_icl_score.py: e00ed249c1e30c50121d9e28586bc142f335dcf7672e4ad06ce920b99f165bc3
+    contextworld/benchmarks/cube_grasp_rule_v4r1_icl_cli.py: f00c0b3554fff1dd6a5bd81486d68de8fff21c78e4a7c569943d8b63ca401703
+    contextworld/benchmarks/cube_grasp_rule_suite_registration.py: 736a2015c866a939d23c5a2b2b0fe9170248c0e8dd97b653e4bd0c0c025af963
+    contextworld/benchmarks/cube_grasp_rule_suite_registration_recovery.py: ba5eebe3b661175553038f5a33f4c219ea0af97ee67a0044b29041fd2214be2d
+    scripts/build_contextworld_icl_suite_v2_scoreboard.py: a46fb80667874fce3c496112eb1df8b2ee8e0e19c83e7634411cbbdf50c05e70
+    scripts/finalize_cube_grasp_rule_h3_v4r1_suite_registration.py: cca83960f84318c802a9eed97d930b2ab4135455e79da51ee3f1434110552b47
+    scripts/freeze_cube_grasp_rule_h3_v4r1_suite_registration_recovery_v2.py: 2ce6f3ab672b5d08e7d1b221e7eb60b1f0667dae00d80b186fa5059e96248a23
+    scripts/finalize_cube_grasp_rule_h3_v4r1_suite_registration_recovery_v2.py: c8621bdd3e65f8ce10413fd4323ee7650ea784a136969444f14f8a22dd0c7c2b
     pyproject.toml: bfb434fc0078f77badb17c7dbf1d0432bdf78dd7fa38e33d7bc69a1dcee542bd
   public_document:
     path: docs/ContextWorld_ICL_Benchmark.md
@@ -61,8 +89,7 @@ bundle:
   upstream_original_environment: CONTEXTWORLD_TWOROOM_H5
   upstream_original_bundle_path: benchmark/upstream/lewm-tworooms/tworoom.h5
   tworoom_upstream_lance_environment: CONTEXTWORLD_TWOROOM_LANCE
-  tworoom_upstream_lance_bundle_path: >-
-    benchmark/upstream/stable-worldmodel/lewm_tworoom.lance
+  tworoom_upstream_lance_bundle_path: benchmark/upstream/stable-worldmodel/lewm_tworoom.lance
   pusht_upstream_environments:
     original_h5: CONTEXTWORLD_PUSHT_H5
     original_lance: CONTEXTWORLD_PUSHT_LANCE
@@ -196,6 +223,21 @@ components:
     public_test_data_included: true
     reference_results_included: true
     upstream_original_h5_included: true
+  cube_gripper_carry:
+    display_name: Cube History=3 Gripper-Carry Rule ICL
+    capability: infer_hidden_gripper_carry_rule_from_recent_interaction
+    release_id: contextworld_cube_gripper_carry_icl_history3_v4r1
+    release_config: configs/benchmark/cube_gripper_carry_h3_v4r1_icl_release_v1.yaml
+    release_config_sha256: 54d916016b5fad5fe41c04376f7ee9892f89b6556b95da87daed7f676642c17a
+    bundled_release_config: benchmark/releases/cube_gripper_carry.yaml
+    cli: contextworld-cube-gripper-carry
+    status: public_test_release_candidate
+    benchmark_component_status: ready
+    reference_result_status: passed_public_test_3_of_3
+    training_data_included: true
+    public_test_data_included: true
+    reference_results_included: true
+    upstream_original_data_included: false
 
 extension:
   component_contract:
@@ -212,12 +254,7 @@ extension:
       - command_line_entry
       - one_section_in_public_document
   public_document_template:
-    subsections:
-      - 任务目标
-      - 数据构成
-      - 评测方法
-      - 基线表现
-      - 适用范围
+    subsections: [任务目标, 数据构成, 评测方法, 基线表现, 适用范围]
     component_sections:
       speed: 6.1 速度
       door: 6.2 门通行规则
@@ -227,9 +264,9 @@ extension:
       motion_damping: 6.6 运动阻尼
       robot_arm_mass: 6.7 机械臂质量
       portal_exit: 6.8 传送门出口位置
+      cube_gripper_carry: 6.9 Cube 夹爪携带规则
   rule: >-
-    新能力只能作为新的 component 注册。不得新增并列的总入口文档、
-    独立 artifact root 或另一套顶层发布结构。
+    新能力只能作为新的 component 注册；Suite v1 的八组件/十行历史发布不被改写。
 
 distribution:
   release_kind: local_technical_release_candidate
@@ -239,5 +276,4 @@ distribution:
   public_artifact_urls: []
   export_grants_redistribution_rights: false
   note: >-
-    统一代码、数据和评测工具可在本地完整审计与导出。正式公共分发前，
-    发布者仍需声明 ContextWorld 源码与自产数据许可证并配置公共下载地址。
+    当前版本允许本地技术审计和便携复制；正式公共分发仍需许可证声明与稳定下载地址。

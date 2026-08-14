@@ -4,7 +4,7 @@
 对外结论。当前任务定义、数据规模、评分、结果和使用方法统一以
 [ContextWorld ICL Benchmark](../ContextWorld_ICL_Benchmark.md)为准。
 
-## 当前八个组件
+## Suite v2 候选配置中的九个组件
 
 | 能力 | 正式配置 | 主要复现材料 |
 |---|---|---|
@@ -16,25 +16,27 @@
 | PushT Motion Damping | [`pusht_motion_damping_icl_release_v1.yaml`](../../configs/benchmark/pusht_motion_damping_icl_release_v1.yaml) | [统一主文档中的运动阻尼](../ContextWorld_ICL_Benchmark.md#66-运动阻尼) |
 | Reacher Arm Mass | [`reacher_arm_mass_icl_release_v1.yaml`](../../configs/benchmark/reacher_arm_mass_icl_release_v1.yaml) | [统一主文档中的机械臂质量](../ContextWorld_ICL_Benchmark.md#67-机械臂质量) |
 | TwoRoom Portal Exit | [`tworoom_portal_exit_icl_release_v1.yaml`](../../configs/benchmark/tworoom_portal_exit_icl_release_v1.yaml) | [统一主文档中的传送门出口位置](../ContextWorld_ICL_Benchmark.md#68-传送门出口位置) |
+| Cube Gripper-Carry | [`cube_gripper_carry_h3_v4r1_icl_release_v1.yaml`](../../configs/benchmark/cube_gripper_carry_h3_v4r1_icl_release_v1.yaml) | [统一主文档中的 Cube 夹爪携带规则](../ContextWorld_ICL_Benchmark.md#69-cube-夹爪携带规则)、[Public v1 失败与恢复边界](Cube_Gripper_Carry_History3_v4r1_Public_v1_Generation_Failure.md) |
 
-统一 Suite 配置是
-[`contextworld_icl_suite_v1.yaml`](../../configs/benchmark/contextworld_icl_suite_v1.yaml)。
-`contextworld-benchmark audit --full` 会按八个组件的正式配置检查代码、数据、结果和
+当前统一 Suite 候选配置是
+[`contextworld_icl_suite_v2_recovery_v2.yaml`](../../configs/benchmark/contextworld_icl_suite_v2_recovery_v2.yaml)；
+此前的 `contextworld_icl_suite_v2.yaml` 是未提交 registration v1 staging 中的历史候选快照。
+`contextworld-benchmark audit --full` 会按九个组件的正式配置检查代码、数据、结果和
 哈希。
 
-## 尚未发布的 Development 轨道
+## Cube 历史 recovery 轨道
 
-下面的材料只记录研发进展，不属于上述八个正式组件，也未登记到统一 Suite。
+下面的材料记录 Cube 从失败的旧 Public v1 迁移到独立 recovery v1 的历史；技术内容以
+Suite v2、v4r1 release config 和主文档为准，成员资格仅由 canonical registration
+decision 激活。
 
 | 能力 | 当前状态 | 冻结材料 |
 |---|---|---|
-| Cube Gripper-Carry（History=3） | v4r1 数据、三种子参考训练和 Development 已完成；LeWM 3/3 通过，PLDM 0/3；LeWM 原 Cube CEM 留存 3/3 通过；Public v1 生成在发布前因元数据缺陷失败，未被模型读取或评分 | [Public v1 失败与恢复边界](Cube_Gripper_Carry_History3_v4r1_Public_v1_Generation_Failure.md)、[Public 前历史交接](Cube_Gripper_Carry_History3_v4r1_Pre_Public_Handoff.md)、[v4r1 数据恢复协议](Cube_Gripper_Carry_History3_Development_v4r1_Recovery_Protocol.md)、[参考训练 v3 协议](Cube_Gripper_Carry_History3_v4r1_Reference_Training_v3_Protocol.md)、[CEM 留存 v2 协议](Cube_Gripper_Carry_History3_v4r1_Original_Task_Retention_v2_Protocol.md) |
+| Cube Gripper-Carry（History=3） | 独立 Public recovery v1：LeWM Public 3/3 与 CEM 留存 3/3 通过；PLDM 未获 Public 授权；旧失败命名空间保持封存 | [Public v1 失败与恢复边界](Cube_Gripper_Carry_History3_v4r1_Public_v1_Generation_Failure.md)、[Public 前历史交接](Cube_Gripper_Carry_History3_v4r1_Pre_Public_Handoff.md)、[v4r1 数据恢复协议](Cube_Gripper_Carry_History3_Development_v4r1_Recovery_Protocol.md)、[参考训练 v3 协议](Cube_Gripper_Carry_History3_v4r1_Reference_Training_v3_Protocol.md)、[CEM 留存 v2 协议](Cube_Gripper_Carry_History3_v4r1_Original_Task_Retention_v2_Protocol.md) |
 
 Cube 的早期 `cube_gripper_carry_icl_release_v1.yaml` 仍是已失败的旧 Development 快照，
-不能替代 v4r1 冻结链，也不授权 Public 评分、Suite 登记或发布声明。当前有效的非 Public
-判定分别是 `reference_development_decision_v3.json` 和
-`original_task_retention_decision_v2.json`。Public v1 原命名空间已经消耗；只有新的恢复
-预注册、freeze 和明确授权完成后，才可能重新生成 Public 数据或提出发布配置。
+不能替代 v4r1 recovery 冻结链，也不授权重跑 Public。Public v1 原命名空间已经消耗；
+Suite v2 的正式结果来自新的 recovery 预注册、freeze、一次性评分和独立注册审计。
 
 ## 历史材料怎样阅读
 
