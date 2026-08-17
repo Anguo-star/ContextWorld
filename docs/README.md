@@ -14,6 +14,13 @@ Cube 成员资格仅由 canonical registration decision 激活。
 
 > [ContextWorld ICL Benchmark](ContextWorld_ICL_Benchmark.md)
 
+## Public v1 发布准备
+
+面向发布维护者的动态清单见 [Public v1 发布准备与多模型验证矩阵](ContextWorld_Public_v1_Release_Readiness.md)。
+其中记录许可证、公共下载、干净环境复现、外部模型验证和 scoreboard 治理等尚未完成项，
+并提供三个不含虚构成绩的外部开源模型待测槽位。该草案不修改已经冻结的 Suite v2
+reference、Public 授权或正式 scoreboard。
+
 | 能力 | 主文档 | 机器配置 | 独立命令 |
 |---|---|---|---|
 | 速度 | [6.1 速度](ContextWorld_ICL_Benchmark.md#61-速度) | `configs/benchmark/tworoom_speed_icl_release_v1.yaml` | `contextworld-speed` |

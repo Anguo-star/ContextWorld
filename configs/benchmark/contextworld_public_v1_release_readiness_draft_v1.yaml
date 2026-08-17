@@ -1,0 +1,163 @@
+schema_version: 1
+readiness_id: contextworld_public_v1_release_readiness_draft_v1
+status: draft_not_release_authority
+as_of_utc: 2026-08-17
+
+scope:
+  target: externally_downloadable_reproducible_contextworld_public_v1
+  focus_component: cube_gripper_carry
+  purpose: >-
+    Track the work required to move from the frozen local technical candidate
+    to an externally distributable Public v1, without mutating any frozen
+    Suite v2 reference result or registration decision.
+
+authority:
+  activates_release: false
+  modifies_formal_scoreboard: false
+  authorizes_public_test_access: false
+  authorizes_reference_rerun: false
+  frozen_candidate_commit: 6607552ac37ba26d6b5e7f053416b1e792ddae91
+  frozen_public_document:
+    path: docs/ContextWorld_ICL_Benchmark.md
+    sha256: 72031232d008b77f809d387348f8bc320532f80517e387837571a2995932cccc
+  canonical_registration_decision:
+    path: artifacts/evaluation/history3/cube_gripper_carry_h3_v4r1_suite_registration_recovery_v2/registration_decision_v2.json
+    sha256: 0c6d38ec4304d0ffa078fe8680a7b6d90b851eb69780d22936a456bf0bb7859d
+
+cube_current_evidence:
+  source_release_config: configs/benchmark/cube_gripper_carry_h3_v4r1_icl_release_v1.yaml
+  comparison_rows:
+    - comparison_id: original_lewm
+      model_family: lewm
+      training_state: original_checkpoint
+      icl_split: not_evaluated_under_v4r1
+      icl_score: not_evaluated
+      icl_decision: not_determined
+      cem_successes: 198
+      cem_trials: 300
+      planning_decision: reference_value
+    - comparison_id: trained_lewm
+      model_family: lewm
+      training_state: mixed_frozen_image_paired_future_fit_1p00
+      development_correct_future_rate_mean: 0.7747395833333334
+      public_correct_future_rates: [0.77734375, 0.791015625, 0.78515625]
+      public_correct_future_rate_mean: 0.7845052083333334
+      public_decision: passed_3_of_3
+      cem_successes_by_training_seed: [186, 183, 185]
+      cem_trials_per_training_seed: 300
+      planning_decision: passed_retention
+    - comparison_id: trained_pldm
+      model_family: pldm
+      training_state: mixed_pldm_joint
+      development_correct_future_rates: [0.501953125, 0.501953125, 0.5]
+      development_correct_future_rate_mean: 0.5013020833333334
+      development_decision: failed_0_of_3
+      public_score: not_authorized_not_run
+      cem_score: not_authorized_not_run
+      planning_decision: not_determined
+  claim_boundary:
+    benchmark_measures_cube_history3_binary_rule_icl: true
+    lewm_reference_passed_public: true
+    lewm_reference_passed_preregistered_cem_retention: true
+    zero_cem_regression_claim_allowed: false
+    pldm_positive_public_claim_allowed: false
+    generalizes_to_unmeasured_model_families: false
+
+external_model_validation:
+  status: not_started
+  proposed_v1_minimum:
+    additional_open_source_model_slots: 3
+    independent_upstream_repositories_minimum: 2
+    distinct_architecture_or_objective_families_minimum: 2
+    planner_compatible_external_families_minimum: 1
+    training_seeds_per_trainable_method: 3
+  selection_and_scoring_policy:
+    model_selection_split: Development
+    public_used_for_training_or_selection: false
+    same_dataset_and_query_identities_across_models: true
+    same_model_visible_history_and_action_fields_across_models: true
+    evaluation_parameter_updates_allowed: false
+    common_budget_track_definition_required_before_runs: true
+    report_total_and_trainable_parameters: true
+    report_optimizer_steps_examples_gpu_and_wall_time: true
+    preregister_adapter_recipe_and_checkpoint_before_public_read: true
+    one_use_public_scoring_per_frozen_method: true
+    failed_development_methods_remain_reportable_as_development_only: true
+    compare_task_accuracy_not_raw_cross_model_latent_mse: true
+    public_results_must_not_mutate_frozen_reference_rows: true
+    planner_incompatible_models_may_report_icl_only: true
+    planner_incompatible_models_support_cem_retention_claim: false
+  slots:
+    - slot_id: external_model_01
+      model_name: TBD
+      upstream_repository: TBD
+      upstream_commit: TBD
+      license: TBD
+      architecture_or_objective_family: TBD
+      adapter_status: not_started
+      development_status: not_run
+      public_status: not_authorized_not_run
+      cem_status: not_run
+    - slot_id: external_model_02
+      model_name: TBD
+      upstream_repository: TBD
+      upstream_commit: TBD
+      license: TBD
+      architecture_or_objective_family: TBD
+      adapter_status: not_started
+      development_status: not_run
+      public_status: not_authorized_not_run
+      cem_status: not_run
+    - slot_id: external_model_03
+      model_name: TBD
+      upstream_repository: TBD
+      upstream_commit: TBD
+      license: TBD
+      architecture_or_objective_family: TBD
+      adapter_status: not_started
+      development_status: not_run
+      public_status: not_authorized_not_run
+      cem_status: not_run
+
+release_gates:
+  cube_scientific_core:
+    status: passed_current_lewm_reference_scope
+    blocking: false
+  external_model_coverage:
+    status: blocked_not_run
+    blocking: true
+  code_license:
+    status: blocked_not_declared
+    blocking: true
+  generated_data_license:
+    status: blocked_not_declared
+    blocking: true
+  upstream_redistribution_and_attribution:
+    status: blocked_not_cleared
+    blocking: true
+  stable_public_artifact_urls:
+    status: blocked_not_configured
+    blocking: true
+  checksummed_download_manifest:
+    status: blocked_not_published
+    blocking: true
+  clean_room_install_and_reproduction:
+    status: blocked_not_recorded
+    blocking: true
+  external_submission_and_scoreboard_governance:
+    status: blocked_formal_external_rows_not_yet_authorized
+    blocking: true
+  common_cross_model_training_budget:
+    status: blocked_not_frozen
+    blocking: true
+  citation_metadata:
+    status: blocked_not_present
+    blocking: true
+  versioned_public_document_amendment:
+    status: pending_until_release_gates_and_model_matrix_are_complete
+    blocking: true
+
+release_rule: >-
+  Public v1 may be declared only by a new versioned release decision after all
+  blocking gates pass. This draft and its empty external-model slots are not a
+  release, a preregistration, or permission to read Public Test.

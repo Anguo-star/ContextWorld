@@ -85,4 +85,7 @@ contextworld-cube-gripper-carry
 九项任务已统一登记在 Suite v2 候选配置的数据、评分和审计接口中；Cube 的成员资格以
 canonical registration decision 为唯一授权。正式公共分发仍需补充源码许可证、自产数据
 许可证和稳定的公共下载地址，因此当前版本称为“本地技术发布候选”。每项任务是否已有
-通过门槛的参考方法，以正式 Benchmark 文档中的结果表为准。
+通过门槛的参考方法，以正式 Benchmark 文档中的结果表为准。对外 Public v1 的完整阻断项、
+Cube 现有训练前后对照和待补齐的多开源模型矩阵见
+[Public v1 发布准备与多模型验证矩阵](docs/ContextWorld_Public_v1_Release_Readiness.md)；该草案不授予
+新的 Public Test 访问或正式发布身份。
