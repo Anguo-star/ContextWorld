@@ -181,9 +181,13 @@ PushT、Reacher 和传送门出口位置任务通常包含 256 对查询。每�
 | 传送门出口位置 | LeWM | 原始 | 50.20% | 未通过（单检查点） | 91.00%（273/300） | 参考值 |
 | 传送门出口位置 | LeWM | 固定图像编码器，使用出口数据 | 83.92% | 未通过（0/3） | 平均 90.33%；92.00%、90.33%、88.67% | 保持 |
 | 传送门出口位置 | PLDM | 使用出口数据 | 59.31% | 未通过（0/3） | 未评测 | 未判定 |
+| Cube 夹爪携带规则 | LeWM | 原始 checkpoint | 未按现行 v4r1 ICL 协议评测 | 未判定 | 66.00%（198/300） | 参考值 |
 | Cube 夹爪携带规则 | LeWM | 固定图像编码器，拟合配对真实未来 | 78.45% | 通过（3/3） | 平均 61.56%；62.00%、61.00%、61.67% | 保持 |
+| Cube 夹爪携带规则 | PLDM | 使用相同合成数据，`mixed_pldm_joint`（仅 Development） | 50.13%（Development） | 未通过（0/3；未进入 Public） | 未评测 | 未判定 |
 
 对于门通行规则、动作延迟和传送门出口位置，PLDM 实验是从同一个原始 TwoRoom LeWM 检查点切换训练目标后继续训练，不存在可单独列出的“原始 TwoRoom PLDM”。因此表中不会虚构一行 PLDM 原始分数。Reacher 同时有 LeWM 和 PLDM 两个独立基础检查点，所以可以分别报告。
+
+Cube 的原始 LeWM 没有按 v4r1 协议运行 ICL，因此这里只报告实际存在的 CEM baseline，不补写推测的 50%。Cube PLDM 的 50.13% 是三个训练种子的 Development 平均（50.20%、50.20%、50.00%）；它在 Development 为 0/3 未通过，未获 Public 或 CEM 授权。该行是负参考对照，不是正式 Public 成绩。机器可读正式 scoreboard 仍保持 11 行，其中 Cube 只有一条训练后 LeWM Public 行。
 
 表中最明确的前后变化是：推手移动幅度的 LeWM 从 50.00% 提高到 96.61%，且 PushT CEM 基本不变；机械臂质量的 LeWM 从 50.00% 提高到 76.11%，且 Reacher CEM 基本不变；门通行规则的两种训练方法都学会了一步规则判断，却明显损害了 TwoRoom CEM。
 
@@ -193,7 +197,19 @@ PushT、Reacher 和传送门出口位置任务通常包含 256 对查询。每�
 contextworld-benchmark results
 ```
 
-### 5.1 Cube Public recovery 边界
+### 5.1 Cube 多开源模型对比（Public v1 待补齐）
+
+现有 LeWM/PLDM 对照证明评分链能够同时保留正、负参考，但尚不足以验证跨架构外部有效性。Public v1 计划再补三个开源模型槽位，并至少覆盖两个独立上游仓库、两类架构或训练目标，以及一个可运行 Cube CEM 的外部模型族。下表是待执行工作表，不是成绩表；模型、commit、许可证、训练预算和适配器必须在读取 Public 前冻结，Development 未通过的模型不得运行 Public。
+
+| 外部模型槽位 | 模型与上游 commit | 开源许可证 | 架构/目标类别 | 参数量与训练预算 | 适配器 | 原始 Development | 训练后 Development（3 seeds） | Public（3 seeds） | CEM baseline → trained | 状态 |
+|---|---|---|---|---|---|---:|---:|---:|---|---|
+| External-01 | 待选 | 待核验 | 待分类 | 待冻结 | 待实现 | 待运行 | 待运行 | 未授权 | 待运行 | 待补齐 |
+| External-02 | 待选 | 待核验 | 待分类 | 待冻结 | 待实现 | 待运行 | 待运行 | 未授权 | 待运行 | 待补齐 |
+| External-03 | 待选 | 待核验 | 待分类 | 待冻结 | 待实现 | 待运行 | 待运行 | 未授权 | 待运行 | 待补齐 |
+
+所有模型必须使用相同数据、query identity、History=3 和可见输入字段；跨模型比较任务正确率，不比较不同 latent 空间的原始 MSE。共同预算轨与模型专属 best-effort 配方分开报告，失败结果同样保留。
+
+### 5.2 Cube Public recovery 边界
 
 Cube 首个 Public v1 命名空间因发布元数据封装失败而永久封存；它没有被修补或重用。
 随后执行的 Public recovery v1 使用新的预注册、freeze、数据与评分命名空间，仅授权固定的

@@ -1,0 +1,65 @@
+schema_version: 1
+release_id: contextworld_icl_benchmark_suite_v2
+release_status: public_test_release_candidate
+candidate_date: "2026-08-17"
+
+documentation_amendment:
+  amendment_id: contextworld_icl_suite_v2_public_document_amendment_v1
+  status: frozen_documentation_only
+  scope: reference_table_model_comparison_and_empty_external_slots
+  base_release_config:
+    path: configs/benchmark/contextworld_icl_suite_v2_recovery_v2.yaml
+    sha256: 3b03f759dfdb934dcfd4f08a59d1385d2ed536fc62ed6b597c83ff18540f6d4e
+    size_bytes: 14191
+  base_registration_decision:
+    path: artifacts/evaluation/history3/cube_gripper_carry_h3_v4r1_suite_registration_recovery_v2/registration_decision_v2.json
+    sha256: 0c6d38ec4304d0ffa078fe8680a7b6d90b851eb69780d22936a456bf0bb7859d
+    size_bytes: 8701
+  base_export_public_document:
+    path: artifacts/evaluation/history3/cube_gripper_carry_h3_v4r1_suite_registration_recovery_v2/suite_v2_copy_export_v2/README.md
+    sha256: 72031232d008b77f809d387348f8bc320532f80517e387837571a2995932cccc
+    size_bytes: 31181
+  prior_public_document:
+    path: docs/ContextWorld_ICL_Benchmark.md
+    sha256: 72031232d008b77f809d387348f8bc320532f80517e387837571a2995932cccc
+    size_bytes: 31181
+  allowed_changes:
+    - public_document_reference_results_section
+    - suite_activation_and_audit_plumbing
+    - historical_recovery_finalizer_default_pin
+  prohibited_changes:
+    - component_release_or_data
+    - formal_scoreboard_or_specification
+    - training_or_checkpoint_selection
+    - public_test_access_or_rerun
+    - threshold_or_recipe
+
+membership_authority:
+  config_alone_grants_membership: false
+  activation_condition: passed_public_document_amendment_decision_v1
+  amendment_id: contextworld_icl_suite_v2_public_document_amendment_v1
+  decision_path: configs/benchmark/contextworld_icl_suite_v2_public_document_amendment_decision_v1.json
+  decision_is_commit_marker: true
+  base_registration_id: contextworld_cube_gripper_carry_h3_v4r1_suite_registration_recovery_v2
+  base_decision_path: artifacts/evaluation/history3/cube_gripper_carry_h3_v4r1_suite_registration_recovery_v2/registration_decision_v2.json
+  base_release_config: configs/benchmark/contextworld_icl_suite_v2_recovery_v2.yaml
+  base_membership_must_remain_active: true
+  partial_outputs_grant_membership: false
+  public_test_rerun_authorized: false
+  training_or_checkpoint_selection_authorized: false
+  formal_scoreboard_mutation_authorized: false
+  component_release_mutation_authorized: false
+  note: >-
+    This versioned layer changes only the public reference-results prose/table
+    and the fail-closed activation plumbing needed to register that document.
+    Recovery-v2 membership and its immutable export must remain valid; the
+    formal 11-row scoreboard, all component releases, data, checkpoints,
+    thresholds, recipes, and Public access state remain unchanged.
+
+repository_overrides:
+  source_sha256:
+    contextworld/benchmarks/suite_data.py: a939a41ca9716e0f8db721e809b2ae50f2f753bb68e25b3c37d1075785f603d8
+    scripts/finalize_cube_grasp_rule_h3_v4r1_suite_registration_recovery_v2.py: d48e80faa69fcbb228480c52ca8cb7e46faebd78fbc7278f683e7b77520fbe38
+  public_document:
+    path: docs/ContextWorld_ICL_Benchmark.md
+    sha256: 663c78589f8f0076ce9051a76dc76c70c26261647a5c761dc9ab9509b4f50fba

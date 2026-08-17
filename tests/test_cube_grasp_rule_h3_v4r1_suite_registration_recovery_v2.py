@@ -96,7 +96,7 @@ def test_recovery_v2_contract_rejects_authority_drift(
 def test_recovery_v2_uses_a_new_candidate_and_decision_namespace() -> None:
     historical = suite_data.load_icl_suite_release(PRE_RECOVERY_SUITE)
     current = suite_data.load_icl_suite_release(
-        suite_data.DEFAULT_SUITE_V2_RELEASE_CONFIG
+        suite_data.SUITE_V2_RECOVERY_CONFIG
     )
     assert historical["membership_authority"]["decision_path"].endswith(
         "suite_registration_v1/registration_decision_v1.json"

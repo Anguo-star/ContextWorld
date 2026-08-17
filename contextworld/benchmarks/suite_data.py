@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from copy import deepcopy
 import hashlib
 import json
 import os
@@ -78,9 +79,14 @@ DEFAULT_SUITE_RELEASE_CONFIG = (
     repository_root()
     / "configs/benchmark/contextworld_icl_suite_v1.yaml"
 )
-DEFAULT_SUITE_V2_RELEASE_CONFIG = (
+SUITE_V2_RECOVERY_CONFIG = (
     repository_root()
     / "configs/benchmark/contextworld_icl_suite_v2_recovery_v2.yaml"
+)
+DEFAULT_SUITE_V2_RELEASE_CONFIG = (
+    repository_root()
+    / "configs/benchmark/"
+    "contextworld_icl_suite_v2_public_document_amendment_v1.yaml"
 )
 COMPONENT_IDS = (
     "speed",
@@ -116,6 +122,37 @@ SUITE_V2_RECOVERY_EXPORT = (
 SUITE_V2_CONFIG_LOGICAL_PATH = (
     "configs/benchmark/contextworld_icl_suite_v2_recovery_v2.yaml"
 )
+SUITE_V2_DOCUMENT_AMENDMENT_ID = (
+    "contextworld_icl_suite_v2_public_document_amendment_v1"
+)
+SUITE_V2_DOCUMENT_AMENDMENT_CONFIG_LOGICAL_PATH = (
+    "configs/benchmark/"
+    "contextworld_icl_suite_v2_public_document_amendment_v1.yaml"
+)
+SUITE_V2_DOCUMENT_AMENDMENT_DECISION = (
+    "configs/benchmark/"
+    "contextworld_icl_suite_v2_public_document_amendment_decision_v1.json"
+)
+SUITE_V2_DOCUMENT_AMENDMENT_ACTIVATION = (
+    "passed_public_document_amendment_decision_v1"
+)
+SUITE_V2_BASE_PUBLIC_DOCUMENT_SHA256 = (
+    "72031232d008b77f809d387348f8bc320532f80517e387837571a2995932cccc"
+)
+SUITE_V2_BASE_CONFIG_SHA256 = (
+    "3b03f759dfdb934dcfd4f08a59d1385d2ed536fc62ed6b597c83ff18540f6d4e"
+)
+SUITE_V2_BASE_DECISION_SHA256 = (
+    "0c6d38ec4304d0ffa078fe8680a7b6d90b851eb69780d22936a456bf0bb7859d"
+)
+SUITE_V2_BASE_EXPORT_PUBLIC_DOCUMENT = (
+    f"{SUITE_V2_RECOVERY_EXPORT}/README.md"
+)
+SUITE_V2_DOCUMENT_AMENDMENT_SOURCE_OVERRIDES = {
+    "contextworld/benchmarks/suite_data.py",
+    "scripts/finalize_cube_grasp_rule_h3_v4r1_"
+    "suite_registration_recovery_v2.py",
+}
 SUITE_V2_PRE_RECOVERY_DECISION = (
     "artifacts/evaluation/history3/"
     "cube_gripper_carry_h3_v4r1_suite_registration_v1/"
@@ -204,10 +241,30 @@ def _validate_suite_v2_membership_authority(
         "partial_outputs_grant_membership": False,
         "failed_finalization_requires_new_preregistration": True,
     }
+    documentation_amendment = {
+        "config_alone_grants_membership": False,
+        "activation_condition": SUITE_V2_DOCUMENT_AMENDMENT_ACTIVATION,
+        "amendment_id": SUITE_V2_DOCUMENT_AMENDMENT_ID,
+        "decision_path": SUITE_V2_DOCUMENT_AMENDMENT_DECISION,
+        "decision_is_commit_marker": True,
+        "base_registration_id": CUBE_SUITE_REGISTRATION_ID,
+        "base_decision_path": SUITE_V2_REGISTRATION_DECISION,
+        "base_release_config": SUITE_V2_CONFIG_LOGICAL_PATH,
+        "base_membership_must_remain_active": True,
+        "partial_outputs_grant_membership": False,
+        "public_test_rerun_authorized": False,
+        "training_or_checkpoint_selection_authorized": False,
+        "formal_scoreboard_mutation_authorized": False,
+        "component_release_mutation_authorized": False,
+    }
     if not isinstance(authority, dict) or not (
         all(authority.get(key) == value for key, value in expected.items())
         or all(
             authority.get(key) == value for key, value in historical.items()
+        )
+        or all(
+            authority.get(key) == value
+            for key, value in documentation_amendment.items()
         )
     ):
         raise ValueError("Suite v2 membership authority is not fail-closed")
@@ -438,6 +495,294 @@ def _validate_recovery_v2_export_commit(
     }
 
 
+def _require_suite_documentation_amendment_activation(
+    suite: dict[str, Any], *, repo_root: Path
+) -> dict[str, Any]:
+    """Validate the documentation-only layer over the frozen recovery-v2 release."""
+
+    authority = suite["membership_authority"]
+    decision_path = resolve_no_symlink_contextworld_path(
+        authority["decision_path"],
+        repo_root=repo_root,
+        label="Suite v2 documentation amendment decision",
+    )
+    if not decision_path.is_file():
+        raise RuntimeError(
+            "Suite v2 membership is not active: documentation amendment "
+            "decision is missing"
+        )
+    decision = _read_json_object(decision_path)
+    base_suite = load_icl_suite_release(SUITE_V2_RECOVERY_CONFIG)
+    base_activation = _require_suite_membership_activation(
+        base_suite, repo_root=repo_root
+    )
+    if base_activation.get("active") is not True:
+        raise RuntimeError(
+            "Suite v2 documentation amendment requires active recovery-v2 membership"
+        )
+    expected_claims = {
+        "amendment_scope": "documentation_only_reference_table_expansion",
+        "base_membership_preserved": True,
+        "component_release_mutated": False,
+        "formal_scoreboard_mutated": False,
+        "formal_scoreboard_rows_added": 0,
+        "public_test_rerun": False,
+        "training_or_checkpoint_selection": False,
+        "threshold_or_recipe_changed": False,
+        "original_lewm_icl_score_invented": False,
+        "pldm_result_scope": "development_only_not_public",
+        "external_model_slots": "empty_not_run_not_authorized",
+    }
+    expected_reference_table = {
+        "cube_comparison_rows": [
+            {
+                "comparison_id": "original_lewm",
+                "model_family": "lewm",
+                "icl_scope": "not_evaluated_under_v4r1",
+                "icl_score": "not_evaluated",
+                "cem_successes": 198,
+                "cem_trials": 300,
+            },
+            {
+                "comparison_id": "trained_lewm",
+                "model_family": "lewm",
+                "icl_scope": "public",
+                "public_correct_future_rates": [
+                    0.77734375,
+                    0.791015625,
+                    0.78515625,
+                ],
+                "public_correct_future_rate_mean": 0.7845052083333334,
+                "public_decision": "passed_3_of_3",
+                "cem_successes_by_training_seed": [186, 183, 185],
+                "cem_trials_per_training_seed": 300,
+                "planning_decision": "passed_retention",
+            },
+            {
+                "comparison_id": "trained_pldm",
+                "model_family": "pldm",
+                "icl_scope": "development_only",
+                "development_correct_future_rates": [
+                    0.501953125,
+                    0.501953125,
+                    0.5,
+                ],
+                "development_correct_future_rate_mean": 0.5013020833333334,
+                "development_decision": "failed_0_of_3",
+                "public_score": "not_authorized_not_run",
+                "cem_score": "not_authorized_not_run",
+            },
+        ],
+        "external_model_slots": [
+            "External-01",
+            "External-02",
+            "External-03",
+        ],
+        "formal_scoreboard_rows_added": 0,
+    }
+    expected_decision_keys = {
+        "schema_version",
+        "amendment_id",
+        "suite_release_id",
+        "status",
+        "passed",
+        "amendment_config",
+        "base_release_config",
+        "base_registration_decision",
+        "base_export_public_document",
+        "amended_public_document",
+        "amended_suite_data",
+        "amended_recovery_finalizer",
+        "unchanged_public_results",
+        "reference_table",
+        "claims",
+    }
+    unchanged = decision.get("unchanged_public_results")
+    if (
+        set(decision) != expected_decision_keys
+        or decision.get("schema_version") != 1
+        or decision.get("amendment_id") != SUITE_V2_DOCUMENT_AMENDMENT_ID
+        or decision.get("suite_release_id") != SUITE_V2_RELEASE_ID
+        or decision.get("status") != "documentation_amendment_passed"
+        or decision.get("passed") is not True
+        or decision.get("claims") != expected_claims
+        or decision.get("reference_table") != expected_reference_table
+        or not isinstance(unchanged, dict)
+        or set(unchanged)
+        != {
+            "formal_reference_rows",
+            "formal_reference_components",
+            "specification",
+            "scoreboard",
+            "cube_formal_rows",
+            "cube_formal_family",
+            "external_results_included",
+        }
+        or unchanged.get("formal_reference_rows") != 11
+        or unchanged.get("formal_reference_components") != 7
+        or unchanged.get("cube_formal_rows") != 1
+        or unchanged.get("cube_formal_family") != "lewm"
+        or unchanged.get("external_results_included") is not False
+    ):
+        raise RuntimeError(
+            "Suite v2 membership is not active: documentation amendment "
+            "decision failed its exact contract"
+        )
+
+    identities = {
+        "amendment_config": (
+            SUITE_V2_DOCUMENT_AMENDMENT_CONFIG_LOGICAL_PATH,
+            decision.get("amendment_config"),
+        ),
+        "base_release_config": (
+            SUITE_V2_CONFIG_LOGICAL_PATH,
+            decision.get("base_release_config"),
+        ),
+        "base_registration_decision": (
+            SUITE_V2_REGISTRATION_DECISION,
+            decision.get("base_registration_decision"),
+        ),
+        "base_export_public_document": (
+            SUITE_V2_BASE_EXPORT_PUBLIC_DOCUMENT,
+            decision.get("base_export_public_document"),
+        ),
+        "amended_public_document": (
+            suite["repository"]["public_document"]["path"],
+            decision.get("amended_public_document"),
+        ),
+        "amended_suite_data": (
+            "contextworld/benchmarks/suite_data.py",
+            decision.get("amended_suite_data"),
+        ),
+        "amended_recovery_finalizer": (
+            "scripts/finalize_cube_grasp_rule_h3_v4r1_"
+            "suite_registration_recovery_v2.py",
+            decision.get("amended_recovery_finalizer"),
+        ),
+        "specification": (
+            suite["public_results"]["specification"]["path"],
+            unchanged.get("specification"),
+        ),
+        "scoreboard": (
+            suite["public_results"]["scoreboard"]["path"],
+            unchanged.get("scoreboard"),
+        ),
+    }
+    identity_audits = {
+        name: _audit_registered_identity(
+            identity, expected_path=logical, repo_root=repo_root
+        )
+        for name, (logical, identity) in identities.items()
+    }
+    loaded_config = Path(suite["_config_path"])
+    if (
+        _sha256(loaded_config) != decision["amendment_config"]["sha256"]
+        or loaded_config.stat().st_size
+        != decision["amendment_config"]["size_bytes"]
+        or decision["base_release_config"]["sha256"]
+        != SUITE_V2_BASE_CONFIG_SHA256
+        or decision["base_registration_decision"]["sha256"]
+        != SUITE_V2_BASE_DECISION_SHA256
+        or decision["base_export_public_document"]["sha256"]
+        != SUITE_V2_BASE_PUBLIC_DOCUMENT_SHA256
+        or decision["amended_public_document"]["sha256"]
+        != suite["repository"]["public_document"]["sha256"]
+        or decision["amended_suite_data"]["sha256"]
+        != suite["repository"]["source_sha256"][
+            "contextworld/benchmarks/suite_data.py"
+        ]
+        or decision["amended_recovery_finalizer"]["sha256"]
+        != suite["repository"]["source_sha256"][
+            "scripts/finalize_cube_grasp_rule_h3_v4r1_"
+            "suite_registration_recovery_v2.py"
+        ]
+        or unchanged["specification"]["sha256"]
+        != suite["public_results"]["specification"]["sha256"]
+        or unchanged["scoreboard"]["sha256"]
+        != suite["public_results"]["scoreboard"]["sha256"]
+    ):
+        raise RuntimeError(
+            "Suite v2 documentation amendment identities do not match the release"
+        )
+
+    invariant_sections = (
+        "scope",
+        "model_interface",
+        "public_results",
+        "bundle",
+        "components",
+        "extension",
+        "distribution",
+    )
+    if any(suite[key] != base_suite[key] for key in invariant_sections):
+        raise RuntimeError(
+            "Suite v2 documentation amendment changed a frozen release section"
+        )
+    base_sources = base_suite["repository"]["source_sha256"]
+    amended_sources = suite["repository"]["source_sha256"]
+    changed_sources = {
+        logical
+        for logical in set(base_sources) | set(amended_sources)
+        if base_sources.get(logical) != amended_sources.get(logical)
+    }
+    if changed_sources != SUITE_V2_DOCUMENT_AMENDMENT_SOURCE_OVERRIDES:
+        raise RuntimeError(
+            "Suite v2 documentation amendment source boundary drifted"
+        )
+
+    scoreboard_path = Path(identity_audits["scoreboard"]["path"])
+    scoreboard = _read_json_object(scoreboard_path)
+    rows = scoreboard.get("component_results")
+    cube_rows = (
+        [row for row in rows if row.get("component_id") == "cube_gripper_carry"]
+        if isinstance(rows, list)
+        else []
+    )
+    if (
+        len(rows or []) != 11
+        or len(cube_rows) != 1
+        or not str(cube_rows[0].get("method_name", "")).startswith("LeWM")
+        or "pldm" in str(cube_rows[0].get("method_name", "")).lower()
+    ):
+        raise RuntimeError(
+            "Suite v2 documentation amendment changed the formal Cube scoreboard"
+        )
+
+    document_path = Path(identity_audits["amended_public_document"]["path"])
+    document = document_path.read_text(encoding="utf-8")
+    required_document_fragments = (
+        "| Cube 夹爪携带规则 | LeWM | 原始 checkpoint |",
+        "| Cube 夹爪携带规则 | LeWM | 固定图像编码器，拟合配对真实未来 |",
+        "| Cube 夹爪携带规则 | PLDM | 使用相同合成数据",
+        "### 5.1 Cube 多开源模型对比（Public v1 待补齐）",
+        "### 5.2 Cube Public recovery 边界",
+        "机器可读正式 scoreboard 仍保持 11 行",
+    )
+    if (
+        any(fragment not in document for fragment in required_document_fragments)
+        or document.count("| External-0") != 3
+    ):
+        raise RuntimeError(
+            "Suite v2 documentation amendment reference table is incomplete"
+        )
+
+    return {
+        "required": True,
+        "active": True,
+        "status": "suite_registration_passed_with_documentation_amendment_v1",
+        "decision_path": str(decision_path),
+        "decision_is_commit_marker": True,
+        "base_membership": base_activation,
+        "amendment_id": SUITE_V2_DOCUMENT_AMENDMENT_ID,
+        "amendment_scope": "documentation_only_reference_table_expansion",
+        "formal_scoreboard_mutated": False,
+        "public_test_rerun": False,
+        "partial_outputs_grant_membership": False,
+        "evidence": identity_audits,
+        "passed": True,
+    }
+
+
 def _require_suite_membership_activation(
     suite: dict[str, Any],
     *,
@@ -460,6 +805,17 @@ def _require_suite_membership_activation(
         raise RuntimeError(
             "Suite v2 membership is not active: the pre-recovery candidate "
             "is permanently uncommitted"
+        )
+    if (
+        authority.get("activation_condition")
+        == SUITE_V2_DOCUMENT_AMENDMENT_ACTIVATION
+    ):
+        if registration_capability is not None:
+            raise RuntimeError(
+                "Documentation amendment does not expose registration-audit bypass"
+            )
+        return _require_suite_documentation_amendment_activation(
+            suite, repo_root=root
         )
     if registration_capability is not None and (
         registration_capability is not _SUITE_V2_REGISTRATION_AUDIT_CAPABILITY
@@ -599,6 +955,135 @@ def load_icl_suite_release(
 ) -> dict[str, Any]:
     config_path = Path(path).expanduser().resolve()
     payload = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+    if isinstance(payload, dict) and "documentation_amendment" in payload:
+        raw = payload
+        expected_overlay_keys = {
+            "schema_version",
+            "release_id",
+            "release_status",
+            "candidate_date",
+            "documentation_amendment",
+            "membership_authority",
+            "repository_overrides",
+        }
+        amendment = raw.get("documentation_amendment")
+        base_identity = (
+            amendment.get("base_release_config")
+            if isinstance(amendment, dict)
+            else None
+        )
+        expected_amendment_keys = {
+            "amendment_id",
+            "status",
+            "scope",
+            "base_release_config",
+            "base_registration_decision",
+            "base_export_public_document",
+            "prior_public_document",
+            "allowed_changes",
+            "prohibited_changes",
+        }
+        if (
+            set(raw) != expected_overlay_keys
+            or raw.get("schema_version") != 1
+            or raw.get("release_id") != SUITE_V2_RELEASE_ID
+            or not isinstance(amendment, dict)
+            or set(amendment) != expected_amendment_keys
+            or amendment.get("amendment_id")
+            != SUITE_V2_DOCUMENT_AMENDMENT_ID
+            or amendment.get("status") != "frozen_documentation_only"
+            or amendment.get("scope")
+            != "reference_table_model_comparison_and_empty_external_slots"
+            or amendment.get("allowed_changes")
+            != [
+                "public_document_reference_results_section",
+                "suite_activation_and_audit_plumbing",
+                "historical_recovery_finalizer_default_pin",
+            ]
+            or amendment.get("prohibited_changes")
+            != [
+                "component_release_or_data",
+                "formal_scoreboard_or_specification",
+                "training_or_checkpoint_selection",
+                "public_test_access_or_rerun",
+                "threshold_or_recipe",
+            ]
+            or not isinstance(base_identity, dict)
+            or base_identity.get("path") != SUITE_V2_CONFIG_LOGICAL_PATH
+            or base_identity.get("sha256") != SUITE_V2_BASE_CONFIG_SHA256
+            or base_identity.get("size_bytes") != 14191
+            or amendment.get("base_registration_decision")
+            != {
+                "path": SUITE_V2_REGISTRATION_DECISION,
+                "sha256": SUITE_V2_BASE_DECISION_SHA256,
+                "size_bytes": 8701,
+            }
+            or amendment.get("base_export_public_document")
+            != {
+                "path": SUITE_V2_BASE_EXPORT_PUBLIC_DOCUMENT,
+                "sha256": SUITE_V2_BASE_PUBLIC_DOCUMENT_SHA256,
+                "size_bytes": 31181,
+            }
+            or amendment.get("prior_public_document")
+            != {
+                "path": "docs/ContextWorld_ICL_Benchmark.md",
+                "sha256": SUITE_V2_BASE_PUBLIC_DOCUMENT_SHA256,
+                "size_bytes": 31181,
+            }
+        ):
+            raise ValueError(
+                "Suite v2 documentation amendment config is not exact"
+            )
+        root = repository_root()
+        base_path = resolve_no_symlink_contextworld_path(
+            SUITE_V2_CONFIG_LOGICAL_PATH,
+            repo_root=root,
+            label="Suite v2 documentation amendment base config",
+        )
+        if (
+            _sha256(base_path) != base_identity["sha256"]
+            or base_path.stat().st_size != base_identity["size_bytes"]
+        ):
+            raise ValueError(
+                "Suite v2 documentation amendment base config drifted"
+            )
+        base_payload = yaml.safe_load(base_path.read_text(encoding="utf-8"))
+        if not isinstance(base_payload, dict):
+            raise ValueError("Suite v2 documentation amendment base is invalid")
+        overrides = raw.get("repository_overrides")
+        if (
+            not isinstance(overrides, dict)
+            or set(overrides) != {"source_sha256", "public_document"}
+            or not isinstance(overrides.get("source_sha256"), dict)
+            or set(overrides["source_sha256"])
+            != SUITE_V2_DOCUMENT_AMENDMENT_SOURCE_OVERRIDES
+            or any(
+                len(str(value)) != 64
+                for value in overrides["source_sha256"].values()
+            )
+            or overrides.get("public_document", {}).get("path")
+            != "docs/ContextWorld_ICL_Benchmark.md"
+            or len(
+                str(overrides.get("public_document", {}).get("sha256", ""))
+            )
+            != 64
+        ):
+            raise ValueError(
+                "Suite v2 documentation amendment repository overrides are invalid"
+            )
+        payload = deepcopy(base_payload)
+        payload["release_status"] = raw["release_status"]
+        payload["candidate_date"] = raw["candidate_date"]
+        payload["membership_authority"] = deepcopy(
+            raw["membership_authority"]
+        )
+        payload["repository"]["source_sha256"].update(
+            overrides["source_sha256"]
+        )
+        payload["repository"]["public_document"] = deepcopy(
+            overrides["public_document"]
+        )
+        payload["documentation_amendment"] = deepcopy(amendment)
     if not isinstance(payload, dict) or payload.get("schema_version") != 1:
         raise ValueError(f"Unsupported ICL suite config: {config_path}")
     if payload.get("release_id") not in SUPPORTED_SUITE_RELEASE_IDS:

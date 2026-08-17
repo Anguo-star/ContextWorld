@@ -35,7 +35,7 @@ from contextworld.benchmarks.public_score import make_public_scoreboard_from_spe
 from contextworld.benchmarks.suite_data import (
     COMPONENT_IDS,
     DEFAULT_SUITE_RELEASE_CONFIG,
-    DEFAULT_SUITE_V2_RELEASE_CONFIG,
+    SUITE_V2_RECOVERY_CONFIG,
     SUITE_RELEASE_ID,
     SUITE_V2_COMPONENT_IDS,
     _audit_icl_suite_release_for_registration,
@@ -49,6 +49,7 @@ from scripts.build_contextworld_icl_suite_v2_scoreboard import (
 
 
 ROOT = repository_root()
+DEFAULT_SUITE_V2_RELEASE_CONFIG = SUITE_V2_RECOVERY_CONFIG
 DEFAULT_PREREGISTRATION = ROOT / RECOVERY_PREREGISTRATION_LOGICAL_PATH
 DEFAULT_FREEZE_RECEIPT = resolve_contextworld_path(
     "artifacts/evaluation/history3/"

@@ -17,12 +17,29 @@ authority:
   authorizes_public_test_access: false
   authorizes_reference_rerun: false
   frozen_candidate_commit: 6607552ac37ba26d6b5e7f053416b1e792ddae91
-  frozen_public_document:
+  base_frozen_public_document:
     path: docs/ContextWorld_ICL_Benchmark.md
     sha256: 72031232d008b77f809d387348f8bc320532f80517e387837571a2995932cccc
   canonical_registration_decision:
     path: artifacts/evaluation/history3/cube_gripper_carry_h3_v4r1_suite_registration_recovery_v2/registration_decision_v2.json
     sha256: 0c6d38ec4304d0ffa078fe8680a7b6d90b851eb69780d22936a456bf0bb7859d
+  current_document_amendment:
+    amendment_id: contextworld_icl_suite_v2_public_document_amendment_v1
+    scope: documentation_only_reference_table_expansion
+    config:
+      path: configs/benchmark/contextworld_icl_suite_v2_public_document_amendment_v1.yaml
+      sha256: fcba0724286bd790ab94671f9c4bcb32a68c8a1a3efb4785d208a2fcd2eb9c63
+      size_bytes: 3319
+    decision:
+      path: configs/benchmark/contextworld_icl_suite_v2_public_document_amendment_decision_v1.json
+      sha256: fa8c3e04b9e313a64d5e17e97cf61b572534fdf61352cd2d4fece604ed97c394
+      size_bytes: 4491
+    public_document:
+      path: docs/ContextWorld_ICL_Benchmark.md
+      sha256: 663c78589f8f0076ce9051a76dc76c70c26261647a5c761dc9ab9509b4f50fba
+      size_bytes: 33470
+    modifies_formal_scoreboard: false
+    authorizes_public_test_access: false
 
 cube_current_evidence:
   source_release_config: configs/benchmark/cube_gripper_carry_h3_v4r1_icl_release_v1.yaml
@@ -153,7 +170,10 @@ release_gates:
   citation_metadata:
     status: blocked_not_present
     blocking: true
-  versioned_public_document_amendment:
+  reference_table_document_amendment:
+    status: completed_v1_without_formal_scoreboard_mutation
+    blocking: false
+  final_public_v1_release_decision:
     status: pending_until_release_gates_and_model_matrix_are_complete
     blocking: true
 

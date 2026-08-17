@@ -11,6 +11,8 @@ import contextworld.benchmarks.suite_data as suite_data
 from contextworld.benchmarks.suite_data import (
     COMPONENT_IDS,
     DEFAULT_SUITE_V2_RELEASE_CONFIG,
+    SUITE_V2_DOCUMENT_AMENDMENT_ID,
+    SUITE_V2_RECOVERY_CONFIG,
     SUITE_V2_COMPONENT_IDS,
     audit_icl_suite_release,
     export_icl_suite_artifacts,
@@ -41,15 +43,23 @@ def test_suite_v2_adds_cube_without_rewriting_suite_v1() -> None:
     assert len(suite_v2["public_results"]["components_with_formal_results"]) == 7
     authority = suite_v2["membership_authority"]
     assert authority["config_alone_grants_membership"] is False
-    assert authority["activation_condition"] == "passed_registration_decision_v2"
-    assert authority["registration_id"].endswith("suite_registration_recovery_v2")
+    assert authority["activation_condition"] == (
+        "passed_public_document_amendment_decision_v1"
+    )
+    assert authority["amendment_id"] == SUITE_V2_DOCUMENT_AMENDMENT_ID
     assert authority["decision_path"].endswith(
-        "suite_registration_recovery_v2/registration_decision_v2.json"
+        "contextworld_icl_suite_v2_public_document_amendment_decision_v1.json"
     )
     assert authority["decision_is_commit_marker"] is True
     assert authority["partial_outputs_grant_membership"] is False
-    assert authority["directory_rename_authorized"] is False
-    assert authority["prior_failed_staging_reuse_authorized"] is False
+    assert authority["base_membership_must_remain_active"] is True
+    assert authority["formal_scoreboard_mutation_authorized"] is False
+    assert authority["public_test_rerun_authorized"] is False
+
+    recovery = load_icl_suite_release(SUITE_V2_RECOVERY_CONFIG)
+    assert recovery["membership_authority"]["activation_condition"] == (
+        "passed_registration_decision_v2"
+    )
 
 
 def test_suite_v2_scoreboard_contains_one_lewm_only_cube_row() -> None:
@@ -78,6 +88,30 @@ def test_suite_v2_scoreboard_contains_one_lewm_only_cube_row() -> None:
             "formal_scoreboard_eligible",
         )
     )
+
+
+def test_suite_v2_document_amendment_adds_reference_comparisons_only() -> None:
+    suite = load_icl_suite_release(DEFAULT_SUITE_V2_RELEASE_CONFIG)
+    activation = require_suite_membership_activation(suite, repo_root=ROOT)
+
+    assert activation["status"] == (
+        "suite_registration_passed_with_documentation_amendment_v1"
+    )
+    assert activation["base_membership"]["status"] == (
+        "suite_registration_passed"
+    )
+    assert activation["formal_scoreboard_mutated"] is False
+    assert activation["public_test_rerun"] is False
+
+    document = (ROOT / "docs/ContextWorld_ICL_Benchmark.md").read_text(
+        encoding="utf-8"
+    )
+    assert "| Cube 夹爪携带规则 | LeWM | 原始 checkpoint |" in document
+    assert "| Cube 夹爪携带规则 | PLDM | 使用相同合成数据" in document
+    assert "50.13%（Development）" in document
+    assert "未通过（0/3；未进入 Public）" in document
+    assert "机器可读正式 scoreboard 仍保持 11 行" in document
+    assert document.count("| External-0") == 3
 
 
 def test_suite_v2_repository_identities_match_current_sources() -> None:
@@ -137,20 +171,18 @@ def test_suite_v2_membership_fails_closed_without_canonical_decision(
 
 
 def test_suite_v2_membership_rejects_a_symlinked_decision(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path,
 ) -> None:
     suite = load_icl_suite_release(DEFAULT_SUITE_V2_RELEASE_CONFIG)
-    monkeypatch.setenv("CONTEXTWORLD_ARTIFACT_ROOT", str(tmp_path))
-    decision = tmp_path.joinpath(
-        *Path(suite["membership_authority"]["decision_path"]).parts[1:]
-    )
+    logical = Path(suite["membership_authority"]["decision_path"])
+    decision = tmp_path / logical
     decision.parent.mkdir(parents=True)
     target = tmp_path / "redirected-decision.json"
     target.write_text("{}\n", encoding="utf-8")
     decision.symlink_to(target)
 
     with pytest.raises(RuntimeError, match="traverses a symlink"):
-        require_suite_membership_activation(suite, repo_root=ROOT)
+        require_suite_membership_activation(suite, repo_root=tmp_path)
 
 
 def test_public_suite_apis_do_not_expose_a_pending_registration_bypass() -> None:

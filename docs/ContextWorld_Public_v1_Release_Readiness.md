@@ -4,9 +4,11 @@
 [`contextworld_public_v1_release_readiness_draft_v1.yaml`](../configs/benchmark/contextworld_public_v1_release_readiness_draft_v1.yaml)。
 
 本文用于把已经冻结的本地技术候选推进为可对外下载、可独立复现的 Public v1。现有
-Suite v2 decision、Cube reference 行和
-[`ContextWorld_ICL_Benchmark.md`](ContextWorld_ICL_Benchmark.md) 保持不变；完成下列工作后，
-再通过新的版本化发布决定把本文中的有效内容合入正式 Public v1 文档。
+Suite v2 recovery-v2 decision、Cube 正式 scoreboard 行和全部组件证据保持不变。主文档
+[`ContextWorld_ICL_Benchmark.md`](ContextWorld_ICL_Benchmark.md) 已通过版本化的
+`contextworld_icl_suite_v2_public_document_amendment_v1` 补入 Cube 参考对照与空的外部模型
+工作表；该 amendment 不授权 Public、训练或正式 scoreboard 变化。完成下列其余工作后，
+再通过新的版本化发布决定形成对外 Public v1。
 这里的“Public v1”是对外分发版本，不会把内部已经冻结的 Suite v2 协议重命名为 Suite v1。
 
 ## 1. 当前结论
@@ -74,7 +76,8 @@ scoreboard 目前仍只有一条 Cube LeWM Public 行。
 | 外部提交治理 | **阻断：未授权** | 定义提交 schema、身份校验、重复提交和 scoreboard 纳入规则 |
 | 跨模型共同训练预算 | **阻断：未冻结** | 定义共同预算轨；best-effort 结果单独报告，禁止混表 |
 | 引用信息 | **阻断：缺失** | 增加 CITATION 元数据和版本 DOI/归档标识（如采用） |
-| 正式文档修订 | **等待上述门** | 走版本化 amendment，更新哈希和 release decision，不原地改冻结证据 |
+| Cube 参考结果表修订 | 已完成 documentation-only amendment v1 | 保持 recovery-v2、组件和正式 11 行 scoreboard 不变 |
+| 正式 Public v1 决策 | **等待上述门** | 所有阻断项完成后另建版本化 release decision，不复用文档 amendment |
 
 模型没有通过 ICL 门槛本身不是发布阻断；缺少运行、身份、许可证或诚实的负结果记录才是。
 
@@ -86,6 +89,7 @@ scoreboard 目前仍只有一条 Cube LeWM Public 行。
 4. 对通过 Development 的冻结方法另行预注册一次性 Public；
 5. 对支持规划的模型运行配对 CEM 留存；
 6. 并行补齐许可证、公开下载 manifest、干净环境复现和提交治理；
-7. 所有阻断门通过后创建 Public v1 的版本化正式文档与 release decision。
+7. 所有阻断门通过后创建 Public v1 的版本化正式 release decision；当前文档 amendment
+   只解决参考表缺项，不可当作 Public v1 发布决定。
 
 在第 7 步之前，本文件可以持续更新，但不得修改或冒充现有冻结的 Cube reference 结果。

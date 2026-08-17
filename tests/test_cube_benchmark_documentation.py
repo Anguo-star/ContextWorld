@@ -6,12 +6,17 @@ import re
 
 import yaml
 
+from contextworld.benchmarks.suite_data import (
+    DEFAULT_SUITE_V2_RELEASE_CONFIG,
+    load_icl_suite_release,
+)
+
 
 ROOT = Path(__file__).resolve().parents[1]
 PUBLIC_DOCUMENT = ROOT / "docs/ContextWorld_ICL_Benchmark.md"
 SUITE_V1_CONFIG = ROOT / "configs/benchmark/contextworld_icl_suite_v1.yaml"
 SUITE_V2_CONFIG = (
-    ROOT / "configs/benchmark/contextworld_icl_suite_v2_recovery_v2.yaml"
+    DEFAULT_SUITE_V2_RELEASE_CONFIG
 )
 
 
@@ -44,7 +49,7 @@ def test_cube_release_uses_the_five_part_benchmark_template() -> None:
 
 def test_cube_release_adds_suite_v2_without_rewriting_suite_v1() -> None:
     suite_v1 = yaml.safe_load(SUITE_V1_CONFIG.read_text(encoding="utf-8"))
-    suite_v2 = yaml.safe_load(SUITE_V2_CONFIG.read_text(encoding="utf-8"))
+    suite_v2 = load_icl_suite_release(SUITE_V2_CONFIG)
 
     assert len(suite_v1["components"]) == 8
     assert suite_v1["public_results"]["formal_reference_rows"] == 10

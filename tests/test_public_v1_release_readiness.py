@@ -23,7 +23,17 @@ def test_readiness_draft_cannot_activate_or_mutate_release() -> None:
     payload = yaml.safe_load(READINESS_CONFIG.read_text(encoding="utf-8"))
 
     assert payload["status"] == "draft_not_release_authority"
-    assert payload["authority"] == {
+    authority = payload["authority"]
+    assert {
+        key: authority[key]
+        for key in (
+            "activates_release",
+            "modifies_formal_scoreboard",
+            "authorizes_public_test_access",
+            "authorizes_reference_rerun",
+            "frozen_candidate_commit",
+        )
+    } == {
         "activates_release": False,
         "modifies_formal_scoreboard": False,
         "authorizes_public_test_access": False,
@@ -31,25 +41,35 @@ def test_readiness_draft_cannot_activate_or_mutate_release() -> None:
         "frozen_candidate_commit": (
             "6607552ac37ba26d6b5e7f053416b1e792ddae91"
         ),
-        "frozen_public_document": {
-            "path": "docs/ContextWorld_ICL_Benchmark.md",
-            "sha256": (
-                "72031232d008b77f809d387348f8bc320532f80517e387837571a2995932cccc"
-            ),
-        },
-        "canonical_registration_decision": {
-            "path": (
-                "artifacts/evaluation/history3/"
-                "cube_gripper_carry_h3_v4r1_suite_registration_recovery_v2/"
-                "registration_decision_v2.json"
-            ),
-            "sha256": (
-                "0c6d38ec4304d0ffa078fe8680a7b6d90b851eb69780d22936a456bf0bb7859d"
-            ),
-        },
     }
-    assert _sha256(FROZEN_PUBLIC_DOCUMENT) == payload["authority"][
-        "frozen_public_document"
+    assert authority["base_frozen_public_document"] == {
+        "path": "docs/ContextWorld_ICL_Benchmark.md",
+        "sha256": (
+            "72031232d008b77f809d387348f8bc320532f80517e387837571a2995932cccc"
+        ),
+    }
+    assert authority["canonical_registration_decision"] == {
+        "path": (
+            "artifacts/evaluation/history3/"
+            "cube_gripper_carry_h3_v4r1_suite_registration_recovery_v2/"
+            "registration_decision_v2.json"
+        ),
+        "sha256": (
+            "0c6d38ec4304d0ffa078fe8680a7b6d90b851eb69780d22936a456bf0bb7859d"
+        ),
+    }
+    amendment = authority["current_document_amendment"]
+    assert amendment["scope"] == "documentation_only_reference_table_expansion"
+    assert amendment["modifies_formal_scoreboard"] is False
+    assert amendment["authorizes_public_test_access"] is False
+    assert _sha256(FROZEN_PUBLIC_DOCUMENT) == amendment["public_document"][
+        "sha256"
+    ]
+    assert _sha256(ROOT / amendment["config"]["path"]) == amendment[
+        "config"
+    ]["sha256"]
+    assert _sha256(ROOT / amendment["decision"]["path"]) == amendment[
+        "decision"
     ]["sha256"]
 
 
@@ -124,11 +144,15 @@ def test_all_public_v1_blockers_remain_explicit_and_navigable() -> None:
         "external_submission_and_scoreboard_governance",
         "common_cross_model_training_budget",
         "citation_metadata",
-        "versioned_public_document_amendment",
+        "final_public_v1_release_decision",
     }
     assert {name for name, gate in gates.items() if gate["blocking"]} == (
         expected_blockers
     )
+    assert gates["reference_table_document_amendment"] == {
+        "status": "completed_v1_without_formal_scoreboard_mutation",
+        "blocking": False,
+    }
 
     root_readme = (ROOT / "README.md").read_text(encoding="utf-8")
     docs_readme = (ROOT / "docs/README.md").read_text(encoding="utf-8")
