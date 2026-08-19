@@ -1,0 +1,105 @@
+{
+  "amendment_record": {
+    "path": "configs/benchmark/contextworld_icl_suite_v2_baseline_provenance_and_gate_disclosure_amendment_v1.yaml",
+    "record_id": "contextworld_icl_suite_v2_baseline_provenance_and_gate_disclosure_amendment_v1",
+    "sha256": "5a60540b787254ff4193aa5d0e1edfc67b015199e4709695b939508897a863bb",
+    "size_bytes": 5140
+  },
+  "document_change": {
+    "current_sha256": "e67da7a3e6c30e7960252a7791d95ff9ae743e88e6bdf06e5b657932df57d828",
+    "current_size_bytes": 51714,
+    "lines_added": 26,
+    "lines_removed": 0,
+    "other_sealed_documents_drifted": false,
+    "other_sealed_documents_verified_unchanged": [
+      "README.md",
+      "docs/README.md",
+      "docs/ContextWorld_Public_v1_Release_Readiness.md"
+    ],
+    "path": "docs/ContextWorld_ICL_Benchmark.md",
+    "previous_sha256": "c6d771fa53bc73485f08e02c1496d5029740429e2228407c2b5e881218414055",
+    "previous_size_bytes": 49881,
+    "purely_additive": true,
+    "removed_lines_containing_scores_or_verdicts": 0
+  },
+  "execution": {
+    "cli": "scripts/freeze_contextworld_icl_suite_v2_integrity_reseal_v2.py",
+    "cli_status": "integrity_reseal_passed",
+    "decision_validated_after_write": true,
+    "decision_written_by_frozen_cli": true,
+    "documents_unchanged_after_decision_written": true,
+    "full_test_suite": {
+      "failed": 0,
+      "first_run_failure": {
+        "cause": "the test scraped every table row in section 5.3, so the newly added per-task gate table's 5 rows were counted as 任务—模型 reference rows (23 != 18)",
+        "discrimination_reverified": "removing one reference row still yields 17 and fails; adding a gate row still yields 18",
+        "document_changed_to_satisfy_the_test": false,
+        "expected_row_count_changed": false,
+        "resolution": "the test's row scraper now selects only the table introduced by the 任务 | 模型 header; the expected count stays 18 (9 tasks x 2 models) and was not relaxed to 23",
+        "test": "tests/test_speed_pldm_public_documentation.py::test_trained_reference_table_covers_all_nine_tasks_and_both_models",
+        "test_file": {
+          "bound_by_this_reseal": false,
+          "path": "tests/test_speed_pldm_public_documentation.py",
+          "sha256": "b24672bffaaa8e7231e36de526058555a538229a88decf83f6afea79a65dad74"
+        }
+      },
+      "passed": 1487,
+      "skipped": 1
+    },
+    "readiness_audit_before_removal": {
+      "blockers": [],
+      "ready": true
+    },
+    "validation": {
+      "passed": true,
+      "reseal_id": "contextworld_icl_suite_v2_integrity_reseal_v2"
+    }
+  },
+  "further_document_edits_require_a_new_regeneration_record": true,
+  "invariants_held": {
+    "authority_module_changed": false,
+    "public_test_rerun": false,
+    "raw_dataset_or_checkpoint_mutation": false,
+    "reseal_preregistration_modified": false,
+    "result_based_retry": false,
+    "score_or_threshold_mutation": false,
+    "scoreboard_row_mutation": false,
+    "successor_reseal_identity_created": false,
+    "training_or_checkpoint_selection": false,
+    "verdict_mutation": false
+  },
+  "receipt_id": "contextworld_icl_suite_v2_integrity_reseal_v2_postpublication_regeneration_receipt_v1",
+  "recorded_date": "2026-08-19",
+  "regenerated_decision": {
+    "binds_current_public_benchmark_sha256": "e67da7a3e6c30e7960252a7791d95ff9ae743e88e6bdf06e5b657932df57d828",
+    "path": "configs/benchmark/contextworld_icl_suite_v2_integrity_reseal_decision_v2.json",
+    "references_superseded_document_sha256": false,
+    "sha256": "01e6ed3b1d0b4b29463eb283047f1186a41dcbc84bcecf04901c1c8560e28947",
+    "size_bytes": 22330
+  },
+  "regeneration_record": {
+    "path": "configs/benchmark/contextworld_icl_suite_v2_integrity_reseal_v2_postpublication_regeneration_v1.yaml",
+    "record_id": "contextworld_icl_suite_v2_integrity_reseal_v2_postpublication_regeneration_v1",
+    "regeneration_count_authorized": 1,
+    "regeneration_count_consumed": 1,
+    "sha256": "5fd8294393ff5446b5f44034fb86f72b9b8827b15ba840c3bd87fec06f40414e",
+    "size_bytes": 5645
+  },
+  "schema_version": 1,
+  "status": "regeneration_completed",
+  "superseded_decision": {
+    "archive_is_byte_exact": true,
+    "archived_copy": {
+      "path": "configs/benchmark/contextworld_icl_suite_v2_integrity_reseal_decision_v2_superseded_20260819.json",
+      "sha256": "c21a3826ba361f8e7e20caf282da45a75b1d0c60970857c5a6d395e1eea71226",
+      "size_bytes": 22330
+    },
+    "on_disk_matched_origin_main_before_archival": true,
+    "published_at_commit": "45e398b",
+    "published_branch": "origin/main",
+    "removed_only_after_archive_verified": true,
+    "sha256": "c21a3826ba361f8e7e20caf282da45a75b1d0c60970857c5a6d395e1eea71226",
+    "size_bytes": 22330,
+    "was_published": true
+  }
+}

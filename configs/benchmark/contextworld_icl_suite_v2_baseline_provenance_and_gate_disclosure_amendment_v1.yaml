@@ -1,0 +1,107 @@
+schema_version: 1
+release_id: contextworld_icl_benchmark_suite_v2
+release_status: public_test_release_candidate
+recorded_date: "2026-08-19"
+
+# Honest record of a documentation-only clarification made after the
+# integrity-reseal-v2 decision was first published.  Like the capability
+# taxonomy amendment it succeeds, this is a record of work performed, not a
+# claim that the prose preceded the results it describes.
+#
+# Two reader-reported gaps in the public benchmark document are closed here:
+#
+#   1. The eight original baseline checkpoints were described without stating
+#      where they came from.  They are LeWM's published baselines, trained on
+#      the LeWorldModel official datasets under the published recipe for 10
+#      epochs, evaluated at the end-of-training weights.  This repository does
+#      not train, fine-tune, continue training, or score-select them.  The
+#      fact was already recorded per cell in the frozen preregistrations and
+#      checkpoint configs; it was simply never stated in the reader-facing
+#      document.
+#
+#   2. Section 5.3 printed ICL primary scores next to pass/fail verdicts
+#      without printing the per-task gates, so a reader could not tell why
+#      portal exit at 83.92% fails while robot arm mass at 76.11% passes.  The
+#      gates differ by task (0.95 vs 0.75, plus per-task auxiliary gates) and
+#      were frozen in the component release configs before execution.  The
+#      added table transcribes those frozen gates; it does not introduce,
+#      relax, or restate any threshold as a new value.
+#
+# No score, gate, verdict, dataset, checkpoint or scoreboard row changes.  The
+# edit is additive prose plus one transcribed gate table.
+
+documentation_clarification_amendment:
+  record_id: contextworld_icl_suite_v2_baseline_provenance_and_gate_disclosure_amendment_v1
+  status: current_documentation_change_pending_reseal_regeneration
+  predecessor_record:
+    path: configs/benchmark/contextworld_icl_suite_v2_capability_taxonomy_documentation_amendment_v1.yaml
+    record_id: contextworld_icl_suite_v2_capability_taxonomy_documentation_amendment_v1
+  chronology:
+    preregistration_claimed: false
+    statement: >-
+      This record describes a documentation clarification made after the first
+      published integrity-reseal-v2 decision.  It is not evidence that the
+      clarification was preregistered before it was written.
+  documentation_targets:
+    public_benchmark: docs/ContextWorld_ICL_Benchmark.md
+  documents_changed:
+    - docs/ContextWorld_ICL_Benchmark.md
+  documents_unchanged:
+    - README.md
+    - docs/README.md
+    - docs/ContextWorld_Public_v1_Release_Readiness.md
+
+  disclosed_facts:
+    baseline_checkpoint_provenance:
+      source: lewm_published_original_baselines
+      training_data: leworldmodel_official_datasets
+      dataset_evidence: >-
+        the TwoRoom dataset README distributed with the checkpoints states
+        "Official dataset for the TwoRoom navigation task used in
+        LeWorldModel"; the PushT, Reacher and Cube checkpoints come from the
+        sibling lewm-pusht / lewm-reacher / lewm-cube distributions
+      training_length: 10_epochs
+      training_length_evidence: >-
+        every baseline training config records trainer.max_epochs: 10 and the
+        checkpoints carry the corresponding end-of-training weights
+      evaluated_weights: end_of_training
+      repository_trained: false
+      fine_tuned_or_continued: false
+      score_based_checkpoint_selection: false
+    per_task_icl_gates:
+      role: transcription_of_already_frozen_component_gates
+      source_of_truth: configs/benchmark/<component>_icl_release_v1.yaml
+      gates_introduced_or_modified: false
+      examples_explained:
+        - portal_exit_83_92_fails_against_a_0_95_gate
+        - robot_arm_mass_76_11_passes_against_a_0_75_gate
+        - action_strength_pldm_94_27_fails_because_each_checkpoint_must_pass
+
+  allowed_changes:
+    - plain_language_disclosure_of_baseline_checkpoint_provenance
+    - transcription_of_frozen_per_task_gates_into_reader_facing_prose
+    - plain_language_explanation_of_pass_fail_verdicts
+  prohibited_changes:
+    - raw_dataset_or_checkpoint_mutation
+    - training_or_checkpoint_selection
+    - score_or_threshold_mutation
+    - verdict_mutation
+    - public_test_access_or_rerun_authorization
+    - suite_membership_activation
+    - scoreboard_row_mutation
+
+  final_identity_rule: >-
+    This record carries no document hash.  The final exact bytes of the public
+    benchmark document, together with this record, must be bound by a passed
+    contextworld_icl_suite_v2_integrity_reseal_v2 decision regenerated under
+    the accompanying post-publication regeneration record.
+
+membership_authority:
+  config_alone_grants_membership: false
+  activation_condition: passed_integrity_reseal_decision_v2
+  required_reseal_id: contextworld_icl_suite_v2_integrity_reseal_v2
+  successor_reseal_identity_created: false
+  public_test_rerun_authorized: false
+  training_or_checkpoint_selection_authorized: false
+  formal_scoreboard_mutation_authorized: false
+  raw_dataset_or_checkpoint_mutation_authorized: false
