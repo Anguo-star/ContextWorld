@@ -75,7 +75,18 @@ documentation_clarification_amendment:
       training_length: 10_epochs
       evaluated_weights: end_of_training
       repository_trained: true
-      pretrained_weights_downloaded_from_upstream: false
+      # Scoped deliberately.  A recursive scan of the whole data tree found
+      # exactly one downloaded upstream checkpoint
+      # (quentinll/lewm-reacher/ckpt_hf/weights.pt), so the unqualified claim
+      # "nothing was downloaded" would be false.  It is consumed by nothing:
+      # zero references to its hash or path anywhere in this repository.  See
+      # contextworld_icl_suite_v2_baseline_provenance_correction_v1.yaml.
+      pretrained_weights_used_by_any_baseline: false
+      pretrained_weights_downloaded_from_upstream:
+        anywhere_in_the_data_tree: true
+        into_any_consumed_baseline: false
+        only_instance: quentinll/lewm-reacher/ckpt_hf/weights.pt
+        consumed_by_any_published_number: false
       fine_tuned_or_continued: false
       score_based_checkpoint_selection: false
     per_task_icl_gates:

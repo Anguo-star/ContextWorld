@@ -58,18 +58,63 @@ correction:
 evidence:
   # Each item was checked directly on the artifact tree, not inferred.
   huggingface_download_manifest:
+    # SECOND-ORDER CORRECTION, 2026-08-19.  The first version of this block
+    # concluded "not one checkpoint file was downloaded from any upstream
+    # repository".  That was false, and it was published in commit 775aebb's
+    # parent.  One upstream checkpoint WAS downloaded:
+    # quentinll/lewm-reacher/ckpt_hf/weights.pt.  The error was methodological
+    # in the same way as the error this record exists to correct -- the search
+    # was scoped to the four top-level lewm-* directories, so a nested
+    # sub-checkout one level deeper was never looked at.  The scan below is
+    # now recursive over the whole data tree.
     method: >-
-      inspected the .cache/huggingface/download/*.metadata records under each
-      of the four quentinll/lewm-* directories, which list exactly the files
-      that were actually fetched
+      recursively inspected every .cache/huggingface/download/*.metadata
+      record anywhere under the world_model data tree, which lists exactly the
+      files that were actually fetched; 532 such records exist across seven
+      distinct repository checkouts
     result_per_repository:
       lewm-tworooms: [".gitattributes", "README.md", "tworoom.tar.zst"]
       lewm-pusht: [".gitattributes", "README.md", "pusht_expert_train.h5.zst"]
       lewm-reacher: [".gitattributes", "README.md", "reacher.tar.zst"]
       lewm-cube: [".gitattributes", "README.md", "cube_single_expert.tar.zst"]
+      lewm-reacher/ckpt_hf:
+        [".gitattributes", "README.md", "config.json", "weights.pt"]
+    downloaded_checkpoints_tree_wide:
+      count: 1
+      only_item: quentinll/lewm-reacher/ckpt_hf/weights.pt
+      sha256: eb70b1fd5409f8f81875d62f5ee5a20dd220a3128a477de66b5760f475f0f469
+      size_bytes: 72290849
+      upstream_card: >-
+        "Official pretrained model for the DeepMindControl Reacher task used
+        in LeWorldModel"
+      consumed_by_any_benchmark_result: false
+      consumption_evidence:
+        - its sha256 appears zero times anywhere in this repository
+        - the strings "ckpt_hf" and "quentinll_hf" appear zero times in this
+          repository, including under artifacts/
+        - no preregistration, scoreboard row or frozen result references it
+        - it was evaluated once locally (ckpt/reacher_quentinll_hf/eval_results,
+          three seeds) as an unreported side comparison, and that evaluation
+          entered no formal result
     conclusion: >-
-      datasets and README cards only; not one checkpoint file was downloaded
-      from any upstream repository
+      the four dataset repositories supplied datasets and README cards only.
+      Exactly one upstream pretrained checkpoint was downloaded tree-wide, for
+      the Reacher task, and it is consumed by nothing: it is not among the
+      baselines, not referenced by any preregistration, and contributes to no
+      published number.  It does not weaken the finding this record makes --
+      it is independent of it.
+  consumed_baselines_contain_no_downloaded_file:
+    method: >-
+      counted download metadata records under each of the four ``ckpt``
+      subtrees that hold every consumed baseline
+    result: >-
+      zero downloaded-file records in all four; every consumed baseline
+      checkpoint path runs through ``*/ckpt/`` and none through ``ckpt_hf``
+    training_from_scratch_evidence: >-
+      the baseline training configs carry no pretrained, init-from or
+      resume-from-checkpoint key, so training does not start from upstream
+      weights; the 72 MB downloaded weights.pt is also not the same artifact
+      shape as the 217 MB trained baseline checkpoints
   local_training_traces:
     method: listed each consumed checkpoint directory
     finding: >-
@@ -125,4 +170,15 @@ process_lesson:
     downloaded, or what was trained and when), never from a storage path or
     from a neighbouring file's description.  Directory names are not evidence
     of authorship.
+  applies_to_future_disclosures: true
+
+second_process_lesson:
+  # Added 2026-08-19 after the evidence block above had to be corrected in turn.
+  statement: >-
+    A negative claim ("nothing of kind X exists") is only as strong as the
+    scope of the search that produced it.  The first version of this record
+    asserted that no checkpoint was ever downloaded, on the strength of a scan
+    that only looked one directory level deep; a nested sub-checkout falsified
+    it.  A negative claim must state the scope it was established over, and
+    the scope must be the widest one the claim is about.
   applies_to_future_disclosures: true
