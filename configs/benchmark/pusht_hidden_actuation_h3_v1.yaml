@@ -1,0 +1,96 @@
+schema_version: 1
+benchmark: pusht_hidden_actuation_history3_action_coverage_v2
+status: action_support_registered_before_v3_synthesis_and_training
+motivation: >-
+  v2 的固定 query 幅度 0.4 足以检验双真实未来预测，但不足以授权 CEM
+  在连续动作幅度上外推。v3 保持隐藏机制、History=3、共同 query、目标、
+  50 对评测和目标选择协议不变，仅让训练/验证覆盖闭环规划将搜索的动作
+  幅度。
+
+hidden_mechanism:
+  low_gain: 60.0
+  high_gain: 140.0
+  visible_in_model_input: false
+  persistent_within_episode: true
+
+data:
+  synthesis_seed: 20260729
+  train_pairs: 2048
+  validation_pairs: 256
+  eval_pairs: 50
+  resolution: 224
+  jpeg_quality: 95
+  query_amplitude:
+    train:
+      distribution: uniform
+      minimum: 0.3
+      maximum: 1.0
+    validation:
+      distribution: uniform
+      minimum: 0.3
+      maximum: 1.0
+    eval:
+      fixed: 0.4
+  required_cross_split_query_hash_overlap: 0
+
+training:
+  initialization: standard_pusht_lewm_seed3073
+  optimizer_steps: 1024
+  batch_size: 128
+  optimizer: AdamW
+  learning_rate: 5.0e-5
+  weight_decay: 1.0e-3
+  gradient_clip_norm: 1.0
+  precision: bf16_mixed
+  hidden_labels_at_model_or_loss_boundary: false
+
+prediction_gate:
+  frozen_image_native:
+    target_selection_minimum: 0.9
+    history_preference_minimum: 0.9
+    rule_switch_minimum: 0.95
+    worst_mode_minimum: 0.8
+  native_sigreg_0p09:
+    target_selection_failure_ceiling: 0.65
+  conditional_sigreg_0p09:
+    target_selection_minimum: 0.95
+    history_preference_minimum: 0.95
+    rule_switch_minimum: 0.95
+    worst_mode_minimum: 0.9
+
+closed_loop_cem:
+  condition_count_per_seed: 100
+  eval_seeds:
+    - 4096
+    - 5120
+    - 6144
+    - 7168
+    - 8192
+    - 9216
+  candidates: 300
+  iterations: 30
+  topk: 30
+  amplitude_bounds:
+    - 0.0
+    - 1.0
+  action_family: "[a*contact_axis, a*contact_axis, 0, 0, 0]"
+  scoring: execute_selected_action_in_real_pusht
+  oracle_grid_size: 101
+  gates:
+    oracle_grid_success_rate_minimum: 0.95
+    conditional_real_environment_success_rate_minimum: 0.8
+    conditional_mode_action_classification_minimum: 0.9
+    conditional_low_greater_than_high_minimum: 0.9
+    native_mode_action_classification_failure_ceiling: 0.65
+
+interpretation:
+  - >-
+    Fixed-action target selection establishes hidden-dynamics prediction but
+    is not a substitute for action optimization.
+  - >-
+    Closed-loop claims require both training action support and execution of
+    the selected raw action in the simulator.
+  - >-
+    Standard Push-T CEM remains a separate no-regression test; it must be run
+    on a mixed original-plus-hidden training protocol, not on hidden-only
+    fine-tuning.

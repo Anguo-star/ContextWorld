@@ -1,0 +1,182 @@
+schema_version: 1
+benchmark: tworoom_speed_door_rule_history3_validation_v1
+status: preregistered_before_catalog_generation_training_or_model_scoring
+date: "2026-07-27"
+design_revision_before_training_or_model_scoring:
+  reason: >-
+    The first full physical builds isolated door 110 as an unsupported
+    History=3 recovery geometry: every tested direction, doorway offset, and
+    wall distance at that door produced a speed-dependent query state. Door
+    110 remains excluded from training with all other Eval-only doors, but is
+    not sampled as a scored query. The nearby Eval doors 106 and 114 pass.
+    Candidate training doors 105--119 are also excluded conservatively. No
+    formal training data, checkpoint, or model score existed when this
+    support-domain correction was made.
+  removed_wall_distance_px: 0.0
+  unsupported_eval_door_positions: [110]
+  conservatively_excluded_training_door_range:
+    {start: 105, stop_inclusive: 119, step: 1}
+
+stable_worldmodel:
+  repo: ../stable-worldmodel
+  commit: 5864b74980f6ed328fd0045e777b3865962eff43
+  relevant_sources:
+    - stable_worldmodel/envs/two_room/env.py
+    - stable_worldmodel/spaces.py
+
+protocol:
+  task: speed_door_rule_composition
+  history_tokens: 3
+  context_transitions: 2
+  raw_steps_per_action_block: 5
+  eval_speeds: [3.1, 5.1, 7.0]
+  door_rules:
+    passable: 1
+    blocked: 0
+  door_number: 1
+  probe_action:
+    vertical_speed_evidence: 0.25
+    horizontal_rule_evidence: 0.70
+    horizontal_rule_steps: 2
+  recovery_action:
+    cancel_vertical_speed_evidence: true
+    collision_projection_outward_steps: 1
+    collision_projection_return_steps: 1
+  query_action:
+    horizontal_rule_steps: 4
+    horizontal_value: 1.0
+    vertical_speed_steps: 1
+    vertical_value: 0.5
+  model_visible_fields: [pixels, action]
+  privileged_audit_fields:
+    - agent.speed
+    - passage.open
+    - state
+    - template_id
+
+training_isolation:
+  training_speeds: [2.7, 4.3, 6.1, 7.7]
+  door_selection:
+    safe_integer_range: {start: 36, stop_inclusive: 188, step: 1}
+    eval_only_range: {start: 30, stop_inclusive: 194, step: 4}
+    excluded_training_range: {start: 105, stop_inclusive: 119, step: 1}
+    split_seed: 20260723
+    train_count: 80
+    loader_val_count: 16
+    guard_count: 8
+  requirements:
+    - no_exact_speed_overlap
+    - every_eval_speed_is_inside_training_range
+    - no_train_or_loader_val_door_overlap
+    - selected_query_pixels_excluded_from_training
+
+candidate_geometry:
+  directions: [left_to_right, right_to_left]
+  excluded_eval_door_positions: [110]
+  doorway_offsets_px: [13.25, 13.375, 13.5, 13.625, 13.75]
+  wall_distances_px: [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75]
+  wall_geometry:
+    left_contact_x: 99.5
+    right_contact_x: 124.5
+    left_to_right_goal_x: 190.0
+    right_to_left_goal_x: 34.0
+
+evaluation:
+  eval_seeds: [42, 43, 44, 45, 46, 47]
+  unique_queries_per_seed: 50
+  queries_per_direction_per_seed: 25
+  true_factor_conditions: 6
+  histories_per_query: 6
+  targets_per_query: 6
+  samples_per_model_per_true_condition: 300
+  model_predictions_per_checkpoint: 1800
+  target_encodings_per_checkpoint: 1800
+  loss_comparisons_per_checkpoint: 10800
+  batch_size: 32
+  online_environment_calls_during_scoring: 0
+
+physical_gates:
+  initial_state_exact_match: true
+  initial_pixels_bitwise_match: true
+  query_state_exact_match: true
+  query_pixels_bitwise_match: true
+  history_actions_bitwise_match: true
+  query_action_bitwise_match: true
+  minimum_middle_rule_centroid_gap_px: 2.0
+  minimum_middle_adjacent_speed_centroid_gap_px: 0.4
+  minimum_future_rule_state_gap_px: 10.0
+  minimum_future_adjacent_speed_centroid_gap_px: 0.8
+  unique_middle_pixels_for_every_factor: true
+  unique_future_pixels_for_every_factor: true
+  exact_replay: true
+  serialized_roundtrip: true
+  zero_failed_queries: true
+
+decision_gates:
+  strict_ties_fail: true
+  epsilon: 1.0e-12
+  minimum_target_pair_latent_mse: 1.0e-12
+  checkpoint:
+    overall:
+      speed_history_accuracy: 0.75
+      door_history_accuracy: 0.85
+      joint_history_accuracy: 0.65
+      speed_target_accuracy: 0.75
+      door_target_accuracy: 0.85
+      joint_target_accuracy: 0.65
+    every_eval_seed:
+      speed_history_accuracy: 0.65
+      door_history_accuracy: 0.75
+      joint_history_accuracy: 0.50
+      speed_target_accuracy: 0.65
+      door_target_accuracy: 0.75
+      joint_target_accuracy: 0.50
+  method:
+    training_seeds: [3072, 4096, 5120]
+    joint_model_all_three_must_pass: true
+  control_expectations:
+    original: descriptive_no_required_pass
+    speed_only: speed_metrics_only
+    door_only: door_metrics_only
+    joint: all_six_metrics
+
+comparison:
+  initialization_checkpoint:
+    path: artifacts/training/runs/checkpoints/h3_origheldout_s3072/weights_final_step_6420.pt
+    sha256: 7d141b86cca49145444a69bff89c71ede69e8cf8252bfb933e656c3e2e962b54
+  original:
+    model_id: H3_Original_LEWM
+    training_seeds: [3072]
+    adapter: StableWorldModelLeWMAdapter
+  speed_only:
+    model_id: H3_SpeedOnly_PLDM
+    training_seeds: [3072, 4096, 5120]
+    adapter: StableWorldModelPLDMAdapter
+  door_only:
+    model_id: H3_DoorOnly_PLDM
+    training_seeds: [3072, 4096, 5120]
+    adapter: StableWorldModelPLDMAdapter
+  joint:
+    model_id: H3_SpeedDoorJoint_PLDM
+    training_seeds: [3072, 4096, 5120]
+    adapter: StableWorldModelPLDMAdapter
+
+adapter:
+  normalizer: artifacts/splits/tworoom_original_train_s3072_normalizer.json
+  normalizer_sha256: 7a5be7ea867bced446c1671b0b2c0ff6450ffc61e1a7bdbbfc5eaa0942f635db
+
+catalog_seed: 20260727
+
+artifacts:
+  output_root: artifacts/evaluation/history3/speed_door_rule_composition_validation_v1
+  catalog: artifacts/evaluation/history3/speed_door_rule_composition_validation_v1/catalog.json
+  training_exclusion_manifest: artifacts/evaluation/history3/speed_door_rule_composition_validation_v1/training_exclusion_manifest.json
+  results_root: artifacts/evaluation/history3/speed_door_rule_composition_validation_v1/results
+  aggregate: artifacts/evaluation/history3/speed_door_rule_composition_validation_v1/aggregate.json
+
+known_limit:
+  collision_specific_history3_recovery: true
+  explanation: >-
+    The identical-query recovery uses the pinned TwoRoom collision projection.
+    This release is valid for the pinned environment and must be re-audited
+    before use with another collision engine.

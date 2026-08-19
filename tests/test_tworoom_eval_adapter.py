@@ -1,4 +1,5 @@
 from pathlib import Path
+import sys
 
 import numpy as np
 
@@ -10,9 +11,16 @@ PINNED_STABLEWM = "5864b74980f6ed328fd0045e777b3865962eff43"
 
 
 def _load_stablewm():
+    pinned = Path("/tmp/stable-worldmodel-5864")
+    configured = str(
+        pinned if pinned.is_dir() else REPO_ROOT.parent / "stable-worldmodel"
+    )
+    for name in tuple(sys.modules):
+        if name == "stable_worldmodel" or name.startswith("stable_worldmodel."):
+            del sys.modules[name]
     swm, _, _ = load_stable_worldmodel(
         REPO_ROOT,
-        "../stable-worldmodel",
+        configured,
         PINNED_STABLEWM,
     )
     return swm

@@ -1,0 +1,172 @@
+schema_version: 1
+aggregate_id: contextworld_pldm_reference_completion_aggregate_results_freeze_v1
+status: preregistered_pending_four_final_outcomes
+release_id: contextworld_icl_benchmark_suite_v2
+created_utc: "2026-08-17"
+
+# This record defines a final, additive accounting step.  It neither selects
+# checkpoints nor changes any historical Suite v2 result.  Speed and
+# ActionStrength always need their three-seed Public ICL result.  That immutable
+# ICL aggregate is frozen before any CEM run: a 3/3 pass records that CEM is
+# authorized but not yet executed, then requires two separately frozen CEM
+# tracks.  A non-pass instead records CEM as neither authorized nor executed
+# and requires a frozen stop receipt.  Either Public ICL outcome is a formal
+# trained-reference row.  The two Development-only failures are retained in
+# the aggregate as negative evidence and never create a public-scoreboard row.
+scope:
+  components_in_final_aggregate:
+    [speed, action_strength, contact_friction, motion_damping]
+  public_scoreboard_components: [speed, action_strength]
+  development_only_components: [contact_friction, motion_damping]
+  formal_public_result_required_for_scoreboard_row: true
+  public_result_added_regardless_of_pass_or_fail: true
+  public_icl_three_seed_result_required_for_every_formal_component: true
+  cem_required_only_after_three_seed_public_icl_pass: true
+  nonpassing_public_icl_requires_cem_not_authorized_proof: true
+  development_only_result_must_not_add_public_row: true
+  training_or_checkpoint_selection_authorized: false
+  raw_dataset_mutation_authorized: false
+  public_test_rerun_authorized: false
+
+historical_base:
+  specification:
+    path: artifacts/evaluation/contextworld_icl_suite_v2_release/public_scoreboard_spec.json
+    sha256: 0ee79cc901f4126b06eb800a7ef95a34b748f1b60fcf6c6c60f4e7646d4aa787
+    size_bytes: 11464
+  scoreboard:
+    path: artifacts/evaluation/contextworld_icl_suite_v2_release/public_scoreboard.json
+    sha256: 43d1adb676d7b882b7d6a9518781cec440f7f40fa2b57f5e8cbe95cb748ecd2f
+    size_bytes: 14254
+  formal_reference_rows: 11
+
+original_baseline_cem:
+  path: configs/benchmark/contextworld_original_baseline_cem_results_freeze_v1.json
+  freeze_id: contextworld_original_baseline_cem_results_freeze_v1
+  required_status: frozen_after_completed_descriptive_matrix
+  score_mapping:
+    speed: {environment: tworoom, family: pldm}
+    action_strength: {environment: pusht, family: pldm}
+
+completion_inputs:
+  speed:
+    completion_config: configs/benchmark/tworoom_speed_pldm_reference_completion_v1.yaml
+    completion_id: tworoom_speed_pldm_reference_completion_v1
+    component_id: speed
+    component_name: TwoRoom 速度
+    formal_result:
+      public_icl_aggregate: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/formal_icl_v1/three_seed_aggregate.json
+      raw_public_results_root: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/formal_icl_v1
+      recovery_root: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/formal_icl_v1/recovery_v1
+      cem_binding: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/formal_icl_v1/cem_binding_v1.json
+      cem_not_authorized_stop: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/formal_icl_v1/cem_not_authorized_stop_v1.json
+      action_planning_aggregate: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/formal_action_planning_cem_v1/three_seed_aggregate.json
+      original_task_retention_aggregate: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/formal_original_tworoom_retention_cem_v1/three_seed_aggregate.json
+      primary_metric:
+        id: unseen_in_range_one_step_strict_history_accuracy
+        label: 训练范围内未见速度的一步严格正确率
+        value_path: tracks.unseen_interpolation.horizons.1.reference_speed_balanced_strict_query_win_rate_vs_every_other
+        gate_path: tracks.unseen_interpolation.horizons.1.formal_within_checkpoint_pass
+        seed_path: model.training_seed
+      aggregate_metric_key: unseen_in_range_one_step_strict_history_accuracy
+      method_name: PLDM（原 TwoRoom + 多速度合成数据）
+      behavioral_claim_boundary: configs/benchmark/tworoom_speed_pldm_behavioral_claim_boundary_v1.yaml
+      # These are declared before any no-score Development inference.  The
+      # actual identities are frozen only after all fixed-step checkpoints
+      # exist, then must be copied unchanged into binding, Public ICL,
+      # recovery, aggregate, and either CEM branch.
+      development:
+        config: configs/benchmark/tworoom_speed_pldm_infrastructure_development_v1.yaml
+        manifest: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/infrastructure_development_v1/development_manifest.json
+        receipts:
+          - seed: 3072
+            path: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/infrastructure_development_v1/seed_3072.json
+          - seed: 4096
+            path: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/infrastructure_development_v1/seed_4096.json
+          - seed: 5120
+            path: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/infrastructure_development_v1/seed_5120.json
+    retention_metric:
+      id: original_tworoom_cem_success_rate
+      label: 原 TwoRoom CEM 成功率
+  action_strength:
+    completion_config: configs/benchmark/pusht_action_strength_pldm_reference_completion_v1.yaml
+    completion_id: pusht_action_strength_pldm_reference_completion_v1
+    component_id: action_strength
+    component_name: PushT 推手移动幅度
+    formal_result:
+      public_icl_aggregate: artifacts/evaluation/history3/pusht_action_strength_pldm_reference_completion_v1/formal_icl_v1/float32_rescore_recovery_v1/three_seed_negative_aggregate.json
+      raw_public_results_root: artifacts/evaluation/history3/pusht_action_strength_pldm_reference_completion_v1/formal_icl_v1
+      recovery_root: artifacts/evaluation/history3/pusht_action_strength_pldm_reference_completion_v1/formal_icl_v1/float32_rescore_recovery_v1
+      cem_not_authorized_stop: artifacts/evaluation/history3/pusht_action_strength_pldm_reference_completion_v1/formal_icl_v1/cem_not_authorized_stop_v1.json
+      action_planning_aggregate: artifacts/evaluation/history3/pusht_action_strength_pldm_reference_completion_v1/formal_action_planning_cem_v1/three_seed_aggregate.json
+      original_task_retention_aggregate: artifacts/evaluation/history3/pusht_action_strength_pldm_reference_completion_v1/formal_original_pusht_retention_cem_v1/three_seed_aggregate.json
+      primary_metric:
+        id: correct_real_next_state_choice_accuracy
+        label: 真实下一状态选择正确率
+        value_path: metrics.correct_future_rate
+        gate_path: gate.passed
+        seed_path: model.training_seed
+      aggregate_metric_key: correct_future_rate
+      method_name: PLDM（原 PushT + 配对移动幅度数据）
+    retention_metric:
+      id: standard_pusht_cem_success_rate
+      label: 标准 PushT CEM 成功率
+  contact_friction:
+    completion_config: configs/benchmark/pusht_contact_friction_pldm_reference_completion_v1.yaml
+    completion_id: pusht_contact_friction_pldm_reference_completion_v1
+    component_id: contact_friction
+    development_decision: artifacts/evaluation/pldm_reference_completion_v1/pusht_contact_friction_current_v3/pilot_seed13313/development_evaluation_decision_v1.json
+    evaluation_binding: artifacts/evaluation/pldm_reference_completion_v1/pusht_contact_friction_current_v3/pilot_seed13313/evaluation_binding_v1.json
+    development_evaluation: artifacts/evaluation/pldm_reference_completion_v1/pusht_contact_friction_current_v3/pilot_seed13313/development_evaluation_v1.json
+    development_rescore: artifacts/evaluation/pldm_reference_completion_v1/pusht_contact_friction_current_v3/pilot_seed13313/development_rescore_v1.json
+    required_terminal_status: failed_development_current_protocol
+  motion_damping:
+    completion_config: configs/benchmark/pusht_motion_damping_pldm_reference_completion_v1.yaml
+    completion_id: pusht_motion_damping_pldm_reference_completion_v1
+    component_id: motion_damping
+    development_decision: artifacts/evaluation/pldm_reference_completion_v1/pusht_motion_damping_current_v4/pilot_seed14321/development_evaluation_decision_v1.json
+    evaluation_binding: artifacts/evaluation/pldm_reference_completion_v1/pusht_motion_damping_current_v4/pilot_seed14321/evaluation_binding_v1.json
+    development_evaluation: artifacts/evaluation/pldm_reference_completion_v1/pusht_motion_damping_current_v4/pilot_seed14321/development_evaluation_v1.json
+    development_rescore: artifacts/evaluation/pldm_reference_completion_v1/pusht_motion_damping_current_v4/pilot_seed14321/development_rescore_v1.json
+    required_terminal_status: failed_development_current_protocol
+
+formal_evidence_contract:
+  public_icl_aggregate_schema_version: 1
+  required_training_seeds: 3
+  public_icl_requirements:
+    - bind_current_completion_and_release_config_identities
+    - bind_passed_prepublic_development_config_manifest_and_three_seed_receipts
+    - bind_three_independent_recovery_receipts_and_raw_public_results
+    - prove_float32_or_equivalent_independent_rescore_and_exact_gate_recovery
+    - make_pass_fail_outcome_consistent_with_three_icl_gates
+    - retain_behavioral_evidence_scope_when_no_paired_training_control_exists
+  if_all_three_public_icl_gates_pass:
+    - public_icl_aggregate_records_cem_authorized_true_and_executed_false
+    - each_later_speed_cem_aggregate_rebinds_the_same_prepublic_development_chain
+    - bind_three_action_planning_cem_results
+    - bind_three_original_task_retention_cem_results
+    - derive_cem_completed_only_from_the_two_later_cem_aggregates
+  if_any_public_icl_gate_fails:
+    - bind_cem_not_authorized_stop_receipt
+    - speed_cem_stop_rebinds_the_same_prepublic_development_chain
+    - require_cem_authorized_false_and_cem_executed_false
+    - retention_result_is_not_evaluated
+
+scoreboard_addendum:
+  preregistration: configs/benchmark/contextworld_icl_suite_v2_scoreboard_addendum_prereg_v1.yaml
+  decision: configs/benchmark/contextworld_icl_suite_v2_scoreboard_addendum_decision_v1.json
+  decision_id: contextworld_icl_suite_v2_scoreboard_addendum_decision_v1
+  output_namespace: artifacts/evaluation/contextworld_icl_suite_v2_release_addendum_v1
+  specification: artifacts/evaluation/contextworld_icl_suite_v2_release_addendum_v1/public_scoreboard_spec.json
+  scoreboard: artifacts/evaluation/contextworld_icl_suite_v2_release_addendum_v1/public_scoreboard.json
+
+outputs:
+  aggregate_freeze: configs/benchmark/contextworld_pldm_reference_completion_aggregate_results_freeze_v1.json
+  only_scoreboard_outputs_may_use_addendum_namespace: true
+  exclusive_creation_required: true
+  overwrite_authorized: false
+
+membership_authority:
+  config_alone_grants_membership: false
+  aggregate_alone_grants_membership: false
+  suite_default_or_activation_switched_by_this_record: false
+  integrity_reseal_v2_decision_required_for_activation: true

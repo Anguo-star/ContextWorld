@@ -7,7 +7,10 @@ from typing import Any, Iterable
 
 import numpy as np
 
-from contextworld.benchmarks.adapters import ReacherArmMassICLModelAdapter
+from contextworld.benchmarks.adapters import (
+    ReacherArmMassICLModelAdapter,
+    validate_adapter_protocol,
+)
 from contextworld.benchmarks.reacher_arm_mass_icl_data import (
     DEFAULT_REACHER_ARM_MASS_RELEASE_CONFIG,
     ReacherArmMassICLEvalDataset,
@@ -207,6 +210,14 @@ def evaluate_reacher_arm_mass_icl_model(
 ) -> dict[str, Any]:
     root = (repo_root or repository_root()).resolve()
     release = load_reacher_arm_mass_icl_release(release_config)
+    validate_adapter_protocol(
+        adapter,
+        history_tokens=3,
+        action_block_raw_steps=5,
+        action_dim=2,
+        minimum_future_action_blocks=1,
+        task_name="Reacher Arm Mass v1",
+    )
     dataset = ReacherArmMassICLEvalDataset(release=release, repo_root=root)
     arrays = dataset.arrays
     histories = np.concatenate(

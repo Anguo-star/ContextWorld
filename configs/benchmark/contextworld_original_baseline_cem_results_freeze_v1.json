@@ -1,0 +1,91 @@
+{
+  "schema_version": 1,
+  "freeze_id": "contextworld_original_baseline_cem_results_freeze_v1",
+  "status": "frozen_after_completed_descriptive_matrix",
+  "frozen_date_utc": "2026-08-17",
+  "scientific_status": {
+    "kind": "post_release_descriptive_original_environment_cem_result_freeze",
+    "formal_scoreboard_mutated": false,
+    "cross_environment_average_authorized": false,
+    "cross_environment_average_reported": false,
+    "pass_fail_threshold": null,
+    "training_performed": false,
+    "checkpoint_selection_performed": false,
+    "public_test_accessed": false
+  },
+  "matrix_summary": {
+    "path": "artifacts/evaluation/original_baseline_cem_v1/matrix_summary.json",
+    "sha256": "c52905b88ffe81eb6b81bcfadea8dd283a7b989cd65fdcd1950347ce9d4dceea",
+    "size_bytes": 17099,
+    "summary_id": "contextworld_original_baseline_cem_matrix_v1",
+    "status": "completed_descriptive_original_environment_cem_matrix",
+    "matrix_cells": 8,
+    "episodes_per_cell": 300,
+    "total_matrix_episodes": 2400,
+    "newly_executed_cells": 7,
+    "newly_executed_episodes": 2100,
+    "strictly_reused_cells": 1,
+    "strictly_reused_episodes": 300,
+    "receipt_identities_embedded_in_summary": true,
+    "all_model_state_audits_passed": true
+  },
+  "cells": [
+    {"environment": "tworoom", "family": "lewm", "success_count": 273, "evaluation_count": 300, "success_rate": 0.91},
+    {"environment": "tworoom", "family": "pldm", "success_count": 278, "evaluation_count": 300, "success_rate": 0.9266666666666666},
+    {"environment": "pusht", "family": "lewm", "success_count": 235, "evaluation_count": 300, "success_rate": 0.7833333333333333},
+    {"environment": "pusht", "family": "pldm", "success_count": 233, "evaluation_count": 300, "success_rate": 0.7766666666666666},
+    {"environment": "reacher", "family": "lewm", "success_count": 164, "evaluation_count": 300, "success_rate": 0.5466666666666666},
+    {"environment": "reacher", "family": "pldm", "success_count": 248, "evaluation_count": 300, "success_rate": 0.8266666666666667},
+    {"environment": "cube", "family": "lewm", "success_count": 198, "evaluation_count": 300, "success_rate": 0.66},
+    {"environment": "cube", "family": "pldm", "success_count": 159, "evaluation_count": 300, "success_rate": 0.53}
+  ],
+  "pre_execution_authority": {
+    "preregistration": {
+      "path": "configs/benchmark/contextworld_original_baseline_cem_prereg_v1.yaml",
+      "sha256": "acc82b6f6e1c6488c602b1b5980450d5fdc101d9091e68910a896990ed9deabb",
+      "size_bytes": 17890
+    },
+    "freeze": {
+      "path": "configs/benchmark/contextworld_original_baseline_cem_freeze_v1.json",
+      "sha256": "1d6298b590446006b3298dee1f5d433079f56fbb7d08bf23f4167841e39f3d49",
+      "size_bytes": 1621
+    },
+    "input_identity_audit": {
+      "path": "configs/benchmark/contextworld_original_baseline_cem_input_identity_audit_v1.json",
+      "sha256": "5d84444f6c4d0fd5a26b616bafeb17ddc2bb545356fc46a83fbb862be0853950",
+      "size_bytes": 1599
+    },
+    "execution_preflight": {
+      "path": "configs/benchmark/contextworld_original_baseline_cem_preflight_v1.json",
+      "sha256": "52e455a6b1e9952c645c0f5ba206932cd927a9dd0de77ed0db5bbd3820cad109",
+      "size_bytes": 4112
+    }
+  },
+  "finalization": {
+    "original_finalizer": {
+      "path": "scripts/finalize_contextworld_original_baseline_cem_v1.py",
+      "sha256": "519c2c3342741b42eab761308f59d9ea63cfcef607ae2445ef970381e1b0894a",
+      "size_bytes": 67442,
+      "observed_failure": "pusht lewm seed 42.evaluation_count is missing",
+      "summary_written": false
+    },
+    "recovery_preregistration": {
+      "path": "configs/benchmark/contextworld_original_baseline_cem_finalizer_recovery_prereg_v1.yaml",
+      "sha256": "14a52b24b08c57dddf73e31cb675652eb1737bc724dffde9cf45621a331a8ee6",
+      "size_bytes": 2259
+    },
+    "recovery_authorization_freeze": {
+      "path": "configs/benchmark/contextworld_original_baseline_cem_finalizer_recovery_freeze_v1.json",
+      "sha256": "aaf9aaf983b4be5ce93683fe1b2ecd5154eb4fbfaaf1fe571bfb70e8d9154ce6",
+      "size_bytes": 2211
+    },
+    "recovery_finalizer": {
+      "path": "scripts/finalize_contextworld_original_baseline_cem_recovery_v1.py",
+      "sha256": "015bc9c6044b00e08ba3189c41a11119245564b59e5f8c2c544da6190f23c9b6",
+      "size_bytes": 9967,
+      "compatibility_change": "query_count is accepted as an exact evaluation-count alias",
+      "cem_episodes_rerun": 0,
+      "receipts_modified": false
+    }
+  }
+}

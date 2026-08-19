@@ -1,7 +1,7 @@
 # TwoRoom 速度上下文学习阶段报告（已归档）
 
 > 本文保留 2026-07-20 文档合并前的阶段快照，不再更新。当前结论请以
-> [TwoRoom 速度上下文学习 Benchmark 报告](../TwoRoom_Speed_Benchmark_Report.md)
+> [ContextWorld ICL Benchmark：速度](../ContextWorld_ICL_Benchmark.md#41-速度)
 > 为准。
 
 **版本**：v5.1  
@@ -280,8 +280,8 @@ Fast−Slow，而不是继续改 Eval 距离分布：
   `artifacts/evaluation/history3/planner_mechanism_v1/final_summary_n50x6.json`
   （SHA-256 `f3daeb2c5c50386634c1d966a6ee3d20a62de6021856861a7e1e6abdd0ec4663`）
 - 完整技术报告：
-  [当前 Benchmark 报告](../TwoRoom_Speed_Benchmark_Report.md)
+  [当前 Benchmark 主文档](../ContextWorld_ICL_Benchmark.md)
 - Benchmark 设计规范：
-  [ContextWorld_Benchmark_Design.md](../ContextWorld_Benchmark_Design.md)
+  [ContextWorld ICL Benchmark](../ContextWorld_ICL_Benchmark.md)
 - 项目状态与路线图：
   [ContextWorld_Benchmark_Progress.md](ContextWorld_Benchmark_Progress.md)

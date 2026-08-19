@@ -1,0 +1,155 @@
+schema_version: 1
+benchmark: tworoom_action_delay_history7_pldm_root_cause_v1
+status: preregistered_before_pldm_training
+preregistered_date: "2026-07-29"
+
+question: >-
+  在训练数据、初始化、History=7 结构、采样比例和 1,024 步预算均不变时，
+  仅把 LeWM 训练目标替换为原生 PLDM 训练目标，模型能否根据历史区分
+  动作延迟 0、4、8？
+
+claim_boundary:
+  root_cause_diagnostic_only: true
+  required_training_seeds: [3072]
+  changes_formal_benchmark_result: false
+  hidden_test_remains_sealed: true
+  no_cem: true
+  no_training_data_change: true
+
+stable_worldmodel:
+  repo: ../stable-worldmodel
+  commit: ad2bc44579f2b5b65c004fd2c9d8edc8ebaa43ce
+
+data:
+  original_read_only: ../../data/world_model/quentinll/lewm-tworooms/tworoom.h5
+  original_split:
+    strategy: episode_heldout
+    seed: 3072
+    train_fraction: 0.9
+  frozen_normalizer:
+    path: artifacts/splits/tworoom_original_train_s3072_normalizer.json
+    sha256: 7a5be7ea867bced446c1671b0b2c0ff6450ffc61e1a7bdbbfc5eaa0942f635db
+    protocol: tworoom_original_train_s3072_unbiased_zscore_v1
+    statistics_scope: original_9000_train_episodes_only
+  formal_build_report:
+    path: artifacts/synthesis/action_delay_h7_v1/build_report.json
+    sha256: 809b22f0230a92a327963afc6a0c31ef206d3db2ffb7b21cfc2c51fcae1b0aa8
+  validation_exclusion_manifest:
+    path: >-
+      artifacts/evaluation/history7/action_delay_validation_v1/training_exclusion_manifest.json
+    sha256: 5fb8322249c4a3d1445363359fad6f9ff3f356348e9f1941ea8da51adbf9b69b
+    query_count: 300
+  catalogs:
+    action_delay_multi: >-
+      artifacts/synthesis/action_delay_h7_v1/catalogs/tworoom_action_delay_h7_multi_v1.json
+
+data_quality:
+  groups:
+    action_delay_multi:
+      require_complete_synthesis_report: true
+      required_pixel_codec: {format: png, compress_level: 1, lossless: true}
+      allowed_clip_start_raw_steps: [0]
+      balance_by_factor: action.delay_steps
+      exact_train_scenarios: 96
+      exact_validation_scenarios: 18
+      exact_test_scenarios: 0
+      minimum_raw_train_clips: 15360
+      minimum_train_scenarios: 96
+      minimum_validation_scenarios: 18
+      maximum_formal_mean_draws_per_raw_clip: 35.0
+      factor_support_contract:
+        factor: action.delay_steps
+        expected_by_split:
+          train: [0, 4, 8]
+          validation: [0, 4, 8]
+      required_catalog_sha256: 2279d3edf25b482316f4a430a00f64fe361c2d156873910320cb0c6de9a04d49
+      required_manifest_sha256: 4adf8011a86d5ba53464491eadd92de80e1d6a83b7934ac7615b8f829e8fe0a0
+      required_synthesis_report_sha256: 8065660e82f34d1e69f205937b01894e856ad3fff6d76aa6f22447f966e1cf26
+
+training_protocol:
+  architecture: stable_worldmodel_pldm_history7
+  training_method: pldm
+  history_tokens: 7
+  num_preds: 1
+  raw_steps_per_action_block: 5
+  model_visible_fields: [pixels, action]
+  training_profile: icl_formal
+  initialization_checkpoint:
+    path: artifacts/training/runs/checkpoints/h3_origheldout_s3072/weights_final_step_6420.pt
+    sha256: 7d141b86cca49145444a69bff89c71ede69e8cf8252bfb933e656c3e2e962b54
+    config_sha256: 44b5bde83fbc91634ef84acbdba9a75d3436568ed72266c9a5aa057653f9162b
+    role: model_weight_initialization_only_not_resume
+    temporal_adaptation:
+      parameter: predictor.pos_embedding
+      strategy: linear_interpolation
+      source_history_tokens: 3
+      target_history_tokens: 7
+      align_corners: true
+      source_anchor_target_indices: [0, 3, 6]
+  paired_training_seeds: [3072]
+  early_stopping: false
+  checkpoint_selection: final_fixed_step
+  distributed_execution:
+    transport_configuration: framework_defaults
+    primary_formal_launch: fresh
+    resume_role: disaster_recovery_only
+    resume_scope: complete_epoch_boundary_only
+  group_sampling:
+    H7_ActionDelay_Multi_PLDM_Diagnostic:
+      {original: 0.5, action_delay_multi: 0.5}
+  budget:
+    optimizer_steps: 1024
+    effective_global_batch: 1024
+    total_logical_draws: 1048576
+    original_draws: 524288
+    synthetic_draws: 524288
+    mean_synthetic_draws_per_raw_clip: 34.13333333333333
+
+models:
+  - model_id: H7_ActionDelay_Multi_PLDM_Diagnostic
+    display_name: 相同多延迟配方、仅改用 PLDM 目标的单种子根因对照
+    training_groups: [original, action_delay_multi]
+
+comparison:
+  reference:
+    model_id: H7_ActionDelay_Multi
+    training_seed: 3072
+    checkpoint: >-
+      artifacts/training/runs/checkpoints/h7_action_delay_multi_formal_s3072/weights_final_step_1024.pt
+  equal_factors:
+    - initialization_checkpoint
+    - temporal_position_expansion
+    - original_train_normalizer
+    - original_and_synthetic_50_50_sampling
+    - action_delay_multi_catalog
+    - history_length_and_prediction_length
+    - optimizer_scheduler_and_step_budget
+    - training_seed
+  intentional_difference:
+    - native_pldm_objective_replaces_native_lewm_objective
+    - pldm_inverse_dynamics_head_is_instantiated_but_has_zero_loss_weight
+
+evaluation:
+  stage_1:
+    name: frozen_training_replay_h1
+    tracks:
+      - training_replay_delay_0
+      - training_replay_delay_4
+      - training_replay_delay_8
+    source_units_per_delay: 300
+    exact_target_selection_rate_minimum: 0.60
+  stage_2:
+    name: frozen_action_delay_validation_v1
+    delays: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    independent_queries_per_delay: 300
+    future_horizons_action_blocks: [1, 2, 3]
+    online_environment_during_model_scoring: false
+
+artifacts:
+  run_name: h7_action_delay_multi_pldm_root_cause_s3072
+  training_report: >-
+    artifacts/training/reports/h7_action_delay_multi_pldm_root_cause_s3072.json
+  checkpoint: >-
+    artifacts/training/runs/checkpoints/h7_action_delay_multi_pldm_root_cause_s3072/weights_final_step_1024.pt
+  diagnostic_root: >-
+    artifacts/evaluation/history7/action_delay_pldm_root_cause_v1

@@ -1,0 +1,65 @@
+schema_version: 1
+recovery_id: tworoom_speed_pldm_cem_binding_recovery_v2
+completion_id: tworoom_speed_pldm_reference_completion_v1
+status: registered_after_recovery_v1_validation_failure_before_cem_binding_or_execution
+created_utc: "2026-08-17"
+
+# Recovery v1 passed the receipt-path bridge and then stopped because the
+# original freezer's literal schema omits one truthful additive count already
+# present in the frozen baseline receipt. Recovery v2 supplies a read-only
+# compatibility view for exactly that field; no frozen file is rewritten.
+scope:
+  changes_frozen_file_content_or_identity: false
+  changes_cem_runner_metric_or_threshold: false
+  changes_checkpoint_or_model: false
+  reopens_public_test: false
+  executes_model_environment_or_planner: false
+  executes_cem: false
+  normalizes_one_additive_schema_field_in_memory: true
+
+frozen_inputs:
+  recovery_v1_preregistration:
+    path: configs/benchmark/tworoom_speed_pldm_cem_binding_recovery_v1.yaml
+    sha256: 493f09b97ffca63eb57cc22973059f300c9166552a4cfb8bb4e0a0853c864548
+    size_bytes: 3221
+  recovery_v1_launcher:
+    path: scripts/recover_tworoom_speed_pldm_cem_binding_v1.py
+    sha256: 11b25807449f79201e3906f26d0f8978cb71f65f1d9f5bfb7ecfcbc31db953d9
+    size_bytes: 11417
+  recovery_v1_failure:
+    path: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/formal_icl_v1/cem_binding_recovery_v1_failure.json
+    sha256: f281512e3f021eb6173ca5e1e1b375b01987a1359036c88d884a7f2a6d6f2f03
+    size_bytes: 1802
+  original_cem_binding_freezer:
+    path: scripts/freeze_tworoom_speed_pldm_cem_binding_v1.py
+    sha256: 2a33449ae2e66b3f17787148def3cf1affce9db5c2292d3215b15b5dcc970054
+    size_bytes: 69094
+  original_baseline_results_freeze:
+    path: configs/benchmark/contextworld_original_baseline_cem_results_freeze_v1.json
+    sha256: f3dcebe076aad73dec85cf7a5abe52854c1627a112b9511a1262e5e1cf1124ca
+    size_bytes: 4490
+  original_baseline_matrix_summary:
+    path: artifacts/evaluation/original_baseline_cem_v1/matrix_summary.json
+    sha256: c52905b88ffe81eb6b81bcfadea8dd283a7b989cd65fdcd1950347ce9d4dceea
+    size_bytes: 17099
+
+compatibility_view:
+  file:
+    path: configs/benchmark/contextworld_original_baseline_cem_results_freeze_v1.json
+    sha256: f3dcebe076aad73dec85cf7a5abe52854c1627a112b9511a1262e5e1cf1124ca
+    size_bytes: 4490
+  mapping: matrix_summary
+  field: strictly_reused_episodes
+  required_value: 300
+  operation: omit_from_in_memory_validator_view_only
+  underlying_file_rewritten: false
+  binding_snapshot_uses_original_file_identity: true
+
+implementation:
+  recovery_launcher:
+    path: scripts/recover_tworoom_speed_pldm_cem_binding_v2.py
+    sha256: 3f2acebce057421df5c53a8b6e30a2853e3b2be71fa5feed2be0eca4992a493b
+    size_bytes: 13380
+
+output:
+  cem_binding: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/formal_icl_v1/cem_binding_v1.json

@@ -1,0 +1,207 @@
+schema_version: 1
+amendment_id: contextworld_complete_reference_comparison_execution_amendment_v2
+status: preregistered_before_amended_cem_execution
+date: "2026-08-18"
+
+purpose: >-
+  Complete original-task CEM evaluation for the three PLDM rows that already
+  have frozen Public ICL results but were left unevaluated by the historical
+  threshold-gated execution rule: PushT action strength, Reacher arm mass,
+  and TwoRoom portal exit. This amendment changes execution coverage only.
+  It does not change checkpoints, ICL scores, thresholds, or training recipes.
+
+reason_for_amendment: >-
+  The base complete-comparison freeze covered the five missing model rows but
+  did not include the three existing PLDM rows whose CEM field was
+  NOT_EVALUATED. No supplemental Public ICL or candidate CEM evaluation had
+  started when this omission was found. The frozen base identity is preserved;
+  this additive amendment supplies the omitted execution cells.
+
+report_all_policy:
+  every_frozen_comparator_runs_icl_and_cem: true
+  threshold_controls_execution: false
+  threshold_controls_verdict_only: true
+  failed_results_remain_visible: true
+  family_matched_original_baseline_required: true
+  no_result_based_checkpoint_selection: true
+  no_retraining_or_finetuning: true
+  no_threshold_or_recipe_changes: true
+  no_result_based_retry: true
+  infrastructure_retry_requires_new_recovery_identity: true
+
+base_freeze:
+  preregistration:
+    path: configs/benchmark/contextworld_complete_reference_comparison_prereg_v1.yaml
+    sha256: fdcd9977878bb02f835664bca5dcfcb3d134fbf26e46a86dbfb17b21177b72b0
+    size_bytes: 18135
+  receipt:
+    path: artifacts/evaluation/complete_reference_comparison_v1/freeze_receipt.json
+    sha256: c6f6a7bc13df46cc0ad9047f12bffd166ee93aed30af285994798c5ddac08ef5
+    size_bytes: 29338
+  status_required: frozen_before_supplemental_public_scoring
+  supplemental_scores_started_before_amendment: false
+
+historical_scoreboard:
+  path: artifacts/evaluation/contextworld_icl_suite_v2_release_addendum_v1/public_scoreboard.json
+  sha256: 78dec56c735bf94c452a0a0e85a3d25619cee27c8179aafd613f79345f9e62f8
+  size_bytes: 15400
+  row_count: 13
+  immutable: true
+  rows_completed_by_this_amendment:
+    - {component_id: action_strength, family: pldm}
+    - {component_id: robot_arm_mass, family: pldm}
+    - {component_id: portal_exit, family: pldm}
+
+implementation:
+  amendment_freezer:
+    path: scripts/freeze_contextworld_complete_reference_comparison_amendment_v2.py
+    sha256: 39c2e54a36a9c06b8bc6f04a4289be6b9bf33b85b1714b70d9e0deccb7fda306
+    size_bytes: 16825
+  pusht_reacher_runner:
+    path: scripts/eval_standard_original_task_cem_frozen_v1.py
+    sha256: 77f3cf9b1a3166e73e5bf8b2a8b7baddbf52a7948ab6b905a35eb889442fd933
+    size_bytes: 26291
+  tworoom_runner:
+    path: scripts/eval_tworoom_original_baseline_cem_frozen_v1.py
+    sha256: 03e3863c6f3f9dc559095eeb01654f6b8e49675ce8dc90548b6aec0fdef106a6
+    size_bytes: 12353
+  tworoom_core:
+    path: scripts/eval_tworoom_ability_catalog.py
+    sha256: 8bec7a6d4315850f985141697ad1a04c21fd60478c6439e40edb5c506a11bcea
+    size_bytes: 12569
+  model_loader:
+    path: scripts/eval_cube_original_task_cem_frozen.py
+    sha256: f653e4d8c7750859a94f2c98973bd1f99ecd0ddb936a507f4f8e4938878ba91b
+    size_bytes: 24013
+
+runtimes:
+  standard:
+    root: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/context_world/upstream/stable-worldmodel-875e607fc08aa72e
+    commit: 875e607fc08aa72eacb94d5d178127804134cc06
+  tworoom:
+    root: /tmp/stable-worldmodel-5864
+    commit: 5864b74980f6ed328fd0045e777b3865962eff43
+    cem_solver:
+      path: stable_worldmodel/solver/cem.py
+      sha256: a6662e7f1f2c6ecaf0a8527255d531aa05ed583339aabdf2798d0206382ef51b
+      size_bytes: 10080
+    policy:
+      path: stable_worldmodel/policy.py
+      sha256: 4967e7e3d5b20eb7a1d0b00e5d60fd701cce1c750ae7ec4a9b02529b9366db22
+      size_bytes: 17816
+
+baseline_evidence:
+  result_freeze:
+    path: configs/benchmark/contextworld_original_baseline_cem_results_freeze_v1.json
+    sha256: f3dcebe076aad73dec85cf7a5abe52854c1627a112b9511a1262e5e1cf1124ca
+    size_bytes: 4490
+  matrix_summary:
+    path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/context_world/evaluation/original_baseline_cem_v1/matrix_summary.json
+    sha256: c52905b88ffe81eb6b81bcfadea8dd283a7b989cd65fdcd1950347ce9d4dceea
+    size_bytes: 17099
+  pusht_pldm:
+    successes: 233
+    evaluations: 300
+    threshold_successes: 218
+    result:
+      path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/context_world/evaluation/original_baseline_cem_v1/pusht/pldm/aggregate.json
+      sha256: 86b1953240fe546dd6442e1fa2474cac78e5c973d94eaf757ac059bba8fad282
+      size_bytes: 14583
+  reacher_pldm:
+    successes: 248
+    evaluations: 300
+    threshold_successes: 233
+    result:
+      path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/context_world/evaluation/original_baseline_cem_v1/reacher/pldm/aggregate.json
+      sha256: 5a990238d7d97f583f03b7daf7294284350ba0de582453a2ab4a9aea80370f64
+      size_bytes: 11416
+  tworoom_pldm:
+    successes: 278
+    evaluations: 300
+    threshold_successes: 263
+    receipts:
+      - {eval_seed: 42, successes: 45, evaluations: 50, path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/context_world/evaluation/original_baseline_cem_v1/tworoom/pldm/seed42.json, sha256: d1dfc771e74c2fc71a41c7ecb5c2ea6b6f72ae7ff93733ce867b104e8c6a6a5f, size_bytes: 43341}
+      - {eval_seed: 43, successes: 47, evaluations: 50, path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/context_world/evaluation/original_baseline_cem_v1/tworoom/pldm/seed43.json, sha256: a46bc1cf0fe4db47b96a9b1998097f174ceed38378bcc8a52fa842483bdaf46b, size_bytes: 43494}
+      - {eval_seed: 44, successes: 46, evaluations: 50, path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/context_world/evaluation/original_baseline_cem_v1/tworoom/pldm/seed44.json, sha256: 378db8bd32c2d6a7be1cc3a2beee26dc58923642f073d3aadcfb307dbc2452f2, size_bytes: 43482}
+      - {eval_seed: 45, successes: 47, evaluations: 50, path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/context_world/evaluation/original_baseline_cem_v1/tworoom/pldm/seed45.json, sha256: 1ae7489d93bfb6c329bada1b14513f45211ff06a4e0579737418b0347b611a38, size_bytes: 43536}
+      - {eval_seed: 46, successes: 46, evaluations: 50, path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/context_world/evaluation/original_baseline_cem_v1/tworoom/pldm/seed46.json, sha256: 701da2d25bafc19f64765e1c03eba5d10dfc4da6560d3e3a72dad58d7e3aa4d2, size_bytes: 43459}
+      - {eval_seed: 47, successes: 47, evaluations: 50, path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/context_world/evaluation/original_baseline_cem_v1/tworoom/pldm/seed47.json, sha256: d458b17dfedc8ff9566ad1dea8050f1a80fc6f9ba6ddcd7fac71aba73c48f52b, size_bytes: 43503}
+
+frozen_inputs:
+  identity_audit:
+    path: configs/benchmark/contextworld_original_baseline_cem_input_identity_audit_v1.json
+    sha256: 5d84444f6c4d0fd5a26b616bafeb17ddc2bb545356fc46a83fbb862be0853950
+    size_bytes: 1599
+  pusht:
+    plan_config: {path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/context_world/upstream/stable-worldmodel-875e607fc08aa72e/scripts/plan/config/pusht.yaml, sha256: ccad4ca01b8935424c71fb682622b57ecedb33176e996205f0bfd2211eaf4ec5, size_bytes: 859}
+    catalog: {path: artifacts/evaluation/history3/pusht_action_strength_h3_release_v1/standard_pusht_query_catalog.json, sha256: da974c821e3fa0f232ac59538e0c79cc2cb9a80ea4bb4a62b910c66c278ce2d4, size_bytes: 11744}
+    dataset: {path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-pusht/pusht_expert_train.h5, sha256: b6ebd9ac94bbe9e383f6e7a9cd92d74e9aa665ea57b758ed3717b0ee7df8d4fb, size_bytes: 46300921856, hash_authority: identity_audit}
+    eval_seeds: [42, 43, 44, 45, 46, 47]
+    queries_per_seed: 50
+  reacher:
+    plan_config: {path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/context_world/upstream/stable-worldmodel-875e607fc08aa72e/scripts/plan/config/reacher.yaml, sha256: deb1378ed1bfdfe8379f44a138dec36ac6ab2dab2ae2c36a3560d2542a190774, size_bytes: 843}
+    catalog: {path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/context_world/evaluation/history3/reacher_robot_arm_mass_h3_release_v1/original_task_retention/baseline_lewm_osmesa/query_catalog.json, sha256: f139593c8b75eb5cd142d78223421e3e7b0a76a4ab086908afd9d9171dea9e27, size_bytes: 11336}
+    dataset: {path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-reacher/reacher.h5, sha256: 85a7dddfa1801302abcb175a80a23bb69c78291dd977ce40d69aedcb9123da06, size_bytes: 98905882624, hash_authority: identity_audit}
+    eval_seeds: [42, 43, 44]
+    queries_per_seed: 100
+  tworoom:
+    catalog: {path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/context_world/evaluation/history3/original_ability_reconstruction/original_heldout_eval_catalog.json, sha256: 08233c6755c8f6f358f5fe35f84e7cfed626b922be0eeaba8f7392c7741b4b34, size_bytes: 119993}
+    dataset: {path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/context_world/splits/tworoom_original_episode_holdout_s3072.h5, sha256: 7e78254f70445231df4ccf2fd2b7994dfc5954e2085d61400518bd2336fa66bc, size_bytes: 2629676}
+    normalizer: {path: artifacts/splits/tworoom_original_train_s3072_normalizer.json, sha256: a9e4b443bbac0d7a4e2d9d9f84d40ac40936556ffadfc7af0b0ce4fe4afed42c, size_bytes: 859}
+    eval_seeds: [42, 43, 44, 45, 46, 47]
+    queries_per_seed: 50
+
+execution_cells:
+  action_strength_pldm:
+    release_config: {path: configs/benchmark/pusht_action_strength_icl_release_v1.yaml, sha256: 94b8df3fa1c28280c7e740de085b4757f45934097bffc4279d986740f1794ba3, size_bytes: 16581}
+    superseded_stop_receipt: {path: artifacts/evaluation/history3/pusht_action_strength_pldm_reference_completion_v1/formal_icl_v1/cem_not_authorized_stop_v1.json, sha256: c4b2c9d57192016e9792ced603fd2f111a983dddd45581ecf6ca03b69c89d23a, size_bytes: 9709, executed: false}
+    task: pusht
+    mujoco_gl: egl
+    baseline: pusht_pldm
+    checkpoints:
+      - {seed: 13313, path: artifacts/evaluation/history3/pusht_action_strength_pldm_reference_completion_v1/seed_13313/training/mixed_pldm_joint_step4096.pt, sha256: beed2dfe852ab01f21386ea13cbe8f77ddf16264f71d2ca25c66003266e85a2f, size_bytes: 72274139, config_sha256: 9a7174b28fccf4fa1abc7e2c756b93c93a659a00715a49fc64cf25affdba81b4, config_size_bytes: 1144, output: artifacts/evaluation/complete_reference_comparison_v1/cem/action_strength/pldm/seed_13313}
+      - {seed: 13314, path: artifacts/evaluation/history3/pusht_action_strength_pldm_reference_completion_v1/seed_13314/training/mixed_pldm_joint_step4096.pt, sha256: 1f014cb345116c02cfbdbe6952a86a377138da1e8e8dd1dc87156c9ca9f47864, size_bytes: 72274139, config_sha256: 9a7174b28fccf4fa1abc7e2c756b93c93a659a00715a49fc64cf25affdba81b4, config_size_bytes: 1144, output: artifacts/evaluation/complete_reference_comparison_v1/cem/action_strength/pldm/seed_13314}
+      - {seed: 13315, path: artifacts/evaluation/history3/pusht_action_strength_pldm_reference_completion_v1/seed_13315/training/mixed_pldm_joint_step4096.pt, sha256: 3242de2bfa52dcf41c6a0d40b9126e8549cf87763d66cb75db86ca3a55240148, size_bytes: 72274139, config_sha256: 9a7174b28fccf4fa1abc7e2c756b93c93a659a00715a49fc64cf25affdba81b4, config_size_bytes: 1144, output: artifacts/evaluation/complete_reference_comparison_v1/cem/action_strength/pldm/seed_13315}
+  reacher_arm_mass_pldm:
+    release_config: {path: configs/benchmark/reacher_arm_mass_icl_release_v1.yaml, sha256: 8833ab9031308d5499e28116001105c1380f0ce2600424f625acbbcd13b8082d, size_bytes: 14369}
+    task: reacher
+    mujoco_gl: osmesa
+    baseline: reacher_pldm
+    checkpoints:
+      - {seed: 16321, path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/context_world/evaluation/history3/reacher_robot_arm_mass_h3_release_v1/reference_matrix/pldm_seed16321/mixed_pldm_joint_step4096.pt, sha256: 733fd56823429ff6b6fa31485aa31473060f933948cee4e5b4cb926fe2683960, size_bytes: 72274139, config_sha256: 9a7174b28fccf4fa1abc7e2c756b93c93a659a00715a49fc64cf25affdba81b4, config_size_bytes: 1144, output: artifacts/evaluation/complete_reference_comparison_v1/cem/reacher_arm_mass/pldm/seed_16321}
+      - {seed: 16322, path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/context_world/evaluation/history3/reacher_robot_arm_mass_h3_release_v1/reference_matrix/pldm_seed16322/mixed_pldm_joint_step4096.pt, sha256: ee24c84e48d3fe27061dcff5f3925125c89cfc1306319e60455f9e30dbdac568, size_bytes: 72274139, config_sha256: 9a7174b28fccf4fa1abc7e2c756b93c93a659a00715a49fc64cf25affdba81b4, config_size_bytes: 1144, output: artifacts/evaluation/complete_reference_comparison_v1/cem/reacher_arm_mass/pldm/seed_16322}
+      - {seed: 16323, path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/context_world/evaluation/history3/reacher_robot_arm_mass_h3_release_v1/reference_matrix/pldm_seed16323/mixed_pldm_joint_step4096.pt, sha256: 3f9f5a07e8db565ec2af20ce785a4ab764ffaefd60366660e4ada9b0d5e8fa56, size_bytes: 72274139, config_sha256: 9a7174b28fccf4fa1abc7e2c756b93c93a659a00715a49fc64cf25affdba81b4, config_size_bytes: 1144, output: artifacts/evaluation/complete_reference_comparison_v1/cem/reacher_arm_mass/pldm/seed_16323}
+  portal_exit_pldm:
+    release_config: {path: configs/benchmark/tworoom_portal_exit_icl_release_v1.yaml, sha256: 2ab23b205e1ad8f469a37205a8c017b074ec842d3bd5f5378e4f75de4652f534, size_bytes: 14212}
+    task: tworoom
+    mujoco_gl: egl
+    baseline: tworoom_pldm
+    checkpoints:
+      - {seed: 15321, path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/context_world/evaluation/history3/tworoom_portal_exit_h3_release_v1/reference_matrix/pldm_seed15321/mixed_pldm_joint_step4096.pt, sha256: ff4bfe95be4a3e053adad3f18ece4325c9a22eab492e1ef2b8fcc0ba93fd6433, size_bytes: 72274139, config_sha256: 9a7174b28fccf4fa1abc7e2c756b93c93a659a00715a49fc64cf25affdba81b4, config_size_bytes: 1144, output: artifacts/evaluation/complete_reference_comparison_v1/cem/portal_exit/pldm/seed_15321}
+      - {seed: 15322, path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/context_world/evaluation/history3/tworoom_portal_exit_h3_release_v1/reference_matrix/pldm_seed15322/mixed_pldm_joint_step4096.pt, sha256: a5fb379c64d394add3791e14b6ca5d709d4dba1bb5566a65b1fd7c777523e940, size_bytes: 72274139, config_sha256: 9a7174b28fccf4fa1abc7e2c756b93c93a659a00715a49fc64cf25affdba81b4, config_size_bytes: 1144, output: artifacts/evaluation/complete_reference_comparison_v1/cem/portal_exit/pldm/seed_15322}
+      - {seed: 15323, path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/context_world/evaluation/history3/tworoom_portal_exit_h3_release_v1/reference_matrix/pldm_seed15323/mixed_pldm_joint_step4096.pt, sha256: 4e1d88398174b784e7ac4ace7dc45d0360f9f5df212e9c6e9f92285220cfade5, size_bytes: 72274139, config_sha256: 9a7174b28fccf4fa1abc7e2c756b93c93a659a00715a49fc64cf25affdba81b4, config_size_bytes: 1144, output: artifacts/evaluation/complete_reference_comparison_v1/cem/portal_exit/pldm/seed_15323}
+
+decision_rules:
+  margin_successes: 15
+  action_strength_pldm:
+    historical_absolute_floor: 210
+    family_baseline_minus_margin: 218
+    effective_floor: 218
+  reacher_arm_mass_pldm: {family_baseline_minus_margin: 233, effective_floor: 233}
+  portal_exit_pldm: {family_baseline_minus_margin: 263, effective_floor: 263}
+  checkpoint_verdict: pass_if_successes_greater_than_or_equal_to_effective_floor
+  method_verdict: pass_if_all_three_frozen_checkpoints_pass
+  display_even_when_failed: true
+
+execution_budget:
+  newly_authorized_candidate_checkpoints: 9
+  newly_authorized_candidate_episodes: 2700
+  action_strength: {checkpoints: 3, episodes_per_checkpoint: 300}
+  reacher_arm_mass: {checkpoints: 3, episodes_per_checkpoint: 300}
+  portal_exit: {checkpoints: 3, episodes_per_checkpoint: 300}
+
+outputs:
+  amendment_freeze_receipt: artifacts/evaluation/complete_reference_comparison_v1/execution_amendment_v2_freeze_receipt.json
+  action_strength_root: artifacts/evaluation/complete_reference_comparison_v1/cem/action_strength/pldm
+  reacher_arm_mass_root: artifacts/evaluation/complete_reference_comparison_v1/cem/reacher_arm_mass/pldm
+  portal_exit_root: artifacts/evaluation/complete_reference_comparison_v1/cem/portal_exit/pldm

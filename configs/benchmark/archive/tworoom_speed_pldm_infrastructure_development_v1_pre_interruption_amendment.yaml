@@ -1,0 +1,128 @@
+schema_version: 1
+development_id: tworoom_speed_pldm_infrastructure_development_v1
+completion_id: tworoom_speed_pldm_reference_completion_v1
+status: preregistered_during_fixed_training_before_development_manifest_or_inference
+
+# This is a pre-Public execution-readiness gate only.  It must never be
+# represented as ICL ability evidence, a checkpoint choice, or a score.
+scope:
+  development_scope: infrastructure_readiness
+  icl_claim: false
+  checkpoint_selection: false
+  public_payload_accessed: false
+  scoreboard_score_emitted: false
+  training_or_recipe_mutation: false
+
+stable_worldmodel:
+  worktree: /tmp/stable-worldmodel-5864
+  expected_ref: 5864b74980f6ed328fd0045e777b3865962eff43
+  pldm_config: scripts/train/config/pldm.yaml
+  pldm_config_sha256: 430691039c77f7084dff24759f5e17680fbf65fae3454f88709f403aa1d1be51
+
+runtime:
+  encode_batch_size: 64
+  rollout_batch_size: 64
+  inference_mode: true
+  optimizer_or_backward_allowed: false
+
+frozen_inputs:
+  completion_config:
+    path: configs/benchmark/tworoom_speed_pldm_reference_completion_v1.yaml
+    sha256: 6c8d3404431f4fedb788acc0c89fc62b78fcb147402d284fc8e74aa64a0d840f
+  behavioral_claim_boundary:
+    path: configs/benchmark/tworoom_speed_pldm_behavioral_claim_boundary_v1.yaml
+    sha256: 7e81e79fb7e28bbf9fcf1c76571bfedb471c118fc73920abd22d75f18a779941
+  normalizer:
+    path: artifacts/splits/tworoom_original_train_s3072_normalizer.json
+    sha256: a9e4b443bbac0d7a4e2d9d9f84d40ac40936556ffadfc7af0b0ce4fe4afed42c
+  speed_catalog:
+    path: artifacts/synthesis/catalogs/tworoom_speed_full_v1.json
+    sha256: a8ab2fed2602ade7e00e5a9ebb0b0a6ecb29ab41bc0645bda185bab71cbd8c1d
+  speed_manifest:
+    path: artifacts/synthesis/manifests/tworoom_speed_full_v1.jsonl
+    sha256: 1815b2b4b6d2a03249b0f6642b4adc779554c65a7114c57e3731556d74024290
+  speed_synthesis_report:
+    path: artifacts/synthesis/reports/tworoom_speed_full_v1.json
+    sha256: a0ffaeb90947a854d70d54a542a1d519c8e9bdc66aa2c0693e2aabb02c568241
+
+# Source identities are checked while the manifest is frozen, after all three
+# final checkpoints exist and before the first Development inference.
+implementation:
+  manifest_freezer:
+    path: scripts/freeze_tworoom_speed_pldm_development_manifest_v1.py
+    sha256: 2cadd330388245d2ccc424963af0a96e609f9173dae6e615ce1d7a72469f2fa6
+  development_evaluator:
+    path: scripts/eval_tworoom_speed_pldm_infrastructure_development_v1.py
+    sha256: 4e76897e28a8e1e697df3d4704e4a9452677072b1c6b37a429b06b5fc537ccb5
+  shared_contract:
+    path: contextworld/benchmarks/speed_pldm_infrastructure_development.py
+    sha256: 89e12e8d8b7effbf14445335fa9e013d58e746ae3cd31dd6c233470b3e8c3c14
+  adapter_boundary:
+    path: contextworld/benchmarks/adapters.py
+    sha256: cc9e758b7081a57251e8cd026e9ac9ff8a17e3f300d52f464bdad871edcf26b2
+
+# Paths are registered before training finishes; their content identities are
+# derived and frozen only after every 12,840-step final checkpoint exists.
+training_artifacts:
+  fixed_optimizer_steps: 12840
+  model_id: H3_Speed_PLDM_ReferenceCompletion
+  entries:
+    - seed: 3072
+      run_name: speed_pldm_reference_completion_v1_s3072
+      checkpoint: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/training/checkpoints/speed_pldm_reference_completion_v1_s3072/weights_final_step_12840.pt
+      checkpoint_config: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/training/checkpoints/speed_pldm_reference_completion_v1_s3072/config.json
+      training_report: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/seed_3072/training_report.json
+      loss_trace: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/training/checkpoints/speed_pldm_reference_completion_v1_s3072/loss_trace.jsonl
+      preflight: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/preflight/seed_3072.json
+    - seed: 4096
+      run_name: speed_pldm_reference_completion_v1_s4096
+      checkpoint: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/training/checkpoints/speed_pldm_reference_completion_v1_s4096/weights_final_step_12840.pt
+      checkpoint_config: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/training/checkpoints/speed_pldm_reference_completion_v1_s4096/config.json
+      training_report: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/seed_4096/training_report.json
+      loss_trace: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/training/checkpoints/speed_pldm_reference_completion_v1_s4096/loss_trace.jsonl
+      preflight: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/preflight/seed_4096.json
+    - seed: 5120
+      run_name: speed_pldm_reference_completion_v1_s5120
+      checkpoint: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/training/checkpoints/speed_pldm_reference_completion_v1_s5120/weights_final_step_12840.pt
+      checkpoint_config: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/training/checkpoints/speed_pldm_reference_completion_v1_s5120/config.json
+      training_report: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/seed_5120/training_report.json
+      loss_trace: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/training/checkpoints/speed_pldm_reference_completion_v1_s5120/loss_trace.jsonl
+      preflight: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/preflight/seed_5120.json
+
+sampling:
+  catalog_split: val.synthetic
+  scenarios: 96
+  samples_per_scenario: 4
+  index_rule: zero_floor_n_minus_one_over_three_floor_two_n_minus_one_over_three_n_minus_one
+  index_rule_inputs: dataset_length_only_no_pixels_actions_labels_model_or_loss
+  history_tokens: 3
+  future_action_blocks: 1
+  raw_steps_per_action_block: 5
+  action_dim: 2
+  observation_steps_per_clip: 4
+
+expected_coverage:
+  speed_values: [2.5, 3.2, 4.3, 4.6, 4.9, 5.4, 5.6, 5.8]
+  scenario_regime_counts:
+    validation_broad_cross: 32
+    validation_broad_same: 32
+    validation_template_s0: 8
+    validation_template_s1: 8
+    validation_template_s2: 8
+    validation_template_s3: 8
+
+# None of these paths may be used by this gate.  The runner only resolves
+# catalog.val.synthetic listed above and refuses a source containing any token.
+forbidden_public_path_fragments:
+  - speed_multistep_extrap_v5
+  - tworoom_speed_icl_release
+  - formal_icl_v1
+  - formal_action_planning_cem_v1
+  - formal_original_tworoom_retention_cem_v1
+
+outputs:
+  manifest: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/infrastructure_development_v1/development_manifest.json
+  receipts:
+    "3072": artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/infrastructure_development_v1/seed_3072.json
+    "4096": artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/infrastructure_development_v1/seed_4096.json
+    "5120": artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/infrastructure_development_v1/seed_5120.json

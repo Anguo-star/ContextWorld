@@ -1,0 +1,52 @@
+schema_version: 1
+release_id: contextworld_icl_benchmark_suite_v2
+release_status: public_test_release_candidate
+candidate_date: "2026-08-17"
+
+# This is a pointer-only successor view.  It never contains the final
+# decision hash or the final result hashes: the final v2 decision binds this
+# file, the current implementation, and the result files in one direction.
+current_results_overlay:
+  overlay_id: contextworld_icl_suite_v2_current_results_overlay_v1
+  status: preregistered_pending_integrity_reseal_v2
+  scope: decision_gated_current_public_results_view
+  base_release_config:
+    path: configs/benchmark/contextworld_icl_suite_v2_integrity_reseal_v1.yaml
+    sha256: 198391dadf1f9e713cf786e9fa479b58648814197814e72da2b9fafabb5771fd
+    size_bytes: 3790
+  final_reseal:
+    reseal_id: contextworld_icl_suite_v2_integrity_reseal_v2
+    reseal_config_path: configs/benchmark/contextworld_icl_suite_v2_integrity_reseal_v2.yaml
+    decision_path: configs/benchmark/contextworld_icl_suite_v2_integrity_reseal_decision_v2.json
+  result_source: release_materials.public_scoreboard
+  allowed_changes:
+    - in_memory_current_identity_overlay
+    - runtime_default_selection_after_valid_final_decision
+  prohibited_changes:
+    - rewrite_historical_v1_config_or_scoreboard
+    - declare_final_decision_hash_in_overlay
+    - declare_final_scoreboard_hash_or_row_count_in_overlay
+    - raw_dataset_or_checkpoint_mutation
+    - training_or_checkpoint_selection
+    - public_test_access_or_rerun_authorization
+  decision_contract:
+    overlay_identity_must_be_bound_by_v2_decision: true
+    decision_hash_is_not_declared_in_overlay: true
+    activation_requires_final_v2_decision: true
+    formal_rows_and_components_must_be_derived_from_bound_scoreboard: true
+    partial_outputs_grant_current_results: false
+
+membership_authority:
+  config_alone_grants_membership: false
+  activation_condition: passed_integrity_reseal_decision_v2
+  overlay_id: contextworld_icl_suite_v2_current_results_overlay_v1
+  reseal_id: contextworld_icl_suite_v2_integrity_reseal_v2
+  decision_path: configs/benchmark/contextworld_icl_suite_v2_integrity_reseal_decision_v2.json
+  decision_is_commit_marker: true
+  base_release_config: configs/benchmark/contextworld_icl_suite_v2_integrity_reseal_v1.yaml
+  historical_v1_results_remain_explicitly_addressable: true
+  partial_outputs_grant_membership: false
+  public_test_rerun_authorized: false
+  training_or_checkpoint_selection_authorized: false
+  formal_scoreboard_mutation_authorized: false
+  raw_dataset_or_checkpoint_mutation_authorized: false

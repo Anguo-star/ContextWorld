@@ -1,0 +1,132 @@
+schema_version: 1
+benchmark: tworoom_action_delay_history7_curriculum_ability_retention_v1
+status: preregistered_before_cem_scoring
+preregistered_date: "2026-07-30"
+
+question: >-
+  粗到细单步训练后的 History=7 PLDM 是否保留原始 TwoRoom 规划能力；
+  相同数据和预算训练的 LeWM 作为模型家族对照。
+
+stable_worldmodel:
+  repo: ../stable-worldmodel
+  commit: ad2bc44579f2b5b65c004fd2c9d8edc8ebaa43ce
+
+source_identity:
+  completed_action_delay_core:
+    path: >-
+      artifacts/evaluation/history7/action_delay_curriculum_v4/core_summary.json
+    sha256: c0dd92c34926bf9c31a05a6508bc0d1c5ef7ab1b1beb96760b316590bf1e843b
+  original_heldout_catalog:
+    path: >-
+      artifacts/evaluation/history3/original_ability_reconstruction/original_heldout_eval_catalog.json
+    sha256: 08233c6755c8f6f358f5fe35f84e7cfed626b922be0eeaba8f7392c7741b4b34
+  speed5_matched_catalog:
+    path: >-
+      artifacts/evaluation/history3/original_ability_reconstruction/speed5_matched_eval_catalog.json
+    sha256: 608d5872b39dd17a39b803798c1ef7c6f958d6df2038a7dc473d2ab04be6bf44
+  normalizer:
+    path: artifacts/splits/tworoom_original_train_s3072_normalizer.json
+    sha256: 7a5be7ea867bced446c1671b0b2c0ff6450ffc61e1a7bdbbfc5eaa0942f635db
+
+models:
+  original_h3_reference:
+    - slug: h3_origheldout_s3072
+      display_name: 原始 TwoRoom 数据训练的 History=3 LeWM
+      training_seed: 3072
+      history_size: 3
+      checkpoint: >-
+        artifacts/training/runs/checkpoints/h3_origheldout_s3072/weights_final_step_6420.pt
+      checkpoint_sha256: 7d141b86cca49145444a69bff89c71ede69e8cf8252bfb933e656c3e2e962b54
+  pldm_reference:
+    - slug: h7_action_delay_curriculum_v4_pldm_formal_s3072
+      display_name: 粗到细单步训练的 History=7 PLDM
+      training_seed: 3072
+      history_size: 7
+      checkpoint: >-
+        artifacts/training/runs/checkpoints/h7_action_delay_curriculum_v4_pldm_formal_s3072/weights_final_step_1024.pt
+      checkpoint_sha256: 2bec647006556fdf24580cecf0774679e04179008139461800a7e3e7573488f4
+    - slug: h7_action_delay_curriculum_v4_pldm_formal_s4096
+      display_name: 粗到细单步训练的 History=7 PLDM
+      training_seed: 4096
+      history_size: 7
+      checkpoint: >-
+        artifacts/training/runs/checkpoints/h7_action_delay_curriculum_v4_pldm_formal_s4096/weights_final_step_1024.pt
+      checkpoint_sha256: 7c2281c2f91c3bf3348ba834512db2bec56a86e622a40396842ec6adf199e867
+    - slug: h7_action_delay_curriculum_v4_pldm_formal_s5120
+      display_name: 粗到细单步训练的 History=7 PLDM
+      training_seed: 5120
+      history_size: 7
+      checkpoint: >-
+        artifacts/training/runs/checkpoints/h7_action_delay_curriculum_v4_pldm_formal_s5120/weights_final_step_1024.pt
+      checkpoint_sha256: 7348147a9944d1288ed6a9c7edf6b004d3c9dd9aacbac6250c9e73fb086802bf
+  lewm_control:
+    - slug: h7_action_delay_curriculum_v4_lewm_formal_s3072
+      display_name: 相同数据和预算训练的 History=7 LeWM
+      training_seed: 3072
+      history_size: 7
+      checkpoint: >-
+        artifacts/training/runs/checkpoints/h7_action_delay_curriculum_v4_lewm_formal_s3072/weights_final_step_1024.pt
+      checkpoint_sha256: 8394603c7be2e0cb8897433c236ce503382153108da41206d1d376f2875006aa
+    - slug: h7_action_delay_curriculum_v4_lewm_formal_s4096
+      display_name: 相同数据和预算训练的 History=7 LeWM
+      training_seed: 4096
+      history_size: 7
+      checkpoint: >-
+        artifacts/training/runs/checkpoints/h7_action_delay_curriculum_v4_lewm_formal_s4096/weights_final_step_1024.pt
+      checkpoint_sha256: 4200c45b28af6fad64f8678284e36d4fa98935c18d4f7787eab766899f860f16
+    - slug: h7_action_delay_curriculum_v4_lewm_formal_s5120
+      display_name: 相同数据和预算训练的 History=7 LeWM
+      training_seed: 5120
+      history_size: 7
+      checkpoint: >-
+        artifacts/training/runs/checkpoints/h7_action_delay_curriculum_v4_lewm_formal_s5120/weights_final_step_1024.pt
+      checkpoint_sha256: 1278d5d8802970931ce245df5d90f6886084693e201701b99233868bd7c531c7
+
+evaluation:
+  eval_seeds: [42, 43, 44, 45, 46, 47]
+  evaluations_per_seed_per_model_per_domain: 50
+  evaluations_per_model_per_domain: 300
+  expected_models: 7
+  expected_jobs: 84
+  expected_independent_planning_evaluations: 4200
+  domains:
+    original_heldout:
+      role: primary_original_ability_retention
+      catalog: >-
+        artifacts/evaluation/history3/original_ability_reconstruction/original_heldout_eval_catalog.json
+      catalog_sha256: 08233c6755c8f6f358f5fe35f84e7cfed626b922be0eeaba8f7392c7741b4b34
+    speed5_matched:
+      role: secondary_base_dynamics_domain
+      interpretation: 只检查基础能力，不是 Action Delay ICL 评分
+      catalog: >-
+        artifacts/evaluation/history3/original_ability_reconstruction/speed5_matched_eval_catalog.json
+      catalog_sha256: 608d5872b39dd17a39b803798c1ef7c6f958d6df2038a7dc473d2ab04be6bf44
+  planner:
+    eval_budget_raw_steps: 50
+    horizon_action_blocks: 5
+    receding_horizon_action_blocks: 5
+    cem_samples: 300
+    cem_steps: 30
+    cem_topk: 30
+  paired_non_inferiority:
+    primary_reference: h3_origheldout_s3072
+    confidence_level: 0.95
+    bootstrap_seed: 2026073007
+    bootstrap_resamples: 10000
+    success_rate_delta_minimum: -0.05
+    final_distance_delta_px_maximum: 5.0
+    require_no_solvable_stratum_collapse: true
+  decision:
+    target_role: pldm_reference
+    pldm_original_ability_retained_requires_all_three_seeds: true
+    primary_gate_domain: original_heldout
+    speed5_matched_is_reported_but_not_a_gate: true
+    lewm_is_same_data_model_family_control: true
+
+artifacts:
+  results_root: >-
+    artifacts/evaluation/history7/action_delay_curriculum_v4_ability_retention_v1
+  summary: >-
+    artifacts/evaluation/history7/action_delay_curriculum_v4_ability_retention_v1/final_summary.json
+  runner_report: >-
+    artifacts/evaluation/history7/action_delay_curriculum_v4_ability_retention_v1/runner_report.json

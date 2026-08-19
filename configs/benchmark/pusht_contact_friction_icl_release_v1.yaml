@@ -36,22 +36,22 @@ runtime:
 identity:
   public_api:
     path: contextworld/benchmarks/__init__.py
-    sha256: ae7fdb24aeaefb6cec66f22f83329e8edfca0cbf686059836b9acdb2684a99ea
+    sha256: ba378fb6ac01817645dfab1bd18d15c00ef86e8c796489155cfbd11363bcaa88
   adapters:
     path: contextworld/benchmarks/adapters.py
-    sha256: a1bf037ea4da49842163142563323a26a3eb11fca9a81f6dc4070d5688805c67
+    sha256: cc9e758b7081a57251e8cd026e9ac9ff8a17e3f300d52f464bdad871edcf26b2
   data_api:
     path: contextworld/benchmarks/contact_friction_icl_data.py
-    sha256: 38a27d96d6bfed8cfece9253c5175472c6198508166200b08fe90f1f54072ef4
+    sha256: a2d2af61429ac9dcbb6476e5dd06d1d1af4b6b8f5da286d0fc863ebaee4486a8
   score_api:
     path: contextworld/benchmarks/contact_friction_icl_score.py
-    sha256: 4c47a425b1cec82eb3f35cafb8a8ca123d5f2b2268db865bf29bc75403c9273a
+    sha256: 659a0500f4276626880ccc534a44a207b6696c4d847045eab7d87375c9106b2b
   paired_latent_response_api:
     path: contextworld/benchmarks/paired_latent_response.py
     sha256: 92dc5cf019491f59596c3a0b59d918f04ad2290e124eab11d669537ac20d6ff5
   command_line:
     path: contextworld/benchmarks/contact_friction_icl_cli.py
-    sha256: 1ffe78d0c7024bafdab0e5d2f1b43e0a37c1eb4fab505b92a1de763640de9478
+    sha256: 05d66e703c1ce0affdc133d3cef2bf2b814c4047458d9a68df947785c570f91e
   reference_trainer:
     path: scripts/run_pusht_contact_friction_h3_train.py
     sha256: 2c2b75b48d96f06369b98d78527068bb8e29fbf7042fa956b9a9b7832d9d2d28
@@ -203,9 +203,20 @@ training:
 
 evaluation:
   development:
-    role: recipe_selection_and_gate_at_fixed_checkpoint_step
+    role: >-
+      recipe_selection_and_gate_at_fixed_checkpoint_step; explicit
+      original-baseline Development-only diagnostic
+    split: loader_validation
     pair_count: 256
     lance_table: loader_validation.lance
+    lance_table_sha256: 5b8576f2f8220bf1f2b323799732169837b29b3195a3900f8883f8f3cc62a825
+    data_manifest_sha256: cbb9b1a1c030a3c66ea8acbf25c5e1a302f1c43907beeadcdc9d8bd1e989f3d5
+    public_test:
+      access_status: closed_not_read_not_scored
+      opened: false
+      read: false
+      hashed: false
+      scored: false
   track: independent_contact_friction_public_test
   model_evaluation_status: not_opened_after_failed_development
   pair_count: 256

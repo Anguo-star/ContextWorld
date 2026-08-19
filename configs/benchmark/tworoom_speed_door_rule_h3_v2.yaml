@@ -1,0 +1,240 @@
+schema_version: 2
+benchmark: tworoom_speed_door_rule_history3_composition_v2
+status: preregistered_design_before_feasibility_data_training_or_model_scoring
+date: "2026-07-28"
+claim_limit: design_only_until_physical_feasibility_and_single_factor_prerequisites_pass
+
+question: >-
+  当当前画面和未来动作完全相同时，模型能否从同一段 History=3 中同时识别
+  移动速度与门规则，并预测门规则如何决定速度能否转化为穿门位移？
+
+legacy_v1:
+  status: diagnostic_only_not_a_formal_composition_benchmark
+  retained_artifact:
+    artifacts/evaluation/history3/speed_door_rule_composition_validation_v1
+  reasons:
+    - the_slowest_speed_does_not_fully_cross_the_wall_in_one_action_block
+    - the_middle_speed_uses_door_edge_collision_projection
+    - forcing_six_distinct_targets_conflicts_with_blocked_motion_physics
+    - the_same_geometry_speed_only_prerequisite_did_not_pass
+
+stable_worldmodel:
+  repo: ../stable-worldmodel
+  commit: 4b6f5d94693631ce64ed1f561dd0bc1d23ca38fa
+  relevant_sources:
+    - stable_worldmodel/envs/two_room/env.py
+    - stable_worldmodel/spaces.py
+
+scope:
+  environment: TwoRoomHiddenPassage
+  history_tokens: 3
+  hidden_factors: [agent.speed, passage.open]
+  formal_public_component: false
+  closed_loop_cem_included: false
+  purpose: simultaneous_hidden_factor_inference_and_collision_gating
+
+protocol:
+  history_tokens: 3
+  context_transitions: 2
+  raw_steps_per_action_block: 5
+  eval_speeds: [3.1, 5.1, 7.0]
+  door_rules:
+    passable: 1
+    blocked: 0
+  history_construction:
+    reuse_v1_probe_and_identical_query_recovery: true
+    identical_initial_pixels_across_conditions: true
+    identical_history_actions_across_conditions: true
+    identical_query_state_and_pixels_across_conditions: true
+    model_visible_fields: [pixels, action]
+  future_action:
+    action_blocks: 2
+    horizontal_value: 1.0
+    vertical_value: 0.0
+    horizontal_raw_steps_per_block: 5
+    evaluated_horizons: [1, 2]
+  horizon_meanings:
+    h1: immediate_door_contact_response
+    h2: complete_passage_for_every_eval_speed
+
+geometry:
+  wall_center_x: 112.0
+  wall_thickness_px: 10.0
+  agent_radius_px: 7.0
+  collision_pushback_px: 0.5
+  left_query_x: 99.5
+  right_query_x: 124.5
+  distance_between_blocked_contact_states_px: 25.0
+  maximum_query_to_collision_trigger_px: 0.5
+  door_half_extent_px: 14.0
+  collision_door_margin_px: 1.75
+  doorway_offsets_px: [13.25, 13.375, 13.5, 13.625, 13.75]
+  left_to_right_goal_x: 190.0
+  right_to_left_goal_x: 34.0
+  termination_radius_px: 16.0
+
+registered_kinematics:
+  horizontal_displacement_px:
+    h1:
+      "3.1": 15.5
+      "5.1": 25.5
+      "7.0": 35.0
+    h2:
+      "3.1": 31.0
+      "5.1": 51.0
+      "7.0": 70.0
+  slowest_h2_far_side_margin_px: 6.0
+  fastest_h2_goal_distance_px: 20.5
+  future_classes_per_horizon:
+    passable_speed_specific: 3
+    blocked_shared_across_speeds: 1
+    total_physical_classes: 4
+
+physical_contract:
+  passable:
+    - horizontal_position_changes_monotonically_with_speed
+    - three_speed_targets_are_distinct_at_h1_and_h2
+    - every_speed_finishes_on_the_opposite_side_at_h2
+  blocked:
+    - horizontal_position_remains_at_the_contact_boundary
+    - target_state_and_pixels_are_identical_across_speeds
+  composition:
+    - speed_changes_the_future_when_passable
+    - collision_suppresses_the_speed_effect_when_blocked
+    - no_vertical_query_motion_or_door_edge_projection
+
+training_isolation:
+  speed_factor_training_speeds: [2.7, 4.3, 6.1, 7.7]
+  requirements:
+    - no_exact_train_eval_speed_overlap_for_speed_only_and_joint
+    - every_eval_speed_is_inside_the_training_range
+    - training_loader_validation_and_benchmark_doors_are_disjoint
+    - all_training_groups_use_the_same_query_geometry
+    - paired_training_seeds_initialization_optimizer_steps_and_draws
+  groups:
+    speed_only:
+      speeds: [2.7, 4.3, 6.1, 7.7]
+      rules: [passable]
+      purpose: same_geometry_speed_prerequisite
+    door_only:
+      speeds: [5.1]
+      rules: [passable, blocked]
+      purpose: same_geometry_door_prerequisite_not_speed_generalization
+      exact_eval_speed_overlap_is_intentional: true
+    joint:
+      speeds: [2.7, 4.3, 6.1, 7.7]
+      rules: [passable, blocked]
+      balance: full_factorial
+
+evaluation:
+  eval_seeds: [42, 43, 44, 45, 46, 47]
+  unique_base_queries_per_seed: 50
+  unique_base_queries: 300
+  directions_per_seed:
+    left_to_right: 25
+    right_to_left: 25
+  histories_per_query: 6
+  prediction_sequences_per_checkpoint: 1800
+  prediction_endpoints_per_checkpoint: 3600
+  distinct_true_future_classes_per_query_per_horizon: 4
+  distinct_target_encodings_per_checkpoint: 2400
+  online_environment_calls_during_scoring: 0
+  reuse_v1_query_assignments_for_paired_analysis: true
+  paired_query_source:
+    catalog: artifacts/evaluation/history3/speed_door_rule_composition_validation_v1/catalog.json
+    catalog_sha256: 1c9b0a86cc32a1a9e0172348fe936c3aec43bbb938b834f78891d9178d225d7e
+  do_not_average:
+    - h1_and_h2
+    - primary_metrics
+    - individual_speed_conditions
+
+physical_gates_before_model_scoring:
+  exact_replay: true
+  query_and_actions_identical_across_all_six_histories: true
+  every_speed_contacts_the_gate_during_h1: true
+  passable_targets_ordered_by_speed_at_h1_and_h2: true
+  every_passable_speed_crosses_completely_by_h2: true
+  blocked_targets_exactly_identical_across_speeds_at_h1_and_h2: true
+  no_door_edge_collision_projection: true
+  no_termination_or_truncation_through_h2: true
+  all_four_physical_target_classes_are_pixel_distinct: true
+  target_latents_are_distinguishable_per_checkpoint: true
+
+metrics:
+  primary:
+    passable_speed_future_accuracy:
+      comparison: matching_prediction_against_three_passable_speed_targets
+      chance: 0.3333333333333333
+    door_future_accuracy:
+      comparison: matching_prediction_against_same_speed_passable_and_shared_blocked_targets
+      chance: 0.5
+    physical_future_macro_accuracy:
+      comparison: prediction_against_three_passable_speed_targets_and_one_shared_blocked_target
+      class_weighting: equal_weight_for_each_of_four_physical_classes
+      chance: 0.25
+    blocked_speed_suppression_win_rate:
+      comparison: blocked_prediction_pair_distance_is_lower_than_passable_prediction_pair_distance
+      speed_pairs_per_query: 3
+  supporting:
+    passable_speed_history_guidance:
+      comparison: same_speed_passable_history_beats_other_passable_speed_histories
+    door_history_guidance:
+      comparison: same_speed_matching_rule_history_beats_the_other_rule_history
+    blocked_prediction_spread_ratio:
+      numerator: mean_pairwise_blocked_prediction_mse
+      denominator: mean_pairwise_passable_prediction_mse
+      direction: lower_is_better
+  forbidden:
+    - six_way_accuracy_with_three_separate_blocked_targets
+    - raw_latent_mse_comparison_across_checkpoints
+    - inferring_pixel_speed_from_predicted_latents
+    - averaging_h1_and_h2_into_one_score
+
+decision_gates:
+  strict_ties_fail: true
+  checkpoint:
+    overall:
+      passable_speed_future_accuracy: 0.75
+      door_future_accuracy: 0.85
+      physical_future_macro_accuracy: 0.65
+      blocked_speed_suppression_win_rate: 0.75
+    every_eval_seed:
+      passable_speed_future_accuracy: 0.65
+      door_future_accuracy: 0.75
+      physical_future_macro_accuracy: 0.50
+      blocked_speed_suppression_win_rate: 0.65
+  prerequisites:
+    speed_only_all_three_seeds_pass_same_geometry_speed_metrics: true
+    door_only_all_three_seeds_pass_same_geometry_door_metrics: true
+    failure_means_no_formal_composition_claim: true
+  method:
+    joint_training_seeds: [3072, 4096, 5120]
+    every_joint_seed_must_pass_every_primary_metric_at_h1_and_h2: true
+
+interpretation:
+  speed_prerequisite_fails: speed_acquisition_or_geometry_problem
+  door_prerequisite_fails: door_rule_acquisition_or_geometry_problem
+  prerequisites_pass_joint_fails: evidence_of_multi_factor_interference
+  joint_passes: evidence_of_history3_speed_and_door_rule_composition_in_tworoom
+  never_implies:
+    - arbitrary_speed_extrapolation
+    - long_distance_cem_navigation
+    - transfer_to_another_collision_engine
+
+execution_order:
+  - build_and_audit_physical_feasibility_catalog
+  - freeze_training_and_validation_assets
+  - train_and_score_same_geometry_speed_only_control
+  - train_and_score_same_geometry_door_only_control
+  - stop_without_composition_claim_if_either_prerequisite_fails
+  - train_and_score_joint_models
+  - register_as_public_component_only_if_all_method_gates_pass
+
+artifacts:
+  validation_root: artifacts/evaluation/history3/speed_door_rule_composition_v2
+  validation_catalog: artifacts/evaluation/history3/speed_door_rule_composition_v2/catalog.json
+  training_exclusion_manifest: artifacts/evaluation/history3/speed_door_rule_composition_v2/training_exclusion_manifest.json
+  validation_results_root: artifacts/evaluation/history3/speed_door_rule_composition_v2/results
+  validation_aggregate: artifacts/evaluation/history3/speed_door_rule_composition_v2/aggregate.json
+  speed_joint_training_root: artifacts/synthesis/speed_door_rule_h3_v2/formal
+  door_anchor_training_root: artifacts/synthesis/speed_door_rule_h3_v2_door_anchor/formal

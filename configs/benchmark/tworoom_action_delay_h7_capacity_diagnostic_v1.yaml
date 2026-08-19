@@ -1,0 +1,109 @@
+schema_version: 1
+benchmark: tworoom_action_delay_history7_capacity_diagnostic_v1
+status: preregistered_before_capacity_diagnostic
+preregistered_date: "2026-07-29"
+
+question: >-
+  当前 LeWM 和 PLDM 都未能预测正确的延迟下一帧。共享的 History=7
+  预测器是否具备根据历史选择正确下一帧的能力；如果具备，失败主要来自
+  当前训练监督，而不是模型看不到长历史？
+
+claim_boundary:
+  post_hoc_root_cause_diagnostic_only: true
+  changes_formal_benchmark_result: false
+  trains_new_formal_model: false
+  hidden_test_remains_sealed: true
+  cem_may_run: false
+  encoder_and_projector_frozen: true
+  rescued_weights_are_not_release_checkpoints: true
+
+inputs:
+  stable_worldmodel:
+    repo: ../stable-worldmodel
+    commit: ad2bc44579f2b5b65c004fd2c9d8edc8ebaa43ce
+  normalizer:
+    path: artifacts/splits/tworoom_original_train_s3072_normalizer.json
+    sha256: 7a5be7ea867bced446c1671b0b2c0ff6450ffc61e1a7bdbbfc5eaa0942f635db
+  paired_domain_catalog:
+    path: artifacts/evaluation/history7/action_delay_domain_diagnostic_v1/catalog.json
+    sha256: f454b3766a1faac5208cefec79567783971731b0c45dca0108f1abd322e5462d
+    delays: [0, 4, 8]
+  failed_checkpoints:
+    lewm:
+      path: >-
+        artifacts/training/runs/checkpoints/h7_action_delay_multi_formal_s3072/weights_final_step_1024.pt
+      sha256: 590850aa93b7fdf8acc287bde537eff21b4f085d42ee54c8a506ee471d89e9f1
+    pldm:
+      path: >-
+        artifacts/training/runs/checkpoints/h7_action_delay_multi_pldm_root_cause_s3072/weights_final_step_1024.pt
+      sha256: 947ad10a4330538d5ac5f84f052bf0f38241c2b65f81664660df93fed5e1f60b
+
+data:
+  train_tracks:
+    - training_replay_delay_0
+    - training_replay_delay_4
+    - training_replay_delay_8
+  heldout_tracks:
+    - loader_validation_delay_0
+    - loader_validation_delay_4
+    - loader_validation_delay_8
+  deterministic_selection: first_32_catalog_queries_per_track
+  queries_per_track: 32
+  queries_per_split: 96
+  histories_per_query: 3
+  h1_units_per_split: 288
+  same_query_triplet:
+    pixels: same_query_with_delay_specific_history
+    actions: identical_across_three_histories
+    targets: delay_specific_offline_real_h1
+
+training:
+  trainable_modules: [predictor, pred_proj, action_encoder]
+  frozen_modules: [encoder, projector]
+  target: frozen_checkpoint_encoder_of_offline_real_h1_pixels
+  optimizer:
+    type: AdamW
+    learning_rate: 0.00005
+    weight_decay: 0.001
+  precision: bf16-mixed
+  seed: 3072
+  optimizer_steps: 512
+  examples_per_step: 96
+  snapshots: [0, 64, 128, 256, 512]
+  variants:
+    unpaired_final:
+      examples: one_source_delay_history_per_query
+      loss_positions: [final_history_dependent_transition]
+      purpose: >-
+        判断只提高末步监督权重、但仍不让同一 query 同时出现三种延迟，是否足够。
+    paired_full:
+      examples: all_three_delay_histories_per_query
+      loss_positions: [all_seven_transitions]
+      purpose: >-
+        判断只加入同 query 三延迟配套、但仍平均监督全部位置，是否足够。
+    paired_final:
+      examples: all_three_delay_histories_per_query
+      loss_positions: [final_history_dependent_transition]
+      purpose: >-
+        判断共享预测器在明确配套且直接监督关键末步时是否具备该能力。
+
+decision:
+  training_capacity_pass:
+    exact_target_selection_rate_minimum: 0.90
+  heldout_transfer_signal:
+    exact_target_selection_rate_minimum: 0.60
+  interpretation:
+    - condition: paired_final_passes
+      conclusion: shared_history7_predictor_has_required_capacity
+    - condition: unpaired_final_passes
+      conclusion: weak_final_transition_weight_is_sufficient_root_cause
+    - condition: paired_full_passes_and_unpaired_final_fails
+      conclusion: same_query_three_delay_support_is_sufficient_root_cause
+    - condition: only_paired_final_passes
+      conclusion: pairing_and_key_transition_weight_are_both_required
+    - condition: no_variant_passes
+      conclusion: shared_predictor_or_optimization_remains_a_root_cause
+
+artifacts:
+  results_root: >-
+    artifacts/evaluation/history7/action_delay_capacity_diagnostic_v1

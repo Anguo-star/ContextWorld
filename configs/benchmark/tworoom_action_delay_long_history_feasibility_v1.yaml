@@ -1,0 +1,77 @@
+schema_version: 1
+benchmark: tworoom_action_delay_long_history_feasibility_v1
+status: preregistered_before_long_history_training_or_model_evaluation
+date: "2026-07-28"
+claim_limit: physical_history_length_selection_only_not_a_model_icl_result
+
+question: >-
+  在每个模型动作段包含 5 个原始环境步、动作延迟扩展到 10 个原始步时，最少需要
+  多少帧历史才能观察延迟、执行反向恢复、排空动作队列，并让所有延迟从完全相同且
+  已稳定的 query 状态开始多步预测？
+
+stable_worldmodel:
+  repo: ../stable-worldmodel
+  commit: 9c006e2816f819818cd0d3fa12c4ac13270c1605
+
+environment:
+  base: swm/TwoRoom-v1
+  hidden_factor: action.delay_steps
+  delay_is_absent_from_pixels_and_observations: true
+  pending_queue_is_absent_from_model_inputs: true
+
+protocol:
+  candidate_history_tokens: [5, 6, 7, 9]
+  raw_steps_per_action_block: 5
+  delay_values: [0, 2, 4, 6, 8, 10]
+  maximum_delay_steps: 10
+  agent_speed: 7.0
+  action_magnitude: 0.5
+  history_actions:
+    - five_probe_commands
+    - five_zero_commands
+    - five_inverse_probe_commands
+    - zero_blocks_until_query
+  future_actions:
+    - repeat_probe_for_three_action_blocks
+  future_horizons_action_blocks: [1, 2, 3]
+  resets_or_teleports_inside_history: false
+
+selection:
+  expected_physical_minimum: 6
+  expected_formal_history: 7
+  rule: >-
+    先选择能够让所有延迟到达相同 query 且动作队列为空的最短长度，再增加一个完整
+    的零动作转移，确认最慢延迟已经停止产生残余运动。更长历史如果不增加可辨识范围，
+    不作为默认长度。
+
+catalog_seed: 20260728
+counts:
+  starts_per_direction: 3
+  paired_templates: 24
+
+gates:
+  every_delay_has_exact_readback: true
+  history_trajectory_distinguishes_all_delays: true
+  query_state_and_pixels_are_identical: true
+  pending_action_queue_is_empty: true
+  horizon2_and_horizon3_true_states_distinguish_all_delays: true
+  final_transition_is_stationary_for_every_delay: true
+  deterministic_rebuild: true
+
+model_visible_fields: [pixels, action]
+privileged_audit_fields:
+  - action.delay_steps
+  - pending_actions
+  - state
+  - template_id
+
+output_root: artifacts/evaluation/long_history/action_delay_length_feasibility_v1
+
+next_gate:
+  on_pass:
+    - freeze_history7_training_and_validation_protocol
+    - build_50x6_offline_validation
+    - add_history7_model_and_data_loader_contract
+  on_fail:
+    - do_not_start_long_history_training
+    - revise_action_schedule_or_history_length

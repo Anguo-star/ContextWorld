@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "freeze_id": "contextworld_original_baseline_cem_finalizer_recovery_freeze_v1",
+  "recovery_id": "contextworld_original_baseline_cem_finalizer_recovery_v1",
+  "status": "frozen_before_recovery_summary_write",
+  "frozen_date_utc": "2026-08-17",
+  "result_summary_absent_before_freeze": true,
+  "cem_episodes_rerun_before_freeze": 0,
+  "recovery_preregistration": {
+    "path": "configs/benchmark/contextworld_original_baseline_cem_finalizer_recovery_prereg_v1.yaml",
+    "sha256": "14a52b24b08c57dddf73e31cb675652eb1737bc724dffde9cf45621a331a8ee6",
+    "size_bytes": 2259
+  },
+  "recovery_implementation": {
+    "path": "scripts/finalize_contextworld_original_baseline_cem_recovery_v1.py",
+    "sha256": "015bc9c6044b00e08ba3189c41a11119245564b59e5f8c2c544da6190f23c9b6",
+    "size_bytes": 9967
+  },
+  "original_authority": {
+    "preregistration": {
+      "path": "configs/benchmark/contextworld_original_baseline_cem_prereg_v1.yaml",
+      "sha256": "acc82b6f6e1c6488c602b1b5980450d5fdc101d9091e68910a896990ed9deabb",
+      "size_bytes": 17890
+    },
+    "pre_execution_freeze": {
+      "path": "configs/benchmark/contextworld_original_baseline_cem_freeze_v1.json",
+      "sha256": "1d6298b590446006b3298dee1f5d433079f56fbb7d08bf23f4167841e39f3d49",
+      "size_bytes": 1621
+    },
+    "original_finalizer": {
+      "path": "scripts/finalize_contextworld_original_baseline_cem_v1.py",
+      "sha256": "519c2c3342741b42eab761308f59d9ea63cfcef607ae2445ef970381e1b0894a",
+      "size_bytes": 67442
+    }
+  },
+  "verification": {
+    "command": "pytest -q -p no:rerunfailures tests/test_original_baseline_cem_finalizer_recovery_v1.py tests/test_finalize_contextworld_original_baseline_cem_v1.py",
+    "passed": 6,
+    "failed": 0,
+    "recovery_test": {
+      "path": "tests/test_original_baseline_cem_finalizer_recovery_v1.py",
+      "sha256": "5c2d330916aa23b9566b3a3bf1cc865be2f170b886ec83ae601372ece4803499",
+      "size_bytes": 1560
+    }
+  },
+  "authorized_change": "accept query_count as an exact per-seed evaluation-count alias and reject conflicts",
+  "receipt_mutation_authorized": false,
+  "cem_execution_authorized": false,
+  "formal_scoreboard_mutation_authorized": false
+}

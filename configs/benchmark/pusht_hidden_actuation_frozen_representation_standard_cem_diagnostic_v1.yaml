@@ -1,0 +1,68 @@
+schema_version: 1
+benchmark: pusht_hidden_actuation_history3_action_coverage_v2
+experiment: frozen_representation_standard_cem_mechanism_diagnostic_v1
+status: registered_after_prediction_failure_before_standard_cem
+registered_at_utc: "2026-07-30"
+owner: ContextWorld
+
+scope: >-
+  This adaptive follow-up answers only whether fixing the source Encoder and
+  Projector is sufficient to retain standard Push-T CEM after mixed dynamics
+  training. It does not change the failed hidden-prediction decision and
+  cannot establish a jointly passing method.
+
+trigger:
+  training_protocol: configs/benchmark/pusht_hidden_actuation_frozen_representation_mixed_v1.yaml
+  training_report: >-
+    artifacts/evaluation/history3/pusht_hidden_actuation_h3_v1/
+    frozen_representation_mixed_seed6145_step2048/training/mixed_report.json
+  training_report_sha256: d30d9d3823126c1615b33d41ca6bfb7957dfec09b619ec57bf3b9de0f9488849
+  prediction_result:
+    target_selection: 0.92
+    correct_history: 0.99
+    rule_switch: 1.00
+    worst_mode: 0.86
+    formal_prediction_gate_passed: false
+  registered_training_decision_preserved:
+    hidden_actuation_cem: skipped
+    joint_candidate: failed
+
+model:
+  display_name_zh: 固定规划表示的混合训练
+  checkpoint: >-
+    artifacts/evaluation/history3/pusht_hidden_actuation_h3_v1/
+    frozen_representation_mixed_seed6145_step2048/training/
+    mixed_frozen_image_native_0p09_step2048.pt
+  checkpoint_sha256: de3e7b57b27e55e11bf234dfbfa27c254d435b1b1cbc95b6e3a05f95267a50bc
+  frozen_state_sha256_before: 86db7bae0f217564d2562cedbd5d54cc5f7df3f2e5d0e2858c421ace29c553f8
+  frozen_state_sha256_after: 86db7bae0f217564d2562cedbd5d54cc5f7df3f2e5d0e2858c421ace29c553f8
+
+standard_pusht_cem:
+  protocol: exact_standard_history3_cem_300x30_top30
+  eval_seeds: [42, 43, 44, 45, 46, 47]
+  queries_per_seed: 50
+  expected_query_catalog_sha256: da974c821e3fa0f232ac59538e0c79cc2cb9a80ea4bb4a62b910c66c278ce2d4
+  output: >-
+    artifacts/evaluation/history3/pusht_hidden_actuation_h3_v1/
+    frozen_representation_mixed_seed6145_step2048/
+    standard_pusht_cem_diagnostic
+  replay_matched_native_0p09_control:
+    success_count: 230
+    evaluation_count: 300
+    success_rate: 0.7666666666666667
+  paired_noninferiority_margin_absolute: 0.05
+  noninferiority_success_count_minimum: 215
+
+decision_rules:
+  - Do not tune the model, planner, query catalog, or success threshold after
+    reading the diagnostic.
+  - >-
+    At least 215/300 supports fixed target geometry as sufficient for
+    standard-task noninferiority under this one training seed.
+  - >-
+    Below 215/300 shows that Encoder/Projector drift is not a sufficient
+    explanation; changed Predictor or Action Encoder calibration can still
+    degrade planning against a fixed target metric.
+  - >-
+    Neither outcome upgrades the model to a joint solution because the
+    registered hidden-prediction gate already failed.

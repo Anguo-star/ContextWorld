@@ -1,0 +1,150 @@
+schema_version: 1
+benchmark: pusht_hidden_actuation_history3_action_coverage_v2
+experiment: scale_calibrated_conditional_sigreg_v1
+status: registered_before_scale_estimation_implementation_gradient_or_training
+registered_at_utc: "2026-07-30"
+owner: ContextWorld
+
+research_question: >-
+  Can one source-scale-calibrated conditional SIGReg population preserve a
+  History-identifiable local dynamics direction without inflating that
+  direction or losing standard Push-T planning calibration?
+
+method:
+  id: scale_calibrated_conditional_sigreg
+  display_name_zh: 尺度校准条件 SIGReg
+  loss_formula: prediction_mse_plus_lambda_times_one_sigreg_scalar
+  sigreg_calls_per_optimizer_step: 1
+  external_regularizer_weight_count: 1
+  additional_loss_components: 0
+  additional_model_heads: 0
+  native_sigreg_stacked: false
+  variance_covariance_invariance_idm_or_distillation_terms: false
+  planner_or_cem_changes: false
+  hidden_rule_or_class_label_consumed: false
+
+active_population:
+  matched_contrast: d_t = (z_t_i - z_t_j) / sqrt(2)
+  calibrated_contrast: d_t / s_t
+  source_scale: s_t = RMS(d_t_from_source_checkpoint_on_training_split)
+  population: concat(unpaired_standard_replay_rows, calibrated_contrasts)
+  statistic: one_native_SIGReg_on_the_complete_population
+  reason: >-
+    The previous conditional statistic treated matched futures as independent
+    standard Gaussians. Their raw contrast is much smaller because the pair
+    shares the visible condition, so forcing the raw contrast to unit scale
+    inflated local geometry. Frozen source scales preserve the resolution
+    already present at initialization while exposing collapse to SIGReg.
+
+inactive_population:
+  population: complete_batch_embedding_marginal
+  statistic: one_native_SIGReg
+
+causal_pair_mask:
+  x0: false
+  x1_probe_future: true
+  x2_recovered_query: false
+  x3_history_conditioned_future: true
+
+source_scale_estimation:
+  data: artifacts/synthesis/pusht_hidden_actuation_h3_v1/train.lance
+  pair_count: 2048
+  source_checkpoint: external/pusht/pusht_lewm_baseline_seed3073_weights.ckpt
+  source_checkpoint_sha256: 9f13b2c28bb909338047e08d62bf6eb16ea3616cb53e57cfa9b5072b43db1c59
+  model_mode: eval
+  precision: float64_accumulation_after_float32_encoder_output
+  image_batch_size: 128
+  estimator: scalar_RMS_over_pairs_and_embedding_dimensions_per_active_time
+  scale_is_frozen_during_training: true
+  evaluation_split_used: false
+  downstream_metric_used: false
+
+immutable_inputs:
+  hidden_data: artifacts/synthesis/pusht_hidden_actuation_h3_v1
+  hidden_manifest_sha256: 4f307a60920747506c1d8aadc41931a0f768b7f3d7ba6317d7246b008bc3fc64
+  original_data: external/pusht/lewm_pusht.lance
+  action_normalizer_source: external/pusht/pusht_expert_train.h5
+
+gradient_calibration:
+  seed: 9217
+  batch_size: 128
+  original_samples: 64
+  hidden_samples: 64
+  hidden_pairs: 32
+  prediction_dropout_expectation_seeds: [93101, 93102, 93103, 93104]
+  random_projection_seed: 97033
+  num_projections: 1024
+  candidate_external_weights: [0.005, 0.01, 0.02, 0.05, 0.09]
+  selection: >-
+    Select the smallest registered coefficient for which every gate passes.
+    Do not select from trained checkpoints or evaluation metrics.
+  gates:
+    target_probe_x1_pair_distance_does_not_contract: true
+    target_history_future_x3_pair_distance_does_not_contract: true
+    deterministic_correct_future_margin_x3_increases: true
+    deterministic_standard_replay_prediction_mse_decreases: true
+    gradient_reaches_unpaired_standard_rows: true
+    gradient_reaches_active_hidden_contrasts: true
+  stop_before_training_if_no_weight_passes: true
+  maximum_allowed_external_weight: 0.09
+
+held_out_training:
+  seed: 10241
+  seed_unread_at_registration: true
+  optimizer_steps: 2048
+  batch_size: 128
+  original_samples_per_batch: 64
+  hidden_samples_per_batch: 64
+  hidden_pairs_per_batch: 32
+  optimizer: AdamW
+  learning_rate: 5.0e-5
+  weight_decay: 1.0e-3
+  gradient_clip_norm: 1.0
+  precision: bf16_mixed
+  exact_same_batches_between_variants: true
+  variants:
+    - id: mixed_native_sigreg_0p09
+      role: same_seed_original_lewm_control
+    - id: scale_calibrated_conditional_sigreg_selected_weight
+      role: primary_method
+
+hidden_prediction_gate:
+  target_selection_minimum: 0.95
+  correct_history_minimum: 0.95
+  rule_switch_minimum: 0.95
+  worst_mode_minimum: 0.90
+
+standard_pusht_followup:
+  run_only_after_primary_hidden_prediction_pass: true
+  eval_seeds: [42, 43, 44, 45, 46, 47]
+  queries_per_seed: 50
+  protocol: exact_standard_history3_cem_300x30_top30
+  paired_noninferiority_margin_absolute: 0.05
+  comparison: same_seed_native_control
+
+hidden_actuation_followup:
+  run_only_after_hidden_prediction_and_standard_noninferiority_pass: true
+  eval_seed: 10240
+  query_pairs: 50
+  oracle_grid_success_minimum: 0.95
+  mode_action_classification_minimum: 0.90
+  real_environment_success_minimum: 0.80
+
+cross_task_followup:
+  run_only_after_all_pusht_gates_pass: true
+  task: tworoom_speed_door_rule_history3
+  requirement: same_formula_and_no_task_specific_loss_component
+  purpose: test_that_the_fix_is_not_specific_to_hidden_actuation
+
+decision_rules:
+  - Do not add native SIGReg, IDM, distillation, auxiliary heads, covariance,
+    variance, or planner tuning to rescue this method.
+  - Do not recompute or update source scales after optimization begins.
+  - Do not change the scale estimator, weight grid, seeds, or gates after
+    reading calibration or training results.
+  - If no coefficient passes the gradient gate, reject this formula before
+    full training.
+  - If hidden prediction fails, stop before CEM evaluation.
+  - If standard CEM is inferior, do not run hidden CEM or claim a solution.
+  - A single held-out training seed is a mechanism validation, not a
+    robustness claim; a joint pass must be replicated before publication.

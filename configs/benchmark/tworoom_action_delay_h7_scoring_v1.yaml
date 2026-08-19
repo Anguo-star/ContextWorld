@@ -1,0 +1,158 @@
+schema_version: 1
+benchmark: tworoom_action_delay_history7_scoring_v1
+status: frozen_before_any_history7_model_scoring
+frozen_date: "2026-07-29"
+
+question: >-
+  与样本量和几何完全配对的单延迟训练相比，多延迟训练是否让 History=7 LeWM
+  从历史识别隐藏动作延迟，并把识别结果连续用于 h1、h2、h3 真实未来预测？
+
+source_identity:
+  validation_config:
+    path: configs/benchmark/tworoom_action_delay_h7_v1.yaml
+    sha256: f5c027f42dc8bc329b1413b896424ddbd148b50a903773ddc7d2ad734b681a56
+  validation_catalog:
+    path: artifacts/evaluation/history7/action_delay_validation_v1/catalog.json
+    sha256: 5a3fc1a53c05cc4e6f97f7b7544c48aaaf6033550b70a63899eab35ee46fafca
+    content_manifest_sha256: e8d75d9c2b0cf91bd9c5d419289c98ba11c9b2bc6e3589549e2d76d3e8a23923
+  validation_build_report:
+    path: >-
+      artifacts/evaluation/history7/action_delay_validation_v1/build_report.json
+    sha256: 331ce0a1cd85db717c2761c75bf1cd02e7eb2fb0de2912efee8a2ad167c3e85a
+  validation_audit_report:
+    path: >-
+      artifacts/evaluation/history7/action_delay_validation_v1/audit_report.json
+    sha256: c3c7241ee63a6edcfcde29bbd5e702371bfccf54ae71b6bc70cdf0b448bf9281
+  training_config:
+    path: configs/benchmark/tworoom_action_delay_h7_training_v1.yaml
+    sha256: 0dded04b89ee412a30945e80c5cf59f6cf7a55a4a0d5a295a44f572755f80693
+  normalizer:
+    path: artifacts/splits/tworoom_original_train_s3072_normalizer.json
+    sha256: 7a5be7ea867bced446c1671b0b2c0ff6450ffc61e1a7bdbbfc5eaa0942f635db
+
+stable_worldmodel:
+  repo: ../stable-worldmodel
+  commit: ad2bc44579f2b5b65c004fd2c9d8edc8ebaa43ce
+  equivalent_detached_worktree_allowed: true
+
+evaluation:
+  history_tokens: 7
+  raw_steps_per_action_block: 5
+  delay_values: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+  tracks:
+    training_seen: [0, 4, 8]
+    within_range_unseen: [1, 2, 3, 5, 6, 7]
+    above_range_unseen: [9, 10]
+  horizons: [1, 2, 3]
+  eval_seeds: [42, 43, 44, 45, 46, 47]
+  queries_per_eval_seed: 50
+  distinct_queries: 300
+  queries_per_delay: 300
+  batch_size: 128
+  target: current_checkpoint_encoder_of_offline_real_future_pixels
+  rollout: fully_autoregressive_without_true_frame_replacement
+  model_visible_fields: [pixels, action]
+  online_environment_calls: 0
+  expected_counts_per_checkpoint:
+    model_predictions: 3300
+    target_encodings: 9900
+    trajectory_comparisons: 36300
+    horizon_loss_records: 108900
+  physical_equivalence:
+    h1:
+      groups:
+        - [0]
+        - [1]
+        - [2]
+        - [3]
+        - [4]
+        - [5, 6, 7, 8, 9, 10]
+      exact_delay_rate_for_delays_5_to_10_is_descriptive_only: true
+    h2:
+      groups: [[0], [1], [2], [3], [4], [5], [6], [7], [8], [9], [10]]
+    h3:
+      groups: [[0], [1], [2], [3], [4], [5], [6], [7], [8], [9], [10]]
+
+method_gate:
+  evaluated_method: multi_delay_target
+  paired_control: single_delay_control
+  required_training_seeds: [3072, 4096, 5120]
+  every_multi_delay_seed_must_pass: true
+  three_step_trajectory_per_delay:
+    exact_history_selection_rate_minimum: 0.60
+    exact_target_selection_rate_minimum: 0.60
+    matching_history_strict_win_rate_minimum: 0.50
+    mean_history_margin_must_be_positive: true
+    every_eval_seed_history_margin_must_be_positive: true
+  autoregressive_horizon_checks:
+    h1:
+      use_physical_target_group_selection_rate: true
+      per_delay_minimum: 0.60
+    h2:
+      use_exact_target_selection_rate: true
+      per_delay_minimum: 0.60
+    h3:
+      use_exact_target_selection_rate: true
+      per_delay_minimum: 0.60
+    all_horizons_required: true
+  paired_multi_vs_single:
+    compare_within_same_training_seed: true
+    cross_checkpoint_raw_latent_loss_comparison_forbidden: true
+    rate_metrics:
+      - exact_history_selection_rate
+      - exact_target_selection_rate
+      - matching_history_strict_win_rate
+    rule: every_rate_must_be_strictly_higher_for_every_seed
+  original_only_role: descriptive_baseline_not_attribution_control
+
+models:
+  original_only:
+    - slug: h7_action_delay_original_only_formal_s3072
+      model_id: H7_OriginalOnly
+      training_seed: 3072
+    - slug: h7_action_delay_original_only_formal_s4096
+      model_id: H7_OriginalOnly
+      training_seed: 4096
+    - slug: h7_action_delay_original_only_formal_s5120
+      model_id: H7_OriginalOnly
+      training_seed: 5120
+  single_delay_control:
+    - slug: h7_action_delay_single_control_formal_s3072
+      model_id: H7_ActionDelay_SingleControl
+      training_seed: 3072
+    - slug: h7_action_delay_single_control_formal_s4096
+      model_id: H7_ActionDelay_SingleControl
+      training_seed: 4096
+    - slug: h7_action_delay_single_control_formal_s5120
+      model_id: H7_ActionDelay_SingleControl
+      training_seed: 5120
+  multi_delay_target:
+    - slug: h7_action_delay_multi_formal_s3072
+      model_id: H7_ActionDelay_Multi
+      training_seed: 3072
+    - slug: h7_action_delay_multi_formal_s4096
+      model_id: H7_ActionDelay_Multi
+      training_seed: 4096
+    - slug: h7_action_delay_multi_formal_s5120
+      model_id: H7_ActionDelay_Multi
+      training_seed: 5120
+
+model_artifact_pattern:
+  checkpoint: >-
+    artifacts/training/runs/checkpoints/{slug}/weights_final_step_1024.pt
+  training_report: artifacts/training/reports/{slug}.json
+  expected_training_steps: 1024
+  expected_initialization_state_sha256: >-
+    4c4de1aad9a46d265f96c1a341c893f400137901ff355b72c6ba49fba7b201fb
+
+artifacts:
+  results_root: >-
+    artifacts/evaluation/history7/action_delay_validation_v1/model_results
+  aggregate: >-
+    artifacts/evaluation/history7/action_delay_validation_v1/comparison_summary.json
+
+claim_boundary:
+  validation_only: true
+  hidden_test_remains_sealed: true
+  planning_not_required_for_prediction_claim: true
+  ability_retention_required_only_after_primary_prediction_gate: true

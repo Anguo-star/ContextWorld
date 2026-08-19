@@ -1,0 +1,115 @@
+schema_version: 1
+benchmark: pusht_motion_damping_history3_feasibility_v1
+status: completed_history3_physical_feasibility_and_data_passed
+date: "2026-07-31"
+claim_limit: physical_identifiability_and_data_not_model_icl
+
+identity:
+  implementation:
+    path: contextworld/evaluation/pusht_motion_damping_h3.py
+    sha256: 949810c0873060ce5446e75377b8ee90f43efaa4de37d3a3b52db946f9e5e06a
+  runner:
+    path: scripts/audit_pusht_motion_damping_h3.py
+    sha256: e789a827c4446a53e447acfa5870fb20e33f9b34280a1554dc6f7a87a70822fd
+  result:
+    path: artifacts/evaluation/history3/pusht_motion_damping_h3_feasibility_v1/audit.json
+    sha256: 89fa51305bbb2ecb8bfa0ecd178e64a938f9b8ba8b516927ef9ca9f8c748f417
+
+question: >-
+  在当前完整状态和 query 动作相同的情况下，History=3 能否显示物体运动
+  衰减速度，并让相同 query 动作产生不同的真实下一帧？
+
+naming:
+  display_name_zh: PushT 运动阻尼 ICL
+  controlled_factor: pymunk_space_damping
+  not_contact_friction: true
+  note: >-
+    运动阻尼控制物体离开接触后的速度衰减；接触摩擦控制推手与物体碰撞时的
+    切向响应，两者是不同能力。
+
+environment:
+  id: stable_worldmodel/PushT
+  damping_values: [0.2, 1.0]
+  interpretation:
+    0.2: 运动衰减较快
+    1.0: 不额外衰减
+  fixed_factors:
+    action_scale: 100.0
+    effective_contact_friction: 0.25
+    block_mass: 1.0
+    elasticity: 0.0
+
+pilot:
+  reused_templates_for_signal_check_only: 8
+  history_tokens: 3
+  minimum_history_response_gap_px_equivalent: 3.5305379465452247
+  minimum_true_future_block_position_gap_px: 5.869604961606079
+  physical_signal_present: true
+  existing_friction_recovery_reusable: false
+  existing_template_maximum_query_state_correction: 40.732722270142915
+  formal_correction_limit: 0.002
+  interpretation: >-
+    History=3 已有足够的阻尼信号，但接触摩擦任务的 recovery 不能把两种阻尼
+    轨迹带回同一个 query；正式组件必须重新搜索 recovery，不能复用旧数据。
+
+formal_history3_confirmation:
+  construction: >-
+    相同动作推出方块，使两个阻尼条件在中间帧留下差异；随后利用同一外墙让
+    两条轨迹自然停止，再从冻结的共同完整状态执行相同 query 动作。
+  visible_shape: square
+  templates: 8
+  orientations: 4
+  positions_per_orientation: 2
+  passed_templates: 8
+  minimum_history_response_gap_px_equivalent: 38.743572490223016
+  maximum_per_trajectory_query_state_correction: 0.00009897484994070282
+  minimum_true_future_block_position_gap_px: 27.032070684098905
+  deterministic_replay: true
+  passed: true
+
+formal_causal_pair_gates:
+  same_initial_full_state_and_pixels: true
+  same_history_actions: true
+  history_contains_contact_launch_then_free_motion: true
+  history_response_gap_px_equivalent_minimum: 3.0
+  same_frozen_query_full_state_and_pixels: true
+  maximum_per_trajectory_query_state_correction: 0.002
+  same_query_actions: true
+  true_future_block_position_gap_px_minimum: 2.0
+  model_visible_fields: [pixels, action]
+
+decision:
+  increase_history_to_7: false
+  generate_formal_data_now: true
+  next_step: run_three_seed_lewm_and_pldm_reference_matrix
+  on_formal_pair_pass:
+    pair_counts:
+      train: 2048
+      development: 256
+      public_test: 256
+    then:
+      - freeze_data_and_scoring
+      - train_three_seed_lewm_and_pldm_reference_matrix
+      - run_standard_pusht_cem_retention
+      - register_as_new_suite_component
+  on_formal_pair_fail:
+    - do_not_generate_training_or_public_test_data
+    - reassess_history7_only_if_extra_observations_solve_query_alignment
+
+formal_data:
+  artifact_root: artifacts/synthesis/pusht_motion_damping_h3_release_v1
+  manifest_sha256: 5041e6e9c68762f2dd4175b5fdb91bce78cfb3cbb3feac7fbbaa3e067fb34081
+  pair_counts:
+    train: 2048
+    loader_validation: 256
+    validation: 256
+  public_names:
+    train: Training
+    loader_validation: Development
+    validation: Public Test
+  cross_split_query_pixel_hash_overlap: 0
+  cross_split_template_id_overlap: 0
+  minimum_history_response_gap_px_equivalent: 38.743560791015625
+  maximum_per_trajectory_query_state_correction: 0.00009897484994780825
+  minimum_true_future_block_position_gap_px: 27.03206443786621
+  passed: true

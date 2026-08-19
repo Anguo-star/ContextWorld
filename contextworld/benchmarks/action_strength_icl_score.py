@@ -14,7 +14,10 @@ from contextworld.benchmarks.action_strength_icl_data import (
     file_sha256,
     load_action_strength_icl_release,
 )
-from contextworld.benchmarks.adapters import ActionStrengthICLModelAdapter
+from contextworld.benchmarks.adapters import (
+    ActionStrengthICLModelAdapter,
+    validate_adapter_protocol,
+)
 from contextworld.benchmarks.paired_latent_response import (
     paired_latent_response_gate_checks,
     paired_latent_response_metrics,
@@ -243,11 +246,14 @@ def evaluate_action_strength_icl_model(
         raise RuntimeError(
             "Formal Action Strength scoring requires all 256 pairs"
         )
-    protocol = adapter.protocol
-    if protocol.history_tokens != 3:
-        raise ValueError("Action Strength v1 requires a History=3 adapter")
-    if protocol.action_block_raw_steps != 5 or protocol.action_dim != 2:
-        raise ValueError("Action Strength v1 requires 5x2 action blocks")
+    validate_adapter_protocol(
+        adapter,
+        history_tokens=3,
+        action_block_raw_steps=5,
+        action_dim=2,
+        minimum_future_action_blocks=1,
+        task_name="Action Strength v1",
+    )
 
     histories = np.concatenate(
         [arrays.low_pixels[:, :3], arrays.high_pixels[:, :3]],
@@ -399,6 +405,9 @@ def _rescore_prediction_result(
         [row["rule_switch_correct"] for row in records],
         dtype=bool,
     )
+    # The evaluator produces these per-example MSE values from float32
+    # latent arrays.  Preserve that dtype when JSON records are rescored so
+    # the public command reproduces the evaluator's aggregate exactly.
     correct_losses = np.asarray(
         [
             row["low_strength"]["correct_future_mse"]
@@ -407,7 +416,8 @@ def _rescore_prediction_result(
         + [
             row["high_strength"]["correct_future_mse"]
             for row in records
-        ]
+        ],
+        dtype=np.float32,
     )
     other_losses = np.asarray(
         [
@@ -417,7 +427,8 @@ def _rescore_prediction_result(
         + [
             row["high_strength"]["other_future_mse"]
             for row in records
-        ]
+        ],
+        dtype=np.float32,
     )
     metrics = {
         "pair_count": len(records),

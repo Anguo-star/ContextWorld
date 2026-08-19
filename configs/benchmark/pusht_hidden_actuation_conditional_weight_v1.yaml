@@ -1,0 +1,59 @@
+schema_version: 1
+benchmark: pusht_hidden_actuation_history3_action_coverage_v2
+status: conditional_weight_sweep_registered_before_training
+question: >-
+  Conditional SIGReg 的最小有效权重是多少；降低条件正则强度能否在保留隐藏
+  增益方向的同时改善 Push-T CEM 的精细动作标定？
+
+immutable_inputs:
+  data_manifest_sha256: 4f307a60920747506c1d8aadc41931a0f768b7f3d7ba6317d7246b008bc3fc64
+  initialization: standard_pusht_lewm_seed3073
+  training_seed: 3073
+  optimizer_steps: 1024
+  batch_size: 128
+  learning_rate: 5.0e-5
+  weight_decay: 1.0e-3
+  gradient_clip_norm: 1.0
+  conditional_pair_definition: same_visible_query_and_complete_action_sequence
+  conditional_active_times:
+    - 1
+    - 3
+  regularizer_components: 1
+
+weights:
+  - 0.01
+  - 0.03
+  - 0.05
+  - 0.09
+
+selection_rule:
+  prediction_pass:
+    two_real_future_target_selection_minimum: 0.95
+    correct_history_preference_minimum: 0.95
+    correct_rule_switch_minimum: 0.95
+    worst_mode_minimum: 0.9
+  choose: >-
+    Among prediction-passing weights, select the smallest coefficient before
+    reading closed-loop CEM. If several weights are equally smallest, no
+    CEM-based retuning is allowed.
+
+closed_loop_calibration:
+  first_eval_seed: 4096
+  candidates: 300
+  iterations: 30
+  topk: 30
+  primary:
+    - real_environment_success_rate
+    - mean_absolute_amplitude_regret
+    - oracle_mode_action_classification_rate
+  expand_to_six_seeds_only_if:
+    - prediction_pass
+    - oracle_mode_action_classification_rate_at_least_0.9
+
+interpretation:
+  - >-
+    A method that identifies the hidden mode but misses the simulator goal is
+    not a completed planning solution.
+  - >-
+    This is an in-task weight study. Raw coefficients are not compared
+    numerically with TwoRoom or the paper's standard Push-T sweep.

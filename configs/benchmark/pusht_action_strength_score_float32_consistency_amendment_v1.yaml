@@ -1,0 +1,67 @@
+schema_version: 1
+amendment_id: pusht_action_strength_score_float32_consistency_amendment_v1
+release_id: contextworld_pusht_action_strength_icl_history3_v1
+status: preregistered_after_formal_result_freeze_before_public_scorer_fix
+created_utc: "2026-08-17"
+
+purpose:
+  issue: >-
+    The evaluator forms per-example MSE arrays in float32, while the public
+    score command reconstructed the same JSON record values with NumPy's
+    implicit float64 dtype.  A mean-margin difference below 5e-8 could
+    therefore reject an otherwise unchanged frozen result.
+  correction: >-
+    Reconstruct only the two MSE arrays as float32 in the public rescorer,
+    matching the evaluator that produced the records.
+  scientific_effect: none
+  gate_or_threshold_change_authorized: false
+  raw_result_rewrite_authorized: false
+  model_evaluation_rerun_authorized: false
+  checkpoint_selection_authorized: false
+  public_test_reopen_authorized: false
+
+pre_change_identity:
+  scorer:
+    path: contextworld/benchmarks/action_strength_icl_score.py
+    sha256: 4beefc8ab58470b02faf9132c9a7dc22f39e6576e3c086fd1efccb71502a863b
+  release_config:
+    path: configs/benchmark/pusht_action_strength_icl_release_v1.yaml
+    sha256: e8e9fe068ef323b9dc92fab3a55a3154a305f6c920cd55718141e69854c778bc
+
+frozen_formal_evidence:
+  raw_public_icl:
+    - seed: 13313
+      path: artifacts/evaluation/history3/pusht_action_strength_pldm_reference_completion_v1/formal_icl_v1/seed_13313.json
+      sha256: 0949c239be93037d4c9c285fe041d57aeda0b9ded5842f5ba488f23f3dbbdfd7
+    - seed: 13314
+      path: artifacts/evaluation/history3/pusht_action_strength_pldm_reference_completion_v1/formal_icl_v1/seed_13314.json
+      sha256: ad8579ff0d20d6a00f3229882fe527be205ec1be62d04b0c2d308b440eca1bc9
+    - seed: 13315
+      path: artifacts/evaluation/history3/pusht_action_strength_pldm_reference_completion_v1/formal_icl_v1/seed_13315.json
+      sha256: a6719430527b8ee1883a05e2bb09d02f096ef6e98ddf25d37b49a4702b431665
+  independent_float32_recovery:
+    seed_receipts:
+      - seed: 13313
+        path: artifacts/evaluation/history3/pusht_action_strength_pldm_reference_completion_v1/formal_icl_v1/float32_rescore_recovery_v1/seed_13313.json
+        sha256: 5ca4bb1d4687624fe40791f87331d588bae695431f78dfb6ae34026cfd01f0dc
+      - seed: 13314
+        path: artifacts/evaluation/history3/pusht_action_strength_pldm_reference_completion_v1/formal_icl_v1/float32_rescore_recovery_v1/seed_13314.json
+        sha256: 51067c41abebb6f5c3e9fcca389165187d2599a4adc51955bb12a9ce86d7d6c4
+      - seed: 13315
+        path: artifacts/evaluation/history3/pusht_action_strength_pldm_reference_completion_v1/formal_icl_v1/float32_rescore_recovery_v1/seed_13315.json
+        sha256: d1805511c84dbf3456371acf72d46b0741bcb778cdcb379f8dc1cb924eb23398
+    aggregate:
+      path: artifacts/evaluation/history3/pusht_action_strength_pldm_reference_completion_v1/formal_icl_v1/float32_rescore_recovery_v1/three_seed_negative_aggregate.json
+      sha256: b2bbf8c94e00246a10ec987c1c8f15476a65814b46c854e3371ca78507c33a17
+    cem_stop:
+      path: artifacts/evaluation/history3/pusht_action_strength_pldm_reference_completion_v1/formal_icl_v1/cem_not_authorized_stop_v1.json
+      sha256: c4b2c9d57192016e9792ced603fd2f111a983dddd45581ecf6ca03b69c89d23a
+
+required_post_change_behavior:
+  public_score_command_accepts_all_three_frozen_raw_receipts: true
+  reconstructed_gate_matches_independent_recovery_bit_for_bit: true
+  expected_passed_checkpoints: 0
+  expected_evaluated_checkpoints: 3
+  expected_correct_future_rate_mean: 0.9427083333333334
+  cem_authorization_must_remain_false: true
+  historical_receipts_must_remain_byte_identical: true

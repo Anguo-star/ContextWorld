@@ -1,0 +1,252 @@
+schema_version: 1
+cem_preregistration_id: tworoom_speed_pldm_cem_prereg_v1
+completion_id: tworoom_speed_pldm_reference_completion_v1
+release_id: contextworld_tworoom_speed_icl_history3_v1
+status: preregistered_during_fixed_training_before_public_icl_or_cem
+created_utc: "2026-08-17"
+
+# This declaration fixes the two *conditional* CEM protocols before the
+# three-seed Public-ICL outcome is known.  It does not authorize a planner,
+# open Public ICL data, select a checkpoint, or create an output.  A passed
+# 3/3 Public-ICL recovery aggregate is still required before the separate
+# CEM-binding freezer can record concrete input identities and authorize jobs.
+chronology:
+  fixed_training_already_running: true
+  development_evaluation_started: false
+  public_test_opened: false
+  cem_started: false
+  checkpoint_selection_changed: false
+  training_budget_changed: false
+
+authorization:
+  requires_passed_three_seed_public_icl_recovery_aggregate: true
+  requires_cem_binding_after_public_icl_before_any_cem: true
+  all_three_fixed_training_seeds_required: [3072, 4096, 5120]
+  only_fixed_final_checkpoints: true
+  retry_or_checkpoint_selection_authorized: false
+  output_overwrite_authorized: false
+
+frozen_sources:
+  completion_config:
+    path: configs/benchmark/tworoom_speed_pldm_reference_completion_v1.yaml
+    sha256: 6c8d3404431f4fedb788acc0c89fc62b78fcb147402d284fc8e74aa64a0d840f
+    size_bytes: 5680
+  speed_release:
+    path: configs/benchmark/tworoom_speed_icl_release_v1.yaml
+    sha256: 9acb8e36eabd1a68595a89c9add0e5b4440bd6b55647d74f3c211636457646c0
+    size_bytes: 12448
+  behavioral_claim_boundary:
+    path: configs/benchmark/tworoom_speed_pldm_behavioral_claim_boundary_v1.yaml
+    sha256: 7e81e79fb7e28bbf9fcf1c76571bfedb471c118fc73920abd22d75f18a779941
+    size_bytes: 2378
+  source_protocol:
+    path: configs/benchmark/tworoom_speed_cube_eval_v2.yaml
+    sha256: 387e5bd678ccf04e5ced9cd967b218f2014feefade09a0c5ab6989e2df62f2e9
+    size_bytes: 5487
+  aggregate_preregistration:
+    path: configs/benchmark/contextworld_pldm_reference_completion_aggregate_prereg_v1.yaml
+    sha256: 84bbfff198663846f1e597ecfb65151697cd3754d651fce608023ff92d5b106a
+    size_bytes: 11219
+  retention_noninferiority_protocol:
+    path: configs/benchmark/tworoom_original_ability_reconstruction_v1.yaml
+    sha256: 65e3da088a3cff18a66f407b0d03c740b250ead86da5f94d2456f67588fb9bf0
+    size_bytes: 3749
+
+common:
+  eval_seeds: [42, 43, 44, 45, 46, 47]
+  episodes_per_eval_seed: 50
+  episodes_per_checkpoint: 300
+  successful_episode_definition:
+    source_protocol_field: formal_eval.planner.success_radius_px
+    radius_px: 16
+    interpretation: environment_episode_success_within_the_frozen_TwoRoom_radius
+
+tracks:
+  action_planning_cem:
+    evaluation_kind: action_planning_cem
+    display_name: frozen same-speed closed-loop planning utility
+    source:
+      release_planning_track: seen_for_multi
+      catalog:
+        path: artifacts/evaluation/history3/speed_isolated_v2/catalogs/seen_for_multi.json
+        sha256: f8bb83e008398378e71c9345de13144b52f08b9bcb6ad02653deddc2020a9152
+        size_bytes: 176987
+      source_protocol:
+        path: configs/benchmark/tworoom_speed_cube_eval_v2.yaml
+        sha256: 387e5bd678ccf04e5ced9cd967b218f2014feefade09a0c5ab6989e2df62f2e9
+        size_bytes: 5487
+      catalog_validator:
+        path: contextworld/evaluation/icl_catalog.py
+        sha256: 82a76a70c6380a4109d3909c06f04e2fdc1a6b7f94ce572a30df0925c7e5398f
+        size_bytes: 30306
+      episode_oracle:
+        path: scripts/eval_tworoom_icl_planning.py
+        sha256: 44f912dd73afdb93003272a498c8c474ab4f6d961bd85a3d007a1c9217544a4d
+        size_bytes: 35457
+      runner_core:
+        path: scripts/eval_tworoom_speed_cube_planning.py
+        sha256: 22184323ec39ab049c94df2c73af31465c6ebcf881b2d351d112756afe7e794c
+        size_bytes: 12971
+      speed_cli:
+        path: contextworld/benchmarks/speed_icl_cli.py
+        sha256: 886aa06cb57cf9f660868b89ab1c334a411ac82f84adf3f14ea3115956b878b0
+        size_bytes: 16298
+      speed_score:
+        path: contextworld/benchmarks/speed_icl_score.py
+        sha256: 0d7d52667eea0a29badcac1cee1047f3a2d56d55f65a59a0fd7a086a77601a1e
+        size_bytes: 32831
+    grouping:
+      query_speed: 5.1
+      history_condition: history_mid
+      same_speed_condition_required: true
+      templates: all_18_catalog_templates_at_query_speed
+      schedule: balanced_evaluation_schedule_v1
+      evaluation_ids: deterministic_per_eval_seed_50_draws
+      expected_base_queries: 18
+      expected_records_per_checkpoint: 300
+      expected_records_per_eval_seed: 50
+    protocol:
+      eval_budget_raw_steps: 100
+      deadline_budgets_raw_steps: [50, 75, 100]
+      horizon_action_blocks: 10
+      receding_horizon_action_blocks: 5
+      cem_samples: 300
+      cem_iterations: 30
+      cem_topk: 30
+      cem_var_scale: 1.0
+    metric:
+      id: success_rate_by_execution_budget_100_raw_steps
+      definition: successes_at_100_raw_steps_divided_by_exactly_300_same_speed_episodes
+      source_release_metric: success_rate_by_execution_budget
+      performance_threshold: null
+      result_semantics: EXECUTED_VALID_DESCRIPTIVE
+      pass_threshold: null
+      authority:
+        release_field: planning.role
+        required_value: supporting_utility_metrics
+        release_field_2: planning.required_for_speed_icl_prediction_claim
+        required_value_2: false
+      explanation: >-
+        The existing Speed release registers no model-performance threshold for
+        planning; it explicitly classifies planning as a supporting utility.
+        This track must therefore never be converted into a retention PASS or
+        FAIL after seeing CEM outcomes.  Its only binary status is immutable
+        execution validity.
+
+  original_task_retention_cem:
+    evaluation_kind: original_task_retention_cem
+    display_name: frozen original-heldout TwoRoom CEM retention utility
+    source:
+      completion_field: evaluation.original_task_retention
+      catalog:
+        path: artifacts/evaluation/history3/original_ability_reconstruction/original_heldout_eval_catalog.json
+        sha256: 08233c6755c8f6f358f5fe35f84e7cfed626b922be0eeaba8f7392c7741b4b34
+        size_bytes: 119993
+      catalog_builder:
+        path: scripts/build_tworoom_original_ability_catalogs.py
+        sha256: 534b131929de3d005439c8dbe7a9f60a8f2877b6d760ac26568642f6b6aa90c3
+        size_bytes: 9768
+      episode_oracle:
+        path: scripts/eval_tworoom_ability_catalog.py
+        sha256: 8bec7a6d4315850f985141697ad1a04c21fd60478c6439e40edb5c506a11bcea
+        size_bytes: 12569
+      runner_core:
+        path: scripts/eval_tworoom_ability_catalog.py
+        sha256: 8bec7a6d4315850f985141697ad1a04c21fd60478c6439e40edb5c506a11bcea
+        size_bytes: 12569
+      frozen_baseline_wrapper:
+        path: scripts/eval_tworoom_original_baseline_cem_frozen_v1.py
+        sha256: 03e3863c6f3f9dc559095eeb01654f6b8e49675ce8dc90548b6aec0fdef106a6
+        size_bytes: 12353
+    grouping:
+      catalog_kind: tworoom_original_heldout_eval_catalog_v1
+      source_kind: original_h5
+      eval_seeds: [42, 43, 44, 45, 46, 47]
+      expected_records_per_checkpoint: 300
+      expected_records_per_eval_seed: 50
+      goal_offset_raw_steps: 25
+    protocol:
+      eval_budget_raw_steps: 50
+      horizon_action_blocks: 5
+      receding_horizon_action_blocks: 5
+      cem_samples: 300
+      cem_iterations: 30
+      cem_topk: 30
+    metric:
+      id: original_tworoom_cem_success_rate
+      definition: successful_original_heldout_episodes_divided_by_exactly_300
+      result_semantics: PAIRED_NONINFERIORITY_RETENTION
+      paired_baseline: tworoom_pldm_original
+      paired_noninferiority:
+        reference: frozen_original_pldm_cem_6x50
+        confidence_level: 0.95
+        paired_bootstrap_seed: 3072
+        paired_bootstrap_resamples: 10000
+        success_rate_delta_lower_bound: -0.05
+        final_distance_delta_upper_bound_px: 5.0
+        require_no_solvable_room_relation_stratum_collapse: true
+        stratum_definition: room_relation
+        collapse_definition: candidate_zero_successes_where_baseline_has_at_least_one
+      authority:
+        protocol: configs/benchmark/tworoom_original_ability_reconstruction_v1.yaml
+        field: evaluation_protocol.non_inferiority
+        comparison_core: scripts/analyze_tworoom_original_ability.py
+    frozen_paired_baseline:
+      results_freeze:
+        path: configs/benchmark/contextworld_original_baseline_cem_results_freeze_v1.json
+        sha256: f3dcebe076aad73dec85cf7a5abe52854c1627a112b9511a1262e5e1cf1124ca
+        size_bytes: 4490
+      matrix_summary:
+        path: artifacts/evaluation/original_baseline_cem_v1/matrix_summary.json
+        sha256: c52905b88ffe81eb6b81bcfadea8dd283a7b989cd65fdcd1950347ce9d4dceea
+        size_bytes: 17099
+      checkpoint_id: tworoom_pldm_original
+      checkpoint_model_state_sha256: 815d99875f1234f50f03f8dc9489639442f91ba048bf45983478a8161a85732f
+      expected_successes: 278
+      expected_evaluations: 300
+      raw_receipts:
+        - {eval_seed: 42, path: artifacts/evaluation/original_baseline_cem_v1/tworoom/pldm/seed42.json, sha256: d1dfc771e74c2fc71a41c7ecb5c2ea6b6f72ae7ff93733ce867b104e8c6a6a5f, size_bytes: 43341}
+        - {eval_seed: 43, path: artifacts/evaluation/original_baseline_cem_v1/tworoom/pldm/seed43.json, sha256: a46bc1cf0fe4db47b96a9b1998097f174ceed38378bcc8a52fa842483bdaf46b, size_bytes: 43494}
+        - {eval_seed: 44, path: artifacts/evaluation/original_baseline_cem_v1/tworoom/pldm/seed44.json, sha256: 378db8bd32c2d6a7be1cc3a2beee26dc58923642f073d3aadcfb307dbc2452f2, size_bytes: 43482}
+        - {eval_seed: 45, path: artifacts/evaluation/original_baseline_cem_v1/tworoom/pldm/seed45.json, sha256: 1ae7489d93bfb6c329bada1b14513f45211ff06a4e0579737418b0347b611a38, size_bytes: 43536}
+        - {eval_seed: 46, path: artifacts/evaluation/original_baseline_cem_v1/tworoom/pldm/seed46.json, sha256: 701da2d25bafc19f64765e1c03eba5d10dfc4da6560d3e3a72dad58d7e3aa4d2, size_bytes: 43459}
+        - {eval_seed: 47, path: artifacts/evaluation/original_baseline_cem_v1/tworoom/pldm/seed47.json, sha256: d458b17dfedc8ff9566ad1dea8050f1a80fc6f9ba6ddcd7fac71aba73c48f52b, size_bytes: 43503}
+
+runtime_and_implementation:
+  formal_runner:
+    path: scripts/run_tworoom_speed_pldm_cem_v1.py
+    sha256: 670231be8796a7cc2a03ab0ea1906ace20f2812fc57144504f46583d1db441af
+    size_bytes: 35648
+  aggregate_freezer:
+    path: scripts/freeze_tworoom_speed_pldm_cem_aggregate_v1.py
+    sha256: c02c2116bc8724d9d0296ef80ec6d7152140bd1f16639467c5459dfd64f89c67
+    size_bytes: 23809
+  binding_freezer:
+    path: scripts/freeze_tworoom_speed_pldm_cem_binding_v1.py
+    sha256: 2a33449ae2e66b3f17787148def3cf1affce9db5c2292d3215b15b5dcc970054
+    size_bytes: 69094
+  adapter_boundary:
+    path: contextworld/benchmarks/adapters.py
+    sha256: cc9e758b7081a57251e8cd026e9ac9ff8a17e3f300d52f464bdad871edcf26b2
+    size_bytes: 24085
+  development_contract:
+    path: contextworld/benchmarks/speed_pldm_infrastructure_development.py
+    sha256: 89e12e8d8b7effbf14445335fa9e013d58e746ae3cd31dd6c233470b3e8c3c14
+    size_bytes: 11633
+  paired_retention_comparator:
+    path: scripts/analyze_tworoom_original_ability.py
+    sha256: 92de93da3c96de7de758c29959b3491958a47d8a2d740667a921608ce1d6db73
+    size_bytes: 23276
+
+outputs:
+  cem_binding: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/formal_icl_v1/cem_binding_v1.json
+  action_planning:
+    root: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/formal_action_planning_cem_v1
+    receipts: seed_{training_seed}.jsonl
+    work: work/seed_{training_seed}
+    aggregate: three_seed_aggregate.json
+  original_task_retention:
+    root: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/formal_original_tworoom_retention_cem_v1
+    receipts: seed_{training_seed}.jsonl
+    work: work/seed_{training_seed}
+    aggregate: three_seed_aggregate.json

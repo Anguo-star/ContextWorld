@@ -598,10 +598,21 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         pass
     config_path = args.config.resolve()
     config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
-    if config.get("status") != (
-        "preregistered_before_independent_catalog_generation_and_scoring"
-    ):
+    if config.get("status") not in {
+        "preregistered_before_independent_catalog_generation_and_scoring",
+        "preregistered_before_action_delay_model_scoring_on_frozen_catalogs",
+    }:
         raise ValueError("Config is not frozen before execution")
+    for name, identity in config.get("source_identity", {}).items():
+        source_path = resolve_contextworld_path(
+            identity["path"], repo_root=ROOT
+        )
+        observed_hash = file_sha256(source_path)
+        if observed_hash != str(identity["sha256"]):
+            raise RuntimeError(
+                f"Frozen source hash mismatch for {name}: "
+                f"{observed_hash}"
+            )
     group, model_row = _find_model(config, args.model)
     checkpoint = resolve_contextworld_path(
         model_row["checkpoint"], repo_root=ROOT

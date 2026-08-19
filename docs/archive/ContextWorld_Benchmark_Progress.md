@@ -2,7 +2,7 @@
 
 > 本文保留 2026-07-20 文档合并前的状态快照，不再更新。当前进度、结论和后续
 > 工作统一维护在
-> [TwoRoom 速度上下文学习 Benchmark 报告](../TwoRoom_Speed_Benchmark_Report.md)。
+> [ContextWorld ICL Benchmark：速度](../ContextWorld_ICL_Benchmark.md#41-速度)。
 
 **版本**：v5.1  
 **日期**：2026-07-20  
@@ -159,9 +159,9 @@ Test 每个 Eval、每个条件仍为独立 `50×6=300`，只运行一次并完�
 - 阶段报告：
   [TwoRoom_Task_Naming_and_Eval_Comparison.md](TwoRoom_Task_Naming_and_Eval_Comparison.md)
 - 技术报告：
-  [当前 Benchmark 报告](../TwoRoom_Speed_Benchmark_Report.md)
+  [当前 Benchmark 主文档](../ContextWorld_ICL_Benchmark.md)
 - Benchmark 设计规范：
-  [ContextWorld_Benchmark_Design.md](../ContextWorld_Benchmark_Design.md)
+  [ContextWorld ICL Benchmark](../ContextWorld_ICL_Benchmark.md)
 - 机制验证预注册：
   `configs/benchmark/tworoom_planner_mechanism_attribution_v1.yaml`
 - 机制验证统一汇总：

@@ -1,0 +1,113 @@
+schema_version: 1
+completion_id: pusht_motion_damping_pldm_reference_completion_v1
+status: preregistered_development_only
+date: "2026-08-17"
+
+scope:
+  component: motion_damping
+  component_display_name: PushT Motion Damping
+  current_release_data_version: pusht_motion_damping_h3_release_v4
+  purpose: >-
+    Add a trained PLDM reference completion on frozen current-v4 data. This is
+    not an original-baseline result and does not alter any frozen release file.
+  excluded_actions:
+    - modify_source_release
+    - use_legacy_pldm_results
+    - read_or_hash_public_test_table
+    - score_public_test
+    - run_standard_pusht_cem
+    - register_or_rescore_suite
+
+source_release:
+  config_path: configs/benchmark/pusht_motion_damping_icl_release_v1.yaml
+  release_id: contextworld_pusht_motion_damping_icl_history3_v1
+  release_config_sha256_observed_at_preregistration: e970e012462afffa02752477f3377a7397ed1b7f6abb8466b5ca4389cb29b502
+  data:
+    protocol: pusht_motion_damping_history3_strict_causal_release_v3
+    root: artifacts/synthesis/pusht_motion_damping_h3_release_v4
+    manifest_sha256: 48246aa4ae4a13d5b1c9677ba37a92fe114129027745f8e258137a016899563b
+    train: {lance_table: train.lance, pair_count: 8192}
+    development:
+      split: loader_validation
+      lance_table: loader_validation.lance
+      lance_table_sha256: 64d43c931f106c2d53e3c3084e62381d2f2640c9d943e269475f3fb76aaa2de4
+      pair_count: 256
+    public_test:
+      lance_table_name_only: validation.lance
+      access_status: closed_not_read_not_scored
+      opened: false
+      read: false
+      hashed: false
+      scored: false
+
+initialization:
+  checkpoint_id: pusht_pldm_original
+  path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-pusht/ckpt/pusht_pldm_baseline/pusht_pldm_baseline_weights.ckpt
+  sha256: 913e02728f6638409dc3931069caf34815a8ad0618bb40f690cb4a59a6bdc8ad
+  size_bytes: 219234900
+  source_training_config: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-pusht/ckpt/pusht_pldm_baseline/config.yaml
+  source_training_config_sha256: 26a0589f25766246731746a53b198afb08bf0b2ec2148f7c1e1e33278c10dab6
+  required_model_config: pldm
+  strict_state_dict_load_required: true
+  expected_loaded_model_state_sha256: e51c497092f69146724bf76709cb9542baa16cee99ffba9bb345cd9d821a03fa
+
+training:
+  model_family: PLDM
+  recipe: mixed_pldm_identifiable_future_joint
+  fixed_optimizer_step: 8192
+  fixed_batch_size: 128
+  original_pusht_samples_per_batch: 64
+  motion_damping_samples_per_batch: 64
+  complete_motion_damping_pairs_per_batch: 32
+  learning_rate: 0.00005
+  weight_decay: 0.001
+  gradient_clip_norm: 1.0
+  mixed_precision: bfloat16
+  checkpoint_selection: fixed_final_optimizer_step
+  development_monitor_steps: [1024, 2048, 4096, 8192]
+  seeds: [14321, 14322, 14323]
+  pilot_seed: 14321
+  upstream:
+    original_h5: {path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-pusht/pusht_expert_train.h5, size_bytes: 46300921856}
+    original_lance: {path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/lance-format/LeWorldModel/data/lewm_pusht.lance, size_bytes: 14304260783}
+
+stable_worldmodel:
+  worktree: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/context_world/upstream/stable-worldmodel-875e607fc08aa72e
+  commit: 875e607fc08aa72eacb94d5d178127804134cc06
+  require_clean_worktree: false
+  files:
+    - {relative_path: scripts/train/config/pldm.yaml, sha256: e03191b338289cf0577e9bf60283ba1ce13f6b04dc5d7a340a32ac47d53badbb}
+    - {relative_path: stable_worldmodel/wm/pldm/pldm.py, sha256: 983f5ed0059e3f9b635ded962603374c35dbb8ccbdef611923800a990ded5618}
+    - {relative_path: stable_worldmodel/wm/loss.py, sha256: 9a9fa8af06ba60f9e93e23070a8ccf69c4d3137c3de94fd055a817eb261aea1e}
+runtime_identity:
+  - {path: scripts/run_pusht_motion_damping_h3_train.py, sha256: 2009b57a3c7870d48424a459958dc20c86e5fd6e720c0eb2f4c9aae136dffa6e}
+  - {path: scripts/run_pusht_hidden_actuation_mixed.py, sha256: ed3f912b716c4090245d2388c11fabcda7962ac8e6c4aa8614d10ea69bcb17b0}
+evaluation_binding:
+  status: deferred_until_parallel_adapter_and_scorer_changes_are_frozen
+  evaluator_module: contextworld.benchmarks.motion_damping_icl_cli
+
+development_gate:
+  evaluator_subcommand: eval-development
+  independent_rescore_subcommand: score-development
+  correct_future_rate_minimum: 0.95
+  correct_history_rate_minimum: 0.95
+  context_switch_rate_minimum: 0.95
+  worst_condition_correct_future_rate_minimum: 0.90
+  target_latent_separation_required: true
+  response_gain_minimum: 0.50
+  normalized_response_error_strict_maximum: 1.00
+  all_gates_required: true
+
+decision_policy:
+  pilot_pass: >-
+    Freeze exact recipe, init, current-v4 data identity, fixed step, and pilot
+    receipt before allowing only the two remaining Development seeds. Public
+    Test and CEM remain closed until all three Development runs pass.
+  pilot_fail: >-
+    Freeze failed_development_current_protocol with the exact Development
+    receipt. Do not read, hash, score, or otherwise open Public Test; do not
+    run CEM or alter the suite scoreboard.
+
+artifacts:
+  preflight: artifacts/evaluation/pldm_reference_completion_v1/pusht_motion_damping_current_v4/preflight_frozen_identity_v1.json
+  pilot_root: artifacts/evaluation/pldm_reference_completion_v1/pusht_motion_damping_current_v4/pilot_seed14321

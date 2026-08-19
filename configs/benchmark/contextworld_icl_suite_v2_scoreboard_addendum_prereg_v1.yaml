@@ -1,0 +1,58 @@
+schema_version: 1
+release_id: contextworld_icl_benchmark_suite_v2
+release_status: public_test_release_candidate
+recorded_date: "2026-08-17"
+
+# This record does not add a row and does not authorize one.  It defines the
+# evidence a later, independent scoreboard-resolution decision must carry.
+scoreboard_addendum:
+  record_id: contextworld_icl_suite_v2_scoreboard_addendum_prereg_v1
+  status: pending_final_pldm_completion_aggregate
+  scope: independent_final_scoreboard_resolution_after_four_pldm_completions
+  base_formal_reference_rows: 11
+  historical_base_evidence:
+    specification:
+      path: artifacts/evaluation/contextworld_icl_suite_v2_release/public_scoreboard_spec.json
+      sha256: 0ee79cc901f4126b06eb800a7ef95a34b748f1b60fcf6c6c60f4e7646d4aa787
+      size_bytes: 11464
+    scoreboard:
+      path: artifacts/evaluation/contextworld_icl_suite_v2_release/public_scoreboard.json
+      sha256: 43d1adb676d7b882b7d6a9518781cec440f7f40fa2b57f5e8cbe95cb748ecd2f
+      size_bytes: 14254
+  additive_output_namespace:
+    root: artifacts/evaluation/contextworld_icl_suite_v2_release_addendum_v1
+    specification: artifacts/evaluation/contextworld_icl_suite_v2_release_addendum_v1/public_scoreboard_spec.json
+    scoreboard: artifacts/evaluation/contextworld_icl_suite_v2_release_addendum_v1/public_scoreboard.json
+  final_resolution_decision:
+    path: configs/benchmark/contextworld_icl_suite_v2_scoreboard_addendum_decision_v1.json
+    decision_id: contextworld_icl_suite_v2_scoreboard_addendum_decision_v1
+  allowed_outcomes:
+    no_additive_scoreboard_extension:
+      required_proof: >-
+        The historical base remains byte-identical. A separate addendum
+        namespace contains exactly eleven final formal rows, and the
+        resolution decision binds both base and addendum bytes.
+    additive_scoreboard_extension_authorized:
+      required_proof: >-
+        A separate decision binds the final PLDM aggregate freeze and the
+        exact final specification and scoreboard. The number of added rows is
+        derived from those final files; this record does not predeclare it.
+  prohibited_changes:
+    - rewrite_historical_scoreboard_or_specification_decisions
+    - infer_formal_rows_from_development_only_results
+    - raw_dataset_or_checkpoint_mutation
+    - training_or_checkpoint_selection
+    - public_test_access_or_rerun_authorization
+  note: >-
+    The former eleven-row scoreboard is not protected here by a blanket
+    prohibition. It remains eleven rows only if the later resolution proves
+    that no authorized additive extension occurred.
+
+membership_authority:
+  config_alone_grants_membership: false
+  activation_condition: passed_integrity_reseal_decision_v2
+  required_reseal_id: contextworld_icl_suite_v2_integrity_reseal_v2
+  formal_scoreboard_mutation_authorized: false
+  public_test_rerun_authorized: false
+  training_or_checkpoint_selection_authorized: false
+  raw_dataset_or_checkpoint_mutation_authorized: false

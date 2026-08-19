@@ -1,0 +1,65 @@
+schema_version: 1
+recovery_id: tworoom_speed_pldm_cem_binding_recovery_v1
+completion_id: tworoom_speed_pldm_reference_completion_v1
+status: registered_after_passed_public_icl_aggregate_before_cem_binding_or_execution
+created_utc: "2026-08-17"
+
+# The CEM runners, catalogs, metrics, thresholds, checkpoints and output
+# namespaces were all frozen before Public ICL. This record changes none of
+# them. It only points the unchanged CEM binding freezer at the additive passed
+# evaluation-binding receipt instead of its now-immutable failed default.
+scope:
+  changes_cem_runner_or_metric: false
+  changes_checkpoint_or_model: false
+  reopens_public_test: false
+  executes_model_environment_or_planner: false
+  executes_cem: false
+  substitutes_only_evaluation_binding_receipt_path: true
+
+frozen_inputs:
+  cem_preregistration:
+    path: configs/benchmark/tworoom_speed_pldm_cem_prereg_v1.yaml
+    sha256: 9489848bbe29f1200f6c76eb1b3624c1e03904791b5f6fd995080ddb20afbf9c
+    size_bytes: 12008
+  formal_icl_recovery_preregistration:
+    path: configs/benchmark/tworoom_speed_pldm_formal_icl_recovery_v1.yaml
+    sha256: 338a486d9642e464055c1ff71521cc32cb8413558e1672024a6d0b40c0972023
+    size_bytes: 6824
+  formal_icl_aggregate:
+    path: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/formal_icl_v1/three_seed_aggregate.json
+    sha256: 62eac70e06c11ff8f388a2e5cd1c84c1759e9bdb812171e129399cde0cd2af9c
+    size_bytes: 21621
+  failed_evaluation_binding_receipt:
+    path: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/evaluation_binding_v1/evaluation_binding_receipt.json
+    sha256: 691228e7edfa76d00bb0d898ba624da296cd106f28744abeed0ad4a3e28298a7
+    size_bytes: 92002
+  passed_evaluation_binding_receipt:
+    path: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/evaluation_binding_v1/recovery_v1/evaluation_binding_receipt.json
+    sha256: 005946d743ca3e93f64d14601a21679d921815689015c37882545a012d935f27
+    size_bytes: 103951
+  original_cem_binding_freezer:
+    path: scripts/freeze_tworoom_speed_pldm_cem_binding_v1.py
+    sha256: 2a33449ae2e66b3f17787148def3cf1affce9db5c2292d3215b15b5dcc970054
+    size_bytes: 69094
+
+bounded_substitution:
+  stale_default:
+    path: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/evaluation_binding_v1/evaluation_binding_receipt.json
+    sha256: 691228e7edfa76d00bb0d898ba624da296cd106f28744abeed0ad4a3e28298a7
+    size_bytes: 92002
+  replacement:
+    path: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/evaluation_binding_v1/recovery_v1/evaluation_binding_receipt.json
+    sha256: 005946d743ca3e93f64d14601a21679d921815689015c37882545a012d935f27
+    size_bytes: 103951
+  original_freezer_source_unchanged: true
+  canonical_cem_binding_destination_unchanged: true
+  all_prepublic_cem_sources_and_decisions_unchanged: true
+
+implementation:
+  recovery_launcher:
+    path: scripts/recover_tworoom_speed_pldm_cem_binding_v1.py
+    sha256: 11b25807449f79201e3906f26d0f8978cb71f65f1d9f5bfb7ecfcbc31db953d9
+    size_bytes: 11417
+
+output:
+  cem_binding: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/formal_icl_v1/cem_binding_v1.json

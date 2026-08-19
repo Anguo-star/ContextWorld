@@ -1,0 +1,79 @@
+schema_version: 1
+recovery_id: tworoom_speed_pldm_evaluation_binding_recovery_v1
+completion_id: tworoom_speed_pldm_reference_completion_v1
+status: preregistered_after_failed_binding_before_catalog_restore_or_public_evaluation
+created_utc: "2026-08-17"
+
+# This additive recovery preserves the failed receipt and the freezer that
+# produced it. It repairs only the five failures named below; every other
+# successful check must remain successful when the unchanged freezer reruns.
+chronology:
+  original_binding_attempt_completed: true
+  original_binding_attempt_passed: false
+  retention_catalog_destination_present_at_registration: false
+  formal_public_icl_started: false
+  cem_started: false
+
+public_boundary:
+  public_test_accessed: false
+  formal_icl_executed: false
+  cem_executed: false
+  training_or_optimizer_execution_authorized: false
+  checkpoint_selection_authorized: false
+
+frozen_inputs:
+  evaluation_binding_config:
+    path: configs/benchmark/tworoom_speed_pldm_evaluation_binding_v1.yaml
+    sha256: 62cd72d9e2bbbb83d485a243e190fed6dacc0b9408ac4c7cd87b37f5dfd079de
+    size_bytes: 22390
+  failed_binding_receipt:
+    path: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/evaluation_binding_v1/evaluation_binding_receipt.json
+    sha256: 691228e7edfa76d00bb0d898ba624da296cd106f28744abeed0ad4a3e28298a7
+    size_bytes: 92002
+  original_binding_freezer:
+    path: scripts/freeze_tworoom_speed_pldm_evaluation_binding_v1.py
+    sha256: 8300db7e82b1678f7b4ef878496b79f1adedad48fcad6e4279205b33873c8b8f
+    size_bytes: 35750
+  development_manifest:
+    path: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/infrastructure_development_v1/development_manifest.json
+    sha256: fa9c1ac18580cf14495c1cd124a50bafd837d89eca98053afc6b1ad52a4251d7
+    size_bytes: 784501
+  archived_retention_catalog:
+    path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/context_world/evaluation/history3/original_ability_reconstruction/original_heldout_eval_catalog.json
+    sha256: 08233c6755c8f6f358f5fe35f84e7cfed626b922be0eeaba8f7392c7741b4b34
+    size_bytes: 119993
+
+bounded_repair:
+  only_original_failed_checks_may_be_repaired: true
+  original_failed_checks:
+    - evaluator_source_cem_retention_catalog
+    - prepublic_cem_source_retention_catalog
+    - training_preflight_3072
+    - training_preflight_4096
+    - training_preflight_5120
+  catalog_restore:
+    source:
+      path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/context_world/evaluation/history3/original_ability_reconstruction/original_heldout_eval_catalog.json
+      sha256: 08233c6755c8f6f358f5fe35f84e7cfed626b922be0eeaba8f7392c7741b4b34
+      size_bytes: 119993
+    destination:
+      path: artifacts/evaluation/history3/original_ability_reconstruction/original_heldout_eval_catalog.json
+      sha256: 08233c6755c8f6f358f5fe35f84e7cfed626b922be0eeaba8f7392c7741b4b34
+      size_bytes: 119993
+    exact_byte_copy_required: true
+    content_regeneration_authorized: false
+  preflight_completion_semantics:
+    preflight_receipt_role: preflight_only_not_training_completion_evidence
+    historical_preflight_immutability_claimed: false
+    completion_evidence: recovery_completion_receipt_and_final_training_report
+    required_optimizer_steps: 12840
+    terminal_report_recovery_optimizer_steps: 0
+
+implementation:
+  recovery_launcher:
+    path: scripts/recover_tworoom_speed_pldm_evaluation_binding_v1.py
+    sha256: 7086624334a781678da98cf5f72a6ee7dba610c01ed7fc4c8d7a37930fedf0a1
+    size_bytes: 20708
+
+outputs:
+  recovered_binding_receipt: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/evaluation_binding_v1/recovery_v1/evaluation_binding_receipt.json

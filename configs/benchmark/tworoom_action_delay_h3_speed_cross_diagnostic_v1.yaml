@@ -1,0 +1,137 @@
+schema_version: 1
+benchmark: tworoom_action_delay_history3_speed_cross_diagnostic_v1
+status: preregistered_before_action_delay_model_scoring_on_frozen_catalogs
+preregistered_date: "2026-07-26"
+
+question: >-
+  只训练动作响应延迟后，模型会不会把“历史中走得更快或更慢”也当成可适应因素？
+  这是因素混淆/迁移诊断，不是速度 ICL 训练效果检验。
+
+stable_worldmodel:
+  repo: ../stable-worldmodel
+  expected_ref: 5864b74980f6ed328fd0045e777b3865962eff43
+
+source_identity:
+  speed_benchmark_config:
+    path: configs/benchmark/tworoom_speed_next_latent_v4.yaml
+    sha256: 01432f2529f1202b6eab3725fc075fb8c37e0748bad7d4926361c8e22f125e6e
+  build_report:
+    path: >-
+      artifacts/evaluation/history3/speed_next_latent_v4/catalogs/build_report.json
+    sha256: 401c2c93da85910696689c13e096c62a1919583f7a4c5723aa2c0f49b85e3aac
+  seen_catalog:
+    path: >-
+      artifacts/evaluation/history3/speed_next_latent_v4/catalogs/seen_for_multi.json
+    sha256: 11b39c016e7dc8875f5cde39631abf148a5691143b95b11fb433941fd2c570fc
+  interpolation_catalog:
+    path: >-
+      artifacts/evaluation/history3/speed_next_latent_v4/catalogs/unseen_interpolation.json
+    sha256: e343919551d02ae261cce5f826e2cf03b626ba5672a1c2b94a26198d59e90c51
+
+input:
+  history_tokens: 3
+  context_transitions: 2
+  action_block_raw_steps: 5
+  model_visible_fields: [pixels, action]
+  privileged_fields_not_visible_to_model:
+    - agent.speed
+    - state
+    - target_state
+
+data:
+  online_environment_during_scoring: false
+  tracks:
+    seen_for_speed_model:
+      role: cross_factor_only
+      catalog: >-
+        artifacts/evaluation/history3/speed_next_latent_v4/catalogs/seen_for_multi.json
+      speeds: [3.1, 5.1, 7.0]
+    unseen_speed_interpolation:
+      role: cross_factor_only
+      catalog: >-
+        artifacts/evaluation/history3/speed_next_latent_v4/catalogs/unseen_interpolation.json
+      speeds: [3.4, 4.8, 6.9]
+
+evaluation:
+  normalizer: artifacts/splits/tworoom_original_train_s3072_normalizer.json
+  eval_seeds: [42, 43, 44, 45, 46, 47]
+  unique_queries_per_reference_speed_per_seed: 50
+  unique_queries_per_reference_speed: 300
+  evaluations_per_reference_speed_per_history_per_seed: 50
+  evaluations_per_reference_speed_per_history: 300
+  reference_speeds_per_track: 3
+  history_conditions: [history_low, history_mid, history_high]
+  matrix_cells_per_track: 9
+  expected_records_per_checkpoint_per_track: 2700
+  prediction_horizon_action_blocks: 1
+  target: frozen_offline_true_next_frame_pixels
+  target_encoding: current_checkpoint_frozen_encoder
+
+metrics:
+  primary:
+    - matching_history_advantage_within_checkpoint
+    - relative_loss_reduction_within_checkpoint
+    - matching_history_below_both_other_histories
+  excluded:
+    - inferred_speed
+    - projected_pixel_position
+    - position_error_px
+    - displacement_error_px
+    - raw_latent_loss_comparison_between_checkpoints
+  interpretation: >-
+    Positive matching-history response means that an action-delay checkpoint
+    is sensitive to speed history on this frozen assay. It is reported as
+    cross-factor transfer or confusion, not as speed ICL training evidence.
+
+models:
+  original_reference:
+    - slug: h3_origheldout_s3072
+      training_seed: 3072
+      checkpoint: >-
+        artifacts/training/runs/checkpoints/h3_origheldout_s3072/weights_final_step_6420.pt
+  single_delay_control:
+    - slug: h3_action_delay_single_control_formal_s3072
+      training_seed: 3072
+      checkpoint: >-
+        artifacts/training/runs/checkpoints/h3_action_delay_single_control_formal_s3072/weights_final_step_1024.pt
+    - slug: h3_action_delay_single_control_formal_s4096
+      training_seed: 4096
+      checkpoint: >-
+        artifacts/training/runs/checkpoints/h3_action_delay_single_control_formal_s4096/weights_final_step_1024.pt
+    - slug: h3_action_delay_single_control_formal_s5120
+      training_seed: 5120
+      checkpoint: >-
+        artifacts/training/runs/checkpoints/h3_action_delay_single_control_formal_s5120/weights_final_step_1024.pt
+  multi_delay_target:
+    - slug: h3_action_delay_multi_formal_s3072
+      training_seed: 3072
+      checkpoint: >-
+        artifacts/training/runs/checkpoints/h3_action_delay_multi_formal_s3072/weights_final_step_1024.pt
+    - slug: h3_action_delay_multi_formal_s4096
+      training_seed: 4096
+      checkpoint: >-
+        artifacts/training/runs/checkpoints/h3_action_delay_multi_formal_s4096/weights_final_step_1024.pt
+    - slug: h3_action_delay_multi_formal_s5120
+      training_seed: 5120
+      checkpoint: >-
+        artifacts/training/runs/checkpoints/h3_action_delay_multi_formal_s5120/weights_final_step_1024.pt
+
+decision:
+  factor_specificity:
+    original_reference_is_reported_not_a_gate: true
+    compare_multi_delay_with_paired_single_delay_by_training_seed: true
+    multi_specific_speed_response_requires:
+      - multi_delay_passes_both_tracks_for_all_three_training_seeds
+      - paired_single_delay_does_not_show_the_same_result
+      - multi_minus_single_relative_loss_reduction_positive_in_both_tracks
+  claim_limit: >-
+    This diagnostic cannot establish speed ICL because no action-delay model
+    was trained on multiple speeds.
+
+artifacts:
+  root: >-
+    artifacts/evaluation/history3/action_delay_speed_cross_diagnostic_v1
+  results: >-
+    artifacts/evaluation/history3/action_delay_speed_cross_diagnostic_v1/results
+  final_summary: >-
+    artifacts/evaluation/history3/action_delay_speed_cross_diagnostic_v1/final_summary.json

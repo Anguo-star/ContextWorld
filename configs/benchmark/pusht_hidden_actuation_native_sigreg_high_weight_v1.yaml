@@ -1,0 +1,106 @@
+schema_version: 1
+benchmark: pusht_hidden_actuation_history3_action_coverage_v2
+experiment: native_sigreg_high_weight_mixed_v1
+status: registered_before_training
+owner: ContextWorld
+
+question: >-
+  Keeping the original full-batch SIGReg objective unchanged, can a larger
+  coefficient recover History-identifiable hidden actuator gain in PushT as
+  it did for TwoRoom Door, and if so does standard PushT real-environment CEM
+  degrade?
+
+method_name_zh: 原始正则高权重版
+regularizer_definition: >-
+  At every time index, apply the unchanged native SIGReg statistic to the
+  complete per-rank batch representation. No pairing metadata is consumed by
+  the loss.
+
+immutable_inputs:
+  hidden_data: artifacts/synthesis/pusht_hidden_actuation_h3_v1
+  hidden_manifest_sha256: 4f307a60920747506c1d8aadc41931a0f768b7f3d7ba6317d7246b008bc3fc64
+  original_data: external/pusht/lewm_pusht.lance
+  action_normalizer_source: external/pusht/pusht_expert_train.h5
+  source_checkpoint: external/pusht/pusht_lewm_baseline_seed3073_weights.ckpt
+  source_checkpoint_sha256: 9f13b2c28bb909338047e08d62bf6eb16ea3616cb53e57cfa9b5072b43db1c59
+
+training:
+  seed: 3073
+  optimizer_steps: 2048
+  batch_size: 128
+  original_samples_per_batch: 64
+  hidden_samples_per_batch: 64
+  hidden_pairs_per_batch: 32
+  optimizer: AdamW
+  learning_rate: 5.0e-5
+  weight_decay: 1.0e-3
+  gradient_clip_norm: 1.0
+  precision: bf16_mixed
+  same_source_checkpoint_as_mixed_control: true
+  same_original_sampler_seed_as_mixed_control: true
+  same_hidden_pair_order_seed_as_mixed_control: true
+  unchanged_native_sigreg_population: true
+
+variants:
+  - name: mixed_native_sigreg_0p20
+    weight: 0.20
+  - name: mixed_native_sigreg_0p30
+    weight: 0.30
+  - name: mixed_native_sigreg_0p50
+    weight: 0.50
+  - name: mixed_native_sigreg_0p90
+    weight: 0.90
+
+registered_references:
+  source_standard_pusht_cem: 237/300
+  replay_matched_native_0p09_standard_pusht_cem: 230/300
+  replay_matched_native_0p09_hidden_prediction:
+    target_selection: 0.54
+    correct_history: 0.69
+    rule_switch: 0.74
+    worst_mode: 0.46
+
+hidden_prediction_gate:
+  target_selection_minimum: 0.95
+  correct_history_minimum: 0.95
+  rule_switch_minimum: 0.95
+  worst_mode_minimum: 0.90
+
+standard_pusht_followup:
+  run_for_every_variant_passing_hidden_prediction: true
+  run_when_no_variant_passes: false
+  protocol: exact_standard_history3_cem_300x30_top30
+  eval_seeds:
+    - 42
+    - 43
+    - 44
+    - 45
+    - 46
+    - 47
+  queries_per_seed: 50
+  replay_matched_native_0p09_control: 230/300
+  noninferiority_margin_absolute: 0.05
+
+excluded_from_primary_decision:
+  - hidden_actuation_cem
+  - latent_action_amplitude_calibration
+  - prediction_loss_only_proxy
+  - candidate_ranking_or_spearman
+
+decision_rules:
+  - >-
+    Hidden-rule learning is established only when all four registered
+    prediction thresholds pass at the final step-2048 checkpoint.
+  - >-
+    Run standard PushT 50x6 real-environment CEM for every passing
+    high-weight checkpoint, without selecting on its CEM result.
+  - >-
+    A passing hidden prediction together with standard-CEM regression would
+    support the predicted global-regularization tradeoff.
+  - >-
+    A passing hidden prediction without standard-CEM regression would
+    falsify the claim that this PushT instance necessarily exposes a
+    high-weight conflict.
+  - >-
+    This remains a single-training-seed mechanism screen regardless of the
+    outcome.

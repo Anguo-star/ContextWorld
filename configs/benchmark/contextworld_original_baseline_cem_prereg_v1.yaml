@@ -1,0 +1,315 @@
+schema_version: 1
+preregistration_id: contextworld_original_baseline_cem_v1
+status: frozen_before_cem_execution
+frozen_date_utc: "2026-08-17"
+
+purpose: >-
+  Complete one descriptive original-environment CEM result for each of the
+  eight canonical original checkpoints (four environments times LeWM/PLDM).
+  This is an original-task planning baseline matrix, not a component ICL
+  score and not a replacement for any component-specific retention protocol.
+  It is an independent descriptive environment matrix and does not claim to
+  complete the component-bound CEM requirements disallowed by the base ICL
+  preregistration.
+
+scientific_scope:
+  result_kind: post_release_descriptive_original_environment_baseline
+  environments: [tworoom, pusht, reacher, cube]
+  families: [lewm, pldm]
+  matrix_cells: 8
+  exact_legacy_cells_reused: 1
+  newly_executed_cells: 7
+  total_matrix_episodes: 2400
+  newly_executed_episodes: 2100
+  formal_suite_scoreboard_eligible: false
+  cross_environment_average_authorized: false
+  pass_fail_threshold: null
+  publish_all_results_including_low_scores: true
+
+authority:
+  cem_execution_authorized: true
+  authorized_new_cells: 7
+  authorized_new_episodes: 2100
+  training_authorized: false
+  finetuning_authorized: false
+  checkpoint_selection_authorized: false
+  model_or_recipe_change_authorized: false
+  result_based_retry_authorized: false
+  checkpoint_swap_authorized: false
+  public_test_access_authorized: false
+  formal_scoreboard_mutation_authorized: false
+  component_release_claim_mutation_authorized: false
+
+base_checkpoint_registry:
+  path: configs/benchmark/contextworld_original_baseline_completion_prereg_v1.yaml
+  sha256: 02508372afd6f55594fa6aff688f96dc2f5b9a49fa8946f65b9bf4dcc2fa8d4b
+  size_bytes: 19031
+  checkpoint_ids:
+    - tworoom_lewm_original
+    - tworoom_pldm_original
+    - pusht_lewm_original
+    - pusht_pldm_original
+    - reacher_lewm_original
+    - reacher_pldm_original
+    - cube_lewm_original
+    - cube_pldm_original
+
+base_icl_result_freeze:
+  path: configs/benchmark/contextworld_original_baseline_matrix_results_freeze_v1.json
+  sha256: ec72baaf04db9b084b1047e0ba9d6eaff3b13215902574d7e9a2b131de08eef5
+  size_bytes: 4731
+  relationship: independent_descriptive_companion_matrix
+
+input_identity_audit:
+  path: configs/benchmark/contextworld_original_baseline_cem_input_identity_audit_v1.json
+  sha256: 5d84444f6c4d0fd5a26b616bafeb17ddc2bb545356fc46a83fbb862be0853950
+  size_bytes: 1599
+  method: full_file_sha256_streamed_before_cem_freeze
+
+preflight:
+  path: configs/benchmark/contextworld_original_baseline_cem_preflight_v1.json
+  sha256: 52e455a6b1e9952c645c0f5ba206932cd927a9dd0de77ed0db5bbd3820cad109
+  size_bytes: 4112
+  cem_episodes_consumed: 0
+  all_seven_new_checkpoints_strict_loaded: true
+
+protocol:
+  history_tokens: 3
+  action_block_raw_steps: 5
+  goal_offset_raw_steps: 25
+  execution_budget_raw_steps: 50
+  horizon_action_blocks: 5
+  receding_horizon_action_blocks: 5
+  cem_candidates: 300
+  cem_iterations: 30
+  cem_topk: 30
+  videos_written: false
+  query_pairing: identical_catalog_within_environment_across_families
+  tworoom_and_pusht: {eval_seeds: [42, 43, 44, 45, 46, 47], queries_per_seed: 50}
+  reacher_and_cube: {eval_seeds: [42, 43, 44], queries_per_seed: 100}
+
+runtimes:
+  tworoom:
+    root: /tmp/stable-worldmodel-5864
+    expected_commit: 5864b74980f6ed328fd0045e777b3865962eff43
+    clean_checkout_required: true
+    cem_solver:
+      path: stable_worldmodel/solver/cem.py
+      sha256: a6662e7f1f2c6ecaf0a8527255d531aa05ed583339aabdf2798d0206382ef51b
+    policy:
+      path: stable_worldmodel/policy.py
+      sha256: 4967e7e3d5b20eb7a1d0b00e5d60fd701cce1c750ae7ec4a9b02529b9366db22
+  pusht_reacher_cube:
+    root: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/context_world/upstream/stable-worldmodel-875e607fc08aa72e
+    expected_commit: 875e607fc08aa72eacb94d5d178127804134cc06
+    clean_checkout_required: true
+    plan_configs:
+      pusht: {path: scripts/plan/config/pusht.yaml, sha256: ccad4ca01b8935424c71fb682622b57ecedb33176e996205f0bfd2211eaf4ec5, size_bytes: 859}
+      reacher: {path: scripts/plan/config/reacher.yaml, sha256: deb1378ed1bfdfe8379f44a138dec36ac6ab2dab2ae2c36a3560d2542a190774, size_bytes: 843}
+      cube: {path: scripts/plan/config/cube.yaml, sha256: 27cbd60e530e7bcd26ad90ff42a6a25e1743e08d1e3f75ccabf104b4d35dc5a5, size_bytes: 1131}
+
+frozen_environment_inputs:
+  tworoom:
+    catalog:
+      path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/context_world/evaluation/history3/original_ability_reconstruction/original_heldout_eval_catalog.json
+      sha256: 08233c6755c8f6f358f5fe35f84e7cfed626b922be0eeaba8f7392c7741b4b34
+      size_bytes: 119993
+    dataset:
+      path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/context_world/splits/tworoom_original_episode_holdout_s3072.h5
+      sha256: 7e78254f70445231df4ccf2fd2b7994dfc5954e2085d61400518bd2336fa66bc
+      size_bytes: 2629676
+    normalizer:
+      path: artifacts/splits/tworoom_original_train_s3072_normalizer.json
+      sha256: a9e4b443bbac0d7a4e2d9d9f84d40ac40936556ffadfc7af0b0ce4fe4afed42c
+      size_bytes: 859
+    note: >-
+      This portable normalizer is numerically identical to the historical
+      external normalizer; only its recorded source string differs.
+  pusht:
+    catalog:
+      path: artifacts/evaluation/history3/pusht_action_strength_h3_release_v1/standard_pusht_query_catalog.json
+      sha256: da974c821e3fa0f232ac59538e0c79cc2cb9a80ea4bb4a62b910c66c278ce2d4
+      size_bytes: 11744
+    dataset:
+      path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-pusht/pusht_expert_train.h5
+      sha256: b6ebd9ac94bbe9e383f6e7a9cd92d74e9aa665ea57b758ed3717b0ee7df8d4fb
+      size_bytes: 46300921856
+    normalizer: deterministic_full_dataset_finite_action_proprio_state_standard_scalers
+  reacher:
+    catalog:
+      path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/context_world/evaluation/history3/reacher_robot_arm_mass_h3_release_v1/original_task_retention/baseline_lewm_osmesa/query_catalog.json
+      sha256: f139593c8b75eb5cd142d78223421e3e7b0a76a4ab086908afd9d9171dea9e27
+      size_bytes: 11336
+    dataset:
+      path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-reacher/reacher.h5
+      sha256: 85a7dddfa1801302abcb175a80a23bb69c78291dd977ce40d69aedcb9123da06
+      size_bytes: 98905882624
+    normalizer: deterministic_full_dataset_finite_action_standard_scaler
+  cube:
+    catalog:
+      path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/context_world/evaluation/history3/cube_gripper_carry_h3_development_v4r1/original_task_retention_query_catalog_v2.json
+      sha256: 0ebf7fa68078f76e1172cb47ef594129acc5563ed148ef4dafbd96b4c855d725
+      size_bytes: 13971
+    dataset:
+      path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-cube/ogbench/cube_single_expert.h5
+      sha256: 0664d507c4ff12009010644c9ae950836f954e700c172ccf22e7423af1a55625
+      size_bytes: 101942558720
+    normalizer: deterministic_full_dataset_finite_action_standard_scaler
+
+implementation:
+  matrix_contract: {path: contextworld/benchmarks/original_baseline_cem_matrix.py, sha256: 938cac6f0c828425e6edb12231e3d1fb5e4ec8876488aaf2e1a1bdf75fe638af, size_bytes: 12338}
+  tworoom_wrapper: {path: scripts/eval_tworoom_original_baseline_cem_frozen_v1.py, sha256: 03e3863c6f3f9dc559095eeb01654f6b8e49675ce8dc90548b6aec0fdef106a6, size_bytes: 12353}
+  tworoom_core: {path: scripts/eval_tworoom_ability_catalog.py, sha256: 8bec7a6d4315850f985141697ad1a04c21fd60478c6439e40edb5c506a11bcea, size_bytes: 12569}
+  pusht_reacher_runner: {path: scripts/eval_standard_original_task_cem_frozen_v1.py, sha256: ee7b6025c1adbbfe787d69109791a96a4c9f71b61dc4b98dad4a55471ff8f432, size_bytes: 26034}
+  cube_original_baseline_wrapper: {path: scripts/eval_cube_original_baseline_cem_frozen_v1.py, sha256: 5a553d9fd36a8c80c2f4edf28a3f300ec15ee6ef459bd428c3098f2751219419, size_bytes: 25665}
+  cube_core: {path: scripts/eval_cube_original_task_cem_frozen.py, sha256: f653e4d8c7750859a94f2c98973bd1f99ecd0ddb936a507f4f8e4938878ba91b, size_bytes: 24013}
+  execution_runner: {path: scripts/run_contextworld_original_baseline_cem_v1.py, sha256: a44ca3843c7e4473a0c1f05d7cc6b9be1ddf815c0baab423954973367865d0c7, size_bytes: 11522}
+  finalizer: {path: scripts/finalize_contextworld_original_baseline_cem_v1.py, sha256: 519c2c3342741b42eab761308f59d9ea63cfcef607ae2445ef970381e1b0894a, size_bytes: 67442}
+  tests: {path: tests/test_original_baseline_cem_frozen_runners.py, sha256: 899fc70d7e56c45a212498757d3f457886524c2c743da02e609aa84b5fb14968, size_bytes: 15375}
+  cube_runner_tests: {path: tests/test_cube_original_baseline_cem_frozen_v1.py, sha256: fa34f87b70c2215338a612665097dec96e76898b525210e9e54f7b7a7b474ccd, size_bytes: 5219}
+  matrix_tests: {path: tests/test_original_baseline_cem_matrix_v1.py, sha256: e0b55bceb550d39253f84b2b7f1e8ba7cd719bb877276120949f4750d191b987, size_bytes: 1219}
+  execution_tests: {path: tests/test_original_baseline_cem_execution_v1.py, sha256: 8397d2f3e38124c537bf7171875cd07402fc89421a2a5444d93616609752d481, size_bytes: 1898}
+  finalizer_tests: {path: tests/test_finalize_contextworld_original_baseline_cem_v1.py, sha256: ae307f46decaeed21fece975a4e687114e0adf38ae1be41fd04dd8d6c1bdc3d6, size_bytes: 25099}
+
+reuse_cells:
+  - environment: cube
+    family: lewm
+    checkpoint_id: cube_lewm_original
+    source:
+      path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/context_world/evaluation/history3/cube_gripper_carry_h3_development_v4r1/original_task_retention_freeze_receipt_v2.json
+      sha256: bd4fc00f3a8e659cf55ac2561a1aeefa0a9c0baf2117e451fcd604f75408d55a
+      size_bytes: 19333
+    result:
+      path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/context_world/evaluation/history3/cube_gripper_carry_h3_development_v4r1/original_task_retention_v2/results/baseline_lewm/aggregate.json
+      sha256: 7e3a2745d247af96310a214a47fcd0bb1b27e5bd193be80cc98ad75f456b0945
+      size_bytes: 8827
+    successes: 198
+    evaluations: 300
+    exact_reuse_contract_passed: true
+
+execution_cells:
+  - environment: tworoom
+    family: lewm
+    checkpoint_id: tworoom_lewm_original
+    runner: tworoom_wrapper
+    runtime: tworoom
+    mujoco_gl: egl
+    checkpoint: {path: artifacts/training/runs/checkpoints/h3_origheldout_s3072/weights_final_step_6420.pt, sha256: 7d141b86cca49145444a69bff89c71ede69e8cf8252bfb933e656c3e2e962b54, size_bytes: 72296433}
+    effective_loader_config: {path: artifacts/training/runs/checkpoints/h3_origheldout_s3072/config.json, sha256: cd9ef9e2efde4527e36b6467d6a4efd120ab466d6a9f8a4aa41cdb7b56c4eddf, size_bytes: 8892}
+    environment_inputs: tworoom
+    eval_seeds: [42, 43, 44, 45, 46, 47]
+    queries_per_seed: 50
+    evaluations: 300
+    output_directory: artifacts/evaluation/original_baseline_cem_v1/tworoom/lewm
+    output_kind: six_seed_receipts
+    output_files: [seed42.json, seed43.json, seed44.json, seed45.json, seed46.json, seed47.json]
+  - environment: tworoom
+    family: pldm
+    checkpoint_id: tworoom_pldm_original
+    runner: tworoom_wrapper
+    runtime: tworoom
+    mujoco_gl: egl
+    checkpoint: {path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-tworooms/ckpt/tworoom_pldm_baseline/tworoom_pldm_baseline_weights.ckpt, sha256: f8316879acec3060e12631d954640614a4248a30e73e1bafdd02b9407fffcf68, size_bytes: 219234836}
+    effective_loader_config: {path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-tworooms/ckpt/tworoom_pldm_baseline/config.yaml, sha256: f70eea3473b22012a3f6acf7780dd52083b67bbe3ea95c222f89841f47eaa0b9, size_bytes: 1876}
+    environment_inputs: tworoom
+    eval_seeds: [42, 43, 44, 45, 46, 47]
+    queries_per_seed: 50
+    evaluations: 300
+    output_directory: artifacts/evaluation/original_baseline_cem_v1/tworoom/pldm
+    output_kind: six_seed_receipts
+    output_files: [seed42.json, seed43.json, seed44.json, seed45.json, seed46.json, seed47.json]
+  - environment: pusht
+    family: lewm
+    checkpoint_id: pusht_lewm_original
+    runner: pusht_reacher_runner
+    runtime: pusht_reacher_cube
+    mujoco_gl: egl
+    checkpoint: {path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-pusht/ckpt/pusht_lewm_baseline_seed3073/pusht_lewm_baseline_seed3073_weights.ckpt, sha256: 9f13b2c28bb909338047e08d62bf6eb16ea3616cb53e57cfa9b5072b43db1c59, size_bytes: 216789801}
+    effective_loader_config: {path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-pusht/ckpt/pusht_lewm_baseline_seed3073/config.yaml, sha256: dfeff6c41615b32d7d9b7522bd3dc3e683ce6d2f350cd2d11a9f5f56b19efdb9, size_bytes: 3011}
+    environment_inputs: pusht
+    eval_seeds: [42, 43, 44, 45, 46, 47]
+    queries_per_seed: 50
+    evaluations: 300
+    output_directory: artifacts/evaluation/original_baseline_cem_v1/pusht/lewm
+    output_kind: aggregate
+    output_files: [aggregate.json]
+  - environment: pusht
+    family: pldm
+    checkpoint_id: pusht_pldm_original
+    runner: pusht_reacher_runner
+    runtime: pusht_reacher_cube
+    mujoco_gl: egl
+    checkpoint: {path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-pusht/ckpt/pusht_pldm_baseline/pusht_pldm_baseline_weights.ckpt, sha256: 913e02728f6638409dc3931069caf34815a8ad0618bb40f690cb4a59a6bdc8ad, size_bytes: 219234900}
+    effective_loader_config: {path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-pusht/ckpt/pusht_pldm_baseline/config.yaml, sha256: 26a0589f25766246731746a53b198afb08bf0b2ec2148f7c1e1e33278c10dab6, size_bytes: 1922}
+    environment_inputs: pusht
+    eval_seeds: [42, 43, 44, 45, 46, 47]
+    queries_per_seed: 50
+    evaluations: 300
+    output_directory: artifacts/evaluation/original_baseline_cem_v1/pusht/pldm
+    output_kind: aggregate
+    output_files: [aggregate.json]
+  - environment: reacher
+    family: lewm
+    checkpoint_id: reacher_lewm_original
+    runner: pusht_reacher_runner
+    runtime: pusht_reacher_cube
+    mujoco_gl: osmesa
+    checkpoint: {path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-reacher/ckpt/reacher_lewm/reacher_lewm_weights.ckpt, sha256: 3c7cc846be48eff18e131ee3bc240018477406c6952331443fe873ef77d96a68, size_bytes: 216789801}
+    effective_loader_config: {path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-reacher/ckpt/reacher_lewm/config.yaml, sha256: 94f93d793dedd74d86f4d66a48cd5ecf5905e46b73e99adce05290a3595876fd, size_bytes: 1427}
+    environment_inputs: reacher
+    eval_seeds: [42, 43, 44]
+    queries_per_seed: 100
+    evaluations: 300
+    output_directory: artifacts/evaluation/original_baseline_cem_v1/reacher/lewm
+    output_kind: aggregate
+    output_files: [aggregate.json]
+  - environment: reacher
+    family: pldm
+    checkpoint_id: reacher_pldm_original
+    runner: pusht_reacher_runner
+    runtime: pusht_reacher_cube
+    mujoco_gl: osmesa
+    checkpoint: {path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-reacher/ckpt/reacher_pldm_baseline/reacher_pldm_baseline_weights.ckpt, sha256: 20c6ee3074a075602635213b794557c0f2af10af008d0282fb4773863e865f6f, size_bytes: 219234836}
+    effective_loader_config: {path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-reacher/ckpt/reacher_pldm_baseline/config.yaml, sha256: 7d598c0103d1ff1e8b3bf3a7a5c05bf2cbebb14b17753f140d63164337e6267f, size_bytes: 1888}
+    environment_inputs: reacher
+    eval_seeds: [42, 43, 44]
+    queries_per_seed: 100
+    evaluations: 300
+    output_directory: artifacts/evaluation/original_baseline_cem_v1/reacher/pldm
+    output_kind: aggregate
+    output_files: [aggregate.json]
+  - environment: cube
+    family: pldm
+    checkpoint_id: cube_pldm_original
+    runner: cube_original_baseline_wrapper
+    runtime: pusht_reacher_cube
+    mujoco_gl: osmesa
+    checkpoint: {path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-cube/ckpt/cube_pldm_baseline_seed3073/cube_pldm_baseline_seed3073_weights.ckpt, sha256: 9212dda85d4e6cb9ecb45f9916a4eac6ff6531cba6b39641210c4f23d757ebc6, size_bytes: 219328980}
+    effective_loader_config: {path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-cube/ckpt/cube_pldm_baseline_seed3073/config.yaml, sha256: fd29c44e9265de25b81c1989fc6bd3bc07fdf9fa9ffc8f5ea26054ff925f2230, size_bytes: 1960}
+    environment_inputs: cube
+    eval_seeds: [42, 43, 44]
+    queries_per_seed: 100
+    evaluations: 300
+    output_directory: artifacts/evaluation/original_baseline_cem_v1/cube/pldm
+    output_kind: aggregate
+    output_files: [aggregate.json]
+
+execution_policy:
+  output_root: artifacts/evaluation/original_baseline_cem_v1
+  output_directories_must_be_absent_before_first_run: true
+  one_scientific_execution_per_new_cell: true
+  parallel_gpu_execution_allowed: true
+  gpu_assignment_is_non_scientific: true
+  partial_outputs_do_not_count_as_results: true
+  infrastructure_failure_requires_versioned_recovery_preregistration: true
+  low_score_does_not_authorize_retry: true
+  result_summary: artifacts/evaluation/original_baseline_cem_v1/matrix_summary.json
+
+interpretation_boundaries:
+  - CEM measures planning on the unmodified original environment task.
+  - The same environment-level CEM value may be shown beside several components only as shared original-task context.
+  - It does not measure which hidden ContextWorld rule was inferred.
+  - TwoRoom CEM uses native History-3; it is not a native-History-7 ActionDelay result.
+  - ContactFriction and MotionDamping Public Test remain closed and untouched.
+  - Cube Public Test remains closed and untouched.
+  - Historical PushT 237/300 and Reacher 164/300 are context only and are not reused because their receipts do not close all runtime/data identities.

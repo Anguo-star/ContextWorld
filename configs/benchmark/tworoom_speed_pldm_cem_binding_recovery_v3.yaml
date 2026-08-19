@@ -1,0 +1,56 @@
+schema_version: 1
+recovery_id: tworoom_speed_pldm_cem_binding_recovery_v3
+completion_id: tworoom_speed_pldm_reference_completion_v1
+status: registered_after_recovery_v2_path_failure_before_cem_binding_or_execution
+created_utc: "2026-08-17"
+
+# The six receipts are content-identical in the matrix summary and the CEM
+# preregistration. Their paths differ only because one uses the absolute
+# artifact mount and the other uses the portable artifacts/... form.
+scope:
+  changes_frozen_file_content_or_identity: false
+  changes_cem_runner_metric_or_threshold: false
+  changes_checkpoint_or_model: false
+  reopens_public_test: false
+  executes_model_environment_or_planner: false
+  executes_cem: false
+  canonicalizes_six_frozen_receipt_paths_for_comparison_only: true
+
+frozen_inputs:
+  recovery_v2_preregistration:
+    path: configs/benchmark/tworoom_speed_pldm_cem_binding_recovery_v2.yaml
+    sha256: 8b3cc5c0c9e894ce9be9bb9c7e7a1cd1e2fd537eee0cd8eed32c15b52070ab9e
+    size_bytes: 2895
+  recovery_v2_launcher:
+    path: scripts/recover_tworoom_speed_pldm_cem_binding_v2.py
+    sha256: 3f2acebce057421df5c53a8b6e30a2853e3b2be71fa5feed2be0eca4992a493b
+    size_bytes: 13380
+  recovery_v2_failure:
+    path: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/formal_icl_v1/cem_binding_recovery_v2_failure.json
+    sha256: 450d17fe92f6d806f02432858cb9577df8bee2b5d4fc2788e353642fa1d33e52
+    size_bytes: 1812
+  original_cem_binding_freezer:
+    path: scripts/freeze_tworoom_speed_pldm_cem_binding_v1.py
+    sha256: 2a33449ae2e66b3f17787148def3cf1affce9db5c2292d3215b15b5dcc970054
+    size_bytes: 69094
+  original_baseline_matrix_summary:
+    path: artifacts/evaluation/original_baseline_cem_v1/matrix_summary.json
+    sha256: c52905b88ffe81eb6b81bcfadea8dd283a7b989cd65fdcd1950347ce9d4dceea
+    size_bytes: 17099
+
+path_compatibility:
+  scope: six_frozen_tworoom_pldm_original_baseline_receipts
+  eval_seeds: [42, 43, 44, 45, 46, 47]
+  comparison_key: resolved_path_sha256_size_bytes
+  binding_output_path_form: portable_artifacts_path
+  path_rebinding_authorized: false
+  underlying_file_rewritten: false
+
+implementation:
+  recovery_launcher:
+    path: scripts/recover_tworoom_speed_pldm_cem_binding_v3.py
+    sha256: 1fad71f88d11813d9cd4982bdaec7642e6f52ea6cea89109a422f3ac7ab9565c
+    size_bytes: 14722
+
+output:
+  cem_binding: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/formal_icl_v1/cem_binding_v1.json

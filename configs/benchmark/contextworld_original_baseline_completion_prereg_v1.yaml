@@ -1,0 +1,308 @@
+schema_version: 1
+preregistration_id: contextworld_original_baseline_completion_v1
+status: frozen_before_new_baseline_scoring
+frozen_date_utc: "2026-08-17"
+
+purpose: >-
+  Complete a descriptive LeWM/PLDM original-checkpoint ICL baseline matrix for
+  the nine released ContextWorld capability components. The eight checkpoints
+  were trained only on their original environment data and were fixed before
+  this matrix was specified. This protocol performs no training and no model,
+  recipe, or checkpoint selection.
+
+scientific_status:
+  registration_kind: post_release_descriptive_baseline_completion
+  blind_preregistration_claimed: false
+  reason_not_blind: prior reference and legacy baseline results already exist
+  fixed_checkpoint_selection_independent_of_new_scores: true
+  single_checkpoint_per_environment_and_family: true
+  trained_contextworld_methods_remain_three_seed_methods: true
+  cross_task_average_or_suite_total_authorized: false
+
+authority:
+  training_authorized: false
+  checkpoint_selection_authorized: false
+  formal_reference_rerun: false
+  formal_scoreboard_mutation: false
+  post_release_descriptive_baseline_scoring: true
+  existing_suite_v2_reference_rows_mutated: false
+  existing_cube_public_recovery_namespace_reused: false
+  output_scope: additive_original_baseline_matrix_v1_only
+
+execution_policy:
+  score_every_frozen_cell_once: true
+  publish_passes_and_failures: true
+  result_based_retry_or_checkpoint_swap: false
+  public_test_used_for_training_or_selection: false
+  records_required_for_independent_rescoring: true
+  batch_size_may_change_only_for_memory_fit: true
+  metric_query_threshold_or_adapter_change_after_first_score: false
+  output_root: artifacts/evaluation/original_baseline_matrix_v1
+  matrix_summary: artifacts/evaluation/original_baseline_matrix_v1/matrix_summary.json
+  checkpoint_identity_receipt: >-
+    artifacts/evaluation/original_baseline_matrix_v1/checkpoint_identity_audit.json
+
+reuse_policy:
+  new_icl_receipts_required_for_all_18_cells: true
+  legacy_score_may_replace_new_receipt: false
+  legacy_score_may_be_reported_as_context_only: true
+  exact_reuse_requirements:
+    - checkpoint_sha256
+    - release_config_sha256
+    - data_or_query_manifest_sha256
+    - metric_identity
+    - stable_worldmodel_commit
+  note: >-
+    Legacy summaries that omit a checkpoint SHA, bind an older data manifest,
+    or use a different primary metric are not promoted into this matrix.
+
+action_delay_disclosure:
+  release_history_tokens: 7
+  canonical_tworoom_checkpoint_training_history_tokens: 3
+  evaluation_adapter: frozen_history7_inference_from_h3_checkpoint
+  adapter_behavior:
+    sets_runtime_history_size_to_7: true
+    enables_positional_interpolation: true
+    changes_weights: false
+    trains_or_finetunes: false
+  allowed_claim: zero_shot_H7_inference_from_original_H3_checkpoint
+  prohibited_claim: native_H7_original_checkpoint
+
+cem_followup:
+  authorized_by_this_preregistration: false
+  uniform_environment_level_reuse_allowed: false
+  component_specific_protocol_identity_required: true
+  reason: >-
+    CEM query catalogs, horizons, budgets, and Stable-WorldModel pins differ
+    across capability releases even when the same original checkpoint is used.
+    CEM completion therefore requires a separate component-bound protocol and
+    cannot be collapsed into four environment-level numbers.
+
+implementation:
+  - path: contextworld/benchmarks/original_baseline_matrix.py
+    sha256: be12eb173b7b2d898bcb5afc75326a6ee15d2353309a2b051ac2035d6225de76
+    size_bytes: 12126
+  - path: scripts/audit_contextworld_original_baselines.py
+    sha256: 0286371597b5c94181d7d1ad869df549f6cd152c6258af77e72842e7d010b507
+    size_bytes: 1439
+
+checkpoints:
+  - checkpoint_id: tworoom_lewm_original
+    environment: tworoom
+    family: lewm
+    contextworld_capability_training_used: false
+    original_training_dataset: tworoom.h5
+    native_history_tokens: 3
+    weights:
+      path: artifacts/training/runs/checkpoints/h3_origheldout_s3072/weights_final_step_6420.pt
+      sha256: 7d141b86cca49145444a69bff89c71ede69e8cf8252bfb933e656c3e2e962b54
+      size_bytes: 72296433
+    training_config:
+      path: artifacts/training/runs/checkpoints/h3_origheldout_s3072/config.json
+      sha256: cd9ef9e2efde4527e36b6467d6a4efd120ab466d6a9f8a4aa41cdb7b56c4eddf
+      size_bytes: 8892
+  - checkpoint_id: tworoom_pldm_original
+    environment: tworoom
+    family: pldm
+    contextworld_capability_training_used: false
+    original_training_dataset: tworoom
+    native_history_tokens: 3
+    weights:
+      path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-tworooms/ckpt/tworoom_pldm_baseline/tworoom_pldm_baseline_weights.ckpt
+      sha256: f8316879acec3060e12631d954640614a4248a30e73e1bafdd02b9407fffcf68
+      size_bytes: 219234836
+    training_config:
+      path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-tworooms/ckpt/tworoom_pldm_baseline/config.yaml
+      sha256: f70eea3473b22012a3f6acf7780dd52083b67bbe3ea95c222f89841f47eaa0b9
+      size_bytes: 1876
+  - checkpoint_id: pusht_lewm_original
+    environment: pusht
+    family: lewm
+    contextworld_capability_training_used: false
+    original_training_dataset: pusht_expert_train
+    native_history_tokens: 3
+    weights:
+      path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-pusht/ckpt/pusht_lewm_baseline_seed3073/pusht_lewm_baseline_seed3073_weights.ckpt
+      sha256: 9f13b2c28bb909338047e08d62bf6eb16ea3616cb53e57cfa9b5072b43db1c59
+      size_bytes: 216789801
+    training_config:
+      path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-pusht/ckpt/pusht_lewm_baseline_seed3073/config.yaml
+      sha256: dfeff6c41615b32d7d9b7522bd3dc3e683ce6d2f350cd2d11a9f5f56b19efdb9
+      size_bytes: 3011
+  - checkpoint_id: pusht_pldm_original
+    environment: pusht
+    family: pldm
+    contextworld_capability_training_used: false
+    original_training_dataset: pusht_expert_train
+    native_history_tokens: 3
+    weights:
+      path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-pusht/ckpt/pusht_pldm_baseline/pusht_pldm_baseline_weights.ckpt
+      sha256: 913e02728f6638409dc3931069caf34815a8ad0618bb40f690cb4a59a6bdc8ad
+      size_bytes: 219234900
+    training_config:
+      path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-pusht/ckpt/pusht_pldm_baseline/config.yaml
+      sha256: 26a0589f25766246731746a53b198afb08bf0b2ec2148f7c1e1e33278c10dab6
+      size_bytes: 1922
+  - checkpoint_id: reacher_lewm_original
+    environment: reacher
+    family: lewm
+    contextworld_capability_training_used: false
+    original_training_dataset: reacher
+    native_history_tokens: 3
+    weights:
+      path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-reacher/ckpt/reacher_lewm/reacher_lewm_weights.ckpt
+      sha256: 3c7cc846be48eff18e131ee3bc240018477406c6952331443fe873ef77d96a68
+      size_bytes: 216789801
+    training_config:
+      path: configs/upstream/reacher_lewm_checkpoint.yaml
+      sha256: 456341f405f869d722a5d8be0517a568ba20afd2d85c6841510fb3d4fbef85bd
+      size_bytes: 1422
+  - checkpoint_id: reacher_pldm_original
+    environment: reacher
+    family: pldm
+    contextworld_capability_training_used: false
+    original_training_dataset: reacher
+    native_history_tokens: 3
+    weights:
+      path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-reacher/ckpt/reacher_pldm_baseline/reacher_pldm_baseline_weights.ckpt
+      sha256: 20c6ee3074a075602635213b794557c0f2af10af008d0282fb4773863e865f6f
+      size_bytes: 219234836
+    training_config:
+      path: configs/upstream/reacher_pldm_checkpoint.yaml
+      sha256: 9513545e705415e351a3f403d7b32adcab5219d21386aaa774c7537cf06eb99e
+      size_bytes: 1883
+  - checkpoint_id: cube_lewm_original
+    environment: cube
+    family: lewm
+    contextworld_capability_training_used: false
+    original_training_dataset: ogbench/cube_single_expert
+    native_history_tokens: 3
+    weights:
+      path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-cube/ckpt/cube_lewm_baseline_seed3073/cube_lewm_baseline_seed3073_weights.ckpt
+      sha256: d10f75cc62e8de0aab21ee486719127cb593bb5ed6a86902f2a6ad213d8ba0d8
+      size_bytes: 216791529
+    training_config:
+      path: configs/upstream/cube_lewm_checkpoint.yaml
+      sha256: ce8a57878ec596dc2b3fb8ed349166ea0c7ed110ad1f4c31ab1db26f746dd492
+      size_bytes: 3043
+  - checkpoint_id: cube_pldm_original
+    environment: cube
+    family: pldm
+    contextworld_capability_training_used: false
+    original_training_dataset: ogbench/cube_single_expert
+    native_history_tokens: 3
+    weights:
+      path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-cube/ckpt/cube_pldm_baseline_seed3073/cube_pldm_baseline_seed3073_weights.ckpt
+      sha256: 9212dda85d4e6cb9ecb45f9916a4eac6ff6531cba6b39641210c4f23d757ebc6
+      size_bytes: 219328980
+    training_config:
+      path: configs/upstream/cube_pldm_checkpoint.yaml
+      sha256: 5207126e1132a4eb77eff57cdf4c1bf379a4cc4fdf121adf23359b12322bfbd9
+      size_bytes: 1970
+
+components:
+  - capability_id: contextworld-speed
+    environment: tworoom
+    cli_module: contextworld.benchmarks.speed_icl_cli
+    eval_subcommand: eval
+    evaluation_phase: post_release_public_descriptive
+    stable_worldmodel_ref: 5864b74980f6ed328fd0045e777b3865962eff43
+    release_config: {path: configs/benchmark/tworoom_speed_icl_release_v1.yaml, sha256: cae8c7e84e871503323d522a378a83e09f447de7846806601ecd9bc31cccd3ca, size_bytes: 12448}
+  - capability_id: contextworld-door
+    environment: tworoom
+    cli_module: contextworld.benchmarks.door_icl_cli
+    eval_subcommand: eval
+    evaluation_phase: post_release_public_descriptive
+    stable_worldmodel_ref: 5864b74980f6ed328fd0045e777b3865962eff43
+    release_config: {path: configs/benchmark/tworoom_door_icl_release_v1.yaml, sha256: b9419e5839d694bf9fc080a64ef01dadd495318f7e698d6d774f0b35f408c229, size_bytes: 13694}
+  - capability_id: contextworld-action-delay
+    environment: tworoom
+    cli_module: contextworld.benchmarks.action_delay_icl_cli
+    eval_subcommand: eval
+    evaluation_phase: post_release_public_descriptive
+    stable_worldmodel_ref: ad2bc44579f2b5b65c004fd2c9d8edc8ebaa43ce
+    release_config: {path: configs/benchmark/tworoom_action_delay_icl_release_v1.yaml, sha256: 303d27e9163ce435fdceff11d3d2ef2e6f7a99d61b1bf3c2f9737122611e47bb, size_bytes: 15815}
+  - capability_id: contextworld-portal-exit
+    environment: tworoom
+    cli_module: contextworld.benchmarks.portal_exit_icl_cli
+    eval_subcommand: eval
+    evaluation_phase: post_release_public_descriptive
+    stable_worldmodel_ref: 875e607fc08aa72eacb94d5d178127804134cc06
+    release_config: {path: configs/benchmark/tworoom_portal_exit_icl_release_v1.yaml, sha256: a81e781c89d43b8eba1c87dd9d40dfc2d9330f3ae70e7b1744271edc09af92f7, size_bytes: 14212}
+  - capability_id: contextworld-action-strength
+    environment: pusht
+    cli_module: contextworld.benchmarks.action_strength_icl_cli
+    eval_subcommand: eval
+    evaluation_phase: post_release_public_descriptive
+    stable_worldmodel_ref: 875e607fc08aa72eacb94d5d178127804134cc06
+    release_config: {path: configs/benchmark/pusht_action_strength_icl_release_v1.yaml, sha256: e63002fb048bbfb0bce71d4394be6a6179dda1513caa316b9447aecf035ac577, size_bytes: 16246}
+  - capability_id: contextworld-contact-friction
+    environment: pusht
+    cli_module: contextworld.benchmarks.contact_friction_icl_cli
+    eval_subcommand: eval-development
+    evaluation_phase: development_only_public_closed
+    stable_worldmodel_ref: 875e607fc08aa72eacb94d5d178127804134cc06
+    release_config: {path: configs/benchmark/pusht_contact_friction_icl_release_v1.yaml, sha256: 69cb42eaa06f0059c6d4d8da986405dce7610e354756c2ac4a3ff7918b96d0a3, size_bytes: 12525}
+  - capability_id: contextworld-motion-damping
+    environment: pusht
+    cli_module: contextworld.benchmarks.motion_damping_icl_cli
+    eval_subcommand: eval-development
+    evaluation_phase: development_only_public_closed
+    stable_worldmodel_ref: 875e607fc08aa72eacb94d5d178127804134cc06
+    release_config: {path: configs/benchmark/pusht_motion_damping_icl_release_v1.yaml, sha256: a04cbb76d28d614c8f95f8c8fc2ed68ab03c05b2f57beb2cf682b0d31fc0031c, size_bytes: 16422}
+  - capability_id: contextworld-reacher-arm-mass
+    environment: reacher
+    cli_module: contextworld.benchmarks.reacher_arm_mass_icl_cli
+    eval_subcommand: eval
+    evaluation_phase: post_release_public_descriptive
+    stable_worldmodel_ref: 875e607fc08aa72eacb94d5d178127804134cc06
+    release_config: {path: configs/benchmark/reacher_arm_mass_icl_release_v1.yaml, sha256: 1f437a3e12d26f003063b4167d900c12ade5f3ca3cc4d708931a12eb6b744fe1, size_bytes: 14369}
+  - capability_id: contextworld-cube-gripper-carry
+    environment: cube
+    cli_module: contextworld.benchmarks.cube_grasp_rule_v4r1_icl_cli
+    eval_subcommand: eval
+    evaluation_phase: external_non_reference_public_descriptive
+    stable_worldmodel_ref: 875e607fc08aa72eacb94d5d178127804134cc06
+    release_config: {path: configs/benchmark/cube_gripper_carry_h3_v4r1_icl_release_v1.yaml, sha256: 38086eff37106b96dc1be3a51cf80ba8e4a460d785b5b16d28fbed6ed8bd2633, size_bytes: 15050}
+
+icl_cells:
+  - {capability_id: contextworld-speed, family: lewm, checkpoint_id: tworoom_lewm_original, adapter: lewm, phase: post_release_public_descriptive, output: artifacts/evaluation/original_baseline_matrix_v1/contextworld-speed/lewm.json, formal_scoreboard_eligible: false}
+  - {capability_id: contextworld-speed, family: pldm, checkpoint_id: tworoom_pldm_original, adapter: pldm, phase: post_release_public_descriptive, output: artifacts/evaluation/original_baseline_matrix_v1/contextworld-speed/pldm.json, formal_scoreboard_eligible: false}
+  - {capability_id: contextworld-door, family: lewm, checkpoint_id: tworoom_lewm_original, adapter: lewm, phase: post_release_public_descriptive, output: artifacts/evaluation/original_baseline_matrix_v1/contextworld-door/lewm.json, formal_scoreboard_eligible: false}
+  - {capability_id: contextworld-door, family: pldm, checkpoint_id: tworoom_pldm_original, adapter: pldm, phase: post_release_public_descriptive, output: artifacts/evaluation/original_baseline_matrix_v1/contextworld-door/pldm.json, formal_scoreboard_eligible: false}
+  - capability_id: contextworld-action-delay
+    family: lewm
+    checkpoint_id: tworoom_lewm_original
+    adapter: lewm
+    phase: post_release_public_descriptive
+    history_adapter: frozen_history7_inference_from_h3_checkpoint
+    native_history7_checkpoint: false
+    output: artifacts/evaluation/original_baseline_matrix_v1/contextworld-action-delay/lewm.json
+    formal_scoreboard_eligible: false
+  - capability_id: contextworld-action-delay
+    family: pldm
+    checkpoint_id: tworoom_pldm_original
+    adapter: pldm
+    phase: post_release_public_descriptive
+    history_adapter: frozen_history7_inference_from_h3_checkpoint
+    native_history7_checkpoint: false
+    output: artifacts/evaluation/original_baseline_matrix_v1/contextworld-action-delay/pldm.json
+    formal_scoreboard_eligible: false
+  - {capability_id: contextworld-portal-exit, family: lewm, checkpoint_id: tworoom_lewm_original, adapter: lewm, phase: post_release_public_descriptive, output: artifacts/evaluation/original_baseline_matrix_v1/contextworld-portal-exit/lewm.json, formal_scoreboard_eligible: false}
+  - {capability_id: contextworld-portal-exit, family: pldm, checkpoint_id: tworoom_pldm_original, adapter: pldm, phase: post_release_public_descriptive, output: artifacts/evaluation/original_baseline_matrix_v1/contextworld-portal-exit/pldm.json, formal_scoreboard_eligible: false}
+  - {capability_id: contextworld-action-strength, family: lewm, checkpoint_id: pusht_lewm_original, adapter: lewm, phase: post_release_public_descriptive, output: artifacts/evaluation/original_baseline_matrix_v1/contextworld-action-strength/lewm.json, formal_scoreboard_eligible: false}
+  - {capability_id: contextworld-action-strength, family: pldm, checkpoint_id: pusht_pldm_original, adapter: pldm, phase: post_release_public_descriptive, output: artifacts/evaluation/original_baseline_matrix_v1/contextworld-action-strength/pldm.json, formal_scoreboard_eligible: false}
+  - {capability_id: contextworld-contact-friction, family: lewm, checkpoint_id: pusht_lewm_original, adapter: lewm, phase: development_only_public_closed, output: artifacts/evaluation/original_baseline_matrix_v1/contextworld-contact-friction/lewm.json, formal_scoreboard_eligible: false}
+  - {capability_id: contextworld-contact-friction, family: pldm, checkpoint_id: pusht_pldm_original, adapter: pldm, phase: development_only_public_closed, output: artifacts/evaluation/original_baseline_matrix_v1/contextworld-contact-friction/pldm.json, formal_scoreboard_eligible: false}
+  - {capability_id: contextworld-motion-damping, family: lewm, checkpoint_id: pusht_lewm_original, adapter: lewm, phase: development_only_public_closed, output: artifacts/evaluation/original_baseline_matrix_v1/contextworld-motion-damping/lewm.json, formal_scoreboard_eligible: false}
+  - {capability_id: contextworld-motion-damping, family: pldm, checkpoint_id: pusht_pldm_original, adapter: pldm, phase: development_only_public_closed, output: artifacts/evaluation/original_baseline_matrix_v1/contextworld-motion-damping/pldm.json, formal_scoreboard_eligible: false}
+  - {capability_id: contextworld-reacher-arm-mass, family: lewm, checkpoint_id: reacher_lewm_original, adapter: lewm, phase: post_release_public_descriptive, output: artifacts/evaluation/original_baseline_matrix_v1/contextworld-reacher-arm-mass/lewm.json, formal_scoreboard_eligible: false}
+  - {capability_id: contextworld-reacher-arm-mass, family: pldm, checkpoint_id: reacher_pldm_original, adapter: pldm, phase: post_release_public_descriptive, output: artifacts/evaluation/original_baseline_matrix_v1/contextworld-reacher-arm-mass/pldm.json, formal_scoreboard_eligible: false}
+  - {capability_id: contextworld-cube-gripper-carry, family: lewm, checkpoint_id: cube_lewm_original, adapter: lewm, phase: external_non_reference_public_descriptive, output: artifacts/evaluation/original_baseline_matrix_v1/contextworld-cube-gripper-carry/lewm.json, formal_scoreboard_eligible: false}
+  - {capability_id: contextworld-cube-gripper-carry, family: pldm, checkpoint_id: cube_pldm_original, adapter: pldm, phase: external_non_reference_public_descriptive, output: artifacts/evaluation/original_baseline_matrix_v1/contextworld-cube-gripper-carry/pldm.json, formal_scoreboard_eligible: false}
+
+completion_rule: >-
+  ICL baseline completion requires one immutable receipt for every one of the
+  18 frozen cells, including failed gates. It does not require any checkpoint
+  to pass, does not authorize a trained-method claim from one checkpoint, and
+  does not change the formal Suite v2 reference scoreboard.

@@ -1,0 +1,102 @@
+schema_version: 1
+benchmark: tworoom_action_delay_history3_ability_retention_v1
+status: preregistered_before_model_scoring
+preregistered_date: "2026-07-26"
+
+question: >-
+  在加入动作响应延迟合成数据后，模型是否仍保留原始 TwoRoom 规划能力？
+  固定速度 5 的合成任务只作为第二个基础能力域，不解释为速度 ICL。
+
+stable_worldmodel:
+  repo: ../stable-worldmodel
+  expected_ref: 5864b74980f6ed328fd0045e777b3865962eff43
+
+source_identity:
+  completed_action_delay_summary:
+    path: >-
+      artifacts/evaluation/history3/action_delay_validation_v1/comparison_summary.json
+    sha256: caf3616feafc8309dfb4407cd22d3e989fb8461d89482f28eb487f6d56be6d23
+  original_heldout_catalog:
+    path: >-
+      artifacts/evaluation/history3/original_ability_reconstruction/original_heldout_eval_catalog.json
+    sha256: 08233c6755c8f6f358f5fe35f84e7cfed626b922be0eeaba8f7392c7741b4b34
+  speed5_matched_catalog:
+    path: >-
+      artifacts/evaluation/history3/original_ability_reconstruction/speed5_matched_eval_catalog.json
+    sha256: 608d5872b39dd17a39b803798c1ef7c6f958d6df2038a7dc473d2ab04be6bf44
+
+evaluation:
+  eval_seeds: [42, 43, 44, 45, 46, 47]
+  evaluations_per_seed_per_model_per_domain: 50
+  evaluations_per_model_per_domain: 300
+  domains:
+    original_heldout:
+      role: primary_original_ability_retention
+    speed5_matched:
+      role: secondary_base_dynamics_domain
+      interpretation: not_speed_icl
+  planner:
+    eval_budget_raw_steps: 50
+    horizon_action_blocks: 5
+    receding_horizon_action_blocks: 5
+    cem_samples: 300
+    cem_steps: 30
+    cem_topk: 30
+  paired_non_inferiority:
+    reference: h3_origheldout_s3072
+    confidence_level: 0.95
+    bootstrap_seed: 2026072606
+    bootstrap_resamples: 10000
+    candidate_minus_reference_success_rate_minimum: -0.05
+    candidate_minus_reference_final_distance_px_maximum: 5.0
+    require_no_solvable_stratum_collapse: true
+  decision:
+    primary_claim_requires_all_three_multi_delay_seeds_to_pass_original_heldout: true
+    speed5_matched_must_be_reported_separately: true
+    single_delay_models_are_controls_not_primary_targets: true
+
+models:
+  original_reference:
+    - slug: h3_origheldout_s3072
+      model_id: H3_Original_LEWM
+      training_seed: 3072
+      checkpoint: >-
+        artifacts/training/runs/checkpoints/h3_origheldout_s3072/weights_final_step_6420.pt
+  single_delay_control:
+    - slug: h3_action_delay_single_control_formal_s3072
+      model_id: H3_ActionDelay_SingleControl
+      training_seed: 3072
+      checkpoint: >-
+        artifacts/training/runs/checkpoints/h3_action_delay_single_control_formal_s3072/weights_final_step_1024.pt
+    - slug: h3_action_delay_single_control_formal_s4096
+      model_id: H3_ActionDelay_SingleControl
+      training_seed: 4096
+      checkpoint: >-
+        artifacts/training/runs/checkpoints/h3_action_delay_single_control_formal_s4096/weights_final_step_1024.pt
+    - slug: h3_action_delay_single_control_formal_s5120
+      model_id: H3_ActionDelay_SingleControl
+      training_seed: 5120
+      checkpoint: >-
+        artifacts/training/runs/checkpoints/h3_action_delay_single_control_formal_s5120/weights_final_step_1024.pt
+  multi_delay_target:
+    - slug: h3_action_delay_multi_formal_s3072
+      model_id: H3_ActionDelay_Multi
+      training_seed: 3072
+      checkpoint: >-
+        artifacts/training/runs/checkpoints/h3_action_delay_multi_formal_s3072/weights_final_step_1024.pt
+    - slug: h3_action_delay_multi_formal_s4096
+      model_id: H3_ActionDelay_Multi
+      training_seed: 4096
+      checkpoint: >-
+        artifacts/training/runs/checkpoints/h3_action_delay_multi_formal_s4096/weights_final_step_1024.pt
+    - slug: h3_action_delay_multi_formal_s5120
+      model_id: H3_ActionDelay_Multi
+      training_seed: 5120
+      checkpoint: >-
+        artifacts/training/runs/checkpoints/h3_action_delay_multi_formal_s5120/weights_final_step_1024.pt
+
+artifacts:
+  original_ability_retention_root: >-
+    artifacts/evaluation/history3/action_delay_ability_retention_v1
+  final_summary: >-
+    artifacts/evaluation/history3/action_delay_ability_retention_v1/final_summary.json

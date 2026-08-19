@@ -1,0 +1,117 @@
+schema_version: 1
+recovery_id: pusht_action_strength_pldm_float32_rescore_recovery_v1
+completion_id: pusht_action_strength_pldm_reference_completion_v1
+release_id: contextworld_pusht_action_strength_icl_history3_v1
+status: preregistered_after_raw_public_icl_before_float32_recovery
+created_utc: "2026-08-17"
+
+# The first frozen generic rescore exposed a float32-versus-float64 JSON
+# reconstruction mismatch for seed 13313.  This additive protocol recovers
+# exactly the three already-written Public ICL receipts; it does not evaluate
+# a model, alter the frozen scorer/CLI, choose checkpoints, or launch CEM.
+scope:
+  component: ActionStrength
+  environment: PushT
+  model_family: PLDM
+  raw_public_icl_already_completed: true
+  model_evaluation_rerun_authorized: false
+  raw_public_result_rewrite_authorized: false
+  frozen_generic_scorer_modification_authorized: false
+  public_test_reopen_authorized: false
+  float32_mse_aggregation_only: true
+  checkpoint_selection_authorized: false
+
+authorization:
+  action_planning_cem:
+    authorized_before_recovery_aggregate: false
+    authorized_only_if_all_three_recovered_icl_gates_pass: true
+    executed_by_this_recovery: false
+  original_pusht_retention_cem:
+    authorized_before_recovery_aggregate: false
+    authorized_only_if_all_three_recovered_icl_gates_pass: true
+    executed_by_this_recovery: false
+
+stable_worldmodel:
+  expected_ref: 875e607fc08aa72eacb94d5d178127804134cc06
+
+frozen_inputs:
+  completion_config:
+    path: configs/benchmark/pusht_action_strength_pldm_reference_completion_v1.yaml
+    sha256: 65c1dfa424f0d82524a793caa35bb45cc01ca67382d2496bea313c6a2456e133
+  evaluation_binding_config:
+    path: configs/benchmark/pusht_action_strength_pldm_evaluation_binding_v1.yaml
+    sha256: da511217026febc81cac66850f4db10ec63a9bed6772e65bc132b96493e9ef12
+  evaluation_binding_receipt:
+    path: artifacts/evaluation/history3/pusht_action_strength_pldm_reference_completion_v1/evaluation_binding_v1/evaluation_binding_revalidation_v1.json
+    sha256: 65d6f1c0565fb530bb69ccd3b631491a92189d6426196625bcccb358b59636ff
+  release_config:
+    path: configs/benchmark/pusht_action_strength_icl_release_v1.yaml
+    sha256: e8e9fe068ef323b9dc92fab3a55a3154a305f6c920cd55718141e69854c778bc
+
+# All code that participates in the narrow reconstruction is frozen here and
+# must still hash exactly before a receipt is constructed or aggregated.
+implementation:
+  recovery_launcher:
+    path: scripts/recover_pusht_action_strength_pldm_float32_rescore_v1.py
+    sha256: 858cdedc451242885d32e6e5f290718f20c14f922f40cf1a76df4a990ba6a2da
+  frozen_float32_reconstruction:
+    path: contextworld/benchmarks/action_strength_rescore_recovery.py
+    sha256: b4b494b90f7ea9da5ed47955546d8b9f8be880725b6d204563c18a8264e55852
+  frozen_icl_scorer:
+    path: contextworld/benchmarks/action_strength_icl_score.py
+    sha256: 4beefc8ab58470b02faf9132c9a7dc22f39e6576e3c086fd1efccb71502a863b
+  release_loader:
+    path: contextworld/benchmarks/action_strength_icl_data.py
+    sha256: 7f1453b36e94483f24903f422e84700bcb4df4fe17f731dead3cf659578b692a
+  paired_latent_metric:
+    path: contextworld/benchmarks/paired_latent_response.py
+    sha256: 92dc5cf019491f59596c3a0b59d918f04ad2290e124eab11d669537ac20d6ff5
+  frozen_icl_cli:
+    path: contextworld/benchmarks/action_strength_icl_cli.py
+    sha256: c455f2803f2bfc841e74348c797c3f4365b1afb0e229ef18e941b38bcc285db1
+
+raw_public_icl:
+  checkpoints:
+    - seed: 13313
+      checkpoint_sha256: beed2dfe852ab01f21386ea13cbe8f77ddf16264f71d2ca25c66003266e85a2f
+      model_state_sha256: fbc83a2f290edb61e58208cfa5fc46a52551a3a0b58c6a57d7b1e93d652a523a
+      raw_gate_passed: false
+      checkpoint:
+        path: artifacts/evaluation/history3/pusht_action_strength_pldm_reference_completion_v1/seed_13313/training/mixed_pldm_joint_step4096.pt
+        sha256: beed2dfe852ab01f21386ea13cbe8f77ddf16264f71d2ca25c66003266e85a2f
+      raw_result:
+        path: artifacts/evaluation/history3/pusht_action_strength_pldm_reference_completion_v1/formal_icl_v1/seed_13313.json
+        sha256: 0949c239be93037d4c9c285fe041d57aeda0b9ded5842f5ba488f23f3dbbdfd7
+      recovery_receipt:
+        path: artifacts/evaluation/history3/pusht_action_strength_pldm_reference_completion_v1/formal_icl_v1/float32_rescore_recovery_v1/seed_13313.json
+    - seed: 13314
+      checkpoint_sha256: 1f014cb345116c02cfbdbe6952a86a377138da1e8e8dd1dc87156c9ca9f47864
+      model_state_sha256: a73ce9cef71beed63c924f3c66880384c8c511c6fbbdc378690b4a0863b78521
+      raw_gate_passed: false
+      checkpoint:
+        path: artifacts/evaluation/history3/pusht_action_strength_pldm_reference_completion_v1/seed_13314/training/mixed_pldm_joint_step4096.pt
+        sha256: 1f014cb345116c02cfbdbe6952a86a377138da1e8e8dd1dc87156c9ca9f47864
+      raw_result:
+        path: artifacts/evaluation/history3/pusht_action_strength_pldm_reference_completion_v1/formal_icl_v1/seed_13314.json
+        sha256: ad8579ff0d20d6a00f3229882fe527be205ec1be62d04b0c2d308b440eca1bc9
+      recovery_receipt:
+        path: artifacts/evaluation/history3/pusht_action_strength_pldm_reference_completion_v1/formal_icl_v1/float32_rescore_recovery_v1/seed_13314.json
+    - seed: 13315
+      checkpoint_sha256: 3242de2bfa52dcf41c6a0d40b9126e8549cf87763d66cb75db86ca3a55240148
+      model_state_sha256: 0e8fa433675e851bd665200c490962349661184d4581ad825e2a03b36356240a
+      raw_gate_passed: false
+      checkpoint:
+        path: artifacts/evaluation/history3/pusht_action_strength_pldm_reference_completion_v1/seed_13315/training/mixed_pldm_joint_step4096.pt
+        sha256: 3242de2bfa52dcf41c6a0d40b9126e8549cf87763d66cb75db86ca3a55240148
+      raw_result:
+        path: artifacts/evaluation/history3/pusht_action_strength_pldm_reference_completion_v1/formal_icl_v1/seed_13315.json
+        sha256: a6719430527b8ee1883a05e2bb09d02f096ef6e98ddf25d37b49a4702b431665
+      recovery_receipt:
+        path: artifacts/evaluation/history3/pusht_action_strength_pldm_reference_completion_v1/formal_icl_v1/float32_rescore_recovery_v1/seed_13315.json
+
+outputs:
+  root: artifacts/evaluation/history3/pusht_action_strength_pldm_reference_completion_v1/formal_icl_v1/float32_rescore_recovery_v1
+  aggregate:
+    path: artifacts/evaluation/history3/pusht_action_strength_pldm_reference_completion_v1/formal_icl_v1/float32_rescore_recovery_v1/three_seed_negative_aggregate.json
+  exclusive_creation_required: true
+  overwrite_authorized: false

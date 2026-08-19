@@ -463,8 +463,6 @@ def load_cube_grasp_rule_v4r1_icl_release(
         "raw_steps_per_action_block": 5,
         "flattened_action_input_dim": 25,
         "prediction_horizon_action_blocks": 1,
-        "native_target_encoder_required": True,
-        "decoder_required": False,
     }
     if (
         evaluation["pair_count"] != 256

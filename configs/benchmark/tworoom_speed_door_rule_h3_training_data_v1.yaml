@@ -1,0 +1,152 @@
+schema_version: 1
+benchmark: tworoom_hidden_passage_history3_speed_door_rule_training_data_v1
+status: preregistered_before_formal_collection_or_training
+date: "2026-07-27"
+design_revision_before_formal_collection_or_training:
+  reason: >-
+    The full training-geometry preflight found that doors 43, 44, 45, 47,
+    48, and 49 could not recover an identical query for every subpixel
+    template. They were moved to the unused guard split and replaced with six
+    already isolated guard doors that passed the complete four-speed,
+    two-rule grid. No formal shard or model checkpoint existed at this point.
+  moved_from_train_to_guard: [43, 44, 45, 47, 48, 49]
+  moved_from_guard_to_train: [40, 77, 79, 87, 129, 141]
+
+stable_worldmodel:
+  repo: ../stable-worldmodel
+  commit: 5864b74980f6ed328fd0045e777b3865962eff43
+  relevant_sources:
+    - stable_worldmodel/envs/two_room/env.py
+    - stable_worldmodel/spaces.py
+
+protocol:
+  task: speed_door_rule_composition
+  history_tokens: 3
+  context_transitions: 2
+  agent_speed: 5.0
+  agent_speeds: [2.7, 4.3, 6.1, 7.7]
+  door_rules:
+    passable: 1
+    blocked: 0
+  door_number: 1
+  frameskip: 5
+  raw_steps_per_action_block: 5
+  num_steps: 4
+  rows_per_episode: 20
+  clips_per_episode: 1
+  probe_action:
+    vertical_speed_evidence: 0.25
+    horizontal_rule_evidence: 0.70
+    horizontal_rule_steps: 2
+  recovery_action:
+    cancel_vertical_speed_evidence: true
+    collision_projection_outward_steps: 1
+    collision_projection_return_steps: 1
+  query_action:
+    horizontal_rule_steps: 4
+    horizontal_value: 1.0
+    vertical_speed_steps: 1
+    vertical_value: 0.5
+  model_visible_fields: [pixels, action]
+  privileged_audit_fields:
+    - agent.speed
+    - passage.open
+    - state
+    - template_id
+
+geometry:
+  directions: [left_to_right, right_to_left]
+  doorway_offsets_px: [13.25, 13.375, 13.5, 13.625, 13.75]
+  wall_distances_px: [0.5, 1.5]
+  wall_geometry:
+    left_contact_x: 99.5
+    right_contact_x: 124.5
+    left_to_right_goal_x: 190.0
+    right_to_left_goal_x: 34.0
+
+catalog_seed: 20260727
+
+scales:
+  small:
+    door_splits:
+      train: [37, 39]
+      loader_val: [41]
+      final_eval_candidates: [30, 194]
+      guard: [43]
+    expected_door_counts:
+      train: 2
+      loader_val: 1
+      final_eval_candidates: 2
+      guard: 1
+    expected_single_rule_catalog_counts:
+      train: {shards: 2, clips: 16}
+      val: {shards: 1, clips: 8}
+      test: {shards: 0, clips: 0}
+    geometry:
+      doorway_offsets_px: [13.5]
+      wall_distances_px: [0.5]
+
+  formal:
+    door_splits:
+      train:
+        [36, 37, 40, 41, 51, 52, 53, 55, 56, 57,
+         59, 60, 63, 64, 67, 68, 69, 71, 72, 75, 76, 77, 79, 80, 81,
+         83, 84,
+         85, 87, 88, 89, 92, 93, 95, 96, 97, 99, 100, 101, 104, 120,
+         123, 124, 125, 128, 129, 131, 132, 133, 135, 136, 137, 139,
+         141, 143, 144,
+         148, 151, 152, 153, 155, 156, 157, 159, 160, 161, 163, 164,
+         165, 168, 169, 171, 172, 176, 177, 179, 180, 183, 187, 188]
+      loader_val:
+        [39, 61, 65, 73, 91, 103, 121, 127, 140, 145, 149, 167, 173,
+         175, 181, 185]
+      final_eval_candidates:
+        [30, 34, 38, 42, 46, 50, 54, 58, 62, 66, 70, 74, 78, 82, 86,
+         90, 94, 98, 102, 106, 110, 114, 118, 122, 126, 130, 134, 138,
+         142, 146, 150, 154, 158, 162, 166, 170, 174, 178, 182, 186,
+         190, 194]
+      guard: [43, 44, 45, 47, 48, 49, 147, 184]
+    expected_door_counts:
+      train: 80
+      loader_val: 16
+      final_eval_candidates: 42
+      guard: 8
+    expected_single_rule_catalog_counts:
+      train: {shards: 80, clips: 6400}
+      val: {shards: 16, clips: 1280}
+      test: {shards: 0, clips: 0}
+
+storage:
+  pixel_codec:
+    format: png
+    compress_level: 1
+    lossless: true
+
+collection:
+  staging_root: /tmp
+
+gates:
+  minimum_middle_rule_centroid_gap_px: 2.0
+  minimum_middle_adjacent_speed_centroid_gap_px: 0.30
+  minimum_future_rule_state_gap_px: 10.0
+  minimum_future_adjacent_speed_centroid_gap_px: 0.65
+
+validation_exclusion:
+  benchmark: tworoom_speed_door_rule_history3_validation_v1
+  query_count: 300
+  eval_only_door_count: 42
+  catalog: artifacts/evaluation/history3/speed_door_rule_composition_validation_v1/catalog.json
+  catalog_sha256: 1c9b0a86cc32a1a9e0172348fe936c3aec43bbb938b834f78891d9178d225d7e
+  manifest: artifacts/evaluation/history3/speed_door_rule_composition_validation_v1/training_exclusion_manifest.json
+  manifest_sha256: 1b02b26bf282ee72a4c57e7c62417c3c86ab2ae17b215c50d2302489587c88c0
+  content_manifest_sha256: b3548e9fe15bbf39f347bb7d012993cbd8e2a89437b3783e72fe16258d2585f4
+  exact_test_door_scales: [formal]
+
+original_dataset:
+  path: ../../data/world_model/quentinll/lewm-tworooms/tworoom.h5
+
+artifact_names:
+  catalog_prefix: tworoom_speed_door_rule_h3
+  version: v1
+
+output_root_base: artifacts/synthesis/speed_door_rule_h3_v1

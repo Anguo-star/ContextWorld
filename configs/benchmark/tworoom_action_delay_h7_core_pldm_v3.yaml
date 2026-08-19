@@ -1,0 +1,162 @@
+schema_version: 1
+benchmark: tworoom_action_delay_history7_core_pldm_v3
+status: frozen_after_v2_failure_before_v3_training
+frozen_date: "2026-07-30"
+
+question: >-
+  修正 v2 的物理结果采样偏置并增加独立训练 query 后，标准单步 PLDM
+  能否从 History=7 预测正确的动作延迟下一帧？
+
+stable_worldmodel:
+  repo: ../stable-worldmodel
+  commit: ad2bc44579f2b5b65c004fd2c9d8edc8ebaa43ce
+
+evidence_before_freeze:
+  v2_core_summary:
+    path: artifacts/evaluation/history7/action_delay_full_range_v2/core_summary.json
+    sha256: 94312ed7adeefff5db596ec4c7b095d56e27942459c573b820d7e08d8f7ab90c
+  observed_problem: >-
+    v2 对延迟数值等权，导致一步物理结果 [5,6,7,8,9,10] 获得其他结果
+    六倍的训练权重；三个 PLDM 种子的物理组宏平均为 44.59%，均未通过。
+
+data:
+  original_read_only: ../../data/world_model/quentinll/lewm-tworooms/tworoom.h5
+  original_split:
+    strategy: episode_heldout
+    seed: 3072
+    train_fraction: 0.9
+  frozen_normalizer:
+    path: artifacts/splits/tworoom_original_train_s3072_normalizer.json
+    sha256: 7a5be7ea867bced446c1671b0b2c0ff6450ffc61e1a7bdbbfc5eaa0942f635db
+    protocol: tworoom_original_train_s3072_unbiased_zscore_v1
+    statistics_scope: original_9000_train_episodes_only
+  formal_build_report:
+    path: artifacts/synthesis/action_delay_h7_core_training_v3/build_report.json
+    sha256: 6a13e8e86575e01daa3f70c5f2aa47d796a25372f8b3a8dadfc62cdf32a05d83
+  validation_exclusion_manifest:
+    path: >-
+      artifacts/evaluation/history7/action_delay_validation_v1/training_exclusion_manifest.json
+    sha256: 5fb8322249c4a3d1445363359fad6f9ff3f356348e9f1941ea8da51adbf9b69b
+    query_count: 300
+  catalogs:
+    action_delay_paired: >-
+      artifacts/synthesis/action_delay_h7_core_training_v3/catalogs/tworoom_action_delay_h7_core_training_v3.json
+
+data_quality:
+  groups:
+    action_delay_paired:
+      require_complete_synthesis_report: true
+      required_pixel_codec: {format: png, compress_level: 1, lossless: true}
+      allowed_clip_start_raw_steps: [0]
+      balance_by_factor: action.delay_steps
+      balance_factor_value_groups:
+        - [0]
+        - [1]
+        - [2]
+        - [3]
+        - [4]
+        - [5, 6, 7, 8, 9, 10]
+      exact_train_scenarios: 352
+      exact_validation_scenarios: 66
+      exact_test_scenarios: 0
+      minimum_raw_train_clips: 56320
+      minimum_train_scenarios: 352
+      minimum_validation_scenarios: 66
+      maximum_formal_mean_draws_per_raw_clip: 10.0
+      factor_support_contract:
+        factor: action.delay_steps
+        expected_by_split:
+          train: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+          validation: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+      required_catalog_sha256: 4c40d02e48834489fceb033a3e2394fadf404c29fd90779d724ceb2b7741c76e
+      required_manifest_sha256: fc1e7df418f50f5634d6f303df1bbfb91793dccb357baf0db7cbecba013f0951
+      required_synthesis_report_sha256: f79fb94af9c3afd6102045872076146b675790e35b56a56f99935185a025a019
+
+training_protocol:
+  architecture: stable_worldmodel_pldm_history7
+  training_method: pldm
+  history_tokens: 7
+  num_preds: 1
+  raw_steps_per_action_block: 5
+  model_visible_fields: [pixels, action]
+  training_profile: icl_core_v3
+  initialization_checkpoint:
+    path: artifacts/training/runs/checkpoints/h3_origheldout_s3072/weights_final_step_6420.pt
+    sha256: 7d141b86cca49145444a69bff89c71ede69e8cf8252bfb933e656c3e2e962b54
+    config_sha256: 44b5bde83fbc91634ef84acbdba9a75d3436568ed72266c9a5aa057653f9162b
+    role: model_weight_initialization_only_not_resume
+    temporal_adaptation:
+      parameter: predictor.pos_embedding
+      strategy: linear_interpolation
+      source_history_tokens: 3
+      target_history_tokens: 7
+      align_corners: true
+      source_anchor_target_indices: [0, 3, 6]
+  temporal_prediction_loss:
+    mode: normalized_transition_weights
+    transition_weights: [1, 1, 1, 1, 1, 1, 7]
+    normalization: divide_by_sum_of_weights
+    applies_to: all_training_groups
+    note: >-
+      仍是标准一步转移训练。七个相邻转移都受监督；Benchmark 直接检查的
+      最后一个转移占预测 loss 的 7/13。没有加入多步 rollout loss。
+  paired_training_seeds: [3072, 4096, 5120]
+  early_stopping: false
+  checkpoint_selection: final_fixed_step
+  group_sampling:
+    H7_ActionDelay_Core_v3_PLDM:
+      {original: 0.5, action_delay_paired: 0.5}
+  physical_group_sampling:
+    groups:
+      - [0]
+      - [1]
+      - [2]
+      - [3]
+      - [4]
+      - [5, 6, 7, 8, 9, 10]
+    weight_per_group: 0.16666666666666666
+    storage_keeps_all_delay_values: true
+  budget:
+    optimizer_steps: 1024
+    effective_global_batch: 1024
+    total_logical_draws: 1048576
+    original_draws: 524288
+    synthetic_draws: 524288
+    logical_epochs: 2
+    epoch_size_global: 524288
+    optimizer_steps_per_epoch: 512
+    mean_synthetic_draws_per_raw_clip: 9.309090909090909
+    maximum_expected_draws_per_small_physical_group_clip: 17.066666666666666
+
+models:
+  - model_id: H7_ActionDelay_Core_v3_PLDM
+    display_name: 物理结果等权训练的 History=7 PLDM
+    training_groups: [original, action_delay_paired]
+
+validation:
+  core_protocol: configs/benchmark/tworoom_action_delay_h7_core_icl_v2.yaml
+  catalog: artifacts/evaluation/history7/action_delay_validation_v1/catalog.json
+  catalog_sha256: 5a3fc1a53c05cc4e6f97f7b7544c48aaaf6033550b70a63899eab35ee46fafca
+  delays: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+  distinct_queries: 300
+  eval_seeds: [42, 43, 44, 45, 46, 47]
+  queries_per_eval_seed: 50
+  core_future_horizon_action_blocks: 1
+  diagnostic_future_horizons_action_blocks: [2, 3]
+  online_environment_during_model_scoring: false
+
+gates:
+  every_training_receipt_passes: true
+  every_checkpoint_save_load_exact: true
+  every_pldm_seed_passes_core_h1_gate: true
+  original_cem_ability_non_inferior_for_every_pldm_seed: true
+  multistep_training_required: false
+
+execution:
+  gpu_count: 8
+  batch_size_per_device: 128
+  gradient_accumulation_steps: 1
+  effective_global_batch: 1024
+  precision: bf16-mixed
+  data_workers_per_rank: 6
+  training_status: not_started

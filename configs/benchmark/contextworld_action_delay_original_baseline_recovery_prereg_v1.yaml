@@ -1,0 +1,157 @@
+schema_version: 1
+preregistration_id: contextworld_action_delay_original_baseline_recovery_v1
+status: frozen_before_recovery_scoring
+frozen_date_utc: "2026-08-17"
+
+purpose: >-
+  Recover the two descriptive original-checkpoint Action Delay baseline cells
+  that failed before any rollout prediction because an H3 checkpoint was
+  passed directly to a History-7 positional embedding. This recovery performs
+  no training and uses an explicit H7-to-H3 tail projection instead of
+  positional interpolation.
+
+scientific_status:
+  registration_kind: post_release_descriptive_baseline_recovery
+  blind_preregistration_claimed: false
+  fixed_checkpoint_selection_independent_of_recovery_scores: true
+  original_environment_only_checkpoints: true
+  trained_contextworld_methods_remain_three_seed_methods: true
+  recovery_scores_are_single_checkpoint_descriptive_results: true
+
+authority:
+  training_authorized: false
+  checkpoint_selection_authorized: false
+  formal_reference_rerun: false
+  formal_scoreboard_mutation: false
+  descriptive_recovery_scoring: true
+  authorized_checkpoint_count: 2
+  authorized_icl_cells: 2
+  authorized_cem_jobs: 0
+
+execution_policy:
+  score_every_frozen_cell_once: true
+  publish_passes_and_failures: true
+  result_based_retry_or_checkpoint_swap: false
+  public_test_used_for_training_or_selection: false
+  records_required_for_independent_rescoring: true
+  metric_query_threshold_or_adapter_change_after_first_score: false
+  output_root: artifacts/evaluation/original_baseline_matrix_v1/contextworld-action-delay/recovery_v1
+  raw_receipt_overwrite_allowed: false
+  failure_receipt_overwrite_allowed: false
+
+original_matrix_bindings:
+  original_baseline_preregistration:
+    path: configs/benchmark/contextworld_original_baseline_completion_prereg_v1.yaml
+    sha256: 02508372afd6f55594fa6aff688f96dc2f5b9a49fa8946f65b9bf4dcc2fa8d4b
+    size_bytes: 19031
+  original_baseline_freeze:
+    path: configs/benchmark/contextworld_original_baseline_completion_freeze_v1.json
+    sha256: 6cff41820bd57137332f0d06787fec240d9d07459755cbb1714375038d5947e8
+    size_bytes: 634
+  failed_native_h7_attempts:
+    - family: lewm
+      path: artifacts/evaluation/original_baseline_matrix_v1/contextworld-action-delay/lewm.failure.json
+      sha256: ef516e46ddf1c957795cd04086777a7a43e61812f809a4f894032186d5ecf3d9
+      size_bytes: 2121
+      stage: rollout
+      model_predictions_completed: 0
+    - family: pldm
+      path: artifacts/evaluation/original_baseline_matrix_v1/contextworld-action-delay/pldm.failure.json
+      sha256: 1582a25a38dbf690629e2f43a11ece5d3046e5264d228d19c5ed6c6683dae860
+      size_bytes: 2181
+      stage: rollout
+      model_predictions_completed: 0
+
+release_bindings:
+  original_release:
+    path: configs/benchmark/tworoom_action_delay_icl_release_v1.yaml
+    sha256: 303d27e9163ce435fdceff11d3d2ef2e6f7a99d61b1bf3c2f9737122611e47bb
+    size_bytes: 15815
+  recovery_release:
+    path: configs/benchmark/tworoom_action_delay_original_baseline_recovery_v1.yaml
+    sha256: 09155dcc0c55b273ccc0f83e8b614f1dde2d58fcf9556c137b89efe9524fe113
+    size_bytes: 17478
+  query_and_metric_contract: exact_inheritance_of_original_h7_public_test
+  sealed_test_included: false
+
+implementation:
+  - path: contextworld/benchmarks/action_delay_h3_tail_projection.py
+    sha256: add2443686092f83b2ddbbb71ab8d3f9c8a44823f8462614dbe1c72eaee0f8c5
+    size_bytes: 7007
+  - path: contextworld/benchmarks/action_delay_original_baseline_recovery_cli.py
+    sha256: a300f008588171c3fd33c9f27cc755f487294cc243ba799883fbd82d4421d15d
+    size_bytes: 7056
+  - path: contextworld/benchmarks/adapters.py
+    sha256: 3ca53a9d88520f92471aecbfeaf0d9483de049a2d52e58a9ab8e9eb77757a8fd
+    size_bytes: 20959
+  - path: tests/test_action_delay_h3_tail_projection.py
+    sha256: e3e0dc79bcf5d037111c4d89b7563fe1be35310d462126836b1920957a81a36a
+    size_bytes: 7471
+
+runtime:
+  stable_worldmodel_repo: /tmp/contextworld-swm-ad2bc-FxeALv
+  stable_worldmodel_commit: ad2bc44579f2b5b65c004fd2c9d8edc8ebaa43ce
+  device_selection: external_execution_only
+
+history_adapter:
+  name: h3_tail_projection
+  allowed_claim: >-
+    zero-shot H7 scorer inference through the trailing H3 context of an
+    original H3 checkpoint
+  prohibited_claims:
+    - native_H7_original_checkpoint
+    - positional_embedding_interpolation
+    - training_or_finetuning_during_recovery
+  source_history_tokens: 7
+  native_checkpoint_history_tokens: 3
+  source_action_blocks: 9
+  projected_action_blocks: 5
+  input_pixels: "input_pixels[:, -3:]"
+  raw_action_blocks: "raw_action_blocks[:, -5:]"
+  retained_context_action_blocks: 2
+  retained_future_action_blocks: 3
+  weights_modified: false
+
+checkpoints:
+  - checkpoint_id: tworoom_lewm_original
+    family: lewm
+    training_recipe: original_environment_only
+    training_seed: 3072
+    native_history_tokens: 3
+    weights:
+      path: artifacts/training/runs/checkpoints/h3_origheldout_s3072/weights_final_step_6420.pt
+      sha256: 7d141b86cca49145444a69bff89c71ede69e8cf8252bfb933e656c3e2e962b54
+      size_bytes: 72296433
+  - checkpoint_id: tworoom_pldm_original
+    family: pldm
+    training_recipe: original_environment_only
+    training_seed: 3072
+    native_history_tokens: 3
+    weights:
+      path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-tworooms/ckpt/tworoom_pldm_baseline/tworoom_pldm_baseline_weights.ckpt
+      sha256: f8316879acec3060e12631d954640614a4248a30e73e1bafdd02b9407fffcf68
+      size_bytes: 219234836
+
+icl_cells:
+  - capability_id: contextworld-action-delay
+    family: lewm
+    checkpoint_id: tworoom_lewm_original
+    adapter: lewm
+    history_adapter: h3_tail_projection
+    output: artifacts/evaluation/original_baseline_matrix_v1/contextworld-action-delay/recovery_v1/lewm.json
+    independent_rescore_output: artifacts/evaluation/original_baseline_matrix_v1/contextworld-action-delay/recovery_v1/lewm.rescore.json
+    formal_scoreboard_eligible: false
+  - capability_id: contextworld-action-delay
+    family: pldm
+    checkpoint_id: tworoom_pldm_original
+    adapter: pldm
+    history_adapter: h3_tail_projection
+    output: artifacts/evaluation/original_baseline_matrix_v1/contextworld-action-delay/recovery_v1/pldm.json
+    independent_rescore_output: artifacts/evaluation/original_baseline_matrix_v1/contextworld-action-delay/recovery_v1/pldm.rescore.json
+    formal_scoreboard_eligible: false
+
+completion_rule: >-
+  Recovery completes only when each of the two fixed cells has one immutable
+  raw receipt, retained per-query records, and one independent rescore
+  receipt. A passing gate is not required, and no recovery result changes the
+  formal Action Delay scoreboard or the original native-H7 failure receipts.

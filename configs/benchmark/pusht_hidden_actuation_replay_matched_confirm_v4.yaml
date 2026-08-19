@@ -1,0 +1,99 @@
+schema_version: 1
+benchmark: pusht_hidden_actuation_history3_replay_matched_confirm_v4
+status: registered_after_gap_diagnostic_before_confirmatory_synthesis_or_eval
+registered_at_utc: "2026-07-30"
+owner: ContextWorld
+revision_note: >-
+  The confirmation data and prediction gates were frozen before
+  confirmatory synthesis. The hidden-CEM subsection was appended after the
+  prediction pass and before any hidden-CEM oracle or model evaluation; it
+  did not change the confirmation set or prediction gates.
+
+role: diagnostic_informed_independent_confirmation
+question: >-
+  Does the frozen 4,096-step dynamics-response model pass all hidden-rule
+  gates on new replay episodes when counterfactual futures have a clearly
+  resolvable block displacement, while native SIGReg remains below the
+  method-separation ceiling?
+
+honesty_boundary:
+  diagnostic_that_selected_the_threshold: >-
+    On the already observed v2 validation set, response target selection was
+    0.9375 over all pairs and 0.9664 for pairs with future block gap at least
+    15 px. This old subset is not treated as confirmatory evidence.
+  confirmatory_independence: >-
+    Freeze both checkpoints first, then synthesize new pairs only from source
+    episodes absent from every previously evaluated replay-matched pair.
+  claim_scope: >-
+    Passing this test confirms the resolvable replay-matched mechanism. It
+    does not erase the separately reported failure to transfer to the narrow
+    v1 construction.
+
+frozen_models:
+  native: evaluation/history3/pusht_hidden_actuation_replay_matched_h3_v2/training_seed13313_step4096_exposure_matched_standard64_hidden64/mixed_native_sigreg_0p09_step4096.pt
+  dynamics_response: evaluation/history3/pusht_hidden_actuation_replay_matched_h3_v2/training_seed13313_step4096_exposure_matched_standard64_hidden64/mixed_dynamics_response_sigreg_0p02_step4096.pt
+  any_retraining_after_confirm_set_generation: false
+
+confirmatory_data:
+  pair_count: 256
+  source_partition: frozen_v2_validation_episode_partition
+  excluded_source_episodes:
+    - every_episode_used_by_v2_validation
+    - every_training_episode_by_partition
+  source_rows_unique: true
+  raw_actions_identical_within_pair: true
+  common_query_state: true
+  history_reveals_gain: true
+  both_query_futures_make_contact: true
+  minimum_future_block_gap_px: 15.0
+  resolution: 224
+  jpeg_quality: 95
+  seed: 20260731
+  overlap_required:
+    source_episode_with_prior_replay_eval: 0
+    query_pixel_hash_with_v2_train_validation_or_v1_eval: 0
+
+hidden_prediction_gates:
+  response:
+    target_selection_minimum: 0.95
+    correct_history_minimum: 0.95
+    rule_switch_minimum: 0.95
+    worst_mode_minimum: 0.90
+  native:
+    target_selection_failure_ceiling: 0.90
+
+next_evaluations_if_response_passes:
+  - exact_standard_pusht_cem_50x6_on_same_frozen_checkpoint
+  - replay_matched_hidden_cem_on_confirmatory_pairs
+
+replay_matched_hidden_cem:
+  checkpoint: frozen_dynamics_response_step4096
+  pair_count: 256
+  common_goal: low_gain_real_future_under_the_exact_source_query_block
+  candidate_action_family: exact_source_query_block_times_scalar_amplitude
+  amplitude_bounds: [0.0, 1.0]
+  cem:
+    seed: 13312
+    samples: 300
+    iterations: 30
+    topk: 30
+  physical_oracle:
+    grid_size: 101
+    state_metric: agent_xy_block_xy_and_40px_per_radian_block_angle
+  primary_gate:
+    oracle_mode_action_classification_minimum: 0.90
+  diagnostics:
+    - low_gain_selected_amplitude_greater_than_high_gain
+    - executed_visible_state_distance
+    - executed_block_position_error
+
+decision_rules:
+  - >-
+    Never change the 15 px threshold, pair count, source exclusion, models,
+    or metrics after confirmatory synthesis begins.
+  - >-
+    If response passes and native remains at or below 0.90, accept method
+    separation on resolvable replay-matched hidden dynamics.
+  - >-
+    If response fails, retain the failure and reject the current simple
+    regularizer as a complete solution for this construction.

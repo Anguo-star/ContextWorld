@@ -1,0 +1,195 @@
+schema_version: 1
+benchmark: pusht_contact_friction_history3_feasibility_v1
+status: completed_history3_physical_feasibility_passed
+date: "2026-07-31"
+claim_limit: physical_identifiability_only_not_a_model_icl_result
+
+question: >-
+  在当前 query 的完整物理状态、画面和动作相同时，三帧历史能否只通过一次接触响应
+  显示当前推手与物体之间的接触摩擦大小，并使相同 query 动作产生不同的真实下一帧？
+
+naming:
+  display_name_zh: PushT 接触摩擦 ICL
+  display_name_en: PushT Contact Friction ICL
+  controlled_factor: pusher_object_effective_contact_friction
+  excluded_factor: post_release_motion_damping
+  note: >-
+    PushT 是零重力平面。接触摩擦只指推手与物体碰撞时的切向接触响应；松手后的持续
+    减速由 space.damping 控制，属于独立的运动阻尼能力。
+
+environment:
+  id: stable_worldmodel/PushT
+  gravity: [0.0, 0.0]
+  space_damping: 0.0
+  action_scale: 100.0
+  block_mass: 1.0
+  elasticity: 0.0
+  primary_visible_shape:
+    name: T
+    stable_worldmodel_shape_id: 2
+  diagnostic_visible_shape:
+    name: square
+    stable_worldmodel_shape_id: 4
+    role: search_diagnostic_only_not_sufficient_for_primary_pass
+  friction:
+    effective_values: [0.05, 0.25, 0.80]
+    endpoint_pair_used_by_feasibility_search: [0.05, 0.80]
+    assignment: >-
+      Set every pusher and block collision Shape friction to sqrt(mu), so their
+      Pymunk contact coefficient is mu. Do not assign friction to Body.
+    wall_shape_friction: 0.0
+
+protocol:
+  history_tokens: 3
+  context_transitions: 2
+  raw_steps_per_action_block: 5
+  raw_history_steps: 10
+  probe_raw_steps: [1, 2, 3]
+  shared_recovery_raw_steps: [9, 8, 7]
+  query_future_raw_steps: 5
+  same_reset_state_goal_and_actions_across_friction: true
+  friction_specific_actions_allowed: false
+  resets_or_teleports_inside_history: false
+  numerical_canonicalization:
+    allowed: true
+    only_after_all_precanonical_state_residuals_pass: true
+    gate: per_trajectory_correction_to_frozen_common_query
+    maximum_per_trajectory_full_state_absolute_correction: 0.002
+    pairwise_state_gap_role: diagnostic_only
+    canonical_query_state_must_be_frozen_in_template: true
+    fresh_query_simulator_clears_unobserved_solver_cache: true
+
+model_visible_fields: [pixels, action]
+privileged_audit_fields:
+  - effective_contact_friction
+  - full_physics_state
+  - contact_count
+  - template_id
+  - visible_shape_id
+
+gates:
+  implementation:
+    friction_is_set_on_collision_shapes: true
+    effective_agent_block_contact_coefficient_matches_requested_mu: true
+    body_friction_attribute_is_not_used_as_physics_control: true
+    damping_is_zero_and_identical: true
+  causal_pair:
+    initial_full_physics_state_exact_match: true
+    initial_pixels_bitwise_match: true
+    history_actions_bitwise_match: true
+    query_action_bitwise_match: true
+    both_histories_include_pusher_object_contact: true
+    wall_contact_does_not_count_as_pusher_object_contact: true
+    all_history_frames_keep_pusher_and_object_inside_playfield: true
+    history_visible_response_gap_px_equivalent_minimum: 3.0
+    each_trajectory_correction_to_frozen_query_max_abs: 0.002
+    query_pixels_bitwise_match_after_bounded_canonicalization: true
+    query_pusher_and_object_inside_playfield: true
+    no_hidden_factor_or_physics_metadata_in_model_input: true
+  target:
+    both_query_futures_include_pusher_object_contact: true
+    future_block_position_gap_px_minimum_or: 2.0
+    future_block_angle_gap_rad_minimum_or: 0.03333333333333333
+    future_pusher_and_object_inside_playfield: true
+  repeatability:
+    primary_t_shape_templates_minimum: 8
+    orientations_minimum: 4
+    deterministic_replay: true
+    zero_failed_primary_templates: true
+
+search:
+  catalog_seed: 20260731
+  frozen_before_acceptance: true
+  visible_shapes: [T, square]
+  primary_shape: T
+  base_geometry_families:
+    - open_space_oblique_contact
+    - wall_assisted_recovery
+    - corner_assisted_recovery
+  cardinal_orientations: [0, 90, 180, 270]
+  probe_duration_values: [1, 2, 3]
+  probe_action_grid: [-0.8, -0.4, -0.2, 0.2, 0.4, 0.8]
+  shared_recovery_action_bounds: [-1.0, 1.0]
+  optimizer:
+    deterministic_local_restarts_per_candidate: 12
+    maximum_function_evaluations_per_restart: 500
+    finite_difference_step: 0.0002
+  acceptance_order:
+    - primary_t_shape_passes_all_gates
+    - validate_four_orientations_and_two_positions
+    - only_then_generate_formal_training_and_evaluation_data
+
+results:
+  execution_status: completed
+  corrected_search:
+    in_bounds_closed_action_grid_candidates: 4320
+    grid_candidates_meeting_history_contact_and_bounds: 652
+    broad_local_candidate_evaluations: 8470
+    narrow_confirmation_candidate_evaluations: 15204
+    total_candidate_evaluations: 27994
+  original_pairwise_audit:
+    template_id: t-h3-closed-search-best-v1
+    history_visible_response_gap_px_equivalent: 3.211460
+    pairwise_query_state_max_abs_gap: 0.003727
+    original_pairwise_limit: 0.002
+    passed: false
+  methodology_review:
+    corrected_gate: per_trajectory_correction_to_frozen_common_query
+    correction_limit_unchanged: 0.002
+    history_length_unchanged: 3
+    reason: >-
+      Canonicalization changes each trajectory separately. The pairwise gap
+      adds the two branch corrections and therefore does not measure the
+      actual intervention applied to either trajectory.
+  history3_confirmation:
+    templates: 8
+    orientations: 4
+    positions_per_orientation: 2
+    passed_templates: 8
+    maximum_per_trajectory_full_state_correction: 0.001864
+    correction_limit: 0.002
+    minimum_history_visible_response_gap_px_equivalent: 3.211460
+    minimum_future_block_position_gap_px: 8.416999
+    low_friction_history_contact_steps: 5
+    high_friction_history_contact_steps: 5
+    all_history_query_and_future_bodies_inside_playfield: true
+    deterministic_replay: true
+  passed_primary_t_templates: 8
+  required_primary_t_templates: 8
+  passed: true
+  interpretation: >-
+    History=3 is physically sufficient: it exposes contact-friction-dependent
+    motion, each trajectory reaches the frozen common query within the same
+    0.002 correction limit, and the same query action produces separated true
+    futures. This is a data-construction result, not a trained-model ICL claim.
+
+decision:
+  on_pass:
+    - freeze_history3_template_catalog
+    - build_paired_training_loader_validation_and_independent_validation
+    - define_true_future_context_switch_and_worst_friction_scores
+    - train_three_seed_lewm_and_pldm_reference_matrix
+    - add_planning_and_standard_pusht_retention_tracks
+  on_fail:
+    - do_not_generate_formal_training_or_evaluation_data
+    - redesign_the_history3_geometry_or_defer_this_capability
+  executed:
+    history3_physical_feasibility_passed: true
+    formal_history3_data_status: completed
+    register_history3_component_in_unified_suite: false
+    increase_history_to_7: false
+    next_step: run_three_seed_lewm_and_pldm_reference_matrix
+
+formal_data:
+  artifact_root: artifacts/synthesis/pusht_contact_friction_h3_v1
+  manifest_sha256: f730665614e00c00fbc842d8d5da579822a558204987c8ab2e4f37fb676555fb
+  pair_counts:
+    train: 2048
+    loader_validation: 256
+    independent_validation: 256
+  cross_split_query_pixel_hash_overlap: 0
+  cross_split_template_id_overlap: 0
+  minimum_history_visible_response_gap_px_equivalent: 3.211426
+  maximum_per_trajectory_query_correction: 0.001868
+  minimum_future_block_position_gap_px: 8.416965
+  passed: true

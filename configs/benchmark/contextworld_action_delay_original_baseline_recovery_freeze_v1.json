@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "freeze_id": "contextworld_action_delay_original_baseline_recovery_freeze_v1",
+  "status": "frozen_before_recovery_scoring",
+  "frozen_date_utc": "2026-08-17",
+  "preregistration": {
+    "path": "configs/benchmark/contextworld_action_delay_original_baseline_recovery_prereg_v1.yaml",
+    "sha256": "5d5b90cce49292f8337abc377388abf812c3c9e317d93c52d01708dd9e9ddc69",
+    "size_bytes": 6707
+  },
+  "original_matrix": {
+    "preregistration": {
+      "path": "configs/benchmark/contextworld_original_baseline_completion_prereg_v1.yaml",
+      "sha256": "02508372afd6f55594fa6aff688f96dc2f5b9a49fa8946f65b9bf4dcc2fa8d4b"
+    },
+    "native_h7_failures": {
+      "lewm": {
+        "path": "artifacts/evaluation/original_baseline_matrix_v1/contextworld-action-delay/lewm.failure.json",
+        "sha256": "ef516e46ddf1c957795cd04086777a7a43e61812f809a4f894032186d5ecf3d9"
+      },
+      "pldm": {
+        "path": "artifacts/evaluation/original_baseline_matrix_v1/contextworld-action-delay/pldm.failure.json",
+        "sha256": "1582a25a38dbf690629e2f43a11ece5d3046e5264d228d19c5ed6c6683dae860"
+      }
+    }
+  },
+  "release_bindings": {
+    "original": {
+      "path": "configs/benchmark/tworoom_action_delay_icl_release_v1.yaml",
+      "sha256": "303d27e9163ce435fdceff11d3d2ef2e6f7a99d61b1bf3c2f9737122611e47bb"
+    },
+    "recovery": {
+      "path": "configs/benchmark/tworoom_action_delay_original_baseline_recovery_v1.yaml",
+      "sha256": "09155dcc0c55b273ccc0f83e8b614f1dde2d58fcf9556c137b89efe9524fe113"
+    }
+  },
+  "implementation": {
+    "h3_tail_projection": {
+      "path": "contextworld/benchmarks/action_delay_h3_tail_projection.py",
+      "sha256": "add2443686092f83b2ddbbb71ab8d3f9c8a44823f8462614dbe1c72eaee0f8c5"
+    },
+    "recovery_cli": {
+      "path": "contextworld/benchmarks/action_delay_original_baseline_recovery_cli.py",
+      "sha256": "a300f008588171c3fd33c9f27cc755f487294cc243ba799883fbd82d4421d15d"
+    }
+  },
+  "authorization": {
+    "canonical_checkpoints": 2,
+    "icl_cells": 2,
+    "history_adapter": "h3_tail_projection",
+    "training_authorized": false,
+    "checkpoint_selection_authorized": false,
+    "formal_scoreboard_mutation": false,
+    "cem_jobs_authorized": 0
+  }
+}

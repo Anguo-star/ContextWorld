@@ -1,0 +1,472 @@
+schema_version: 1
+binding_id: tworoom_speed_pldm_evaluation_binding_v1
+status: preregistered_after_training_before_formal_public_evaluation
+completion:
+  path: configs/benchmark/tworoom_speed_pldm_reference_completion_v1.yaml
+  sha256: 6c8d3404431f4fedb788acc0c89fc62b78fcb147402d284fc8e74aa64a0d840f
+  size_bytes: 5680
+  completion_id: tworoom_speed_pldm_reference_completion_v1
+  training_seeds:
+  - 3072
+  - 4096
+  - 5120
+  fixed_optimizer_steps: 12840
+  model_id: H3_Speed_PLDM_ReferenceCompletion
+  initial_model_state_sha256: 815d99875f1234f50f03f8dc9489639442f91ba048bf45983478a8161a85732f
+release:
+  path: configs/benchmark/tworoom_speed_icl_release_v1.yaml
+  sha256: 9acb8e36eabd1a68595a89c9add0e5b4440bd6b55647d74f3c211636457646c0
+  size_bytes: 12448
+  release_id: contextworld_tworoom_speed_icl_history3_v1
+normalizer:
+  path: artifacts/splits/tworoom_original_train_s3072_normalizer.json
+  sha256: a9e4b443bbac0d7a4e2d9d9f84d40ac40936556ffadfc7af0b0ce4fe4afed42c
+  size_bytes: 859
+stable_worldmodel:
+  worktree: /tmp/stable-worldmodel-5864
+  expected_ref: 5864b74980f6ed328fd0045e777b3865962eff43
+  pldm_config: scripts/train/config/pldm.yaml
+  pldm_config_sha256: 430691039c77f7084dff24759f5e17680fbf65fae3454f88709f403aa1d1be51
+development:
+  config:
+    path: configs/benchmark/tworoom_speed_pldm_infrastructure_development_v1.yaml
+    sha256: 56c1311c2ef50937b85fd8efca03f6df4856fe6ad48c89cd55fa400a11b8dd7c
+    size_bytes: 7147
+  manifest:
+    path: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/infrastructure_development_v1/development_manifest.json
+    sha256: fa9c1ac18580cf14495c1cd124a50bafd837d89eca98053afc6b1ad52a4251d7
+    size_bytes: 784501
+  receipts:
+  - seed: 3072
+    receipt:
+      path: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/infrastructure_development_v1/seed_3072.json
+      sha256: aef2dfcc012ce9d88655ea2f267c1d70fea3e33254f137bb2c7ef682ab2666de
+      size_bytes: 8671
+  - seed: 4096
+    receipt:
+      path: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/infrastructure_development_v1/seed_4096.json
+      sha256: ce170da4adb3b5d874a2e33b5acd8f810edeb68b6febabf0c8842561fd076d28
+      size_bytes: 8671
+  - seed: 5120
+    receipt:
+      path: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/infrastructure_development_v1/seed_5120.json
+      sha256: 63dd538fc43efb11e54658d97c9f9bd6d408315b718d45428a38a0fcb8061cd4
+      size_bytes: 8671
+formal_icl:
+  tracks:
+  - seen_for_multi
+  - unseen_interpolation
+  - extrapolation_low
+  - extrapolation_high
+  encode_batch_size: 64
+  rollout_batch_size: 64
+  bundle_batch_size: 64
+behavioral_claim_boundary:
+  path: configs/benchmark/tworoom_speed_pldm_behavioral_claim_boundary_v1.yaml
+  sha256: 7e81e79fb7e28bbf9fcf1c76571bfedb471c118fc73920abd22d75f18a779941
+  size_bytes: 2378
+cem_protocol:
+  cem_preregistration_id: tworoom_speed_pldm_cem_prereg_v1
+  status: frozen_prepublic_cem_execution_and_decision_authority
+  preregistration: &id001
+    path: configs/benchmark/tworoom_speed_pldm_cem_prereg_v1.yaml
+    sha256: 9489848bbe29f1200f6c76eb1b3624c1e03904791b5f6fd995080ddb20afbf9c
+    size_bytes: 12008
+  completion:
+    path: configs/benchmark/tworoom_speed_pldm_reference_completion_v1.yaml
+    sha256: 6c8d3404431f4fedb788acc0c89fc62b78fcb147402d284fc8e74aa64a0d840f
+    size_bytes: 5680
+    completion_id: tworoom_speed_pldm_reference_completion_v1
+    training_seeds:
+    - 3072
+    - 4096
+    - 5120
+    fixed_optimizer_steps: 12840
+    model_id: H3_Speed_PLDM_ReferenceCompletion
+    initial_model_state_sha256: 815d99875f1234f50f03f8dc9489639442f91ba048bf45983478a8161a85732f
+  release:
+    path: configs/benchmark/tworoom_speed_icl_release_v1.yaml
+    sha256: 9acb8e36eabd1a68595a89c9add0e5b4440bd6b55647d74f3c211636457646c0
+    size_bytes: 12448
+    release_id: contextworld_tworoom_speed_icl_history3_v1
+  behavioral_claim_boundary:
+    path: configs/benchmark/tworoom_speed_pldm_behavioral_claim_boundary_v1.yaml
+    sha256: 7e81e79fb7e28bbf9fcf1c76571bfedb471c118fc73920abd22d75f18a779941
+    size_bytes: 2378
+  normalizer:
+    path: artifacts/splits/tworoom_original_train_s3072_normalizer.json
+    sha256: a9e4b443bbac0d7a4e2d9d9f84d40ac40936556ffadfc7af0b0ce4fe4afed42c
+    size_bytes: 859
+  stable_worldmodel:
+    worktree: /tmp/stable-worldmodel-5864
+    expected_ref: 5864b74980f6ed328fd0045e777b3865962eff43
+    pldm_config: scripts/train/config/pldm.yaml
+    pldm_config_sha256: 430691039c77f7084dff24759f5e17680fbf65fae3454f88709f403aa1d1be51
+  source_identities:
+    preregistration: *id001
+    source_protocol: &id003
+      path: configs/benchmark/tworoom_speed_cube_eval_v2.yaml
+      sha256: 387e5bd678ccf04e5ced9cd967b218f2014feefade09a0c5ab6989e2df62f2e9
+      size_bytes: 5487
+    aggregate_preregistration: &id020
+      path: configs/benchmark/contextworld_pldm_reference_completion_aggregate_prereg_v1.yaml
+      sha256: 84bbfff198663846f1e597ecfb65151697cd3754d651fce608023ff92d5b106a
+      size_bytes: 11219
+    retention_noninferiority_protocol: &id021
+      path: configs/benchmark/tworoom_original_ability_reconstruction_v1.yaml
+      sha256: 65e3da088a3cff18a66f407b0d03c740b250ead86da5f94d2456f67588fb9bf0
+      size_bytes: 3749
+    action_catalog: &id002
+      path: artifacts/evaluation/history3/speed_isolated_v2/catalogs/seen_for_multi.json
+      sha256: f8bb83e008398378e71c9345de13144b52f08b9bcb6ad02653deddc2020a9152
+      size_bytes: 176987
+    action_catalog_validator: &id004
+      path: contextworld/evaluation/icl_catalog.py
+      sha256: 82a76a70c6380a4109d3909c06f04e2fdc1a6b7f94ce572a30df0925c7e5398f
+      size_bytes: 30306
+    action_episode_oracle: &id005
+      path: scripts/eval_tworoom_icl_planning.py
+      sha256: 44f912dd73afdb93003272a498c8c474ab4f6d961bd85a3d007a1c9217544a4d
+      size_bytes: 35457
+    action_runner_core: &id006
+      path: scripts/eval_tworoom_speed_cube_planning.py
+      sha256: 22184323ec39ab049c94df2c73af31465c6ebcf881b2d351d112756afe7e794c
+      size_bytes: 12971
+    speed_cli: &id007
+      path: contextworld/benchmarks/speed_icl_cli.py
+      sha256: 886aa06cb57cf9f660868b89ab1c334a411ac82f84adf3f14ea3115956b878b0
+      size_bytes: 16298
+    speed_score: &id008
+      path: contextworld/benchmarks/speed_icl_score.py
+      sha256: 0d7d52667eea0a29badcac1cee1047f3a2d56d55f65a59a0fd7a086a77601a1e
+      size_bytes: 32831
+    retention_catalog: &id009
+      path: artifacts/evaluation/history3/original_ability_reconstruction/original_heldout_eval_catalog.json
+      sha256: 08233c6755c8f6f358f5fe35f84e7cfed626b922be0eeaba8f7392c7741b4b34
+      size_bytes: 119993
+    retention_catalog_builder: &id010
+      path: scripts/build_tworoom_original_ability_catalogs.py
+      sha256: 534b131929de3d005439c8dbe7a9f60a8f2877b6d760ac26568642f6b6aa90c3
+      size_bytes: 9768
+    retention_episode_oracle: &id011
+      path: scripts/eval_tworoom_ability_catalog.py
+      sha256: 8bec7a6d4315850f985141697ad1a04c21fd60478c6439e40edb5c506a11bcea
+      size_bytes: 12569
+    retention_runner_core: &id012
+      path: scripts/eval_tworoom_ability_catalog.py
+      sha256: 8bec7a6d4315850f985141697ad1a04c21fd60478c6439e40edb5c506a11bcea
+      size_bytes: 12569
+    retention_frozen_baseline_wrapper: &id013
+      path: scripts/eval_tworoom_original_baseline_cem_frozen_v1.py
+      sha256: 03e3863c6f3f9dc559095eeb01654f6b8e49675ce8dc90548b6aec0fdef106a6
+      size_bytes: 12353
+    implementation_formal_runner: &id014
+      path: scripts/run_tworoom_speed_pldm_cem_v1.py
+      sha256: 670231be8796a7cc2a03ab0ea1906ace20f2812fc57144504f46583d1db441af
+      size_bytes: 35648
+    implementation_aggregate_freezer: &id015
+      path: scripts/freeze_tworoom_speed_pldm_cem_aggregate_v1.py
+      sha256: c02c2116bc8724d9d0296ef80ec6d7152140bd1f16639467c5459dfd64f89c67
+      size_bytes: 23809
+    implementation_binding_freezer: &id016
+      path: scripts/freeze_tworoom_speed_pldm_cem_binding_v1.py
+      sha256: 2a33449ae2e66b3f17787148def3cf1affce9db5c2292d3215b15b5dcc970054
+      size_bytes: 69094
+    implementation_adapter_boundary: &id017
+      path: contextworld/benchmarks/adapters.py
+      sha256: cc9e758b7081a57251e8cd026e9ac9ff8a17e3f300d52f464bdad871edcf26b2
+      size_bytes: 24085
+    implementation_development_contract: &id018
+      path: contextworld/benchmarks/speed_pldm_infrastructure_development.py
+      sha256: 89e12e8d8b7effbf14445335fa9e013d58e746ae3cd31dd6c233470b3e8c3c14
+      size_bytes: 11633
+    implementation_paired_retention_comparator: &id019
+      path: scripts/analyze_tworoom_original_ability.py
+      sha256: 92de93da3c96de7de758c29959b3491958a47d8a2d740667a921608ce1d6db73
+      size_bytes: 23276
+  common:
+    eval_seeds:
+    - 42
+    - 43
+    - 44
+    - 45
+    - 46
+    - 47
+    episodes_per_eval_seed: 50
+    episodes_per_checkpoint: 300
+    successful_episode_definition:
+      source_protocol_field: formal_eval.planner.success_radius_px
+      radius_px: 16
+      interpretation: environment_episode_success_within_the_frozen_TwoRoom_radius
+  tracks:
+    action_planning_cem:
+      evaluation_kind: action_planning_cem
+      source:
+        release_planning_track: seen_for_multi
+        catalog: *id002
+        source_protocol: *id003
+        catalog_validator: *id004
+        episode_oracle: *id005
+        runner_core: *id006
+        speed_cli: *id007
+        speed_score: *id008
+      grouping:
+        query_speed: 5.1
+        history_condition: history_mid
+        same_speed_condition_required: true
+        templates: all_18_catalog_templates_at_query_speed
+        schedule: balanced_evaluation_schedule_v1
+        evaluation_ids: deterministic_per_eval_seed_50_draws
+        expected_base_queries: 18
+        expected_records_per_checkpoint: 300
+        expected_records_per_eval_seed: 50
+      protocol:
+        eval_budget_raw_steps: 100
+        deadline_budgets_raw_steps:
+        - 50
+        - 75
+        - 100
+        horizon_action_blocks: 10
+        receding_horizon_action_blocks: 5
+        cem_samples: 300
+        cem_iterations: 30
+        cem_topk: 30
+        cem_var_scale: 1.0
+      metric:
+        id: success_rate_by_execution_budget_100_raw_steps
+        definition: successes_at_100_raw_steps_divided_by_exactly_300_same_speed_episodes
+        source_release_metric: success_rate_by_execution_budget
+        performance_threshold: null
+        result_semantics: EXECUTED_VALID_DESCRIPTIVE
+        pass_threshold: null
+        authority:
+          release_field: planning.role
+          required_value: supporting_utility_metrics
+          release_field_2: planning.required_for_speed_icl_prediction_claim
+          required_value_2: false
+        explanation: The existing Speed release registers no model-performance threshold
+          for planning; it explicitly classifies planning as a supporting utility.
+          This track must therefore never be converted into a retention PASS or FAIL
+          after seeing CEM outcomes.  Its only binary status is immutable execution
+          validity.
+    original_task_retention_cem:
+      evaluation_kind: original_task_retention_cem
+      source:
+        completion_field: evaluation.original_task_retention
+        catalog: *id009
+        catalog_builder: *id010
+        episode_oracle: *id011
+        runner_core: *id012
+        frozen_baseline_wrapper: *id013
+      grouping:
+        catalog_kind: tworoom_original_heldout_eval_catalog_v1
+        source_kind: original_h5
+        eval_seeds:
+        - 42
+        - 43
+        - 44
+        - 45
+        - 46
+        - 47
+        expected_records_per_checkpoint: 300
+        expected_records_per_eval_seed: 50
+        goal_offset_raw_steps: 25
+      protocol:
+        eval_budget_raw_steps: 50
+        horizon_action_blocks: 5
+        receding_horizon_action_blocks: 5
+        cem_samples: 300
+        cem_iterations: 30
+        cem_topk: 30
+      metric:
+        id: original_tworoom_cem_success_rate
+        definition: successful_original_heldout_episodes_divided_by_exactly_300
+        result_semantics: PAIRED_NONINFERIORITY_RETENTION
+        paired_baseline: tworoom_pldm_original
+        paired_noninferiority:
+          reference: frozen_original_pldm_cem_6x50
+          confidence_level: 0.95
+          paired_bootstrap_seed: 3072
+          paired_bootstrap_resamples: 10000
+          success_rate_delta_lower_bound: -0.05
+          final_distance_delta_upper_bound_px: 5.0
+          require_no_solvable_room_relation_stratum_collapse: true
+          stratum_definition: room_relation
+          collapse_definition: candidate_zero_successes_where_baseline_has_at_least_one
+        authority:
+          protocol: configs/benchmark/tworoom_original_ability_reconstruction_v1.yaml
+          field: evaluation_protocol.non_inferiority
+          comparison_core: scripts/analyze_tworoom_original_ability.py
+      frozen_paired_baseline:
+        results_freeze:
+          path: configs/benchmark/contextworld_original_baseline_cem_results_freeze_v1.json
+          sha256: f3dcebe076aad73dec85cf7a5abe52854c1627a112b9511a1262e5e1cf1124ca
+          size_bytes: 4490
+        matrix_summary:
+          path: artifacts/evaluation/original_baseline_cem_v1/matrix_summary.json
+          sha256: c52905b88ffe81eb6b81bcfadea8dd283a7b989cd65fdcd1950347ce9d4dceea
+          size_bytes: 17099
+        checkpoint_id: tworoom_pldm_original
+        checkpoint_model_state_sha256: 815d99875f1234f50f03f8dc9489639442f91ba048bf45983478a8161a85732f
+        expected_successes: 278
+        expected_evaluations: 300
+        raw_receipts:
+        - eval_seed: 42
+          path: artifacts/evaluation/original_baseline_cem_v1/tworoom/pldm/seed42.json
+          sha256: d1dfc771e74c2fc71a41c7ecb5c2ea6b6f72ae7ff93733ce867b104e8c6a6a5f
+          size_bytes: 43341
+        - eval_seed: 43
+          path: artifacts/evaluation/original_baseline_cem_v1/tworoom/pldm/seed43.json
+          sha256: a46bc1cf0fe4db47b96a9b1998097f174ceed38378bcc8a52fa842483bdaf46b
+          size_bytes: 43494
+        - eval_seed: 44
+          path: artifacts/evaluation/original_baseline_cem_v1/tworoom/pldm/seed44.json
+          sha256: 378db8bd32c2d6a7be1cc3a2beee26dc58923642f073d3aadcfb307dbc2452f2
+          size_bytes: 43482
+        - eval_seed: 45
+          path: artifacts/evaluation/original_baseline_cem_v1/tworoom/pldm/seed45.json
+          sha256: 1ae7489d93bfb6c329bada1b14513f45211ff06a4e0579737418b0347b611a38
+          size_bytes: 43536
+        - eval_seed: 46
+          path: artifacts/evaluation/original_baseline_cem_v1/tworoom/pldm/seed46.json
+          sha256: 701da2d25bafc19f64765e1c03eba5d10dfc4da6560d3e3a72dad58d7e3aa4d2
+          size_bytes: 43459
+        - eval_seed: 47
+          path: artifacts/evaluation/original_baseline_cem_v1/tworoom/pldm/seed47.json
+          sha256: d458b17dfedc8ff9566ad1dea8050f1a80fc6f9ba6ddcd7fac71aba73c48f52b
+          size_bytes: 43503
+  implementation:
+    formal_runner: *id014
+    aggregate_freezer: *id015
+    binding_freezer: *id016
+    adapter_boundary: *id017
+    development_contract: *id018
+    paired_retention_comparator: *id019
+  outputs:
+    cem_binding: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/formal_icl_v1/cem_binding_v1.json
+    action_planning:
+      root: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/formal_action_planning_cem_v1
+      receipts: seed_{training_seed}.jsonl
+      work: work/seed_{training_seed}
+      aggregate: three_seed_aggregate.json
+    original_task_retention:
+      root: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/formal_original_tworoom_retention_cem_v1
+      receipts: seed_{training_seed}.jsonl
+      work: work/seed_{training_seed}
+      aggregate: three_seed_aggregate.json
+  authority:
+    all_source_identities_frozen_before_public_icl: true
+    post_icl_cem_binding_may_only_validate_and_rebind_this_closure: true
+    action_planning_outcomes_are_descriptive_not_a_model_gate: true
+    retention_pass_fail_uses_only_frozen_paired_noninferiority: true
+evaluator_sources:
+  speed_icl_score:
+    path: contextworld/benchmarks/speed_icl_score.py
+    sha256: 0d7d52667eea0a29badcac1cee1047f3a2d56d55f65a59a0fd7a086a77601a1e
+  formal_icl_evaluator:
+    path: scripts/eval_tworoom_speed_pldm_formal_icl_v1.py
+    sha256: 99ba15df2417b05eb2d347a976dd146f563d0d9ccbb459fde617547d4a5dbc6b
+  binding_freezer:
+    path: scripts/freeze_tworoom_speed_pldm_evaluation_binding_v1.py
+    sha256: 8300db7e82b1678f7b4ef878496b79f1adedad48fcad6e4279205b33873c8b8f
+  development_contract:
+    path: contextworld/benchmarks/speed_pldm_infrastructure_development.py
+    sha256: 89e12e8d8b7effbf14445335fa9e013d58e746ae3cd31dd6c233470b3e8c3c14
+  adapter_boundary:
+    path: contextworld/benchmarks/adapters.py
+    sha256: cc9e758b7081a57251e8cd026e9ac9ff8a17e3f300d52f464bdad871edcf26b2
+  cem_preregistration: *id001
+  cem_source_protocol: *id003
+  cem_aggregate_preregistration: *id020
+  cem_retention_noninferiority_protocol: *id021
+  cem_action_catalog: *id002
+  cem_action_catalog_validator: *id004
+  cem_action_episode_oracle: *id005
+  cem_action_runner_core: *id006
+  cem_speed_cli: *id007
+  cem_speed_score: *id008
+  cem_retention_catalog: *id009
+  cem_retention_catalog_builder: *id010
+  cem_retention_episode_oracle: *id011
+  cem_retention_runner_core: *id012
+  cem_retention_frozen_baseline_wrapper: *id013
+  cem_implementation_formal_runner: *id014
+  cem_implementation_aggregate_freezer: *id015
+  cem_implementation_binding_freezer: *id016
+  cem_implementation_adapter_boundary: *id017
+  cem_implementation_development_contract: *id018
+  cem_implementation_paired_retention_comparator: *id019
+checkpoints:
+- seed: 3072
+  run_name: speed_pldm_reference_completion_v1_s3072
+  checkpoint:
+    path: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/training/checkpoints/speed_pldm_reference_completion_v1_s3072/weights_final_step_12840.pt
+    sha256: 99ea1c5a8155c145f70af12ae2fd15e1d01b17163b58ef1a2e2f0f97d390dcb7
+    size_bytes: 72296742
+    model_state_sha256: 649534cc46f0743b714e5c4b8a4a8e148b75a0a174eaa3acaf2999a90264173f
+  config:
+    path: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/training/checkpoints/speed_pldm_reference_completion_v1_s3072/config.json
+    sha256: 1503eb24b1630f81a2c02923ebee0d6faba35f37b55bb61f8415feec7b7950b9
+    size_bytes: 20300
+  training_report:
+    path: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/seed_3072/training_report.json
+    sha256: a63143b30694af4494072836128a2db7ae1b44afa4f50725cdba93bb3a646d57
+    size_bytes: 3876
+  loss_trace:
+    path: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/training/checkpoints/speed_pldm_reference_completion_v1_s3072/loss_trace.jsonl
+    sha256: 3e0cdfae16df0753964c28be2bf6b5142d6c07d69dc165a8e817a2974b933f01
+    size_bytes: 291301
+  preflight:
+    path: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/preflight/seed_3072.json
+    sha256: 91216d20f99d93dc36011d002bb902c4891b0f13f30a9fa53e0e75f43bf36044
+    size_bytes: 2483
+- seed: 4096
+  run_name: speed_pldm_reference_completion_v1_s4096
+  checkpoint:
+    path: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/training/checkpoints/speed_pldm_reference_completion_v1_s4096/weights_final_step_12840.pt
+    sha256: 9c98c2ceff31628aa2b9a3a870284e063db268c063708bfa0f69e0512c8eea41
+    size_bytes: 72296742
+    model_state_sha256: c44b096be62d66f5b2259eb7e1a70a5408ce96fa547b6586d48ccf374026ac4a
+  config:
+    path: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/training/checkpoints/speed_pldm_reference_completion_v1_s4096/config.json
+    sha256: a16b27c7f8cd09e757462748d0b2a69d298a861e98a67b71074bb4f0b7e7c088
+    size_bytes: 20300
+  training_report:
+    path: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/seed_4096/training_report.json
+    sha256: 9d82a83aaa4e33816cdb68d53d887e50f69fd9696947eb83f5d9b54bbd5c9ef2
+    size_bytes: 3876
+  loss_trace:
+    path: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/training/checkpoints/speed_pldm_reference_completion_v1_s4096/loss_trace.jsonl
+    sha256: 1ab317022f4a324edaf43a0bc39b599f76caece7ac2242ebb332eebbba50a126
+    size_bytes: 291267
+  preflight:
+    path: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/preflight/seed_4096.json
+    sha256: 7fe69d11c0bc6334fe574ec0fb708578c2f2f466c511a2fef4dbfc29d4a43d40
+    size_bytes: 2483
+- seed: 5120
+  run_name: speed_pldm_reference_completion_v1_s5120
+  checkpoint:
+    path: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/training/checkpoints/speed_pldm_reference_completion_v1_s5120/weights_final_step_12840.pt
+    sha256: 062649c670efa91d8572ce9bd1bb4d4c9a9142bd2016787a21b862ac073edb47
+    size_bytes: 72296742
+    model_state_sha256: ccc4cebc89f52b96e3de687c3ef2455a521c60328fed768149cafa37832ea984
+  config:
+    path: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/training/checkpoints/speed_pldm_reference_completion_v1_s5120/config.json
+    sha256: 909944c93d5a346fcc6ae858b5cc11de514e77ec2af0036f3320d0be57900315
+    size_bytes: 20300
+  training_report:
+    path: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/seed_5120/training_report.json
+    sha256: a056d4648c42fd02b4ed5493da1e428e4edb96c2fa95cdb8a50b6f1e2f78c7a3
+    size_bytes: 3876
+  loss_trace:
+    path: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/training/checkpoints/speed_pldm_reference_completion_v1_s5120/loss_trace.jsonl
+    sha256: 51c9cfcb227b1e346d3a3ec1b25a6e7fa58e4b9a0f2e3d5a32024c875bce54b2
+    size_bytes: 291338
+  preflight:
+    path: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/preflight/seed_5120.json
+    sha256: 0da5a5b6407a44594e34a9a8f087ac4ea3d43b15b6ec744907975974aad9b4e0
+    size_bytes: 2483
+artifacts:
+  formal_icl_root: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/formal_icl_v1
+  action_planning_root: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/formal_action_planning_cem_v1
+  retention_root: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/formal_original_tworoom_retention_cem_v1

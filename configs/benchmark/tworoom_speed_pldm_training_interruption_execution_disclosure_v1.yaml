@@ -1,0 +1,81 @@
+schema_version: 1
+execution_disclosure_id: tworoom_speed_pldm_training_interruption_execution_disclosure_v1
+completion_id: tworoom_speed_pldm_reference_completion_v1
+status: registered_after_terminal_report_failure_before_report_recovery_and_execution_disclosure
+created_utc: "2026-08-17"
+
+# This is a post-interruption addendum, not a claim that the disclosure was
+# present before the original fixed-budget runs began.  It registers the
+# evidence and non-claims that must be frozen after all three resumes finish,
+# before any Development, Public ICL, or CEM work may start.
+chronology:
+  registered_after_external_interruption: true
+  registered_after_recovery_preparation: true
+  registered_after_terminal_report_failure: true
+  registered_after_terminal_report_recovery_preregistration: true
+  not_preregistered_before_original_training: true
+  terminal_reports_generated_at_registration: false
+  development_executed_at_registration: false
+  public_or_cem_executed_at_registration: false
+
+scope:
+  post_training_execution_disclosure_only: true
+  terminal_report_recovery_bound: true
+  training_recipe_changed: false
+  checkpoint_selected_by_metric: false
+  development_or_cem_executed: false
+  public_test_accessed: false
+  evaluation_authorized: false
+
+frozen_inputs:
+  recovery_preregistration:
+    path: configs/benchmark/tworoom_speed_pldm_training_interruption_recovery_v1.yaml
+    sha256: 86589c4b4088a637a07d8c425f687d27309c894c7b1264a55bd55d0b5f162973
+    size_bytes: 10603
+  resume_source_checkpoint_archive:
+    path: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/attempts/training_interruption_recovery_v1/resume_source_checkpoint_archive_v1.json
+    sha256: 648ecde039bc4cd0606c33e9a46399711034d35bc77189d5d93067a9da0416b8
+    size_bytes: 3000
+  completion_config:
+    path: configs/benchmark/tworoom_speed_pldm_reference_completion_v1.yaml
+    sha256: 6c8d3404431f4fedb788acc0c89fc62b78fcb147402d284fc8e74aa64a0d840f
+    size_bytes: 5680
+  terminal_report_recovery_preregistration:
+    path: configs/benchmark/tworoom_speed_pldm_terminal_report_recovery_v1.yaml
+    sha256: a15867ad4aa8c7f5cbe5105d4aeca4586c001e27b61ffb9dc4bde677d64c89a5
+    size_bytes: 8617
+
+implementation:
+  execution_disclosure_freezer:
+    path: scripts/freeze_tworoom_speed_pldm_execution_disclosure_v1.py
+    sha256: 2ed1bb7fa2bb77c421a51a0fb34aea662e301a00ccbe6c27e9fe5fa8ce85fd18
+    size_bytes: 45013
+
+# Each path must be absent when the disclosure is created.  The later audit
+# validates this recorded snapshot rather than requiring the paths to remain
+# absent after the Development stage begins.
+pre_evaluation_absence_paths:
+  - artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/infrastructure_development_v1/development_manifest.json
+  - artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/infrastructure_development_v1/seed_3072.json
+  - artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/infrastructure_development_v1/seed_4096.json
+  - artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/infrastructure_development_v1/seed_5120.json
+  - configs/benchmark/tworoom_speed_pldm_evaluation_binding_v1.yaml
+  - artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/evaluation_binding_v1/evaluation_binding_receipt.json
+  - artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/formal_icl_v1
+  - artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/formal_action_planning_cem_v1
+  - artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/formal_original_tworoom_retention_cem_v1
+
+assertion_boundary:
+  asserted:
+    full_trainer_state_resume_from_step_10272: true
+    fixed_training_recipe_and_optimizer_budget: true
+    terminal_reports_recovered_with_zero_optimizer_steps: true
+  not_asserted:
+    worker_rng_bitwise_equivalence: false
+    sample_order_bitwise_equivalence: false
+    batch_composition_bitwise_equivalence: false
+    loss_trace_bitwise_equivalence_after_resume: false
+    parameter_tensor_bitwise_equivalence_to_an_uninterrupted_counterfactual: false
+
+outputs:
+  disclosure: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/attempts/training_interruption_recovery_v1/execution_disclosure_v1.json

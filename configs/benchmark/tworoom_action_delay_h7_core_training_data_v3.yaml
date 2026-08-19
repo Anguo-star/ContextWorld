@@ -1,0 +1,103 @@
+schema_version: 1
+benchmark: tworoom_action_delay_history7_core_training_data_v3
+status: frozen_after_v2_diagnostic_before_collection
+frozen_date: "2026-07-30"
+
+question: >-
+  在保留每个 query 的延迟 0 至 10 完整配对样本时，增加独立 query 数量，
+  并在正式训练中按六种一步物理结果等权采样，能否消除 v2 的训练分布偏置？
+
+motivation:
+  observed_v2_problem: >-
+    v2 按 11 个延迟数值等权采样，但一步评测只有六种不同物理结果。
+    延迟 5 至 10 都是“当前动作尚未执行”，因此该结果在训练中占 6/11，
+    而其他五种结果各占 1/11；正式指标却对六种结果等权。
+  correction: >-
+    原始数据继续保留全部 11 个延迟。正式 loader 将 0、1、2、3、4 和
+    5 至 10 六组等权采样；同时把 Training 基础 query 从 1,600 增至
+    5,120，避免较小组因等权采样而被过度重复使用。
+  claim_boundary: >-
+    这是根据 v2 正式失败结果冻结的下一版训练数据设计，不改变已经冻结的
+    300-query Validation、核心指标或门槛。
+
+stable_worldmodel:
+  repo: ../stable-worldmodel
+  commit: ad2bc44579f2b5b65c004fd2c9d8edc8ebaa43ce
+
+protocol:
+  history_tokens: 7
+  num_preds: 1
+  raw_steps_per_action_block: 5
+  episode_model_frames: 10
+  rows_per_episode: 50
+  strict_training_clip_start_raw_step: 0
+  formal_training_clips_per_episode: 1
+  agent_speed: 7.0
+  action_magnitude: 0.5
+  training_delay_values: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+  model_visible_fields: [pixels, action]
+  pairing: >-
+    同一个 query_id 下的 11 个样本使用完全相同的环境几何、初始状态、
+    query、模拟器 seed 和动作序列；只有动作延迟及其产生的历史和未来不同。
+  one_step_physical_groups:
+    - [0]
+    - [1]
+    - [2]
+    - [3]
+    - [4]
+    - [5, 6, 7, 8, 9, 10]
+  official_training_sampling: equal_weight_across_six_physical_groups
+
+catalog_seed: 2026073003
+
+counts:
+  train:
+    paired_shards: 32
+    shards: 352
+    episodes_per_shard: 160
+    clips: 56320
+  val:
+    paired_shards: 6
+    shards: 66
+    episodes_per_shard: 160
+    clips: 10560
+
+collection:
+  staging_root: /tmp
+  workers: 16
+
+storage:
+  pixel_codec:
+    format: png
+    compress_level: 1
+    lossless: true
+
+original_dataset:
+  path: ../../data/world_model/quentinll/lewm-tworooms/tworoom.h5
+  role: normalization_reference_and_future_50_percent_training_mixture
+
+validation_exclusion:
+  benchmark: tworoom_action_delay_history7_v1
+  manifest: >-
+    artifacts/evaluation/history7/action_delay_validation_v1/training_exclusion_manifest.json
+  manifest_sha256: >-
+    5fb8322249c4a3d1445363359fad6f9ff3f356348e9f1941ea8da51adbf9b69b
+  content_manifest_sha256: >-
+    e8d75d1ac1496dd340ce0a504e51e976dddff667915b3f9a49fe2a6e6c323923
+  query_count: 300
+
+catalog_stem: tworoom_action_delay_h7_core_training_v3
+
+gates:
+  exact_raw_replay_for_every_row: true
+  same_query_has_exactly_delays_0_through_10: true
+  query_pixels_and_actions_exact_within_every_bundle: true
+  one_step_physical_equivalence_groups_exact: true
+  exact_delay_balance_in_storage: true
+  physical_group_balance_required_in_official_loader: true
+  exactly_one_aligned_training_clip_per_episode: true
+  validation_overlap_zero: true
+  train_internal_validation_overlap_zero: true
+  model_projection_is_pixels_and_actions_only: true
+
+output_root: artifacts/synthesis/action_delay_h7_core_training_v3

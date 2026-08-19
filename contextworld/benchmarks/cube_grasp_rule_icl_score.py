@@ -7,7 +7,10 @@ from typing import Any, Iterable
 
 import numpy as np
 
-from contextworld.benchmarks.adapters import CubeGraspRuleICLModelAdapter
+from contextworld.benchmarks.adapters import (
+    CubeGraspRuleICLModelAdapter,
+    validate_adapter_protocol,
+)
 from contextworld.benchmarks.cube_grasp_rule_icl_data import (
     DEFAULT_CUBE_GRASP_RULE_RELEASE_CONFIG,
     CubeGraspRuleICLEvalDataset,
@@ -236,21 +239,24 @@ def _validate_cube_adapter_protocol(
 ) -> None:
     """Reject incompatible adapters before any Public Test data is opened."""
 
-    protocol = adapter.protocol
-    compatible = (
-        protocol.history_tokens == 3
-        and protocol.action_block_raw_steps == 5
-        and protocol.action_dim == 5
-        and protocol.future_action_blocks >= 1
-        and protocol.native_target_encoder
-        and not protocol.decoder_required
+    message = (
+        "Cube Gripper-Carry v1 requires a History=3 latent adapter "
+        "with 5x5 raw-action blocks and at least one future block; "
+        f"got {getattr(adapter, 'protocol', None)}"
     )
-    if not compatible:
-        raise ValueError(
-            "Cube Gripper-Carry v1 requires a History=3 latent adapter "
-            "with 5x5 raw-action blocks, at least one future block, a "
-            f"native target encoder, and no decoder; got {protocol}"
+    try:
+        validate_adapter_protocol(
+            adapter,
+            history_tokens=3,
+            action_block_raw_steps=5,
+            action_dim=5,
+            minimum_future_action_blocks=1,
+            task_name="Cube Gripper-Carry v1",
         )
+    except ValueError as exc:
+        raise ValueError(
+            message
+        ) from exc
 
 
 def evaluate_cube_grasp_rule_icl_model(

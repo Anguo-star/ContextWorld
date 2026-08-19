@@ -83,10 +83,43 @@ SUITE_V2_RECOVERY_CONFIG = (
     repository_root()
     / "configs/benchmark/contextworld_icl_suite_v2_recovery_v2.yaml"
 )
-DEFAULT_SUITE_V2_RELEASE_CONFIG = (
+SUITE_V2_INTEGRITY_RESEAL_CONFIG = (
     repository_root()
-    / "configs/benchmark/"
-    "contextworld_icl_suite_v2_public_document_amendment_v1.yaml"
+    / "configs/benchmark/contextworld_icl_suite_v2_integrity_reseal_v1.yaml"
+)
+# This historical path remains the stable explicit v1 result view.  The
+# command-line default is resolved at runtime by the final v2 decision below;
+# do not repoint this legacy constant after a decision is created.
+DEFAULT_SUITE_V2_RELEASE_CONFIG = (
+    SUITE_V2_INTEGRITY_RESEAL_CONFIG
+)
+SUITE_V2_INTEGRITY_RESEAL_CONFIG_LOGICAL_PATH = (
+    "configs/benchmark/contextworld_icl_suite_v2_integrity_reseal_v1.yaml"
+)
+SUITE_V2_INTEGRITY_RESEAL_CONFIG_SHA256 = (
+    "198391dadf1f9e713cf786e9fa479b58648814197814e72da2b9fafabb5771fd"
+)
+SUITE_V2_INTEGRITY_RESEAL_CONFIG_SIZE_BYTES = 3790
+SUITE_V2_CURRENT_RESULTS_OVERLAY_ID = (
+    "contextworld_icl_suite_v2_current_results_overlay_v1"
+)
+SUITE_V2_CURRENT_RESULTS_OVERLAY_CONFIG_LOGICAL_PATH = (
+    "configs/benchmark/contextworld_icl_suite_v2_current_results_overlay_v1.yaml"
+)
+SUITE_V2_CURRENT_RESULTS_OVERLAY_CONFIG = (
+    repository_root() / SUITE_V2_CURRENT_RESULTS_OVERLAY_CONFIG_LOGICAL_PATH
+)
+SUITE_V2_INTEGRITY_RESEAL_V2_ID = (
+    "contextworld_icl_suite_v2_integrity_reseal_v2"
+)
+SUITE_V2_INTEGRITY_RESEAL_V2_CONFIG_LOGICAL_PATH = (
+    "configs/benchmark/contextworld_icl_suite_v2_integrity_reseal_v2.yaml"
+)
+SUITE_V2_INTEGRITY_RESEAL_V2_DECISION = (
+    "configs/benchmark/contextworld_icl_suite_v2_integrity_reseal_decision_v2.json"
+)
+SUITE_V2_CURRENT_RESULTS_OVERLAY_ACTIVATION = (
+    "passed_integrity_reseal_decision_v2"
 )
 COMPONENT_IDS = (
     "speed",
@@ -135,6 +168,18 @@ SUITE_V2_DOCUMENT_AMENDMENT_DECISION = (
 )
 SUITE_V2_DOCUMENT_AMENDMENT_ACTIVATION = (
     "passed_public_document_amendment_decision_v1"
+)
+SUITE_V2_INTEGRITY_RESEAL_ID = "contextworld_icl_suite_v2_integrity_reseal_v1"
+SUITE_V2_INTEGRITY_RESEAL_DECISION = (
+    "configs/benchmark/"
+    "contextworld_icl_suite_v2_integrity_reseal_decision_v1.json"
+)
+SUITE_V2_INTEGRITY_RESEAL_ACTIVATION = (
+    "passed_integrity_reseal_decision_v1"
+)
+SUITE_V2_INTEGRITY_RESEAL_BASE_CONFIG = (
+    "configs/benchmark/"
+    "contextworld_icl_suite_v2_public_document_amendment_v1.yaml"
 )
 SUITE_V2_BASE_PUBLIC_DOCUMENT_SHA256 = (
     "72031232d008b77f809d387348f8bc320532f80517e387837571a2995932cccc"
@@ -204,6 +249,17 @@ SUITE_V2_REQUIRED_EVIDENCE_PATHS = {
     ),
 }
 _SUITE_V2_REGISTRATION_AUDIT_CAPABILITY = object()
+_PACKAGED_SUITE_V2_RELEASE_METADATA_ROOT = (
+    Path(__file__).resolve().parents[1]
+    / "_release_metadata"
+    / "contextworld_icl_suite_v2_release"
+)
+_PACKAGED_SUITE_V2_RELEASE_RECEIPTS = {
+    "artifacts/evaluation/contextworld_icl_suite_v2_release/"
+    "public_scoreboard_spec.json": "public_scoreboard_spec.json",
+    "artifacts/evaluation/contextworld_icl_suite_v2_release/"
+    "public_scoreboard.json": "public_scoreboard.json",
+}
 
 
 def _sha256(path: Path) -> str:
@@ -257,6 +313,36 @@ def _validate_suite_v2_membership_authority(
         "formal_scoreboard_mutation_authorized": False,
         "component_release_mutation_authorized": False,
     }
+    integrity_reseal = {
+        "config_alone_grants_membership": False,
+        "activation_condition": SUITE_V2_INTEGRITY_RESEAL_ACTIVATION,
+        "reseal_id": SUITE_V2_INTEGRITY_RESEAL_ID,
+        "decision_path": SUITE_V2_INTEGRITY_RESEAL_DECISION,
+        "decision_is_commit_marker": True,
+        "base_release_config": SUITE_V2_INTEGRITY_RESEAL_BASE_CONFIG,
+        "historical_chain_must_remain_byte_identical": True,
+        "old_membership_may_not_be_silently_reactivated": True,
+        "partial_outputs_grant_membership": False,
+        "public_test_rerun_authorized": False,
+        "training_or_checkpoint_selection_authorized": False,
+        "formal_scoreboard_mutation_authorized": False,
+        "raw_dataset_or_checkpoint_mutation_authorized": False,
+    }
+    current_results_overlay = {
+        "config_alone_grants_membership": False,
+        "activation_condition": SUITE_V2_CURRENT_RESULTS_OVERLAY_ACTIVATION,
+        "overlay_id": SUITE_V2_CURRENT_RESULTS_OVERLAY_ID,
+        "reseal_id": SUITE_V2_INTEGRITY_RESEAL_V2_ID,
+        "decision_path": SUITE_V2_INTEGRITY_RESEAL_V2_DECISION,
+        "decision_is_commit_marker": True,
+        "base_release_config": SUITE_V2_INTEGRITY_RESEAL_CONFIG_LOGICAL_PATH,
+        "historical_v1_results_remain_explicitly_addressable": True,
+        "partial_outputs_grant_membership": False,
+        "public_test_rerun_authorized": False,
+        "training_or_checkpoint_selection_authorized": False,
+        "formal_scoreboard_mutation_authorized": False,
+        "raw_dataset_or_checkpoint_mutation_authorized": False,
+    }
     if not isinstance(authority, dict) or not (
         all(authority.get(key) == value for key, value in expected.items())
         or all(
@@ -265,6 +351,11 @@ def _validate_suite_v2_membership_authority(
         or all(
             authority.get(key) == value
             for key, value in documentation_amendment.items()
+        )
+        or all(authority.get(key) == value for key, value in integrity_reseal.items())
+        or all(
+            authority.get(key) == value
+            for key, value in current_results_overlay.items()
         )
     ):
         raise ValueError("Suite v2 membership authority is not fail-closed")
@@ -783,6 +874,521 @@ def _require_suite_documentation_amendment_activation(
     }
 
 
+def _apply_integrity_reseal_materials(
+    suite: dict[str, Any], *, decision: dict[str, Any]
+) -> dict[str, Any]:
+    """Install only the identities that the new reseal decision verified.
+
+    The recovery-v2 and documentation-amendment payloads are historical
+    records.  Their old hashes cannot be rewritten in place.  Once the new
+    commit marker has been checked, this in-memory overlay gives the normal
+    Suite audit/export code the current, explicitly resealed identities.
+    """
+
+    materials = decision.get("release_materials")
+    if not isinstance(materials, dict):
+        raise RuntimeError("Suite v2 integrity reseal has no release materials")
+    sources = materials.get("sources")
+    authority_implementation = materials.get("authority_implementation")
+    document = materials.get("public_document")
+    components = materials.get("components")
+    public_results = materials.get("public_results")
+    descriptive_result_freezes = materials.get("descriptive_result_freezes")
+    repository = suite.get("repository")
+    suite_components = suite.get("components")
+    declared_reseal = suite.get("integrity_reseal")
+    declared_freezes = (
+        declared_reseal.get("descriptive_result_freezes")
+        if isinstance(declared_reseal, dict)
+        else None
+    )
+    if (
+        not isinstance(sources, dict)
+        or not isinstance(authority_implementation, dict)
+        or not isinstance(document, dict)
+        or not isinstance(components, dict)
+        or not isinstance(public_results, dict)
+        or not isinstance(descriptive_result_freezes, dict)
+        or not isinstance(repository, dict)
+        or not isinstance(suite_components, dict)
+        or not isinstance(declared_freezes, dict)
+        or set(sources) != set(repository.get("source_sha256", {}))
+        or set(authority_implementation)
+        != {
+            "contextworld/benchmarks/suite_v2_integrity_reseal.py",
+            "scripts/freeze_contextworld_icl_suite_v2_integrity_reseal_v1.py",
+        }
+        or set(components) != set(SUITE_V2_COMPONENT_IDS)
+        or set(public_results) != {"specification", "scoreboard"}
+        or set(descriptive_result_freezes) != set(declared_freezes)
+    ):
+        raise RuntimeError("Suite v2 integrity reseal material layout drifted")
+
+    for logical_path, identity in sources.items():
+        if (
+            not isinstance(identity, dict)
+            or identity.get("path") != logical_path
+            or not isinstance(identity.get("sha256"), str)
+            or len(identity["sha256"]) != 64
+            or type(identity.get("size_bytes")) is not int
+        ):
+            raise RuntimeError("Suite v2 integrity reseal source identity is invalid")
+    for logical_path, identity in authority_implementation.items():
+        if (
+            not isinstance(identity, dict)
+            or identity.get("path") != logical_path
+            or not isinstance(identity.get("sha256"), str)
+            or len(identity["sha256"]) != 64
+            or type(identity.get("size_bytes")) is not int
+        ):
+            raise RuntimeError(
+                "Suite v2 integrity reseal authority identity is invalid"
+            )
+    expected_document_path = repository.get("public_document", {}).get("path")
+    if (
+        document.get("path") != expected_document_path
+        or not isinstance(document.get("sha256"), str)
+        or len(document["sha256"]) != 64
+        or type(document.get("size_bytes")) is not int
+    ):
+        raise RuntimeError("Suite v2 integrity reseal document identity is invalid")
+    for component_id, identity in components.items():
+        if (
+            not isinstance(identity, dict)
+            or identity.get("path")
+            != suite_components[component_id].get("release_config")
+            or not isinstance(identity.get("sha256"), str)
+            or len(identity["sha256"]) != 64
+            or type(identity.get("size_bytes")) is not int
+        ):
+            raise RuntimeError(
+                "Suite v2 integrity reseal component identity is invalid"
+            )
+    for key, identity in public_results.items():
+        if (
+            not isinstance(identity, dict)
+            or identity.get("path")
+            != suite["public_results"][key].get("path")
+            or not isinstance(identity.get("sha256"), str)
+            or len(identity["sha256"]) != 64
+            or type(identity.get("size_bytes")) is not int
+        ):
+            raise RuntimeError(
+                "Suite v2 integrity reseal public-result identity is invalid"
+            )
+    for name, identity in descriptive_result_freezes.items():
+        declared = declared_freezes[name]
+        if (
+            not isinstance(declared, dict)
+            or not isinstance(identity, dict)
+            or identity.get("path") != declared.get("path")
+            or not isinstance(identity.get("sha256"), str)
+            or len(identity["sha256"]) != 64
+            or type(identity.get("size_bytes")) is not int
+        ):
+            raise RuntimeError(
+                "Suite v2 integrity reseal descriptive-result freeze is invalid"
+            )
+
+    repository["source_sha256"] = {
+        logical_path: identity["sha256"]
+        for logical_path, identity in sources.items()
+    }
+    repository["public_document"] = {
+        "path": document["path"],
+        "sha256": document["sha256"],
+    }
+    for component_id, identity in components.items():
+        suite_components[component_id]["release_config_sha256"] = identity[
+            "sha256"
+        ]
+    for key, identity in public_results.items():
+        suite["public_results"][key] = {
+            "path": identity["path"],
+            "sha256": identity["sha256"],
+        }
+    return materials
+
+
+def _apply_current_results_overlay_materials(
+    suite: dict[str, Any],
+    *,
+    decision: dict[str, Any],
+    repo_root: Path,
+) -> dict[str, Any]:
+    """Install the final v2 result view only after every bound byte is valid."""
+
+    materials = decision.get("release_materials")
+    expected_material_keys = {
+        "engineering_identity_amendment",
+        "capability_taxonomy_documentation_amendment",
+        "action_strength_float32_consistency_amendment",
+        "original_baseline_archive_auditor",
+        "current_results_overlay",
+        "current_component_release_configs",
+        "registered_suite_sources",
+        "original_baseline_result_freezes",
+        "pldm_completion_preregistrations",
+        "final_pldm_completion_aggregate_results_freeze",
+        "public_scoreboard",
+        "reseal_authority_implementation",
+    }
+    if not isinstance(materials, dict) or set(materials) != expected_material_keys:
+        raise RuntimeError("Suite v2 current-results material layout drifted")
+
+    overlay_audit = _audit_registered_identity(
+        materials["current_results_overlay"],
+        expected_path=SUITE_V2_CURRENT_RESULTS_OVERLAY_CONFIG_LOGICAL_PATH,
+        repo_root=repo_root,
+    )
+    if Path(suite["_config_path"]).resolve() != Path(
+        overlay_audit["path"]
+    ).resolve():
+        raise RuntimeError("Suite v2 current-results overlay identity drifted")
+
+    repository = suite.get("repository")
+    components = suite.get("components")
+    if not isinstance(repository, dict) or not isinstance(components, dict):
+        raise RuntimeError("Suite v2 current-results base payload is invalid")
+    source_material = materials["registered_suite_sources"]
+    if not isinstance(source_material, dict):
+        raise RuntimeError("Suite v2 current-results source material is invalid")
+    sources = source_material.get("sources")
+    if (
+        not isinstance(sources, dict)
+        or set(sources) != set(repository.get("source_sha256", {}))
+    ):
+        raise RuntimeError("Suite v2 current-results source set drifted")
+    source_audits = {
+        logical_path: _audit_registered_identity(
+            identity,
+            expected_path=logical_path,
+            repo_root=repo_root,
+        )
+        for logical_path, identity in sources.items()
+    }
+
+    document_material = materials["capability_taxonomy_documentation_amendment"]
+    if not isinstance(document_material, dict):
+        raise RuntimeError("Suite v2 current-results document material is invalid")
+    documents = document_material.get("final_public_documents")
+    expected_document_path = repository.get("public_document", {}).get("path")
+    if (
+        not isinstance(documents, dict)
+        or not isinstance(expected_document_path, str)
+        or "public_benchmark" not in documents
+    ):
+        raise RuntimeError("Suite v2 current-results document material is incomplete")
+    document_audit = _audit_registered_identity(
+        documents["public_benchmark"],
+        expected_path=expected_document_path,
+        repo_root=repo_root,
+    )
+
+    component_material = materials["current_component_release_configs"]
+    if not isinstance(component_material, dict) or set(component_material) != set(
+        SUITE_V2_COMPONENT_IDS
+    ):
+        raise RuntimeError("Suite v2 current-results component material drifted")
+    component_audits = {
+        component_id: _audit_registered_identity(
+            identity,
+            expected_path=components[component_id]["release_config"],
+            repo_root=repo_root,
+        )
+        for component_id, identity in component_material.items()
+    }
+
+    public_material = materials["public_scoreboard"]
+    expected_public_keys = {
+        "historical_base_specification",
+        "historical_base_scoreboard",
+        "addendum_specification",
+        "addendum_scoreboard",
+        "additive_resolution_preregistration",
+        "additive_resolution_decision",
+    }
+    if not isinstance(public_material, dict) or set(public_material) != expected_public_keys:
+        raise RuntimeError("Suite v2 current-results scoreboard material drifted")
+    public_audits = {
+        name: _audit_registered_identity(
+            identity,
+            expected_path=str(identity.get("path", ""))
+            if isinstance(identity, dict)
+            else "",
+            repo_root=repo_root,
+        )
+        for name, identity in public_material.items()
+    }
+    try:
+        final_specification = _read_json_object(
+            Path(public_audits["addendum_specification"]["path"])
+        )
+        final_scoreboard = _read_json_object(
+            Path(public_audits["addendum_scoreboard"]["path"])
+        )
+        if make_public_scoreboard_from_spec(final_specification) != final_scoreboard:
+            raise ValueError("scoreboard does not reproduce its specification")
+    except (KeyError, TypeError, ValueError, json.JSONDecodeError) as error:
+        raise RuntimeError("Suite v2 current-results scoreboard drifted") from error
+    result_rows = final_scoreboard.get("component_results")
+    if not isinstance(result_rows, list) or not result_rows:
+        raise RuntimeError("Suite v2 current-results scoreboard rows are invalid")
+    if any(
+        not isinstance(row, dict)
+        or not isinstance(row.get("component_id"), str)
+        or not row["component_id"]
+        for row in result_rows
+    ):
+        raise RuntimeError("Suite v2 current-results scoreboard rows are invalid")
+    observed_components = {row["component_id"] for row in result_rows}
+    if (
+        not observed_components
+        or not observed_components.issubset(set(SUITE_V2_COMPONENT_IDS))
+    ):
+        raise RuntimeError("Suite v2 current-results scoreboard components drifted")
+    resolution = _read_json_object(
+        Path(public_audits["additive_resolution_decision"]["path"])
+    )
+
+    # Mutate only after all identities, reproduction, and result semantics
+    # have been checked, so callers never receive a partially current suite.
+    repository["source_sha256"] = {
+        logical_path: audit["sha256"]
+        for logical_path, audit in source_audits.items()
+    }
+    repository["public_document"] = {
+        "path": expected_document_path,
+        "sha256": document_audit["sha256"],
+    }
+    for component_id, audit in component_audits.items():
+        components[component_id]["release_config_sha256"] = audit["sha256"]
+    suite["public_results"] = {
+        "formal_reference_rows": len(result_rows),
+        "components_with_formal_results": [
+            component_id
+            for component_id in SUITE_V2_COMPONENT_IDS
+            if component_id in observed_components
+        ],
+        "specification": {
+            "path": public_material["addendum_specification"]["path"],
+            "sha256": public_audits["addendum_specification"]["sha256"],
+        },
+        "scoreboard": {
+            "path": public_material["addendum_scoreboard"]["path"],
+            "sha256": public_audits["addendum_scoreboard"]["sha256"],
+        },
+    }
+    return {
+        "release_materials": materials,
+        "formal_reference_rows": len(result_rows),
+        "components_with_formal_results": suite["public_results"][
+            "components_with_formal_results"
+        ],
+        "scoreboard_extension_authorized": resolution.get(
+            "scoreboard_extension_authorized"
+        ),
+        "formal_reference_rows_added": resolution.get(
+            "formal_reference_rows_added"
+        ),
+    }
+
+
+def _require_suite_current_results_overlay_activation(
+    suite: dict[str, Any], *, repo_root: Path
+) -> dict[str, Any]:
+    """Validate the final v2 decision, then install its current result view."""
+
+    authority = suite["membership_authority"]
+    try:
+        decision_path = resolve_no_symlink_contextworld_path(
+            authority["decision_path"],
+            repo_root=repo_root,
+            label="Suite v2 current-results final decision",
+        )
+    except FileNotFoundError as error:
+        raise RuntimeError(
+            "Suite v2 current-results overlay is not active: final v2 decision "
+            "is missing"
+        ) from error
+    if not decision_path.is_file():
+        raise RuntimeError(
+            "Suite v2 current-results overlay is not active: final v2 decision "
+            "is missing"
+        )
+    decision = _read_json_object(decision_path)
+    try:
+        from contextworld.benchmarks.suite_v2_integrity_reseal_v2 import (
+            validate_integrity_reseal_v2_decision,
+        )
+
+        validate_integrity_reseal_v2_decision(
+            decision,
+            reseal_config=resolve_no_symlink_contextworld_path(
+                SUITE_V2_INTEGRITY_RESEAL_V2_CONFIG_LOGICAL_PATH,
+                repo_root=repo_root,
+                label="Suite v2 integrity-reseal-v2 preregistration",
+            ),
+            repo_root=repo_root,
+        )
+    except (OSError, ValueError, RuntimeError) as error:
+        raise RuntimeError(
+            "Suite v2 current-results overlay is not active: final v2 decision "
+            "drifted"
+        ) from error
+    try:
+        applied = _apply_current_results_overlay_materials(
+            suite,
+            decision=decision,
+            repo_root=repo_root,
+        )
+    except (OSError, ValueError, RuntimeError) as error:
+        raise RuntimeError(
+            "Suite v2 current-results overlay is not active: bound result materials "
+            "drifted"
+        ) from error
+    return {
+        "required": True,
+        "active": True,
+        "status": "suite_registration_passed_with_current_results_overlay_v1",
+        "decision_path": str(decision_path),
+        "decision_is_commit_marker": True,
+        "historical_v1_archive_preserved": True,
+        "partial_outputs_grant_membership": False,
+        "current_results": applied,
+        "passed": True,
+    }
+
+
+def _largest_markdown_table_data_rows(lines: list[str]) -> int:
+    """Return the largest complete GFM table body in a document section."""
+
+    groups: list[list[str]] = []
+    current: list[str] = []
+    for line in [*lines, ""]:
+        if line.startswith("|"):
+            current.append(line)
+        elif current:
+            groups.append(current)
+            current = []
+    counts = [
+        len(group) - 2
+        for group in groups
+        if len(group) >= 3 and "---" in group[1]
+    ]
+    return max(counts, default=0)
+
+
+def _validate_integrity_reseal_current_document(
+    document_path: Path,
+) -> dict[str, Any]:
+    """Validate the current (not historical-amendment) Section 5 contract."""
+
+    lines = document_path.read_text(encoding="utf-8").splitlines()
+    headings = tuple(f"### 5.{index} " for index in range(1, 6))
+    starts: list[int] = []
+    for heading in headings:
+        matches = [
+            index for index, line in enumerate(lines) if line.startswith(heading)
+        ]
+        if len(matches) != 1:
+            return {
+                "passed": False,
+                "reason": f"missing or duplicate current document section {heading}",
+            }
+        starts.append(matches[0])
+    if starts != sorted(starts):
+        return {
+            "passed": False,
+            "reason": "current document sections 5.1 through 5.5 are unordered",
+        }
+    boundaries = [*starts[1:], len(lines)]
+    sections = {
+        heading: lines[start:end]
+        for heading, start, end in zip(headings, starts, boundaries)
+    }
+    observed_rows = {
+        heading: _largest_markdown_table_data_rows(section)
+        for heading, section in sections.items()
+    }
+    expected_rows = {
+        "### 5.1 ": 18,
+        "### 5.2 ": 8,
+        "### 5.3 ": 18,
+    }
+    if any(observed_rows[heading] != expected for heading, expected in expected_rows.items()):
+        return {
+            "passed": False,
+            "reason": "current document 18/8 result-grid contract is incomplete",
+            "expected_table_rows": expected_rows,
+            "observed_table_rows": observed_rows,
+        }
+    return {
+        "passed": True,
+        "sections": list(headings),
+        "table_rows": observed_rows,
+    }
+
+
+def _require_suite_integrity_reseal_activation(
+    suite: dict[str, Any], *, repo_root: Path
+) -> dict[str, Any]:
+    """Require the successor decision rather than reviving stale membership."""
+
+    authority = suite["membership_authority"]
+    try:
+        decision_path = resolve_no_symlink_contextworld_path(
+            authority["decision_path"],
+            repo_root=repo_root,
+            label="Suite v2 integrity reseal decision",
+        )
+    except FileNotFoundError as error:
+        raise RuntimeError(
+            "Suite v2 membership is not active: integrity reseal decision is missing"
+        ) from error
+    if not decision_path.is_file():
+        raise RuntimeError(
+            "Suite v2 membership is not active: integrity reseal decision is missing"
+        )
+    decision = _read_json_object(decision_path)
+    try:
+        from contextworld.benchmarks.suite_v2_integrity_reseal import (
+            validate_integrity_reseal_decision,
+        )
+
+        validate_integrity_reseal_decision(
+            decision,
+            reseal_config=Path(suite["_config_path"]),
+            repo_root=repo_root,
+        )
+    except (OSError, ValueError) as error:
+        raise RuntimeError(
+            "Suite v2 membership is not active: integrity reseal decision drifted"
+        ) from error
+    materials = _apply_integrity_reseal_materials(suite, decision=decision)
+    document_path = resolve_contextworld_path(
+        materials["public_document"]["path"], repo_root=repo_root
+    )
+    document_contract = _validate_integrity_reseal_current_document(document_path)
+    if document_contract.get("passed") is not True:
+        raise RuntimeError(
+            "Suite v2 membership is not active: current document contract drifted"
+        )
+    return {
+        "required": True,
+        "active": True,
+        "status": "suite_registration_passed_with_integrity_reseal_v1",
+        "decision_path": str(decision_path),
+        "decision_is_commit_marker": True,
+        "partial_outputs_grant_membership": False,
+        "historical_chain_preserved": True,
+        "old_membership_silently_reactivated": False,
+        "release_materials": materials,
+        "current_document_contract": document_contract,
+        "passed": True,
+    }
+
+
 def _require_suite_membership_activation(
     suite: dict[str, Any],
     *,
@@ -815,6 +1421,28 @@ def _require_suite_membership_activation(
                 "Documentation amendment does not expose registration-audit bypass"
             )
         return _require_suite_documentation_amendment_activation(
+            suite, repo_root=root
+        )
+    if (
+        authority.get("activation_condition")
+        == SUITE_V2_INTEGRITY_RESEAL_ACTIVATION
+    ):
+        if registration_capability is not None:
+            raise RuntimeError(
+                "Integrity reseal does not expose registration-audit bypass"
+            )
+        return _require_suite_integrity_reseal_activation(
+            suite, repo_root=root
+        )
+    if (
+        authority.get("activation_condition")
+        == SUITE_V2_CURRENT_RESULTS_OVERLAY_ACTIVATION
+    ):
+        if registration_capability is not None:
+            raise RuntimeError(
+                "Current-results overlay does not expose registration-audit bypass"
+            )
+        return _require_suite_current_results_overlay_activation(
             suite, repo_root=root
         )
     if registration_capability is not None and (
@@ -955,7 +1583,140 @@ def load_icl_suite_release(
 ) -> dict[str, Any]:
     config_path = Path(path).expanduser().resolve()
     payload = yaml.safe_load(config_path.read_text(encoding="utf-8"))
-    if isinstance(payload, dict) and "documentation_amendment" in payload:
+    current_results_overlay_requested = False
+    if isinstance(payload, dict) and "current_results_overlay" in payload:
+        raw = payload
+        try:
+            from contextworld.benchmarks.suite_v2_integrity_reseal_v2 import (
+                load_current_results_overlay_preregistration,
+            )
+
+            overlay = load_current_results_overlay_preregistration(
+                config_path,
+                repo_root=repository_root(),
+            )
+        except (OSError, ValueError) as error:
+            raise ValueError("Suite v2 current-results overlay is not exact") from error
+        base_identity = overlay["base_release_config"]
+        try:
+            base_path = resolve_no_symlink_contextworld_path(
+                base_identity["path"],
+                repo_root=repository_root(),
+                label="Suite v2 current-results overlay base config",
+            )
+        except FileNotFoundError as error:
+            raise ValueError(
+                "Suite v2 current-results overlay base config is missing"
+            ) from error
+        if (
+            _sha256(base_path) != base_identity["sha256"]
+            or base_path.stat().st_size != base_identity["size_bytes"]
+        ):
+            raise ValueError("Suite v2 current-results overlay base config drifted")
+        base_payload = load_icl_suite_release(base_path)
+        payload = deepcopy(
+            {
+                key: value
+                for key, value in base_payload.items()
+                if key != "_config_path"
+            }
+        )
+        payload["release_status"] = raw["release_status"]
+        payload["candidate_date"] = raw["candidate_date"]
+        payload["membership_authority"] = deepcopy(
+            overlay["membership_authority"]
+        )
+        payload["current_results_overlay"] = deepcopy(overlay["overlay"])
+        current_results_overlay_requested = True
+    elif isinstance(payload, dict) and "integrity_reseal" in payload:
+        raw = payload
+        expected_overlay_keys = {
+            "schema_version",
+            "release_id",
+            "release_status",
+            "candidate_date",
+            "integrity_reseal",
+            "membership_authority",
+        }
+        expected_reseal_keys = {
+            "reseal_id",
+            "status",
+            "scope",
+            "historical_chain",
+            "allowed_changes",
+            "prohibited_changes",
+            "descriptive_result_freezes",
+            "decision_contract",
+        }
+        reseal = raw.get("integrity_reseal")
+        chain = reseal.get("historical_chain") if isinstance(reseal, dict) else None
+        amendment_identity = (
+            chain.get("documentation_amendment_config")
+            if isinstance(chain, dict)
+            else None
+        )
+        if (
+            set(raw) != expected_overlay_keys
+            or raw.get("schema_version") != 1
+            or raw.get("release_id") != SUITE_V2_RELEASE_ID
+            or not isinstance(reseal, dict)
+            or set(reseal) != expected_reseal_keys
+            or reseal.get("reseal_id") != SUITE_V2_INTEGRITY_RESEAL_ID
+            or reseal.get("status")
+            != "preregistered_pending_final_identity_freeze"
+            or reseal.get("scope") != "current_nine_component_identity_reseal"
+            or not isinstance(chain, dict)
+            or set(chain)
+            != {
+                "documentation_amendment_config",
+                "documentation_amendment_decision",
+                "recovery_v2_config",
+                "recovery_v2_decision",
+            }
+            or not isinstance(amendment_identity, dict)
+            or amendment_identity.get("path")
+            != SUITE_V2_INTEGRITY_RESEAL_BASE_CONFIG
+            or not isinstance(reseal.get("decision_contract"), dict)
+            or reseal["decision_contract"].get("decision_path")
+            != SUITE_V2_INTEGRITY_RESEAL_DECISION
+            or reseal["decision_contract"].get("exclusive_creation_required")
+            is not True
+            or reseal["decision_contract"].get(
+                "historical_chain_must_remain_byte_identical"
+            )
+            is not True
+            or reseal["decision_contract"].get(
+                "old_membership_may_not_be_silently_reactivated"
+            )
+            is not True
+            or reseal["decision_contract"].get("activation_requires_new_decision")
+            is not True
+        ):
+            raise ValueError("Suite v2 integrity reseal config is not exact")
+        root = repository_root()
+        base_path = resolve_no_symlink_contextworld_path(
+            SUITE_V2_INTEGRITY_RESEAL_BASE_CONFIG,
+            repo_root=root,
+            label="Suite v2 integrity reseal base config",
+        )
+        if (
+            _sha256(base_path) != amendment_identity.get("sha256")
+            or base_path.stat().st_size != amendment_identity.get("size_bytes")
+        ):
+            raise ValueError("Suite v2 integrity reseal base config drifted")
+        base_payload = load_icl_suite_release(base_path)
+        payload = deepcopy(
+            {
+                key: value
+                for key, value in base_payload.items()
+                if key != "_config_path"
+            }
+        )
+        payload["release_status"] = raw["release_status"]
+        payload["candidate_date"] = raw["candidate_date"]
+        payload["membership_authority"] = deepcopy(raw["membership_authority"])
+        payload["integrity_reseal"] = reseal
+    elif isinstance(payload, dict) and "documentation_amendment" in payload:
         raw = payload
         expected_overlay_keys = {
             "schema_version",
@@ -1184,7 +1945,12 @@ def load_icl_suite_release(
         raise ValueError("Invalid components_with_formal_results")
     if payload["release_id"] == SUITE_V2_RELEASE_ID:
         _validate_suite_v2_membership_authority(payload)
-    return {**payload, "_config_path": str(config_path)}
+    loaded = {**payload, "_config_path": str(config_path)}
+    if current_results_overlay_requested:
+        _require_suite_current_results_overlay_activation(
+            loaded, repo_root=repository_root()
+        )
+    return loaded
 
 
 def _audit_file(
@@ -1235,16 +2001,36 @@ def _bundled_public_result(
     *,
     repo_root: Path,
 ) -> Path:
-    """Resolve a Suite-level result in both source and exported layouts."""
+    """Resolve a Suite-level result, with a verified wheel-metadata fallback.
+
+    The canonical artifact root always wins.  A wheel carries byte-identical
+    copies of the two compact historical Suite-v2 receipts solely so its
+    default read-only ``info`` command remains usable when that root is not
+    mounted.  The fallback is constrained to those two logical paths and must
+    match the SHA-256 frozen by the suite config.
+    """
 
     specification = suite["public_results"][key]
     logical = Path(str(specification["path"]))
+    canonical = resolve_contextworld_path(logical, repo_root=repo_root)
+    if canonical.is_file():
+        return canonical
     suite_path = Path(suite["_config_path"])
     if logical.parts and logical.parts[0] == "artifacts":
         bundled = suite_path.parent.joinpath(*logical.parts[1:])
         if bundled.is_file():
             return bundled
-    return resolve_contextworld_path(logical, repo_root=repo_root)
+    packaged_name = _PACKAGED_SUITE_V2_RELEASE_RECEIPTS.get(logical.as_posix())
+    if packaged_name is not None:
+        packaged = _PACKAGED_SUITE_V2_RELEASE_METADATA_ROOT / packaged_name
+        if packaged.is_file():
+            if _sha256(packaged) != specification["sha256"]:
+                raise RuntimeError(
+                    "Packaged Suite v2 release metadata does not match the "
+                    "frozen receipt identity"
+                )
+            return packaged
+    return canonical
 
 
 def _read_json_object(path: Path) -> dict[str, Any]:
@@ -1330,6 +2116,159 @@ def _audit_public_results(
     }
 
 
+def _release_config_logical_path(
+    release_config: Path | str,
+    *,
+    repo_root: Path,
+) -> str | None:
+    candidate = Path(release_config).expanduser()
+    if not candidate.is_absolute():
+        return candidate.as_posix()
+    try:
+        return candidate.resolve().relative_to(repo_root.resolve()).as_posix()
+    except ValueError:
+        return None
+
+
+def _historical_v2_archive_config(
+    release_config: Path | str,
+    *,
+    repo_root: Path,
+) -> Path | None:
+    """Return the one exact historical v2 config that is archive-readable."""
+
+    if (
+        _release_config_logical_path(release_config, repo_root=repo_root)
+        != SUITE_V2_INTEGRITY_RESEAL_CONFIG_LOGICAL_PATH
+    ):
+        return None
+    try:
+        config_path = resolve_no_symlink_contextworld_path(
+            SUITE_V2_INTEGRITY_RESEAL_CONFIG_LOGICAL_PATH,
+            repo_root=repo_root,
+            label="Suite v2 historical results config",
+        )
+    except FileNotFoundError as error:
+        raise RuntimeError("Suite v2 historical results config is missing") from error
+    if (
+        _sha256(config_path) != SUITE_V2_INTEGRITY_RESEAL_CONFIG_SHA256
+        or config_path.stat().st_size
+        != SUITE_V2_INTEGRITY_RESEAL_CONFIG_SIZE_BYTES
+    ):
+        raise RuntimeError("Suite v2 historical results config drifted")
+    return config_path
+
+
+def load_historical_v2_archive_view(
+    release_config: Path | str,
+    *,
+    repo_root: Path | None = None,
+) -> dict[str, Any] | None:
+    """Return the read-only 11-row Suite v2 archive view, if requested.
+
+    This is intentionally narrower than membership activation.  The archived
+    config and frozen scoreboard remain useful evidence after successor
+    maintenance changes invalidate the old activation marker; they must never
+    be presented as the current active release or used to export one.
+    """
+
+    root = (repo_root or repository_root()).resolve()
+    archive_config = _historical_v2_archive_config(
+        release_config, repo_root=root
+    )
+    if archive_config is None:
+        return None
+    suite = load_icl_suite_release(archive_config)
+    public_results = _audit_public_results(suite, repo_root=root)
+    if not public_results["passed"]:
+        raise RuntimeError("Historical Suite v2 scoreboard audit failed")
+    scoreboard = _read_json_object(
+        Path(public_results["files"]["scoreboard"]["path"])
+    )
+    rows = scoreboard.get("component_results")
+    if not isinstance(rows, list) or len(rows) != 11:
+        raise RuntimeError("Historical Suite v2 archive row contract drifted")
+    return {
+        "suite": suite,
+        "release_view": "historical_archive",
+        "active_release": False,
+        "read_only": True,
+        "release_config": str(archive_config),
+        "config_identity": {
+            "path": SUITE_V2_INTEGRITY_RESEAL_CONFIG_LOGICAL_PATH,
+            "sha256": _sha256(archive_config),
+            "size_bytes": archive_config.stat().st_size,
+        },
+        "formal_reference_rows": len(rows),
+        "components_with_formal_results": sorted(
+            {
+                row.get("component_id")
+                for row in rows
+                if isinstance(row, dict)
+                and isinstance(row.get("component_id"), str)
+            }
+        ),
+        "public_results_audit": public_results,
+    }
+
+
+def resolve_suite_v2_cli_default_config(
+    *,
+    repo_root: Path | None = None,
+) -> Path:
+    """Select v1 archive or v2 current results without a mutable default file.
+
+    An absent v2 decision means that the public command still has only the
+    historical 11-row archive to show.  Once a decision exists, it must
+    validate completely; an invalid decision is an error rather than a silent
+    fallback to the old table.
+    """
+
+    root = (repo_root or repository_root()).resolve()
+    try:
+        decision_path = resolve_no_symlink_contextworld_path(
+            SUITE_V2_INTEGRITY_RESEAL_V2_DECISION,
+            repo_root=root,
+            label="Suite v2 current-results final decision",
+            allow_missing=True,
+        )
+    except RuntimeError:
+        raise
+    if not decision_path.is_file():
+        archive = _historical_v2_archive_config(
+            SUITE_V2_INTEGRITY_RESEAL_CONFIG_LOGICAL_PATH,
+            repo_root=root,
+        )
+        if archive is None:  # pragma: no cover - exact path is fixed above
+            raise RuntimeError("Suite v2 historical results config is unavailable")
+        return archive
+    try:
+        decision = _read_json_object(decision_path)
+        from contextworld.benchmarks.suite_v2_integrity_reseal_v2 import (
+            validate_integrity_reseal_v2_decision,
+        )
+
+        validate_integrity_reseal_v2_decision(
+            decision,
+            reseal_config=resolve_no_symlink_contextworld_path(
+                SUITE_V2_INTEGRITY_RESEAL_V2_CONFIG_LOGICAL_PATH,
+                repo_root=root,
+                label="Suite v2 integrity-reseal-v2 preregistration",
+            ),
+            repo_root=root,
+        )
+    except (OSError, ValueError, RuntimeError) as error:
+        raise RuntimeError(
+            "Suite v2 current-results default is unavailable: final v2 decision "
+            "drifted"
+        ) from error
+    return resolve_no_symlink_contextworld_path(
+        SUITE_V2_CURRENT_RESULTS_OVERLAY_CONFIG_LOGICAL_PATH,
+        repo_root=root,
+        label="Suite v2 current-results overlay",
+    )
+
+
 def load_public_scoreboard(
     release_config: Path | str = DEFAULT_SUITE_RELEASE_CONFIG,
     *,
@@ -1338,6 +2277,17 @@ def load_public_scoreboard(
     """Load the frozen compact result table and reject stale metadata."""
 
     root = (repo_root or repository_root()).resolve()
+    historical_config = _historical_v2_archive_config(
+        release_config,
+        repo_root=root,
+    )
+    if historical_config is not None:
+        suite = load_icl_suite_release(historical_config)
+        audit = _audit_public_results(suite, repo_root=root)
+        if not audit["passed"]:
+            raise RuntimeError("Historical Suite v2 scoreboard audit failed")
+        return _read_json_object(Path(audit["files"]["scoreboard"]["path"]))
+
     suite = load_icl_suite_release(release_config)
     require_suite_membership_activation(
         suite,
@@ -1353,31 +2303,65 @@ def _audit_public_document_template(
     document_path: Path,
     suite: dict[str, Any],
 ) -> dict[str, Any]:
+    """Check every task card without fixing the document's heading depth.
+
+    Older releases placed all nine cards directly below Section 6 as level-3
+    headings.  The public capability taxonomy nests each card one level below
+    its capability family.  Match the stable task label from the release
+    template, then require the same five subsections exactly one level below
+    that card.  This preserves the content contract without forcing an
+    environment-first document layout.
+    """
+
+    def heading(line: str) -> tuple[int, str] | None:
+        level = len(line) - len(line.lstrip("#"))
+        if level < 1 or level >= len(line) or line[level] != " ":
+            return None
+        return level, line[level + 1 :].strip()
+
+    def task_label(configured_title: str) -> str:
+        _number, separator, label = configured_title.partition(" ")
+        return label if separator else configured_title
+
+    def title_label(title: str) -> str:
+        prefix, separator, label = title.partition(" ")
+        if separator and prefix.replace(".", "").isdigit():
+            return label
+        return title
+
     template = suite["extension"]["public_document_template"]
     expected_subsections = list(template["subsections"])
     section_titles = template["component_sections"]
     lines = document_path.read_text(encoding="utf-8").splitlines()
+    parsed_headings = [heading(line) for line in lines]
     observed: dict[str, list[str]] = {}
     component_ids = tuple(suite["components"])
     for component_id in component_ids:
-        section_heading = f"### {section_titles[component_id]}"
-        try:
-            start = lines.index(section_heading) + 1
-        except ValueError:
+        label = task_label(str(section_titles[component_id]))
+        matches = [
+            (index, parsed[0])
+            for index, parsed in enumerate(parsed_headings)
+            if parsed is not None and title_label(parsed[1]) == label
+        ]
+        if len(matches) != 1:
             observed[component_id] = []
             continue
+        section_index, section_level = matches[0]
+        start = section_index + 1
         end = next(
             (
                 index
                 for index in range(start, len(lines))
-                if lines[index].startswith("### ")
+                if parsed_headings[index] is not None
+                and parsed_headings[index][0] <= section_level
             ),
             len(lines),
         )
         observed[component_id] = [
-            line.removeprefix("#### ")
-            for line in lines[start:end]
-            if line.startswith("#### ")
+            parsed_headings[index][1]
+            for index in range(start, end)
+            if parsed_headings[index] is not None
+            and parsed_headings[index][0] == section_level + 1
         ]
     return {
         "expected_subsections": expected_subsections,
@@ -3039,7 +4023,9 @@ __all__ = [
     "SUITE_V2_RELEASE_ID",
     "audit_icl_suite_release",
     "export_icl_suite_artifacts",
+    "load_historical_v2_archive_view",
     "load_icl_suite_release",
     "load_public_scoreboard",
     "require_suite_membership_activation",
+    "resolve_suite_v2_cli_default_config",
 ]

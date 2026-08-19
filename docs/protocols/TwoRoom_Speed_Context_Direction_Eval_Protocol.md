@@ -1,7 +1,7 @@
 # TwoRoom 双向速度上下文评测协议与结果
 
 > **文档角色**：支持性实验，仅用于复现早期方向性现象。当前数据比较和正式结论
-> 统一见[主报告](../TwoRoom_Speed_Benchmark_Report.md)。
+> 统一见[Benchmark 主文档中的速度章节](../ContextWorld_ICL_Benchmark.md#41-速度)。
 
 **协议版本**：v2.3
 **日期**：2026-07-19  
@@ -9,7 +9,7 @@
 **证据级别**：预注册的 heldout 机制确认，不是最终 test
 
 > 当前统一阶段结论和模型归因边界见
-> [TwoRoom 速度上下文学习 Benchmark 报告](../TwoRoom_Speed_Benchmark_Report.md)；
+> [ContextWorld ICL Benchmark：速度](../ContextWorld_ICL_Benchmark.md#41-速度)；
 > 本文只保留 directional v2 的冻结协议和执行结果。
 
 ## 1. 这项实验要分清什么
@@ -212,13 +212,13 @@ ab059341bb8b8c491ef9be1186de0ae02f84b1c1cb10e8448b08de2889929f20
 当前证据支持：**固定训练 seed 和集成配方下，
 多速度训练是稳定规划速度效应的区分因素**。这仍不是纯速度单变量消融，也
 不是跨训练 seed 的普遍因果结论。完整四模型数字统一见
-[速度上下文学习 Benchmark 报告](../TwoRoom_Speed_Benchmark_Report.md)。
+[ContextWorld ICL Benchmark：速度](../ContextWorld_ICL_Benchmark.md#41-速度)。
 
 本协议中的 door 固定且不在必经路径上，因此不能解释配对差异。不同 geometry
 对绝对难度影响很大，正式 catalog 必须按难度和结构分层匹配。
 
 后续研究计划不在本评测协议中维护，统一见
-[速度上下文学习 Benchmark 报告](../TwoRoom_Speed_Benchmark_Report.md)。
+[ContextWorld ICL Benchmark：速度](../ContextWorld_ICL_Benchmark.md#41-速度)。
 
 ## 9. 复现入口
 

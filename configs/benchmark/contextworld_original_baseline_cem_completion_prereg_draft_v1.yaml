@@ -1,0 +1,360 @@
+schema_version: 1
+preregistration_id: contextworld_original_baseline_cem_completion_draft_v1
+status: draft_blocked
+date_utc: "2026-08-17"
+
+purpose: >-
+  Describe the component-bound LeWM/PLDM original-checkpoint CEM matrix that
+  would be needed after the completed 18-cell ICL matrix.  This document is a
+  blocked planning draft, not a preregistration freeze and not an execution
+  authorization.  It records the exact infrastructure gaps that must be
+  closed before any CEM command can be materialized.
+
+scientific_status:
+  registration_kind: pre_execution_design_draft_only
+  blind_preregistration_claimed: false
+  freeze_generated: false
+  all_checkpoint_identities_already_available: true
+  missing_checkpoint_is_a_blocker: false
+  atomic_unit_count_kind: planning_estimate_only
+  atomic_unit_count_is_not_cli_process_count: true
+  planned_atomic_execution_units: 132
+  note: >-
+    One future runner invocation may aggregate several atomic units.  The 132
+    units enumerate family x condition x evaluation-seed cells only; they do
+    not authorize jobs and do not imply that query identities are frozen.
+
+freeze_generated: false
+commands: []
+
+checkpoint_availability:
+  status: complete
+  canonical_checkpoint_count: 8
+  checkpoint_missing_is_a_blocker: false
+
+planned_atomic_execution_units:
+  classification: estimate_planned_only
+  total: 132
+  by_component:
+    contextworld-speed: 72
+    contextworld-door: 12
+    contextworld-action-delay: 12
+    contextworld-action-strength: 12
+    contextworld-reacher-arm-mass: 6
+    contextworld-portal-exit: 12
+    contextworld-cube-gripper-carry: 6
+
+authority:
+  cem_execution_authorized: false
+  training_authorized: false
+  finetuning_authorized: false
+  checkpoint_selection_authorized: false
+  result_based_retry_or_checkpoint_swap_authorized: false
+  formal_scoreboard_mutation: false
+  legacy_cem_result_reuse_authorized: false
+
+canonical_checkpoint_source:
+  path: configs/benchmark/contextworld_original_baseline_completion_prereg_v1.yaml
+  sha256: 02508372afd6f55594fa6aff688f96dc2f5b9a49fa8946f65b9bf4dcc2fa8d4b
+  size_bytes: 19031
+
+canonical_checkpoint_ids:
+  - tworoom_lewm_original
+  - tworoom_pldm_original
+  - pusht_lewm_original
+  - pusht_pldm_original
+  - reacher_lewm_original
+  - reacher_pldm_original
+  - cube_lewm_original
+  - cube_pldm_original
+
+execution_policy:
+  executable_commands_materialized: false
+  gpu_or_environment_execution_started: false
+  output_namespace_reserved_only: artifacts/evaluation/original_baseline_cem_completion_v1
+  existing_icl_results_mutated: false
+  existing_scoreboard_mutated: false
+  freeze_may_be_created_only_after_every_cell_identity_closes: true
+  later_execution_must_publish_successes_and_failures: true
+
+blocking_summary:
+  included_public_descriptive_components: 7
+  included_component_bound_cells: 14
+  explicitly_excluded_development_public_closed_cells: 4
+  blocked_component_bound_cells: 14
+  executable_component_bound_cells: 0
+  blocker_class_is_checkpoint_absence: false
+
+component_protocols:
+  - capability_id: contextworld-speed
+    families: &tworoom_families [lewm, pldm]
+    execution_status: blocked_before_execution
+    cem_execution_authorized: false
+    executable_argv: null
+    planned_atomic_units: 72
+    planning_values_status: legacy_protocol_context_only_not_execution_frozen
+    unit_axes:
+      eval_seeds: &six_eval_seeds [42, 43, 44, 45, 46, 47]
+      conditions:
+        - {condition_id: seen_for_multi_3p1, track: seen_for_multi, query_speed: 3.1}
+        - {condition_id: seen_for_multi_5p1, track: seen_for_multi, query_speed: 5.1}
+        - {condition_id: seen_for_multi_7p0, track: seen_for_multi, query_speed: 7.0}
+        - {condition_id: unseen_interpolation_3p4, track: unseen_interpolation, query_speed: 3.4}
+        - {condition_id: unseen_interpolation_4p8, track: unseen_interpolation, query_speed: 4.8}
+        - {condition_id: unseen_interpolation_6p9, track: unseen_interpolation, query_speed: 6.9}
+    planning: &standard_tworoom_planning
+      execution_budget_raw_steps: 50
+      horizon_action_blocks: 5
+      receding_horizon_action_blocks: 5
+      cem_candidates: 300
+      cem_iterations: 30
+      cem_topk: 30
+      action_block_raw_steps: 5
+    stable_worldmodel:
+      expected_commit: 5864b74980f6ed328fd0045e777b3865962eff43
+      audit_checkout: ../stable-worldmodel
+      clean_checkout_required: true
+    source_identities:
+      release_config: {path: configs/benchmark/tworoom_speed_icl_release_v1.yaml, sha256: cae8c7e84e871503323d522a378a83e09f447de7846806601ecd9bc31cccd3ca, size_bytes: 12448}
+      runner_sources:
+        - {path: scripts/eval_tworoom_ability_catalog.py, sha256: 8bec7a6d4315850f985141697ad1a04c21fd60478c6439e40edb5c506a11bcea, size_bytes: 12569}
+      query_catalog_sources:
+        - {path: scripts/build_tworoom_original_ability_catalogs.py, sha256: 534b131929de3d005439c8dbe7a9f60a8f2877b6d760ac26568642f6b6aa90c3, size_bytes: 9768}
+    blockers:
+      - speed_runner_config_and_six_condition_query_catalog_exact_identities_not_closed
+      - current_stable_worldmodel_checkout_does_not_match_the_required_clean_pin
+      - legacy_speed_cem_receipts_are_context_only_and_are_not_promoted
+    blocker_evidence:
+      kind: runner_config_catalog_identity_unclosed
+      affected_component_bound_cells: 2
+      checkpoint_missing_is_a_blocker: false
+      required_resolution: freeze_exact_runner_config_and_six_condition_catalog_identities
+
+  - capability_id: contextworld-door
+    families: *tworoom_families
+    execution_status: blocked_before_execution
+    cem_execution_authorized: false
+    executable_argv: null
+    planned_atomic_units: 12
+    planning_values_status: legacy_protocol_context_only_not_execution_frozen
+    unit_axes:
+      eval_seeds: *six_eval_seeds
+      conditions:
+        - {condition_id: original_heldout, domain: original_heldout}
+    planning: *standard_tworoom_planning
+    stable_worldmodel:
+      expected_commit: 5864b74980f6ed328fd0045e777b3865962eff43
+      audit_checkout: ../stable-worldmodel
+      clean_checkout_required: true
+    source_identities:
+      release_config: {path: configs/benchmark/tworoom_door_icl_release_v1.yaml, sha256: b9419e5839d694bf9fc080a64ef01dadd495318f7e698d6d774f0b35f408c229, size_bytes: 13694}
+      runner_sources:
+        - {path: scripts/eval_tworoom_ability_catalog.py, sha256: 8bec7a6d4315850f985141697ad1a04c21fd60478c6439e40edb5c506a11bcea, size_bytes: 12569}
+      query_catalog_sources:
+        - {path: scripts/build_tworoom_original_ability_catalogs.py, sha256: 534b131929de3d005439c8dbe7a9f60a8f2877b6d760ac26568642f6b6aa90c3, size_bytes: 9768}
+    blockers:
+      - original_heldout_eval_catalog_is_missing_from_the_current_verifiable_tree
+      - catalog_content_identity_is_not_closed_for_this_component
+      - current_stable_worldmodel_checkout_does_not_match_the_required_clean_pin
+    blocker_evidence:
+      kind: original_heldout_catalog_missing
+      affected_component_bound_cells: 2
+      checkpoint_missing_is_a_blocker: false
+      required_resolution: rebuild_and_freeze_original_heldout_catalog_before_execution
+
+  - capability_id: contextworld-action-delay
+    families: *tworoom_families
+    execution_status: blocked_before_execution
+    cem_execution_authorized: false
+    executable_argv: null
+    planned_atomic_units: 12
+    planning_values_status: legacy_protocol_context_only_not_execution_frozen
+    unit_axes:
+      eval_seeds: *six_eval_seeds
+      conditions:
+        - {condition_id: primary_original_heldout, domain: original_heldout}
+    planning: *standard_tworoom_planning
+    stable_worldmodel:
+      expected_commit: ad2bc44579f2b5b65c004fd2c9d8edc8ebaa43ce
+      audit_checkout: ../stable-worldmodel
+      clean_checkout_required: true
+    source_identities:
+      release_config: {path: configs/benchmark/tworoom_action_delay_icl_release_v1.yaml, sha256: 303d27e9163ce435fdceff11d3d2ef2e6f7a99d61b1bf3c2f9737122611e47bb, size_bytes: 15815}
+      runner_sources:
+        - {path: scripts/eval_tworoom_ability_catalog.py, sha256: 8bec7a6d4315850f985141697ad1a04c21fd60478c6439e40edb5c506a11bcea, size_bytes: 12569}
+        - {path: contextworld/benchmarks/action_delay_h3_tail_projection.py, sha256: add2443686092f83b2ddbbb71ab8d3f9c8a44823f8462614dbe1c72eaee0f8c5, size_bytes: 7007}
+      query_catalog_sources:
+        - {path: scripts/build_tworoom_original_ability_catalogs.py, sha256: 534b131929de3d005439c8dbe7a9f60a8f2877b6d760ac26568642f6b6aa90c3, size_bytes: 9768}
+    blockers:
+      - canonical_action_delay_checkpoints_are_native_history3_but_the_release_cem_contract_is_history7
+      - the_frozen_tail_history3_recovery_is_prediction_only_and_has_no_cem_planner_adapter
+      - native_history7_execution_would_fail_before_rollout_without_a_new_frozen_adapter
+    blocker_evidence:
+      kind: h3_checkpoint_h7_runner_incompatible
+      affected_component_bound_cells: 2
+      checkpoint_missing_is_a_blocker: false
+      required_resolution: implement_and_freeze_a_weight_preserving_tail_h3_cem_planner_adapter
+
+  - capability_id: contextworld-action-strength
+    families: &pusht_families [lewm, pldm]
+    execution_status: blocked_before_execution
+    cem_execution_authorized: false
+    executable_argv: null
+    planned_atomic_units: 12
+    planning_values_status: legacy_protocol_context_only_not_execution_frozen
+    unit_axes:
+      eval_seeds: *six_eval_seeds
+      conditions:
+        - {condition_id: standard_pusht, domain: original_pusht}
+    planning: *standard_tworoom_planning
+    stable_worldmodel:
+      expected_commit: 875e607fc08aa72eacb94d5d178127804134cc06
+      audit_checkout: ../stable-worldmodel
+      clean_checkout_required: true
+    source_identities:
+      release_config: {path: configs/benchmark/pusht_action_strength_icl_release_v1.yaml, sha256: e63002fb048bbfb0bce71d4394be6a6179dda1513caa316b9447aecf035ac577, size_bytes: 16246}
+      runner_sources:
+        - {path: scripts/eval_pusht_standard_cem_retention.py, sha256: e72d555e36e57112bece2dad8a7c66965f9312e7191d573e2728a9ef5a89b2a5, size_bytes: 13424}
+      query_catalog_sources:
+        - {path: artifacts/evaluation/history3/pusht_action_strength_h3_release_v1/standard_pusht_query_catalog.json, sha256: da974c821e3fa0f232ac59538e0c79cc2cb9a80ea4bb4a62b910c66c278ce2d4, size_bytes: 11744}
+    blockers:
+      - current_pusht_runner_resamples_queries_at_runtime
+      - current_pusht_runner_cannot_accept_and_verify_the_candidate_frozen_catalog
+      - component_bound_runner_and_catalog_contract_is_not_closed
+    blocker_evidence:
+      kind: runtime_query_resampling_without_pre_frozen_catalog
+      affected_component_bound_cells: 2
+      checkpoint_missing_is_a_blocker: false
+      required_resolution: add_and_test_an_explicit_frozen_query_catalog_argument
+
+  - capability_id: contextworld-reacher-arm-mass
+    families: &reacher_families [lewm, pldm]
+    execution_status: blocked_before_execution
+    cem_execution_authorized: false
+    executable_argv: null
+    planned_atomic_units: 6
+    planning_values_status: legacy_protocol_context_only_not_execution_frozen
+    unit_axes:
+      eval_seeds: &three_eval_seeds [42, 43, 44]
+      conditions:
+        - {condition_id: standard_reacher, domain: original_reacher}
+    planning: *standard_tworoom_planning
+    stable_worldmodel:
+      expected_commit: 875e607fc08aa72eacb94d5d178127804134cc06
+      audit_checkout: ../stable-worldmodel
+      clean_checkout_required: true
+    source_identities:
+      release_config: {path: configs/benchmark/reacher_arm_mass_icl_release_v1.yaml, sha256: 1f437a3e12d26f003063b4167d900c12ade5f3ca3cc4d708931a12eb6b744fe1, size_bytes: 14369}
+      runner_sources:
+        - {path: scripts/eval_reacher_original_task_cem.py, sha256: 9e7bf62acf46a926fbff2f49b4e1b651fcb718fe3ab3ef77e8feb937f9fab42f, size_bytes: 735}
+      query_catalog_sources:
+        - {path: scripts/eval_reacher_original_task_cem.py, sha256: 9e7bf62acf46a926fbff2f49b4e1b651fcb718fe3ab3ef77e8feb937f9fab42f, size_bytes: 735}
+    blockers:
+      - wrapper_delegates_to_an_upstream_evaluator_that_resamples_queries_at_runtime
+      - no_argument_accepts_and_verifies_a_prefrozen_reacher_query_catalog
+      - exact_upstream_runner_and_query_catalog_identities_are_not_closed
+    blocker_evidence:
+      kind: runtime_query_resampling_without_pre_frozen_catalog
+      affected_component_bound_cells: 2
+      checkpoint_missing_is_a_blocker: false
+      required_resolution: vendor_or_pin_a_runner_with_an_explicit_frozen_catalog_contract
+
+  - capability_id: contextworld-portal-exit
+    families: *tworoom_families
+    execution_status: blocked_before_execution
+    cem_execution_authorized: false
+    executable_argv: null
+    planned_atomic_units: 12
+    planning_values_status: legacy_protocol_context_only_not_execution_frozen
+    unit_axes:
+      eval_seeds: *six_eval_seeds
+      conditions:
+        - {condition_id: original_heldout, domain: original_heldout}
+    planning: *standard_tworoom_planning
+    stable_worldmodel:
+      expected_commit: 875e607fc08aa72eacb94d5d178127804134cc06
+      audit_checkout: ../stable-worldmodel
+      clean_checkout_required: true
+    source_identities:
+      release_config: {path: configs/benchmark/tworoom_portal_exit_icl_release_v1.yaml, sha256: a81e781c89d43b8eba1c87dd9d40dfc2d9330f3ae70e7b1744271edc09af92f7, size_bytes: 14212}
+      runner_sources:
+        - {path: scripts/run_tworoom_portal_exit_original_task_cem.py, sha256: ef0687a48ec9748bca54b4d78dfc43af6ddeb15a5446a70d9fd64d17c3e8b823, size_bytes: 9214}
+        - {path: scripts/eval_tworoom_ability_catalog.py, sha256: 8bec7a6d4315850f985141697ad1a04c21fd60478c6439e40edb5c506a11bcea, size_bytes: 12569}
+      query_catalog_sources:
+        - {path: scripts/build_tworoom_original_ability_catalogs.py, sha256: 534b131929de3d005439c8dbe7a9f60a8f2877b6d760ac26568642f6b6aa90c3, size_bytes: 9768}
+    blockers:
+      - original_heldout_eval_catalog_is_missing_from_the_current_verifiable_tree
+      - portal_runner_references_that_missing_catalog_and_cannot_close_its_sha256
+      - stable_worldmodel_runtime_identity_is_not_closed_for_this_component
+    blocker_evidence:
+      kind: original_heldout_catalog_missing
+      affected_component_bound_cells: 2
+      checkpoint_missing_is_a_blocker: false
+      required_resolution: rebuild_and_freeze_original_heldout_catalog_and_runtime_identity
+
+  - capability_id: contextworld-cube-gripper-carry
+    families: &cube_families [lewm, pldm]
+    execution_status: blocked_before_execution
+    cem_execution_authorized: false
+    executable_argv: null
+    planned_atomic_units: 6
+    planning_values_status: legacy_protocol_context_only_not_execution_frozen
+    unit_axes:
+      eval_seeds: *three_eval_seeds
+      conditions:
+        - {condition_id: standard_cube, domain: original_cube}
+    planning: *standard_tworoom_planning
+    stable_worldmodel:
+      expected_commit: 875e607fc08aa72eacb94d5d178127804134cc06
+      audit_checkout: ../stable-worldmodel
+      clean_checkout_required: true
+    source_identities:
+      release_config: {path: configs/benchmark/cube_gripper_carry_h3_v4r1_icl_release_v1.yaml, sha256: 38086eff37106b96dc1be3a51cf80ba8e4a460d785b5b16d28fbed6ed8bd2633, size_bytes: 15050}
+      runner_sources:
+        - {path: scripts/eval_cube_original_task_cem_frozen.py, sha256: f653e4d8c7750859a94f2c98973bd1f99ecd0ddb936a507f4f8e4938878ba91b, size_bytes: 24013}
+        - {path: scripts/eval_cube_original_task_cem_frozen_v2.py, sha256: 37441739517e9f7fdf1f2d4d1801f6c9ba4e6c9f4904591ebdcec3423b7bc50d, size_bytes: 2862}
+      query_catalog_sources:
+        - {path: configs/benchmark/cube_gripper_carry_h3_v4r1_cem_retention_prereg_v2.yaml, sha256: 12ad487ade17cd8612785dde9137f24b4d55fcb20ec8ad1c4f64ee1c72c553b2, size_bytes: 5710}
+    blockers:
+      - v2_prereg_references_a_catalog_that_is_not_in_the_current_verifiable_tree
+      - historical_cube_lewm_receipts_are_legacy_candidates_only_and_are_not_reused
+      - a_new_lewm_pldm_pair_freeze_cannot_be_created_without_the_exact_catalog
+    blocker_evidence:
+      kind: legacy_catalog_not_verifiable_in_current_tree
+      affected_component_bound_cells: 2
+      checkpoint_missing_is_a_blocker: false
+      required_resolution: restore_or_rebuild_the_exact_catalog_then_freeze_a_new_pair_protocol
+
+cem_cells:
+  - {capability_id: contextworld-speed, family: lewm, checkpoint_id: tworoom_lewm_original, execution_status: blocked_before_execution, cem_execution_authorized: false, result_based_retry: false, formal_scoreboard_eligible: false, legacy_cem_result_reused: false, output: artifacts/evaluation/original_baseline_cem_completion_v1/contextworld-speed/lewm.json}
+  - {capability_id: contextworld-speed, family: pldm, checkpoint_id: tworoom_pldm_original, execution_status: blocked_before_execution, cem_execution_authorized: false, result_based_retry: false, formal_scoreboard_eligible: false, legacy_cem_result_reused: false, output: artifacts/evaluation/original_baseline_cem_completion_v1/contextworld-speed/pldm.json}
+  - {capability_id: contextworld-door, family: lewm, checkpoint_id: tworoom_lewm_original, execution_status: blocked_before_execution, cem_execution_authorized: false, result_based_retry: false, formal_scoreboard_eligible: false, legacy_cem_result_reused: false, output: artifacts/evaluation/original_baseline_cem_completion_v1/contextworld-door/lewm.json}
+  - {capability_id: contextworld-door, family: pldm, checkpoint_id: tworoom_pldm_original, execution_status: blocked_before_execution, cem_execution_authorized: false, result_based_retry: false, formal_scoreboard_eligible: false, legacy_cem_result_reused: false, output: artifacts/evaluation/original_baseline_cem_completion_v1/contextworld-door/pldm.json}
+  - {capability_id: contextworld-action-delay, family: lewm, checkpoint_id: tworoom_lewm_original, execution_status: blocked_before_execution, cem_execution_authorized: false, result_based_retry: false, formal_scoreboard_eligible: false, legacy_cem_result_reused: false, output: artifacts/evaluation/original_baseline_cem_completion_v1/contextworld-action-delay/lewm.json}
+  - {capability_id: contextworld-action-delay, family: pldm, checkpoint_id: tworoom_pldm_original, execution_status: blocked_before_execution, cem_execution_authorized: false, result_based_retry: false, formal_scoreboard_eligible: false, legacy_cem_result_reused: false, output: artifacts/evaluation/original_baseline_cem_completion_v1/contextworld-action-delay/pldm.json}
+  - {capability_id: contextworld-action-strength, family: lewm, checkpoint_id: pusht_lewm_original, execution_status: blocked_before_execution, cem_execution_authorized: false, result_based_retry: false, formal_scoreboard_eligible: false, legacy_cem_result_reused: false, output: artifacts/evaluation/original_baseline_cem_completion_v1/contextworld-action-strength/lewm.json}
+  - {capability_id: contextworld-action-strength, family: pldm, checkpoint_id: pusht_pldm_original, execution_status: blocked_before_execution, cem_execution_authorized: false, result_based_retry: false, formal_scoreboard_eligible: false, legacy_cem_result_reused: false, output: artifacts/evaluation/original_baseline_cem_completion_v1/contextworld-action-strength/pldm.json}
+  - {capability_id: contextworld-reacher-arm-mass, family: lewm, checkpoint_id: reacher_lewm_original, execution_status: blocked_before_execution, cem_execution_authorized: false, result_based_retry: false, formal_scoreboard_eligible: false, legacy_cem_result_reused: false, output: artifacts/evaluation/original_baseline_cem_completion_v1/contextworld-reacher-arm-mass/lewm.json}
+  - {capability_id: contextworld-reacher-arm-mass, family: pldm, checkpoint_id: reacher_pldm_original, execution_status: blocked_before_execution, cem_execution_authorized: false, result_based_retry: false, formal_scoreboard_eligible: false, legacy_cem_result_reused: false, output: artifacts/evaluation/original_baseline_cem_completion_v1/contextworld-reacher-arm-mass/pldm.json}
+  - {capability_id: contextworld-portal-exit, family: lewm, checkpoint_id: tworoom_lewm_original, execution_status: blocked_before_execution, cem_execution_authorized: false, result_based_retry: false, formal_scoreboard_eligible: false, legacy_cem_result_reused: false, output: artifacts/evaluation/original_baseline_cem_completion_v1/contextworld-portal-exit/lewm.json}
+  - {capability_id: contextworld-portal-exit, family: pldm, checkpoint_id: tworoom_pldm_original, execution_status: blocked_before_execution, cem_execution_authorized: false, result_based_retry: false, formal_scoreboard_eligible: false, legacy_cem_result_reused: false, output: artifacts/evaluation/original_baseline_cem_completion_v1/contextworld-portal-exit/pldm.json}
+  - {capability_id: contextworld-cube-gripper-carry, family: lewm, checkpoint_id: cube_lewm_original, execution_status: blocked_before_execution, cem_execution_authorized: false, result_based_retry: false, formal_scoreboard_eligible: false, legacy_cem_result_reused: false, output: artifacts/evaluation/original_baseline_cem_completion_v1/contextworld-cube-gripper-carry/lewm.json}
+  - {capability_id: contextworld-cube-gripper-carry, family: pldm, checkpoint_id: cube_pldm_original, execution_status: blocked_before_execution, cem_execution_authorized: false, result_based_retry: false, formal_scoreboard_eligible: false, legacy_cem_result_reused: false, output: artifacts/evaluation/original_baseline_cem_completion_v1/contextworld-cube-gripper-carry/pldm.json}
+
+excluded_cem_cells:
+  - {capability_id: contextworld-contact-friction, family: lewm, execution_status: excluded_development_public_closed, cem_execution_authorized: false}
+  - {capability_id: contextworld-contact-friction, family: pldm, execution_status: excluded_development_public_closed, cem_execution_authorized: false}
+  - {capability_id: contextworld-motion-damping, family: lewm, execution_status: excluded_development_public_closed, cem_execution_authorized: false}
+  - {capability_id: contextworld-motion-damping, family: pldm, execution_status: excluded_development_public_closed, cem_execution_authorized: false}
+
+legacy_cem_disclosure:
+  any_legacy_cem_promoted_to_new_result: false
+  cube_lewm_closed_loop: legacy_candidate_only_not_reused
+  old_lewm_receipts_may_be_described_as_context: true
+  old_pldm_absence_does_not_imply_missing_checkpoint: true
+
+publication:
+  publish_success_receipts: true
+  publish_failure_receipts: true
+  formal_scoreboard_mutation: false
+  cross_component_average_authorized: false

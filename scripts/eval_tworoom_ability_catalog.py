@@ -260,7 +260,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         cache_dir=artifact_path("evaluation/model_cache", repo_root=REPO_ROOT),
     )
     protocol = infer_model_protocol(model, action_dim=2)
-    if protocol != {"action_block": 5, "history_size": 3}:
+    expected_protocol = {
+        "action_block": 5,
+        "history_size": int(args.expected_history_size),
+    }
+    if protocol != expected_protocol:
         raise RuntimeError(f"Unexpected model protocol: {protocol}")
     model = model.to(args.device).eval()
     model.requires_grad_(False)
@@ -372,6 +376,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--cem-samples", type=int, default=300)
     parser.add_argument("--cem-steps", type=int, default=30)
     parser.add_argument("--cem-topk", type=int, default=30)
+    parser.add_argument(
+        "--expected-history-size",
+        type=int,
+        default=3,
+        choices=(3, 7),
+    )
     return parser.parse_args()
 
 

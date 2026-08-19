@@ -23,8 +23,9 @@ authority:
   canonical_registration_decision:
     path: artifacts/evaluation/history3/cube_gripper_carry_h3_v4r1_suite_registration_recovery_v2/registration_decision_v2.json
     sha256: 0c6d38ec4304d0ffa078fe8680a7b6d90b851eb69780d22936a456bf0bb7859d
-  current_document_amendment:
+  historical_document_amendment_v1:
     amendment_id: contextworld_icl_suite_v2_public_document_amendment_v1
+    status: historical_exact_identity_preserved
     scope: documentation_only_reference_table_expansion
     config:
       path: configs/benchmark/contextworld_icl_suite_v2_public_document_amendment_v1.yaml
@@ -40,17 +41,54 @@ authority:
       size_bytes: 33470
     modifies_formal_scoreboard: false
     authorizes_public_test_access: false
+  current_documentation:
+    status: edited_for_external_readers_pending_integrity_reseal_v2
+    capability_taxonomy_record:
+      path: configs/benchmark/contextworld_icl_suite_v2_capability_taxonomy_documentation_amendment_v1.yaml
+      record_id: contextworld_icl_suite_v2_capability_taxonomy_documentation_amendment_v1
+    final_identity_authority:
+      path: configs/benchmark/contextworld_icl_suite_v2_integrity_reseal_v2.yaml
+      reseal_id: contextworld_icl_suite_v2_integrity_reseal_v2
+      decision_status: pending_after_results_and_documentation_stabilize
+    documents:
+      - README.md
+      - docs/README.md
+      - docs/ContextWorld_ICL_Benchmark.md
+      - docs/ContextWorld_Public_v1_Release_Readiness.md
+    current_bytes_are_not_bound_by_historical_amendment_v1: true
 
 cube_current_evidence:
   source_release_config: configs/benchmark/cube_gripper_carry_h3_v4r1_icl_release_v1.yaml
+  frozen_descriptive_matrix:
+    results_freeze:
+      path: configs/benchmark/contextworld_original_baseline_matrix_results_freeze_v1.json
+      sha256: ec72baaf04db9b084b1047e0ba9d6eaff3b13215902574d7e9a2b131de08eef5
+    matrix_summary:
+      path: artifacts/evaluation/original_baseline_matrix_v1/matrix_summary.json
+      sha256: 860e520b8582243c55eeed5364499d1afa36893e03fa1610b8319123a4626173
   comparison_rows:
     - comparison_id: original_lewm
       model_family: lewm
       training_state: original_checkpoint
-      icl_split: not_evaluated_under_v4r1
-      icl_score: not_evaluated
-      icl_decision: not_determined
+      icl_split: independent_v4r1_public_descriptive
+      icl_score: 0.509765625
+      icl_decision: failed_single_checkpoint_gate_not_scoreboard_eligible
+      icl_receipt:
+        path: artifacts/evaluation/original_baseline_matrix_v1/contextworld-cube-gripper-carry/lewm.json
+        sha256: bf6cad12eb43e998f529c98aa0cb5997b2783ee93e0eb3e226647c9166d709dc
       cem_successes: 198
+      cem_trials: 300
+      planning_decision: reference_value
+    - comparison_id: original_pldm
+      model_family: pldm
+      training_state: original_checkpoint
+      icl_split: independent_v4r1_public_descriptive
+      icl_score: 0.509765625
+      icl_decision: failed_single_checkpoint_gate_not_scoreboard_eligible
+      icl_receipt:
+        path: artifacts/evaluation/original_baseline_matrix_v1/contextworld-cube-gripper-carry/pldm.json
+        sha256: 7d7633c697b987acf0bad3e00fe7116b536e4cea016cb6d210fe32c16bd63da6
+      cem_successes: 159
       cem_trials: 300
       planning_decision: reference_value
     - comparison_id: trained_lewm
@@ -88,6 +126,19 @@ external_model_validation:
     distinct_architecture_or_objective_families_minimum: 2
     planner_compatible_external_families_minimum: 1
     training_seeds_per_trainable_method: 3
+    distribution_claim_scope: cube_external_pilot_not_suite_wide_validation
+    uncovered_capability_types_must_be_disclosed: true
+  suite_wide_cross_architecture_claim:
+    status: prohibited_until_actual_external_results_exist
+    actual_results_required_not_future_plan: true
+    capability_types_required:
+      - instantaneous_continuous_response
+      - temporally_delayed_dynamics
+      - contact_or_attachment_conditioned_dynamics
+      - hidden_structural_transition_rules
+    evaluated_tasks_per_capability_type_minimum: 1
+    independent_upstream_model_families_minimum: 2
+    common_task_overlap_between_two_families_minimum: 1
   selection_and_scoring_policy:
     model_selection_split: Development
     public_used_for_training_or_selection: false
@@ -143,6 +194,10 @@ release_gates:
   external_model_coverage:
     status: blocked_not_run
     blocking: true
+  suite_wide_cross_architecture_claim:
+    status: prohibited_no_actual_four_type_external_coverage
+    blocking: false
+    claim_blocking: true
   code_license:
     status: blocked_not_declared
     blocking: true

@@ -1,0 +1,119 @@
+schema_version: 1
+benchmark: tworoom_speed_door_rule_history3_composition_feasibility_v1
+status: feasibility_preregistered_before_formal_data_training_or_model_scoring
+claim_limit: physical_identifiability_only_not_a_model_composition_result
+date: "2026-07-27"
+
+stable_worldmodel:
+  repo: ../stable-worldmodel
+  commit: 5864b74980f6ed328fd0045e777b3865962eff43
+  relevant_sources:
+    - stable_worldmodel/envs/two_room/env.py
+    - stable_worldmodel/spaces.py
+
+scope:
+  environment: TwoRoom
+  history_tokens: 3
+  hidden_factors: [agent.speed, passage.open]
+  purpose: speed_and_door_rule_joint_history_identifiability
+  formal_training_included: false
+  formal_validation_included: false
+  sealed_test_included: false
+
+protocol:
+  history_tokens: 3
+  context_transitions: 2
+  raw_steps_per_action_block: 5
+  speeds: [3.1, 5.1, 7.0]
+  door_rules:
+    passable: 1
+    blocked: 0
+  door_number: 1
+  sequence:
+    - identical_initial_frame
+    - joint_speed_and_rule_evidence_frame
+    - identical_query_frame
+  probe_action:
+    vertical_speed_evidence: 0.25
+    horizontal_rule_evidence: 0.70
+    horizontal_rule_steps: 2
+  recovery_action:
+    cancel_vertical_speed_evidence: true
+    collision_projection_outward_steps: 1
+    collision_projection_return_steps: 1
+  query_action:
+    horizontal_rule_steps: 4
+    horizontal_value: 1.0
+    vertical_speed_steps: 1
+    vertical_value: 0.5
+  contiguous_history: true
+  resets_or_teleports_inside_history: false
+  actions_identical_across_factor_combinations: true
+  query_state_and_pixels_identical_across_factor_combinations: true
+
+geometry:
+  door_positions: [49, 89, 129, 169]
+  directions: [left_to_right, right_to_left]
+  doorway_offset_px: 14.0
+  left_to_right_reset_x: 98.0
+  right_to_left_reset_x: 126.0
+  left_to_right_goal_x: 190.0
+  right_to_left_goal_x: 34.0
+
+catalog_seed: 20260727
+
+counts:
+  templates: 8
+  speeds: 3
+  rules: 2
+  factor_combinations_per_template: 6
+  rollouts: 48
+
+gates:
+  initial_state_exact_match: true
+  initial_pixels_bitwise_match: true
+  query_state_exact_match: true
+  query_pixels_bitwise_match: true
+  history_actions_bitwise_match: true
+  query_action_bitwise_match: true
+  minimum_middle_rule_centroid_gap_px: 2.0
+  minimum_middle_adjacent_speed_centroid_gap_px: 0.4
+  minimum_future_rule_state_gap_px: 10.0
+  minimum_future_adjacent_speed_centroid_gap_px: 0.8
+  six_unique_middle_pixels_per_template: true
+  six_unique_future_pixels_per_template: true
+  exact_replay: true
+  serialized_roundtrip: true
+  action_only_joint_accuracy: 0.16666666666666666
+  query_only_joint_accuracy: 0.16666666666666666
+  zero_failed_templates: true
+
+model_visible_fields: [pixels, action]
+privileged_audit_fields:
+  - agent.speed
+  - passage.open
+  - state
+  - template_id
+  - physical_oracle
+
+output_root: artifacts/evaluation/history3/speed_door_rule_composition_feasibility_v1
+
+known_limit:
+  collision_specific_history3_recovery: true
+  explanation: >-
+    The second context transition uses the pinned TwoRoom collision projection
+    to return every speed-rule history to the same query. This is a valid
+    History=3 identifiability gate for the pinned environment, not evidence
+    that the construction transfers to another collision engine.
+
+next_gate:
+  on_pass:
+    - freeze_training_and_validation_factor_splits
+    - build_paired_formal_training_data
+    - build_independent_50x6_validation_for_every_joint_condition
+    - train_equal_budget_speed_only_door_only_and_joint_models
+    - score_speed_door_and_joint_success_separately
+    - keep_formal_test_sealed
+  on_fail:
+    - do_not_build_formal_combination_training_data
+    - revise_actions_geometry_or_history_length

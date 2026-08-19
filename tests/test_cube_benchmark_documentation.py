@@ -26,12 +26,12 @@ def _sha256(path: Path) -> str:
 
 def test_cube_release_uses_the_five_part_benchmark_template() -> None:
     document = PUBLIC_DOCUMENT.read_text(encoding="utf-8")
-    heading = "### 6.9 Cube 夹爪携带规则"
+    heading = "#### 6.3.3 Cube 夹爪携带规则"
     start = document.index(heading)
-    end = document.index("\n## 7. 接入新的 latent 世界模型", start)
+    end = document.index("\n### 6.4 隐藏结构转移规则", start)
     section = document[start:end]
 
-    assert re.findall(r"^#### (.+)$", section, flags=re.MULTILINE) == [
+    assert re.findall(r"^##### (.+)$", section, flags=re.MULTILINE) == [
         "任务目标",
         "数据构成",
         "评测方法",
@@ -39,10 +39,10 @@ def test_cube_release_uses_the_five_part_benchmark_template() -> None:
         "适用范围",
     ]
     assert "authorized_not_generated_not_opened_not_read_not_scored" not in document
-    assert "首个 Public v1 命名空间因发布元数据封装失败而永久封存" in document
-    assert "旧 Public v1 的失败不是模型或科学数据门失败" in section
-    assert "成员资格以 canonical" in section
-    assert "不是自包含分发包" in section
+    assert "四类动作模板在每个划分中严格均衡" in section
+    assert "源轨迹、动作模板、场景、配对内容和 query 画面互不重叠" in section
+    assert "外部模型使用独立结果身份" in section
+    assert "公开分发仍须补齐许可证和稳定下载地址" in section
     assert "77.73%、79.10% 和 78.52%" in section
     assert "186、183、185/300" in section
 
@@ -62,9 +62,19 @@ def test_cube_release_adds_suite_v2_without_rewriting_suite_v1() -> None:
     assert suite_v2["components"]["cube_gripper_carry"][
         "reference_result_status"
     ] == "passed_public_test_3_of_3"
-    assert (
-        suite_v2["repository"]["public_document"]["sha256"]
-        == _sha256(PUBLIC_DOCUMENT)
+    historical_document_sha = suite_v2["repository"]["public_document"]["sha256"]
+    assert historical_document_sha == (
+        "663c78589f8f0076ce9051a76dc76c70c26261647a5c761dc9ab9509b4f50fba"
+    )
+    assert historical_document_sha != _sha256(PUBLIC_DOCUMENT)
+    taxonomy = yaml.safe_load(
+        (
+            ROOT
+            / "configs/benchmark/contextworld_icl_suite_v2_capability_taxonomy_documentation_amendment_v1.yaml"
+        ).read_text(encoding="utf-8")
+    )
+    assert taxonomy["capability_taxonomy_documentation_amendment"]["status"] == (
+        "current_documentation_changes_pending_v2_reseal"
     )
     assert "contextworld-cube-gripper-carry" in (
         ROOT / "pyproject.toml"
@@ -87,7 +97,8 @@ def test_cube_release_has_navigation_and_preserves_frozen_handoff() -> None:
         "Cube_Gripper_Carry_History3_v4r1_Public_v1_Generation_Failure.md"
     ).read_text(encoding="utf-8")
 
-    assert "6.9 Cube 夹爪携带规则" in navigation
+    assert "6.3.3 Cube 夹爪携带规则" in navigation
+    assert "接触或附着条件动力学" in navigation
     assert "Public v1 失败与恢复边界" in protocols
     assert "reference_development_decision_v3.json" in handoff
     assert "original_task_retention_decision_v2.json" in handoff

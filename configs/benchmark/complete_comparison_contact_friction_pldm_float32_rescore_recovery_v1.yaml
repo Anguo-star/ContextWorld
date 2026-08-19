@@ -1,0 +1,82 @@
+schema_version: 1
+recovery_id: complete_comparison_contact_friction_pldm_float32_rescore_recovery_v1
+parent_freeze_id: contextworld_complete_reference_comparison_freeze_v1
+release_id: contextworld_pusht_contact_friction_icl_history3_v1
+status: preregistered_after_raw_public_icl_before_float32_recovery
+created_utc: "2026-08-18"
+
+# The frozen generic rescorer rebuilds MSE aggregates in float64 while the
+# evaluator computed them in float32.  For the three PLDM receipts the margin
+# mean differs by ~4e-9..7e-9 and trips the deliberately tight comparison in
+# score_contact_friction_icl_results.  This is the same failure mode already
+# recovered for Action Strength under
+# pusht_action_strength_pldm_float32_rescore_recovery_v1.  This additive
+# protocol recovers exactly the three already-written receipts.  It does not
+# evaluate a model, alter the frozen scorer/CLI, rewrite any receipt, or
+# choose checkpoints.
+scope:
+  component: ContactFriction
+  environment: PushT
+  model_family: PLDM
+  raw_public_icl_already_completed: true
+  model_evaluation_rerun_authorized: false
+  raw_public_result_rewrite_authorized: false
+  frozen_generic_scorer_modification_authorized: false
+  public_test_reopen_authorized: false
+  float32_mse_aggregation_only: true
+  checkpoint_selection_authorized: false
+
+precedent:
+  recovery_id: pusht_action_strength_pldm_float32_rescore_recovery_v1
+  preregistration:
+    path: configs/benchmark/pusht_action_strength_pldm_float32_rescore_recovery_v1.yaml
+    sha256: 6526ec2223ac9366dddc2a3e215b003a21849e992da231b0d093c6d1901f0ebf
+
+frozen_inputs:
+  release_config:
+    path: configs/benchmark/pusht_contact_friction_icl_release_v1.yaml
+    sha256: bc7d1a4be16311b57b969f18fdfc99e77df2caf748125c36337ded4275adb564
+  frozen_icl_scorer:
+    path: contextworld/benchmarks/contact_friction_icl_score.py
+    sha256: 659a0500f4276626880ccc534a44a207b6696c4d847045eab7d87375c9106b2b
+  paired_latent_metric:
+    path: contextworld/benchmarks/paired_latent_response.py
+    sha256: 92dc5cf019491f59596c3a0b59d918f04ad2290e124eab11d669537ac20d6ff5
+
+raw_public_icl:
+  method_name: contact_friction_pldm_frozen_comparison_v1
+  training_recipe: mixed_pldm_joint
+  checkpoints:
+    - seed: 13313
+      checkpoint_sha256: b62b47fead400389005e3490c4093b3fef4c8a378169df44ecba62f0cd952234
+      raw_result:
+        path: artifacts/evaluation/complete_reference_comparison_v1/icl/contact_friction/pldm/seed_13313.json
+        sha256: dede1da47b2f69b502a443c9f8349788cbccf911cffce98155906180f82d71be
+        size_bytes: 227931
+    - seed: 13314
+      checkpoint_sha256: db9ce716bbd07ea4c1bddd689cc09157f51cd7a1e1676b76e55852f075bf0cfa
+      raw_result:
+        path: artifacts/evaluation/complete_reference_comparison_v1/icl/contact_friction/pldm/seed_13314.json
+        sha256: a8715c59ab8e05656a2b8ee976138be9e655a47cf21fa1ecca20697847b31c3b
+        size_bytes: 227895
+    - seed: 13315
+      checkpoint_sha256: 8111d8b8e54de226304b2aef91e6c2b82c4387235fc0191f795bc4477cfe77bb
+      raw_result:
+        path: artifacts/evaluation/complete_reference_comparison_v1/icl/contact_friction/pldm/seed_13315.json
+        sha256: f9e8f9f3ca13f9e596585e0282034c71e0f23c9b5783115bf96705667b210f69
+        size_bytes: 227947
+
+reconstruction_rule:
+  boolean_and_rate_metrics: recomputed_from_records_in_float64_as_frozen_scorer_does
+  mse_aggregates: recomputed_from_records_in_float32_matching_the_evaluator
+  latent_response: summarized_from_records_with_frozen_summarizer
+  gate: recomputed_with_frozen_contact_friction_prediction_gate
+  every_scalar_must_match_stored_value_exactly_or_within_frozen_tolerance: true
+  aggregate_layout: identical_to_score_contact_friction_icl_results
+
+outputs:
+  root: artifacts/evaluation/complete_reference_comparison_v1/icl/contact_friction
+  aggregate:
+    path: artifacts/evaluation/complete_reference_comparison_v1/icl/contact_friction/pldm_method_score_float32_recovery_v1.json
+  exclusive_creation_required: true
+  overwrite_authorized: false

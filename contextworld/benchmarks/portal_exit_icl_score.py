@@ -7,7 +7,10 @@ from typing import Any, Iterable
 
 import numpy as np
 
-from contextworld.benchmarks.adapters import PortalExitICLModelAdapter
+from contextworld.benchmarks.adapters import (
+    PortalExitICLModelAdapter,
+    validate_adapter_protocol,
+)
 from contextworld.benchmarks.portal_exit_icl_data import (
     DEFAULT_PORTAL_EXIT_RELEASE_CONFIG,
     PortalExitICLEvalDataset,
@@ -201,6 +204,14 @@ def evaluate_portal_exit_icl_model(
 ) -> dict[str, Any]:
     root = (repo_root or repository_root()).resolve()
     release = load_portal_exit_icl_release(release_config)
+    validate_adapter_protocol(
+        adapter,
+        history_tokens=3,
+        action_block_raw_steps=5,
+        action_dim=2,
+        minimum_future_action_blocks=1,
+        task_name="Portal Exit v1",
+    )
     dataset = PortalExitICLEvalDataset(release=release, repo_root=root)
     arrays = dataset.arrays
     histories = np.concatenate(

@@ -1,0 +1,154 @@
+schema_version: 1
+release_id: contextworld_icl_benchmark_suite_v2
+release_status: public_test_release_candidate
+candidate_date: "2026-08-17"
+
+# This is a new additive record.  It does not rewrite the recovery,
+# documentation-amendment, or integrity-reseal-v1 materials.
+engineering_identity_amendment:
+  amendment_id: contextworld_icl_suite_v2_engineering_identity_amendment_prereg_v1
+  status: preregistered_pending_integrity_reseal_v2
+  scope: current_nine_component_source_and_package_identity_updates_only
+  predecessor:
+    integrity_reseal_preregistration: >-
+      configs/benchmark/contextworld_icl_suite_v2_integrity_reseal_v1.yaml
+    integrity_reseal_decision: >-
+      configs/benchmark/contextworld_icl_suite_v2_integrity_reseal_decision_v1.json
+  rationale:
+    - publish_one_model_independent_latent_adapter_boundary_with_legacy_aliases
+    - centralize_existing_task_geometry_validation_at_each_primary_scorer
+    - limit_task_adapter_validation_to_the_four_public_geometry_fields
+    - keep_core_adapter_imports_independent_of_optional_evaluation_packages
+    - make_the_stable_worldmodel_optional_runtime_installable
+    - >-
+      register_the_existing_speed_pldm_adapter_for_the_additive_reference
+      completion_without_changing_history_action_data_scoring_or_gates
+    - >-
+      accept_the_current_development_validation_lance_training_input_with_a
+      legacy_eval_payloads_fallback_without_reading_any_independent_public_root
+    - >-
+      reproduce_action_strength_evaluator_float32_mse_aggregation_in_the
+      public_score_command_without_changing_results_gates_or_thresholds
+    - >-
+      preserve_the_immutable_cube_public_recovery_record_while_verifying
+      successor_source_identities_only_through_this_additive_amendment
+    - >-
+      package_only_the_two_byte_identical_immutable_suite_v2_public_aggregate
+      receipts_so_default_read_only_info_remains_available_after_install_when
+      the_external_artifact_root_is_unavailable_and_each_fallback_sha256_is
+      verified_against_the_frozen_suite_configuration
+  approved_component_identity_updates:
+    speed:
+      release_config: configs/benchmark/tworoom_speed_icl_release_v1.yaml
+      source_paths:
+        - contextworld/benchmarks/__init__.py
+        - contextworld/benchmarks/adapters.py
+        - contextworld/benchmarks/suite_data.py
+        - contextworld/benchmarks/speed_icl_score.py
+        - contextworld/evaluation/__init__.py
+        - contextworld/synthesis/__init__.py
+        - scripts/train_tworoom_step1.py
+    door:
+      release_config: configs/benchmark/tworoom_door_icl_release_v1.yaml
+      source_paths:
+        - contextworld/benchmarks/__init__.py
+        - contextworld/benchmarks/adapters.py
+        - contextworld/benchmarks/suite_data.py
+        - contextworld/evaluation/hidden_passage_validation.py
+        - scripts/train_tworoom_step1.py
+        - pyproject.toml
+    action_delay:
+      release_config: configs/benchmark/tworoom_action_delay_icl_release_v1.yaml
+      source_paths:
+        - contextworld/benchmarks/__init__.py
+        - contextworld/benchmarks/adapters.py
+        - contextworld/benchmarks/suite_data.py
+        - contextworld/evaluation/action_delay_h7_score.py
+        - scripts/train_tworoom_step1.py
+        - pyproject.toml
+    action_strength:
+      release_config: configs/benchmark/pusht_action_strength_icl_release_v1.yaml
+      source_paths:
+        - contextworld/benchmarks/__init__.py
+        - contextworld/benchmarks/adapters.py
+        - contextworld/benchmarks/suite_data.py
+        - contextworld/benchmarks/action_strength_icl_score.py
+        - scripts/run_pusht_hidden_actuation_mixed.py
+    contact_friction:
+      release_config: configs/benchmark/pusht_contact_friction_icl_release_v1.yaml
+      source_paths:
+        - contextworld/benchmarks/__init__.py
+        - contextworld/benchmarks/adapters.py
+        - contextworld/benchmarks/suite_data.py
+        - contextworld/benchmarks/contact_friction_icl_score.py
+    motion_damping:
+      release_config: configs/benchmark/pusht_motion_damping_icl_release_v1.yaml
+      source_paths:
+        - contextworld/benchmarks/__init__.py
+        - contextworld/benchmarks/adapters.py
+        - contextworld/benchmarks/suite_data.py
+        - contextworld/benchmarks/motion_damping_icl_score.py
+        - scripts/run_pusht_hidden_actuation_mixed.py
+        - pyproject.toml
+    robot_arm_mass:
+      release_config: configs/benchmark/reacher_arm_mass_icl_release_v1.yaml
+      source_paths:
+        - contextworld/benchmarks/__init__.py
+        - contextworld/benchmarks/adapters.py
+        - contextworld/benchmarks/suite_data.py
+        - contextworld/benchmarks/reacher_arm_mass_icl_score.py
+        - scripts/run_pusht_hidden_actuation_mixed.py
+        - pyproject.toml
+    portal_exit:
+      release_config: configs/benchmark/tworoom_portal_exit_icl_release_v1.yaml
+      source_paths:
+        - contextworld/benchmarks/__init__.py
+        - contextworld/benchmarks/adapters.py
+        - contextworld/benchmarks/suite_data.py
+        - contextworld/benchmarks/portal_exit_icl_score.py
+        - pyproject.toml
+    cube_gripper_carry:
+      release_config: configs/benchmark/cube_gripper_carry_h3_v4r1_icl_release_v1.yaml
+      source_paths:
+        - contextworld/benchmarks/__init__.py
+        - contextworld/benchmarks/adapters.py
+        - contextworld/benchmarks/suite_data.py
+        - contextworld/benchmarks/cube_grasp_rule_icl_score.py
+        - contextworld/benchmarks/cube_grasp_rule_v4r1_icl_data.py
+        - pyproject.toml
+        - tests/test_cube_grasp_rule_h3_v4r1_public_recovery.py
+  field_constraints:
+    allowed:
+      - runtime.contextworld.source_sha256_values_for_the_listed_paths
+      - identity_sha256_values_for_the_listed_paths
+      - identity_size_bytes_only_where_the_existing_identity_records_it
+      - action_strength_maintenance_amendment_metadata_for_public_score_numeric_reconstruction_consistency
+      - cube_adapter_contract_removal_of_redundant_non_geometry_flags
+      - shared_package_lazy_import_wiring_for_optional_dependency_isolation
+      - >-
+        wheel_and_sdist_metadata_limited_to_default_read_only_info_configs_and
+        two_sha256_verified_immutable_public_aggregate_receipts
+      - speed_runtime_supported_adapter_metadata_extension_from_lewm_to_lewm_and_pldm
+    prohibited:
+      - release_id_or_release_status
+      - scope_history_action_geometry_or_future_horizon
+      - data_paths_data_hashes_or_artifact_trees
+      - scoring_metrics_scores_gates_or_thresholds
+      - reference_results_or_formal_scoreboard
+      - public_test_access_or_rerun_authorization
+      - training_recipe_checkpoint_or_selection
+
+membership_authority:
+  config_alone_grants_membership: false
+  activation_condition: passed_integrity_reseal_decision_v2
+  required_reseal_id: contextworld_icl_suite_v2_integrity_reseal_v2
+  integrity_reseal_v2_decision_must_bind:
+    - this_amendment_preregistration
+    - all_nine_current_component_release_configs
+    - current_registered_suite_sources
+  historical_chain_must_remain_byte_identical: true
+  component_audits_must_pass_after_identity_update: true
+  public_test_rerun_authorized: false
+  training_or_checkpoint_selection_authorized: false
+  formal_scoreboard_mutation_authorized: false
+  raw_dataset_or_checkpoint_mutation_authorized: false

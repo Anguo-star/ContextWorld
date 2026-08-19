@@ -1,0 +1,752 @@
+schema_version: 1
+benchmark: pusht_hidden_actuation_history3_action_coverage_v2
+owner: ContextWorld
+status: response_sigreg_replay_attribution_complete_metric_gap_localized
+scope_note: >-
+  Historical narrow-v1 experiments and diagnostics. The current
+  replay-matched joint result is indexed separately.
+current_replay_matched_result:
+  path: configs/benchmark/pusht_hidden_actuation_replay_matched_results_v2.yaml
+  status: single_training_seed_mechanism_validation_complete
+
+method_names:
+  source:
+    display_name_zh: 续训前原模型
+    meaning: 不做任何续训，直接评测原始 PushT checkpoint
+  native_sigreg:
+    display_name_zh: 原始正则版
+    meaning: 每个时间点都对整个 batch 的表示计算原始 SIGReg
+  frozen_image_native:
+    display_name_zh: 冻结图像编码器版
+    meaning: 仅在隐藏数据上冻结 Encoder 和 Projector，只训练动力学模块
+  frozen_planning_representation_mixed:
+    display_name_zh: 固定规划表示的混合训练
+    meaning: 在 50/50 混训中固定 Encoder 和 Projector，只更新动力学模块
+  conditional_highpass:
+    display_name_zh: 成对差异保护版
+    meaning: 关键时间点只对相同 query 下两种隐藏动力学的表示差计算 SIGReg
+  highpass_with_unpaired:
+    display_name_zh: 差异保护兼顾原样本版
+    meaning: 对成对表示差和未配对的标准 PushT 样本一起计算 SIGReg
+  complete_haar:
+    display_name_zh: 成对均值与差异完整版
+    meaning: 同时保留每对样本的平均表示、差异表示和所有未配对样本
+  group_balanced:
+    display_name_zh: 分组平衡 SIGReg
+    meaning: 对完整边缘总体和成对差异总体分别计算同一种 SIGReg，再等权合成一个标量
+  dynamics_response:
+    display_name_zh: 动力学响应 SIGReg
+    meaning: >-
+      在一次源尺度校准的 SIGReg 统计中联合标准 replay、真实条件响应和可辨识的
+      确定性预测响应
+  pldm:
+    display_name_zh: PLDM 联合训练对照
+    meaning: >-
+      从同一 LeWM 源状态开始，使用官方 PLDM 的 std、std_t、cov 和 temporal
+      alignment 活跃目标
+
+scope:
+  training_seeds:
+    - 3073
+    - 5121
+    - 6145
+    - 13313
+    - 14337
+  hidden_closed_loop_eval_seeds:
+    - 4096
+    - 5120
+    - 13312
+    - 14336
+  standard_pusht_eval_seeds:
+    - 42
+    - 43
+    - 44
+    - 45
+    - 46
+    - 47
+  claim_level: mechanism_and_single_training_seed_validation
+  formal_multiseed_benchmark_passed: false
+
+data:
+  root: artifacts/synthesis/pusht_hidden_actuation_h3_v1
+  manifest: artifacts/synthesis/pusht_hidden_actuation_h3_v1/manifest.json
+  manifest_sha256: 4f307a60920747506c1d8aadc41931a0f768b7f3d7ba6317d7246b008bc3fc64
+  pairs:
+    train: 2048
+    validation: 256
+    eval: 50
+  cross_split_query_hash_overlap: 0
+
+registered_protocols:
+  hidden_only: configs/benchmark/pusht_hidden_actuation_h3_v1.yaml
+  conditional_weight_sweep: configs/benchmark/pusht_hidden_actuation_conditional_weight_v1.yaml
+  mixed_retention: configs/benchmark/pusht_hidden_actuation_mixed_retention_v1.yaml
+  unpaired_population_adaptive: configs/benchmark/pusht_hidden_actuation_mixed_unpaired_adaptive_v1.yaml
+  complete_haar_adaptive: configs/benchmark/pusht_hidden_actuation_mixed_complete_haar_adaptive_v1.yaml
+  native_sigreg_high_weight: configs/benchmark/pusht_hidden_actuation_native_sigreg_high_weight_v1.yaml
+  native_sigreg_2p05_adaptive: configs/benchmark/pusht_hidden_actuation_native_sigreg_2p05_adaptive_v1.yaml
+  group_balanced_sigreg_gradient_calibration: configs/benchmark/pusht_hidden_actuation_group_balanced_sigreg_v1.yaml
+  group_balanced_sigreg_validation: configs/benchmark/pusht_hidden_actuation_group_balanced_sigreg_v2.yaml
+  frozen_planning_representation_mixed: configs/benchmark/pusht_hidden_actuation_frozen_representation_mixed_v1.yaml
+  frozen_planning_representation_standard_cem_diagnostic: configs/benchmark/pusht_hidden_actuation_frozen_representation_standard_cem_diagnostic_v1.yaml
+  dynamics_response_gradient_calibration: configs/benchmark/pusht_hidden_actuation_dynamics_response_sigreg_v1.yaml
+  dynamics_response_validation: configs/benchmark/pusht_hidden_actuation_dynamics_response_sigreg_v2.yaml
+  standard_only_continuation_control: configs/benchmark/pusht_standard_only_continuation_control_v1.yaml
+  standard_replay_ratio: configs/benchmark/pusht_hidden_actuation_standard_replay_ratio_v1.yaml
+  pldm_same_contract_control: configs/benchmark/pusht_hidden_actuation_pldm_control_v1.yaml
+  pldm_compute_extension: configs/benchmark/pusht_hidden_actuation_pldm_control_v2.yaml
+
+reports:
+  hidden_only_prediction:
+    path: artifacts/evaluation/history3/pusht_hidden_actuation_h3_v1/prediction_models_seed3073_step1024/pilot_report.json
+    sha256: 06bae0e4caf348386bee2e47b45d43d36bb60a621037eed7054cc155b89ca40e
+  conditional_weight_sweep:
+    path: artifacts/evaluation/history3/pusht_hidden_actuation_h3_v1/conditional_weight_sweep_seed3073_step1024/pilot_report.json
+    sha256: 879bfccb4e380e8a068905de9e1dd5204cade8763e9b21ce97cfe7a38419e67e
+  first_batch_gradient_mechanism:
+    path: artifacts/evaluation/history3/pusht_hidden_actuation_h3_v1/mechanism_seed3073/first_batch_gradient_report.json
+    sha256: dda6684904512d1fb8daef0ca3003bd7af6c55bbb99b7bd9957af83e95a5ca18
+  hidden_only_cem:
+    path: artifacts/evaluation/history3/pusht_hidden_actuation_h3_v1/cem_calibration_seed4096/aggregate.json
+    sha256: 3abcc3431102916a33607162e9224f63e5c3dde5152dccc3e0ad9923431f85dd
+  conditional_weight_cem:
+    path: artifacts/evaluation/history3/pusht_hidden_actuation_h3_v1/conditional_weight_cem_seed4096/aggregate.json
+    sha256: e95242734ef80b9ca6cb9f6fcabfe62c77a6bce52a605020ec293bc61e43cd30
+  mixed_retention:
+    aggregate:
+      path: artifacts/evaluation/history3/pusht_hidden_actuation_h3_v1/mixed_retention_seed3073_step2048/mixed_retention_summary.json
+      sha256: d0cf3f22da11aa93a618c686a291b375d9363d68de6f5e8187e9427eb26f3c1c
+    hidden_prediction:
+      native:
+        path: artifacts/evaluation/history3/pusht_hidden_actuation_h3_v1/mixed_retention_seed3073_step2048/native/mixed_report.json
+        sha256: 9061182564510e69f7496572abd4071b569bf0de8503a63abf1a72e1ab1ab2c1
+      conditional_0p01:
+        path: artifacts/evaluation/history3/pusht_hidden_actuation_h3_v1/mixed_retention_seed3073_step2048/conditional_0p01/mixed_report.json
+        sha256: 81a108814c4f2da077055440df38310e7303e5c51fe258e5bb89279a03b56abe
+      conditional_0p05:
+        path: artifacts/evaluation/history3/pusht_hidden_actuation_h3_v1/mixed_retention_seed3073_step2048/conditional_0p05/mixed_report.json
+        sha256: dbe5af42cb7af5d3252753dcdaa58cdbb6b04911079e68b84fc5ff119f917bf2
+      conditional_0p01_include_unpaired:
+        path: artifacts/evaluation/history3/pusht_hidden_actuation_h3_v1/mixed_retention_seed3073_step2048/conditional_0p01_include_unpaired/mixed_report.json
+        sha256: d8ef6cac78fd058de1f37a58b064099d593ebad126edf0b7177abaf5d6a25ab3
+      conditional_0p01_complete_haar:
+        path: artifacts/evaluation/history3/pusht_hidden_actuation_h3_v1/mixed_retention_seed3073_step2048/conditional_0p01_complete_haar/mixed_report.json
+        sha256: 662e59b3b79eeaa2515ff1413d0d890771f301b11df7b20ac5692fcc76464b5f
+      conditional_0p05_complete_haar:
+        path: artifacts/evaluation/history3/pusht_hidden_actuation_h3_v1/mixed_retention_seed3073_step2048/conditional_0p05_complete_haar/mixed_report.json
+        sha256: 7d18edb58c5102864fe72f7ca0541dcfd77f70b0a8f174af79c70763fe8a4fe7
+    hidden_cem:
+      path: artifacts/evaluation/history3/pusht_hidden_actuation_h3_v1/mixed_retention_seed3073_step2048/hidden_cem_seed4096/aggregate.json
+      sha256: 51750b27fb137d3f26cca05b5b203d38dd14400df9b2cc8affe4b3af011baa72
+    standard_pusht_cem:
+      query_catalog_sha256: da974c821e3fa0f232ac59538e0c79cc2cb9a80ea4bb4a62b910c66c278ce2d4
+      source:
+        path: artifacts/evaluation/history3/pusht_hidden_actuation_h3_v1/mixed_retention_seed3073_step2048/standard_pusht_cem/source/aggregate.json
+        sha256: e8865cac5be57bf326e96ddd7a9d6d915b1f045bc6afad8043723328891c4f9f
+      native:
+        path: artifacts/evaluation/history3/pusht_hidden_actuation_h3_v1/mixed_retention_seed3073_step2048/standard_pusht_cem/mixed_native_0p09/aggregate.json
+        sha256: 3d17af6ce4739f925274f53034e25c30df687fbd26c3366b3cbfe27765863a9b
+      conditional_0p01:
+        path: artifacts/evaluation/history3/pusht_hidden_actuation_h3_v1/mixed_retention_seed3073_step2048/standard_pusht_cem/mixed_conditional_0p01/aggregate.json
+        sha256: aa2169d8316d54d6844c3255164e419563de982891910b3d0f36140e5401d98f
+      conditional_0p01_include_unpaired:
+        path: artifacts/evaluation/history3/pusht_hidden_actuation_h3_v1/mixed_retention_seed3073_step2048/standard_pusht_cem/mixed_conditional_0p01_include_unpaired/aggregate.json
+        sha256: 77855d68f36fbabca45aaa3849ffbbb586f68e97c6fd8856c4ac202d46d50eb4
+  native_sigreg_high_weight:
+    aggregate:
+      path: artifacts/evaluation/history3/pusht_hidden_actuation_h3_v1/native_sigreg_high_weight_seed3073_step2048/summary.json
+      sha256: 226350eb22e73452b80c42877329de20bbfaa8c15c1ccfd69bbb6dd5da40bb34
+    hidden_prediction:
+      0.20:
+        path: artifacts/evaluation/history3/pusht_hidden_actuation_h3_v1/native_sigreg_high_weight_seed3073_step2048/native_0p20/mixed_report.json
+        sha256: fb11e1667c23c848a360994209b6892a713db15d18bf9eb42c7be09a919ace41
+      0.30:
+        path: artifacts/evaluation/history3/pusht_hidden_actuation_h3_v1/native_sigreg_high_weight_seed3073_step2048/native_0p30/mixed_report.json
+        sha256: d85dbe8e0ac4b95734ccb54e41b19ffd4319a7bc99ef468546a3f30a62e16530
+      0.50:
+        path: artifacts/evaluation/history3/pusht_hidden_actuation_h3_v1/native_sigreg_high_weight_seed3073_step2048/native_0p50/mixed_report.json
+        sha256: 770b8b2d2f29aca1fc0bfcafa8c92dd74c7efdc28db0812dfb1d94cf94eca98a
+      0.90:
+        path: artifacts/evaluation/history3/pusht_hidden_actuation_h3_v1/native_sigreg_high_weight_seed3073_step2048/native_0p90/mixed_report.json
+        sha256: ea95a4c01f680315c344808b7dcbb72f03f4f416bb16f7f3c5e2a1091e5398a4
+      2.05:
+        path: artifacts/evaluation/history3/pusht_hidden_actuation_h3_v1/native_sigreg_high_weight_seed3073_step2048/native_2p05/mixed_report.json
+        sha256: b2ddc20fa377e530aea336149054af481ecc0c8ea2d9b0d940b325a8ca183e85
+  group_balanced_sigreg:
+    aggregate:
+      path: artifacts/evaluation/history3/pusht_hidden_actuation_h3_v1/group_balanced_sigreg_seed5121_step2048/summary.json
+      sha256: 297a048d6384932c82eca9d723af66c3747ba24d6c9f91dbcf53919963e1d4c3
+    calibration_gradient_seed4097:
+      path: artifacts/evaluation/history3/pusht_hidden_actuation_h3_v1/group_balanced_sigreg_seed4097_step2048/first_batch_gradient_report.json
+      sha256: e108826fb1169d3d430c5ed0c103d64715e86ec3fd698dc443f900ebcf047a35
+    held_out_gradient_seed5121:
+      path: artifacts/evaluation/history3/pusht_hidden_actuation_h3_v1/group_balanced_sigreg_seed5121_step2048/first_batch_gradient_report.json
+      sha256: aaa815a707f9f60f53f349474e460a9ff5583ef52b99e673c751248dd7975e6b
+    training_and_hidden_prediction:
+      path: artifacts/evaluation/history3/pusht_hidden_actuation_h3_v1/group_balanced_sigreg_seed5121_step2048/training/mixed_report.json
+      sha256: a6683d5b1d3779640ec2b8b879332a4ec29e3b0173bdecb3afe569b36828f8be
+    standard_pusht_cem:
+      path: artifacts/evaluation/history3/pusht_hidden_actuation_h3_v1/group_balanced_sigreg_seed5121_step2048/standard_pusht_cem/aggregate.json
+      sha256: ad0acb756e7dc8f08d664f458d4e2c9bea47676fe29cddab8633f8bbc615c28b
+    hidden_actuation_cem:
+      path: artifacts/evaluation/history3/pusht_hidden_actuation_h3_v1/group_balanced_sigreg_seed5121_step2048/hidden_actuation_cem_seed5120/aggregate.json
+      sha256: ba1e914397fe46559191c5c3e4d0b1416d8f28fbae09e92759432d13282509e4
+  frozen_planning_representation_mixed:
+    aggregate:
+      path: artifacts/evaluation/history3/pusht_hidden_actuation_h3_v1/frozen_representation_mixed_seed6145_step2048/summary.json
+      sha256: 8c1cdf10a73f520af36db4b82f86dc70d0538fb80a303d8e25809c9c5dcc9a7f
+    training_and_hidden_prediction:
+      path: artifacts/evaluation/history3/pusht_hidden_actuation_h3_v1/frozen_representation_mixed_seed6145_step2048/training/mixed_report.json
+      sha256: d30d9d3823126c1615b33d41ca6bfb7957dfec09b619ec57bf3b9de0f9488849
+    standard_pusht_cem_diagnostic:
+      path: artifacts/evaluation/history3/pusht_hidden_actuation_h3_v1/frozen_representation_mixed_seed6145_step2048/standard_pusht_cem_diagnostic/aggregate.json
+      sha256: cb66559db43f717a2824613e9a3cd6878184a12995e89d074856234a677c73e5
+  dynamics_response_sigreg_v2:
+    training:
+      path: >-
+        artifacts/evaluation/history3/pusht_hidden_actuation_h3_v1/
+        dynamics_response_sigreg_v2/training_seed13313_step2048/mixed_report.json
+      sha256: 906956a79085f947efb45770762baad977566b44714fece3b1726c16f908d0ef
+    standard_pusht_cem:
+      path: >-
+        artifacts/evaluation/history3/pusht_hidden_actuation_h3_v1/
+        dynamics_response_sigreg_v2/training_seed13313_step2048/
+        standard_pusht_cem/aggregate.json
+      sha256: 184e3ba810fff6b038b35cef2f6b9c5b5d790694c121e9d1eebaad0eb282edd8
+    hidden_actuation_cem:
+      path: >-
+        artifacts/evaluation/history3/pusht_hidden_actuation_h3_v1/
+        dynamics_response_sigreg_v2/training_seed13313_step2048/
+        hidden_actuation_cem_seed13312/aggregate.json
+      sha256: 65c06ad9e42879343d567ed23f1cb56205b64d73947ba52ddb4490926b516274
+    hidden_cost_surface:
+      path: >-
+        artifacts/evaluation/history3/pusht_hidden_actuation_h3_v1/
+        dynamics_response_sigreg_v2/training_seed13313_step2048/
+        hidden_cost_surface_diagnostic/report.json
+      sha256: 413648e0836193d6dd8efb74711f5d0fc8b9459930fec10cade8770ba22ab6
+  standard_replay_attribution:
+    aggregate:
+      path: >-
+        artifacts/evaluation/history3/pusht_hidden_actuation_h3_v1/
+        standard_replay_ratio_v1/retention_attribution.json
+      sha256: 1cfd7f1d1760b3d915463fb11e6e4d28fd0d4d8089c2e3fcd688be5cefcb09ea
+    standard_only_training:
+      path: >-
+        artifacts/evaluation/history3/pusht_hidden_actuation_h3_v1/
+        standard_only_continuation_v1/training_seed13313_step2048/
+        mixed_report.json
+      sha256: 3f363131c28f3d7c30e85c980d4c0954b16e215695370764dbd5158292941997
+    standard_only_cem:
+      path: >-
+        artifacts/evaluation/history3/pusht_hidden_actuation_h3_v1/
+        standard_only_continuation_v1/training_seed13313_step2048/
+        standard_pusht_cem/aggregate.json
+      sha256: bd2c55dab237dccaea49c79ccb6cebe832584214cbfd917d3ff201bd3e2b388d
+    ratio_75_25_step2048_training:
+      path: >-
+        artifacts/evaluation/history3/pusht_hidden_actuation_h3_v1/
+        standard_replay_ratio_v1/
+        training_seed13313_step2048_standard96_hidden32/mixed_report.json
+      sha256: 462f3e51e051f367a224b46b1ba5ea18f7b2ce93e9b6b42e3d50e7bb76c6df87
+    ratio_75_25_step4096_training:
+      path: >-
+        artifacts/evaluation/history3/pusht_hidden_actuation_h3_v1/
+        standard_replay_ratio_v1/
+        training_seed13313_step4096_standard96_hidden32/mixed_report.json
+      sha256: 34de4527fe7fd6af0b7047df30900affb1561ab704695034e096ea90ec543e07
+    ratio_75_25_step4096_standard_cem:
+      path: >-
+        artifacts/evaluation/history3/pusht_hidden_actuation_h3_v1/
+        standard_replay_ratio_v1/
+        training_seed13313_step4096_standard96_hidden32/
+        standard_pusht_cem/aggregate.json
+      sha256: 16ea16933fc961f1aa8044143871445dc8397c82d898c4c056946124b615161f
+    ratio_75_25_step4096_hidden_cem:
+      path: >-
+        artifacts/evaluation/history3/pusht_hidden_actuation_h3_v1/
+        standard_replay_ratio_v1/
+        training_seed13313_step4096_standard96_hidden32/
+        hidden_actuation_cem_seed13312/aggregate.json
+      sha256: 768abaad649c6e65434721fad8b20f049c53c2349b9c940ef1fba03e91c547e7
+  pldm_control:
+    mixed_first_batch_gradient:
+      path: >-
+        artifacts/evaluation/history3/pusht_hidden_actuation_h3_v1/
+        pldm_control_v1/mixed_first_batch_gradient_seed14337/report.json
+      sha256: d939eca5fcbfdcdd888e1bc49a4c582761ff6f1abffade0fe7272f181554ebfd
+    training_step2048:
+      path: >-
+        artifacts/evaluation/history3/pusht_hidden_actuation_h3_v1/
+        pldm_control_v1/training_seed14337_step2048/mixed_report.json
+      sha256: 5aaf3517cc6460a85407aef67eec23084cec108a7f62b93fb3fe43bb2818471c
+    training_step4096:
+      path: >-
+        artifacts/evaluation/history3/pusht_hidden_actuation_h3_v1/
+        pldm_control_v2/training_seed14337_step4096/mixed_report.json
+      sha256: 30f908e06e09712d2e7bdaebb501378cd9a07ab9f2674072cae9377cee65c9d2
+    standard_pusht_cem:
+      path: >-
+        artifacts/evaluation/history3/pusht_hidden_actuation_h3_v1/
+        pldm_control_v2/training_seed14337_step4096/
+        standard_pusht_cem/aggregate.json
+      sha256: f7a3963de2d8541eb9ec45a296ea13eb38717218947687d9d46938b79c9d4c9c
+    hidden_actuation_cem:
+      path: >-
+        artifacts/evaluation/history3/pusht_hidden_actuation_h3_v1/
+        pldm_control_v2/training_seed14337_step4096/
+        hidden_actuation_cem_seed14336/aggregate.json
+      sha256: 1e47ef22df7ad93f778a1224f658f85cef0a0ed9e9ee583c207f4c33ed2412cf
+    hidden_cost_surface:
+      path: >-
+        artifacts/evaluation/history3/pusht_hidden_actuation_h3_v1/
+        pldm_control_v2/training_seed14337_step4096/
+        hidden_cost_surface_diagnostic/report.json
+      sha256: b78d1225e5df9538fcfbe208f174e70ccaa353aa003f9441f810a47f6e52d19a
+  comparative_diagnostics:
+    standard_replay_prediction:
+      path: >-
+        artifacts/evaluation/history3/pusht_hidden_actuation_h3_v1/
+        comparative_prediction_calibration_seed12289/report.json
+      sha256: f1f3429b563b979b03cd6a068d331e320f134787e30494553a0afc9eaa2342ad
+    representation_cost_surface:
+      path: >-
+        artifacts/evaluation/history3/pusht_hidden_actuation_h3_v1/
+        representation_cost_surface_comparison/report.json
+      sha256: f1c46148dbe3807ce9d833d578a624a856e397afdcf47849376dde58b333756e
+    pixel_cost_surface:
+      path: >-
+        artifacts/evaluation/history3/pusht_hidden_actuation_h3_v1/
+        pixel_cost_surface_diagnostic/report.json
+      sha256: 16aba6a80b7ac62dae1b8d295fd06dcad649a0079065f4f94be6f3e57cafe98d
+
+hidden_only_prediction:
+  native_sigreg_0p09:
+    target_selection: 0.50
+    correct_history: 0.56
+    rule_switch: 0.54
+    worst_mode: 0.24
+  frozen_image_native:
+    target_selection: 0.93
+    correct_history: 1.00
+    rule_switch: 1.00
+    worst_mode: 0.88
+  conditional_sigreg_0p09:
+    target_selection: 1.00
+    correct_history: 1.00
+    rule_switch: 1.00
+    worst_mode: 1.00
+
+conditional_weight_sweep:
+  0.01:
+    target_selection: 0.95
+    correct_history: 0.98
+    rule_switch: 1.00
+    worst_mode: 0.92
+    prediction_gate_passed: true
+  0.03:
+    target_selection: 0.94
+    correct_history: 0.96
+    rule_switch: 0.96
+    worst_mode: 0.92
+    prediction_gate_passed: false
+  0.05:
+    target_selection: 1.00
+    correct_history: 1.00
+    rule_switch: 1.00
+    worst_mode: 1.00
+    prediction_gate_passed: true
+  0.09:
+    target_selection: 1.00
+    correct_history: 1.00
+    rule_switch: 1.00
+    worst_mode: 1.00
+    prediction_gate_passed: true
+
+mixed_hidden_prediction:
+  native_sigreg_0p09:
+    target_selection: 0.54
+    correct_history: 0.69
+    rule_switch: 0.74
+    worst_mode: 0.46
+    prediction_gate_passed: false
+  conditional_highpass_0p01:
+    target_selection: 0.97
+    correct_history: 0.98
+    rule_switch: 1.00
+    worst_mode: 0.94
+    prediction_gate_passed: true
+  conditional_highpass_0p05:
+    target_selection: 0.96
+    correct_history: 1.00
+    rule_switch: 1.00
+    worst_mode: 0.94
+    prediction_gate_passed: true
+  highpass_with_unpaired_0p01:
+    target_selection: 0.61
+    correct_history: 0.96
+    rule_switch: 1.00
+    worst_mode: 0.58
+    prediction_gate_passed: false
+  complete_haar_0p01:
+    target_selection: 0.54
+    correct_history: 0.79
+    rule_switch: 0.88
+    worst_mode: 0.36
+    prediction_gate_passed: false
+  complete_haar_0p05:
+    target_selection: 0.88
+    correct_history: 0.97
+    rule_switch: 1.00
+    worst_mode: 0.80
+    prediction_gate_passed: false
+
+native_sigreg_high_weight_mixed_screen:
+  method: unchanged_full_batch_native_sigreg
+  standard_pusht_cem_followup: skipped_no_hidden_prediction_pass
+  0.09:
+    target_selection: 0.54
+    correct_history: 0.69
+    rule_switch: 0.74
+    worst_mode: 0.46
+    paired_to_unrelated_ratio: 0.14977017045021057
+    final_training_pred_loss: 0.02061392180621624
+    prediction_gate_passed: false
+  0.20:
+    target_selection: 0.60
+    correct_history: 0.79
+    rule_switch: 0.92
+    worst_mode: 0.50
+    paired_to_unrelated_ratio: 0.19916662573814392
+    final_training_pred_loss: 0.029838604852557182
+    prediction_gate_passed: false
+  0.30:
+    target_selection: 0.61
+    correct_history: 0.81
+    rule_switch: 0.96
+    worst_mode: 0.58
+    paired_to_unrelated_ratio: 0.22188331186771393
+    final_training_pred_loss: 0.0354754738509655
+    prediction_gate_passed: false
+  0.50:
+    target_selection: 0.66
+    correct_history: 0.82
+    rule_switch: 0.94
+    worst_mode: 0.50
+    paired_to_unrelated_ratio: 0.2674306035041809
+    final_training_pred_loss: 0.044314879924058914
+    prediction_gate_passed: false
+  0.90:
+    target_selection: 0.67
+    correct_history: 0.82
+    rule_switch: 0.96
+    worst_mode: 0.60
+    paired_to_unrelated_ratio: 0.3433853089809418
+    final_training_pred_loss: 0.059075985103845596
+    prediction_gate_passed: false
+  2.05:
+    target_selection: 0.54
+    correct_history: 0.83
+    rule_switch: 0.92
+    worst_mode: 0.46
+    paired_to_unrelated_ratio: 0.46479129791259766
+    final_training_pred_loss: 0.08549810200929642
+    prediction_gate_passed: false
+
+group_balanced_sigreg_validation:
+  external_weight: 0.05
+  effective_active_weight_per_group: 0.025
+  training_seed: 5121
+  gradient_gate:
+    probe_t1_direction: 0.4655951604873538
+    history_conditioned_future_t3_direction: 2.0854126708271368
+    passed: true
+  hidden_prediction:
+    target_selection: 0.96
+    correct_history: 0.99
+    rule_switch: 1.00
+    worst_mode: 0.94
+    prediction_mse_margin: 0.38507139682769775
+    paired_to_unrelated_ratio: 0.47654056549072266
+    passed: true
+  standard_pusht_cem:
+    success_count: 191
+    evaluation_count: 300
+    success_rate: 0.6366666666666667
+    difference_from_replay_matched_native: -0.13
+    noninferior: false
+  hidden_actuation_cem:
+    oracle_grid_success: 1.00
+    mode_action_classification: 0.94
+    correct_low_greater_than_high: 0.98
+    mean_absolute_amplitude_regret: 0.08254008825621607
+    real_environment_success: 0.35
+    passed: false
+  jointly_passed: false
+
+frozen_planning_representation_mixed_diagnostic:
+  training_seed: 6145
+  frozen_modules: [encoder, projector]
+  trainable_modules: [predictor, action_encoder, pred_proj]
+  implementation_audit:
+    optimizer_excludes_frozen_parameters: true
+    frozen_gradient_tensor_count: 0
+    trainable_nonzero_gradient_tensor_count: 93
+    frozen_state_sha256_before: 86db7bae0f217564d2562cedbd5d54cc5f7df3f2e5d0e2858c421ace29c553f8
+    frozen_state_sha256_after: 86db7bae0f217564d2562cedbd5d54cc5f7df3f2e5d0e2858c421ace29c553f8
+    passed: true
+  hidden_prediction:
+    target_selection: 0.92
+    correct_history: 0.99
+    rule_switch: 1.00
+    worst_mode: 0.86
+    prediction_mse_margin: 0.09912433475255966
+    paired_to_unrelated_ratio_initial: 0.33733248710632324
+    paired_to_unrelated_ratio_final: 0.33733248710632324
+    prediction_gate_passed: false
+  standard_pusht_cem_diagnostic:
+    success_count: 208
+    evaluation_count: 300
+    success_rate: 0.6933333333333334
+    replay_matched_native_success_count: 230
+    difference_from_replay_matched_native: -0.07333333333333336
+    noninferiority_margin_absolute: 0.05
+    noninferior: false
+    paired_outcomes:
+      both_success: 177
+      frozen_only: 31
+      native_only: 53
+      both_fail: 39
+  hidden_actuation_cem: skipped_by_registered_prediction_gate
+  jointly_passed: false
+
+mixed_hidden_cem:
+  oracle_grid_has_successful_action: 1.00
+  native_sigreg_0p09:
+    real_environment_success: 0.12
+    mode_action_classification: 0.54
+    correct_low_greater_than_high: 0.74
+    mean_absolute_amplitude_regret: 0.30950644289804624
+  conditional_highpass_0p01:
+    real_environment_success: 0.35
+    mode_action_classification: 0.95
+    correct_low_greater_than_high: 0.96
+    mean_absolute_amplitude_regret: 0.08405056178569797
+  adaptive_variants: skipped_by_registered_prediction_gate
+
+standard_pusht_cem:
+  protocol: exact_standard_history3_cem_300x30_top30
+  query_count: 300
+  source:
+    success_count: 237
+    success_rate: 0.79
+  replay_matched_native_0p09:
+    success_count: 230
+    success_rate: 0.7666666666666667
+  conditional_highpass_0p01:
+    success_count: 190
+    success_rate: 0.6333333333333333
+    difference_from_replay_matched_native: -0.13333333333333333
+    noninferiority_margin_absolute: 0.05
+    noninferior: false
+  highpass_with_unpaired_0p01:
+    success_count: 225
+    success_rate: 0.75
+    difference_from_replay_matched_native: -0.016666666666666666
+    noninferiority_margin_absolute: 0.05
+    noninferior: true
+    hidden_prediction_gate_passed: false
+  complete_haar_variants: skipped_by_registered_prediction_gate
+
+current_primary_results:
+  same_seed_training:
+    seed: 13313
+    optimizer_steps: 2048
+    native_lewm:
+      hidden_prediction:
+        target_selection: 0.53
+        correct_history: 0.73
+        rule_switch: 0.74
+        worst_mode: 0.38
+      paired_to_unrelated_ratio: 0.1578095555305481
+      standard_pusht_cem: {success_count: 194, evaluation_count: 300}
+      hidden_actuation:
+        mode_action_classification: 0.54
+        real_environment_success: 0.11
+    dynamics_response_sigreg_0p02:
+      hidden_prediction:
+        target_selection: 0.97
+        correct_history: 1.00
+        rule_switch: 1.00
+        worst_mode: 0.94
+      paired_to_unrelated_ratio: 0.3612078130245209
+      standard_pusht_cem:
+        success_count: 202
+        evaluation_count: 300
+        difference_from_same_seed_native: 0.02666666666666667
+        paired_outcomes:
+          both_success: 166
+          native_only: 28
+          response_only: 36
+          both_fail: 70
+        noninferior: true
+      hidden_actuation:
+        mode_action_classification: 0.97
+        correct_low_greater_than_high: 1.00
+        real_environment_success: 0.45
+  replay_attribution:
+    standard_only_continuation:
+      seed: 13313
+      optimizer_steps: 2048
+      standard_samples_per_batch: 128
+      hidden_samples_per_batch: 0
+      standard_pusht_cem:
+        success_count: 225
+        evaluation_count: 300
+        difference_from_source: -0.04
+        paired_vs_source:
+          both_success: 210
+          standard_only_only: 15
+          source_only: 27
+          both_fail: 48
+        paired_vs_same_seed_50_50_native:
+          both_success: 166
+          standard_only_only: 59
+          mixed_native_only: 28
+          both_fail: 47
+    response_75_25_step2048:
+      seed: 13313
+      optimizer_steps: 2048
+      standard_samples_per_batch: 96
+      hidden_samples_per_batch: 32
+      hidden_prediction:
+        target_selection: 0.72
+        correct_history: 0.99
+        rule_switch: 1.00
+        worst_mode: 0.70
+      registered_hidden_gate_passed: false
+      standard_cem: skipped_by_registered_hidden_gate
+    response_75_25_exposure_matched:
+      seed: 13313
+      optimizer_steps: 4096
+      standard_samples_per_batch: 96
+      hidden_samples_per_batch: 32
+      same_total_hidden_rows_as_50_50_step2048: true
+      hidden_prediction:
+        target_selection: 0.95
+        correct_history: 0.98
+        rule_switch: 1.00
+        worst_mode: 0.90
+      standard_pusht_cem:
+        success_count: 225
+        evaluation_count: 300
+        difference_from_source: -0.04
+        difference_from_standard_only_continuation: 0.00
+        difference_from_same_seed_50_50_response: 0.07666666666666666
+        paired_vs_standard_only:
+          both_success: 198
+          response_75_25_only: 27
+          standard_only_only: 27
+          both_fail: 48
+      hidden_actuation:
+        mode_action_classification: 0.95
+        correct_low_greater_than_high: 1.00
+        real_environment_success: 0.47
+  pldm:
+    seed: 14337
+    step2048_hidden_prediction:
+      target_selection: 0.91
+      correct_history: 0.98
+      rule_switch: 1.00
+      worst_mode: 0.90
+      registered_gate_passed: false
+    step4096_hidden_prediction:
+      target_selection: 0.95
+      correct_history: 0.98
+      rule_switch: 1.00
+      worst_mode: 0.94
+      registered_gate_passed: true
+    step4096_standard_pusht_cem:
+      success_count: 206
+      evaluation_count: 300
+      success_rate: 0.6866666666666666
+    step4096_hidden_actuation:
+      mode_action_classification: 0.74
+      correct_low_greater_than_high: 0.88
+      real_environment_success: 0.29
+
+cost_surface_localization:
+  dynamics_response_sigreg_0p02:
+    high_gain:
+      physical_minimum_amplitude: 0.4404
+      real_latent_minimum_amplitude: 0.5120
+      predicted_minimum_amplitude: 0.5144
+      real_latent_minimum_success: 0.14
+      predicted_minimum_success: 0.14
+      raw_encoder_minimum_amplitude: 0.5232
+      raw_encoder_minimum_success: 0.06
+    low_gain:
+      physical_minimum_amplitude: 0.9996
+      real_latent_minimum_amplitude: 0.9596
+      predicted_minimum_amplitude: 0.9912
+      real_latent_minimum_success: 0.94
+      predicted_minimum_success: 0.74
+  pldm_step4096:
+    high_gain:
+      physical_minimum_amplitude: 0.4404
+      real_latent_minimum_amplitude: 0.4768
+      predicted_minimum_amplitude: 0.5254
+      real_latent_minimum_success: 0.16
+      predicted_minimum_success: 0.10
+    low_gain:
+      physical_minimum_amplitude: 0.9996
+      real_latent_minimum_amplitude: 0.7404
+      predicted_minimum_amplitude: 0.7610
+      real_latent_minimum_success: 0.50
+      predicted_minimum_success: 0.52
+  pixel_space_high_gain:
+    minimum_amplitude: 0.5266
+    minimum_success: 0.00
+
+decision:
+  jointly_passing_candidate: null
+  information_and_retention_candidate: >-
+    dynamics_response_sigreg_0p02_standard96_hidden32_step4096
+  reason:
+    - >-
+      75/25 曝光匹配的动力学响应 SIGReg 已通过隐藏预测，标准 CEM 为 225/300，
+      与 100% 标准 replay 续训完全相同；隐藏严格执行为 47%，仍低于 80% 门槛。
+    - >-
+      标准-only 续训为 225/300，50/50 默认 LeWM 为 194/300，50/50 响应模型为
+      202/300。主要保持能力损失来自 replay 配比，而不是响应正则。
+    - >-
+      high-gain 的预测代价最小点与真实 latent 最小点几乎一致，但二者都落在物理
+      失败区；剩余主因是控制目标度量，而不是规则、CEM 搜索或单独的 Projector。
+    - >-
+      PLDM 能在 4096 步学会隐藏规则并保持标准 PushT，但隐藏严格执行只有 29%，
+      因而多成分防坍缩也不是第二层问题的完整修复。
+    - >-
+      当前训练 pair 在每个 query 只包含一个动作幅度，不能识别固定条件下的局部
+      反事实 action-to-latent 曲线。
+  rebuild_existing_paired_synthesis: false
+  next_data_action: >-
+    保留现有机制 pair，并增补同一 query 下的机制 × 邻近动作反事实网格。
+
+conclusion:
+  - >-
+    TwoRoom Door 与 PushT 隐藏执行器增益共享同一条件信息失败类：默认 LeWM
+    会选择性压缩只由 History 识别的局部动力学方向，边缘 SIGReg 不提供条件保证。
+  - >-
+    PLDM 在 PushT 上可以学会，但在相同 2048 步预算下慢于动力学响应 SIGReg；
+    4096 步时达到 95% 正确目标、98% 正确历史、100% 规则切换和 94% 最差模式。
+  - >-
+    动力学响应 SIGReg 用一个权重和一次统计把 50/50 隐藏目标提升到 97%，且将同
+    seed 标准 CEM 从 194/300 提升到 202/300；它不是标准能力下降的原因。
+  - >-
+    标准-only 续训与 75/25 曝光匹配响应模型都达到 225/300，后者同时达到 95%
+    隐藏目标、95% 模式动作分类和 47% 严格执行。50/50 replay 替换是相对源模型
+    下降的主要已识别来源，现有 paired synthesis 不需要重造。
+  - >-
+    当前方法缺少的是同一条件下的反事实动作邻域，而不是另一个防坍缩 loss 成分。
+    下一步先多 seed 复现 75/25 联合结果，再对“隐藏机制 × 邻近动作”增量网格做一次
+    正交响应 SIGReg，并保持单标量合同。

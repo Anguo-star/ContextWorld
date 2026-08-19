@@ -14,7 +14,9 @@ from contextworld.benchmarks.motion_damping_icl_data import (
     load_motion_damping_icl_release,
 )
 from contextworld.benchmarks.motion_damping_icl_score import (
+    evaluate_motion_damping_icl_development_model,
     evaluate_motion_damping_icl_model,
+    rescore_motion_damping_icl_development_result,
     score_motion_damping_icl_results,
 )
 from contextworld.paths import repository_root
@@ -53,6 +55,24 @@ def _adapter(args: argparse.Namespace):
     )
 
 
+def _add_model_args(
+    parser: argparse.ArgumentParser,
+    *,
+    allow_without_records: bool = True,
+) -> None:
+    parser.add_argument("--checkpoint", type=Path, required=True)
+    parser.add_argument("--adapter", choices=("lewm", "pldm"), required=True)
+    parser.add_argument("--model-name", required=True)
+    parser.add_argument("--training-recipe", default="external_method")
+    parser.add_argument("--training-seed", type=int)
+    parser.add_argument("--device", default="cuda:0")
+    parser.add_argument("--batch-size", type=int, default=64)
+    parser.add_argument("--stablewm-repo")
+    parser.add_argument("--stablewm-ref")
+    if allow_without_records:
+        parser.add_argument("--without-records", action="store_true")
+
+
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         prog="contextworld-motion-damping",
@@ -68,17 +88,24 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     audit.add_argument("--full", action="store_true")
     audit.add_argument("--output", type=Path)
     evaluate = commands.add_parser("eval")
-    evaluate.add_argument("--checkpoint", type=Path, required=True)
-    evaluate.add_argument("--adapter", choices=("lewm", "pldm"), required=True)
-    evaluate.add_argument("--model-name", required=True)
-    evaluate.add_argument("--training-recipe", default="external_method")
-    evaluate.add_argument("--training-seed", type=int)
-    evaluate.add_argument("--device", default="cuda:0")
-    evaluate.add_argument("--batch-size", type=int, default=64)
-    evaluate.add_argument("--stablewm-repo")
-    evaluate.add_argument("--stablewm-ref")
-    evaluate.add_argument("--without-records", action="store_true")
+    _add_model_args(evaluate)
     evaluate.add_argument("--output", type=Path, required=True)
+    evaluate_development = commands.add_parser(
+        "eval-development",
+        help=(
+            "Score the pinned Loader Validation split only; Public Test is "
+            "not read or scored."
+        ),
+    )
+    _add_model_args(evaluate_development, allow_without_records=False)
+    evaluate_development.add_argument("--output", type=Path, required=True)
+    rescore_development = commands.add_parser(
+        "score-development",
+        aliases=("rescore-development",),
+        help="Independently recompute a Development-only result from records.",
+    )
+    rescore_development.add_argument("--input", type=Path, required=True)
+    rescore_development.add_argument("--output", type=Path, required=True)
     score = commands.add_parser("score")
     score.add_argument("--input", type=Path, action="append", required=True)
     score.add_argument("--method-name", required=True)
@@ -105,6 +132,21 @@ def main(argv: list[str] | None = None) -> None:
             repo_root=ROOT,
             batch_size=args.batch_size,
             include_records=not args.without_records,
+        )
+    elif args.command == "eval-development":
+        payload = evaluate_motion_damping_icl_development_model(
+            adapter=_adapter(args),
+            model_name=args.model_name,
+            training_recipe=args.training_recipe,
+            training_seed=args.training_seed,
+            release_config=args.release_config,
+            repo_root=ROOT,
+            batch_size=args.batch_size,
+        )
+    elif args.command in {"score-development", "rescore-development"}:
+        payload = rescore_motion_damping_icl_development_result(
+            args.input,
+            release_config=args.release_config,
         )
     else:
         payload = score_motion_damping_icl_results(

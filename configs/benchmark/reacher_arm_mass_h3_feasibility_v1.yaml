@@ -1,0 +1,74 @@
+schema_version: 1
+benchmark: reacher_arm_mass_history3_feasibility_v1
+status: completed_passed
+date: "2026-08-02"
+
+question: >-
+  当前画面和下一步力矩相同时，模型能否只根据最近两次“力矩—机械臂运动”
+  判断机械臂较轻还是较重，并预测真实下一帧？
+
+environment:
+  id: swm/ReacherDMControl-v0
+  task: qpos_match
+  hidden_factor:
+    - agent.arm_density
+    - agent.finger_density
+  coupling: >-
+    arm 主体连杆与 finger 末端球使用相同密度；
+    hand 第二连杆保持原始密度
+  hidden_from_pixels: true
+  values:
+    lighter: 500.0
+    heavier: 1500.0
+
+protocol:
+  history_tokens: 3
+  context_transitions: 2
+  raw_steps_per_action_block: 5
+  sequence:
+    - same_initial_state_and_shared_probe
+    - mass_dependent_probe_response
+    - shared_optimized_recovery_reaches_same_query
+    - repeated_probe_produces_mass_dependent_future
+  contiguous_history: true
+  out_of_band_state_reset_inside_history: false
+  history_actions_identical_across_mass_conditions: true
+  query_state_and_action_identical_across_mass_conditions: true
+
+gates:
+  maximum_query_state_gap: 1.0e-6
+  minimum_history_qpos_gap: 0.008
+  maximum_history_qpos_gap: 0.08
+  minimum_true_future_qpos_gap: 0.008
+  maximum_true_future_qpos_gap: 0.08
+  initial_pixels_bitwise_equal: true
+  query_pixels_bitwise_equal: true
+  history_pixels_must_differ: true
+  true_future_pixels_must_differ: true
+  all_actions_bitwise_equal: true
+  deterministic_replay: true
+  minimum_passing_templates: 64
+
+model_visible_fields: [pixels, action]
+privileged_audit_fields:
+  - agent.arm_density
+  - agent.finger_density
+  - qpos
+  - qvel
+  - candidate_id
+
+output: artifacts/evaluation/history3/reacher_robot_arm_mass_h3_feasibility_v1/audit.json
+
+result:
+  passing_templates: 64
+  attempted_candidates: 174
+  acceptance_rate: 0.367816091954023
+  maximum_query_state_gap: 7.0557663334982485e-09
+  minimum_history_qpos_gap: 0.009829023005391428
+  minimum_true_future_qpos_gap: 0.009410622098986217
+  minimum_history_changed_rgb_values: 1464
+  minimum_future_changed_rgb_values: 1433
+  actions_bitwise_equal: true
+  query_pixels_bitwise_equal: true
+  passed: true
+  audit_sha256: ea073863d6d62885698223fe12b89ee509f3c67e092a1e14b7cc4f266a169252

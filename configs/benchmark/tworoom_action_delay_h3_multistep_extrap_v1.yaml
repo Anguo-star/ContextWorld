@@ -1,0 +1,166 @@
+schema_version: 1
+benchmark: tworoom_action_delay_history3_multistep_extrap_v1
+status: preregistered_before_catalog_generation_and_model_scoring
+preregistered_date: "2026-07-26"
+
+question: >-
+  Does the History=3 action-delay response persist through five fully
+  autoregressive predictions, and does it extend from the 0..4 Validation
+  range to the first identifiable high-end value, delay 5?
+
+stable_worldmodel:
+  repo: ../stable-worldmodel
+  commit: 5864b74980f6ed328fd0045e777b3865962eff43
+
+source_identity:
+  training_data_config: >-
+    configs/benchmark/tworoom_action_delay_h3_training_data_v1.yaml
+  training_build_report:
+    path: artifacts/synthesis/action_delay_h3_v1/build_report.json
+    sha256: 50ed167fd21e1c8bf5eb03fe8f1d06195cdc9f10702209d39da758d6f0212ac7
+  completed_one_step_validation:
+    catalog: artifacts/evaluation/history3/action_delay_validation_v1/catalog.json
+    catalog_sha256: 0e6a18b904269dc9e27ec6988b44139904ecd6fac1606c8f917835e7206685e6
+
+protocol:
+  history_tokens: 3
+  raw_steps_per_action_block: 5
+  future_action_blocks: 5
+  target_horizons_action_blocks: [1, 2, 3, 5]
+  agent_speed: 7.0
+  delay_values: [0, 1, 2, 3, 4, 5]
+  training_seen_delay_values: [0, 2, 4]
+  interpolation_delay_values: [1, 3]
+  high_endpoint_extrapolation_delay_values: [5]
+  high_endpoint_scope_note: >-
+    Delay 5 is the only separately identifiable value above 4 under
+    History=3 with five raw steps per transition and an empty queue at the
+    shared query. Delays above 5 require a longer history or a larger action
+    block and are not pooled into this benchmark.
+  context_probe_action_magnitude: 1.0
+  query_action_magnitude: 0.35
+  query_action_pattern: alternating_same_axis
+  current_query_state_and_pixels_identical_across_delays: true
+  pending_action_queue_is_zero_at_query: true
+  future_actions_identical_across_delays: true
+  fully_autoregressive_prediction: true
+  offline_true_future_pixels_saved_before_scoring: true
+  online_environment_calls_during_scoring: 0
+
+generation:
+  source_validation_grid:
+    left_x: {start: 25, stop: 94, step: 3}
+    right_x: {start: 133, stop: 201, step: 3}
+    query_y: {start: 60, stop: 166, step: 5}
+  exclude_all_queries_from_completed_one_step_validation: true
+  training_geometry_is_raster_disjoint_from_entire_source_validation_grid: true
+  catalog_seed: 2026072604
+  eval_seed_assignment_seed: 2026072605
+  directions_per_seed: {up: 25, down: 25}
+
+evaluation:
+  eval_seeds: [52, 53, 54, 55, 56, 57]
+  unique_queries_per_seed: 50
+  unique_queries: 300
+  history_conditions_per_query: 6
+  true_targets_per_query: 6
+  every_history_target_cell_has_queries: 300
+  model_rollouts_per_checkpoint: 1800
+  target_encodings_per_checkpoint: 7200
+  horizon_loss_records_per_checkpoint: 43200
+  target_encoding: current_checkpoint_frozen_encoder
+  normalizer:
+    path: artifacts/splits/tworoom_original_train_s3072_normalizer.json
+    sha256: 7a5be7ea867bced446c1671b0b2c0ff6450ffc61e1a7bdbbfc5eaa0942f635db
+
+metrics:
+  primary:
+    - matching_history_latent_loss_by_horizon
+    - other_histories_mean_latent_loss_by_horizon
+    - matching_history_loss_ratio_by_horizon
+    - matching_history_strict_win_rate_by_horizon
+    - six_history_selection_accuracy_by_horizon
+    - six_true_target_selection_accuracy_by_horizon
+    - longest_contiguous_passing_horizon
+  breakdowns:
+    - target_delay
+    - training_seen_interpolation_or_high_endpoint
+    - eval_seed
+    - direction
+  comparison_rule:
+    same_checkpoint_latent_space_only: true
+    raw_latent_mse_must_not_rank_different_checkpoints: true
+    cross_checkpoint_attribution_uses_selection_rates_not_raw_loss: true
+
+gates:
+  multi_delay_each_training_seed_per_delay_per_horizon:
+    mean_history_margin_positive: true
+    all_six_eval_seed_margins_positive: true
+    history_selection_accuracy_minimum: 0.60
+    target_selection_accuracy_minimum: 0.60
+    strict_win_rate_minimum: 0.50
+  paired_training_attribution_per_track_per_horizon:
+    multi_minus_single_history_selection_accuracy_positive: true
+    multi_minus_single_target_selection_accuracy_positive: true
+  persistence_rule: >-
+    For each track, report the longest contiguous passing evaluated horizon
+    beginning at h1. A later failure does not erase an earlier pass.
+  high_endpoint_claim_rule: >-
+    Delay 5 is reported as one high-end endpoint extrapolation value, not a
+    broad extrapolation range. It passes only if all three multi-delay seeds
+    and their paired single-delay comparisons pass the same frozen gates.
+
+models:
+  original_reference:
+    - slug: h3_origheldout_s3072
+      model_id: H3_Original_LEWM
+      training_seed: 3072
+      checkpoint: artifacts/training/runs/checkpoints/h3_origheldout_s3072/weights_final_step_6420.pt
+      training_report: artifacts/training/reports/h3_origheldout_s3072.json
+      expected_training_steps: 6420
+  single_delay_control:
+    - slug: h3_action_delay_single_control_formal_s3072
+      model_id: H3_ActionDelay_SingleControl
+      training_seed: 3072
+      checkpoint: artifacts/training/runs/checkpoints/h3_action_delay_single_control_formal_s3072/weights_final_step_1024.pt
+      training_report: artifacts/training/reports/h3_action_delay_single_control_formal_s3072.json
+      expected_training_steps: 1024
+    - slug: h3_action_delay_single_control_formal_s4096
+      model_id: H3_ActionDelay_SingleControl
+      training_seed: 4096
+      checkpoint: artifacts/training/runs/checkpoints/h3_action_delay_single_control_formal_s4096/weights_final_step_1024.pt
+      training_report: artifacts/training/reports/h3_action_delay_single_control_formal_s4096.json
+      expected_training_steps: 1024
+    - slug: h3_action_delay_single_control_formal_s5120
+      model_id: H3_ActionDelay_SingleControl
+      training_seed: 5120
+      checkpoint: artifacts/training/runs/checkpoints/h3_action_delay_single_control_formal_s5120/weights_final_step_1024.pt
+      training_report: artifacts/training/reports/h3_action_delay_single_control_formal_s5120.json
+      expected_training_steps: 1024
+  multi_delay_target:
+    - slug: h3_action_delay_multi_formal_s3072
+      model_id: H3_ActionDelay_Multi
+      training_seed: 3072
+      checkpoint: artifacts/training/runs/checkpoints/h3_action_delay_multi_formal_s3072/weights_final_step_1024.pt
+      training_report: artifacts/training/reports/h3_action_delay_multi_formal_s3072.json
+      expected_training_steps: 1024
+    - slug: h3_action_delay_multi_formal_s4096
+      model_id: H3_ActionDelay_Multi
+      training_seed: 4096
+      checkpoint: artifacts/training/runs/checkpoints/h3_action_delay_multi_formal_s4096/weights_final_step_1024.pt
+      training_report: artifacts/training/reports/h3_action_delay_multi_formal_s4096.json
+      expected_training_steps: 1024
+    - slug: h3_action_delay_multi_formal_s5120
+      model_id: H3_ActionDelay_Multi
+      training_seed: 5120
+      checkpoint: artifacts/training/runs/checkpoints/h3_action_delay_multi_formal_s5120/weights_final_step_1024.pt
+      training_report: artifacts/training/reports/h3_action_delay_multi_formal_s5120.json
+      expected_training_steps: 1024
+
+artifacts:
+  root: artifacts/evaluation/history3/action_delay_multistep_extrap_v1
+  assets: artifacts/evaluation/history3/action_delay_multistep_extrap_v1/assets
+  catalog: artifacts/evaluation/history3/action_delay_multistep_extrap_v1/catalog.json
+  build_report: artifacts/evaluation/history3/action_delay_multistep_extrap_v1/build_report.json
+  results: artifacts/evaluation/history3/action_delay_multistep_extrap_v1/results
+  final_summary: artifacts/evaluation/history3/action_delay_multistep_extrap_v1/final_summary.json

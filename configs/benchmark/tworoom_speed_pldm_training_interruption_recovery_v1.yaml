@@ -1,0 +1,170 @@
+schema_version: 1
+recovery_id: tworoom_speed_pldm_training_interruption_recovery_v1
+completion_id: tworoom_speed_pldm_reference_completion_v1
+status: preregistered_after_external_interruption_before_recovery
+created_utc: "2026-08-17"
+
+# Three fixed-budget jobs stopped after their fourth complete epoch. The
+# process logs did not survive, so this record makes no claim about the exit
+# cause. It authorizes only an exact full-state continuation of those runs.
+checkpoint_step: 10272
+final_optimizer_step: 12840
+optimizer_steps_per_epoch: 2568
+
+scope:
+  training_recipe_changed: false
+  checkpoint_selected_by_metric: false
+  public_test_accessed: false
+  development_or_cem_executed: false
+  full_state_required_resume_only: true
+  uncommitted_trace_tail_preserved: true
+
+interruption_evidence:
+  exact_exit_cause_available: false
+  original_traceback_or_process_log_available: false
+  causal_attribution_claimed: false
+  simultaneous_process_stop_observed: true
+  complete_epoch_checkpoint_available: true
+
+frozen_inputs:
+  completion_config:
+    path: configs/benchmark/tworoom_speed_pldm_reference_completion_v1.yaml
+    sha256: 6c8d3404431f4fedb788acc0c89fc62b78fcb147402d284fc8e74aa64a0d840f
+    size_bytes: 5680
+  initialization_checkpoint:
+    path: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/initialization/tworoom_pldm_original_raw_state.pt
+    sha256: ffb2d9fcc633dd4742c1b9864e3317a2b1019b3c92e4b3a415ad6118c020742e
+    size_bytes: 72276057
+
+implementation:
+  training_script:
+    path: scripts/train_tworoom_step1.py
+    sha256: 49571d58e832e55f79a2c79c67a696f16de7bc616c61c41661e712338754e4cb
+    size_bytes: 188054
+  recovery_wrapper:
+    path: scripts/recover_tworoom_speed_pldm_training_interruption_v1.py
+    sha256: 3e6439d5ffec1b35c338a71bf25b43e88e54975da10552e057cdb5ee5547b152
+    size_bytes: 24333
+  stablewm_loader:
+    path: contextworld/synthesis/stablewm.py
+    sha256: dcb66bb9965bcc8597955443e71860483051ab003d071345ff434b153757e1d5
+    size_bytes: 2503
+
+stable_worldmodel:
+  worktree: /tmp/stable-worldmodel-5864
+  commit: 5864b74980f6ed328fd0045e777b3865962eff43
+  pldm_config: scripts/train/config/pldm.yaml
+  pldm_config_sha256: 430691039c77f7084dff24759f5e17680fbf65fae3454f88709f403aa1d1be51
+
+training_invocation:
+  model_id: H3_Speed_PLDM_ReferenceCompletion
+  data_split_seed: 3072
+  original_h5: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-tworooms/tworoom.h5
+  output_root: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/training
+  devices: 1
+  batch_size_per_device: 128
+  gradient_accumulation_steps: 8
+  num_workers: 6
+  logger_backend: none
+  resume_policy: required
+
+interrupted_runs:
+  - seed: 3072
+    run_name: speed_pldm_reference_completion_v1_s3072
+    last_checkpoint:
+      path: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/training/checkpoints/speed_pldm_reference_completion_v1_s3072/last.ckpt
+      sha256: 8e33986c7ce02891b1e5d9c768aa3aaf011d38a5d13dae0fce3e490e73c4b25a
+      size_bytes: 217661667
+    state_checkpoint:
+      path: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/training/checkpoints/speed_pldm_reference_completion_v1_s3072/state.ckpt
+      sha256: 8e33986c7ce02891b1e5d9c768aa3aaf011d38a5d13dae0fce3e490e73c4b25a
+      size_bytes: 217661667
+    loss_trace:
+      path: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/training/checkpoints/speed_pldm_reference_completion_v1_s3072/loss_trace.jsonl
+      sha256: 5100943c92f3b483c2feab9a2efe8032e53f8af23dd2c0fe36cf06c27e9e4b8a
+      size_bytes: 238688
+    canonical_prefix:
+      sha256: 3524f2278b3bcbdcb3a10b68342afbcd94ca53bf1547cf0a72d6fde1163d1a6b
+      size_bytes: 232788
+      rows: 515
+      last_optimizer_step: 10260
+    discarded_uncommitted_tail:
+      rows: 13
+      first_optimizer_step: 10280
+      last_optimizer_step: 10520
+    archive_path: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/attempts/training_interruption_recovery_v1/seed_3072/loss_trace_interrupted_after_state_10272.jsonl
+    preparation_receipt: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/attempts/training_interruption_recovery_v1/seed_3072/preparation_receipt.json
+    completion_receipt: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/attempts/training_interruption_recovery_v1/seed_3072/completion_receipt.json
+    training_report: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/seed_3072/training_report.json
+    final_checkpoint: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/training/checkpoints/speed_pldm_reference_completion_v1_s3072/weights_final_step_12840.pt
+    must_not_exist_before_resume:
+      - artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/seed_3072/training_report.json
+      - artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/training/checkpoints/speed_pldm_reference_completion_v1_s3072/weights_final_step_12840.pt
+      - artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/infrastructure_development_v1/development_manifest.json
+      - artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/formal_icl_v1/aggregate.json
+  - seed: 4096
+    run_name: speed_pldm_reference_completion_v1_s4096
+    last_checkpoint:
+      path: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/training/checkpoints/speed_pldm_reference_completion_v1_s4096/last.ckpt
+      sha256: 40b65741c767976712f8cd6ad34473c45b7167d2f86a6aa5fb7a7f5c0cd0f638
+      size_bytes: 217661859
+    state_checkpoint:
+      path: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/training/checkpoints/speed_pldm_reference_completion_v1_s4096/state.ckpt
+      sha256: 40b65741c767976712f8cd6ad34473c45b7167d2f86a6aa5fb7a7f5c0cd0f638
+      size_bytes: 217661859
+    loss_trace:
+      path: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/training/checkpoints/speed_pldm_reference_completion_v1_s4096/loss_trace.jsonl
+      sha256: 85c8b5625c031f715bd2e95ddcc51e78292c5bfbc90bb203f29de6b0965bf8b0
+      size_bytes: 235005
+    canonical_prefix:
+      sha256: 44381d17f981fad5be9153690b31de589e36f20e7266898303ca873bd19bd2cd
+      size_bytes: 232739
+      rows: 515
+      last_optimizer_step: 10260
+    discarded_uncommitted_tail:
+      rows: 5
+      first_optimizer_step: 10280
+      last_optimizer_step: 10360
+    archive_path: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/attempts/training_interruption_recovery_v1/seed_4096/loss_trace_interrupted_after_state_10272.jsonl
+    preparation_receipt: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/attempts/training_interruption_recovery_v1/seed_4096/preparation_receipt.json
+    completion_receipt: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/attempts/training_interruption_recovery_v1/seed_4096/completion_receipt.json
+    training_report: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/seed_4096/training_report.json
+    final_checkpoint: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/training/checkpoints/speed_pldm_reference_completion_v1_s4096/weights_final_step_12840.pt
+    must_not_exist_before_resume:
+      - artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/seed_4096/training_report.json
+      - artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/training/checkpoints/speed_pldm_reference_completion_v1_s4096/weights_final_step_12840.pt
+      - artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/infrastructure_development_v1/development_manifest.json
+      - artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/formal_icl_v1/aggregate.json
+  - seed: 5120
+    run_name: speed_pldm_reference_completion_v1_s5120
+    last_checkpoint:
+      path: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/training/checkpoints/speed_pldm_reference_completion_v1_s5120/last.ckpt
+      sha256: b87330ddbf38239cd36ede8d6e0868e70ad86a739a18ca2c0f54ef781d946269
+      size_bytes: 217661795
+    state_checkpoint:
+      path: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/training/checkpoints/speed_pldm_reference_completion_v1_s5120/state.ckpt
+      sha256: b87330ddbf38239cd36ede8d6e0868e70ad86a739a18ca2c0f54ef781d946269
+      size_bytes: 217661795
+    loss_trace:
+      path: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/training/checkpoints/speed_pldm_reference_completion_v1_s5120/loss_trace.jsonl
+      sha256: 845fc77c2f6697b8e063a62977c638d9f70c8341f42b51f923853e6fac68d7f6
+      size_bytes: 235545
+    canonical_prefix:
+      sha256: d111c67ef307f89cbe18aed3a502a395278893f6dc277243d410c893009aa3fa
+      size_bytes: 232825
+      rows: 515
+      last_optimizer_step: 10260
+    discarded_uncommitted_tail:
+      rows: 6
+      first_optimizer_step: 10280
+      last_optimizer_step: 10380
+    archive_path: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/attempts/training_interruption_recovery_v1/seed_5120/loss_trace_interrupted_after_state_10272.jsonl
+    preparation_receipt: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/attempts/training_interruption_recovery_v1/seed_5120/preparation_receipt.json
+    completion_receipt: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/attempts/training_interruption_recovery_v1/seed_5120/completion_receipt.json
+    training_report: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/seed_5120/training_report.json
+    final_checkpoint: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/training/checkpoints/speed_pldm_reference_completion_v1_s5120/weights_final_step_12840.pt
+    must_not_exist_before_resume:
+      - artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/seed_5120/training_report.json
+      - artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/training/checkpoints/speed_pldm_reference_completion_v1_s5120/weights_final_step_12840.pt
+      - artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/infrastructure_development_v1/development_manifest.json
+      - artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/formal_icl_v1/aggregate.json

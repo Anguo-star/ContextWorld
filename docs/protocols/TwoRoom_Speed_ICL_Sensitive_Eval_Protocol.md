@@ -1,7 +1,7 @@
 # TwoRoom 上下文敏感距离校准协议与结果
 
 > **文档角色**：支持性实验，仅用于复现距离敏感区诊断。当前数据比较和正式结论
-> 统一见[主报告](../TwoRoom_Speed_Benchmark_Report.md)。
+> 统一见[Benchmark 主文档中的速度章节](../ContextWorld_ICL_Benchmark.md#41-速度)。
 
 **协议版本**：v1.2
 **日期**：2026-07-18  
@@ -9,7 +9,7 @@
 **用途**：检验“只要把 Eval 目标距离调到 CEM 的敏感区，同速历史收益就会出现”
 
 > 当前统一结论见
-> [TwoRoom 速度上下文学习 Benchmark 报告](../TwoRoom_Speed_Benchmark_Report.md)；
+> [ContextWorld ICL Benchmark：速度](../ContextWorld_ICL_Benchmark.md#41-速度)；
 > 本文只保留 v1 距离校准和停止规则。
 
 同速历史表示历史速度与查询环境速度相同；对照历史是冻结 catalog 中的另一档

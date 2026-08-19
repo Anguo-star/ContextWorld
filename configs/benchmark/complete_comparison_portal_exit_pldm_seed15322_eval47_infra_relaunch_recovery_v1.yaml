@@ -1,0 +1,85 @@
+schema_version: 1
+recovery_id: complete_comparison_portal_exit_pldm_seed15322_eval47_infra_relaunch_recovery_v1
+parent_amendment_id: contextworld_complete_reference_comparison_execution_amendment_v2
+status: preregistered_after_infrastructure_kill_before_relaunch
+created_utc: "2026-08-18"
+
+# One TwoRoom portal-exit CEM cell (checkpoint training seed 15322, eval seed
+# 47) was killed by infrastructure during the parallel execution wave started
+# at 02:40 local time.  The frozen runner had verified all inputs, written its
+# 46-byte pre-CEM reservation stub, and completed roughly one CEM solve (the
+# only solve line printed under PYTHONUNBUFFERED=1 took 143.4 s against ~67 s
+# for the first solve of the sibling cell under lighter load; system load
+# average peaked above 660 on 176 CPUs).  The process then disappeared without
+# a Python traceback and without writing any per-seed receipt.  No score or
+# partial score was ever observed for this cell, so this relaunch is not a
+# result-based retry.  Authorized by the amendment's
+# report_all_policy.infrastructure_retry_requires_new_recovery_identity.
+scope:
+  component: PortalExit
+  environment: TwoRoom
+  model_family: PLDM
+  checkpoint_training_seed: 15322
+  eval_seed: 47
+  result_observed_before_failure: false
+  result_based_retry: false
+  relaunch_count_authorized: 1
+  checkpoint_selection_authorized: false
+  command_modification_authorized: false
+  threshold_or_recipe_change_authorized: false
+  other_cells_touched: false
+
+failure_event:
+  wave_start_local: "02:40"
+  runner_log:
+    path: artifacts/evaluation/complete_reference_comparison_v1/logs/cem/portal_exit_pldm_15322_s47.log
+    lines: 14
+    last_activity: first_cem_solve_completed_then_step_warning
+    python_traceback_present: false
+  stale_reservation_stub:
+    path: artifacts/evaluation/complete_reference_comparison_v1/cem/portal_exit/pldm/seed_15322/seed47.json
+    size_bytes: 46
+    exact_content: '{"seed": 47, "status": "reserved_before_cem"}'
+    is_a_result: false
+  receipt_written: false
+  episodes_reported: 0
+
+parent_identity:
+  amendment:
+    path: configs/benchmark/contextworld_complete_reference_comparison_execution_amendment_v2.yaml
+  frozen_tworoom_runner:
+    path: scripts/eval_tworoom_original_baseline_cem_frozen_v1.py
+    sha256: 03e3863c6f3f9dc559095eeb01654f6b8e49675ce8dc90548b6aec0fdef106a6
+    size_bytes: 12353
+  cell:
+    checkpoint:
+      path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/context_world/evaluation/history3/tworoom_portal_exit_h3_release_v1/reference_matrix/pldm_seed15322/mixed_pldm_joint_step4096.pt
+      sha256: a5fb379c64d394add3791e14b6ca5d709d4dba1bb5566a65b1fd7c777523e940
+      size_bytes: 72274139
+      config_sha256: 9a7174b28fccf4fa1abc7e2c756b93c93a659a00715a49fc64cf25affdba81b4
+      config_size_bytes: 1144
+    runtime_root: /tmp/stable-worldmodel-5864
+    runtime_ref: 5864b74980f6ed328fd0045e777b3865962eff43
+    catalog_sha256: 08233c6755c8f6f358f5fe35f84e7cfed626b922be0eeaba8f7392c7741b4b34
+    catalog_size_bytes: 119993
+    normalizer_sha256: a9e4b443bbac0d7a4e2d9d9f84d40ac40936556ffadfc7af0b0ce4fe4afed42c
+    normalizer_size_bytes: 859
+    source_sha256: 7e78254f70445231df4ccf2fd2b7994dfc5954e2085d61400518bd2336fa66bc
+    source_size_bytes: 2629676
+    mujoco_gl: egl
+    output: artifacts/evaluation/complete_reference_comparison_v1/cem/portal_exit/pldm/seed_15322/seed47.json
+
+relaunch_rule:
+  remove_stale_reservation_stub_only_after_byte_exact_match: true
+  command_must_be_the_frozen_cell_command: true
+  device_substitution_allowed: true          # device is not part of the frozen identity
+  environment_exports_must_match_frozen_script: [MUJOCO_GL=egl, PYTHONUNBUFFERED=1]
+  runner_identity_must_match_amendment: true
+  output_written_by_frozen_runner_only: true
+  further_failures_require_a_new_recovery_identity: true
+
+outputs:
+  relaunch_receipt:
+    path: artifacts/evaluation/complete_reference_comparison_v1/cem/portal_exit/pldm/seed_15322/eval47_infra_relaunch_recovery_v1.json
+  exclusive_creation_required: true
+  overwrite_authorized: false

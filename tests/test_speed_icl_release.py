@@ -11,6 +11,7 @@ from contextworld.benchmarks.adapters import (
     AdapterProtocol,
     SpeedICLModelAdapter,
 )
+from contextworld.benchmarks import speed_icl_cli
 from contextworld.benchmarks.speed_icl_data import (
     SpeedICLEvalDataset,
     _array_sha256,
@@ -178,9 +179,64 @@ def _make_release(tmp_path: Path) -> Path:
 def test_public_release_config_loads() -> None:
     release = load_speed_icl_release()
     assert release["release_status"] == "public_test_release_candidate"
-    assert release["runtime"]["supported_adapter"] == "stable_worldmodel_lewm"
+    assert release["runtime"]["supported_adapters"] == [
+        "stable_worldmodel_lewm",
+        "stable_worldmodel_pldm",
+    ]
     assert release["scope"]["public_test_included"] is True
     assert release["scope"]["sealed_test_included"] is False
+
+
+def test_speed_cli_keeps_lewm_default_and_routes_pldm(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    class FakeLeWM:
+        @classmethod
+        def from_checkpoint(cls, *args, **kwargs):
+            del args, kwargs
+            return "lewm"
+
+    class FakePLDM:
+        @classmethod
+        def from_checkpoint(cls, *args, **kwargs):
+            del args, kwargs
+            return "pldm"
+
+    monkeypatch.setattr(speed_icl_cli, "StableWorldModelLeWMAdapter", FakeLeWM)
+    monkeypatch.setattr(speed_icl_cli, "StableWorldModelPLDMAdapter", FakePLDM)
+    monkeypatch.setattr(
+        speed_icl_cli,
+        "load_speed_icl_release",
+        lambda _: {
+            "runtime": {
+                "stable_worldmodel": {
+                    "repo": "stable-worldmodel",
+                    "expected_ref": "test-ref",
+                }
+            },
+            "evaluation": {"normalizer": "normalizer.json"},
+        },
+    )
+    monkeypatch.setattr(
+        speed_icl_cli,
+        "resolve_contextworld_path",
+        lambda *args, **kwargs: tmp_path / "normalizer.json",
+    )
+    common = [
+        "eval",
+        "--checkpoint",
+        "checkpoint.pt",
+        "--model-name",
+        "external-baseline",
+        "--output",
+        "result.json",
+    ]
+    legacy = speed_icl_cli.parse_args(common)
+    pldm = speed_icl_cli.parse_args([*common, "--adapter", "pldm"])
+
+    assert legacy.adapter == "lewm"
+    assert speed_icl_cli._adapter(legacy) == "lewm"
+    assert speed_icl_cli._adapter(pldm) == "pldm"
 
 
 def test_training_tree_fingerprint_detects_content_changes(

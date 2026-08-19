@@ -1,0 +1,81 @@
+schema_version: 1
+benchmark: tworoom_action_delay_history7_paired_training_data_v1
+status: preregistered_before_collection
+preregistered_date: "2026-07-30"
+
+question: >-
+  当同一个 query 同时提供延迟 0、4、8 三个训练样本时，模型能否不再把三种
+  未来状态平均成延迟 4，而是根据七帧历史选择正确的下一状态？
+
+stable_worldmodel:
+  repo: ../stable-worldmodel
+  commit: ad2bc44579f2b5b65c004fd2c9d8edc8ebaa43ce
+
+protocol:
+  history_tokens: 7
+  num_preds: 1
+  raw_steps_per_action_block: 5
+  episode_model_frames: 10
+  rows_per_episode: 50
+  strict_training_clip_start_raw_step: 0
+  formal_training_clips_per_episode: 1
+  agent_speed: 7.0
+  action_magnitude: 0.5
+  training_delay_values: [0, 4, 8]
+  model_visible_fields: [pixels, action]
+  pairing: >-
+    每个 pair_id 下的三个样本使用完全相同的环境几何、初始状态、query、
+    模拟器种子和动作序列；仅动作延迟及其造成的历史和下一帧结果不同。
+
+catalog_seed: 2026072901
+
+counts:
+  train:
+    paired_shards: 32
+    shards: 96
+    episodes_per_shard: 160
+    clips: 15360
+  val:
+    paired_shards: 6
+    shards: 18
+    episodes_per_shard: 160
+    clips: 2880
+
+collection:
+  staging_root: /tmp
+  workers: 16
+
+storage:
+  pixel_codec:
+    format: png
+    compress_level: 1
+    lossless: true
+
+original_dataset:
+  path: ../../data/world_model/quentinll/lewm-tworooms/tworoom.h5
+  role: normalization_reference_and_future_50_percent_training_mixture
+
+validation_exclusion:
+  benchmark: tworoom_action_delay_history7_v1
+  manifest: >-
+    artifacts/evaluation/history7/action_delay_validation_v1/training_exclusion_manifest.json
+  manifest_sha256: >-
+    5fb8322249c4a3d1445363359fad6f9ff3f356348e9f1941ea8da51adbf9b69b
+  content_manifest_sha256: >-
+    e8d75d1ac1496dd340ce0a504e51e976dddff667915b3f9a49fe2a6e6c323923
+  query_count: 300
+
+catalog_stem: tworoom_action_delay_h7_paired_v1
+
+gates:
+  exact_raw_replay_for_every_row: true
+  same_query_has_exactly_delays_0_4_8: true
+  query_pixels_and_actions_exact_within_every_triplet: true
+  next_frame_distinct_within_every_triplet: true
+  exact_delay_balance: true
+  exactly_one_aligned_training_clip_per_episode: true
+  validation_overlap_zero: true
+  train_internal_validation_overlap_zero: true
+  model_projection_is_pixels_and_actions_only: true
+
+output_root: artifacts/synthesis/action_delay_h7_paired_v1

@@ -1,0 +1,437 @@
+schema_version: 1
+preregistration_id: contextworld_original_baseline_seed_completion_v1
+status: frozen_before_cem_execution
+frozen_date_utc: "2026-08-18"
+
+purpose: >-
+  Complete every original-data-recipe baseline family (four environments times
+  LeWM/PLDM) to the full three-training-seed set 3072/3073/3074 so the v2
+  complete-comparison table can report baseline columns as mean +/- std across
+  training seeds, exactly like the context-recipe rows.  Seed 3072 is the
+  first-trained run stored without a seed suffix (bare or *_20260430
+  directories).  This is a descriptive original-environment planning matrix:
+  no pass/fail threshold, all scores published as observed.
+
+relationship_to_prior_freezes:
+  parent_matrix: contextworld_original_baseline_cem_v1
+  parent_matrix_prereg:
+    path: configs/benchmark/contextworld_original_baseline_cem_prereg_v1.yaml
+  consumes_parent_results_readonly: true
+  parent_outputs_mutated: false
+  historical_scoreboard_mutated: false
+  complete_comparison_v1_mutated: false
+
+scientific_scope:
+  result_kind: post_release_descriptive_original_environment_baseline_seed_completion
+  environments: [tworoom, pusht, reacher, cube]
+  families: [lewm, pldm]
+  training_seed_set_per_family: [3072, 3073, 3074]
+  already_evaluated_members_reused: 8
+  newly_executed_member_cells: 17
+  newly_executed_episodes: 5100
+  formal_suite_scoreboard_eligible: false
+  cross_environment_average_authorized: false
+  pass_fail_threshold: null
+  publish_all_results_including_low_scores: true
+
+authority:
+  cem_execution_authorized: true
+  authorized_new_cells: 17
+  authorized_new_episodes: 5100
+  training_authorized: false
+  finetuning_authorized: false
+  environment_or_software_installation_authorized: false
+  checkpoint_selection_authorized: false
+  model_or_recipe_change_authorized: false
+  result_based_retry_authorized: false
+  checkpoint_swap_authorized: false
+  public_test_access_authorized: false
+  formal_scoreboard_mutation_authorized: false
+
+protocol:
+  identical_to: contextworld_original_baseline_cem_v1
+  history_tokens: 3
+  action_block_raw_steps: 5
+  goal_offset_raw_steps: 25
+  execution_budget_raw_steps: 50
+  horizon_action_blocks: 5
+  receding_horizon_action_blocks: 5
+  cem_candidates: 300
+  cem_iterations: 30
+  cem_topk: 30
+  videos_written: false
+  tworoom_and_pusht: {eval_seeds: [42, 43, 44, 45, 46, 47], queries_per_seed: 50}
+  reacher_and_cube: {eval_seeds: [42, 43, 44], queries_per_seed: 100}
+
+runtimes:
+  tworoom:
+    root: /tmp/stable-worldmodel-5864
+    expected_commit: 5864b74980f6ed328fd0045e777b3865962eff43
+  pusht_reacher_cube:
+    root: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/context_world/upstream/stable-worldmodel-875e607fc08aa72e
+    expected_commit: 875e607fc08aa72eacb94d5d178127804134cc06
+    plan_configs:
+      pusht: {path: scripts/plan/config/pusht.yaml, sha256: ccad4ca01b8935424c71fb682622b57ecedb33176e996205f0bfd2211eaf4ec5, size_bytes: 859}
+      reacher: {path: scripts/plan/config/reacher.yaml, sha256: deb1378ed1bfdfe8379f44a138dec36ac6ab2dab2ae2c36a3560d2542a190774, size_bytes: 843}
+      cube: {path: scripts/plan/config/cube.yaml, sha256: 27cbd60e530e7bcd26ad90ff42a6a25e1743e08d1e3f75ccabf104b4d35dc5a5, size_bytes: 1131}
+
+frozen_environment_inputs:
+  identical_to: contextworld_original_baseline_cem_v1
+  tworoom:
+    catalog: {path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/context_world/evaluation/history3/original_ability_reconstruction/original_heldout_eval_catalog.json, sha256: 08233c6755c8f6f358f5fe35f84e7cfed626b922be0eeaba8f7392c7741b4b34, size_bytes: 119993}
+    dataset: {path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/context_world/splits/tworoom_original_episode_holdout_s3072.h5, sha256: 7e78254f70445231df4ccf2fd2b7994dfc5954e2085d61400518bd2336fa66bc, size_bytes: 2629676}
+    normalizer: {path: artifacts/splits/tworoom_original_train_s3072_normalizer.json, sha256: a9e4b443bbac0d7a4e2d9d9f84d40ac40936556ffadfc7af0b0ce4fe4afed42c, size_bytes: 859}
+  pusht:
+    catalog: {path: artifacts/evaluation/history3/pusht_action_strength_h3_release_v1/standard_pusht_query_catalog.json, sha256: da974c821e3fa0f232ac59538e0c79cc2cb9a80ea4bb4a62b910c66c278ce2d4, size_bytes: 11744}
+    dataset: {path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-pusht/pusht_expert_train.h5, sha256: b6ebd9ac94bbe9e383f6e7a9cd92d74e9aa665ea57b758ed3717b0ee7df8d4fb, size_bytes: 46300921856}
+  reacher:
+    catalog: {path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/context_world/evaluation/history3/reacher_robot_arm_mass_h3_release_v1/original_task_retention/baseline_lewm_osmesa/query_catalog.json, sha256: f139593c8b75eb5cd142d78223421e3e7b0a76a4ab086908afd9d9171dea9e27, size_bytes: 11336}
+    dataset: {path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-reacher/reacher.h5, sha256: 85a7dddfa1801302abcb175a80a23bb69c78291dd977ce40d69aedcb9123da06, size_bytes: 98905882624}
+  cube:
+    catalog: {path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/context_world/evaluation/history3/cube_gripper_carry_h3_development_v4r1/original_task_retention_query_catalog_v2.json, sha256: 0ebf7fa68078f76e1172cb47ef594129acc5563ed148ef4dafbd96b4c855d725, size_bytes: 13971}
+    dataset: {path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-cube/ogbench/cube_single_expert.h5, sha256: 0664d507c4ff12009010644c9ae950836f954e700c172ccf22e7423af1a55625, size_bytes: 101942558720}
+  input_identity_audit:
+    path: configs/benchmark/contextworld_original_baseline_cem_input_identity_audit_v1.json
+    sha256: 5d84444f6c4d0fd5a26b616bafeb17ddc2bb545356fc46a83fbb862be0853950
+    size_bytes: 1599
+    reuse_reason: datasets unchanged; the audit binds their full-content hashes.
+
+implementation:
+  reused_frozen_runners_only: true
+  no_runner_modified: true
+  standard_runner: {path: scripts/eval_standard_original_task_cem_frozen_v1.py, sha256: 77f3cf9b1a3166e73e5bf8b2a8b7baddbf52a7948ab6b905a35eb889442fd933, size_bytes: 26291}
+  standard_runner_revision_note: >-
+    The parent original_baseline_cem_v1 matrix pinned an earlier 26034-byte
+    revision (sha ee7b6025...) of this file that is no longer on disk.  The
+    on-disk 26291-byte revision is the one frozen and executed by
+    contextworld_complete_reference_comparison_v1 and its execution
+    amendment v2 (i.e. every context-recipe CEM row in the 18-row table).
+    The protocol blocks emitted by both revisions are key-for-key identical
+    (verified against the parent pusht/pldm receipt), and using the same
+    revision as the context-recipe rows keeps the baseline and context
+    columns of the v2 table on one runner identity.
+  tworoom_runner: {path: scripts/eval_tworoom_original_baseline_cem_frozen_v1.py, sha256: 03e3863c6f3f9dc559095eeb01654f6b8e49675ce8dc90548b6aec0fdef106a6, size_bytes: 12353}
+  cube_pldm_wrapper: {path: scripts/eval_cube_original_baseline_cem_frozen_v1.py, sha256: 5a553d9fd36a8c80c2f4edf28a3f300ec15ee6ef459bd428c3098f2751219419, size_bytes: 25665}
+  cube_lewm_evaluator_v2: {path: scripts/eval_cube_original_task_cem_frozen_v2.py, sha256: 37441739517e9f7fdf1f2d4d1801f6c9ba4e6c9f4904591ebdcec3423b7bc50d, size_bytes: 2862}
+  cube_core: {path: scripts/eval_cube_original_task_cem_frozen.py, sha256: f653e4d8c7750859a94f2c98973bd1f99ecd0ddb936a507f4f8e4938878ba91b, size_bytes: 24013}
+  cube_lewm_runner_choice_reason: >-
+    The v1 cube wrapper hard-asserts a Cube PLDM legacy config
+    (_assert_pldm_config), so LeWM member cells use the same frozen v2
+    evaluator that produced the historical cube/lewm/3073 baseline
+    (original_task_retention_v2 baseline_lewm, 198/300).  Protocol constants,
+    catalog, dataset, runtime, and CEM parameters are identical across both
+    cube paths.  Because the v2 evaluator closes fewer identities on its own
+    CLI, the launcher must verify checkpoint/config/catalog sha256+size
+    against this preregistration before starting each cube LeWM job.
+
+already_evaluated_family_members:
+  - {environment: pusht, family: lewm, training_seed: 3073, successes: 235, evaluations: 300, source: original_baseline_cem_v1}
+  - {environment: pusht, family: pldm, training_seed: 3072, successes: 233, evaluations: 300, source: original_baseline_cem_v1, checkpoint_dir: pusht_pldm_baseline}
+  - {environment: reacher, family: lewm, training_seed: 3072, successes: 164, evaluations: 300, source: original_baseline_cem_v1, checkpoint_dir: reacher_lewm}
+  - {environment: reacher, family: pldm, training_seed: 3072, successes: 248, evaluations: 300, source: original_baseline_cem_v1, checkpoint_dir: reacher_pldm_baseline}
+  - {environment: tworoom, family: pldm, training_seed: 3072, successes: 278, evaluations: 300, source: original_baseline_cem_v1, checkpoint_dir: tworoom_pldm_baseline}
+  - {environment: cube, family: pldm, training_seed: 3073, successes: 159, evaluations: 300, source: original_baseline_cem_v1}
+  - {environment: cube, family: lewm, training_seed: 3073, successes: 198, evaluations: 300, source: original_baseline_cem_v1_reuse_of_retention_v2}
+  - environment: tworoom
+    family: lewm
+    training_seed: 3072
+    successes: 273
+    evaluations: 300
+    source: original_baseline_cem_v1
+    checkpoint_dir: h3_origheldout_s3072
+    family_statistics_membership: excluded_lineage_note_only
+    reason: >-
+      The evaluated tworoom/lewm cell used the repo-trained ContextWorld
+      checkpoint h3_origheldout_s3072 (raw state-dict .pt, ContextWorld
+      training code), not the quentinll lightning baseline lineage.  The
+      lightning sibling tworoom_lewm_20260430 (seed 3072, epoch 9, global
+      step 6420) carries numerically different weights (max abs tensor diff
+      ~0.69; an independent training run).  For a homogeneous
+      three-training-seed family statistic the lightning triplet
+      3072/3073/3074 is evaluated below; the 273/300 value remains a
+      disclosed historical lineage note and is never averaged into the
+      family mean +/- std.
+
+lineage_disclosures:
+  - id: pldm_bare_seed3072_lazy_image_noise_config_diff
+    detail: >-
+      Every bare (seed-3072) PLDM config differs from its seed3073/3074
+      siblings only by naming/seed plus image_noise "std_max: 0.0 ->
+      0" and "noise_prob: 1 -> 0".  With the noise std upper bound at zero
+      in both variants no noise is ever applied, so the recipes are
+      operationally identical.
+  - id: lewm_seed3072_explicit_default_block_config_diff
+    detail: >-
+      LeWM 3072-lineage configs predate a config-format explicitation; all
+      textual differences against seed3073/3074 sit inside "enabled: false"
+      blocks or other no-op default sections (verified per environment).
+      pusht/tworoom 20260430 configs show zero substantive difference.
+  - id: lewm_seed3075_excluded_incomplete
+    detail: >-
+      pusht/reacher/cube lewm seed3075 checkpoints contain epoch=4 (5 of 10
+      epochs) and are excluded; tworoom seed3075 exists but 3072/3073/3074
+      already complete the preregistered set.
+  - id: cube_lewm_3072_directory_choice
+    detail: >-
+      Two independent seed-3072 cube LeWM trainings exist: bare cube_lewm
+      (2026-04-23, older config format) and cube_lewm_20260430 (2026-04-30,
+      config substantively identical to seed3073/3074).  The dated run is
+      preregistered as the 3072 family member, consistent with the
+      pusht/tworoom 3072 naming lineage.  The tensors of the two runs
+      differ; this is a lineage choice made before any new score existed,
+      not a result-based selection.
+  - id: tworoom_lewm_3072_dual_format
+    detail: >-
+      See already_evaluated_family_members: the historical tworoom/lewm cell
+      used h3_origheldout_s3072; the family statistic uses the lightning
+      triplet.  Both facts stay disclosed side by side in the v2 report.
+  - id: cube_lewm_3073_score_provenance
+    detail: >-
+      The cube/lewm/3073 value 198/300 originates from the retention v2
+      matrix (baseline_lewm) and was adopted as the official reuse cell of
+      original_baseline_cem_v1 under an exact-reuse contract; protocol,
+      catalog (sha 0ebf7fa6...), dataset, runtime, and CEM constants are
+      identical to this preregistration, so it is family-comparable without
+      re-execution.
+
+new_member_cells:
+  # ---- standard runner (pusht, aggregate output) ----
+  - cell_id: pusht_lewm_seed3072
+    environment: pusht
+    family: lewm
+    training_seed: 3072
+    runner: standard_runner
+    mujoco_gl: egl
+    checkpoint: {path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-pusht/ckpt/pusht_lewm_20260430/pusht_lewm_20260430_weights.ckpt, sha256: 52c08acf889e39fb03326b6877b5217a25b92aec6c57f6c77a0d38d4352b6b79, size_bytes: 216789801}
+    effective_loader_config: {path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-pusht/ckpt/pusht_lewm_20260430/config.yaml, sha256: 6aa747eea0331055d3d5ce29c87bf233474d23a8bfbaacb3b631f2f5f94358d4, size_bytes: 2648}
+    eval_seeds: [42, 43, 44, 45, 46, 47]
+    queries_per_seed: 50
+    evaluations: 300
+    output_directory: artifacts/evaluation/original_baseline_seed_completion_v1/pusht/lewm/seed3072
+  - cell_id: pusht_lewm_seed3074
+    environment: pusht
+    family: lewm
+    training_seed: 3074
+    runner: standard_runner
+    mujoco_gl: egl
+    checkpoint: {path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-pusht/ckpt/pusht_lewm_baseline_seed3074/pusht_lewm_baseline_seed3074_weights.ckpt, sha256: 3bb67e9c50141575891e7ecb2d388977c445964531382d4b82374bf49188618f, size_bytes: 216789801}
+    effective_loader_config: {path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-pusht/ckpt/pusht_lewm_baseline_seed3074/config.yaml, sha256: 7368c884665fc2c5ef257ddcb949c841f41933a17540d9b9d80b8408b4a77450, size_bytes: 3011}
+    eval_seeds: [42, 43, 44, 45, 46, 47]
+    queries_per_seed: 50
+    evaluations: 300
+    output_directory: artifacts/evaluation/original_baseline_seed_completion_v1/pusht/lewm/seed3074
+  - cell_id: pusht_pldm_seed3073
+    environment: pusht
+    family: pldm
+    training_seed: 3073
+    runner: standard_runner
+    mujoco_gl: egl
+    checkpoint: {path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-pusht/ckpt/pusht_pldm_baseline_seed3073/pusht_pldm_baseline_seed3073_weights.ckpt, sha256: 8227ebb275f1a7ce0348b863b87b5c1fc534068eced1e352c060738d3c96dc04, size_bytes: 219234900}
+    effective_loader_config: {path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-pusht/ckpt/pusht_pldm_baseline_seed3073/config.yaml, sha256: 688fcce5c5dd3ab5c32b9ad5ac81ff563317c030d63454653f4a6818b7ed8dc1, size_bytes: 1938}
+    eval_seeds: [42, 43, 44, 45, 46, 47]
+    queries_per_seed: 50
+    evaluations: 300
+    output_directory: artifacts/evaluation/original_baseline_seed_completion_v1/pusht/pldm/seed3073
+  - cell_id: pusht_pldm_seed3074
+    environment: pusht
+    family: pldm
+    training_seed: 3074
+    runner: standard_runner
+    mujoco_gl: egl
+    checkpoint: {path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-pusht/ckpt/pusht_pldm_baseline_seed3074/pusht_pldm_baseline_seed3074_weights.ckpt, sha256: c2c3b33f7b52069a9cc69f0ec297954205279f9b012ee946c0f26ccdc3b44aa7, size_bytes: 219234900}
+    effective_loader_config: {path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-pusht/ckpt/pusht_pldm_baseline_seed3074/config.yaml, sha256: 68f313e7b8104a1e7bd9b04451eba8788689f5d17186b9e13f012e0daf4bf0e0, size_bytes: 1938}
+    eval_seeds: [42, 43, 44, 45, 46, 47]
+    queries_per_seed: 50
+    evaluations: 300
+    output_directory: artifacts/evaluation/original_baseline_seed_completion_v1/pusht/pldm/seed3074
+  # ---- standard runner (reacher, aggregate output) ----
+  - cell_id: reacher_lewm_seed3073
+    environment: reacher
+    family: lewm
+    training_seed: 3073
+    runner: standard_runner
+    mujoco_gl: osmesa
+    checkpoint: {path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-reacher/ckpt/reacher_lewm_baseline_seed3073/reacher_lewm_baseline_seed3073_weights.ckpt, sha256: 105b5f5890637cfee0bc5ef7a2db00808f718be375f425a6619e43843b290135, size_bytes: 216789801}
+    effective_loader_config: {path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-reacher/ckpt/reacher_lewm_baseline_seed3073/config.yaml, sha256: 593dd645f7a61ddbc8a7429d99be8f2d6b43197f140ff30d8efb93cce17a205b, size_bytes: 2977}
+    eval_seeds: [42, 43, 44]
+    queries_per_seed: 100
+    evaluations: 300
+    output_directory: artifacts/evaluation/original_baseline_seed_completion_v1/reacher/lewm/seed3073
+  - cell_id: reacher_lewm_seed3074
+    environment: reacher
+    family: lewm
+    training_seed: 3074
+    runner: standard_runner
+    mujoco_gl: osmesa
+    checkpoint: {path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-reacher/ckpt/reacher_lewm_baseline_seed3074/reacher_lewm_baseline_seed3074_weights.ckpt, sha256: 44aed39741f46dff3f8621fd2c1621a5ab26fcf1b116d1c3b71b014cfd256153, size_bytes: 216789801}
+    effective_loader_config: {path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-reacher/ckpt/reacher_lewm_baseline_seed3074/config.yaml, sha256: cdbb6543ce7c29029756ae82229a477eb55dc4d06e61b144088024f1ab4c257a, size_bytes: 2977}
+    eval_seeds: [42, 43, 44]
+    queries_per_seed: 100
+    evaluations: 300
+    output_directory: artifacts/evaluation/original_baseline_seed_completion_v1/reacher/lewm/seed3074
+  - cell_id: reacher_pldm_seed3073
+    environment: reacher
+    family: pldm
+    training_seed: 3073
+    runner: standard_runner
+    mujoco_gl: osmesa
+    checkpoint: {path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-reacher/ckpt/reacher_pldm_baseline_seed3073/reacher_pldm_baseline_seed3073_weights.ckpt, sha256: f35bdaeb181a2622294b9d7b3c6dc8af880dda527f3e83323d8ebcb476b48e6c, size_bytes: 219234900}
+    effective_loader_config: {path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-reacher/ckpt/reacher_pldm_baseline_seed3073/config.yaml, sha256: b1e47cead1734f2342874886acfd16bd9c5d87e12a36f2cbc450cfc59f22a7e0, size_bytes: 1904}
+    eval_seeds: [42, 43, 44]
+    queries_per_seed: 100
+    evaluations: 300
+    output_directory: artifacts/evaluation/original_baseline_seed_completion_v1/reacher/pldm/seed3073
+  - cell_id: reacher_pldm_seed3074
+    environment: reacher
+    family: pldm
+    training_seed: 3074
+    runner: standard_runner
+    mujoco_gl: osmesa
+    checkpoint: {path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-reacher/ckpt/reacher_pldm_baseline_seed3074/reacher_pldm_baseline_seed3074_weights.ckpt, sha256: 1f5f11c0bcb475ba293a9492bded0efed27d22da69f3a2fbcf3ff7888b3630ed, size_bytes: 219234900}
+    effective_loader_config: {path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-reacher/ckpt/reacher_pldm_baseline_seed3074/config.yaml, sha256: 17c19301860b5a72ec06b0cf86cb4f2d41a8187097bd5241980a13aa2a36f064, size_bytes: 1904}
+    eval_seeds: [42, 43, 44]
+    queries_per_seed: 100
+    evaluations: 300
+    output_directory: artifacts/evaluation/original_baseline_seed_completion_v1/reacher/pldm/seed3074
+  # ---- cube LeWM (frozen v2 evaluator, aggregate output) ----
+  - cell_id: cube_lewm_seed3072
+    environment: cube
+    family: lewm
+    training_seed: 3072
+    runner: cube_lewm_evaluator_v2
+    mujoco_gl: osmesa
+    launcher_must_verify_checkpoint_identity: true
+    checkpoint: {path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-cube/ckpt/cube_lewm_20260430/cube_lewm_20260430_weights.ckpt, sha256: c7407e0df2729467be74932080ba07930a22942f94c9493b69c2c369977556ec, size_bytes: 216791529}
+    effective_loader_config: {path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-cube/ckpt/cube_lewm_20260430/config.yaml, sha256: 3e222e0bc95f13117cc08a9703efcd7a79b22b018d20087878d668aa324e4bc8, size_bytes: 2670}
+    eval_seeds: [42, 43, 44]
+    queries_per_seed: 100
+    evaluations: 300
+    output_directory: artifacts/evaluation/original_baseline_seed_completion_v1/cube/lewm/seed3072
+  - cell_id: cube_lewm_seed3074
+    environment: cube
+    family: lewm
+    training_seed: 3074
+    runner: cube_lewm_evaluator_v2
+    mujoco_gl: osmesa
+    launcher_must_verify_checkpoint_identity: true
+    checkpoint: {path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-cube/ckpt/cube_lewm_baseline_seed3074/cube_lewm_baseline_seed3074_weights.ckpt, sha256: b574dd80325163b275445715a673f1542f444e5bd763d74aebda9bdf8964be4b, size_bytes: 216791529}
+    effective_loader_config: {path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-cube/ckpt/cube_lewm_baseline_seed3074/config.yaml, sha256: c3110ad7a014f706bec814c93cefa0354351023046a3a58cea679f1c092615d9, size_bytes: 3033}
+    eval_seeds: [42, 43, 44]
+    queries_per_seed: 100
+    evaluations: 300
+    output_directory: artifacts/evaluation/original_baseline_seed_completion_v1/cube/lewm/seed3074
+  # ---- cube PLDM (frozen v1 wrapper, aggregate output) ----
+  - cell_id: cube_pldm_seed3072
+    environment: cube
+    family: pldm
+    training_seed: 3072
+    runner: cube_pldm_wrapper
+    mujoco_gl: osmesa
+    checkpoint: {path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-cube/ckpt/cube_pldm_baseline/cube_pldm_baseline_weights.ckpt, sha256: 9da51fcddcde4c8675c5cda60cf595e996899afbac902a35f93f93684bf05044, size_bytes: 219328916}
+    effective_loader_config: {path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-cube/ckpt/cube_pldm_baseline/config.yaml, sha256: ab55c7a3b3ef93d30dda09ba28e4fe0a7601d5dee480ab2a53556b7e4de7175c, size_bytes: 1944}
+    eval_seeds: [42, 43, 44]
+    queries_per_seed: 100
+    evaluations: 300
+    output_directory: artifacts/evaluation/original_baseline_seed_completion_v1/cube/pldm/seed3072
+  - cell_id: cube_pldm_seed3074
+    environment: cube
+    family: pldm
+    training_seed: 3074
+    runner: cube_pldm_wrapper
+    mujoco_gl: osmesa
+    checkpoint: {path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-cube/ckpt/cube_pldm_baseline_seed3074/cube_pldm_baseline_seed3074_weights.ckpt, sha256: 70f665a311c2a73c7b88ee8f672e9bad462accc2865a861794bd868dcfa80a19, size_bytes: 219328980}
+    effective_loader_config: {path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-cube/ckpt/cube_pldm_baseline_seed3074/config.yaml, sha256: ed210593f2bd7cede01f5f6e96f7701b28e5f5e375a491ee5fd0a576ed202090, size_bytes: 1960}
+    eval_seeds: [42, 43, 44]
+    queries_per_seed: 100
+    evaluations: 300
+    output_directory: artifacts/evaluation/original_baseline_seed_completion_v1/cube/pldm/seed3074
+  # ---- tworoom (per-eval-seed receipts) ----
+  - cell_id: tworoom_lewm_seed3072
+    environment: tworoom
+    family: lewm
+    training_seed: 3072
+    runner: tworoom_runner
+    mujoco_gl: egl
+    checkpoint: {path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-tworooms/ckpt/tworoom_lewm_20260430/tworoom_lewm_20260430_weights.ckpt, sha256: b96d9c573960dc434a8871d132181e2d58946047052232891a586bceff7b620e, size_bytes: 216789801}
+    effective_loader_config: {path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-tworooms/ckpt/tworoom_lewm_20260430/config.yaml, sha256: 467ea984c62d1ca778ba6d4249bea6dc20562fc22fde8e95992cbf499e25ff3f, size_bytes: 2602}
+    eval_seeds: [42, 43, 44, 45, 46, 47]
+    queries_per_seed: 50
+    evaluations: 300
+    output_directory: artifacts/evaluation/original_baseline_seed_completion_v1/tworoom/lewm/seed3072
+    output_files: [seed42.json, seed43.json, seed44.json, seed45.json, seed46.json, seed47.json]
+  - cell_id: tworoom_lewm_seed3073
+    environment: tworoom
+    family: lewm
+    training_seed: 3073
+    runner: tworoom_runner
+    mujoco_gl: egl
+    checkpoint: {path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-tworooms/ckpt/tworoom_lewm_baseline_seed3073/tworoom_lewm_baseline_seed3073_weights.ckpt, sha256: 53103e123ce03c2fcd8889cbf39a92d1bbd998f2b067342203e38962b2c5c519, size_bytes: 216789801}
+    effective_loader_config: {path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-tworooms/ckpt/tworoom_lewm_baseline_seed3073/config.yaml, sha256: 13fd14a9cee4d4aec1daa33b0a0e0ad4dcc0db9d3905cd4882c8f23cc9cebc33, size_bytes: 2965}
+    eval_seeds: [42, 43, 44, 45, 46, 47]
+    queries_per_seed: 50
+    evaluations: 300
+    output_directory: artifacts/evaluation/original_baseline_seed_completion_v1/tworoom/lewm/seed3073
+    output_files: [seed42.json, seed43.json, seed44.json, seed45.json, seed46.json, seed47.json]
+  - cell_id: tworoom_lewm_seed3074
+    environment: tworoom
+    family: lewm
+    training_seed: 3074
+    runner: tworoom_runner
+    mujoco_gl: egl
+    checkpoint: {path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-tworooms/ckpt/tworoom_lewm_baseline_seed3074/tworoom_lewm_baseline_seed3074_weights.ckpt, sha256: 30e4934286fe3374316c66da7e637fb0694e420d3ef8eb03294a97d64eceefc6, size_bytes: 216789801}
+    effective_loader_config: {path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-tworooms/ckpt/tworoom_lewm_baseline_seed3074/config.yaml, sha256: 147755ffc21f3c147f911da48f20dc523bce1431453ce962df6b9599d18ecc64, size_bytes: 2965}
+    eval_seeds: [42, 43, 44, 45, 46, 47]
+    queries_per_seed: 50
+    evaluations: 300
+    output_directory: artifacts/evaluation/original_baseline_seed_completion_v1/tworoom/lewm/seed3074
+    output_files: [seed42.json, seed43.json, seed44.json, seed45.json, seed46.json, seed47.json]
+  - cell_id: tworoom_pldm_seed3073
+    environment: tworoom
+    family: pldm
+    training_seed: 3073
+    runner: tworoom_runner
+    mujoco_gl: egl
+    checkpoint: {path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-tworooms/ckpt/tworoom_pldm_baseline_seed3073/tworoom_pldm_baseline_seed3073_weights.ckpt, sha256: ae5f3709e0b10f8e56202a82db177d48f9d0a5780665c67b559d28b15914a4fd, size_bytes: 219234900}
+    effective_loader_config: {path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-tworooms/ckpt/tworoom_pldm_baseline_seed3073/config.yaml, sha256: 1319de5cb37112389a024bfdd4224666bca74f2e8836a8843ad2bfae720c39e0, size_bytes: 1892}
+    eval_seeds: [42, 43, 44, 45, 46, 47]
+    queries_per_seed: 50
+    evaluations: 300
+    output_directory: artifacts/evaluation/original_baseline_seed_completion_v1/tworoom/pldm/seed3073
+    output_files: [seed42.json, seed43.json, seed44.json, seed45.json, seed46.json, seed47.json]
+  - cell_id: tworoom_pldm_seed3074
+    environment: tworoom
+    family: pldm
+    training_seed: 3074
+    runner: tworoom_runner
+    mujoco_gl: egl
+    checkpoint: {path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-tworooms/ckpt/tworoom_pldm_baseline_seed3074/tworoom_pldm_baseline_seed3074_weights.ckpt, sha256: c8fae3e4463c27c11978410564904d4c1c62cc6cd299dfcae54d1190226d1e0b, size_bytes: 219234900}
+    effective_loader_config: {path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-tworooms/ckpt/tworoom_pldm_baseline_seed3074/config.yaml, sha256: eb6217775c12d598f2fb29853a29d586ee60c038e5a1e27b3b80a5e3b2698f10, size_bytes: 1892}
+    eval_seeds: [42, 43, 44, 45, 46, 47]
+    queries_per_seed: 50
+    evaluations: 300
+    output_directory: artifacts/evaluation/original_baseline_seed_completion_v1/tworoom/pldm/seed3074
+    output_files: [seed42.json, seed43.json, seed44.json, seed45.json, seed46.json, seed47.json]
+
+execution_policy:
+  output_root: artifacts/evaluation/original_baseline_seed_completion_v1
+  output_directories_must_be_absent_before_first_run: true
+  one_scientific_execution_per_new_cell: true
+  parallel_gpu_execution_allowed: true
+  gpu_assignment_is_non_scientific: true
+  device_and_wave_order_are_non_scientific: true
+  max_parallel_tworoom_processes: 6
+  partial_outputs_do_not_count_as_results: true
+  infrastructure_retry_requires_new_recovery_identity: true
+  low_score_does_not_authorize_retry: true
+  preflight_required_before_first_episode: true
+  preflight_receipt: configs/benchmark/contextworld_original_baseline_seed_completion_preflight_v1.json
+  freeze_receipt: configs/benchmark/contextworld_original_baseline_seed_completion_freeze_v1.json
+  result_summary: artifacts/evaluation/original_baseline_seed_completion_v1/family_summary.json
+
+downstream_use:
+  complete_comparison_v2: >-
+    A v2 comparison table (new file, complete_comparison_v2.json) will report
+    each baseline family as mean +/- sample std across training seeds
+    3072/3073/3074, alongside the already-published context-recipe rows.
+    complete_comparison.json (v1), the 13-row historical scoreboard, and all
+    prior receipts remain byte-identical.

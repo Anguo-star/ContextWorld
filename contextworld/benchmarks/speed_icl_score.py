@@ -7,7 +7,10 @@ from typing import Any, Iterable
 
 import numpy as np
 
-from contextworld.benchmarks.adapters import SpeedICLModelAdapter
+from contextworld.benchmarks.adapters import (
+    SpeedICLModelAdapter,
+    validate_adapter_protocol,
+)
 from contextworld.benchmarks.speed_icl_data import (
     DEFAULT_RELEASE_CONFIG,
     HORIZONS,
@@ -315,16 +318,22 @@ def evaluate_speed_icl_model(
     unknown = set(selected_tracks) - set(release["evaluation"]["tracks"])
     if unknown:
         raise KeyError(f"Unknown tracks: {sorted(unknown)}")
-    protocol = adapter.protocol
-    if (
-        protocol.history_tokens != int(release["scope"]["history_tokens"])
-        or protocol.action_block_raw_steps
-        != int(release["scope"]["action_block_raw_steps"])
-        or protocol.future_action_blocks < 5
-    ):
-        raise RuntimeError(
-            f"Adapter protocol is incompatible with release: {protocol}"
+    try:
+        protocol = validate_adapter_protocol(
+            adapter,
+            history_tokens=int(release["scope"]["history_tokens"]),
+            action_block_raw_steps=int(
+                release["scope"]["action_block_raw_steps"]
+            ),
+            action_dim=2,
+            minimum_future_action_blocks=max(HORIZONS),
+            task_name="Speed ICL v1",
         )
+    except ValueError as exc:
+        raise RuntimeError(
+            "Adapter protocol is incompatible with release: "
+            f"{adapter.protocol}"
+        ) from exc
     before = adapter.frozen_state_hash()
     track_results = {}
     for track in selected_tracks:

@@ -7,6 +7,7 @@ from typing import Any, Iterable
 
 import numpy as np
 
+from contextworld.benchmarks.adapters import validate_adapter_protocol
 from contextworld.paths import resolve_contextworld_path
 
 from .action_delay import array_sha256, canonical_sha256
@@ -156,18 +157,13 @@ def score_h7_validation_assets(
     batch_size: int,
 ) -> dict[str, Any]:
     _require(len(assets) == QUERY_COUNT, "Expected 300 History=7 assets")
-    protocol = adapter.protocol
-    _require(
-        int(protocol.history_tokens) == HISTORY_TOKENS,
-        "Adapter is not History=7",
-    )
-    _require(
-        int(protocol.action_block_raw_steps) == 5,
-        "Adapter action block is not five raw steps",
-    )
-    _require(
-        int(protocol.future_action_blocks) >= len(FUTURE_HORIZONS),
-        "Adapter cannot produce three future action blocks",
+    validate_adapter_protocol(
+        adapter,
+        history_tokens=HISTORY_TOKENS,
+        action_block_raw_steps=5,
+        action_dim=2,
+        minimum_future_action_blocks=max(FUTURE_HORIZONS),
+        task_name="Action Delay v1",
     )
 
     input_pixels = np.concatenate(

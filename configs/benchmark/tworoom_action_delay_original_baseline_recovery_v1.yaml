@@ -1,0 +1,384 @@
+schema_version: 1
+release_id: contextworld_tworoom_action_delay_icl_history7_v1
+release_status: public_test_release_candidate
+candidate_date: "2026-07-30"
+
+# Additive recovery contract for descriptive scoring of the two frozen
+# original H3 checkpoints.  The inherited v1 release remains unchanged; this
+# file exists so the recovery CLI and explicit tail projection have their own
+# source identities and cannot silently alter the native-H7 release audit.
+recovery:
+  recovery_id: contextworld_action_delay_original_baseline_h3_tail_projection_recovery_v1
+  kind: additive_post_release_descriptive_baseline_recovery
+  original_release:
+    path: configs/benchmark/tworoom_action_delay_icl_release_v1.yaml
+    sha256: 303d27e9163ce435fdceff11d3d2ef2e6f7a99d61b1bf3c2f9737122611e47bb
+  query_and_metric_identity: inherited_exactly_from_original_release
+  training_authorized: false
+  checkpoint_selection_authorized: false
+  formal_scoreboard_eligible: false
+  history_adapter:
+    name: h3_tail_projection
+    scorer_history_tokens: 7
+    native_checkpoint_history_tokens: 3
+    input_pixel_slice: "input_pixels[:, -3:]"
+    source_action_blocks: 9
+    native_action_block_slice: "raw_action_blocks[:, -5:]"
+    retained_context_action_blocks: 2
+    retained_future_action_blocks: 3
+    positional_embedding_interpolation: false
+    weights_modified: false
+  output_root: artifacts/evaluation/original_baseline_matrix_v1/contextworld-action-delay/recovery_v1
+
+scope:
+  environment: TwoRoom
+  capability: infer_hidden_action_delay_from_recent_interaction
+  history_tokens: 7
+  context_transitions: 6
+  raw_steps_per_action_block: 5
+  prediction_horizon_action_blocks: 1
+  delay_values: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+  public_test_included: true
+  sealed_test_included: false
+
+runtime:
+  supported_adapters:
+    - stable_worldmodel_lewm_history7
+    - stable_worldmodel_pldm_history7
+  extension_contract: contextworld.benchmarks.adapters.ActionDelayICLModelAdapter
+  contextworld:
+    repository: https://github.com/Anguo-star/ContextWorld
+    package_version: 0.1.0
+  stable_worldmodel:
+    source: https://github.com/galilai-group/stable-worldmodel
+    repo: ../stable-worldmodel
+    expected_ref: ad2bc44579f2b5b65c004fd2c9d8edc8ebaa43ce
+
+portability:
+  repository_local_artifacts: true
+  absolute_metadata_paths_allowed: false
+  symlinks_allowed: false
+  public_test_contents:
+    assets: 300
+    current_model_score_receipts: 6
+    source_compatibility_receipts: 1
+    current_core_summary: 1
+    current_cem_retention_receipts: 2
+
+identity:
+  common_causal_audit:
+    path: contextworld/benchmarks/causal_data_contract.py
+    sha256: 202d8a1cc57ac9ec24924f0e995cc42b8fea7b026d55465e8f7cdb102759788e
+  public_api:
+    path: contextworld/benchmarks/__init__.py
+    sha256: ae7fdb24aeaefb6cec66f22f83329e8edfca0cbf686059836b9acdb2684a99ea
+  adapters:
+    path: contextworld/benchmarks/adapters.py
+    sha256: 3ca53a9d88520f92471aecbfeaf0d9483de049a2d52e58a9ab8e9eb77757a8fd
+  data_api:
+    path: contextworld/benchmarks/action_delay_icl_data.py
+    sha256: dc0db69e5488e749cbc2d490e72521e3795922c3635fadbb7af0296a216cd68f
+  portable_release_builder:
+    path: scripts/build_tworoom_action_delay_portable_release.py
+    sha256: 51abc229799aa539cc1728b14303c86f517a8388b9ed5c3d2a17404714fed42d
+  score_api:
+    path: contextworld/benchmarks/action_delay_icl_score.py
+    sha256: 766f01552ba9b248dff06a20ebe2b01ed2b8b5100c773cdd5c2a5883f3dfa70b
+  command_line:
+    path: contextworld/benchmarks/action_delay_icl_cli.py
+    sha256: 5c73e71a36bcebdb04840c5e4929881573d7f3478b9fc543acf2bbaf73d392f1
+  recovery_command_line:
+    path: contextworld/benchmarks/action_delay_original_baseline_recovery_cli.py
+    sha256: a300f008588171c3fd33c9f27cc755f487294cc243ba799883fbd82d4421d15d
+  h3_tail_projection_adapter:
+    path: contextworld/benchmarks/action_delay_h3_tail_projection.py
+    sha256: add2443686092f83b2ddbbb71ab8d3f9c8a44823f8462614dbe1c72eaee0f8c5
+  core_metric:
+    path: contextworld/evaluation/action_delay_h7_core.py
+    sha256: a20e5656934d649c596323961198d57d600bd40609668cc4763e60abf305f8da
+  evaluator:
+    path: contextworld/evaluation/action_delay_h7_score.py
+    sha256: 9b565e7caf0bb1196fe365506606b61d5d34ca76624cbaef8d748a82888a9661
+  validation_contract:
+    path: contextworld/evaluation/action_delay_h7_validation.py
+    sha256: 2226555b5152bedc1d69fa2440d37af59a332ea791f1ada980a196f2ec88af01
+  path_resolution:
+    path: contextworld/paths.py
+    sha256: d401ee87b5a803f37323a2fb4632fb3686bfec5472a817d431ec6e05d9a3447f
+  data_loader:
+    path: contextworld/training/tworoom_data.py
+    sha256: 4affd45f137a00d42cce0c90b9f7de5668eda4d9feb80dc9ef369bae6c94c3c8
+  coarse_launcher:
+    path: scripts/run_h7_action_delay_paired_train.sh
+    sha256: c4f1ca4cbc263eda986eb59644f92e97bc0938526403d758d94cf13c3794d0d2
+  refinement_launcher:
+    path: scripts/run_h7_action_delay_curriculum_train.sh
+    sha256: c5a937a54b46712451bfa4a957bbd608a5f864dd52192670a0b9f2112d642bce
+  training_entrypoint:
+    path: scripts/train_tworoom_step1.py
+    sha256: c4bcd96772eff8044b5ab90ce71081283f526118589f0c0f0d845e0851611c5c
+  package:
+    path: pyproject.toml
+    sha256: bfb434fc0078f77badb17c7dbf1d0432bdf78dd7fa38e33d7bc69a1dcee542bd
+  core_protocol:
+    path: configs/benchmark/tworoom_action_delay_h7_core_icl_v2.yaml
+    sha256: 5094d9404870cc72e411f1416589b18225c7f68a238dedb604ed8124ccaa241f
+
+training:
+  original_mix_fraction: 0.5
+  synthetic_mix_fraction: 0.5
+  paired_training_seeds: [3072, 4096, 5120]
+  optimizer_steps_per_stage: 1024
+  effective_global_batch: 1024
+  objective: standard_one_step_prediction
+  multistep_training_loss: false
+  initialization:
+    checkpoint: >-
+      artifacts/training/runs/checkpoints/h3_origheldout_s3072/weights_final_step_6420.pt
+    checkpoint_sha256: 7d141b86cca49145444a69bff89c71ede69e8cf8252bfb933e656c3e2e962b54
+    checkpoint_config: >-
+      artifacts/training/runs/checkpoints/h3_origheldout_s3072/config.json
+    checkpoint_config_sha256: cd9ef9e2efde4527e36b6467d6a4efd120ab466d6a9f8a4aa41cdb7b56c4eddf
+    role: model_weight_initialization_only_not_resume
+  stages:
+    coarse_delay_learning:
+      display_name: 先学习差异明显的等待时间
+      delays: [0, 4, 8]
+      base_train_queries: 5120
+      loader_validation_queries: 960
+      clips: 18240
+      artifact_tree:
+        root: artifacts/synthesis/action_delay_h7_paired_v1
+        files: 346
+        bytes: 1511085422
+        sha256: 59fc4b8c64f0e048d59316303e115f94773a9ae16f56df6763444a685c617955
+      artifacts:
+        build_report:
+          path: artifacts/synthesis/action_delay_h7_paired_v1/build_report.json
+          sha256: 3de8b8f857c1fd2cd50eff06472069280237358ee7a8d647eb867bd647bdd628
+        catalog:
+          path: >-
+            artifacts/synthesis/action_delay_h7_paired_v1/catalogs/tworoom_action_delay_h7_paired_v1.json
+          sha256: 95f2aafea28c868852207d2174a59b8474c7ff17bcc57f65ec2f25339adc0486
+        manifest:
+          path: >-
+            artifacts/synthesis/action_delay_h7_paired_v1/manifests/tworoom_action_delay_h7_paired_v1.jsonl
+          sha256: 2b39fc9aca7e9af651391ca6de0cad0fa6180253f8b152501b05409afba8213d
+        synthesis_report:
+          path: >-
+            artifacts/synthesis/action_delay_h7_paired_v1/reports/tworoom_action_delay_h7_paired_v1.json
+          sha256: 1a86ec28b98a17de692bd6dba4ca2c77ea3b50f012fbebd9664d57c90ce00e40
+    full_delay_refinement:
+      display_name: 再细化到完整等待时间
+      delays: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+      one_step_physical_groups:
+        - [0]
+        - [1]
+        - [2]
+        - [3]
+        - [4]
+        - [5, 6, 7, 8, 9, 10]
+      sampling: equal_weight_across_six_physical_groups
+      base_train_queries: 5120
+      loader_validation_queries: 960
+      clips: 66880
+      artifact_tree:
+        root: artifacts/synthesis/action_delay_h7_core_training_v3
+        files: 1258
+        bytes: 5334174412
+        sha256: e031d98421cfe35eb3316f921d7bfdb1ce3daf3c22c5bfc13598b64e55a80aad
+      artifacts:
+        build_report:
+          path: >-
+            artifacts/synthesis/action_delay_h7_core_training_v3/build_report.json
+          sha256: 3592f93a1b7e09879a9d9c66f37007bcb7ebc4d51bbcaaf44d240e778c46cbbe
+        catalog:
+          path: >-
+            artifacts/synthesis/action_delay_h7_core_training_v3/catalogs/tworoom_action_delay_h7_core_training_v3.json
+          sha256: f3423d27047505d4e4b3945d20feec940d70ed0b190f93b9f8fb7d6991ccc69e
+        manifest:
+          path: >-
+            artifacts/synthesis/action_delay_h7_core_training_v3/manifests/tworoom_action_delay_h7_core_training_v3.jsonl
+          sha256: fc1e7df418f50f5634d6f303df1bbfb91793dccb357baf0db7cbecba013f0951
+        synthesis_report:
+          path: >-
+            artifacts/synthesis/action_delay_h7_core_training_v3/reports/tworoom_action_delay_h7_core_training_v3.json
+          sha256: 166ae90e0bd4f5f8e3b67a4a09efb92b1709fb1cee4fae4fef9493ea28180696
+  recipes:
+    pldm_reference:
+      display_name: 先学明显延迟、再学习完整延迟范围的 PLDM
+      model_family: pldm
+      model_id: H7_ActionDelay_Curriculum_v4_PLDM
+      training_seeds: [3072, 4096, 5120]
+      reference_result: passed_3_of_3
+      stages:
+        - name: coarse_delay_learning
+          config: configs/benchmark/tworoom_action_delay_h7_paired_pldm_v1.yaml
+          config_sha256: 2d497f54297fb8d59228029c036961d930184291b8efab9ee268dca22265db17
+          launcher: scripts/run_h7_action_delay_paired_train.sh
+        - name: full_delay_refinement
+          config: configs/benchmark/tworoom_action_delay_h7_curriculum_pldm_v4.yaml
+          config_sha256: e377a0ce096789e5bbbe048da2baf1f2fb2aadb3cf0d352a104c35fbe3171e60
+          launcher: scripts/run_h7_action_delay_curriculum_train.sh
+    lewm_control:
+      display_name: 相同数据和预算的 LeWM 对照
+      model_family: lewm
+      model_id: H7_ActionDelay_Curriculum_v4_LeWM
+      training_seeds: [3072, 4096, 5120]
+      reference_result: failed_0_of_3
+      stages:
+        - name: coarse_delay_learning
+          config: configs/benchmark/tworoom_action_delay_h7_paired_lewm_v1.yaml
+          config_sha256: cc6d89ac9c12a1a01b30ca20a8b3974c33b1c7c2f1ecf9e6f6a5a5097af8b05a
+          launcher: scripts/run_h7_action_delay_paired_train.sh
+        - name: full_delay_refinement
+          config: configs/benchmark/tworoom_action_delay_h7_curriculum_lewm_v4.yaml
+          config_sha256: 829ca9d1ac1f261554af566ada40bb8c81ef3e167c9664525e3a98868bd4b5fc
+          launcher: scripts/run_h7_action_delay_curriculum_train.sh
+
+evaluation:
+  track: unseen_queries_full_delay_support
+  catalog: artifacts/evaluation/history7/action_delay_validation_v1/catalog.json
+  catalog_sha256: 5a3fc1a53c05cc4e6f97f7b7544c48aaaf6033550b70a63899eab35ee46fafca
+  content_manifest_sha256: e8d75d1ac1496dd340ce0a504e51e976dddff667915b3f9a49fe2a6e6c323923
+  normalizer: artifacts/splits/tworoom_original_train_s3072_normalizer.json
+  normalizer_sha256: a9e4b443bbac0d7a4e2d9d9f84d40ac40936556ffadfc7af0b0ce4fe4afed42c
+  eval_seeds: [42, 43, 44, 45, 46, 47]
+  queries_per_eval_seed: 50
+  distinct_queries: 300
+  trajectories: 3300
+  model_predictions_per_checkpoint: 3300
+  online_environment_calls: 0
+  artifact_tree:
+    root: artifacts/evaluation/history7/action_delay_validation_v1
+    files: 314
+    bytes: 105380823
+    sha256: e6636519b9ff0e7a56f8a806b9d452cd0e12a2d7dc0248375f53328bad45fabc
+  artifacts:
+    catalog:
+      path: artifacts/evaluation/history7/action_delay_validation_v1/catalog.json
+      sha256: 5a3fc1a53c05cc4e6f97f7b7544c48aaaf6033550b70a63899eab35ee46fafca
+    build_report:
+      path: >-
+        artifacts/evaluation/history7/action_delay_validation_v1/build_report.json
+      sha256: d212602e4234b77a8293c3106afad331f3fa8ce0110417fbea8e6539df388c46
+    audit_report:
+      path: >-
+        artifacts/evaluation/history7/action_delay_validation_v1/audit_report.json
+      sha256: 2bb40f31df51f4c130de06797cda9d63d5050a40a5781cdebaaa7f84189e836d
+    training_exclusion_manifest:
+      path: >-
+        artifacts/evaluation/history7/action_delay_validation_v1/training_exclusion_manifest.json
+      sha256: 5fb8322249c4a3d1445363359fad6f9ff3f356348e9f1941ea8da51adbf9b69b
+    current_lewm_seed3072_score:
+      path: >-
+        artifacts/evaluation/history7/action_delay_validation_v1/score_receipts/model_results/h7_action_delay_curriculum_v4_lewm_formal_s3072_public_test_score.json
+      sha256: 2f5456dc80270ffc4006718d678ea60f1fd93cca1f3510664e44f3c08bd7698f
+    current_lewm_seed4096_score:
+      path: >-
+        artifacts/evaluation/history7/action_delay_validation_v1/score_receipts/model_results/h7_action_delay_curriculum_v4_lewm_formal_s4096_public_test_score.json
+      sha256: a825c2db0dd5cf28e77d5fbd8847a063ce8e65b3ce0c27565719a105a5015ee1
+    current_lewm_seed5120_score:
+      path: >-
+        artifacts/evaluation/history7/action_delay_validation_v1/score_receipts/model_results/h7_action_delay_curriculum_v4_lewm_formal_s5120_public_test_score.json
+      sha256: 97aebaf3c5be3f3d8c612c024b941804f64a0edd54945b57caefe55c04ffda57
+    current_pldm_seed3072_score:
+      path: >-
+        artifacts/evaluation/history7/action_delay_validation_v1/score_receipts/model_results/h7_action_delay_curriculum_v4_pldm_formal_s3072_public_test_score.json
+      sha256: a8ef231419135e7078edfff2b53abbb75674809b5526cdcb426ff8ed37cf2a8a
+    current_pldm_seed4096_score:
+      path: >-
+        artifacts/evaluation/history7/action_delay_validation_v1/score_receipts/model_results/h7_action_delay_curriculum_v4_pldm_formal_s4096_public_test_score.json
+      sha256: 00aed83d92d675f8146d01e42f441c8181df4e9ee0cdbbd155eb12d37c141a27
+    current_pldm_seed5120_score:
+      path: >-
+        artifacts/evaluation/history7/action_delay_validation_v1/score_receipts/model_results/h7_action_delay_curriculum_v4_pldm_formal_s5120_public_test_score.json
+      sha256: e73918720da37dba1eba70db1efe0e24604c7ecdda49acc6833d1a20e17987ea
+    source_compatibility:
+      path: >-
+        artifacts/evaluation/history7/action_delay_validation_v1/score_receipts/source_compatibility.json
+      sha256: b3a3a4d83d9387d189626783ac7f4afd8acdfc6e64f6ed85f425324bc712f59c
+
+scoring:
+  primary: one_step_real_future_physical_group_accuracy
+  target_encoder: each_checkpoint_native_frozen_encoder
+  raw_latent_mse_cross_checkpoint_comparison_allowed: false
+  physical_groups:
+    - [0]
+    - [1]
+    - [2]
+    - [3]
+    - [4]
+    - [5, 6, 7, 8, 9, 10]
+  aggregation: equal_group_mean_within_query_then_mean_over_300_queries
+  uncertainty:
+    method: paired_query_bootstrap
+    resamples: 10000
+    random_seed: 2026073002
+    confidence_level: 0.95
+  primary_gate:
+    physical_group_macro_accuracy_minimum: 0.75
+    minimum_physical_group_accuracy: 0.60
+    paired_query_bootstrap_95_percent_lower_bound_minimum: 0.70
+    required_training_seeds: 3
+    all_three_checkpoints_must_pass: true
+  planning_retention:
+    role: supporting_original_ability_non_inferiority_not_icl_score
+    paired_evaluations: 4200
+    primary_domain: original_heldout
+
+reference_results:
+  core:
+    path: >-
+      artifacts/evaluation/history7/action_delay_validation_v1/score_receipts/core_summary.json
+    sha256: 6348ae986a559c975ba848dba5beefc23cc90c52674765e3c75b83a1a2a2ceb4
+  cem_retention:
+    path: >-
+      artifacts/evaluation/history7/action_delay_validation_v1/score_receipts/cem_retention/final_summary.json
+    sha256: a7ad10761f922c82e83f911a4ded8bb55d388039172571f4446385b7533cb6b6
+  cem_runner_audit:
+    path: >-
+      artifacts/evaluation/history7/action_delay_validation_v1/score_receipts/cem_retention/runner_report.json
+    sha256: 04896936b3a7dcfecdd2c509c4bff7f51208bac2c597dfa3a91d4f73ad98e7c2
+
+reference_summary:
+  pldm_reference:
+    one_step_physical_group_accuracy_mean: 0.933642
+    one_step_physical_group_accuracy_sample_std: 0.003902
+    weakest_group_accuracy_mean: 0.848333
+    bootstrap_lower_bound_mean: 0.917099
+    passed_training_seeds: 3
+    original_heldout_cem_success_rate_mean: 0.962222
+    original_heldout_cem_final_distance_px_mean: 16.000378
+    original_cem_non_inferior_seeds: 3
+  lewm_control:
+    one_step_physical_group_accuracy_mean: 0.324259
+    one_step_physical_group_accuracy_sample_std: 0.004979
+    weakest_group_accuracy_mean: 0.0
+    passed_training_seeds: 0
+    original_heldout_cem_success_rate_mean: 0.973333
+  original_h3_cem_reference:
+    original_heldout_success_rate: 0.91
+    original_heldout_final_distance_px: 19.907061
+
+claim_boundary:
+  proves: >-
+    在冻结的 History=7 和延迟 0 至 10 条件下，先学明显延迟、再学习完整
+    延迟范围的 PLDM 能根据历史选择正确的一步真实物理未来，并保留原始
+    TwoRoom CEM 规划能力。
+  does_not_prove:
+    - h2 或 h3 多步自回归已通过
+    - 未见延迟数值外推
+    - 隐藏动作延迟下的闭环 CEM 规划
+    - 所有世界模型训练目标都能学会该能力
+
+distribution:
+  release_kind: local_technical_release_candidate
+  code_license_status: not_declared
+  generated_data_license_status: not_declared
+  public_download_status: not_configured
+  public_artifact_urls: []
+  export_grants_redistribution_rights: false
+  note: >-
+    代码、训练数据、冻结 Public Test 和评分逻辑可在本地完整审计与导出。
+    正式公共分发前仍需声明源码和自产数据许可证，并配置下载地址。

@@ -1,0 +1,86 @@
+schema_version: 1
+benchmark: tworoom_action_delay_history3_validation_v1
+status: preregistered_before_formal_training_or_model_scoring
+preregistered_date: "2026-07-26"
+
+question: >-
+  History=3 世界模型能否根据同一环境中的近期动作效果，判断动作需要等待多少个
+  原始环境步才生效，并据此预测相同 query 动作的正确下一帧？
+
+stable_worldmodel:
+  repo: ../stable-worldmodel
+  commit: 5864b74980f6ed328fd0045e777b3865962eff43
+
+protocol:
+  history_tokens: 3
+  raw_steps_per_action_block: 5
+  agent_speed: 7.0
+  delay_values: [0, 1, 2, 3, 4]
+  training_delay_values: [0, 2, 4]
+  interpolation_delay_values: [1, 3]
+  current_query_is_identical_across_history_delays: true
+  query_action_is_identical_across_history_delays: true
+  offline_true_future_pixels_are_saved_before_scoring: true
+  online_environment_calls_during_scoring: 0
+
+evaluation:
+  eval_seeds: [42, 43, 44, 45, 46, 47]
+  queries_per_seed: 50
+  queries_per_delay_and_history_condition: 300
+  catalog_seed: 2026072601
+  directions_per_seed: {up: 25, down: 25}
+  history_conditions_per_query: 5
+  true_targets_per_query: 5
+  model_predictions_per_checkpoint: 1500
+  loss_records_per_checkpoint: 7500
+
+comparison:
+  original_model:
+    model_id: H3_Original_LEWM
+    training_seeds: [3072]
+  single_delay_control:
+    model_id: H3_ActionDelay_SingleControl
+    training_seeds: [3072, 4096, 5120]
+    synthetic_delay_support: [2]
+  multi_delay_target:
+    model_id: H3_ActionDelay_Multi
+    training_seeds: [3072, 4096, 5120]
+    synthetic_delay_support: [0, 2, 4]
+
+metrics:
+  primary:
+    - matching_history_latent_loss
+    - other_histories_mean_latent_loss
+    - matching_history_loss_ratio
+    - matching_history_strict_win_rate
+    - five_history_selection_accuracy
+    - five_true_target_selection_accuracy
+  breakdowns:
+    - target_delay
+    - training_seen_or_interpolation
+    - eval_seed
+    - direction
+  comparison_rule:
+    same_checkpoint_latent_space_only: true
+    raw_latent_mse_must_not_rank_different_checkpoints: true
+
+gates:
+  multi_delay_each_training_seed:
+    each_delay_mean_history_margin_positive: true
+    each_delay_all_six_eval_seed_margins_positive: true
+    each_delay_history_selection_accuracy_minimum: 0.60
+    each_delay_target_selection_accuracy_minimum: 0.60
+    each_delay_strict_win_rate_minimum: 0.50
+  paired_training_attribution:
+    multi_minus_single_history_margin_positive_for_each_training_seed: true
+    multi_minus_single_selection_accuracy_positive_for_each_training_seed: true
+  claim_rule: >-
+    只有多延迟模型的三个训练种子逐延迟通过，并且相对配对单延迟模型的提升方向一致，
+    才能声明训练带来了动作响应延迟 ICL。原始模型只报告其已有能力，不参与训练归因。
+
+artifacts:
+  output_root: artifacts/evaluation/history3/action_delay_validation_v1
+  catalog: artifacts/evaluation/history3/action_delay_validation_v1/catalog.json
+  training_exclusion_manifest: >-
+    artifacts/evaluation/history3/action_delay_validation_v1/training_exclusion_manifest.json
+  results_root: artifacts/evaluation/history3/action_delay_validation_v1/results

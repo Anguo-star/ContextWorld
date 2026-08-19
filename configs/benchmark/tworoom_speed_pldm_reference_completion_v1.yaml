@@ -1,0 +1,116 @@
+schema_version: 1
+completion_id: tworoom_speed_pldm_reference_completion_v1
+status: preregistered_before_training
+created_utc: "2026-08-17"
+
+# This is an additive trained-reference completion.  It never changes the
+# frozen v1 Speed release or any original-baseline matrix receipt.
+scope:
+  component: Speed
+  environment: TwoRoom
+  model_family: pldm
+  history_tokens: 3
+  action_block_raw_steps: 5
+  public_boundary: frozen_public_test_read_only
+
+runtime:
+  stable_worldmodel:
+    repo: /tmp/stable-worldmodel-5864
+    commit: 5864b74980f6ed328fd0045e777b3865962eff43
+    pldm_config: /tmp/stable-worldmodel-5864/scripts/train/config/pldm.yaml
+    pldm_config_sha256: 430691039c77f7084dff24759f5e17680fbf65fae3454f88709f403aa1d1be51
+
+initialization:
+  role: model_weight_initialization_only_not_resume
+  checkpoint: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-tworooms/ckpt/tworoom_pldm_baseline/tworoom_pldm_baseline_weights.ckpt
+  checkpoint_sha256: f8316879acec3060e12631d954640614a4248a30e73e1bafdd02b9407fffcf68
+  source_config: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-tworooms/ckpt/tworoom_pldm_baseline/config.yaml
+  source_config_sha256: f70eea3473b22012a3f6acf7780dd52083b67bbe3ea95c222f89841f47eaa0b9
+  expected_model_state_sha256: 815d99875f1234f50f03f8dc9489639442f91ba048bf45983478a8161a85732f
+  staged_checkpoint: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/initialization/tworoom_pldm_original_raw_state.pt
+  staged_checkpoint_sha256: ffb2d9fcc633dd4742c1b9864e3317a2b1019b3c92e4b3a415ad6118c020742e
+  staged_config_sha256: d303cc43d0e5319b147af1c029e1ea34fd0390a0d3dd9f471c398670136899e1
+
+data:
+  # These names are also consumed by the pinned TwoRoom grouped-data loader.
+  original_read_only: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-tworooms/tworoom.h5
+  original_h5: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-tworooms/tworoom.h5
+  original_h5_sha256: 129a36aa93ea0de488d2bcc876e396de9e3907bf66c6aae6394e542ef6a6d623
+  original_split: {strategy: episode_heldout, seed: 3072, train_fraction: 0.9}
+  normalizer:
+    path: artifacts/splits/tworoom_original_train_s3072_normalizer.json
+    sha256: a9e4b443bbac0d7a4e2d9d9f84d40ac40936556ffadfc7af0b0ce4fe4afed42c
+  speed_multi:
+    data_root: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/context_world/synthesis/data/tworoom_speed_full_v1
+    data_tree_sha256: a125c3ed1f5f07a5be0957bbea3748a985636a248c65d8c198afab7083f5ab0d
+    catalog: artifacts/synthesis/catalogs/tworoom_speed_full_v1.json
+    catalog_sha256: a8ab2fed2602ade7e00e5a9ebb0b0a6ecb29ab41bc0645bda185bab71cbd8c1d
+    manifest: artifacts/synthesis/manifests/tworoom_speed_full_v1.jsonl
+    manifest_sha256: 1815b2b4b6d2a03249b0f6642b4adc779554c65a7114c57e3731556d74024290
+    report: artifacts/synthesis/reports/tworoom_speed_full_v1.json
+    report_sha256: a0ffaeb90947a854d70d54a542a1d519c8e9bdc66aa2c0693e2aabb02c568241
+  frozen_normalizer:
+    path: artifacts/splits/tworoom_original_train_s3072_normalizer.json
+    sha256: a9e4b443bbac0d7a4e2d9d9f84d40ac40936556ffadfc7af0b0ce4fe4afed42c
+    protocol: tworoom_original_train_s3072_unbiased_zscore_v1
+    statistics_scope: original_9000_train_episodes_only
+  catalogs:
+    speed_multi_v2: artifacts/synthesis/catalogs/tworoom_speed_full_v1.json
+
+training:
+  model_id: H3_Speed_PLDM_ReferenceCompletion
+  seeds: [3072, 4096, 5120]
+  optimizer_steps: 12840
+  logical_epochs: 5
+  epoch_size_global: 2629632
+  validation_epoch_size: 12288
+  batch_size_per_gpu: 128
+  gradient_accumulation_steps: 8
+  effective_global_batch: 1024
+  groups: {original: 0.5, speed_multi_v2: 0.5}
+  checkpoint_selection: final_fixed_step
+  early_stopping: false
+  training_objective: native_pldm
+
+# Compatibility section for scripts/train_tworoom_step1.py.  It deliberately
+# repeats the frozen values above rather than pointing to any mutable release.
+training_protocol:
+  architecture: stable_worldmodel_pldm_history3
+  training_method: pldm
+  history_tokens: 3
+  raw_steps_per_action_block: 5
+  model_visible_fields: [pixels, action]
+  initialization_checkpoint:
+    path: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/initialization/tworoom_pldm_original_raw_state.pt
+    sha256: ffb2d9fcc633dd4742c1b9864e3317a2b1019b3c92e4b3a415ad6118c020742e
+    config_sha256: d303cc43d0e5319b147af1c029e1ea34fd0390a0d3dd9f471c398670136899e1
+    role: model_weight_initialization_only_not_resume
+  paired_training_seeds: [3072, 4096, 5120]
+  early_stopping: false
+  checkpoint_selection: final_fixed_step
+  group_sampling:
+    H3_Speed_PLDM_ReferenceCompletion: {original: 0.5, speed_multi_v2: 0.5}
+  budget:
+    optimizer_steps: 12840
+    effective_global_batch: 1024
+    total_logical_draws: 13148160
+
+models:
+  - model_id: H3_Speed_PLDM_ReferenceCompletion
+    display_name: History-3 Speed PLDM trained-reference completion
+    training_groups: [original, speed_multi_v2]
+
+evaluation:
+  icl:
+    release_config: configs/benchmark/tworoom_speed_icl_release_v1.yaml
+    tracks: [seen_for_multi, unseen_interpolation, extrapolation_low, extrapolation_high]
+    eval_seeds: [42, 43, 44, 45, 46, 47]
+  original_task_retention:
+    catalog: artifacts/evaluation/history3/original_ability_reconstruction/original_heldout_eval_catalog.json
+    eval_seeds: [42, 43, 44, 45, 46, 47]
+    queries_per_seed: 50
+    total_cem_episodes: 300
+    cem: {samples: 300, iterations: 30, topk: 30, horizon_action_blocks: 5, receding_horizon_action_blocks: 5}
+
+artifacts:
+  root: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1

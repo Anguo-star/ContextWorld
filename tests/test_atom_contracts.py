@@ -27,6 +27,10 @@ def test_every_tworoom_atom_declares_pixel_effect_oracles() -> None:
     assert registry["passage_open"].required_oracles == (
         "hidden_passage_contact_oracle",
     )
+    assert registry["action_delay"].pixel_effect == "temporal_dynamics"
+    assert registry["action_delay"].required_oracles == (
+        "action_delay_temporal_oracle",
+    )
 
 
 def test_missing_oracle_config_is_a_hard_coverage_failure() -> None:

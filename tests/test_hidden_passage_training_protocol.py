@@ -114,6 +114,10 @@ def _gloo_release_worker(
     mismatch_rank1: bool,
     queue,
 ) -> None:
+    # Containerized test runners may forbid hostname/interface discovery even
+    # though the loopback interface itself is present.  Pinning Gloo to the
+    # local interface keeps this two-process test off the external network.
+    os.environ.setdefault("GLOO_SOCKET_IFNAME", "lo")
     torch.distributed.init_process_group(
         "gloo",
         init_method=f"file://{init_file}",
@@ -400,6 +404,21 @@ def test_training_config_freezes_three_clear_synthetic_only_models() -> None:
     assert "smoke-8gpu" in runner
     assert "lewm-std-cov-mixed" in runner
     assert "OBJECTIVE_ARGS=(--lewm-std-weight 18 --lewm-cov-weight 12)" in runner
+    assert "lewm-sigreg-0p3-mixed" in runner
+    assert "OBJECTIVE_ARGS=(--lewm-sigreg-weight 0.3)" in runner
+    assert "lewm-sigreg-0p9-mixed" in runner
+    assert "OBJECTIVE_ARGS=(--lewm-sigreg-weight 0.9)" in runner
+    assert "lewm-sigreg-1p3-mixed" in runner
+    assert "OBJECTIVE_ARGS=(--lewm-sigreg-weight 1.3)" in runner
+    assert "lewm-sigreg-1p65-mixed" in runner
+    assert "OBJECTIVE_ARGS=(--lewm-sigreg-weight 1.65)" in runner
+    assert "lewm-sigreg-2p05-mixed" in runner
+    assert "OBJECTIVE_ARGS=(--lewm-sigreg-weight 2.05)" in runner
+    assert "lewm-visreg-mixed" in runner
+    assert (
+        "OBJECTIVE_ARGS=(--lewm-regularizer visreg "
+        "--lewm-visreg-weight 0.09)"
+    ) in runner
     assert '--diagnostic-checkpoint-step "$diagnostic_step"' in runner
     assert "for diagnostic_step in 1 2 4 8 16 32 64 128 256 512 1024" in runner
     assert "EXTRA_ARGS=(--devices 8 --num-workers 2)" in runner
@@ -408,6 +427,7 @@ def test_training_config_freezes_three_clear_synthetic_only_models() -> None:
     assert 'logger_backend="${logger_backend:-swanlab}"' in runner
     assert 'swanlab login -k "$SWANLAB_API_KEY"' in runner
     assert '--logger-backend "$logger_backend"' in runner
+    assert '--audit-concurrency "$AUDIT_CONCURRENCY"' in runner
 
     training_entry = TRAINING_ENTRY.read_text(encoding="utf-8")
     assert "class GradientTraceModule(spt.Module)" in training_entry
@@ -422,7 +442,12 @@ def test_lewm_std_cov_objective_is_explicitly_reported() -> None:
     native = OmegaConf.create(
         {
             "loss": {
-                "sigreg": {"weight": 0.09},
+                "regularizer": "sigreg",
+                "sigreg": {"weight": 0.09, "kwargs": {"knots": 17}},
+                "visreg": {
+                    "weight": 0.09,
+                    "kwargs": {"num_projections": 1024},
+                },
                 "std": {"enabled": False, "weight": 0.0},
                 "cov": {"enabled": False, "weight": 0.0},
             }
@@ -431,7 +456,12 @@ def test_lewm_std_cov_objective_is_explicitly_reported() -> None:
     candidate = OmegaConf.create(
         {
             "loss": {
-                "sigreg": {"weight": 0.09},
+                "regularizer": "sigreg",
+                "sigreg": {"weight": 0.09, "kwargs": {"knots": 17}},
+                "visreg": {
+                    "weight": 0.09,
+                    "kwargs": {"num_projections": 1024},
+                },
                 "std": {"enabled": True, "weight": 18.0},
                 "cov": {"enabled": True, "weight": 12.0},
             }
@@ -445,12 +475,63 @@ def test_lewm_std_cov_objective_is_explicitly_reported() -> None:
         "name": "native_lewm_plus_std_cov",
         "prediction_target_detached": False,
         "prediction_weight": 1.0,
+        "representation_regularizer": "sigreg",
+        "regularizer_weight": 0.09,
+        "regularizer_kwargs": {"knots": 17},
         "sigreg_weight": 0.09,
+        "visreg_weight": 0.0,
         "std_enabled": True,
         "std_weight": 18.0,
         "cov_enabled": True,
         "cov_weight": 12.0,
     }
+
+
+def test_lewm_weight_sweep_and_visreg_objectives_are_explicit() -> None:
+    from omegaconf import OmegaConf
+
+    high_sigreg = OmegaConf.create(
+        {
+            "loss": {
+                "regularizer": "sigreg",
+                "sigreg": {"weight": 2.05, "kwargs": {"num_proj": 1024}},
+                "visreg": {
+                    "weight": 0.09,
+                    "kwargs": {"num_projections": 1024},
+                },
+                "std": {"enabled": False, "weight": 0.0},
+                "cov": {"enabled": False, "weight": 0.0},
+            }
+        }
+    )
+    visreg = OmegaConf.create(
+        {
+            "loss": {
+                "regularizer": "visreg",
+                "sigreg": {"weight": 0.09, "kwargs": {"num_proj": 1024}},
+                "visreg": {
+                    "weight": 0.09,
+                    "kwargs": {"num_projections": 1024},
+                },
+                "std": {"enabled": False, "weight": 0.0},
+                "cov": {"enabled": False, "weight": 0.0},
+            }
+        }
+    )
+
+    high_spec = _training_objective_spec("lewm", high_sigreg)
+    assert high_spec["name"] == "lewm_sigreg_weight_sweep"
+    assert high_spec["representation_regularizer"] == "sigreg"
+    assert high_spec["regularizer_weight"] == 2.05
+    assert high_spec["sigreg_weight"] == 2.05
+    assert high_spec["visreg_weight"] == 0.0
+
+    visreg_spec = _training_objective_spec("lewm", visreg)
+    assert visreg_spec["name"] == "lewm_visreg"
+    assert visreg_spec["representation_regularizer"] == "visreg"
+    assert visreg_spec["regularizer_weight"] == 0.09
+    assert visreg_spec["sigreg_weight"] == 0.0
+    assert visreg_spec["visreg_weight"] == 0.09
 
 
 def test_contextworld_logger_uses_stablewm_contract() -> None:
@@ -720,8 +801,10 @@ def test_frozen_normalizer_requires_exact_bytes_and_split_identity(
         )
 
 
+@pytest.mark.parametrize("schema_version", [1, 2])
 def test_training_exclusion_manifest_requires_both_hashes_and_exact_doors(
     tmp_path: Path,
+    schema_version: int,
 ) -> None:
     records = [
         {
@@ -731,7 +814,7 @@ def test_training_exclusion_manifest_requires_both_hashes_and_exact_doors(
         for index in range(3)
     ]
     payload = {
-        "schema_version": 1,
+        "schema_version": schema_version,
         "content_manifest_sha256": "content-hash",
         "query_count": 3,
         "query_records": records,
@@ -1433,6 +1516,7 @@ def test_passage_ddp_timeout_is_frozen_and_multi_gpu_only(
         == "framework_defaults_with_frozen_rendezvous_timeout"
     )
     assert multi["transport_overrides_applied"] is False
+    assert multi["audit_scheduling_source"] == "benchmark_config"
     assert multi["audit_scheduling"] == {
         "policy": "sibling_exclusive_flock",
         "maximum_concurrency": 1,
@@ -1447,6 +1531,34 @@ def test_passage_ddp_timeout_is_frozen_and_multi_gpu_only(
         multi["training_run_exclusivity"]
         == TRAINING_RUN_EXCLUSIVITY_CONTRACT
     )
+    parallel = _load_distributed_execution_contract(
+        TRAINING_CONFIG,
+        devices=8,
+        passage_model=True,
+        audit_concurrency=8,
+    )
+    assert parallel["audit_scheduling"] == {
+        "policy": "sibling_shared_flock",
+        "maximum_concurrency": 8,
+        "scope": "per_rank_full_audit_and_fit_start_storage_revalidation",
+        "lock_protocol": PARALLEL_AUDIT_SCHEDULING_LOCK_PROTOCOL,
+        "lock_order": "release_shared_then_audit_shared",
+        "collective_holds_lock": False,
+        "topology_scope": "single_node_8gpu",
+        "concurrent_training_runs_per_release": 1,
+    }
+    assert parallel["audit_scheduling_source"] == "controlled_cli_override"
+    assert (
+        parallel["rank_cpu_affinity"]
+        == PARALLEL_RANK_CPU_AFFINITY_CONTRACT
+    )
+    with pytest.raises(ValueError, match="exactly 1 or 8"):
+        _load_distributed_execution_contract(
+            TRAINING_CONFIG,
+            devices=8,
+            passage_model=True,
+            audit_concurrency=2,
+        )
 
     class FakeDDPStrategy:
         def __init__(self, *, timeout) -> None:
@@ -1602,6 +1714,11 @@ def test_two_process_gloo_releases_all_ranks_or_none_before_read(
     mismatch_rank1: bool,
     expected_passed: bool,
 ) -> None:
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
+            probe.bind(("127.0.0.1", 0))
+    except OSError as error:
+        pytest.skip(f"local TCP sockets are unavailable for Gloo: {error}")
     context = multiprocessing.get_context("spawn")
     queue = context.Queue()
     init_file = tmp_path / (

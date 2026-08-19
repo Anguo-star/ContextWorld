@@ -35,16 +35,16 @@ runtime:
 identity:
   public_api:
     path: contextworld/benchmarks/__init__.py
-    sha256: ae7fdb24aeaefb6cec66f22f83329e8edfca0cbf686059836b9acdb2684a99ea
+    sha256: ba378fb6ac01817645dfab1bd18d15c00ef86e8c796489155cfbd11363bcaa88
   adapters:
     path: contextworld/benchmarks/adapters.py
-    sha256: a1bf037ea4da49842163142563323a26a3eb11fca9a81f6dc4070d5688805c67
+    sha256: cc9e758b7081a57251e8cd026e9ac9ff8a17e3f300d52f464bdad871edcf26b2
   data_api:
     path: contextworld/benchmarks/action_strength_icl_data.py
     sha256: 7f1453b36e94483f24903f422e84700bcb4df4fe17f731dead3cf659578b692a
   score_api:
     path: contextworld/benchmarks/action_strength_icl_score.py
-    sha256: 66490e14fc98a87288bad74c0c531e8ab7a1da3a4a70610374e65d75e3e68cee
+    sha256: e6dac13a622eac39869db6960cea49f813605abf99067a2f3afa3bf1651370c2
   paired_latent_response_api:
     path: contextworld/benchmarks/paired_latent_response.py
     sha256: 92dc5cf019491f59596c3a0b59d918f04ad2290e124eab11d669537ac20d6ff5
@@ -53,7 +53,7 @@ identity:
     sha256: c455f2803f2bfc841e74348c797c3f4365b1afb0e229ef18e941b38bcc285db1
   published_reference_runner:
     path: scripts/run_pusht_hidden_actuation_mixed.py
-    sha256: 322980de4c5ea7cccd2eca0b0cacc2bc669f3805d264bd12d4952cc0bed89495
+    sha256: ed3f912b716c4090245d2388c11fabcda7962ac8e6c4aa8614d10ea69bcb17b0
   planning_runner:
     path: scripts/eval_pusht_replay_matched_hidden_cem.py
     sha256: 0b20a46a852cf447da3a292183c72c23dc42a5f7c24f25ff6ccea5e13e5aecef
@@ -372,3 +372,9 @@ distribution:
   public_download_status: not_configured
   public_artifact_urls: []
   export_grants_redistribution_rights: false
+
+maintenance_amendments:
+  - amendment_id: pusht_action_strength_score_float32_consistency_amendment_v1
+    path: configs/benchmark/pusht_action_strength_score_float32_consistency_amendment_v1.yaml
+    sha256: 07ea18d4ebf9df5f798e5b3d0761b19145c5caab162ef513ffdb4150bc368d0a
+    scope: public_score_command_numeric_reconstruction_only

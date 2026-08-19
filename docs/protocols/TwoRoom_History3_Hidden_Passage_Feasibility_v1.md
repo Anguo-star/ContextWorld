@@ -10,7 +10,7 @@ Encoder 与预测器联合训练时的隐藏规则相关局部表示收缩仍是
 
 **文档角色**：本文件只保存历史预注册动作、数据身份和逐文件证据，供审计追溯。
 任务解释、当前结果、发布配置和使用命令全部以
-[门规则 ICL Benchmark v1 主文档](../TwoRoom_Door_Benchmark_Design.md)为准；普通读者
+[ContextWorld ICL Benchmark 的门通行规则章节](../ContextWorld_ICL_Benchmark.md#42-门通行规则)为准；普通读者
 无需继续阅读本附录。
 
 ## 1. 任务定义
@@ -299,7 +299,7 @@ Benchmark 数据和评分标准。若要单独归因于“双规则数据”，�
 首轮 10 个结果均已完成严格身份复验。原始 H3 未通过；两个单规则端到端续训组和
 双规则端到端续训组都没有训练种子通过。它们用于检查普通联合训练和固定倾向，
 具体指标见
-[TwoRoom 门通行规则 ICL Benchmark v1](../TwoRoom_Door_Benchmark_Design.md)。
+[ContextWorld ICL Benchmark：门通行规则](../ContextWorld_ICL_Benchmark.md#42-门通行规则)。
 
 以下路径均相对于 ContextWorld artifact 根目录。哈希是当前正式文件的字节级
 SHA-256。

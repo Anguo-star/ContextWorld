@@ -127,6 +127,40 @@ def test_additive_profile_preserves_full_budget_for_each_group() -> None:
     assert plan["group_exposure"]["speed"]["total_draws"] == 6_574_080
 
 
+def test_action_delay_core_profile_covers_every_balanced_virtual_slot() -> None:
+    args = _apply_profile(_profile_args("icl_core_v3"))
+    metadata = {
+        "epoch_group_counts": {
+            "original": 262_144,
+            "action_delay_paired": 262_144,
+        },
+        "epoch_group_coverage": {
+            "original": {
+                "available_virtual_slots": 477_742,
+                "unique_virtual_slots": 262_144,
+            },
+            "action_delay_paired": {
+                "available_virtual_slots": 184_320,
+                "unique_virtual_slots": 184_320,
+            },
+        },
+        "groups": {
+            "original": {"train_clips": 477_742},
+            "action_delay_paired": {"train_clips_raw": 56_320},
+        },
+    }
+
+    plan = _build_training_plan(args, metadata)
+
+    assert plan["optimizer_steps_per_epoch"] == 512
+    assert plan["optimizer_steps_total"] == 1_024
+    assert plan["total_global_sample_draws"] == 1_048_576
+    synthetic = plan["group_exposure"]["action_delay_paired"]
+    assert synthetic["total_draws"] == 524_288
+    assert synthetic["raw_clips_never_drawn"] == 0
+    assert synthetic["run_unique_raw_fraction"] == 1.0
+
+
 def test_native_resume_policy_accepts_fresh_auto_run(tmp_path) -> None:
     run_dir = tmp_path / "run"
     checkpoint = run_dir / "run_weights.ckpt"

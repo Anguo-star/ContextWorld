@@ -1,0 +1,49 @@
+schema_version: 1
+benchmark: tworoom_portal_exit_history3_feasibility_v1
+status: physical_feasibility
+date: "2026-08-01"
+
+environment:
+  id: contextworld/TwoRoomPortalExit-v1
+  base: swm/TwoRoom-v1
+  hidden_factor: portal.exit_mode
+  values:
+    near_border: 0
+    farther_from_border: 1
+  hidden_from_model: true
+
+protocol:
+  history_tokens: 3
+  context_transitions: 2
+  raw_steps_per_action_block: 5
+  agent_speed: 7.0
+  sequence:
+    - same_portal_entry_state
+    - same_probe_reveals_different_exit
+    - same_recovery_action_reaches_same_query_via_border_clamp
+  query_future: same_entry_action_produces_rule_dependent_exit
+  contiguous_history: true
+  out_of_band_state_reset_inside_history: false
+  history_actions_identical_across_rules: true
+  query_state_and_action_identical_across_rules: true
+
+catalog:
+  seed: 20260801
+  templates: 64
+  wall_axes: [vertical, horizontal]
+  approach_directions: [forward, reverse]
+  border_sides: [low, high]
+
+gates:
+  minimum_history_exit_gap_px: 12.0
+  minimum_true_future_gap_px: 12.0
+  maximum_query_state_gap: 1.0e-5
+  query_pixels_bitwise_equal: true
+  history_actions_bitwise_equal: true
+  query_action_bitwise_equal: true
+  exact_replay: true
+  zero_failed_templates: true
+
+model_visible_fields: [pixels, action]
+privileged_audit_fields: [portal.exit_mode, state, template_id]
+output: artifacts/evaluation/history3/portal_exit_h3_feasibility_v1/audit.json

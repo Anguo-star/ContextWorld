@@ -32,3 +32,22 @@ def test_logical_artifact_reference_round_trips(monkeypatch, tmp_path) -> None:
         portable_contextworld_path(resolved, repo_root=repo)
         == "artifacts/evaluation/history3/result.json"
     )
+
+
+def test_existing_bundled_artifact_precedes_external_root(
+    monkeypatch,
+    tmp_path,
+) -> None:
+    repo = tmp_path / "ag_data/code/ContextWorld"
+    bundled = repo / "artifacts/synthesis/component/manifest.json"
+    bundled.parent.mkdir(parents=True)
+    bundled.write_text("{}\n", encoding="utf-8")
+    external = tmp_path / "external/context_world"
+    monkeypatch.setenv("CONTEXTWORLD_ARTIFACT_ROOT", str(external))
+
+    resolved = resolve_contextworld_path(
+        "artifacts/synthesis/component/manifest.json",
+        repo_root=repo,
+    )
+
+    assert resolved == bundled

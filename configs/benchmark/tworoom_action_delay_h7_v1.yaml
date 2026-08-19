@@ -1,0 +1,200 @@
+schema_version: 1
+benchmark: tworoom_action_delay_history7_v1
+status: preregistered_after_physical_length_selection_before_data_generation_or_training
+preregistered_date: "2026-07-28"
+
+question: >-
+  History=7 世界模型能否从连续动作响应中识别最多 10 个原始步的隐藏动作延迟，
+  并把识别结果稳定用于未来三个 action block 的自回归预测？
+
+claim_boundary:
+  current_status: protocol_frozen_not_yet_executed
+  history3_result: one_step_feasibility_only
+  history7_model_result: not_yet_available
+  planning_result: not_yet_available
+
+stable_worldmodel:
+  repo: ../stable-worldmodel
+  commit: 1b81dcd1a60e3ce27b7cf97f2f71f7da09c6502b
+
+physical_length_selection:
+  config: >-
+    configs/benchmark/tworoom_action_delay_long_history_feasibility_v1.yaml
+  report: >-
+    artifacts/evaluation/long_history/action_delay_length_feasibility_v1/build_report.json
+  report_sha256: a5202f1ef594b12f10ca0701df9f49f5c73ff5971e77388c07cac7c978a5fa5b
+  catalog: >-
+    artifacts/evaluation/long_history/action_delay_length_feasibility_v1/catalog.json
+  catalog_sha256: 0e96b69910ba4816d404e7114d27d1881226ec2bf77b465dbcc34573e0e2108b
+  frozen_result:
+    history5: query_not_aligned_for_delay10
+    history6: physical_minimum_but_latest_delay_moves_in_final_transition
+    history7: selected_first_stable_query_boundary
+    history9: no_additional_identifiability
+
+environment:
+  base: swm/TwoRoom-v1
+  hidden_factor: action.delay_steps
+  delay_range: [0, 10]
+  agent_speed: 7.0
+  hidden_from_model:
+    - action.delay_steps
+    - pending_action_queue
+    - state_coordinates
+  model_visible_fields: [pixels, action]
+
+history_protocol:
+  history_tokens: 7
+  context_transitions: 6
+  raw_steps_per_action_block: 5
+  action_magnitude: 0.5
+  blocks:
+    - probe_for_five_raw_steps
+    - zero_for_five_raw_steps
+    - inverse_probe_for_five_raw_steps
+    - zero_for_five_raw_steps
+    - zero_for_five_raw_steps
+    - zero_for_five_raw_steps
+  guarantees:
+    no_reset_or_teleport_inside_history: true
+    all_delays_end_at_bitwise_identical_query_pixels: true
+    all_delays_end_with_empty_action_queue: true
+    final_history_transition_is_stationary_for_all_delays: true
+
+training_data:
+  original_read_only: ../../data/world_model/quentinll/lewm-tworooms/tworoom.h5
+  original_split:
+    strategy: episode_heldout
+    seed: 3072
+    train_fraction: 0.9
+  synthetic_groups:
+    single_delay_control:
+      delay_values: [4]
+    multi_delay_target:
+      delay_values: [0, 4, 8]
+  required_episode_model_frames: 10
+  required_raw_steps_per_episode: 50
+  split_isolation:
+    training_eval_template_overlap: zero
+    training_eval_simulator_seed_overlap: zero
+    training_eval_initial_pixel_hash_overlap: zero
+  generation_status: not_started
+
+training_protocol:
+  architecture: stable_worldmodel_lewm_history7
+  training_method: lewm
+  history_tokens: 7
+  num_preds: 1
+  raw_steps_per_action_block: 5
+  objective: causal_one_step_latent_prediction_over_history7_windows
+  evaluation_rollout: fully_autoregressive_three_action_blocks
+  paired_training_seeds: [3072, 4096, 5120]
+  required_models:
+    - H7_OriginalOnly
+    - H7_ActionDelay_SingleControl
+    - H7_ActionDelay_Multi
+  attribution_comparison:
+    control: H7_ActionDelay_SingleControl
+    target: H7_ActionDelay_Multi
+    equal_except: synthetic_delay_support
+  initialization:
+    status: requires_history7_base_initialization_protocol
+    rule: >-
+      三类模型必须使用同一份 History=7 初始化。不得把 History=3 checkpoint 直接
+      strict load 到 History=7；新增位置编码如何初始化必须先冻结并单独审计。
+  budget:
+    status: freeze_after_data_loader_memory_smoke
+    equal_optimizer_steps_across_models: true
+    equal_effective_global_batch_across_models: true
+  training_status: not_started
+
+validation:
+  split: validation
+  catalog_seed: 20260728
+  eval_seeds: [42, 43, 44, 45, 46, 47]
+  queries_per_seed: 50
+  independent_queries_per_delay: 300
+  delay_values: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+  tracks:
+    training_seen: [0, 4, 8]
+    within_training_range_unseen: [1, 2, 3, 5, 6, 7]
+    above_training_range_unseen: [9, 10]
+  future_horizons_action_blocks: [1, 2, 3]
+  future_actions: repeat_probe_action
+  offline_true_futures: true
+  online_environment_during_model_scoring: false
+  query_geometry:
+    nuisance_factors_fixed: true
+    door_position: 49
+    rooms_per_seed: {left: 25, right: 25}
+    directions_per_seed: {up: 25, down: 25}
+    left_x: {start: 28, stop_exclusive: 94, step: 3}
+    right_x: {start: 133, stop_exclusive: 199, step: 3}
+    up_y: {start: 30, stop_exclusive: 147, step: 3}
+    down_y: {start: 78, stop_exclusive: 195, step: 3}
+    rule: >-
+      每个 Eval seed 抽取 50 个不同起点；六个 seed 合计 300 个不同 query。
+      同一批 300 个 query 在 11 档延迟下成对复用，因此每档都有完整 300 次，
+      不是把 300 次拆分给 11 档。
+  catalog_status: not_started
+
+scoring:
+  primary_unit: one_query_with_three_step_true_future_trajectory
+  latent_target: each_checkpoint_frozen_encoder_of_real_future_frames
+  aggregate_trajectory_loss:
+    horizons: [1, 2, 3]
+    reduction: equal_mean
+  primary_metrics:
+    - exact_delay_history_selection_rate_from_three_step_loss
+    - exact_delay_target_selection_rate_from_three_step_loss
+    - strict_history_win_rate_from_three_step_loss
+    - matched_history_three_step_loss_ratio
+  per_horizon_metrics:
+    - true_future_latent_mse
+    - physically_correct_future_group_selection_rate
+    - matched_history_loss_ratio
+  physical_equivalence:
+    horizon1:
+      distinct_future_groups: 6
+      note: delays_5_through_10_all_have_zero_displacement
+    horizon2:
+      distinct_future_groups: 11
+    horizon3:
+      distinct_future_groups: 11
+  forbidden_metric_interpretations:
+    - do_not_score_exact_delay_from_horizon1_for_delays_5_through_10
+    - do_not_call_one_step_future_group_rate_exact_delay_accuracy
+    - do_not_infer_pixel_speed_from_latent
+
+method_level_gate:
+  required_training_seeds: 3
+  every_seed_must_pass: true
+  per_delay_three_step_history_selection_rate_minimum: 0.60
+  per_delay_three_step_target_selection_rate_minimum: 0.60
+  per_delay_three_step_strict_win_rate_minimum: 0.50
+  per_delay_mean_history_margin_positive: true
+  every_eval_seed_history_margin_positive: true
+  multi_delay_must_outperform_single_delay_control: true
+  consecutive_autoregressive_horizons_required: [1, 2, 3]
+
+ability_retention:
+  required_after_primary_gate: true
+  domains:
+    - original_episode_heldout
+    - fixed_speed5_base_domain
+  queries_per_domain: 300
+  do_not_merge_domains: true
+
+execution_order:
+  - build_and_audit_50x6_validation
+  - build_and_audit_single_and_multi_delay_training_data
+  - freeze_history7_initialization_and_memory_budget
+  - train_three_paired_seeds_for_each_model
+  - run_offline_three_step_validation
+  - run_ability_retention
+  - only_then_consider_fixed_candidates_or_cem
+
+outputs:
+  validation_root: artifacts/evaluation/history7/action_delay_validation_v1
+  synthesis_root: artifacts/synthesis/action_delay_h7_v1
+  training_root: artifacts/training/runs/checkpoints

@@ -2586,10 +2586,7 @@ def _run_with_release_lock_held(args) -> dict:
         SIGReg,
         TemporalStraighteningLoss,
         VCReg,
-        VISRegLoss,
     )
-    from stable_worldmodel.loggers import build_training_logger
-
     pl.seed_everything(args.seed, workers=True)
     training_method = _training_method(args.benchmark_config.resolve())
     sequence_contract = _training_sequence_contract(
@@ -3000,14 +2997,24 @@ def _run_with_release_lock_held(args) -> dict:
     loss_components = {}
     if training_method == "lewm":
         regularizer_name = str(cfg.loss.regularizer).lower()
-        regularizer_classes = {
-            "sigreg": SIGReg,
-            "visreg": VISRegLoss,
-        }
         regularizer_cfg = cfg.loss.get(regularizer_name)
-        loss_components[regularizer_name] = regularizer_classes[
-            regularizer_name
-        ](**regularizer_cfg.kwargs)
+        if regularizer_name == "sigreg":
+            regularizer_class = SIGReg
+        elif regularizer_name == "visreg":
+            # Some pinned PLDM-only StableWM revisions intentionally predate
+            # VISReg.  Do not make that unused optional LeWM loss a runtime
+            # dependency of a native PLDM confirmation run.
+            from stable_worldmodel.wm.loss import VISRegLoss
+
+            regularizer_class = VISRegLoss
+        else:
+            raise ValueError(
+                "Unsupported LeWM regularizer: "
+                f"{regularizer_name!r}"
+            )
+        loss_components[regularizer_name] = regularizer_class(
+            **regularizer_cfg.kwargs
+        )
         if any(
             bool(cfg.loss.get(name).enabled)
             for name in ("std", "std_t", "cov", "cov_t")
@@ -4204,11 +4211,18 @@ def _run_with_release_lock_held(args) -> dict:
         distributed_execution_contract,
         ddp_strategy_class=DDPStrategy,
     )
-    experiment_logger = _build_training_logger_preserving_rng(
-        cfg,
-        builder=build_training_logger,
-        torch_module=torch,
-    )
+    if str(args.logger_backend).lower() == "none":
+        # Older pinned StableWM revisions have no optional external logger
+        # module.  An explicitly offline run must not require it.
+        experiment_logger = False
+    else:
+        from stable_worldmodel.loggers import build_training_logger
+
+        experiment_logger = _build_training_logger_preserving_rng(
+            cfg,
+            builder=build_training_logger,
+            torch_module=torch,
+        )
     trainer = pl.Trainer(
         max_epochs=trainer_max_epochs,
         max_steps=args.expected_optimizer_steps,

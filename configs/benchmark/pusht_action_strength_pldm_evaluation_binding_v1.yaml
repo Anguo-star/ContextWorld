@@ -1,0 +1,203 @@
+schema_version: 1
+binding_id: pusht_action_strength_pldm_evaluation_binding_v1
+status: preregistered_after_training_before_formal_public_evaluation
+created_utc: "2026-08-17"
+
+# This is deliberately separate from the completion preregistration.  It
+# freezes evaluation identities only after all three fixed-step checkpoints
+# exist and before the first Public ICL query or real-environment CEM call.
+scope:
+  component: ActionStrength
+  environment: PushT
+  model_family: PLDM
+  history_tokens: 3
+  action_block_raw_steps: 5
+  formal_evaluations: [public_icl, action_planning_cem, original_pusht_cem]
+  no_checkpoint_selection_after_training: true
+
+completion:
+  path: configs/benchmark/pusht_action_strength_pldm_reference_completion_v1.yaml
+  sha256: 65c1dfa424f0d82524a793caa35bb45cc01ca67382d2496bea313c6a2456e133
+  completion_id: pusht_action_strength_pldm_reference_completion_v1
+  fixed_recipe: mixed_pldm_joint
+  fixed_optimizer_steps: 4096
+  training_seeds: [13313, 13314, 13315]
+
+release:
+  path: configs/benchmark/pusht_action_strength_icl_release_v1.yaml
+  sha256: e8e9fe068ef323b9dc92fab3a55a3154a305f6c920cd55718141e69854c778bc
+  release_id: contextworld_pusht_action_strength_icl_history3_v1
+
+stable_worldmodel:
+  worktree: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/context_world/upstream/stable-worldmodel-875e607fc08aa72e
+  expected_ref: 875e607fc08aa72eacb94d5d178127804134cc06
+  pldm_config: scripts/train/config/pldm.yaml
+  pldm_config_sha256: e03191b338289cf0577e9bf60283ba1ce13f6b04dc5d7a340a32ac47d53badbb
+
+evaluator_sources:
+  adapters:
+    path: contextworld/benchmarks/adapters.py
+    sha256: cc9e758b7081a57251e8cd026e9ac9ff8a17e3f300d52f464bdad871edcf26b2
+  data:
+    path: contextworld/benchmarks/action_strength_icl_data.py
+    sha256: 7f1453b36e94483f24903f422e84700bcb4df4fe17f731dead3cf659578b692a
+  score:
+    path: contextworld/benchmarks/action_strength_icl_score.py
+    sha256: 4beefc8ab58470b02faf9132c9a7dc22f39e6576e3c086fd1efccb71502a863b
+  cli:
+    path: contextworld/benchmarks/action_strength_icl_cli.py
+    sha256: c455f2803f2bfc841e74348c797c3f4365b1afb0e229ef18e941b38bcc285db1
+  published_training_runner:
+    path: scripts/run_pusht_hidden_actuation_mixed.py
+    sha256: ed3f912b716c4090245d2388c11fabcda7962ac8e6c4aa8614d10ea69bcb17b0
+  planning_runner:
+    path: scripts/eval_pusht_replay_matched_hidden_cem.py
+    sha256: 0b20a46a852cf447da3a292183c72c23dc42a5f7c24f25ff6ccea5e13e5aecef
+  planning_shared_model_loader:
+    path: scripts/eval_pusht_hidden_actuation_cem.py
+    sha256: a9a80f5381d59ff2941417a3cfeb4c9d23299eaf2118bc27f9212f6b730afb87
+  retention_runner:
+    path: scripts/eval_pusht_standard_cem_retention.py
+    sha256: e72d555e36e57112bece2dad8a7c66965f9312e7191d573e2728a9ef5a89b2a5
+  pinned_runtime_launcher:
+    path: scripts/run_pusht_action_strength_pinned_cem.py
+    sha256: 471a3888ff55505989364d360f8b8da9032a55343971e87a3777b80e4fc5e87f
+    contract: >-
+      Verifies the pinned worktree/ref and the frozen runner hashes, then
+      replaces only STABLE_WORLD_MODEL_ROOT in memory. The original runner
+      sources are not edited.
+  planning_equivalence_verifier:
+    path: scripts/verify_pusht_action_strength_planning_equivalence_v1.py
+    sha256: ea69d82c552734776294aaea71a045483eb33a47e64d7c11b4fdad4561df5b88
+
+# The binding deliberately does not open, stat, hash, decode, or score the
+# Public Test payload.  These are declarative identities from the already
+# frozen release; actual Public reads begin only after this binding validates.
+public_test_identity:
+  access_during_binding: closed_declarative_identity_only
+  root: artifacts/evaluation/history3/pusht_action_strength_h3_public_test_v1
+  manifest:
+    path: artifacts/evaluation/history3/pusht_action_strength_h3_public_test_v1/manifest.json
+    sha256: 5abb504ea57f9525944fdbc75c418cfba2bc4afbe1a8f0b3fea2c489b3f62092
+  query_table:
+    relative_path: validation.lance
+    pair_count: 256
+    condition_count: 512
+    artifact_tree_sha256: 35a436b7160afe66e66abe558c893dcdbf52b412799ad5cdf5fa4a33b3fa19bc
+  planning_oracle:
+    path: artifacts/evaluation/history3/pusht_action_strength_h3_release_v1/action_planning_oracle.json
+    sha256: 30eb50f33b1478a02110fcf11ccf613b061f3b1c5aea8fc77421429a91fb917a
+    condition_count: 512
+  original_pusht_query_catalog_sha256: da974c821e3fa0f232ac59538e0c79cc2cb9a80ea4bb4a62b910c66c278ce2d4
+
+checkpoints:
+  - seed: 13313
+    checkpoint:
+      path: artifacts/evaluation/history3/pusht_action_strength_pldm_reference_completion_v1/seed_13313/training/mixed_pldm_joint_step4096.pt
+      sha256: beed2dfe852ab01f21386ea13cbe8f77ddf16264f71d2ca25c66003266e85a2f
+      model_state_sha256: fbc83a2f290edb61e58208cfa5fc46a52551a3a0b58c6a57d7b1e93d652a523a
+    config:
+      path: artifacts/evaluation/history3/pusht_action_strength_pldm_reference_completion_v1/seed_13313/training/config.json
+      sha256: 9a7174b28fccf4fa1abc7e2c756b93c93a659a00715a49fc64cf25affdba81b4
+    training_report:
+      path: artifacts/evaluation/history3/pusht_action_strength_pldm_reference_completion_v1/seed_13313/training/mixed_report.json
+      sha256: cc504dd38dd1b9678da61f3fbacfa7e1342c1d824d03d687cbdf08536c68ff95
+    development_gate:
+      path: artifacts/evaluation/history3/pusht_action_strength_pldm_reference_completion_v1/development_gate/seed_13313.json
+      sha256: 4b8b6e236be0143a946ce5686034f9e8c8260191f34bd8582c066a531362ede5
+    final_development_metrics:
+      optimizer_step: 4096
+      pair_count: 256
+      decision_count: 512
+      two_real_future_target_selection_rate: 0.908203125
+      correct_history_preference_rate: 0.94921875
+      correct_rule_switch_rate: 0.98828125
+      worst_mode_target_selection_rate: 0.8828125
+      correct_future_mean: 0.0744367316365242
+      incorrect_future_mean: 0.3690580725669861
+  - seed: 13314
+    checkpoint:
+      path: artifacts/evaluation/history3/pusht_action_strength_pldm_reference_completion_v1/seed_13314/training/mixed_pldm_joint_step4096.pt
+      sha256: 1f014cb345116c02cfbdbe6952a86a377138da1e8e8dd1dc87156c9ca9f47864
+      model_state_sha256: a73ce9cef71beed63c924f3c66880384c8c511c6fbbdc378690b4a0863b78521
+    config:
+      path: artifacts/evaluation/history3/pusht_action_strength_pldm_reference_completion_v1/seed_13314/training/config.json
+      sha256: 9a7174b28fccf4fa1abc7e2c756b93c93a659a00715a49fc64cf25affdba81b4
+    training_report:
+      path: artifacts/evaluation/history3/pusht_action_strength_pldm_reference_completion_v1/seed_13314/training/mixed_report.json
+      sha256: 36635ab83d9b027e947d703798f284a3e2e2386a414b9dabf5b61bcf0d3a72f6
+    development_gate:
+      path: artifacts/evaluation/history3/pusht_action_strength_pldm_reference_completion_v1/development_gate/seed_13314.json
+      sha256: 5a75ccc5020f16261aa6106af51c191830b9a38e1a00a08104c143ddad2d959b
+    final_development_metrics:
+      optimizer_step: 4096
+      pair_count: 256
+      decision_count: 512
+      two_real_future_target_selection_rate: 0.9140625
+      correct_history_preference_rate: 0.953125
+      correct_rule_switch_rate: 0.984375
+      worst_mode_target_selection_rate: 0.890625
+      correct_future_mean: 0.07394994050264359
+      incorrect_future_mean: 0.369446337223053
+  - seed: 13315
+    checkpoint:
+      path: artifacts/evaluation/history3/pusht_action_strength_pldm_reference_completion_v1/seed_13315/training/mixed_pldm_joint_step4096.pt
+      sha256: 3242de2bfa52dcf41c6a0d40b9126e8549cf87763d66cb75db86ca3a55240148
+      model_state_sha256: 0e8fa433675e851bd665200c490962349661184d4581ad825e2a03b36356240a
+    config:
+      path: artifacts/evaluation/history3/pusht_action_strength_pldm_reference_completion_v1/seed_13315/training/config.json
+      sha256: 9a7174b28fccf4fa1abc7e2c756b93c93a659a00715a49fc64cf25affdba81b4
+    training_report:
+      path: artifacts/evaluation/history3/pusht_action_strength_pldm_reference_completion_v1/seed_13315/training/mixed_report.json
+      sha256: aa79e174e4c7718d4ef7742c2f6d43b59cb9983c986159fa1773c2fabb7bd43b
+    development_gate:
+      path: artifacts/evaluation/history3/pusht_action_strength_pldm_reference_completion_v1/development_gate/seed_13315.json
+      sha256: 7fea20625b2f07037abf24c89d70b1b172fe218d683ef8b9f537c2b4c46e33c8
+    final_development_metrics:
+      optimizer_step: 4096
+      pair_count: 256
+      decision_count: 512
+      two_real_future_target_selection_rate: 0.9140625
+      correct_history_preference_rate: 0.953125
+      correct_rule_switch_rate: 0.984375
+      worst_mode_target_selection_rate: 0.90625
+      correct_future_mean: 0.07352393865585327
+      incorrect_future_mean: 0.36769092082977295
+
+training_public_exclusion_proof:
+  required_training_report_fields:
+    - provenance.hidden_data.evaluation_source == development_validation_lance
+    - provenance.hidden_data.public_test_used == false
+    - results[0].prediction_supervision.public_test_used == false
+  required_development_gate_fields:
+    - status == passed_development_only_checkpoint_gate
+    - public_test_used == false
+    - formal_icl_or_cem_executed == false
+
+formal_protocol:
+  public_icl:
+    command: contextworld.benchmarks.action_strength_icl_cli:eval
+    adapter: pldm
+    pair_count: 256
+    batch_size: 64
+    required_before_next_stage: three_seed_aggregate_icl_gate
+  action_planning_cem:
+    command: scripts/run_pusht_action_strength_pinned_cem.py planning
+    condition_count: 512
+    cem: {samples: 300, iterations: 30, topk: 30}
+    score_command: contextworld.benchmarks.action_strength_icl_cli:score-planning
+  original_pusht_retention_cem:
+    command: scripts/run_pusht_action_strength_pinned_cem.py retention
+    eval_seeds: [42, 43, 44, 45, 46, 47]
+    queries_per_seed: 50
+    total_episodes: 300
+    cem: {samples: 300, iterations: 30, topk: 30}
+    score_command: contextworld.benchmarks.action_strength_icl_cli:score-retention
+
+artifacts:
+  root: artifacts/evaluation/history3/pusht_action_strength_pldm_reference_completion_v1
+  binding_receipt: artifacts/evaluation/history3/pusht_action_strength_pldm_reference_completion_v1/evaluation_binding_v1/evaluation_binding_receipt.json
+  planning_equivalence_root: artifacts/evaluation/history3/pusht_action_strength_pldm_reference_completion_v1/evaluation_binding_v1/planning_equivalence_revalidation_v3
+  formal_icl_root: artifacts/evaluation/history3/pusht_action_strength_pldm_reference_completion_v1/formal_icl_v1
+  action_planning_root: artifacts/evaluation/history3/pusht_action_strength_pldm_reference_completion_v1/formal_action_planning_cem_v1
+  retention_root: artifacts/evaluation/history3/pusht_action_strength_pldm_reference_completion_v1/formal_original_pusht_retention_cem_v1

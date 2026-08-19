@@ -1,0 +1,396 @@
+{
+  "aggregation_policy": "Each component is judged independently; component metrics are not averaged into a suite-wide score.",
+  "component_results": [
+    {
+      "component_id": "action_delay",
+      "component_name": "TwoRoom \u52a8\u4f5c\u5ef6\u8fdf",
+      "icl_ability": {
+        "claim": "icl_not_demonstrated",
+        "evidence_scope": "behavioral",
+        "primary_metric": {
+          "id": "one_step_physical_group_accuracy",
+          "label": "\u4e00\u6b65\u771f\u5b9e\u7269\u7406\u54cd\u5e94\u7ec4\u6b63\u786e\u7387",
+          "maximum": 0.33,
+          "mean": 0.32425925925925925,
+          "minimum": 0.32111111111111107,
+          "unit": "fraction"
+        },
+        "result": "FAIL",
+        "training_seed_stability": {
+          "all_required_seeds_passed": false,
+          "evaluated_checkpoints": 3,
+          "passed_checkpoints": 0,
+          "required_checkpoints": 3
+        }
+      },
+      "method_name": "LeWM\uff08\u76f8\u540c\u6570\u636e\u548c\u9884\u7b97\uff09",
+      "original_task_retention": {
+        "evaluated_checkpoints": 3,
+        "primary_metric": {
+          "baseline": 0.91,
+          "id": "original_tworoom_cem_success_rate",
+          "label": "\u539f TwoRoom CEM \u6210\u529f\u7387",
+          "maximum": 0.9733333333333334,
+          "mean": 0.9733333333333333,
+          "minimum": 0.9733333333333334,
+          "unit": "fraction"
+        },
+        "result": "PASS"
+      }
+    },
+    {
+      "component_id": "action_delay",
+      "component_name": "TwoRoom \u52a8\u4f5c\u5ef6\u8fdf",
+      "icl_ability": {
+        "claim": "behavioral_icl_demonstrated",
+        "evidence_scope": "behavioral",
+        "primary_metric": {
+          "id": "one_step_physical_group_accuracy",
+          "label": "\u4e00\u6b65\u771f\u5b9e\u7269\u7406\u54cd\u5e94\u7ec4\u6b63\u786e\u7387",
+          "maximum": 0.9380555555555554,
+          "mean": 0.933641975308642,
+          "minimum": 0.9306481481481482,
+          "unit": "fraction"
+        },
+        "result": "PASS",
+        "training_seed_stability": {
+          "all_required_seeds_passed": true,
+          "evaluated_checkpoints": 3,
+          "passed_checkpoints": 3,
+          "required_checkpoints": 3
+        }
+      },
+      "method_name": "PLDM\uff08\u4e24\u9636\u6bb5\u5ef6\u8fdf\u8bad\u7ec3\uff09",
+      "original_task_retention": {
+        "evaluated_checkpoints": 3,
+        "primary_metric": {
+          "baseline": 0.91,
+          "id": "original_tworoom_cem_success_rate",
+          "label": "\u539f TwoRoom CEM \u6210\u529f\u7387",
+          "maximum": 0.9733333333333334,
+          "mean": 0.9622222222222222,
+          "minimum": 0.95,
+          "unit": "fraction"
+        },
+        "result": "PASS"
+      }
+    },
+    {
+      "component_id": "action_strength",
+      "component_name": "PushT \u63a8\u624b\u79fb\u52a8\u5e45\u5ea6",
+      "icl_ability": {
+        "claim": "behavioral_icl_demonstrated",
+        "evidence_scope": "behavioral",
+        "primary_metric": {
+          "id": "correct_real_next_state_choice_accuracy",
+          "label": "\u771f\u5b9e\u4e0b\u4e00\u72b6\u6001\u9009\u62e9\u6b63\u786e\u7387",
+          "maximum": 0.970703125,
+          "mean": 0.9661458333333334,
+          "minimum": 0.962890625,
+          "unit": "fraction"
+        },
+        "result": "PASS",
+        "training_seed_stability": {
+          "all_required_seeds_passed": true,
+          "evaluated_checkpoints": 3,
+          "passed_checkpoints": 3,
+          "required_checkpoints": 3
+        }
+      },
+      "method_name": "LeWM\uff08\u539f PushT + \u914d\u5bf9\u79fb\u52a8\u5e45\u5ea6\u6570\u636e\uff09",
+      "original_task_retention": {
+        "evaluated_checkpoints": 3,
+        "primary_metric": {
+          "baseline": 0.75,
+          "id": "standard_pusht_cem_success_rate",
+          "label": "\u6807\u51c6 PushT CEM \u6210\u529f\u7387",
+          "maximum": 0.7733333333333333,
+          "mean": 0.7466666666666667,
+          "minimum": 0.72,
+          "unit": "fraction"
+        },
+        "result": "PASS"
+      }
+    },
+    {
+      "component_id": "cube_gripper_carry",
+      "component_name": "Cube \u5939\u722a\u643a\u5e26\u89c4\u5219",
+      "icl_ability": {
+        "claim": "behavioral_icl_demonstrated",
+        "evidence_scope": "behavioral",
+        "primary_metric": {
+          "id": "correct_future_rate",
+          "label": "\u771f\u5b9e\u643a\u5e26\u89c4\u5219\u4e0b\u4e00\u72b6\u6001\u9009\u62e9\u6b63\u786e\u7387",
+          "maximum": 0.791015625,
+          "mean": 0.7845052083333334,
+          "minimum": 0.77734375,
+          "unit": "fraction"
+        },
+        "result": "PASS",
+        "training_seed_stability": {
+          "all_required_seeds_passed": true,
+          "evaluated_checkpoints": 3,
+          "passed_checkpoints": 3,
+          "required_checkpoints": 3
+        }
+      },
+      "method_name": "LeWM\uff08\u56fa\u5b9a\u56fe\u50cf\u7f16\u7801\u5668\uff0c\u62df\u5408\u914d\u5bf9\u771f\u5b9e\u672a\u6765\uff09",
+      "original_task_retention": {
+        "evaluated_checkpoints": 3,
+        "primary_metric": {
+          "baseline": 0.66,
+          "id": "standard_cube_cem_success_rate",
+          "label": "\u6807\u51c6 Cube CEM \u6210\u529f\u7387",
+          "maximum": 0.62,
+          "mean": 0.6155555555555555,
+          "minimum": 0.61,
+          "unit": "fraction"
+        },
+        "result": "PASS"
+      }
+    },
+    {
+      "component_id": "door",
+      "component_name": "TwoRoom \u95e8\u901a\u884c\u89c4\u5219",
+      "icl_ability": {
+        "claim": "behavioral_icl_demonstrated",
+        "evidence_scope": "behavioral",
+        "primary_metric": {
+          "id": "correct_door_outcome_choice_accuracy",
+          "label": "\u771f\u5b9e\u7a7f\u95e8\u7ed3\u679c\u9009\u62e9\u6b63\u786e\u7387",
+          "maximum": 1.0,
+          "mean": 1.0,
+          "minimum": 1.0,
+          "unit": "fraction"
+        },
+        "result": "PASS",
+        "training_seed_stability": {
+          "all_required_seeds_passed": true,
+          "evaluated_checkpoints": 3,
+          "passed_checkpoints": 3,
+          "required_checkpoints": 3
+        }
+      },
+      "method_name": "LeWM\uff08\u56fa\u5b9a\u56fe\u50cf\u7f16\u7801\u5668\uff0c\u95e8\u6570\u636e\u7eed\u8bad\uff09",
+      "original_task_retention": {
+        "evaluated_checkpoints": 3,
+        "primary_metric": {
+          "baseline": 0.91,
+          "id": "original_tworoom_cem_success_rate",
+          "label": "\u539f TwoRoom CEM \u6210\u529f\u7387",
+          "maximum": 0.6566666666666666,
+          "mean": 0.6366666666666666,
+          "minimum": 0.6233333333333333,
+          "unit": "fraction"
+        },
+        "result": "FAIL"
+      }
+    },
+    {
+      "component_id": "door",
+      "component_name": "TwoRoom \u95e8\u901a\u884c\u89c4\u5219",
+      "icl_ability": {
+        "claim": "behavioral_icl_demonstrated",
+        "evidence_scope": "behavioral",
+        "primary_metric": {
+          "id": "correct_door_outcome_choice_accuracy",
+          "label": "\u771f\u5b9e\u7a7f\u95e8\u7ed3\u679c\u9009\u62e9\u6b63\u786e\u7387",
+          "maximum": 0.9933333333333333,
+          "mean": 0.9933333333333333,
+          "minimum": 0.9933333333333333,
+          "unit": "fraction"
+        },
+        "result": "PASS",
+        "training_seed_stability": {
+          "all_required_seeds_passed": true,
+          "evaluated_checkpoints": 3,
+          "passed_checkpoints": 3,
+          "required_checkpoints": 3
+        }
+      },
+      "method_name": "PLDM\uff08\u95e8\u6570\u636e\u7eed\u8bad\uff09",
+      "original_task_retention": {
+        "evaluated_checkpoints": 3,
+        "primary_metric": {
+          "baseline": 0.91,
+          "id": "original_tworoom_cem_success_rate",
+          "label": "\u539f TwoRoom CEM \u6210\u529f\u7387",
+          "maximum": 0.4866666666666667,
+          "mean": 0.4588888888888889,
+          "minimum": 0.44,
+          "unit": "fraction"
+        },
+        "result": "FAIL"
+      }
+    },
+    {
+      "component_id": "portal_exit",
+      "component_name": "TwoRoom \u4f20\u9001\u95e8\u51fa\u53e3\u4f4d\u7f6e",
+      "icl_ability": {
+        "claim": "icl_not_demonstrated",
+        "evidence_scope": "behavioral",
+        "primary_metric": {
+          "id": "correct_real_next_state_choice_accuracy",
+          "label": "\u771f\u5b9e\u51fa\u53e3\u4e0b\u4e00\u72b6\u6001\u9009\u62e9\u6b63\u786e\u7387",
+          "maximum": 0.85546875,
+          "mean": 0.8391927083333334,
+          "minimum": 0.830078125,
+          "unit": "fraction"
+        },
+        "result": "FAIL",
+        "training_seed_stability": {
+          "all_required_seeds_passed": false,
+          "evaluated_checkpoints": 3,
+          "passed_checkpoints": 0,
+          "required_checkpoints": 3
+        }
+      },
+      "method_name": "LeWM\uff08\u56fa\u5b9a\u56fe\u50cf\u7f16\u7801\u5668\uff0c\u62df\u5408\u914d\u5bf9\u771f\u5b9e\u672a\u6765\uff09",
+      "original_task_retention": {
+        "evaluated_checkpoints": 3,
+        "primary_metric": {
+          "baseline": 0.91,
+          "id": "original_tworoom_cem_success_rate",
+          "label": "\u539f TwoRoom CEM \u6210\u529f\u7387",
+          "maximum": 0.92,
+          "mean": 0.9033333333333333,
+          "minimum": 0.8866666666666667,
+          "unit": "fraction"
+        },
+        "result": "PASS"
+      }
+    },
+    {
+      "component_id": "portal_exit",
+      "component_name": "TwoRoom \u4f20\u9001\u95e8\u51fa\u53e3\u4f4d\u7f6e",
+      "icl_ability": {
+        "claim": "icl_not_demonstrated",
+        "evidence_scope": "behavioral",
+        "primary_metric": {
+          "id": "correct_real_next_state_choice_accuracy",
+          "label": "\u771f\u5b9e\u51fa\u53e3\u4e0b\u4e00\u72b6\u6001\u9009\u62e9\u6b63\u786e\u7387",
+          "maximum": 0.59765625,
+          "mean": 0.5930989583333334,
+          "minimum": 0.5859375,
+          "unit": "fraction"
+        },
+        "result": "FAIL",
+        "training_seed_stability": {
+          "all_required_seeds_passed": false,
+          "evaluated_checkpoints": 3,
+          "passed_checkpoints": 0,
+          "required_checkpoints": 3
+        }
+      },
+      "method_name": "PLDM\uff08\u76f8\u540c\u6570\u636e\u548c\u9884\u7b97\uff09",
+      "original_task_retention": {
+        "reason": "\u8be5 PLDM \u53c2\u8003\u65b9\u6cd5\u672a\u8fd0\u884c\u6807\u51c6 TwoRoom CEM\u3002",
+        "result": "NOT_EVALUATED"
+      }
+    },
+    {
+      "component_id": "robot_arm_mass",
+      "component_name": "Reacher \u673a\u68b0\u81c2\u8d28\u91cf",
+      "icl_ability": {
+        "claim": "behavioral_icl_demonstrated",
+        "evidence_scope": "behavioral",
+        "primary_metric": {
+          "id": "correct_real_next_state_choice_accuracy",
+          "label": "\u771f\u5b9e\u4e0b\u4e00\u72b6\u6001\u9009\u62e9\u6b63\u786e\u7387",
+          "maximum": 0.765625,
+          "mean": 0.7610677083333334,
+          "minimum": 0.755859375,
+          "unit": "fraction"
+        },
+        "result": "PASS",
+        "training_seed_stability": {
+          "all_required_seeds_passed": true,
+          "evaluated_checkpoints": 3,
+          "passed_checkpoints": 3,
+          "required_checkpoints": 3
+        }
+      },
+      "method_name": "LeWM\uff08\u56fa\u5b9a\u56fe\u50cf\u7f16\u7801\u5668\uff0c\u62df\u5408\u914d\u5bf9\u771f\u5b9e\u672a\u6765\uff09",
+      "original_task_retention": {
+        "evaluated_checkpoints": 3,
+        "primary_metric": {
+          "baseline": 0.5466666666666666,
+          "id": "standard_reacher_cem_success_rate",
+          "label": "\u6807\u51c6 Reacher CEM \u6210\u529f\u7387",
+          "maximum": 0.5433333333333333,
+          "mean": 0.54,
+          "minimum": 0.5333333333333333,
+          "unit": "fraction"
+        },
+        "result": "PASS"
+      }
+    },
+    {
+      "component_id": "robot_arm_mass",
+      "component_name": "Reacher \u673a\u68b0\u81c2\u8d28\u91cf",
+      "icl_ability": {
+        "claim": "icl_not_demonstrated",
+        "evidence_scope": "behavioral",
+        "primary_metric": {
+          "id": "correct_real_next_state_choice_accuracy",
+          "label": "\u771f\u5b9e\u4e0b\u4e00\u72b6\u6001\u9009\u62e9\u6b63\u786e\u7387",
+          "maximum": 0.634765625,
+          "mean": 0.6315104166666666,
+          "minimum": 0.626953125,
+          "unit": "fraction"
+        },
+        "result": "FAIL",
+        "training_seed_stability": {
+          "all_required_seeds_passed": false,
+          "evaluated_checkpoints": 3,
+          "passed_checkpoints": 0,
+          "required_checkpoints": 3
+        }
+      },
+      "method_name": "PLDM\uff08\u76f8\u540c\u6570\u636e\u548c\u9884\u7b97\uff09",
+      "original_task_retention": {
+        "reason": "\u8be5 PLDM \u53c2\u8003\u65b9\u6cd5\u672a\u8fd0\u884c\u6807\u51c6 Reacher CEM\u3002",
+        "result": "NOT_EVALUATED"
+      }
+    },
+    {
+      "component_id": "speed",
+      "component_name": "TwoRoom \u901f\u5ea6",
+      "icl_ability": {
+        "claim": "training_attributed_icl_demonstrated",
+        "evidence_scope": "training_attributed",
+        "primary_metric": {
+          "id": "unseen_in_range_one_step_strict_history_accuracy",
+          "label": "\u8bad\u7ec3\u8303\u56f4\u5185\u672a\u89c1\u901f\u5ea6\u7684\u4e00\u6b65\u4e25\u683c\u6b63\u786e\u7387",
+          "maximum": 0.9588888888888888,
+          "mean": 0.9525925925925925,
+          "minimum": 0.9488888888888889,
+          "unit": "fraction"
+        },
+        "result": "PASS",
+        "training_seed_stability": {
+          "all_required_seeds_passed": true,
+          "evaluated_checkpoints": 3,
+          "passed_checkpoints": 3,
+          "required_checkpoints": 3
+        }
+      },
+      "method_name": "LeWM\uff08\u539f TwoRoom + \u591a\u901f\u5ea6\u5408\u6210\u6570\u636e\uff09",
+      "original_task_retention": {
+        "evaluated_checkpoints": 3,
+        "primary_metric": {
+          "baseline": 0.91,
+          "id": "original_tworoom_cem_success_rate",
+          "label": "\u539f TwoRoom CEM \u6210\u529f\u7387",
+          "maximum": 0.9666666666666667,
+          "mean": 0.958888888888889,
+          "minimum": 0.9466666666666667,
+          "unit": "fraction"
+        },
+        "result": "PASS"
+      }
+    }
+  ],
+  "result_kind": "contextworld_public_scoreboard",
+  "schema_version": 1
+}

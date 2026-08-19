@@ -1,0 +1,95 @@
+schema_version: 1
+benchmark: tworoom_action_delay_history7_domain_diagnostic_v1
+status: frozen_before_domain_diagnostic_data_build
+frozen_date: "2026-07-29"
+
+question: >-
+  History=7 多延迟模型在正式 Benchmark Validation 上失败，究竟是因为连训练数据
+  分布内的一步动作延迟都没有学会，还是因为模型只在未见几何上泛化失败？
+
+role: >-
+  本数据只用于公开 Validation 失败后的训练域诊断，不改变正式能力门，不打开隐藏
+  Test，也不用于选择已有九个 checkpoint。
+
+source_training_release:
+  config:
+    path: configs/benchmark/tworoom_action_delay_h7_training_data_v1.yaml
+    sha256: 6664eece874c9d6355f81ca160de74f30b193d30530f9a26b1f4ab922b373f07
+  build_report:
+    path: artifacts/synthesis/action_delay_h7_v1/build_report.json
+    sha256: 809b22f0230a92a327963afc6a0c31ef206d3db2ffb7b21cfc2c51fcae1b0aa8
+  multi_delay_catalog:
+    path: >-
+      artifacts/synthesis/action_delay_h7_v1/catalogs/tworoom_action_delay_h7_multi_v1.json
+    sha256: 2279d3edf25b482316f4a430a00f64fe361c2d156873910320cb0c6de9a04d49
+  stable_worldmodel:
+    repo: ../stable-worldmodel
+    commit: ad2bc44579f2b5b65c004fd2c9d8edc8ebaa43ce
+    equivalent_detached_worktree_allowed: true
+
+protocol:
+  history_tokens: 7
+  raw_steps_per_action_block: 5
+  future_horizons_action_blocks: [1, 2, 3]
+  delay_values: [0, 4, 8]
+  agent_speed: 7.0
+  action_magnitude: 0.5
+  model_visible_fields: [pixels, action]
+  online_environment_during_model_scoring: false
+  offline_real_future_pixels_required: true
+
+tracks:
+  source_splits: [train, val]
+  source_delays: [0, 4, 8]
+  track_names:
+    - training_replay_delay_0
+    - training_replay_delay_4
+    - training_replay_delay_8
+    - loader_validation_delay_0
+    - loader_validation_delay_4
+    - loader_validation_delay_8
+  interpretation:
+    training_replay: >-
+      使用多延迟模型训练集中真实出现过的几何和该 track 指定的真实延迟。指定延迟
+      的 History=7 到 h1 转移就是训练时被监督的原始 clip。
+    loader_validation: >-
+      使用同一合成生成分布中的 Loader Validation 几何；这些几何未参与参数更新，
+      但采样规则与训练集相同。
+  paired_family: >-
+    每个基础 query 都重新在延迟 0、4、8 下执行，三种历史结束于相同 query，
+    并保存三种真实 h1、h2、h3 未来。
+
+sampling:
+  selection_seed: 2026072902
+  diagnostic_eval_seeds: [142, 143, 144, 145, 146, 147]
+  queries_per_eval_seed_per_track: 50
+  distinct_queries_per_track: 300
+  distinct_queries_total: 1800
+  delay_conditions_per_query: 3
+  physical_rollouts_total: 5400
+  requirements:
+    - every_track_has_50_distinct_queries_per_diagnostic_eval_seed
+    - every_track_has_300_distinct_queries
+    - every_delay_has_all_300_queries_within_every_track
+    - rooms_are_25_25_per_eval_seed
+    - directions_are_25_25_per_eval_seed
+    - source_templates_do_not_repeat_across_tracks
+    - training_replay_and_loader_validation_are_disjoint
+
+physical_gates:
+  - delay_readback_exact
+  - initial_state_and_pixels_identical_across_delays
+  - three_history_trajectories_distinct
+  - query_state_and_pixels_identical_across_delays
+  - query_returns_to_source_reset_state
+  - pending_action_queue_empty
+  - final_history_transition_stationary
+  - commanded_and_executed_action_trace_exact
+  - analytical_raw_and_future_states_exact
+  - h1_h2_h3_each_distinguish_all_three_delays
+  - no_collision_or_early_termination
+  - full_second_physical_replay
+
+outputs:
+  root: >-
+    artifacts/evaluation/history7/action_delay_domain_diagnostic_v1

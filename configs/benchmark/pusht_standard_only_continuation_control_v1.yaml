@@ -1,0 +1,88 @@
+schema_version: 1
+benchmark: pusht_hidden_actuation_history3_action_coverage_v2
+experiment: standard_only_continuation_control_v1
+status: registered_before_training
+registered_at_utc: "2026-07-30"
+owner: ContextWorld
+
+question: >-
+  Is the standard Push-T CEM decline after 2048 mixed-data updates caused
+  primarily by continued optimization itself, or by replacing half of each
+  standard replay batch with the narrow hidden-actuation synthesis?
+
+fixed_comparisons:
+  source_checkpoint:
+    role: no_continuation_reference
+    standard_cem_successes: 237
+    standard_cem_queries: 300
+  same_seed_mixed_native:
+    training_seed: 13313
+    optimizer_steps: 2048
+    standard_samples_per_batch: 64
+    hidden_samples_per_batch: 64
+    standard_cem_successes: 194
+    standard_cem_queries: 300
+  same_seed_mixed_dynamics_response:
+    training_seed: 13313
+    optimizer_steps: 2048
+    standard_samples_per_batch: 64
+    hidden_samples_per_batch: 64
+    regularizer_weight: 0.02
+    standard_cem_successes: 202
+    standard_cem_queries: 300
+
+control_training:
+  variant: mixed_native_sigreg_0p09
+  role: standard_only_continuation
+  source_checkpoint: external/pusht/pusht_lewm_baseline_seed3073_weights.ckpt
+  source_checkpoint_sha256: 9f13b2c28bb909338047e08d62bf6eb16ea3616cb53e57cfa9b5072b43db1c59
+  standard_data: external/pusht/lewm_pusht.lance
+  training_seed: 13313
+  optimizer_steps: 2048
+  batch_size: 128
+  standard_samples_per_batch: 128
+  hidden_samples_per_batch: 0
+  optimizer: AdamW
+  learning_rate: 5.0e-5
+  weight_decay: 1.0e-3
+  gradient_clip_norm: 1.0
+  precision: bf16_mixed
+  regularizer: marginal_sigreg
+  regularizer_weight: 0.09
+  snapshots: [0, 1, 8, 32, 128, 512, 1024, 2048]
+
+standard_pusht_evaluation:
+  eval_seeds: [42, 43, 44, 45, 46, 47]
+  queries_per_seed: 50
+  solver:
+    samples: 300
+    iterations: 30
+    topk: 30
+  reuse_frozen_query_catalog: true
+  primary_metric: real_environment_successes_out_of_300
+
+decision_rules:
+  practical_equivalence_band:
+    absolute_success_rate: 0.05
+    count_out_of_300: 15
+  interpretation:
+    - >-
+      If standard-only is within 15 successes of the unchanged source and at
+      least 15 above same-seed mixed native, the mixed sampling distribution
+      is the primary identified source of the retention loss.
+    - >-
+      If standard-only is within 15 successes of same-seed mixed native,
+      continued optimization or seed-specific trajectory is sufficient to
+      explain the loss; do not rebuild hidden synthesis from this evidence.
+    - >-
+      An intermediate result is inconclusive and requires a standard-data
+      fraction sweep before attributing the decline.
+  data_action:
+    - >-
+      Do not rebuild the synthesis solely because standard-only retains the
+      task. First test whether a 75/25 standard/hidden mixture restores
+      retention while preserving hidden-rule learning.
+    - >-
+      Rebuild or broaden the hidden synthesis only if ratio controls show
+      that its narrow state/action support, rather than simple replay
+      underweighting, causes the shift.

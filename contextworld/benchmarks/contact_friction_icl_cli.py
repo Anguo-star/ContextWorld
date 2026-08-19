@@ -15,7 +15,9 @@ from contextworld.benchmarks.contact_friction_icl_data import (
     load_contact_friction_icl_release,
 )
 from contextworld.benchmarks.contact_friction_icl_score import (
+    evaluate_contact_friction_icl_development_model,
     evaluate_contact_friction_icl_model,
+    rescore_contact_friction_icl_development_result,
     score_contact_friction_icl_results,
 )
 from contextworld.paths import repository_root
@@ -63,7 +65,11 @@ def _adapter(args: argparse.Namespace):
     )
 
 
-def _add_model_args(parser: argparse.ArgumentParser) -> None:
+def _add_model_args(
+    parser: argparse.ArgumentParser,
+    *,
+    allow_without_records: bool = True,
+) -> None:
     parser.add_argument("--checkpoint", type=Path, required=True)
     parser.add_argument("--adapter", choices=("lewm", "pldm"), required=True)
     parser.add_argument("--model-name", required=True)
@@ -73,7 +79,8 @@ def _add_model_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--batch-size", type=int, default=64)
     parser.add_argument("--stablewm-repo", default=None)
     parser.add_argument("--stablewm-ref", default=None)
-    parser.add_argument("--without-records", action="store_true")
+    if allow_without_records:
+        parser.add_argument("--without-records", action="store_true")
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -101,6 +108,24 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     evaluate = subparsers.add_parser("eval")
     _add_model_args(evaluate)
     evaluate.add_argument("--output", type=Path, required=True)
+
+    evaluate_development = subparsers.add_parser(
+        "eval-development",
+        help=(
+            "Score the pinned Loader Validation split only; Public Test is "
+            "not read or scored."
+        ),
+    )
+    _add_model_args(evaluate_development, allow_without_records=False)
+    evaluate_development.add_argument("--output", type=Path, required=True)
+
+    rescore_development = subparsers.add_parser(
+        "score-development",
+        aliases=("rescore-development",),
+        help="Independently recompute a Development-only result from records.",
+    )
+    rescore_development.add_argument("--input", type=Path, required=True)
+    rescore_development.add_argument("--output", type=Path, required=True)
 
     score = subparsers.add_parser("score")
     score.add_argument("--input", type=Path, action="append", required=True)
@@ -134,6 +159,21 @@ def main(argv: list[str] | None = None) -> None:
             repo_root=ROOT,
             batch_size=args.batch_size,
             include_records=not args.without_records,
+        )
+    elif args.command == "eval-development":
+        payload = evaluate_contact_friction_icl_development_model(
+            adapter=_adapter(args),
+            model_name=args.model_name,
+            training_recipe=args.training_recipe,
+            training_seed=args.training_seed,
+            release_config=args.release_config,
+            repo_root=ROOT,
+            batch_size=args.batch_size,
+        )
+    elif args.command in {"score-development", "rescore-development"}:
+        payload = rescore_contact_friction_icl_development_result(
+            args.input,
+            release_config=args.release_config,
         )
     elif args.command == "score":
         payload = score_contact_friction_icl_results(

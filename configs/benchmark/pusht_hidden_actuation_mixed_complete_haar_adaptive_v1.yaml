@@ -1,0 +1,102 @@
+schema_version: 1
+benchmark: pusht_hidden_actuation_history3_action_coverage_v2
+experiment: mixed_conditional_complete_haar_adaptive_v1
+status: adaptive_design_registered_after_unpaired_population_failure_before_training
+owner: ContextWorld
+
+observed_trigger:
+  replay_matched_native:
+    hidden_target_selection: 0.54
+    standard_pusht_cem: 230/300
+  conditional_highpass_0p01:
+    hidden_target_selection: 0.97
+    standard_pusht_cem: 190/300
+  conditional_highpass_with_unpaired_0p01:
+    hidden_target_selection: 0.61
+    standard_pusht_cem: 225/300
+  diagnosis: >-
+    High-pass-only Conditional SIGReg protects the matched hidden-dynamics
+    direction but removes active-time marginal coverage for original replay.
+    Concatenating unpaired replay rows with high-pass contrasts restores
+    standard ability but dilutes the conditional population and fails hidden
+    future selection. The selected population also discards every pair's
+    low-pass coordinate.
+
+adaptive_change:
+  name: complete_orthonormal_haar_population
+  formula: >-
+    At active time indices, replace every selected pair (z_i, z_j) by
+    ((z_i + z_j) / sqrt(2), (z_i - z_j) / sqrt(2)); retain every unpaired
+    row unchanged, then evaluate one SIGReg statistic on the full population.
+  population_size_preserved: true
+  every_batch_row_covered: true
+  invertible_on_selected_pairs: true
+  additional_loss_components: 0
+  additional_coefficients: 0
+  hidden_labels_consumed: false
+  gaussian_null_argument: >-
+    An orthonormal transform preserves an independent isotropic Gaussian
+    null, while pair collapse creates a zero high-pass row and a rescaled
+    low-pass row. The same characteristic-function statistic can detect
+    that non-Gaussian population without a separately weighted covariance,
+    variance, or conditional loss.
+
+training:
+  source_checkpoint: external/pusht/pusht_lewm_baseline_seed3073_weights.ckpt
+  seed: 3073
+  optimizer_steps: 2048
+  batch_size: 128
+  original_samples_per_batch: 64
+  hidden_samples_per_batch: 64
+  hidden_pairs_per_batch: 32
+  learning_rate: 5.0e-5
+  weight_decay: 1.0e-3
+  gradient_clip_norm: 1.0
+  precision: bf16_mixed
+  exact_batch_order_match_to_prior_mixed_runs: true
+  variants:
+    - name: mixed_conditional_sigreg_0p01_complete_haar
+      weight: 0.01
+    - name: mixed_conditional_sigreg_0p05_complete_haar
+      weight: 0.05
+
+selection:
+  primary_metric: hidden_prediction
+  rule: >-
+    Select the smallest registered coefficient that passes every hidden
+    prediction threshold. Do not use either CEM result to change the
+    selected coefficient. If neither coefficient passes, stop.
+
+gates:
+  hidden_prediction:
+    target_selection_minimum: 0.95
+    correct_history_minimum: 0.95
+    rule_switch_minimum: 0.95
+    worst_mode_minimum: 0.90
+  hidden_real_cem:
+    eval_seed: 4096
+    oracle_grid_success_minimum: 0.95
+    mode_action_classification_minimum: 0.90
+    real_environment_success_minimum: 0.80
+  standard_pusht:
+    eval_seeds:
+      - 42
+      - 43
+      - 44
+      - 45
+      - 46
+      - 47
+    queries_per_seed: 50
+    replay_matched_native_control: 230/300
+    noninferiority_margin_absolute: 0.05
+
+claim_boundary:
+  - >-
+    The design was chosen after observing two mixed-training failures, so
+    all results are adaptive mechanism evidence rather than confirmation.
+  - >-
+    A passing result requires a new training seed before it can support a
+    method claim.
+  - >-
+    Standard CEM retention cannot compensate for hidden prediction or
+    hidden real-environment CEM failure.

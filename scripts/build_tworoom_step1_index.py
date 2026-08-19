@@ -201,10 +201,10 @@ def build_index() -> dict[str, Any]:
         "experiment_matrix_config": (
             "configs/benchmark/tworoom_step1_v1.yaml"
         ),
-        "benchmark_design": "docs/ContextWorld_Benchmark_Design.md",
+        "benchmark_design": "docs/ContextWorld_ICL_Benchmark.md",
         "icl_protocol_config": "configs/benchmark/tworoom_icl_v1.yaml",
         "data_card": "docs/reference/TwoRoom_Benchmark_Step1_Data_Card_v1.md",
-        "progress_checklist": "docs/TwoRoom_Speed_Benchmark_Report.md",
+        "progress_checklist": "docs/ContextWorld_ICL_Benchmark.md",
     }
 
 

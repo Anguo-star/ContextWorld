@@ -1,0 +1,121 @@
+schema_version: 1
+recovery_id: tworoom_speed_pldm_reference_completion_recovery_v1
+completion_id: tworoom_speed_pldm_reference_completion_v1
+release_id: contextworld_tworoom_speed_icl_history3_v1
+status: preregistered_after_raw_public_icl_before_recovery
+frozen_inputs:
+  completion_config:
+    path: configs/benchmark/tworoom_speed_pldm_reference_completion_v1.yaml
+    sha256: 6c8d3404431f4fedb788acc0c89fc62b78fcb147402d284fc8e74aa64a0d840f
+    size_bytes: 5680
+  evaluation_binding_config:
+    path: configs/benchmark/tworoom_speed_pldm_evaluation_binding_v1.yaml
+    sha256: 62cd72d9e2bbbb83d485a243e190fed6dacc0b9408ac4c7cd87b37f5dfd079de
+    size_bytes: 22390
+  evaluation_binding_receipt:
+    path: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/evaluation_binding_v1/recovery_v1/evaluation_binding_receipt.json
+    sha256: 005946d743ca3e93f64d14601a21679d921815689015c37882545a012d935f27
+    size_bytes: 103951
+  release_config:
+    path: configs/benchmark/tworoom_speed_icl_release_v1.yaml
+    sha256: 9acb8e36eabd1a68595a89c9add0e5b4440bd6b55647d74f3c211636457646c0
+    size_bytes: 12448
+  behavioral_claim_boundary:
+    path: configs/benchmark/tworoom_speed_pldm_behavioral_claim_boundary_v1.yaml
+    sha256: 7e81e79fb7e28bbf9fcf1c76571bfedb471c118fc73920abd22d75f18a779941
+    size_bytes: 2378
+  development_config:
+    path: configs/benchmark/tworoom_speed_pldm_infrastructure_development_v1.yaml
+    sha256: 56c1311c2ef50937b85fd8efca03f6df4856fe6ad48c89cd55fa400a11b8dd7c
+    size_bytes: 7147
+  development_manifest:
+    path: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/infrastructure_development_v1/development_manifest.json
+    sha256: fa9c1ac18580cf14495c1cd124a50bafd837d89eca98053afc6b1ad52a4251d7
+    size_bytes: 784501
+  development_receipt_3072:
+    path: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/infrastructure_development_v1/seed_3072.json
+    sha256: aef2dfcc012ce9d88655ea2f267c1d70fea3e33254f137bb2c7ef682ab2666de
+    size_bytes: 8671
+  development_receipt_4096:
+    path: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/infrastructure_development_v1/seed_4096.json
+    sha256: ce170da4adb3b5d874a2e33b5acd8f810edeb68b6febabf0c8842561fd076d28
+    size_bytes: 8671
+  development_receipt_5120:
+    path: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/infrastructure_development_v1/seed_5120.json
+    sha256: 63dd538fc43efb11e54658d97c9f9bd6d408315b718d45428a38a0fcb8061cd4
+    size_bytes: 8671
+implementation:
+  frozen_icl_scorer:
+    path: contextworld/benchmarks/speed_icl_score.py
+    sha256: 0d7d52667eea0a29badcac1cee1047f3a2d56d55f65a59a0fd7a086a77601a1e
+    size_bytes: 32831
+  recovery_launcher:
+    path: scripts/recover_tworoom_speed_pldm_formal_icl_v1.py
+    sha256: 77fee9d650d7292f6477679ac16094144e2c9eec0ace5fadf89d04278ab429ab
+    size_bytes: 43710
+  formal_icl_evaluator:
+    path: scripts/eval_tworoom_speed_pldm_formal_icl_v1.py
+    sha256: 99ba15df2417b05eb2d347a976dd146f563d0d9ccbb459fde617547d4a5dbc6b
+    size_bytes: 23350
+  development_contract:
+    path: contextworld/benchmarks/speed_pldm_infrastructure_development.py
+    sha256: 89e12e8d8b7effbf14445335fa9e013d58e746ae3cd31dd6c233470b3e8c3c14
+    size_bytes: 11633
+raw_public_icl:
+  checkpoints:
+  - seed: 3072
+    checkpoint:
+      path: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/training/checkpoints/speed_pldm_reference_completion_v1_s3072/weights_final_step_12840.pt
+      sha256: 99ea1c5a8155c145f70af12ae2fd15e1d01b17163b58ef1a2e2f0f97d390dcb7
+      size_bytes: 72296742
+      model_state_sha256: 649534cc46f0743b714e5c4b8a4a8e148b75a0a174eaa3acaf2999a90264173f
+    checkpoint_sha256: 99ea1c5a8155c145f70af12ae2fd15e1d01b17163b58ef1a2e2f0f97d390dcb7
+    model_state_sha256: 649534cc46f0743b714e5c4b8a4a8e148b75a0a174eaa3acaf2999a90264173f
+    raw_result:
+      path: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/formal_icl_v1/seed_3072.json
+      sha256: e5fc9a12636d13ce0b89267f1c4acf783e4be99cbd47e5f15556f8bc9687c50a
+      size_bytes: 9710609
+    raw_gate_passed: true
+    recovery_receipt:
+      path: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/formal_icl_v1/recovery_v1/seed_3072.json
+  - seed: 4096
+    checkpoint:
+      path: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/training/checkpoints/speed_pldm_reference_completion_v1_s4096/weights_final_step_12840.pt
+      sha256: 9c98c2ceff31628aa2b9a3a870284e063db268c063708bfa0f69e0512c8eea41
+      size_bytes: 72296742
+      model_state_sha256: c44b096be62d66f5b2259eb7e1a70a5408ce96fa547b6586d48ccf374026ac4a
+    checkpoint_sha256: 9c98c2ceff31628aa2b9a3a870284e063db268c063708bfa0f69e0512c8eea41
+    model_state_sha256: c44b096be62d66f5b2259eb7e1a70a5408ce96fa547b6586d48ccf374026ac4a
+    raw_result:
+      path: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/formal_icl_v1/seed_4096.json
+      sha256: e2ceabbdbda6e02280f87908e6b89870b420a1424801abf44ef9565ce84a724c
+      size_bytes: 9710301
+    raw_gate_passed: true
+    recovery_receipt:
+      path: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/formal_icl_v1/recovery_v1/seed_4096.json
+  - seed: 5120
+    checkpoint:
+      path: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/training/checkpoints/speed_pldm_reference_completion_v1_s5120/weights_final_step_12840.pt
+      sha256: 062649c670efa91d8572ce9bd1bb4d4c9a9142bd2016787a21b862ac073edb47
+      size_bytes: 72296742
+      model_state_sha256: ccc4cebc89f52b96e3de687c3ef2455a521c60328fed768149cafa37832ea984
+    checkpoint_sha256: 062649c670efa91d8572ce9bd1bb4d4c9a9142bd2016787a21b862ac073edb47
+    model_state_sha256: ccc4cebc89f52b96e3de687c3ef2455a521c60328fed768149cafa37832ea984
+    raw_result:
+      path: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/formal_icl_v1/seed_5120.json
+      sha256: 20b5f0f654b99a06f2f59b4003ae3ea811b0b9772b718a484e1668313e58a190
+      size_bytes: 9710235
+    raw_gate_passed: true
+    recovery_receipt:
+      path: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/formal_icl_v1/recovery_v1/seed_5120.json
+outputs:
+  root: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/formal_icl_v1/recovery_v1
+  aggregate:
+    path: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/formal_icl_v1/three_seed_aggregate.json
+    content_sha256_not_embedded_to_avoid_self_reference: true
+scope:
+  raw_public_icl_already_completed: true
+  recovery_only: true
+  model_or_environment_execution_authorized: false
+  checkpoint_selection_authorized: false
+  cem_authorized_by_this_record: false

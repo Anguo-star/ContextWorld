@@ -1,0 +1,68 @@
+schema_version: 1
+benchmark: pusht_object_mass_history3_feasibility_v1
+status: completed_failed_physical_identifiability
+date: "2026-07-31"
+claim_limit: environment_physics_audit_not_model_result
+
+identity:
+  implementation:
+    path: contextworld/evaluation/pusht_object_mass_h3.py
+    sha256: 34cdbd2012ca588fb5a174b89affe7d1ef525688a5dda84e749862f03663ee47
+  runner:
+    path: scripts/audit_pusht_object_mass_h3.py
+    sha256: 95820196613e8bc036fb8b35fbf230ea624d8a1516d8ca37418464f8170f8e24
+  result:
+    path: artifacts/evaluation/history3/pusht_object_mass_h3_feasibility_v1/audit.json
+    sha256: 670e053d50db64b38c87c4893e186a084bb3efe2ebd667f58264d67f4472fabe
+
+question: >-
+  在当前状态和动作相同的情况下，History=3 能否显示 PushT 物体质量差异，
+  并让相同 query 动作产生不同的真实下一帧？
+
+environment:
+  id: stable_worldmodel/PushT
+  pusher_body_type: KINEMATIC
+  fixed_factors:
+    action_scale: 100.0
+    contact_friction: 0.25
+    space_damping: 0.0
+    elasticity: 0.0
+  object_mass_values: [0.01, 0.1, 1.0, 10.0, 100.0]
+  rotational_moment_scaled_with_mass: true
+
+protocol:
+  history_tokens: 3
+  raw_steps_per_action_block: 5
+  templates: 8
+  orientations: 4
+  positions_per_orientation: 2
+  same_initial_state_goal_and_actions: true
+  both_history_and_query_require_contact: true
+  model_visible_fields: [pixels, action]
+
+gates:
+  numerical_state_equivalence_tolerance: 1.0e-9
+  history_state_or_pixel_gap_must_be_positive: true
+  true_future_state_or_pixel_gap_must_be_positive: true
+  zero_passing_templates_stops_formal_data_generation: true
+
+result:
+  passed_templates: 0
+  templates: 8
+  maximum_history_state_gap: 5.684341886080802e-14
+  maximum_true_future_state_gap: 0.0
+  history_and_future_pixels_bitwise_identical: true
+  physically_identifiable: false
+  interpretation: >-
+    当前 PushT 的推手是运动学刚体。改变被推动物体的质量和转动惯量不会改变
+    接触轨迹，因此模型从像素与动作中没有可学习信号。
+
+decision:
+  generate_training_data: false
+  generate_development_data: false
+  generate_public_test: false
+  train_reference_models: false
+  register_unified_component: false
+  increase_history_length: false
+  reason: >-
+    历史和真实未来在不同质量下完全相同；增加 History 不能产生环境中不存在的信号。

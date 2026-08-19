@@ -1,0 +1,104 @@
+schema_version: 1
+benchmark: pusht_hidden_actuation_history3_action_coverage_v2
+experiment: mixed_original_hidden_ability_retention_v1
+status: registered_before_training
+owner: ContextWorld
+
+question: >-
+  Can low-weight Conditional SIGReg retain the History-identifiable hidden
+  actuator gain after original Push-T replay is restored, without degrading
+  standard Push-T real-environment CEM relative to a replay-matched native
+  SIGReg control?
+
+immutable_inputs:
+  hidden_data: artifacts/synthesis/pusht_hidden_actuation_h3_v1
+  hidden_manifest_sha256: 4f307a60920747506c1d8aadc41931a0f768b7f3d7ba6317d7246b008bc3fc64
+  original_data: external/pusht/lewm_pusht.lance
+  action_normalizer_source: external/pusht/pusht_expert_train.h5
+  source_checkpoint: external/pusht/pusht_lewm_baseline_seed3073_weights.ckpt
+  source_checkpoint_sha256: 9f13b2c28bb909338047e08d62bf6eb16ea3616cb53e57cfa9b5072b43db1c59
+
+training:
+  seed: 3073
+  optimizer_steps: 2048
+  rationale: >-
+    A 50/50 batch at 2048 steps matches the number of hidden samples seen by
+    the 1024-step hidden-only pilot while adding the same number of original
+    Push-T replay samples.
+  batch_size: 128
+  original_samples_per_batch: 64
+  hidden_samples_per_batch: 64
+  hidden_pairs_per_batch: 32
+  optimizer: AdamW
+  learning_rate: 5.0e-5
+  weight_decay: 1.0e-3
+  gradient_clip_norm: 1.0
+  precision: bf16_mixed
+  conditional_active_times:
+    - 1
+    - 3
+  hidden_labels_at_model_or_loss_boundary: false
+
+variants:
+  - name: mixed_native_sigreg_0p09
+    regularizer: marginal_sigreg
+    weight: 0.09
+    role: replay_matched_control
+  - name: mixed_conditional_sigreg_0p01
+    regularizer: conditional_high_pass_sigreg
+    weight: 0.01
+    role: smallest_hidden_only_prediction_passing_coefficient
+  - name: mixed_conditional_sigreg_0p05
+    regularizer: conditional_high_pass_sigreg
+    weight: 0.05
+    role: pre_registered_stronger_conditional_control
+
+hidden_prediction_gate:
+  target_selection_minimum: 0.95
+  correct_history_minimum: 0.95
+  rule_switch_minimum: 0.95
+  worst_mode_minimum: 0.90
+  selection: >-
+    Select the smallest Conditional coefficient that passes all prediction
+    thresholds. Do not use CEM to change the selected coefficient.
+
+hidden_closed_loop_gate:
+  calibration_eval_seed: 4096
+  oracle_grid_success_minimum: 0.95
+  mode_action_classification_minimum: 0.90
+  real_environment_success_minimum: 0.80
+  expand_only_after_hidden_prediction_pass: true
+
+standard_pusht_retention:
+  protocol: stable_worldmodel/scripts/plan/config/pusht.yaml
+  eval_seeds:
+    - 42
+    - 43
+    - 44
+    - 45
+    - 46
+    - 47
+  queries_per_seed: 50
+  solver:
+    samples: 300
+    iterations: 30
+    topk: 30
+  paired_noninferiority_margin_absolute: 0.05
+  primary_control: mixed_native_sigreg_0p09
+  secondary_reference: unchanged_source_checkpoint
+  claim_rule: >-
+    Ability retention requires real-environment success noninferiority on the
+    same frozen query seeds. Prediction loss alone is not sufficient.
+
+decision_rules:
+  - >-
+    If no Conditional variant passes hidden prediction, stop and report that
+    original replay changes the effective hidden-data requirement.
+  - >-
+    If the selected Conditional variant fails the first hidden CEM gate, do
+    not claim a completed hidden planning solution.
+  - >-
+    Standard Push-T noninferiority may still be reported separately, but it
+    does not compensate for failure on hidden real-environment CEM.
+  - >-
+    One training seed remains a pilot even if all six evaluation seeds pass.

@@ -1,0 +1,77 @@
+schema_version: 1
+release_id: contextworld_icl_benchmark_suite_v2
+release_status: public_test_release_candidate
+candidate_date: "2026-08-17"
+
+# This is an additive successor to recovery-v2 and the documentation amendment.
+# It deliberately does not activate Suite v2: a new, one-use decision is only
+# created after the current component YAMLs, document, code, and CEM result
+# freeze are stable.
+integrity_reseal:
+  reseal_id: contextworld_icl_suite_v2_integrity_reseal_v1
+  status: preregistered_pending_final_identity_freeze
+  scope: current_nine_component_identity_reseal
+  historical_chain:
+    documentation_amendment_config:
+      path: configs/benchmark/contextworld_icl_suite_v2_public_document_amendment_v1.yaml
+      sha256: fcba0724286bd790ab94671f9c4bcb32a68c8a1a3efb4785d208a2fcd2eb9c63
+      size_bytes: 3319
+    documentation_amendment_decision:
+      path: configs/benchmark/contextworld_icl_suite_v2_public_document_amendment_decision_v1.json
+      sha256: fa8c3e04b9e313a64d5e17e97cf61b572534fdf61352cd2d4fece604ed97c394
+      size_bytes: 4491
+    recovery_v2_config:
+      path: configs/benchmark/contextworld_icl_suite_v2_recovery_v2.yaml
+      sha256: 3b03f759dfdb934dcfd4f08a59d1385d2ed536fc62ed6b597c83ff18540f6d4e
+      size_bytes: 14191
+    recovery_v2_decision:
+      path: artifacts/evaluation/history3/cube_gripper_carry_h3_v4r1_suite_registration_recovery_v2/registration_decision_v2.json
+      sha256: 0c6d38ec4304d0ffa078fe8680a7b6d90b851eb69780d22936a456bf0bb7859d
+      size_bytes: 8701
+  allowed_changes:
+    - current_component_release_yaml_identities
+    - current_public_document_identity
+    - current_runtime_adapter_and_suite_source_identities
+    - original_baseline_cem_result_reference_after_its_own_freeze
+    - suite_v2_activation_and_audit_plumbing
+  prohibited_changes:
+    - rewrite_historical_recovery_or_amendment_decisions
+    - mutate_formal_11_row_scoreboard_or_specification
+    - rerun_or_open_closed_public_test
+    - training_or_checkpoint_selection
+    - raw_dataset_or_checkpoint_mutation
+  descriptive_result_freezes:
+    original_baseline_icl:
+      path: configs/benchmark/contextworld_original_baseline_matrix_results_freeze_v1.json
+      freeze_id: contextworld_original_baseline_matrix_results_freeze_v1
+    original_baseline_cem:
+      path: configs/benchmark/contextworld_original_baseline_cem_results_freeze_v1.json
+      freeze_id: contextworld_original_baseline_cem_results_freeze_v1
+  decision_contract:
+    decision_path: configs/benchmark/contextworld_icl_suite_v2_integrity_reseal_decision_v1.json
+    exclusive_creation_required: true
+    current_materials_required:
+      - all_nine_component_release_yamls
+      - all_registered_suite_sources
+      - reseal_authority_implementation
+      - public_document
+      - formal_scoreboard_and_specification
+      - original_baseline_icl_and_cem_result_freezes
+    historical_chain_must_remain_byte_identical: true
+    old_membership_may_not_be_silently_reactivated: true
+    activation_requires_new_decision: true
+
+membership_authority:
+  config_alone_grants_membership: false
+  activation_condition: passed_integrity_reseal_decision_v1
+  reseal_id: contextworld_icl_suite_v2_integrity_reseal_v1
+  decision_path: configs/benchmark/contextworld_icl_suite_v2_integrity_reseal_decision_v1.json
+  decision_is_commit_marker: true
+  base_release_config: configs/benchmark/contextworld_icl_suite_v2_public_document_amendment_v1.yaml
+  historical_chain_must_remain_byte_identical: true
+  old_membership_may_not_be_silently_reactivated: true
+  partial_outputs_grant_membership: false
+  public_test_rerun_authorized: false
+  training_or_checkpoint_selection_authorized: false
+  formal_scoreboard_mutation_authorized: false
+  raw_dataset_or_checkpoint_mutation_authorized: false

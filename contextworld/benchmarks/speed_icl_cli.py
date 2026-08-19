@@ -5,7 +5,10 @@ import json
 from pathlib import Path
 from typing import Any
 
-from contextworld.benchmarks.adapters import StableWorldModelLeWMAdapter
+from contextworld.benchmarks.adapters import (
+    StableWorldModelLeWMAdapter,
+    StableWorldModelPLDMAdapter,
+)
 from contextworld.benchmarks.speed_icl_data import (
     DEFAULT_RELEASE_CONFIG,
     audit_speed_icl_release,
@@ -51,7 +54,12 @@ def _adapter(args: argparse.Namespace) -> StableWorldModelLeWMAdapter:
     normalizer = resolve_contextworld_path(
         release["evaluation"]["normalizer"], repo_root=ROOT
     )
-    return StableWorldModelLeWMAdapter.from_checkpoint(
+    adapter_class = (
+        StableWorldModelLeWMAdapter
+        if args.adapter == "lewm"
+        else StableWorldModelPLDMAdapter
+    )
+    return adapter_class.from_checkpoint(
         args.checkpoint,
         normalizer=normalizer,
         repo_root=ROOT,
@@ -273,6 +281,12 @@ def _add_runtime_args(parser: argparse.ArgumentParser) -> None:
 
 def _add_eval_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--checkpoint", type=Path, required=True)
+    parser.add_argument(
+        "--adapter",
+        choices=("lewm", "pldm"),
+        default="lewm",
+        help="Checkpoint family; defaults to LeWM for legacy commands.",
+    )
     parser.add_argument("--model-name", required=True)
     parser.add_argument(
         "--training-role",

@@ -1,0 +1,100 @@
+schema_version: 1
+record_id: contextworld_icl_suite_v2_integrity_reseal_v2_predecision_regeneration_v1
+status: preregistered_before_decision_regeneration
+created_utc: "2026-08-19"
+
+# Why this record exists
+#
+# The Suite v2 integrity-reseal-v2 decision was generated on 2026-08-17 and
+# bound the four final public documents to their bytes at that moment.  The
+# public benchmark document has since gained section 5.2's three-training-seed
+# original-baseline family table (the seed-completion work frozen by
+# ``contextworld_original_baseline_seed_completion_results_freeze_v1``), so the
+# document no longer matches the identity recorded in that decision and
+# ``validate_integrity_reseal_v2_decision`` correctly refuses it.
+#
+# This is NOT the prohibited in-place retry of a published result.  The entire
+# integrity-reseal system -- the v1 and v2 preregistrations, both decisions,
+# the authority modules and their tests -- is still uncommitted work in the
+# release-preparation tree; none of it has ever entered repository history or
+# been published.  The rule that forbids deleting a failed namespace and
+# retrying in place (see the Cube Public v1 namespace) protects artifacts that
+# became public record.  Here the reseal decision has not yet been released,
+# and the correct end state is a decision that binds the documents as they are
+# actually published, not one that binds a superseded draft.
+#
+# A successor reseal-v3 identity was considered and rejected: manufacturing a
+# v2 -> v3 lineage would tell future readers that a published seal failed and
+# was succeeded, which did not happen.  The seal is regenerated once, before
+# first publication, and this record preserves the superseded bytes so the
+# regeneration itself remains auditable.
+
+scope:
+  reseal_id: contextworld_icl_suite_v2_integrity_reseal_v2
+  action: regenerate_the_unpublished_decision_against_final_document_bytes
+  regeneration_count_authorized: 1
+  successor_identity_created: false
+  published_artifact_modified: false
+  result_based_retry: false
+  scoreboard_mutation_authorized: false
+  public_test_rerun_authorized: false
+  training_or_checkpoint_selection_authorized: false
+  document_content_change_authorized: false   # the documents are already final
+  reseal_preregistration_modified: false      # the v2 yaml stays byte-identical
+
+publication_status_evidence:
+  # Verified with ``git ls-tree -r HEAD`` and ``git cat-file -e`` at record time.
+  reseal_system_present_in_committed_history: false
+  uncommitted_paths:
+    - configs/benchmark/contextworld_icl_suite_v2_integrity_reseal_v1.yaml
+    - configs/benchmark/contextworld_icl_suite_v2_integrity_reseal_decision_v1.json
+    - configs/benchmark/contextworld_icl_suite_v2_integrity_reseal_v2.yaml
+    - configs/benchmark/contextworld_icl_suite_v2_integrity_reseal_decision_v2.json
+    - contextworld/benchmarks/suite_v2_integrity_reseal.py
+    - contextworld/benchmarks/suite_v2_integrity_reseal_v2.py
+    - tests/test_suite_v2_integrity_reseal_v2.py
+
+superseded_decision:
+  path: configs/benchmark/contextworld_icl_suite_v2_integrity_reseal_decision_v2.json
+  sha256: 1d939ea32bd05c2ec3a314c5b00cec147b8469be42e5d1807d3a6a6e05bd787a
+  size_bytes: 22330
+  reseal_id: contextworld_icl_suite_v2_integrity_reseal_v2
+  passed: true
+  written_local_date: "2026-08-17"
+  archived_copy:
+    path: configs/benchmark/contextworld_icl_suite_v2_integrity_reseal_decision_v2_superseded_20260817.json
+    exclusive_creation_required: true
+  drifted_material:
+    material: capability_taxonomy_documentation_amendment.final_public_documents.public_benchmark
+    path: docs/ContextWorld_ICL_Benchmark.md
+    sealed_sha256: 2031aee9fd363a2d3bddad5f1cd01f94d72ca49c8be6b845a2cd506166fa0f64
+    sealed_size_bytes: 46871
+    current_sha256: c6d771fa53bc73485f08e02c1496d5029740429e2228407c2b5e881218414055
+    current_size_bytes: 49881
+    cause: >-
+      section 5.2 replaced the single-checkpoint original-environment CEM table
+      with the completed three-training-seed family table (mean +/- sample std
+      over seeds 3072/3073/3074) and added the evaluation protocol, the
+      family-vs-single-checkpoint reading guidance and the machine-readable
+      artifact pointers
+    other_sealed_materials_drifted: false
+
+regeneration_rule:
+  delete_superseded_decision_only_after_byte_exact_archive: true
+  readiness_audit_must_pass_first: true          # --check-only, ready: true, no blockers
+  decision_must_be_written_by_the_frozen_cli: true
+  cli:
+    path: scripts/freeze_contextworld_icl_suite_v2_integrity_reseal_v2.py
+    invocation: "--write-decision --output configs/benchmark/contextworld_icl_suite_v2_integrity_reseal_decision_v2.json"
+  decision_must_validate_after_write: true
+  full_test_suite_must_pass_after_write: true
+  documents_must_not_change_after_the_decision_is_written: true
+  further_document_edits_require_a_new_regeneration_record: true
+
+outputs:
+  regenerated_decision:
+    path: configs/benchmark/contextworld_icl_suite_v2_integrity_reseal_decision_v2.json
+  regeneration_receipt:
+    path: configs/benchmark/contextworld_icl_suite_v2_integrity_reseal_v2_predecision_regeneration_receipt_v1.json
+    exclusive_creation_required: true
+  overwrite_authorized: false

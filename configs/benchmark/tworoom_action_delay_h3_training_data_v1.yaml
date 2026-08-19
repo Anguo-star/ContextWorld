@@ -1,0 +1,59 @@
+schema_version: 1
+benchmark: tworoom_action_delay_history3_training_data_v1
+status: preregistered_before_formal_collection
+preregistered_date: "2026-07-26"
+
+stable_worldmodel:
+  repo: ../stable-worldmodel
+  commit: 5864b74980f6ed328fd0045e777b3865962eff43
+
+protocol:
+  history_tokens: 3
+  raw_steps_per_action_block: 5
+  rows_per_episode: 20
+  model_frames_per_episode: 4
+  agent_speed: 7.0
+  single_control_delay: 2
+  training_delay_values: [0, 2, 4]
+  model_visible_fields: [pixels, action]
+  paired_geometry_and_actions_across_recipes: true
+
+catalog_seed: 2026072602
+
+counts:
+  train:
+    shards: 96
+    episodes_per_shard: 160
+    clips_per_group: 15360
+  val:
+    shards: 18
+    episodes_per_shard: 160
+    clips_per_group: 2880
+
+collection:
+  staging_root: /tmp
+  workers: 16
+
+storage:
+  pixel_codec:
+    format: png
+    compress_level: 1
+    lossless: true
+
+original_dataset:
+  path: ../../data/world_model/quentinll/lewm-tworooms/tworoom.h5
+  role: normalization_reference_and_50_percent_training_mixture
+
+validation_exclusion:
+  benchmark: tworoom_action_delay_history3_validation_v1
+  manifest: >-
+    artifacts/evaluation/history3/action_delay_validation_v1/training_exclusion_manifest.json
+  manifest_sha256: aff8a49d86ccf9661751a6c4f294504d8a0c2893a97dd3b32cb60c7928a1e6e7
+  query_count: 300
+  requirement: zero_query_pixel_hash_overlap
+
+catalog_stems:
+  action_delay_single: tworoom_action_delay_h3_single_v1
+  action_delay_multi: tworoom_action_delay_h3_multi_v1
+
+output_root: artifacts/synthesis/action_delay_h3_v1

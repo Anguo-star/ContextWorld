@@ -672,12 +672,15 @@ def test_pinned_stable_runtime_preflights_eager_optional_loss_constructor() -> N
         sys.executable,
         "-c",
         (
-            "import scripts.run_cube_grasp_rule_h3_train as c; "
-            "c._install_cube_action_dimensions(); "
-            "assert c.trainer.mixed.model_config('lewm')['action_encoder']['input_dim'] == 25; "
-            "assert c.trainer.mixed.model_config('pldm')['action_encoder']['input_dim'] == 25; "
-            "loss=c.trainer.mixed.ConditionalSIGReg(include_unpaired=False, complete_haar_population=False); "
-            "assert type(loss).__name__ == 'PinnedConditionalSIGReg'; "
+                "import scripts.run_cube_grasp_rule_h3_train as c; "
+                "import torch; "
+                "c._install_cube_action_dimensions(); "
+                "assert c.trainer.mixed.model_config('lewm')['action_encoder']['input_dim'] == 25; "
+                "assert c.trainer.mixed.model_config('pldm')['action_encoder']['input_dim'] == 25; "
+                "loss=c.trainer.mixed.build_regularizer_components("
+                "regularizer_kind='conditional', conditional_population='paired_only', "
+                "device=torch.device('cpu'))['conditional_sigreg']; "
+                "assert type(loss).__name__ == 'PinnedConditionalSIGReg'; "
             "assert c._PINNED_LOSS_COMPATIBILITY['conditional_sigreg_false_only'] is True"
         ),
     ]

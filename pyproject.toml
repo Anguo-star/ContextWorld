@@ -12,6 +12,77 @@ dependencies = [
   "PyYAML>=6.0",
 ]
 
+[project.optional-dependencies]
+# Frozen artifact readers and local environment-backed evaluation utilities.
+eval = [
+  "Pillow>=9.0",
+  "pylance>=4.0.0",
+  "pyarrow>=12.0",
+  "h5py>=3.8",
+  "scipy>=1.10",
+  "gymnasium>=0.29",
+  "pymunk>=6.6",
+  "jsonschema>=4.18",
+]
+# The published Stable-WorldModel distribution makes the adapter importable in
+# a clean environment.  ``env`` and ``format`` cover the local simulator and
+# Lance/H5 readers used by the frozen benchmark assets.  Formal checkpoint
+# audits still require the release-configured checkout and exact commit: legacy
+# checkpoints load its pinned training configuration rather than an arbitrary
+# installed version.
+stablewm = [
+  "Pillow>=9.0",
+  "pylance>=4.0.0",
+  "pyarrow>=12.0",
+  "h5py>=3.8",
+  "scipy>=1.10",
+  "gymnasium>=0.29",
+  "pymunk>=6.6",
+  "jsonschema>=4.18",
+  "stable-worldmodel[env,format]==0.1.1",
+  "torch>=2.1",
+  "torchvision>=0.16",
+  "loguru>=0.7",
+  "tabulate>=0.9",
+  "einops>=0.7",
+  "lancedb>=0.30.0",
+  "tqdm>=4.65",
+  "typer>=0.9",
+  "rich>=13.0",
+  "hydra-core>=1.3",
+  "omegaconf>=2.3",
+]
+dev = [
+  "Pillow>=9.0",
+  "pylance>=4.0.0",
+  "pyarrow>=12.0",
+  "h5py>=3.8",
+  "scipy>=1.10",
+  "gymnasium>=0.29",
+  "pymunk>=6.6",
+  "jsonschema>=4.18",
+  "stable-worldmodel[env,format]==0.1.1",
+  "torch>=2.1",
+  "torchvision>=0.16",
+  "loguru>=0.7",
+  "tabulate>=0.9",
+  "einops>=0.7",
+  "lancedb>=0.30.0",
+  "tqdm>=4.65",
+  "typer>=0.9",
+  "rich>=13.0",
+  "hydra-core>=1.3",
+  "omegaconf>=2.3",
+  "pytest>=7.4",
+]
+
+[tool.contextworld.stablewm]
+# The distribution provides an installable runtime.  Release-scoring code
+# deliberately switches to the component-declared checkout and verifies its
+# commit before it loads frozen checkpoints.
+distribution = "stable-worldmodel==0.1.1"
+formal_checkout_policy = "component-release-config-pinned"
+
 [project.scripts]
 contextworld-smoke = "contextworld.synthesis.smoke:main"
 contextworld-synthesize = "contextworld.synthesis.smoke:main"
@@ -30,6 +101,31 @@ contextworld-cube-gripper-carry = "contextworld.benchmarks.cube_grasp_rule_v4r1_
 
 [tool.setuptools.packages.find]
 include = ["contextworld*"]
+
+# Keep the default ``info`` commands usable after a wheel install without
+# bundling benchmark trees, checkpoints, or evaluation payloads.
+[tool.setuptools.data-files]
+"configs/benchmark" = [
+  "configs/benchmark/contextworld_icl_suite_v1.yaml",
+  "configs/benchmark/contextworld_icl_suite_v2_recovery_v2.yaml",
+  "configs/benchmark/contextworld_icl_suite_v2_integrity_reseal_v1.yaml",
+  "configs/benchmark/contextworld_icl_suite_v2_public_document_amendment_v1.yaml",
+  "configs/benchmark/tworoom_speed_icl_release_v1.yaml",
+  "configs/benchmark/tworoom_door_icl_release_v1.yaml",
+  "configs/benchmark/tworoom_action_delay_icl_release_v1.yaml",
+  "configs/benchmark/pusht_action_strength_icl_release_v1.yaml",
+  "configs/benchmark/pusht_contact_friction_icl_release_v1.yaml",
+  "configs/benchmark/pusht_motion_damping_icl_release_v1.yaml",
+  "configs/benchmark/tworoom_portal_exit_icl_release_v1.yaml",
+  "configs/benchmark/reacher_arm_mass_icl_release_v1.yaml",
+  "configs/benchmark/cube_gripper_carry_h3_v4r1_icl_release_v1.yaml",
+]
+
+[tool.setuptools.package-data]
+contextworld = [
+  "_release_metadata/contextworld_icl_suite_v2_release/*.json",
+  "_release_metadata/contextworld_icl_suite_v2_release/README.md",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

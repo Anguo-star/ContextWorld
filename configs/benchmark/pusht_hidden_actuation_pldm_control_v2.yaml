@@ -1,0 +1,55 @@
+schema_version: 1
+benchmark: pusht_hidden_actuation_history3_action_coverage_v2
+experiment: pusht_pldm_compute_extension_v2
+status: registered_after_v1_step2048_before_any_step4096_training
+registered_at_utc: "2026-07-30"
+owner: ContextWorld
+
+parent:
+  protocol: pusht_hidden_actuation_pldm_control_v1.yaml
+  training_report: >-
+    artifacts/evaluation/history3/pusht_hidden_actuation_h3_v1/
+    pldm_control_v1/training_seed14337_step2048/mixed_report.json
+  training_report_sha256: 5aaf3517cc6460a85407aef67eec23084cec108a7f62b93fb3fe43bb2818471c
+  final_step2048:
+    target_selection: 0.91
+    correct_history: 0.98
+    rule_switch: 1.0
+    worst_mode: 0.90
+    paired_to_unrelated_ratio: 0.45306023955345154
+
+purpose: >-
+  The v1 PLDM trajectory is monotonic from step 512 through step 2048 and
+  has learned rule switching but misses the preregistered target-selection
+  gate by four points. This extension distinguishes a slower PLDM
+  optimization path from a residual inability to learn PushT hidden
+  dynamics. It is a compute diagnostic, not a same-budget comparison.
+
+training:
+  start_again_from_the_common_source_checkpoint: true
+  resume_from_v1_checkpoint: false
+  seed: 14337
+  optimizer_steps: 4096
+  batch_size: 128
+  learning_rate: 5.0e-5
+  weight_decay: 1.0e-3
+  gradient_clip_norm: 1.0
+  precision: bf16_mixed
+  objective_and_data_unchanged_from_v1: true
+  only_changed_field: optimizer_steps
+
+decision:
+  target_selection_minimum: 0.95
+  correct_history_minimum: 0.95
+  rule_switch_minimum: 0.95
+  worst_mode_minimum: 0.90
+  interpretation:
+    pass: PLDM can learn the PushT rule but is slower than the primary method
+    fail: PLDM preserves the rule direction but does not reach formal accuracy
+
+followup:
+  run_standard_and_hidden_cem_only_if_all_prediction_gates_pass: true
+  standard_eval_seeds: [42, 43, 44, 45, 46, 47]
+  standard_queries_per_seed: 50
+  hidden_eval_seed: 14336
+  hidden_query_pairs: 50

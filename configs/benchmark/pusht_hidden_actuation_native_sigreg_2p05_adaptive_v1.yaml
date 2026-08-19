@@ -1,0 +1,69 @@
+schema_version: 1
+benchmark: pusht_hidden_actuation_history3_action_coverage_v2
+experiment: native_sigreg_2p05_mixed_adaptive_v1
+status: adaptive_extension_registered_after_0p20_to_0p90_failure_before_training
+owner: ContextWorld
+
+observed_trigger:
+  native_sigreg_0p20_target_selection: 0.60
+  native_sigreg_0p30_target_selection: 0.61
+  native_sigreg_0p50_target_selection: 0.66
+  native_sigreg_0p90_target_selection: 0.67
+  all_registered_high_weight_prediction_gates_passed: false
+
+adaptive_rationale: >-
+  Weight 2.05 is not selected from the observed PushT curve. It is the
+  pre-existing maximum native-SIGReg coefficient in the earlier TwoRoom
+  synthetic-only sweep. Testing that exact endpoint closes the already
+  established cross-environment range without introducing an arbitrary new
+  PushT-specific coefficient.
+
+method_name_zh: 原始正则超高权重版
+variant:
+  name: mixed_native_sigreg_2p05
+  weight: 2.05
+  regularizer: unchanged_full_batch_native_sigreg
+
+training:
+  source_checkpoint: external/pusht/pusht_lewm_baseline_seed3073_weights.ckpt
+  seed: 3073
+  optimizer_steps: 2048
+  batch_size: 128
+  original_samples_per_batch: 64
+  hidden_samples_per_batch: 64
+  hidden_pairs_per_batch: 32
+  learning_rate: 5.0e-5
+  weight_decay: 1.0e-3
+  gradient_clip_norm: 1.0
+  precision: bf16_mixed
+  same_source_checkpoint_and_batch_order_as_prior_sweep: true
+
+hidden_prediction_gate:
+  target_selection_minimum: 0.95
+  correct_history_minimum: 0.95
+  rule_switch_minimum: 0.95
+  worst_mode_minimum: 0.90
+
+standard_pusht_followup:
+  run_only_after_hidden_prediction_pass: true
+  protocol: exact_standard_history3_cem_300x30_top30
+  eval_seeds:
+    - 42
+    - 43
+    - 44
+    - 45
+    - 46
+    - 47
+  queries_per_seed: 50
+  replay_matched_native_0p09_control: 230/300
+  noninferiority_margin_absolute: 0.05
+
+claim_boundary:
+  - This is an explicitly adaptive single-training-seed endpoint.
+  - >-
+    Failure does not prove that an unbounded native coefficient can never
+    learn PushT hidden actuation; it closes only the pre-existing TwoRoom
+    coefficient range through 2.05.
+  - >-
+    Passing hidden prediction does not establish usefulness until standard
+    PushT real-environment CEM is measured.

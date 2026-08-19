@@ -27,6 +27,7 @@ DEFAULT_CONTACT_FRICTION_RELEASE_CONFIG = (
 )
 FRICTION_MODES = ("low_friction", "high_friction")
 FRICTION_VALUES = (0.05, 0.80)
+CONTACT_FRICTION_DEVELOPMENT_SPLIT = "loader_validation"
 STRICT_CAUSAL_PROTOCOL = (
     "pusht_contact_friction_history3_strict_continuous_v2"
 )
@@ -38,6 +39,60 @@ QUERY_FULL_STATE_TOLERANCE = 1e-5
 # checking its serialized diagnostic copy.
 SERIALIZED_QUERY_FULL_STATE_TOLERANCE = 5e-5
 MINIMUM_CONTACT_FREE_STEPS_BEFORE_QUERY = 3
+
+
+def contact_friction_development_data_contract(
+    release: dict[str, Any],
+) -> dict[str, Any]:
+    """Return the narrow, pinned Development-only reader contract.
+
+    This deliberately describes only ``loader_validation.lance``.  The
+    public evaluator has its own dataset class below, so callers cannot
+    accidentally select the Public Test table through this API.
+    """
+
+    try:
+        development = release["evaluation"]["development"]
+        data = release["data"]
+        split = str(development["split"])
+        lance_table = str(development["lance_table"])
+        pair_count = int(development["pair_count"])
+        lance_table_sha256 = str(development["lance_table_sha256"])
+        data_manifest_sha256 = str(development["data_manifest_sha256"])
+        public_test = development["public_test"]
+    except (KeyError, TypeError, ValueError) as error:
+        raise ValueError(
+            "Contact Friction release lacks a complete Development-only "
+            "evaluation contract"
+        ) from error
+
+    expected_public_test = {
+        "access_status": "closed_not_read_not_scored",
+        "opened": False,
+        "read": False,
+        "hashed": False,
+        "scored": False,
+    }
+    if (
+        split != CONTACT_FRICTION_DEVELOPMENT_SPLIT
+        or lance_table != data["lance_tables"][split]
+        or pair_count != int(data["pair_counts"][split])
+        or lance_table_sha256 != data["table_sha256"][split]
+        or data_manifest_sha256 != data["manifest_sha256"]
+        or public_test != expected_public_test
+    ):
+        raise ValueError(
+            "Contact Friction Development-only contract must be pinned to "
+            "loader_validation and keep Public Test closed"
+        )
+    return {
+        "split": split,
+        "lance_table": lance_table,
+        "pair_count": pair_count,
+        "lance_table_sha256": lance_table_sha256,
+        "data_manifest_sha256": data_manifest_sha256,
+        "public_test": dict(public_test),
+    }
 
 
 def _pusht_physics_state_max_abs_gap(
@@ -126,6 +181,7 @@ def load_contact_friction_icl_release(
             "Contact Friction release requires the strict continuous "
             f"causal protocol {STRICT_CAUSAL_PROTOCOL!r}"
         )
+    contact_friction_development_data_contract(payload)
     return {**payload, "_config_path": str(config_path)}
 
 
@@ -363,6 +419,106 @@ class ContactFrictionICLEvalDataset:
             "history_tokens": 3,
             "effective_contact_friction_values": list(FRICTION_VALUES),
             "online_environment_calls": 0,
+        }
+
+
+class ContactFrictionICLDevelopmentDataset:
+    """Pinned Loader Validation reader that never selects Public Test data."""
+
+    def __init__(
+        self,
+        *,
+        release: dict[str, Any] | None = None,
+        release_config: (
+            Path | str
+        ) = DEFAULT_CONTACT_FRICTION_RELEASE_CONFIG,
+        repo_root: Path | None = None,
+    ) -> None:
+        self.repo_root = (repo_root or repository_root()).resolve()
+        self.release = release or load_contact_friction_icl_release(
+            release_config
+        )
+        self.development = contact_friction_development_data_contract(
+            self.release
+        )
+        self.root = resolve_contextworld_path(
+            self.release["data"]["artifact_tree"]["root"],
+            repo_root=self.repo_root,
+        )
+        self._arrays: ContactFrictionEvalArrays | None = None
+        self._identity: dict[str, Any] | None = None
+
+    @property
+    def arrays(self) -> ContactFrictionEvalArrays:
+        if self._arrays is None:
+            self._arrays = _read_lance_pairs(
+                self.root / self.development["lance_table"],
+                expected_pairs=int(self.development["pair_count"]),
+                expected_split=CONTACT_FRICTION_DEVELOPMENT_SPLIT,
+            )
+        return self._arrays
+
+    @property
+    def is_full_protocol(self) -> bool:
+        return self.arrays.pair_count == int(
+            self.development["pair_count"]
+        )
+
+    @property
+    def identity(self) -> dict[str, Any]:
+        """Hash only the Development table and its manifest binding.
+
+        In particular, this function must not walk, hash, or decode the
+        ``validation.lance`` Public Test table.
+        """
+
+        if self._identity is None:
+            manifest_path = self.root / "manifest.json"
+            table_path = self.root / self.development["lance_table"]
+            manifest_observed = (
+                file_sha256(manifest_path)
+                if manifest_path.is_file()
+                else None
+            )
+            table_observed = (
+                directory_sha256(table_path)
+                if table_path.is_dir()
+                else None
+            )
+            self._identity = {
+                "split": CONTACT_FRICTION_DEVELOPMENT_SPLIT,
+                "lance_table": self.development["lance_table"],
+                "pair_count": int(self.development["pair_count"]),
+                "data_manifest_sha256": self.development[
+                    "data_manifest_sha256"
+                ],
+                "observed_data_manifest_sha256": manifest_observed,
+                "lance_table_sha256": self.development[
+                    "lance_table_sha256"
+                ],
+                "observed_lance_table_sha256": table_observed,
+                "passed": bool(
+                    manifest_observed
+                    == self.development["data_manifest_sha256"]
+                    and table_observed
+                    == self.development["lance_table_sha256"]
+                ),
+            }
+        return dict(self._identity)
+
+    def describe(self) -> dict[str, Any]:
+        return {
+            "root": str(self.root),
+            "split": "Development",
+            "split_name": CONTACT_FRICTION_DEVELOPMENT_SPLIT,
+            "lance_table": self.development["lance_table"],
+            "pair_count": self.arrays.pair_count,
+            "condition_count": 2 * self.arrays.pair_count,
+            "history_tokens": 3,
+            "effective_contact_friction_values": list(FRICTION_VALUES),
+            "online_environment_calls": 0,
+            "identity": self.identity,
+            "public_test_opened": False,
         }
 
 
@@ -998,11 +1154,14 @@ def audit_contact_friction_icl_release(
 
 
 __all__ = [
+    "CONTACT_FRICTION_DEVELOPMENT_SPLIT",
     "CONTACT_FRICTION_RELEASE_ID",
     "DEFAULT_CONTACT_FRICTION_RELEASE_CONFIG",
+    "ContactFrictionICLDevelopmentDataset",
     "ContactFrictionEvalArrays",
     "ContactFrictionICLEvalDataset",
     "audit_contact_friction_icl_release",
+    "contact_friction_development_data_contract",
     "directory_sha256",
     "file_sha256",
     "load_contact_friction_icl_release",

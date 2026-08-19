@@ -1,0 +1,126 @@
+schema_version: 1
+benchmark: pusht_hidden_actuation_history3_replay_matched_exposure_v3
+status: registered_after_v2_failure_before_v3_training
+registered_at_utc: "2026-07-30"
+owner: ContextWorld
+
+question: >-
+  With the replay-matched counterfactual data frozen, does matching the
+  number of standard replay samples to the 2,048-step standard-only control
+  let a simple conditional SIGReg learn held-out hidden dynamics while
+  retaining standard Push-T CEM?
+
+frozen_inputs:
+  replay_matched_data:
+    root: artifacts/synthesis/pusht_hidden_actuation_replay_matched_h3_v2
+    train_pairs: 2048
+    validation_pairs: 256
+    synthesis_or_filter_change_from_v2: none
+  hidden_transfer_eval:
+    root: artifacts/synthesis/pusht_hidden_actuation_h3_v1/eval_payloads
+    role: cross_construction_diagnostic_only
+  source_checkpoint: external/pusht/pusht_lewm_baseline_seed3073_weights.ckpt
+  source_scales:
+    path: evaluation/history3/pusht_hidden_actuation_replay_matched_h3_v2/source_scales.json
+    recompute_or_tune: false
+
+frozen_v2_observations:
+  optimizer_steps: 2048
+  standard_samples_seen: 131072
+  native:
+    replay_matched_validation_target_selection: 0.83203125
+    frozen_v1_transfer_target_selection: 0.50
+    standard_cem: 195/300
+  dynamics_response:
+    replay_matched_validation_target_selection: 0.927734375
+    frozen_v1_transfer_target_selection: 0.51
+    standard_cem: 221/300
+  interpretation: >-
+    v2 learned its source-disjoint replay-matched mechanism but did not
+    transfer across synthesis constructions. The response loss retained the
+    original task, while the native loss did not. The v2 run used only half
+    as many standard samples as the standard-only control.
+
+training:
+  restart_from_source_checkpoint: true
+  seed: 13313
+  optimizer_steps: 4096
+  batch_size: 128
+  standard_samples_per_batch: 64
+  replay_matched_hidden_samples_per_batch: 64
+  replay_matched_hidden_pairs_per_batch: 32
+  standard_samples_seen: 262144
+  standard_only_reference_samples_seen: 262144
+  optimizer: AdamW
+  learning_rate: 5.0e-5
+  weight_decay: 1.0e-3
+  gradient_clip_norm: 1.0
+  precision: bf16_mixed
+  variants:
+    - id: mixed_native_sigreg_0p09
+      display_name_zh: 原始 LeWM
+    - id: mixed_dynamics_response_sigreg_0p02
+      display_name_zh: 动力学响应 SIGReg
+  immutable:
+    - data
+    - scales
+    - loss_definitions
+    - loss_weights
+    - seed
+    - batch_partition
+    - optimizer
+    - evaluation_pairs
+
+primary_hidden_evaluation:
+  split: replay_matched_v2_source_episode_disjoint_validation
+  pair_count: 256
+  deterministic_current_query_only_bound: 0.50
+  response_gates:
+    target_selection_minimum: 0.95
+    correct_history_minimum: 0.95
+    rule_switch_minimum: 0.95
+    worst_mode_minimum: 0.90
+  native_separation_target:
+    target_selection_failure_ceiling: 0.90
+    role: method_separation_not_required_for_no_conflict_claim
+
+original_task_retention:
+  evaluation: exact_standard_history3_cem_300x30_top30
+  eval_seeds: [42, 43, 44, 45, 46, 47]
+  queries_per_seed: 50
+  standard_only_reference: 225/300
+  noninferiority_margin_absolute: 0.05
+  minimum_successes_out_of_300: 210
+  required_for_both_variants: true
+
+secondary_evaluations:
+  frozen_v1_transfer:
+    pair_count: 50
+    role: cross_construction_generalization_diagnostic
+    pass_required: false
+  replay_matched_hidden_cem:
+    run_after_response_primary_hidden_and_retention_pass: true
+    mode_action_classification_minimum: 0.90
+    real_environment_success: diagnostic
+
+decision_rules:
+  - >-
+    If response passes replay-matched validation and standard CEM, conclude
+    that hidden-dynamics ICL and original-task CEM are not inherently in
+    conflict when both distribution and standard-sample exposure are
+    controlled.
+  - >-
+    If native remains at or below 0.90 while response passes all hidden
+    gates, conclude that the conditional-protection deficit also appears in
+    the replay-distributed task, not only in the narrow v1 construction.
+  - >-
+    If both variants pass hidden and retention gates, retain the no-conflict
+    conclusion but do not use replay-matched v2 as evidence that native
+    SIGReg fails universally.
+  - >-
+    If response fails primary hidden gates, conclude that the current simple
+    response regularizer has not generalized sufficiently; do not tune this
+    registered run.
+  - >-
+    Frozen v1 transfer failure cannot invalidate in-distribution hidden ICL,
+    but must be reported as a construction-invariance limitation.

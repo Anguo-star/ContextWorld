@@ -1,0 +1,60 @@
+schema_version: 1
+recovery_id: contextworld_original_baseline_cem_finalizer_recovery_v1
+status: preregistered_after_finalizer_failure_before_summary_write
+recovery_date_utc: "2026-08-17"
+
+scope:
+  operation: receipt_only_matrix_finalization_recovery
+  cem_episode_execution_authorized: false
+  receipt_mutation_authorized: false
+  checkpoint_or_dataset_access_change_authorized: false
+  formal_scoreboard_mutation_authorized: false
+  result_summary:
+    path: artifacts/evaluation/original_baseline_cem_v1/matrix_summary.json
+    must_be_absent_before_recovery: true
+    exclusive_creation_required: true
+
+original_authority:
+  preregistration:
+    path: configs/benchmark/contextworld_original_baseline_cem_prereg_v1.yaml
+    sha256: acc82b6f6e1c6488c602b1b5980450d5fdc101d9091e68910a896990ed9deabb
+    size_bytes: 17890
+  pre_execution_freeze:
+    path: configs/benchmark/contextworld_original_baseline_cem_freeze_v1.json
+    sha256: 1d6298b590446006b3298dee1f5d433079f56fbb7d08bf23f4167841e39f3d49
+    size_bytes: 1621
+  original_finalizer:
+    path: scripts/finalize_contextworld_original_baseline_cem_v1.py
+    sha256: 519c2c3342741b42eab761308f59d9ea63cfcef607ae2445ef970381e1b0894a
+    size_bytes: 67442
+
+observed_failure:
+  stage: receipt_only_finalization
+  exception_type: FinalizationError
+  message: pusht lewm seed 42.evaluation_count is missing
+  result_summary_written: false
+  cem_receipt_failure: false
+  model_state_failure: false
+
+authorized_compatibility_change:
+  location: standard_runner_per_seed_aggregate_validation
+  existing_accepted_fields: [evaluation_count, evaluations]
+  additive_field: query_count
+  semantics: exact_evaluation_count_alias
+  conflicting_aliases_must_fail: true
+  all_other_finalizer_checks_unchanged: true
+
+recovery_implementation:
+  path: scripts/finalize_contextworld_original_baseline_cem_recovery_v1.py
+  authorization_freeze:
+    path: configs/benchmark/contextworld_original_baseline_cem_finalizer_recovery_freeze_v1.json
+    required_before_summary_write: true
+
+completion_contract:
+  matrix_cells: 8
+  episodes_per_cell: 300
+  total_matrix_episodes: 2400
+  newly_executed_episodes: 2100
+  strictly_reused_episodes: 300
+  cem_episodes_rerun_by_recovery: 0
+  summary_must_record_recovery_evidence: true

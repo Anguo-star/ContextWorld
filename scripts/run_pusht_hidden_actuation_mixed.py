@@ -39,14 +39,6 @@ for source_root in (
 from contextworld.paths import artifact_path  # noqa: E402
 import run_pusht_hidden_actuation_pilot as pilot  # noqa: E402
 from stable_worldmodel.data import LanceDataset  # noqa: E402
-from stable_worldmodel.wm.loss import (  # noqa: E402
-    ConditionalSIGReg,
-    DynamicsResponseSIGReg,
-    GroupBalancedSIGReg,
-    PLDMLoss,
-    ScaleCalibratedConditionalSIGReg,
-    SIGReg,
-)
 
 
 DEFAULT_ORIGINAL_LANCE = Path(
@@ -251,6 +243,195 @@ def model_config_name_for_variant(variant: str) -> str:
         if regularizer_kind in {"pldm", "pldm_paired_future_ranking"}
         else "lewm"
     )
+
+
+def load_hidden_evaluation(
+    hidden_root: Path,
+    *,
+    action_stats: dict[str, Any],
+) -> tuple[dict[str, torch.Tensor], str]:
+    """Load the immutable development evaluation pairs for mixed training.
+
+    Legacy releases package evaluation pairs as ``eval_payloads/*.npz``.
+    Current portable releases instead retain the same complete, alternating
+    low/high development pairs in ``validation.lance``.  The latter is not a
+    Public test input; it is used only for the existing in-training snapshot
+    diagnostics.
+    """
+
+    payload_root = hidden_root / "eval_payloads"
+    if payload_root.is_dir():
+        return (
+            pilot.load_eval_payloads(payload_root, action_stats=action_stats),
+            "legacy_eval_payloads",
+        )
+
+    validation_path = hidden_root / "validation.lance"
+    if not validation_path.is_dir():
+        raise FileNotFoundError(
+            "Missing both legacy eval_payloads and development "
+            f"validation.lance under {hidden_root}"
+        )
+    dataset = LanceDataset(
+        path=validation_path,
+        frameskip=5,
+        num_steps=4,
+        keys_to_load=["pixels", "action", "state"],
+    )
+    if len(dataset) == 0 or len(dataset) % 2:
+        raise RuntimeError(
+            "Development validation.lance must contain non-empty alternating "
+            "complete low/high pairs"
+        )
+
+    rows: dict[str, list[torch.Tensor]] = {
+        "low_pixels": [],
+        "high_pixels": [],
+        "action": [],
+        "low_states": [],
+        "high_states": [],
+    }
+    for pair_index in range(len(dataset) // 2):
+        low = dataset[2 * pair_index]
+        high = dataset[2 * pair_index + 1]
+        low_pixels = low["pixels"]
+        high_pixels = high["pixels"]
+        low_actions = low["action"].float()
+        high_actions = high["action"].float()
+        low_states = low["state"].float()
+        high_states = high["state"].float()
+        if low_pixels.shape != (4, 3, 224, 224):
+            raise RuntimeError(
+                "Unexpected validation pixel shape: "
+                f"{tuple(low_pixels.shape)}"
+            )
+        if low_actions.shape != (4, ACTION_INPUT_DIM):
+            raise RuntimeError(
+                "Unexpected validation action shape: "
+                f"{tuple(low_actions.shape)}"
+            )
+        if low_states.ndim != 2 or low_states.shape[0] != 4:
+            raise RuntimeError(
+                "Unexpected validation state shape: "
+                f"{tuple(low_states.shape)}"
+            )
+        if high_pixels.shape != low_pixels.shape or high_actions.shape != low_actions.shape:
+            raise RuntimeError("A validation pair has inconsistent tensor shapes")
+        if high_states.shape != low_states.shape:
+            raise RuntimeError("A validation pair has inconsistent state shapes")
+        if not torch.equal(low_pixels[0], high_pixels[0]):
+            raise RuntimeError("A validation pair has unequal initial pixels")
+        if not torch.equal(low_pixels[2], high_pixels[2]):
+            raise RuntimeError("A validation pair has unequal query pixels")
+        if not torch.equal(low_actions, high_actions):
+            raise RuntimeError("A validation pair has unequal action sequence")
+        if torch.equal(low_pixels[1], high_pixels[1]):
+            raise RuntimeError("A validation pair has no visible probe outcome")
+        if torch.equal(low_pixels[3], high_pixels[3]):
+            raise RuntimeError("A validation pair has no distinct future")
+        if not bool(torch.isfinite(low_states).all()) or not bool(
+            torch.isfinite(high_states).all()
+        ):
+            raise RuntimeError("A validation pair has non-finite state values")
+        if torch.equal(low_states[3, 2:4], high_states[3, 2:4]):
+            raise RuntimeError("A validation pair has no physical future gap")
+        rows["low_pixels"].append(low_pixels)
+        rows["high_pixels"].append(high_pixels)
+        rows["action"].append(low_actions)
+        rows["low_states"].append(low_states)
+        rows["high_states"].append(high_states)
+
+    evaluation = {name: torch.stack(values) for name, values in rows.items()}
+    evaluation["action"] = pilot.normalize_action_blocks(
+        evaluation["action"],
+        action_stats,
+    )
+    return evaluation, "development_validation_lance"
+
+
+def build_regularizer_components(
+    *,
+    regularizer_kind: str,
+    conditional_population: str,
+    device: torch.device,
+) -> dict[str, torch.nn.Module]:
+    """Instantiate only the loss implementation selected by ``variant``.
+
+    The mixed runner supports a number of research-only SIGReg variants, but
+    a native PLDM confirmation needs only ``PLDMLoss``.  Keeping all optional
+    variants in a module-level import made an unavailable, unused experimental
+    loss class block otherwise compatible PLDM checkpoints.
+    """
+
+    if regularizer_kind in {"pldm", "pldm_paired_future_ranking"}:
+        from stable_worldmodel.wm.loss import PLDMLoss
+
+        return {"pldm": PLDMLoss().to(device)}
+    if regularizer_kind == "native":
+        from stable_worldmodel.wm.loss import SIGReg
+
+        return {"native_sigreg": SIGReg(knots=17, num_proj=1024).to(device)}
+    if regularizer_kind == "conditional":
+        from stable_worldmodel.wm.loss import ConditionalSIGReg
+
+        return {
+            "conditional_sigreg": ConditionalSIGReg(
+                knots=17,
+                num_proj=1024,
+                randomize_pair_orientation=True,
+                include_unpaired=(
+                    conditional_population == "highpass_with_unpaired"
+                ),
+                complete_haar_population=(
+                    conditional_population == "complete_haar"
+                ),
+            ).to(device)
+        }
+    if regularizer_kind in {"group_balanced", "transition_conditional"}:
+        from stable_worldmodel.wm.loss import GroupBalancedSIGReg
+
+        return {
+            "group_balanced_sigreg": GroupBalancedSIGReg(
+                knots=17,
+                num_proj=1024,
+                randomize_pair_orientation=True,
+            ).to(device)
+        }
+    if regularizer_kind == "scale_calibrated":
+        from stable_worldmodel.wm.loss import ScaleCalibratedConditionalSIGReg
+
+        return {
+            "scale_calibrated_sigreg": ScaleCalibratedConditionalSIGReg(
+                knots=17,
+                num_proj=1024,
+                randomize_pair_orientation=True,
+            ).to(device)
+        }
+    if regularizer_kind == "dynamics_response":
+        # The paired-response-alignment branch uses its explicit MSE and has
+        # no need to import the optional response-SIGReg implementation.
+        if conditional_population == "paired_response_alignment":
+            return {}
+        from stable_worldmodel.wm.loss import DynamicsResponseSIGReg
+
+        return {
+            "dynamics_response_sigreg": DynamicsResponseSIGReg(
+                knots=17,
+                num_proj=1024,
+                reserve_factor=2.0**0.5,
+                randomize_pair_orientation=True,
+            ).to(device)
+        }
+    if regularizer_kind in {
+        "paired_future_ranking",
+        "paired_future_matching",
+        "paired_future_fit",
+        "paired_future_projected_center",
+        "paired_future_response_log_norm",
+        "paired_future_projected_geometry",
+    }:
+        return {}
+    raise ValueError(f"Unsupported regularizer kind: {regularizer_kind!r}")
 
 
 def resolve_batch_partition(
@@ -805,35 +986,19 @@ def train_variant(
         if freeze_image_representation
         else None
     )
-    native_sigreg = SIGReg(knots=17, num_proj=1024).to(device)
-    conditional_sigreg = ConditionalSIGReg(
-        knots=17,
-        num_proj=1024,
-        randomize_pair_orientation=True,
-        include_unpaired=(
-            conditional_population == "highpass_with_unpaired"
-        ),
-        complete_haar_population=(
-            conditional_population == "complete_haar"
-        ),
-    ).to(device)
-    group_balanced_sigreg = GroupBalancedSIGReg(
-        knots=17,
-        num_proj=1024,
-        randomize_pair_orientation=True,
-    ).to(device)
-    scale_calibrated_sigreg = ScaleCalibratedConditionalSIGReg(
-        knots=17,
-        num_proj=1024,
-        randomize_pair_orientation=True,
-    ).to(device)
-    dynamics_response_sigreg = DynamicsResponseSIGReg(
-        knots=17,
-        num_proj=1024,
-        reserve_factor=2.0**0.5,
-        randomize_pair_orientation=True,
-    ).to(device)
-    pldm = PLDMLoss().to(device)
+    regularizers = build_regularizer_components(
+        regularizer_kind=regularizer_kind,
+        conditional_population=conditional_population,
+        device=device,
+    )
+    native_sigreg = regularizers.get("native_sigreg")
+    conditional_sigreg = regularizers.get("conditional_sigreg")
+    group_balanced_sigreg = regularizers.get("group_balanced_sigreg")
+    scale_calibrated_sigreg = regularizers.get("scale_calibrated_sigreg")
+    dynamics_response_sigreg = regularizers.get(
+        "dynamics_response_sigreg"
+    )
+    pldm = regularizers.get("pldm")
     parameters = [
         parameter for parameter in model.parameters()
         if parameter.requires_grad
@@ -1705,7 +1870,6 @@ def main() -> None:
     required = [
         hidden_root / "manifest.json",
         hidden_root / "train.lance",
-        hidden_root / "eval_payloads",
         original_lance,
         action_source,
         checkpoint,
@@ -1722,6 +1886,15 @@ def main() -> None:
         raise FileNotFoundError(
             "Missing input(s):\n" + "\n".join(map(str, missing))
         )
+    if not (
+        (hidden_root / "eval_payloads").is_dir()
+        or (hidden_root / "validation.lance").is_dir()
+    ):
+        raise FileNotFoundError(
+            "Missing both development evaluation forms:\n"
+            f"{hidden_root / 'eval_payloads'}\n"
+            f"{hidden_root / 'validation.lance'}"
+        )
     if output.exists():
         raise FileExistsError(f"Refusing to overwrite output: {output}")
     output.mkdir(parents=True)
@@ -1735,8 +1908,8 @@ def main() -> None:
         hidden_root / "train.lance",
         action_stats=action_stats,
     )
-    evaluation = pilot.load_eval_payloads(
-        hidden_root / "eval_payloads",
+    evaluation, evaluation_source = load_hidden_evaluation(
+        hidden_root,
         action_stats=action_stats,
     )
     if hidden_batch_size and hidden.pair_count % (hidden_batch_size // 2):
@@ -1784,6 +1957,8 @@ def main() -> None:
             ),
             "train_pairs": hidden.pair_count,
             "eval_pairs": int(evaluation["low_pixels"].size(0)),
+            "evaluation_source": evaluation_source,
+            "public_test_used": False,
         },
         "original_data": {
             "path": str(original_lance),

@@ -28,6 +28,60 @@ DEFAULT_MOTION_DAMPING_RELEASE_CONFIG = (
 )
 DAMPING_MODES = ("faster_decay", "no_extra_decay")
 DAMPING_VALUES = (0.2, 1.0)
+MOTION_DAMPING_DEVELOPMENT_SPLIT = "loader_validation"
+
+
+def motion_damping_development_data_contract(
+    release: dict[str, Any],
+) -> dict[str, Any]:
+    """Return the pinned Development-only reader contract.
+
+    The contract deliberately names only ``loader_validation.lance``.  The
+    independent Public Test reader remains ``MotionDampingICLEvalDataset``.
+    """
+
+    try:
+        development = release["evaluation"]["development"]
+        data = release["data"]
+        split = str(development["split"])
+        lance_table = str(development["lance_table"])
+        pair_count = int(development["pair_count"])
+        lance_table_sha256 = str(development["lance_table_sha256"])
+        data_manifest_sha256 = str(development["data_manifest_sha256"])
+        public_test = development["public_test"]
+    except (KeyError, TypeError, ValueError) as error:
+        raise ValueError(
+            "Motion Damping release lacks a complete Development-only "
+            "evaluation contract"
+        ) from error
+
+    expected_public_test = {
+        "access_status": "closed_not_read_not_scored",
+        "opened": False,
+        "read": False,
+        "hashed": False,
+        "scored": False,
+    }
+    if (
+        split != MOTION_DAMPING_DEVELOPMENT_SPLIT
+        or lance_table != data["lance_tables"][split]
+        or pair_count != int(data["pair_counts"][split])
+        or lance_table_sha256 != data["table_sha256"][split]
+        or data_manifest_sha256 != data["manifest_sha256"]
+        or public_test != expected_public_test
+    ):
+        raise ValueError(
+            "Motion Damping Development-only contract must be pinned to "
+            "loader_validation and keep Public Test closed"
+        )
+    return {
+        "split": split,
+        "lance_table": lance_table,
+        "pair_count": pair_count,
+        "lance_table_sha256": lance_table_sha256,
+        "data_manifest_sha256": data_manifest_sha256,
+        "public_test": dict(public_test),
+    }
 
 
 def file_sha256(path: Path) -> str:
@@ -71,6 +125,7 @@ def load_motion_damping_icl_release(
         raise ValueError("Motion Damping must include Public Test")
     if scope.get("sealed_test_included") is not False:
         raise ValueError("Motion Damping has no sealed Test")
+    motion_damping_development_data_contract(payload)
     return {**payload, "_config_path": str(config_path)}
 
 
@@ -284,6 +339,103 @@ class MotionDampingICLEvalDataset:
             "history_tokens": 3,
             "motion_damping_values": list(DAMPING_VALUES),
             "online_environment_calls": 0,
+        }
+
+
+class MotionDampingICLDevelopmentDataset:
+    """Pinned Loader Validation reader that never selects Public Test data."""
+
+    def __init__(
+        self,
+        *,
+        release: dict[str, Any] | None = None,
+        release_config: Path | str = DEFAULT_MOTION_DAMPING_RELEASE_CONFIG,
+        repo_root: Path | None = None,
+    ) -> None:
+        self.repo_root = (repo_root or repository_root()).resolve()
+        self.release = release or load_motion_damping_icl_release(
+            release_config
+        )
+        self.development = motion_damping_development_data_contract(
+            self.release
+        )
+        self.root = resolve_contextworld_path(
+            self.release["data"]["artifact_tree"]["root"],
+            repo_root=self.repo_root,
+        )
+        self._arrays: MotionDampingEvalArrays | None = None
+        self._identity: dict[str, Any] | None = None
+
+    @property
+    def arrays(self) -> MotionDampingEvalArrays:
+        if self._arrays is None:
+            self._arrays = _read_lance_pairs(
+                self.root / self.development["lance_table"],
+                expected_pairs=int(self.development["pair_count"]),
+                expected_split=MOTION_DAMPING_DEVELOPMENT_SPLIT,
+            )
+        return self._arrays
+
+    @property
+    def is_full_protocol(self) -> bool:
+        return self.arrays.pair_count == int(
+            self.development["pair_count"]
+        )
+
+    @property
+    def identity(self) -> dict[str, Any]:
+        """Hash only Loader Validation and its manifest binding.
+
+        This method must not walk, hash, or decode ``validation.lance``.
+        """
+
+        if self._identity is None:
+            manifest_path = self.root / "manifest.json"
+            table_path = self.root / self.development["lance_table"]
+            manifest_observed = (
+                file_sha256(manifest_path)
+                if manifest_path.is_file()
+                else None
+            )
+            table_observed = (
+                directory_sha256(table_path)
+                if table_path.is_dir()
+                else None
+            )
+            self._identity = {
+                "split": MOTION_DAMPING_DEVELOPMENT_SPLIT,
+                "lance_table": self.development["lance_table"],
+                "pair_count": int(self.development["pair_count"]),
+                "data_manifest_sha256": self.development[
+                    "data_manifest_sha256"
+                ],
+                "observed_data_manifest_sha256": manifest_observed,
+                "lance_table_sha256": self.development[
+                    "lance_table_sha256"
+                ],
+                "observed_lance_table_sha256": table_observed,
+                "passed": bool(
+                    manifest_observed
+                    == self.development["data_manifest_sha256"]
+                    and table_observed
+                    == self.development["lance_table_sha256"]
+                ),
+            }
+        return dict(self._identity)
+
+    def describe(self) -> dict[str, Any]:
+        return {
+            "root": str(self.root),
+            "split": "Development",
+            "split_name": MOTION_DAMPING_DEVELOPMENT_SPLIT,
+            "lance_table": self.development["lance_table"],
+            "pair_count": self.arrays.pair_count,
+            "condition_count": 2 * self.arrays.pair_count,
+            "history_tokens": 3,
+            "motion_damping_values": list(DAMPING_VALUES),
+            "online_environment_calls": 0,
+            "identity": self.identity,
+            "public_test_opened": False,
         }
 
 
@@ -851,11 +1003,14 @@ __all__ = [
     "DAMPING_MODES",
     "DAMPING_VALUES",
     "DEFAULT_MOTION_DAMPING_RELEASE_CONFIG",
+    "MOTION_DAMPING_DEVELOPMENT_SPLIT",
     "MOTION_DAMPING_RELEASE_ID",
+    "MotionDampingICLDevelopmentDataset",
     "MotionDampingEvalArrays",
     "MotionDampingICLEvalDataset",
     "audit_motion_damping_icl_release",
     "directory_sha256",
     "file_sha256",
     "load_motion_damping_icl_release",
+    "motion_damping_development_data_contract",
 ]

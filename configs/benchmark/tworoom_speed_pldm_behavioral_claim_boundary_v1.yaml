@@ -1,0 +1,57 @@
+schema_version: 1
+amendment_id: tworoom_speed_pldm_behavioral_claim_boundary_v1
+completion_id: tworoom_speed_pldm_reference_completion_v1
+release_id: contextworld_tworoom_speed_icl_history3_v1
+status: preregistered_during_fixed_training_before_development_or_public_evaluation
+created_utc: "2026-08-17"
+
+chronology:
+  fixed_training_already_running: true
+  development_evaluation_started: false
+  public_test_opened: false
+  checkpoint_selection_changed: false
+  training_budget_changed: false
+
+frozen_inputs:
+  completion_config:
+    path: configs/benchmark/tworoom_speed_pldm_reference_completion_v1.yaml
+    sha256: 6c8d3404431f4fedb788acc0c89fc62b78fcb147402d284fc8e74aa64a0d840f
+  speed_release:
+    path: configs/benchmark/tworoom_speed_icl_release_v1.yaml
+    sha256: 9acb8e36eabd1a68595a89c9add0e5b4440bd6b55647d74f3c211636457646c0
+  public_scorer:
+    path: contextworld/benchmarks/speed_icl_score.py
+    sha256: 0d7d52667eea0a29badcac1cee1047f3a2d56d55f65a59a0fd7a086a77601a1e
+
+claim_boundary:
+  paired_single_speed_pldm_controls_trained: false
+  training_attribution_claim_authorized: false
+  training_attributed_speed_icl_claim_authorized: false
+  three_seed_behavioral_reference_authorized: true
+  behavioral_reference_requirement: >-
+    All three fixed-step PLDM checkpoints must independently pass the
+    within-checkpoint gate for unseen-interpolation one-step strict history
+    accuracy on the complete frozen protocol.
+  comparison_with_lewm_single_speed_controls_authorized: false
+  cross_architecture_raw_latent_loss_comparison_authorized: false
+  method_name_must_identify_pldm: true
+  scoreboard_evidence_scope_if_reported: behavioral
+
+conditional_evaluation:
+  development_must_precede_public: true
+  public_test_authorized_by_this_record: false
+  public_test_requires_separate_passed_binding: true
+  if_three_seed_public_behavioral_gate_passes:
+    action_planning_cem_may_be_separately_authorized: true
+    original_tworoom_retention_cem_may_be_separately_authorized: true
+  if_any_public_behavioral_gate_fails:
+    cem_authorized: false
+    cem_executed: false
+    terminal_stop_receipt_required: true
+
+mutation_boundary:
+  training_or_checkpoint_selection_authorized: false
+  optimizer_step_or_batch_change_authorized: false
+  raw_data_mutation_authorized: false
+  score_or_threshold_change_authorized: false
+  public_test_access_authorized: false

@@ -4,15 +4,23 @@ import json
 from pathlib import Path
 
 import numpy as np
+import pytest
+import yaml
 
+from contextworld.benchmarks import motion_damping_icl_cli
+from contextworld.benchmarks.adapters import AdapterProtocol
 from contextworld.benchmarks.motion_damping_icl_data import (
     MOTION_DAMPING_RELEASE_ID,
+    MotionDampingICLDevelopmentDataset,
     audit_motion_damping_icl_release,
     load_motion_damping_icl_release,
+    motion_damping_development_data_contract,
 )
 from contextworld.benchmarks.motion_damping_icl_score import (
+    evaluate_motion_damping_icl_development_model,
     motion_damping_prediction_gate,
     motion_damping_prediction_metrics,
+    rescore_motion_damping_icl_development_result,
 )
 
 
@@ -153,3 +161,169 @@ def test_prediction_metrics_compare_matching_real_futures() -> None:
     assert gate["checks"]["target_latent_separation"]
     assert gate["checks"]["response_gain"]
     assert gate["checks"]["normalized_response_error"]
+
+
+def test_development_contract_is_pinned_to_loader_validation_only() -> None:
+    release = load_motion_damping_icl_release()
+    contract = motion_damping_development_data_contract(release)
+    assert contract == {
+        "split": "loader_validation",
+        "lance_table": "loader_validation.lance",
+        "pair_count": 256,
+        "lance_table_sha256": release["data"]["table_sha256"][
+            "loader_validation"
+        ],
+        "data_manifest_sha256": release["data"]["manifest_sha256"],
+        "public_test": {
+            "access_status": "closed_not_read_not_scored",
+            "opened": False,
+            "read": False,
+            "hashed": False,
+            "scored": False,
+        },
+    }
+    dataset = MotionDampingICLDevelopmentDataset(release=release)
+    assert dataset.identity["passed"] is True
+    assert dataset.describe()["public_test_opened"] is False
+
+
+def test_development_contract_fails_closed_if_it_names_public_test(
+    tmp_path: Path,
+) -> None:
+    release = load_motion_damping_icl_release()
+    path = Path(release["_config_path"])
+    payload = yaml.safe_load(path.read_text(encoding="utf-8"))
+    payload["evaluation"]["development"]["split"] = "validation"
+    candidate = tmp_path / "motion-damping-public-misuse.yaml"
+    candidate.write_text(yaml.safe_dump(payload), encoding="utf-8")
+    with pytest.raises(ValueError, match="loader_validation"):
+        load_motion_damping_icl_release(candidate)
+
+
+def test_development_score_keeps_public_closed_and_is_rescorable(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import contextworld.benchmarks.motion_damping_icl_score as score_api
+
+    release = load_motion_damping_icl_release()
+
+    class Arrays:
+        pair_ids = tuple(f"development-pair-{index}" for index in range(256))
+        faster_decay_pixels = np.zeros((256, 4, 2, 2, 3), dtype=np.uint8)
+        no_extra_decay_pixels = np.zeros((256, 4, 2, 2, 3), dtype=np.uint8)
+        raw_action_blocks = np.zeros((256, 4, 5, 2), dtype=np.float32)
+        pair_count = 256
+
+    Arrays.faster_decay_pixels[:, 1] = 10
+    Arrays.faster_decay_pixels[:, 3] = 10
+    Arrays.no_extra_decay_pixels[:, 1] = 20
+    Arrays.no_extra_decay_pixels[:, 3] = 20
+
+    class DevelopmentDataset:
+        def __init__(self, *, release, repo_root):
+            del repo_root
+            self.development = motion_damping_development_data_contract(release)
+
+        @property
+        def identity(self):
+            return {"passed": True}
+
+        @property
+        def arrays(self):
+            return Arrays
+
+        @property
+        def is_full_protocol(self):
+            return True
+
+        def describe(self):
+            return {"split": "Development", "public_test_opened": False}
+
+    class Adapter:
+        protocol = AdapterProtocol(
+            history_tokens=3,
+            action_block_raw_steps=5,
+            action_dim=2,
+            future_action_blocks=1,
+        )
+
+        @property
+        def metadata(self):
+            return {
+                "checkpoint": "/tmp/motion-damping-baseline.ckpt",
+                "checkpoint_sha256": "b" * 64,
+            }
+
+        def rollout_latents(self, pixels, actions, *, batch_size):
+            del actions, batch_size
+            values = np.asarray(pixels, dtype=np.float32)[:, 1].mean(
+                axis=(1, 2, 3)
+            )
+            return values[:, None, None]
+
+        def encode_pixels(self, pixels, *, batch_size):
+            del batch_size
+            values = np.asarray(pixels, dtype=np.float32).mean(
+                axis=(1, 2, 3)
+            )
+            return values[:, None]
+
+        def frozen_state_hash(self):
+            return "frozen"
+
+    monkeypatch.setattr(
+        score_api,
+        "MotionDampingICLDevelopmentDataset",
+        DevelopmentDataset,
+    )
+    monkeypatch.setattr(
+        score_api,
+        "MotionDampingICLEvalDataset",
+        lambda *args, **kwargs: pytest.fail("Public dataset was constructed"),
+    )
+    result = evaluate_motion_damping_icl_development_model(
+        adapter=Adapter(),
+        model_name="original-pldm",
+        training_recipe="original_task_only",
+        training_seed=None,
+    )
+    assert result["metrics"]["correct_future_rate"] == 1.0
+    assert result["model"]["checkpoint"]["sha256"] == "b" * 64
+    assert result["contract"]["development_split"] == "loader_validation"
+    assert result["public_test"]["read"] is False
+    assert len(result["records"]) == 256
+    output = tmp_path / "development-result.json"
+    output.write_text(json.dumps(result), encoding="utf-8")
+    assert rescore_motion_damping_icl_development_result(output) == result
+
+
+def test_cli_keeps_public_eval_and_development_eval_separate() -> None:
+    common = [
+        "--checkpoint",
+        "checkpoint.ckpt",
+        "--adapter",
+        "lewm",
+        "--model-name",
+        "baseline",
+        "--output",
+        "result.json",
+    ]
+    public = motion_damping_icl_cli.parse_args(
+        ["eval", *common, "--without-records"]
+    )
+    assert public.command == "eval"
+    assert public.without_records is True
+    development = motion_damping_icl_cli.parse_args(
+        ["eval-development", *common]
+    )
+    assert development.command == "eval-development"
+    assert not hasattr(development, "without_records")
+    score = motion_damping_icl_cli.parse_args(
+        ["score-development", "--input", "input.json", "--output", "result.json"]
+    )
+    assert score.command == "score-development"
+    with pytest.raises(SystemExit):
+        motion_damping_icl_cli.parse_args(
+            ["eval-development", *common, "--without-records"]
+        )

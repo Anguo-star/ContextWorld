@@ -1,0 +1,219 @@
+schema_version: 1
+benchmark: tworoom_action_delay_history7_training_v1
+status: data_generated_audited_and_eight_gpu_runtime_frozen_before_formal_training
+preregistered_date: "2026-07-29"
+
+question: >-
+  在共同的 History=7 初始化、训练预算、几何和动作下，包含延迟 0、4、8 的
+  多延迟训练是否比只包含延迟 4 的单延迟训练更能根据历史适应动作响应延迟？
+
+stable_worldmodel:
+  repo: ../stable-worldmodel
+  commit: ad2bc44579f2b5b65c004fd2c9d8edc8ebaa43ce
+
+data:
+  original_read_only: ../../data/world_model/quentinll/lewm-tworooms/tworoom.h5
+  original_split:
+    strategy: episode_heldout
+    seed: 3072
+    train_fraction: 0.9
+  frozen_normalizer:
+    path: artifacts/splits/tworoom_original_train_s3072_normalizer.json
+    sha256: 7a5be7ea867bced446c1671b0b2c0ff6450ffc61e1a7bdbbfc5eaa0942f635db
+    protocol: tworoom_original_train_s3072_unbiased_zscore_v1
+    statistics_scope: original_9000_train_episodes_only
+  formal_build_report:
+    path: artifacts/synthesis/action_delay_h7_v1/build_report.json
+    sha256: 809b22f0230a92a327963afc6a0c31ef206d3db2ffb7b21cfc2c51fcae1b0aa8
+  validation_exclusion_manifest:
+    path: >-
+      artifacts/evaluation/history7/action_delay_validation_v1/training_exclusion_manifest.json
+    sha256: 5fb8322249c4a3d1445363359fad6f9ff3f356348e9f1941ea8da51adbf9b69b
+    query_count: 300
+  catalogs:
+    action_delay_single: >-
+      artifacts/synthesis/action_delay_h7_v1/catalogs/tworoom_action_delay_h7_single_v1.json
+    action_delay_multi: >-
+      artifacts/synthesis/action_delay_h7_v1/catalogs/tworoom_action_delay_h7_multi_v1.json
+
+delay_support:
+  action_delay_single:
+    train: [4]
+    validation: [4]
+  action_delay_multi:
+    train: [0, 4, 8]
+    validation: [0, 4, 8]
+  formal_eval:
+    training_seen: [0, 4, 8]
+    within_training_range_unseen: [1, 2, 3, 5, 6, 7]
+    above_training_range_unseen: [9, 10]
+
+data_quality:
+  groups:
+    action_delay_single:
+      require_complete_synthesis_report: true
+      required_pixel_codec: {format: png, compress_level: 1, lossless: true}
+      allowed_clip_start_raw_steps: [0]
+      balance_by_factor: action.delay_steps
+      exact_train_scenarios: 96
+      exact_validation_scenarios: 18
+      exact_test_scenarios: 0
+      minimum_raw_train_clips: 15360
+      minimum_train_scenarios: 96
+      minimum_validation_scenarios: 18
+      maximum_formal_mean_draws_per_raw_clip: 35.0
+      factor_support_contract:
+        factor: action.delay_steps
+        expected_by_split:
+          train: [4]
+          validation: [4]
+      required_catalog_sha256: 76e6919566541583b4683adebd85ddcee0e27e86e6bacdd22ef0e4eba17a64b8
+      required_manifest_sha256: 6baab7ea2e1afe8f70a226bde3ba1156bd54485d82b13e7f574223470c2b5efc
+      required_synthesis_report_sha256: a5c72ff5d9dc32f4adeb843a97a018173cbc82ee01f52ce00397c5edb414979b
+    action_delay_multi:
+      require_complete_synthesis_report: true
+      required_pixel_codec: {format: png, compress_level: 1, lossless: true}
+      allowed_clip_start_raw_steps: [0]
+      balance_by_factor: action.delay_steps
+      exact_train_scenarios: 96
+      exact_validation_scenarios: 18
+      exact_test_scenarios: 0
+      minimum_raw_train_clips: 15360
+      minimum_train_scenarios: 96
+      minimum_validation_scenarios: 18
+      maximum_formal_mean_draws_per_raw_clip: 35.0
+      factor_support_contract:
+        factor: action.delay_steps
+        expected_by_split:
+          train: [0, 4, 8]
+          validation: [0, 4, 8]
+      required_catalog_sha256: 2279d3edf25b482316f4a430a00f64fe361c2d156873910320cb0c6de9a04d49
+      required_manifest_sha256: 4adf8011a86d5ba53464491eadd92de80e1d6a83b7934ac7615b8f829e8fe0a0
+      required_synthesis_report_sha256: 8065660e82f34d1e69f205937b01894e856ad3fff6d76aa6f22447f966e1cf26
+
+training_protocol:
+  architecture: stable_worldmodel_lewm_history7
+  training_method: lewm
+  history_tokens: 7
+  num_preds: 1
+  raw_steps_per_action_block: 5
+  model_visible_fields: [pixels, action]
+  training_profile: icl_formal
+  initialization_checkpoint:
+    path: artifacts/training/runs/checkpoints/h3_origheldout_s3072/weights_final_step_6420.pt
+    sha256: 7d141b86cca49145444a69bff89c71ede69e8cf8252bfb933e656c3e2e962b54
+    config_sha256: 44b5bde83fbc91634ef84acbdba9a75d3436568ed72266c9a5aa057653f9162b
+    role: model_weight_initialization_only_not_resume
+    temporal_adaptation:
+      parameter: predictor.pos_embedding
+      strategy: linear_interpolation
+      source_history_tokens: 3
+      target_history_tokens: 7
+      align_corners: true
+      source_anchor_target_indices: [0, 3, 6]
+  paired_training_seeds: [3072, 4096, 5120]
+  early_stopping: false
+  checkpoint_selection: final_fixed_step
+  distributed_execution:
+    transport_configuration: framework_defaults
+    primary_formal_launch: fresh
+    resume_role: disaster_recovery_only
+    resume_scope: complete_epoch_boundary_only
+  group_sampling:
+    H7_OriginalOnly: {original: 1.0}
+    H7_ActionDelay_SingleControl:
+      {original: 0.5, action_delay_single: 0.5}
+    H7_ActionDelay_Multi:
+      {original: 0.5, action_delay_multi: 0.5}
+  budget:
+    optimizer_steps: 1024
+    effective_global_batch: 1024
+    total_logical_draws: 1048576
+    mixed_models:
+      original_draws: 524288
+      synthetic_draws: 524288
+      mean_synthetic_draws_per_raw_clip: 34.13333333333333
+    original_only:
+      original_draws: 1048576
+  fairness_contract:
+    equal_across_all_models:
+      - initialization_checkpoint_bytes
+      - temporal_position_expansion
+      - original_train_normalizer_bytes
+      - architecture_and_history_length
+      - optimizer_scheduler_and_step_budget
+      - paired_training_seed
+    equal_across_single_and_multi_delay_models:
+      - original_and_synthetic_50_50_sampling
+      - paired_synthetic_geometry_and_actions
+      - synthetic_clip_count
+      - pixel_codec
+    intentional_difference_for_attribution:
+      single_delay_control: [4]
+      multi_delay_target: [0, 4, 8]
+
+models:
+  - model_id: H7_OriginalOnly
+    display_name: 只用原始 TwoRoom 数据训练的 History=7 基线
+    training_groups: [original]
+  - model_id: H7_ActionDelay_SingleControl
+    display_name: 原始数据加单延迟 4 合成数据
+    training_groups: [original, action_delay_single]
+  - model_id: H7_ActionDelay_Multi
+    display_name: 原始数据加多延迟 0、4、8 合成数据
+    training_groups: [original, action_delay_multi]
+
+comparison:
+  required_training_matrix:
+    H7_OriginalOnly: [3072, 4096, 5120]
+    H7_ActionDelay_SingleControl: [3072, 4096, 5120]
+    H7_ActionDelay_Multi: [3072, 4096, 5120]
+  primary_attribution:
+    control: H7_ActionDelay_SingleControl
+    target: H7_ActionDelay_Multi
+    equal_except: synthetic_delay_support
+  original_only_role: >-
+    判断只靠原始 TwoRoom 数据时，History=7 模型是否会自然表现出动作延迟适应；
+    它不是单延迟与多延迟之间的严格配对归因对照。
+
+validation:
+  protocol: configs/benchmark/tworoom_action_delay_h7_v1.yaml
+  catalog: artifacts/evaluation/history7/action_delay_validation_v1/catalog.json
+  delays: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+  independent_queries_per_delay: 300
+  future_horizons_action_blocks: [1, 2, 3]
+  online_environment_during_model_scoring: false
+
+execution:
+  frozen_topology:
+    gpu_count: 8
+    observed_gpu_model: NVIDIA H800
+    batch_size_per_device: 128
+    gradient_accumulation_steps: 1
+    effective_global_batch: 1024
+    precision: bf16-mixed
+    data_workers_per_rank: 6
+  measured_memory_smoke:
+    model: H7_ActionDelay_Multi
+    seed: 3072
+    optimizer_steps: 2
+    validation_batches: 1
+    rank_count: 8
+    maximum_peak_allocated_mib: 25308.50048828125
+    maximum_peak_reserved_mib: 26850.0
+    minimum_total_memory_mib: 81230.625
+    minimum_reserved_headroom_mib: 54380.625
+    maximum_peak_reserved_fraction: 0.33054035962421807
+    every_rank_passed: true
+  preflight_reports:
+    H7_OriginalOnly: >-
+      artifacts/training/reports/h7_action_delay_original_only_preflight_s3072.json
+    H7_ActionDelay_SingleControl: >-
+      artifacts/training/reports/h7_action_delay_single_control_preflight_s3072.json
+    H7_ActionDelay_Multi: >-
+      artifacts/training/reports/h7_action_delay_multi_preflight_s3072.json
+  eight_gpu_memory_smoke_report: >-
+    artifacts/training/reports/h7_action_delay_multi_memory_smoke_v4_s3072.json
+  formal_launcher: scripts/run_h7_action_delay_train.sh
+  formal_matrix_launcher: scripts/run_h7_action_delay_train_matrix.py
+  training_status: not_started

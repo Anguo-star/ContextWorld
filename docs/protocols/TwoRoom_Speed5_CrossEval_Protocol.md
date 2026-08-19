@@ -1,14 +1,14 @@
 # TwoRoom speed=5 跨 Eval 对照协议
 
 > **文档角色**：支持性实验，仅用于复现 Eval 分布诊断。当前数据比较和正式结论
-> 统一见[主报告](../TwoRoom_Speed_Benchmark_Report.md)。
+> 统一见[Benchmark 主文档中的速度章节](../ContextWorld_ICL_Benchmark.md#41-速度)。
 
 **版本**：v1.4
 **日期**：2026-07-19  
 **状态**：已完成；协议与阈值在执行前冻结
 
 > 当前阶段结论统一见
-> [TwoRoom 速度上下文学习 Benchmark 报告](../TwoRoom_Speed_Benchmark_Report.md)；
+> [ContextWorld ICL Benchmark：速度](../ContextWorld_ICL_Benchmark.md#41-速度)；
 > 本文只保留本次 speed=5 归因的预注册规则、结果与限制。
 
 本协议中的 speed 是 `agent.speed`，不是 frameskip。旧机器字段 `correct` 和
@@ -161,7 +161,7 @@ SpeedFull -1.56 px，相对无上下文），但没有跨过任何成功阈值�
 该结论把根因定位到“任务构造 × planner”层，但本实验本身还不能把其中的
 goal cost、CEM 搜索维度、动作边界和模型 rollout 各自分成独立因果比例。
 后续模型归因、规划器诊断和项目路线不在本协议中维护，统一见
-[速度上下文学习 Benchmark 报告](../TwoRoom_Speed_Benchmark_Report.md)。
+[ContextWorld ICL Benchmark：速度](../ContextWorld_ICL_Benchmark.md#41-速度)。
 
 机器可读汇总：
 `artifacts/evaluation/history3/original_ability_reconstruction/speed5_cross_eval_n50x6.json`

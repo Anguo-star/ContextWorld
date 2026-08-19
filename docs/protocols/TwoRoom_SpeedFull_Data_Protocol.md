@@ -1,14 +1,14 @@
 # TwoRoom-SpeedFull-v1 数据、训练与评测协议
 
 > **文档角色**：历史数据与训练协议，不维护当前结果。当前数据比较和正式结论
-> 统一见[主报告](../TwoRoom_Speed_Benchmark_Report.md)。
+> 统一见[Benchmark 主文档中的速度章节](../ContextWorld_ICL_Benchmark.md#41-速度)。
 
 **版本**：v1.5
 **日期**：2026-07-19  
 **状态**：正式生成、训练、validation 评测与四模型归因均已完成
 
 > 当前阶段结论统一见
-> [TwoRoom 速度上下文学习 Benchmark 报告](../TwoRoom_Speed_Benchmark_Report.md)；
+> [ContextWorld ICL Benchmark：速度](../ContextWorld_ICL_Benchmark.md#41-速度)；
 > 本文只保留 SpeedFull 数据、训练与 checkpoint 审计。
 > 旧机器字段 `correct`、`wrong`、`wrong-slow` 和 `wrong-fast` 分别按同速、
 > 另一档、慢速和快速历史解释，不表示速度正确或错误。
@@ -125,7 +125,7 @@ E4 低分不是速度混合主导，而是 s0/s1/s2 全失败的 planner/templat
 支持当前固定训练 seed 下的多速度集成配方归因，但不把
 速度 support 写成已完成的单变量因果证明。规划机制和后续训练安排不属于本
 数据协议，完整结论与路线图见
-[速度上下文学习 Benchmark 报告](../TwoRoom_Speed_Benchmark_Report.md)。
+[ContextWorld ICL Benchmark：速度](../ContextWorld_ICL_Benchmark.md#41-速度)。
 
 ## 7. 执行入口与产物
 

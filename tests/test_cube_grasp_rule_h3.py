@@ -159,6 +159,21 @@ def test_cube_scorer_rejects_two_axis_protocol_before_data_access() -> None:
         _validate_cube_adapter_protocol(incompatible)
 
 
+def test_cube_scorer_only_requires_public_geometry_fields() -> None:
+    compatible = SimpleNamespace(
+        protocol=AdapterProtocol(
+            history_tokens=3,
+            action_block_raw_steps=5,
+            action_dim=5,
+            future_action_blocks=1,
+            native_target_encoder=False,
+            decoder_required=True,
+        )
+    )
+
+    _validate_cube_adapter_protocol(compatible)
+
+
 def test_cube_grasp_rule_metric_rewards_matching_real_futures() -> None:
     cannot_hold = np.asarray([[0.0, 0.0], [1.0, 0.0]], dtype=np.float32)
     can_hold = np.asarray([[0.0, 2.0], [1.0, 2.0]], dtype=np.float32)

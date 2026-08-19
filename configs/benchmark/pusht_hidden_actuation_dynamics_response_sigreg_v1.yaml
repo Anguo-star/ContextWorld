@@ -1,0 +1,167 @@
+schema_version: 1
+benchmark: pusht_hidden_actuation_history3_action_coverage_v2
+experiment: dynamics_response_sigreg_v1
+status: registered_before_implementation_gradient_or_training
+registered_at_utc: "2026-07-30"
+owner: ContextWorld
+
+research_question: >-
+  Can one causally masked SIGReg statistic on deterministic target and
+  prediction responses preserve hidden dynamics and inference-time planning
+  calibration at a low external weight?
+
+method:
+  id: dynamics_response_sigreg
+  display_name_zh: 动力学响应 SIGReg
+  loss_formula: prediction_mse_plus_lambda_times_one_response_sigreg_scalar
+  sigreg_forward_calls_per_optimizer_step: 1
+  external_regularizer_weight_count: 1
+  additional_loss_components: 0
+  additional_model_heads: 0
+  native_sigreg_stacked: false
+  variance_covariance_invariance_idm_or_distillation_terms: false
+  planner_or_cem_changes: false
+  hidden_rule_or_class_label_consumed: false
+
+deterministic_prediction:
+  encoder_and_projector_mode: train
+  predictor_mode_for_regularizer: eval
+  prediction_projector_mode_for_regularizer: eval
+  gradients_enabled: true
+  extra_running_statistics_updates: false
+  reason: >-
+    Training-mode attention dropout makes the unidentifiable x1 pair appear
+    different and is larger than the actual x3 rule response. The regularizer
+    must see the deterministic function used by CEM, while prediction MSE
+    retains native LeWM training semantics.
+
+reference_scale:
+  artifact: >-
+    artifacts/evaluation/history3/pusht_hidden_actuation_h3_v1/
+    scale_calibrated_sigreg_v1/source_scales.json
+  artifact_sha256: c63900b57fabd13cf9954a7ca782279589f744ae921f471d5648b7242135a918
+  x1_contrast_rms: 0.1171050891383686
+  x3_contrast_rms: 0.4104610671992869
+  reserve_factor: sqrt(2)
+  desired_response_scale: reserve_factor_times_frozen_source_scale
+  frozen_during_training: true
+  reason: >-
+    A sqrt(2) reserve permits modest representation adaptation but remains
+    far below the raw unit-variance target that inflated x1 and x3 responses
+    by factors of 8.54 and 2.44.
+
+response_population:
+  common_formula: >-
+    One time-indexed population is passed through one shared-projection
+    SIGReg statistic and averaged over transition time.
+  standard_replay_rows:
+    include_real_target: true
+    include_deterministic_prediction: true
+  x1_probe_transition:
+    include_scaled_real_pair_contrast: true
+    include_scaled_prediction_pair_contrast: false
+    exclude_hidden_pair_predictions: true
+    reason: hidden gain is not identifiable from common x0 and action
+  x2_recovery_transition:
+    include_complete_real_target_population: true
+    include_complete_deterministic_prediction_population: true
+  x3_history_conditioned_transition:
+    include_scaled_real_pair_contrast: true
+    include_scaled_deterministic_prediction_pair_contrast: true
+    reason: x1 in History=3 identifies the persistent gain
+  scaled_contrast_formula: >-
+    (response_i - response_j) /
+    (sqrt(2) * frozen_source_scale * reserve_factor)
+
+immutable_inputs:
+  hidden_data: artifacts/synthesis/pusht_hidden_actuation_h3_v1
+  hidden_manifest_sha256: 4f307a60920747506c1d8aadc41931a0f768b7f3d7ba6317d7246b008bc3fc64
+  original_data: external/pusht/lewm_pusht.lance
+  action_normalizer_source: external/pusht/pusht_expert_train.h5
+  source_checkpoint: external/pusht/pusht_lewm_baseline_seed3073_weights.ckpt
+  source_checkpoint_sha256: 9f13b2c28bb909338047e08d62bf6eb16ea3616cb53e57cfa9b5072b43db1c59
+
+gradient_calibration:
+  seed: 11265
+  batch_size: 128
+  original_samples: 64
+  hidden_samples: 64
+  hidden_pairs: 32
+  prediction_dropout_expectation_seeds: [113101, 113102, 113103, 113104]
+  random_projection_seed: 97037
+  num_projections: 1024
+  candidate_external_weights: [0.005, 0.01, 0.02, 0.05, 0.09]
+  selection: >-
+    Select the smallest registered coefficient for which every gate passes.
+    Do not select from training or evaluation results.
+  gates:
+    target_probe_x1_pair_distance_does_not_contract: true
+    target_history_future_x3_pair_distance_does_not_contract: true
+    deterministic_correct_future_margin_x3_increases: true
+    deterministic_standard_replay_prediction_mse_decreases: true
+    regularizer_x1_prediction_pair_gradient_is_zero: true
+    gradient_reaches_standard_target_and_prediction_rows: true
+    gradient_reaches_x3_target_and_prediction_contrasts: true
+  stop_before_training_if_no_weight_passes: true
+  maximum_allowed_external_weight: 0.09
+
+held_out_training:
+  seed: 13313
+  seed_unread_at_registration: true
+  optimizer_steps: 2048
+  batch_size: 128
+  original_samples_per_batch: 64
+  hidden_samples_per_batch: 64
+  hidden_pairs_per_batch: 32
+  optimizer: AdamW
+  learning_rate: 5.0e-5
+  weight_decay: 1.0e-3
+  gradient_clip_norm: 1.0
+  precision: bf16_mixed
+  exact_same_batches_between_variants: true
+  variants:
+    - id: mixed_native_sigreg_0p09
+      role: same_seed_original_lewm_control
+    - id: dynamics_response_sigreg_selected_weight
+      role: primary_method
+
+hidden_prediction_gate:
+  target_selection_minimum: 0.95
+  correct_history_minimum: 0.95
+  rule_switch_minimum: 0.95
+  worst_mode_minimum: 0.90
+
+standard_pusht_followup:
+  run_only_after_primary_hidden_prediction_pass: true
+  eval_seeds: [42, 43, 44, 45, 46, 47]
+  queries_per_seed: 50
+  protocol: exact_standard_history3_cem_300x30_top30
+  paired_noninferiority_margin_absolute: 0.05
+  comparison: same_seed_native_control
+
+hidden_actuation_followup:
+  run_only_after_hidden_prediction_and_standard_noninferiority_pass: true
+  eval_seed: 13312
+  query_pairs: 50
+  oracle_grid_success_minimum: 0.95
+  mode_action_classification_minimum: 0.90
+  real_environment_success_minimum: 0.80
+
+cross_task_followup:
+  run_only_after_all_pusht_gates_pass: true
+  task: tworoom_speed_door_rule_history3
+  requirement: same_formula_and_no_task_specific_loss_component
+  purpose: verify_that_the_fix_is_not_hidden_actuation_specific
+
+decision_rules:
+  - Do not add native SIGReg, IDM, distillation, auxiliary heads, variance,
+    covariance, or planner tuning to rescue this method.
+  - Do not regularize the unidentifiable x1 prediction pair contrast.
+  - Do not enable predictor or prediction-projector dropout for the response
+    population.
+  - Do not change source scales, reserve factor, weight grid, seeds, or gates
+    after reading gradient or training results.
+  - If no coefficient passes the gradient gate, reject before full training.
+  - If hidden prediction fails, stop before CEM evaluation.
+  - If standard CEM is inferior, do not run hidden CEM or claim a solution.
+  - A joint single-seed pass must be replicated before a robustness claim.

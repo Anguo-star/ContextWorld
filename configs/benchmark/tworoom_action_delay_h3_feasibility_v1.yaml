@@ -1,0 +1,72 @@
+schema_version: 1
+benchmark: tworoom_action_delay_history3_feasibility_v1
+status: preregistered_before_formal_data_or_model_training
+date: "2026-07-26"
+claim_limit: physical_identifiability_only_not_a_model_icl_result
+
+question: >-
+  当当前画面和 query 动作完全相同时，三帧历史能否唯一辨认出动作需要等待多少个
+  原始环境步才会生效，并使不同延迟对应的真实下一帧确实不同？
+
+stable_worldmodel:
+  repo: ../stable-worldmodel
+  commit: 5864b74980f6ed328fd0045e777b3865962eff43
+
+environment:
+  id: contextworld/TwoRoomActionDelay-v1
+  base: swm/TwoRoom-v1
+  hidden_factor: action.delay_steps
+  observation_contract: delay_value_and_pending_queue_are_not_model_inputs
+  rendering_contract: equal_state_renders_identically_for_every_delay
+
+protocol:
+  history_tokens: 3
+  context_transitions: 2
+  raw_steps_per_action_block: 5
+  agent_speed: 7.0
+  delay_values: [0, 1, 2, 3, 4]
+  sequence:
+    - initial_frame
+    - five_identical_probe_actions
+    - five_zero_actions_to_flush_the_delay_queue
+  query_future:
+    - repeat_the_same_five_probe_actions
+  actions_identical_across_delays: true
+  query_state_and_pixels_identical_across_delays: true
+  pending_queue_at_query_contains_only_zero_actions: true
+  resets_or_teleports_inside_history: false
+
+catalog_seed: 20260726
+counts:
+  paired_templates: 32
+  delay_rollouts: 160
+
+gates:
+  delay_readback_exact: true
+  history_midpoints_distinguish_all_five_delays: true
+  query_state_exact_match: true
+  query_pixels_bitwise_match: true
+  history_actions_bitwise_match: true
+  query_action_bitwise_match: true
+  five_true_futures_are_distinct: true
+  analytical_displacement_exact: true
+  deterministic_replay: true
+  zero_failed_templates: true
+
+model_visible_fields: [pixels, action]
+privileged_audit_fields:
+  - action.delay_steps
+  - pending_actions
+  - state
+  - template_id
+
+output_root: artifacts/evaluation/history3/action_delay_feasibility_v1
+
+next_gate:
+  on_pass:
+    - freeze_matched_single_delay_and_multi_delay_training_data
+    - build_five_delay_validation_with_50x6_queries
+    - train_three_paired_seeds
+  on_fail:
+    - do_not_generate_formal_training_data
+    - revise_geometry_or_history_construction

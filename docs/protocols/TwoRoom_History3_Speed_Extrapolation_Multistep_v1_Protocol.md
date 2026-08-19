@@ -13,7 +13,7 @@
    保持多久。
 
 本文件保存冻结配置与正式判断门，适合复现者和审计者。当前结果和结论统一见
-[TwoRoom History-3 速度学习报告](../TwoRoom_Speed_Benchmark_Report.md)。
+[ContextWorld ICL Benchmark：速度](../ContextWorld_ICL_Benchmark.md#41-速度)。
 
 ## 1. 不改变的实验基础
 

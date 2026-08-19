@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import sys
 
 import numpy as np
 
@@ -14,9 +15,14 @@ from contextworld.synthesis.stablewm import load_stable_worldmodel
 
 def test_speed_cube_has_exact_static_query_and_replay(tmp_path: Path) -> None:
     root = Path(__file__).resolve().parents[1]
+    pinned = Path("/tmp/stable-worldmodel-5864")
+    configured = str(pinned if pinned.is_dir() else root.parent / "stable-worldmodel")
+    for name in tuple(sys.modules):
+        if name == "stable_worldmodel" or name.startswith("stable_worldmodel."):
+            del sys.modules[name]
     load_stable_worldmodel(
         root,
-        "../stable-worldmodel",
+        configured,
         "5864b74980f6ed328fd0045e777b3865962eff43",
     )
     catalog_path = tmp_path / "cube.json"

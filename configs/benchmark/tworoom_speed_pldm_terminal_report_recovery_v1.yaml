@@ -1,0 +1,144 @@
+schema_version: 1
+recovery_id: tworoom_speed_pldm_terminal_report_recovery_v1
+completion_id: tworoom_speed_pldm_reference_completion_v1
+status: preregistered_after_terminal_report_failure_before_report_recovery
+created_utc: "2026-08-17"
+
+# All three fixed-budget runs had already written their terminal trainer state,
+# model weights, configuration, and loss trace when their processes failed.
+# This recovery is limited to rechecking those files and writing the missing
+# JSON reports. It cannot resume a Trainer or execute an optimizer step.
+chronology:
+  fixed_budget_artifacts_present: true
+  terminal_reports_present_at_registration: false
+  completion_receipts_present_at_registration: false
+  development_public_or_cem_executed_at_registration: false
+
+scope:
+  training_or_optimizer_execution: false
+  checkpoint_selection: false
+  model_or_loss_trace_modification: false
+  terminal_report_generation_only: true
+  public_test_access: false
+  evaluation_execution: false
+
+incident_record:
+  original_process_log_archived: false
+  observed_for_all_three_processes: true
+  observed_exception_type: FileNotFoundError
+  observed_missing_path: /tmp/stable-worldmodel-5864/stable_worldmodel/loggers.py
+  observed_stage: terminal_report_source_identity_construction
+  exact_original_console_transcript_available: false
+  recovery_does_not_represent_this_record_as_an_original_log: true
+
+frozen_inputs:
+  completion_config:
+    path: configs/benchmark/tworoom_speed_pldm_reference_completion_v1.yaml
+    sha256: 6c8d3404431f4fedb788acc0c89fc62b78fcb147402d284fc8e74aa64a0d840f
+    size_bytes: 5680
+  interruption_recovery_preregistration:
+    path: configs/benchmark/tworoom_speed_pldm_training_interruption_recovery_v1.yaml
+    sha256: 86589c4b4088a637a07d8c425f687d27309c894c7b1264a55bd55d0b5f162973
+    size_bytes: 10603
+  training_script:
+    path: scripts/train_tworoom_step1.py
+    sha256: 49571d58e832e55f79a2c79c67a696f16de7bc616c61c41661e712338754e4cb
+    size_bytes: 188054
+
+implementation:
+  report_recovery:
+    path: scripts/recover_tworoom_speed_pldm_terminal_report_v1.py
+    sha256: 2d4d876de02b51216da908d498487ef8546dcc8ce07334fd2bc4fc85b771dcf3
+    size_bytes: 17469
+
+stable_worldmodel:
+  worktree: /tmp/stable-worldmodel-5864
+  commit: 5864b74980f6ed328fd0045e777b3865962eff43
+  training_entry: scripts/train/pldm.py
+  training_entry_sha256: 54be427f37f6b368c1493fcf2e510ed331862c828337309a0cc1fe92ca9a5a9b
+  logger_entry: stable_worldmodel/loggers.py
+  logger_entry_expected_absent: true
+
+runs:
+  - seed: 3072
+    run_name: speed_pldm_reference_completion_v1_s3072
+    final_checkpoint:
+      path: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/training/checkpoints/speed_pldm_reference_completion_v1_s3072/weights_final_step_12840.pt
+      sha256: 99ea1c5a8155c145f70af12ae2fd15e1d01b17163b58ef1a2e2f0f97d390dcb7
+      size_bytes: 72296742
+    full_state_checkpoint:
+      path: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/training/checkpoints/speed_pldm_reference_completion_v1_s3072/state.ckpt
+      sha256: c9c2b536efca546ff517da1a6689a99e48866fdb8b300cf58a59f1bf21ef2e67
+      size_bytes: 217661731
+    checkpoint_config:
+      path: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/training/checkpoints/speed_pldm_reference_completion_v1_s3072/config.json
+      sha256: 1503eb24b1630f81a2c02923ebee0d6faba35f37b55bb61f8415feec7b7950b9
+      size_bytes: 20300
+    loss_trace:
+      path: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/training/checkpoints/speed_pldm_reference_completion_v1_s3072/loss_trace.jsonl
+      sha256: 3e0cdfae16df0753964c28be2bf6b5142d6c07d69dc165a8e817a2974b933f01
+      size_bytes: 291301
+    preparation_receipt:
+      path: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/attempts/training_interruption_recovery_v1/seed_3072/preparation_receipt.json
+      sha256: dbbf83619b543035368f3e4db0669c826c5fdb7954abbd70627831139fc95498
+      size_bytes: 2516
+    report_output: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/seed_3072/training_report.json
+    completion_receipt_output: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/attempts/training_interruption_recovery_v1/seed_3072/completion_receipt.json
+
+  - seed: 4096
+    run_name: speed_pldm_reference_completion_v1_s4096
+    final_checkpoint:
+      path: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/training/checkpoints/speed_pldm_reference_completion_v1_s4096/weights_final_step_12840.pt
+      sha256: 9c98c2ceff31628aa2b9a3a870284e063db268c063708bfa0f69e0512c8eea41
+      size_bytes: 72296742
+    full_state_checkpoint:
+      path: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/training/checkpoints/speed_pldm_reference_completion_v1_s4096/state.ckpt
+      sha256: 9d5da07545d622e005621837527dbe3f4277a4778f51ebf82c4bb83d338150c1
+      size_bytes: 217661859
+    checkpoint_config:
+      path: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/training/checkpoints/speed_pldm_reference_completion_v1_s4096/config.json
+      sha256: a16b27c7f8cd09e757462748d0b2a69d298a861e98a67b71074bb4f0b7e7c088
+      size_bytes: 20300
+    loss_trace:
+      path: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/training/checkpoints/speed_pldm_reference_completion_v1_s4096/loss_trace.jsonl
+      sha256: 1ab317022f4a324edaf43a0bc39b599f76caece7ac2242ebb332eebbba50a126
+      size_bytes: 291267
+    preparation_receipt:
+      path: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/attempts/training_interruption_recovery_v1/seed_4096/preparation_receipt.json
+      sha256: 6a86cb1ba6c03d7c73d5f3d27da11aae6ef6fe42a9db34e71de10aed61b6221a
+      size_bytes: 2515
+    report_output: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/seed_4096/training_report.json
+    completion_receipt_output: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/attempts/training_interruption_recovery_v1/seed_4096/completion_receipt.json
+
+  - seed: 5120
+    run_name: speed_pldm_reference_completion_v1_s5120
+    final_checkpoint:
+      path: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/training/checkpoints/speed_pldm_reference_completion_v1_s5120/weights_final_step_12840.pt
+      sha256: 062649c670efa91d8572ce9bd1bb4d4c9a9142bd2016787a21b862ac073edb47
+      size_bytes: 72296742
+    full_state_checkpoint:
+      path: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/training/checkpoints/speed_pldm_reference_completion_v1_s5120/state.ckpt
+      sha256: 8a7203c03f1ea23e2274a4976b3b38b682868d8d44762cd628b6a4cbfa0dde89
+      size_bytes: 217661859
+    checkpoint_config:
+      path: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/training/checkpoints/speed_pldm_reference_completion_v1_s5120/config.json
+      sha256: 909944c93d5a346fcc6ae858b5cc11de514e77ec2af0036f3320d0be57900315
+      size_bytes: 20300
+    loss_trace:
+      path: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/training/checkpoints/speed_pldm_reference_completion_v1_s5120/loss_trace.jsonl
+      sha256: 51c9cfcb227b1e346d3a3ec1b25a6e7fa58e4b9a0f2e3d5a32024c875bce54b2
+      size_bytes: 291338
+    preparation_receipt:
+      path: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/attempts/training_interruption_recovery_v1/seed_5120/preparation_receipt.json
+      sha256: 16e0db5d2901c09f9997cc0e12cceb8712ae015236daed73cc2fdb888e870de4
+      size_bytes: 2515
+    report_output: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/seed_5120/training_report.json
+    completion_receipt_output: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/attempts/training_interruption_recovery_v1/seed_5120/completion_receipt.json
+
+evaluation_absence_paths:
+  - artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/infrastructure_development_v1
+  - configs/benchmark/tworoom_speed_pldm_evaluation_binding_v1.yaml
+  - artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/evaluation_binding_v1
+  - artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/formal_icl_v1
+  - artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/formal_action_planning_cem_v1
+  - artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/formal_original_tworoom_retention_cem_v1

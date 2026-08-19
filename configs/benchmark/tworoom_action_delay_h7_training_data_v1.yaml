@@ -1,0 +1,113 @@
+schema_version: 1
+benchmark: tworoom_action_delay_history7_training_data_v1
+status: preregistered_before_formal_collection
+preregistered_date: "2026-07-29"
+
+question: >-
+  在样本量、几何、动作序列和存储格式完全配对时，包含延迟 0、4、8 的训练数据
+  是否比只包含延迟 4 的数据提供了可归因的动作延迟变化？
+
+source_protocol:
+  path: configs/benchmark/tworoom_action_delay_h7_v1.yaml
+  validation_build_report: >-
+    artifacts/evaluation/history7/action_delay_validation_v1/build_report.json
+  validation_build_report_sha256: >-
+    331ce0a1cd85db717c2761c75bf1cd02e7eb2fb0de2912efee8a2ad167c3e85a
+
+stable_worldmodel:
+  repo: ../stable-worldmodel
+  commit: ad2bc44579f2b5b65c004fd2c9d8edc8ebaa43ce
+  validation_data_commit: 1b81dcd1a60e3ce27b7cf97f2f71f7da09c6502b
+  compatibility: >-
+    两个提交之间没有 TwoRoom 环境、数据格式或 LeWM 实现变更；差异只位于独立研究
+    脚本。正式报告仍记录实际采集提交。
+
+protocol:
+  history_tokens: 7
+  num_preds: 1
+  raw_steps_per_action_block: 5
+  episode_model_frames: 10
+  rows_per_episode: 50
+  strict_training_clip_start_raw_step: 0
+  default_reader_clip_count_before_filter: 11
+  formal_training_clips_per_episode: 1
+  agent_speed: 7.0
+  action_magnitude: 0.5
+  single_control_delay: 4
+  training_delay_values: [0, 4, 8]
+  history_actions:
+    - five_probe_commands
+    - five_zero_commands
+    - five_inverse_probe_commands
+    - three_zero_blocks
+  future_actions:
+    - repeat_probe_for_three_action_blocks
+  model_visible_fields: [pixels, action]
+  paired_geometry_and_actions_across_recipes: true
+  note: >-
+    每个 episode 保存七帧历史和 h1/h2/h3，共十帧。LeWM 的正式 7+1 训练窗口只允许
+    从 raw step 0 开始；raw step 1～10 的错位窗口不得进入正式训练。
+
+catalog_seed: 2026072901
+
+counts:
+  train:
+    shards: 96
+    episodes_per_shard: 160
+    clips_per_group: 15360
+  val:
+    shards: 18
+    episodes_per_shard: 160
+    clips_per_group: 2880
+
+collection:
+  staging_root: /tmp
+  workers: 16
+
+storage:
+  pixel_codec:
+    format: png
+    compress_level: 1
+    lossless: true
+
+original_dataset:
+  path: ../../data/world_model/quentinll/lewm-tworooms/tworoom.h5
+  role: normalization_reference_and_future_50_percent_training_mixture
+
+validation_exclusion:
+  benchmark: tworoom_action_delay_history7_v1
+  manifest: >-
+    artifacts/evaluation/history7/action_delay_validation_v1/training_exclusion_manifest.json
+  manifest_sha256: >-
+    5fb8322249c4a3d1445363359fad6f9ff3f356348e9f1941ea8da51adbf9b69b
+  content_manifest_sha256: >-
+    e8d75d1ac1496dd340ce0a504e51e976dddff667915b3f9a49fe2a6e6c323923
+  query_count: 300
+  zero_overlap_fields:
+    - template_id
+    - simulator_seed
+    - reset_state
+    - initial_pixels_sha256
+    - query_pixels_sha256
+
+split_isolation:
+  train_and_internal_validation_template_overlap: zero
+  train_and_internal_validation_simulator_seed_overlap: zero
+  train_and_internal_validation_reset_state_overlap: zero
+  train_and_internal_validation_query_pixel_hash_overlap: zero
+
+catalog_stems:
+  action_delay_single: tworoom_action_delay_h7_single_v1
+  action_delay_multi: tworoom_action_delay_h7_multi_v1
+
+gates:
+  exact_raw_replay_for_every_row: true
+  exact_analytical_model_frames: true
+  exact_single_multi_geometry_and_action_pairing: true
+  exact_delay_balance_in_multi_group: true
+  exactly_one_aligned_training_clip_per_episode: true
+  validation_overlap_zero: true
+  train_internal_validation_overlap_zero: true
+  model_projection_is_pixels_and_actions_only: true
+
+output_root: artifacts/synthesis/action_delay_h7_v1

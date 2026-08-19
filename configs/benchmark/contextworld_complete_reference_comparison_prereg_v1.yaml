@@ -1,0 +1,165 @@
+schema_version: 1
+preregistration_id: contextworld_complete_reference_comparison_v1
+status: preregistered_before_supplemental_public_scoring
+date: "2026-08-18"
+
+purpose: >-
+  Complete the reader-facing LeWM/PLDM comparison for every ContextWorld v1
+  component. A model is evaluated on both ICL and original-task CEM even when
+  it did not meet the component's Development threshold. Thresholds determine
+  the reported verdict; they do not determine whether a frozen model is run.
+
+authorization:
+  source: explicit_user_instruction_2026_08_18
+  public_scoring_authorized: true
+  cem_scoring_authorized: true
+  failed_models_must_remain_visible: true
+  no_result_based_checkpoint_selection: true
+  no_retraining_after_public_scores: true
+  no_threshold_or_recipe_changes: true
+  rerun_policy: infrastructure_failure_only_under_a_new_recovery_identity
+
+claim_boundary:
+  historical_scoreboard_rows_unchanged: true
+  comparison_addendum_rows: 18
+  comparison_addendum_is_a_formal_scoreboard_rewrite: false
+  negative_results_are_reported: true
+  contact_friction_and_motion_damping:
+    comparator_kind: fixed_legacy_comparator
+    comparison_only: true
+    not_current_release_training_reference: true
+    disclosure: >-
+      These checkpoints were trained with the earlier 2,048-pair, 4,096-step
+      recipe and are rescored on the current frozen Public Test. They provide
+      a complete three-seed model comparison but are not evidence about the
+      current 8,192-pair training recipe.
+  cube_pldm:
+    comparator_kind: frozen_current_v4r1_trained_checkpoint
+    supplemental_public_result: true
+    formal_reference_mutation: false
+    formal_scoreboard_eligible: false
+
+runtime:
+  stable_worldmodel:
+    path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/context_world/upstream/stable-worldmodel-875e607fc08aa72e
+    commit: 875e607fc08aa72eacb94d5d178127804134cc06
+  public_icl:
+    batch_size: 64
+    devices: [cuda:0, cuda:1, cuda:2, cuda:3, cuda:4, cuda:5]
+  pusht_cem:
+    eval_seeds: [42, 43, 44, 45, 46, 47]
+    queries_per_seed: 50
+    evaluations_per_checkpoint: 300
+    devices: [cuda:0, cuda:1, cuda:2, cuda:3, cuda:4, cuda:5]
+  cube_cem:
+    eval_seeds: [42, 43, 44]
+    queries_per_seed: 100
+    evaluations_per_checkpoint: 300
+    devices: [cuda:0, cuda:1, cuda:2]
+
+implementation:
+  comparison_freezer: {path: scripts/freeze_contextworld_complete_reference_comparison_v1.py, sha256: 4a6556e7bb5c7827342c191e8e60271ca1ec4228a6b3dcaa536c7ec5a57c7ed9, size_bytes: 11005}
+  adapters: {path: contextworld/benchmarks/adapters.py, sha256: cc9e758b7081a57251e8cd026e9ac9ff8a17e3f300d52f464bdad871edcf26b2, size_bytes: 24085}
+  contact_friction_cli: {path: contextworld/benchmarks/contact_friction_icl_cli.py, sha256: 05d66e703c1ce0affdc133d3cef2bf2b814c4047458d9a68df947785c570f91e, size_bytes: 6725}
+  contact_friction_scorer: {path: contextworld/benchmarks/contact_friction_icl_score.py, sha256: 659a0500f4276626880ccc534a44a207b6696c4d847045eab7d87375c9106b2b, size_bytes: 31266}
+  motion_damping_cli: {path: contextworld/benchmarks/motion_damping_icl_cli.py, sha256: 8e52abfb92d433052b4244f7b2af13bd13a7dd180816a99e0a7876eb358df088, size_bytes: 6139}
+  motion_damping_scorer: {path: contextworld/benchmarks/motion_damping_icl_score.py, sha256: 62eb36a0238c8798893d19350f1dc06e2cbd4f7df350b4c06bfa60f075bcf5ad, size_bytes: 24218}
+  cube_v4r1_cli: {path: contextworld/benchmarks/cube_grasp_rule_v4r1_icl_cli.py, sha256: f00c0b3554fff1dd6a5bd81486d68de8fff21c78e4a7c569943d8b63ca401703, size_bytes: 6816}
+  cube_v4r1_data: {path: contextworld/benchmarks/cube_grasp_rule_v4r1_icl_data.py, sha256: cebca49d51c0de5969165f7e5f7c72d2d88f533bcf16cfc2b78a177ed37bfed4, size_bytes: 51828}
+  cube_v4r1_scorer: {path: contextworld/benchmarks/cube_grasp_rule_v4r1_icl_score.py, sha256: e00ed249c1e30c50121d9e28586bc142f335dcf7672e4ad06ce920b99f165bc3, size_bytes: 11777}
+  pusht_cem_runner: {path: scripts/eval_standard_original_task_cem_frozen_v1.py, sha256: 77f3cf9b1a3166e73e5bf8b2a8b7baddbf52a7948ab6b905a35eb889442fd933, size_bytes: 26291}
+  cube_cem_runner: {path: scripts/eval_cube_original_task_cem_frozen_v2.py, sha256: 37441739517e9f7fdf1f2d4d1801f6c9ba4e6c9f4904591ebdcec3423b7bc50d, size_bytes: 2862}
+  cube_cem_core: {path: scripts/eval_cube_original_task_cem_frozen.py, sha256: f653e4d8c7750859a94f2c98973bd1f99ecd0ddb936a507f4f8e4938878ba91b, size_bytes: 24013}
+
+frozen_data:
+  contact_friction:
+    release_config: {path: configs/benchmark/pusht_contact_friction_icl_release_v1.yaml, sha256: bc7d1a4be16311b57b969f18fdfc99e77df2caf748125c36337ded4275adb564, size_bytes: 12525}
+    public_table: {path: artifacts/synthesis/pusht_contact_friction_h3_release_v3/validation.lance, pair_count: 256, rows: 10240, sha256: 64d373dfd63f488fc2f7081a441c6781160e55f87d8e03f0da1ff6051c6f1a8d}
+    manifest_sha256: cbb9b1a1c030a3c66ea8acbf25c5e1a302f1c43907beeadcdc9d8bd1e989f3d5
+  motion_damping:
+    release_config: {path: configs/benchmark/pusht_motion_damping_icl_release_v1.yaml, sha256: 1795717d8bfa1d1cfcc01a69931b6241b0e7759dcf43553a6c4cca225ec9326b, size_bytes: 16422}
+    public_table: {path: artifacts/synthesis/pusht_motion_damping_h3_release_v4/validation.lance, pair_count: 256, rows: 10240}
+    manifest_sha256: 48246aa4ae4a13d5b1c9677ba37a92fe114129027745f8e258137a016899563b
+  cube:
+    release_config: {path: configs/benchmark/cube_gripper_carry_h3_v4r1_icl_release_v1.yaml, sha256: 731375aea1fa6cf61f58e5dacfc7fc7135cf3df0cb7c04233192d5da8a7364f4, size_bytes: 14982}
+    public_table: {path: artifacts/synthesis/cube_gripper_carry_rule_h3_public_v4r1_recovery_v1/validation.lance, pair_count: 256, rows: 2048, files: 3, size_bytes: 20544003, sha256: ba72017e5f47408b3cd351398a323e626f052ee1a9e252698f3c78efd550fb6f}
+    public_success: {path: artifacts/synthesis/cube_gripper_carry_rule_h3_public_v4r1_recovery_v1/_SUCCESS.json, sha256: 0ad35a2a2e7337828d118de30d5a4ec140832aaa77c5b46e5882070bc00bbd31, size_bytes: 4643}
+
+icl_checkpoints:
+  contact_friction:
+    training_disclosure: legacy_v1_2048_pairs_4096_steps_rescored_on_current_v3
+    checkpoints:
+      - {family: lewm, seed: 13313, path: artifacts/evaluation/history3/pusht_contact_friction_h3_v1/reference_matrix_20260731/lewm_seed13313/mixed_native_sigreg_0p09_step4096.pt, sha256: fba6b638efe1e1725c912a68f1df855f9b180ffc7bdc5f0eaa228b73576d1085, size_bytes: 72276675, config_sha256: 1ff3814754d21c41cb41bb3f019bf32a3bd38d4f47e0aed795f5c1eddd157ac7, config_size_bytes: 1139}
+      - {family: lewm, seed: 13314, path: artifacts/evaluation/history3/pusht_contact_friction_h3_v1/reference_matrix_20260731/lewm_seed13314/mixed_native_sigreg_0p09_step4096.pt, sha256: 432d9539d8081273ec9ba757b2208c202d511087f57317c37610113bae8c7c50, size_bytes: 72276675, config_sha256: 1ff3814754d21c41cb41bb3f019bf32a3bd38d4f47e0aed795f5c1eddd157ac7, config_size_bytes: 1139}
+      - {family: lewm, seed: 13315, path: artifacts/evaluation/history3/pusht_contact_friction_h3_v1/reference_matrix_20260731/lewm_seed13315/mixed_native_sigreg_0p09_step4096.pt, sha256: 0675daab13a6a73e5b9c18eafa5971dcf374b8b4fe1647fe5335d19713f93089, size_bytes: 72276675, config_sha256: 1ff3814754d21c41cb41bb3f019bf32a3bd38d4f47e0aed795f5c1eddd157ac7, config_size_bytes: 1139}
+      - {family: pldm, seed: 13313, path: artifacts/evaluation/history3/pusht_contact_friction_h3_v1/reference_matrix_20260731/pldm_seed13313/mixed_pldm_joint_step4096.pt, sha256: b62b47fead400389005e3490c4093b3fef4c8a378169df44ecba62f0cd952234, size_bytes: 72274139, config_sha256: 9a7174b28fccf4fa1abc7e2c756b93c93a659a00715a49fc64cf25affdba81b4, config_size_bytes: 1144}
+      - {family: pldm, seed: 13314, path: artifacts/evaluation/history3/pusht_contact_friction_h3_v1/reference_matrix_20260731/pldm_seed13314/mixed_pldm_joint_step4096.pt, sha256: db9ce716bbd07ea4c1bddd689cc09157f51cd7a1e1676b76e55852f075bf0cfa, size_bytes: 72274139, config_sha256: 9a7174b28fccf4fa1abc7e2c756b93c93a659a00715a49fc64cf25affdba81b4, config_size_bytes: 1144}
+      - {family: pldm, seed: 13315, path: artifacts/evaluation/history3/pusht_contact_friction_h3_v1/reference_matrix_20260731/pldm_seed13315/mixed_pldm_joint_step4096.pt, sha256: 8111d8b8e54de226304b2aef91e6c2b82c4387235fc0191f795bc4477cfe77bb, size_bytes: 72274139, config_sha256: 9a7174b28fccf4fa1abc7e2c756b93c93a659a00715a49fc64cf25affdba81b4, config_size_bytes: 1144}
+  motion_damping:
+    training_disclosure: legacy_v1_2048_pairs_4096_steps_rescored_on_current_v4
+    checkpoints:
+      - {family: lewm, seed: 14321, path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/context_world/evaluation/history3/pusht_motion_damping_h3_release_v1/reference_matrix/lewm_seed14321/mixed_frozen_image_native_0p09_step4096.pt, sha256: 60d79dded6eef911ef009c1889a72273c477859abbf177f3494bf33ba903ae08, size_bytes: 72278529, config_sha256: 1ff3814754d21c41cb41bb3f019bf32a3bd38d4f47e0aed795f5c1eddd157ac7, config_size_bytes: 1139}
+      - {family: lewm, seed: 14322, path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/context_world/evaluation/history3/pusht_motion_damping_h3_release_v1/reference_matrix/lewm_seed14322/mixed_frozen_image_native_0p09_step4096.pt, sha256: 36bd89c87085cbc289994b7dec9f2cd5e317fa6cceced8ced7e34df358d53738, size_bytes: 72278529, config_sha256: 1ff3814754d21c41cb41bb3f019bf32a3bd38d4f47e0aed795f5c1eddd157ac7, config_size_bytes: 1139}
+      - {family: lewm, seed: 14323, path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/context_world/evaluation/history3/pusht_motion_damping_h3_release_v1/reference_matrix/lewm_seed14323/mixed_frozen_image_native_0p09_step4096.pt, sha256: 4b962b67fb134cc4c6069b85e577e5ac0afdf775938ea0f010ae4eadac187ad7, size_bytes: 72278529, config_sha256: 1ff3814754d21c41cb41bb3f019bf32a3bd38d4f47e0aed795f5c1eddd157ac7, config_size_bytes: 1139}
+      - {family: pldm, seed: 14321, path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/context_world/evaluation/history3/pusht_motion_damping_h3_release_v1/reference_matrix/pldm_seed14321/mixed_pldm_joint_step4096.pt, sha256: 85f9138cea0db1b440f479eb00be4154b9f07d5d48d3674bd9e25eb3f74c773c, size_bytes: 72274139, config_sha256: 9a7174b28fccf4fa1abc7e2c756b93c93a659a00715a49fc64cf25affdba81b4, config_size_bytes: 1144}
+      - {family: pldm, seed: 14322, path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/context_world/evaluation/history3/pusht_motion_damping_h3_release_v1/reference_matrix/pldm_seed14322/mixed_pldm_joint_step4096.pt, sha256: e516756ef4fcd13a616512e853c91ac112b3d1e1c9c26209d31937a9d118e62e, size_bytes: 72274139, config_sha256: 9a7174b28fccf4fa1abc7e2c756b93c93a659a00715a49fc64cf25affdba81b4, config_size_bytes: 1144}
+      - {family: pldm, seed: 14323, path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/context_world/evaluation/history3/pusht_motion_damping_h3_release_v1/reference_matrix/pldm_seed14323/mixed_pldm_joint_step4096.pt, sha256: 423d8d7b762966e7f732bab5f0668ef63ac5b87449e600f98f515089564de680, size_bytes: 72274139, config_sha256: 9a7174b28fccf4fa1abc7e2c756b93c93a659a00715a49fc64cf25affdba81b4, config_size_bytes: 1144}
+  cube_pldm:
+    training_disclosure: current_v4r1_2048_pairs_4096_steps
+    checkpoints:
+      - {family: pldm, seed: 17321, path: artifacts/evaluation/history3/cube_gripper_carry_h3_development_v4r1/reference_training_v3/pldm_seed17321/mixed_pldm_joint_step4096.pt, sha256: 58be0f9a219aa82c8b61faa55583ffe7d89946f86570404d0132f7b1913c7fd5, size_bytes: 72274715, config_sha256: 399293c6f5838befc7a5494cb725cf862fd0927cb1f08039b184a97ca823946a, config_size_bytes: 1144}
+      - {family: pldm, seed: 17322, path: artifacts/evaluation/history3/cube_gripper_carry_h3_development_v4r1/reference_training_v3/pldm_seed17322/mixed_pldm_joint_step4096.pt, sha256: 1ba3332cd07144f7c99f13e1b0f5334f658d64b89ef0849c6b0942a44ef5f20d, size_bytes: 72274715, config_sha256: 399293c6f5838befc7a5494cb725cf862fd0927cb1f08039b184a97ca823946a, config_size_bytes: 1144}
+      - {family: pldm, seed: 17323, path: artifacts/evaluation/history3/cube_gripper_carry_h3_development_v4r1/reference_training_v3/pldm_seed17323/mixed_pldm_joint_step4096.pt, sha256: 9f7eca77234f638fa47d4c4519f7d6e3243a7041a1dd8cd0bb1a9ef5dac2a54f, size_bytes: 72274715, config_sha256: 399293c6f5838befc7a5494cb725cf862fd0927cb1f08039b184a97ca823946a, config_size_bytes: 1144}
+
+cem_inputs:
+  pusht:
+    plan_config: {path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/context_world/upstream/stable-worldmodel-875e607fc08aa72e/scripts/plan/config/pusht.yaml, sha256: ccad4ca01b8935424c71fb682622b57ecedb33176e996205f0bfd2211eaf4ec5, size_bytes: 859}
+    dataset: {path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-pusht/pusht_expert_train.h5, sha256: b6ebd9ac94bbe9e383f6e7a9cd92d74e9aa665ea57b758ed3717b0ee7df8d4fb, size_bytes: 46300921856}
+    dataset_identity_audit: {path: configs/benchmark/contextworld_original_baseline_cem_input_identity_audit_v1.json, sha256: 5d84444f6c4d0fd5a26b616bafeb17ddc2bb545356fc46a83fbb862be0853950, size_bytes: 1599}
+    query_catalog: {path: artifacts/evaluation/history3/pusht_action_strength_h3_release_v1/standard_pusht_query_catalog.json, sha256: da974c821e3fa0f232ac59538e0c79cc2cb9a80ea4bb4a62b910c66c278ce2d4, size_bytes: 11744}
+    frozen_baselines:
+      lewm: {successes: 235, evaluations: 300, result: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/context_world/evaluation/original_baseline_cem_v1/pusht/lewm/aggregate.json}
+      pldm: {successes: 233, evaluations: 300, result: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/context_world/evaluation/original_baseline_cem_v1/pusht/pldm/aggregate.json}
+  cube:
+    plan_config: {path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/context_world/upstream/stable-worldmodel-875e607fc08aa72e/scripts/plan/config/cube.yaml, sha256: 27cbd60e530e7bcd26ad90ff42a6a25e1743e08d1e3f75ccabf104b4d35dc5a5, size_bytes: 1131}
+    dataset: {path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-cube/ogbench/cube_single_expert.h5, sha256: 0664d507c4ff12009010644c9ae950836f954e700c172ccf22e7423af1a55625, size_bytes: 101942558720}
+    query_catalog: {path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/context_world/evaluation/history3/cube_gripper_carry_h3_development_v4r1/original_task_retention_query_catalog_v2.json, sha256: 0ebf7fa68078f76e1172cb47ef594129acc5563ed148ef4dafbd96b4c855d725, size_bytes: 13971}
+    frozen_pldm_baseline: {successes: 159, evaluations: 300, result: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/context_world/evaluation/original_baseline_cem_v1/cube/pldm/aggregate.json, result_sha256: 89992b96cc9e064554b32e1bf485fb89b81064cdcd3de3a081dde55ad790120d, result_size_bytes: 10771}
+
+reused_motion_damping_cem:
+  query_catalog_sha256: da974c821e3fa0f232ac59538e0c79cc2cb9a80ea4bb4a62b910c66c278ce2d4
+  evidence_limit: >-
+    Existing episode outcomes are reused only as fixed legacy comparator
+    evidence. The final bridge must verify checkpoint and catalog identities
+    and disclose that the historical reports lack the current runner's full
+    dataset/runtime/state-freeze receipt.
+  results:
+    - {family: lewm, seed: 14321, successes: 220, evaluations: 300, path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/context_world/evaluation/history3/pusht_motion_damping_h3_release_v1/standard_pusht_cem_lewm_seed14321/aggregate.json, sha256: ac37bad2bbb143944e37ac27144df0164934c8c4c4970da7dc964ae0ad28315d, size_bytes: 8398}
+    - {family: lewm, seed: 14322, successes: 217, evaluations: 300, path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/context_world/evaluation/history3/pusht_motion_damping_h3_release_v1/standard_pusht_cem_lewm_seed14322/aggregate.json, sha256: 3cfac73382291ccf5f917c863bb7a43643b2eb9fe73ecb38dbee5ac2bd7d9355, size_bytes: 8399}
+    - {family: lewm, seed: 14323, successes: 218, evaluations: 300, path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/context_world/evaluation/history3/pusht_motion_damping_h3_release_v1/standard_pusht_cem_lewm_seed14323/aggregate.json, sha256: 273430e523e9d5e64308d7fc5bc0d973931a36df51576c8a0fd040117dcb1b77, size_bytes: 8397}
+    - {family: pldm, seed: 14321, successes: 198, evaluations: 300, path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/context_world/evaluation/history3/pusht_motion_damping_h3_release_v1/standard_pusht_cem_pldm_seed14321/aggregate.json, sha256: 7cf2210e6aa398d9bdcb262e2b730b8af42f8a6b3ece5b76ccfaf7c8ca064283, size_bytes: 8389}
+    - {family: pldm, seed: 14322, successes: 201, evaluations: 300, path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/context_world/evaluation/history3/pusht_motion_damping_h3_release_v1/standard_pusht_cem_pldm_seed14322/aggregate.json, sha256: e72554861ca1d49d83b627ce3a37593da8cec5bddc9cda2429db5f0b3be0b0a2, size_bytes: 8387}
+    - {family: pldm, seed: 14323, successes: 203, evaluations: 300, path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/context_world/evaluation/history3/pusht_motion_damping_h3_release_v1/standard_pusht_cem_pldm_seed14323/aggregate.json, sha256: 884ad7caeced134bf983a95020d8cff1cf8e5f6d07138ed6092696065973a1a7, size_bytes: 8399}
+
+decision_rules:
+  icl: use_each_component_frozen_thresholds_without_change
+  pusht_cem:
+    minimum_successes: 210
+    baseline_relative_margin_successes: 15
+    family_matched_baseline_required: true
+  cube_cem:
+    baseline_successes: 159
+    baseline_relative_margin_successes: 15
+    minimum_successes: 144
+  method_summary:
+    show_per_seed_scores: true
+    show_mean_score: true
+    show_passed_checkpoint_count: true
+    execute_regardless_of_threshold: true
+
+outputs:
+  root: artifacts/evaluation/complete_reference_comparison_v1
+  freeze_receipt: artifacts/evaluation/complete_reference_comparison_v1/freeze_receipt.json
+  icl_root: artifacts/evaluation/complete_reference_comparison_v1/icl
+  cem_root: artifacts/evaluation/complete_reference_comparison_v1/cem
+  aggregate: artifacts/evaluation/complete_reference_comparison_v1/complete_comparison.json

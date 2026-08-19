@@ -1,0 +1,104 @@
+schema_version: 1
+benchmark: pusht_hidden_actuation_history3_action_coverage_v2
+experiment: dynamics_response_sigreg_v2
+status: registered_before_any_dynamics_response_training
+registered_at_utc: "2026-07-30"
+owner: ContextWorld
+
+method:
+  id: dynamics_response_sigreg
+  display_name_zh: 动力学响应 SIGReg
+  formula_unchanged_from_v1: true
+  implementation_protocol: pusht_hidden_actuation_dynamics_response_sigreg_v1.yaml
+  loss_formula: prediction_mse_plus_0p02_times_one_response_sigreg_scalar
+  sigreg_forward_calls_per_optimizer_step: 1
+  external_regularizer_weight_count: 1
+  additional_loss_components: 0
+  native_sigreg_stacked: false
+  idm_distillation_variance_covariance_or_planner_changes: false
+
+v1_calibration_receipt:
+  path: >-
+    artifacts/evaluation/history3/pusht_hidden_actuation_h3_v1/
+    dynamics_response_sigreg_v1/calibration_seed11265/
+    first_batch_gradient_report.json
+  sha256: aa1f5d9065f7fe27c742a8c87634c2f9011c888e12e5d706a224e947e1921527
+  v1_status: gradient_gate_failed_stop_before_training
+  no_v1_training_was_run: true
+
+selection_rationale:
+  selected_external_weight: 0.02
+  facts_at_exact_calibration_batch:
+    x1_target_change_per_unit_lr: 0.02921026740530928
+    x3_correct_prediction_margin_change_per_unit_lr: 0.0374741501915217
+    standard_replay_mse_change_per_unit_lr: -0.021381417454860382
+    x3_target_change_per_unit_lr: -9.042967351812917
+    unweighted_regularizer_x3_target_change_per_unit_lr: 66.33598508817938
+  reason_for_v2_gate: >-
+    The v1 requirement that total x3 target distance be non-contracting at
+    the source checkpoint was sufficient but not necessary. The previously
+    successful 0.01 paired-difference model also had a contracting first
+    step, yet reached 97 percent hidden-future selection. For a restoring
+    response regularizer, the relevant pre-training evidence is that its own
+    x3 direction expands, while the chosen total protects the rule-revealing
+    x1 direction, improves deterministic correct-response margin, and
+    decreases standard replay MSE.
+  smallest_registered_weight_passing_revised_gate: 0.02
+  downstream_training_or_evaluation_metric_used_for_selection: false
+
+held_out_training:
+  seed: 13313
+  no_checkpoint_for_this_method_or_seed_existed_at_registration: true
+  optimizer_steps: 2048
+  batch_size: 128
+  original_samples_per_batch: 64
+  hidden_samples_per_batch: 64
+  hidden_pairs_per_batch: 32
+  optimizer: AdamW
+  learning_rate: 5.0e-5
+  weight_decay: 1.0e-3
+  gradient_clip_norm: 1.0
+  precision: bf16_mixed
+  exact_same_batches_between_variants: true
+  variants:
+    - id: mixed_native_sigreg_0p09
+      role: same_seed_original_lewm_control
+    - id: mixed_dynamics_response_sigreg_0p02
+      role: primary_method
+  snapshots: [0, 1, 8, 32, 128, 512, 1024, 2048]
+  trajectory_audit:
+    record_x1_and_x3_pair_geometry: true
+    record_hidden_prediction_metrics: true
+    frozen_source_scale_is_not_updated: true
+
+hidden_prediction_gate:
+  target_selection_minimum: 0.95
+  correct_history_minimum: 0.95
+  rule_switch_minimum: 0.95
+  worst_mode_minimum: 0.90
+  stop_before_all_cem_if_failed: true
+
+standard_pusht_followup:
+  run_only_after_primary_hidden_prediction_pass: true
+  eval_seeds: [42, 43, 44, 45, 46, 47]
+  queries_per_seed: 50
+  protocol: exact_standard_history3_cem_300x30_top30
+  paired_noninferiority_margin_absolute: 0.05
+  comparison: same_seed_native_control
+
+hidden_actuation_followup:
+  run_only_after_hidden_prediction_and_standard_noninferiority_pass: true
+  eval_seed: 13312
+  query_pairs: 50
+  oracle_grid_success_minimum: 0.95
+  mode_action_classification_minimum: 0.90
+  real_environment_success_minimum: 0.80
+
+decision_rules:
+  - Do not change the v1 method formula, source scales, sqrt(2) reserve,
+    selected weight, training seed, optimizer, or ability gates.
+  - Do not add another loss, module head, teacher, or CEM modification.
+  - If hidden prediction fails, reject before CEM.
+  - If standard CEM is inferior by more than five absolute points, reject
+    before hidden CEM.
+  - A single-seed joint pass is a mechanism result and requires replication.

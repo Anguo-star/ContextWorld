@@ -5,13 +5,17 @@ import json
 import os
 import tempfile
 from collections import Counter, defaultdict
+from copy import deepcopy
 from dataclasses import asdict, dataclass, replace
 from pathlib import Path
 from typing import Any, Iterable
 
 import numpy as np
 
-from contextworld.benchmarks.adapters import SpeedICLModelAdapter
+from contextworld.benchmarks.adapters import (
+    LatentWorldModelAdapter,
+    validate_adapter_protocol,
+)
 from contextworld.paths import (
     portable_contextworld_path,
     resolve_contextworld_path,
@@ -73,6 +77,34 @@ INFORMATIVE_HISTORY_BOOTSTRAP_METRICS = (
 # Backward-compatible name used by the v1 renderer and stored result tests.
 PAIRED_BOOTSTRAP_METRICS = ALL_HISTORIES_BOOTSTRAP_METRICS
 
+# The H3 formal data were built against the first, frozen configuration
+# identity.  The published repository later replaced only the local staging
+# directory and upstream-dataset pathname with portable repository-relative
+# names.  Those two textual changes necessarily changed the configuration
+# file's SHA-256, but not the training geometry or model-visible data.  Keep
+# this exception deliberately narrow: a diagnostic frozen against the legacy
+# identity may use exactly this verified successor and nothing else.
+_H3_TRAINING_DATA_PATH_PORTABILITY_SUCCESSOR = {
+    "legacy_sha256": (
+        "c9ab2054c3421582d3464634e574711f3035686b41a11c4fc610bc9442bc5f82"
+    ),
+    "successor_sha256": (
+        "c13d1778ccab068fcc20cd1f08593cce0accd97903b36a9da73f7b14f021da21"
+    ),
+    # Canonical JSON SHA-256 after removing precisely the two path-only
+    # fields above.  This prevents a successor with any geometry, split, or
+    # collection-protocol change from being accepted under this exception.
+    "semantic_projection_sha256": (
+        "a2de21467a23181a83b4e65dd51a5108d81d0d27977ca01bb63408cd876baf33"
+    ),
+    "legacy_build_report_config_canonical_sha256": (
+        "95251b449d7d8b90552ac207f1aab0c6e425a7ffd75d3d55359662e36413d835"
+    ),
+    "build_report": (
+        "artifacts/synthesis/hidden_passage_h3_v1/formal/build_report.json"
+    ),
+}
+
 _INPUT_INVARIANT_KEYS = (
     "initial_observation",
     "history_pixels",
@@ -117,6 +149,87 @@ def canonical_sha256(value: Any) -> str:
         separators=(",", ":"),
     ).encode("utf-8")
     return hashlib.sha256(encoded).hexdigest()
+
+
+def _training_data_path_portability_projection(
+    config: dict[str, Any],
+) -> dict[str, Any]:
+    """Return the H3 training-data contract without its two local paths.
+
+    This is not a general configuration normalizer.  It exists solely for
+    the recorded H3 path-portability successor above, so missing or malformed
+    fields fail closed rather than broadening the accepted migration surface.
+    """
+
+    projection = deepcopy(config)
+    projection.pop("_config_path", None)
+    collection = projection.get("collection")
+    original_dataset = projection.get("original_dataset")
+    if not isinstance(collection, dict) or not isinstance(
+        original_dataset, dict
+    ):
+        raise ValueError(
+            "H3 training-data portability projection has an invalid "
+            "collection or original_dataset section"
+        )
+    if set(collection) != {"staging_root"} or set(original_dataset) != {
+        "path"
+    }:
+        raise ValueError(
+            "H3 training-data portability projection would remove fields "
+            "outside the recorded path-only migration"
+        )
+    collection.pop("staging_root")
+    original_dataset.pop("path")
+    return projection
+
+
+def _is_recorded_h3_training_data_path_successor(
+    *,
+    expected_sha256: str,
+    observed_sha256: str,
+    config: dict[str, Any],
+    repo_root: Path,
+) -> bool:
+    """Accept only the explicitly recorded H3 path-only successor.
+
+    The original formal build report is an additional predecessor receipt.  A
+    matching successor config alone is not enough: the report must still bind
+    the formal data to the legacy config identity and canonical contract.
+    """
+
+    successor = _H3_TRAINING_DATA_PATH_PORTABILITY_SUCCESSOR
+    if (
+        expected_sha256 != successor["legacy_sha256"]
+        or observed_sha256 != successor["successor_sha256"]
+    ):
+        return False
+    if canonical_sha256(
+        _training_data_path_portability_projection(config)
+    ) != successor["semantic_projection_sha256"]:
+        return False
+    try:
+        report_path = resolve_contextworld_path(
+            successor["build_report"],
+            repo_root=repo_root,
+        )
+        report = json.loads(report_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return False
+    identity = report.get("identity")
+    return bool(
+        report.get("status") == "passed"
+        and report.get("scale") == "formal"
+        and report.get("benchmark") == config.get("benchmark")
+        and isinstance(identity, dict)
+        and identity.get("config")
+        == "configs/benchmark/tworoom_hidden_passage_h3_training_data_v1.yaml"
+        and identity.get("config_sha256") == successor["legacy_sha256"]
+        and identity.get("config_canonical_sha256")
+        == successor["legacy_build_report_config_canonical_sha256"]
+        and identity.get("stable_worldmodel_commit")
+        == config.get("stable_worldmodel", {}).get("commit")
+    )
 
 
 def _catalog_content_manifest_projection(
@@ -227,16 +340,22 @@ def candidate_templates(
             generation["training_data_config_sha256"]
         )
         observed_training_config_sha256 = file_sha256(training_config_path)
+        training_config = load_config(training_config_path)
         if (
             observed_training_config_sha256
             != expected_training_config_sha256
+            and not _is_recorded_h3_training_data_path_successor(
+                expected_sha256=expected_training_config_sha256,
+                observed_sha256=observed_training_config_sha256,
+                config=training_config,
+                repo_root=repo_root,
+            )
         ):
             raise ValueError(
                 "Frozen hidden-passage training-data config hash mismatch: "
                 f"expected={expected_training_config_sha256}, "
                 f"observed={observed_training_config_sha256}"
             )
-        training_config = load_config(training_config_path)
         training_scale = str(generation["training_scale"])
         source_split = str(generation["training_split"])
         splits = door_splits_for_scale(training_config, training_scale)
@@ -1250,8 +1369,17 @@ def load_validation_assets(
     return assets, audit
 
 
-def _adapter_protocol_audit(adapter: SpeedICLModelAdapter) -> dict[str, Any]:
-    protocol = adapter.protocol
+def _adapter_protocol_audit(
+    adapter: LatentWorldModelAdapter,
+) -> dict[str, Any]:
+    protocol = validate_adapter_protocol(
+        adapter,
+        history_tokens=MODEL_HISTORY_TOKENS,
+        action_block_raw_steps=ACTION_BLOCK,
+        action_dim=2,
+        minimum_future_action_blocks=1,
+        task_name="Door ICL v1",
+    )
     checks = {
         "history_tokens": int(protocol.history_tokens) == MODEL_HISTORY_TOKENS,
         "action_block_raw_steps": (
@@ -1259,7 +1387,6 @@ def _adapter_protocol_audit(adapter: SpeedICLModelAdapter) -> dict[str, Any]:
         ),
         "action_dim": int(protocol.action_dim) == 2,
         "at_least_one_future": int(protocol.future_action_blocks) >= 1,
-        "native_target_encoder": bool(protocol.native_target_encoder),
     }
     if not all(checks.values()):
         raise RuntimeError(f"Adapter protocol mismatch: {checks}")
@@ -1267,7 +1394,7 @@ def _adapter_protocol_audit(adapter: SpeedICLModelAdapter) -> dict[str, Any]:
 
 
 def score_validation_assets(
-    adapter: SpeedICLModelAdapter,
+    adapter: LatentWorldModelAdapter,
     assets: list[dict[str, Any]],
     *,
     batch_size: int,

@@ -1,0 +1,86 @@
+schema_version: 1
+benchmark: tworoom_action_delay_history7_capacity_diagnostic_v1
+status: preregistered_before_capacity_diagnostic
+preregistered_date: "2026-07-29"
+
+extension_reason: >-
+  预注册的 512 步 paired_final 结果仍在持续上升，LeWM 训练准确率为
+  88.19%，距离预设 90% 容量门槛仅 1.81 个百分点。本扩展在查看
+  1024 步结果前冻结，只延长同一个 LeWM paired_final 对照，不增加数据、
+  不更换初始化、不修改阈值，也不重跑其余对照。
+
+question: >-
+  在与正式训练相同的 1,024 步预算下，LeWM 的共享 History=7 预测器能否
+  在明确的同 query 三延迟末步监督下越过 90% 容量门槛？
+
+claim_boundary:
+  post_hoc_root_cause_diagnostic_only: true
+  changes_formal_benchmark_result: false
+  trains_new_formal_model: false
+  hidden_test_remains_sealed: true
+  cem_may_run: false
+  encoder_and_projector_frozen: true
+  rescued_weights_are_not_release_checkpoints: true
+  triggered_by_preregistered_512_step_borderline_result: true
+
+inputs:
+  stable_worldmodel:
+    repo: ../stable-worldmodel
+    commit: ad2bc44579f2b5b65c004fd2c9d8edc8ebaa43ce
+  normalizer:
+    path: artifacts/splits/tworoom_original_train_s3072_normalizer.json
+    sha256: 7a5be7ea867bced446c1671b0b2c0ff6450ffc61e1a7bdbbfc5eaa0942f635db
+  paired_domain_catalog:
+    path: artifacts/evaluation/history7/action_delay_domain_diagnostic_v1/catalog.json
+    sha256: f454b3766a1faac5208cefec79567783971731b0c45dca0108f1abd322e5462d
+    delays: [0, 4, 8]
+  failed_checkpoints:
+    lewm:
+      path: >-
+        artifacts/training/runs/checkpoints/h7_action_delay_multi_formal_s3072/weights_final_step_1024.pt
+      sha256: 590850aa93b7fdf8acc287bde537eff21b4f085d42ee54c8a506ee471d89e9f1
+
+data:
+  train_tracks:
+    - training_replay_delay_0
+    - training_replay_delay_4
+    - training_replay_delay_8
+  heldout_tracks:
+    - loader_validation_delay_0
+    - loader_validation_delay_4
+    - loader_validation_delay_8
+  deterministic_selection: first_32_catalog_queries_per_track
+  queries_per_track: 32
+  queries_per_split: 96
+  histories_per_query: 3
+  h1_units_per_split: 288
+
+training:
+  trainable_modules: [predictor, pred_proj, action_encoder]
+  frozen_modules: [encoder, projector]
+  target: frozen_checkpoint_encoder_of_offline_real_h1_pixels
+  optimizer:
+    type: AdamW
+    learning_rate: 0.00005
+    weight_decay: 0.001
+  precision: bf16-mixed
+  seed: 3072
+  optimizer_steps: 1024
+  examples_per_step: 96
+  snapshots: [0, 512, 768, 1024]
+  variants:
+    paired_final:
+      examples: all_three_delay_histories_per_query
+      loss_positions: [final_history_dependent_transition]
+
+decision:
+  training_capacity_pass:
+    exact_target_selection_rate_minimum: 0.90
+  heldout_transfer_signal:
+    exact_target_selection_rate_minimum: 0.60
+
+artifacts:
+  results_root: >-
+    artifacts/evaluation/history7/action_delay_capacity_diagnostic_v1
+  output: >-
+    artifacts/evaluation/history7/action_delay_capacity_diagnostic_v1/lewm_1024_extension.json

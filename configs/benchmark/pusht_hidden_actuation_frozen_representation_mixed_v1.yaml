@@ -1,0 +1,104 @@
+schema_version: 1
+benchmark: pusht_hidden_actuation_history3_action_coverage_v2
+experiment: frozen_planning_representation_mixed_training_v1
+status: registered_before_training
+registered_at_utc: "2026-07-30"
+owner: ContextWorld
+
+question: >-
+  In the same 50/50 standard and hidden-actuation Push-T training mixture,
+  does keeping the image Encoder and Projector fixed preserve the source
+  planning metric while allowing the remaining dynamics modules to learn the
+  History-identifiable actuator gain?
+
+method:
+  id: mixed_frozen_image_native_0p09
+  display_name_zh: 固定规划表示的混合训练
+  role: mechanism_isolation
+  frozen_modules:
+    - encoder
+    - projector
+  force_frozen_modules_eval_mode: true
+  trainable_modules:
+    - predictor
+    - action_encoder
+    - pred_proj
+  planning_metric: >-
+    Native latent MSE to goals encoded by the fixed source Encoder and
+    Projector.
+  loss: prediction_mse_plus_0p09_native_sigreg
+  sigreg_interpretation: >-
+    Native SIGReg is retained and logged for objective compatibility, but its
+    input representation is frozen and therefore it has no gradient path to
+    trainable parameters. This is not a SIGReg-weight intervention.
+
+immutable_inputs:
+  hidden_data: artifacts/synthesis/pusht_hidden_actuation_h3_v1
+  hidden_manifest_sha256: 4f307a60920747506c1d8aadc41931a0f768b7f3d7ba6317d7246b008bc3fc64
+  original_data: external/pusht/lewm_pusht.lance
+  action_normalizer_source: external/pusht/pusht_expert_train.h5
+  source_checkpoint: external/pusht/pusht_lewm_baseline_seed3073_weights.ckpt
+  source_checkpoint_sha256: 9f13b2c28bb909338047e08d62bf6eb16ea3616cb53e57cfa9b5072b43db1c59
+
+training:
+  seed: 6145
+  optimizer_steps: 2048
+  batch_size: 128
+  original_samples_per_batch: 64
+  hidden_samples_per_batch: 64
+  hidden_pairs_per_batch: 32
+  optimizer: AdamW
+  learning_rate: 5.0e-5
+  weight_decay: 1.0e-3
+  gradient_clip_norm: 1.0
+  precision: bf16_mixed
+  native_sigreg_weight: 0.09
+  output: >-
+    artifacts/evaluation/history3/pusht_hidden_actuation_h3_v1/
+    frozen_representation_mixed_seed6145_step2048/training
+
+implementation_audit:
+  abort_if_any_check_fails: true
+  required:
+    - optimizer_contains_no_encoder_or_projector_parameter
+    - frozen_parameters_have_no_gradient_after_first_backward
+    - trainable_parameters_have_nonzero_gradient_after_first_backward
+    - encoder_and_projector_state_hashes_match_before_and_after_training
+    - predictor_action_encoder_or_pred_proj_state_changes
+
+hidden_prediction_gate:
+  target_selection_minimum: 0.95
+  correct_history_minimum: 0.95
+  rule_switch_minimum: 0.95
+  worst_mode_minimum: 0.90
+
+standard_pusht_followup:
+  run_only_after_hidden_prediction_pass: true
+  protocol: exact_standard_history3_cem_300x30_top30
+  eval_seeds: [42, 43, 44, 45, 46, 47]
+  queries_per_seed: 50
+  replay_matched_native_0p09_control_success: 230/300
+  noninferiority_margin_absolute: 0.05
+  required_success_minimum: 215/300
+
+hidden_actuation_followup:
+  run_only_after_hidden_prediction_pass: true
+  eval_seed: 6144
+  query_pairs: 50
+  oracle_grid_success_minimum: 0.95
+  mode_action_classification_minimum: 0.90
+  real_environment_success_minimum: 0.80
+
+decision_rules:
+  - Do not change the seed, training mixture, frozen modules, or thresholds
+    after reading the result.
+  - If the implementation audit fails, the run is invalid rather than a
+    scientific failure.
+  - If hidden prediction fails, stop before both CEM follow-ups.
+  - If hidden prediction passes, run both registered real-environment CEM
+    follow-ups without tuning the planner.
+  - >-
+    Hidden prediction plus recovered standard CEM supports representation
+    drift as the standard-task regression mechanism. Failure to recover
+    standard CEM falsifies that sufficient explanation.
+  - One training seed is a mechanism experiment, not a robustness claim.

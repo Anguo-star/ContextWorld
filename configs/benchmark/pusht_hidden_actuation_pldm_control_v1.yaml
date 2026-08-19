@@ -1,0 +1,89 @@
+schema_version: 1
+benchmark: pusht_hidden_actuation_history3_action_coverage_v2
+experiment: pusht_pldm_same_contract_control_v1
+status: registered_before_any_mixed_pusht_pldm_training
+registered_at_utc: "2026-07-30"
+owner: ContextWorld
+
+question:
+  primary: >-
+    Does the official PLDM active objective learn the PushT hidden actuation
+    rule under the same mixed training contract where native LeWM fails?
+  cross_task: >-
+    Do TwoRoom Door and PushT hidden actuation exhibit the same objective-level
+    conditional-information compression failure?
+
+comparability:
+  source_checkpoint: >-
+    /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/
+    lewm-pusht/ckpt/pusht_lewm_baseline_seed3073/
+    pusht_lewm_baseline_seed3073_weights.ckpt
+  source_state_loaded_strictly_into_pldm: true
+  training_data:
+    standard_pusht_fraction: 0.5
+    hidden_actuation_fraction: 0.5
+    hidden_rows_are_complete_condition_matched_pairs: true
+  training_seed: 14337
+  optimizer_steps: 2048
+  batch_size: 128
+  learning_rate: 5.0e-5
+  weight_decay: 1.0e-3
+  gradient_clip_norm: 1.0
+  precision: bf16_mixed
+  comparison_controls:
+    native_lewm:
+      seed: 13313
+      note: >-
+        The native failure has already replicated across seeds. The primary
+        PLDM question is evaluated on a held-out seed before any PLDM result
+        exists; a same-seed native rerun is required only if PLDM is near a
+        decision boundary.
+    dynamics_response_sigreg:
+      seed: 13313
+
+pldm_objective:
+  prediction_mse: 1.0
+  active:
+    std: 18.0
+    std_t: 0.7
+    cov: 12.0
+    temp_align: 0.2
+  inactive:
+    idm: 0.0
+    cov_t: 0.0
+    temp_straight: 0.0
+  same_active_weights_as_tworoom_pldm_control: true
+  hidden_labels_used_by_model_or_loss: false
+
+prediction_gate:
+  target_selection_minimum: 0.95
+  correct_history_minimum: 0.95
+  rule_switch_minimum: 0.95
+  worst_mode_minimum: 0.90
+
+standard_pusht_cem:
+  run_if_prediction_gate_passes: true
+  eval_seeds: [42, 43, 44, 45, 46, 47]
+  queries_per_seed: 50
+  comparison_is_paired_on_identical_queries: true
+  noninferiority_margin_vs_same_protocol_native_absolute: 0.05
+
+hidden_actuation_cem:
+  run_if_prediction_gate_passes: true
+  eval_seed: 14336
+  query_pairs: 50
+  report:
+    - oracle_grid_success
+    - hidden_mode_action_classification
+    - selected_action
+    - real_environment_success
+
+root_cause_decision:
+  same_failure_class_requires:
+    - native_lewm_fails_hidden_rule_prediction_in_both_tasks
+    - pldm_joint_training_passes_hidden_rule_prediction_in_both_tasks
+    - native_lewm_contracts_the_condition_matched_future_direction
+    - successful_objectives_preserve_that_direction
+  caveat: >-
+    Similar final accuracy alone is insufficient. Planning-metric
+    miscalibration is analyzed separately from hidden-rule representation.

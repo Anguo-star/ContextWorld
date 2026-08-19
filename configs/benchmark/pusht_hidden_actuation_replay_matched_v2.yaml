@@ -1,0 +1,151 @@
+schema_version: 1
+benchmark: pusht_hidden_actuation_history3_replay_matched_v2
+status: registered_before_v2_implementation_synthesis_or_training
+registered_at_utc: "2026-07-30"
+owner: ContextWorld
+
+question: >-
+  Can a training set anchored in the original Push-T replay distribution
+  teach the History-identifiable hidden actuator gain without the additional
+  original-task CEM decline caused by the narrow v1 synthesis?
+
+frozen_v1_facts:
+  unchanged_source_standard_cem: 237/300
+  standard_only_continuation_standard_cem: 225/300
+  narrow_50_50_native_standard_cem: 194/300
+  narrow_50_50_response_standard_cem: 202/300
+  narrow_50_50_native_hidden_target_selection: 0.53
+  narrow_50_50_response_hidden_target_selection: 0.97
+  conclusion_already_supported: >-
+    Acquiring the hidden mechanism is not inherently responsible for the
+    original-task decline: native v1 loses CEM without learning the rule,
+    while the 75/25 response control learns the rule at the standard-only
+    continuation score.
+
+v2_data_contract:
+  role: formal_replay_matched_training_and_validation_set
+  original_replay: external/pusht/pusht_expert_train.h5
+  train_pairs: 2048
+  validation_pairs: 256
+  eval_contract: >-
+    Reuse the frozen v1 50-pair hidden-dynamics eval without modification so
+    v1 and v2 training methods are compared on identical unseen queries.
+  source_episode_partition:
+    train_validation_disjoint: true
+    source_row_unique_within_split: true
+  replay_anchoring:
+    query_state: exact_original_replay_state_with_zeroed_unobserved_velocity
+    goal: final_state_of_the_same_expert_episode
+    query_action_block: exact_five_action_block_from_the_source_row
+    filler_action_block: exact_next_five_action_block_from_the_source_row
+    block_position_and_angle: exact_source_values
+    agent_position: exact_source_value
+  paired_counterfactual:
+    hidden_modes: {low_gain: 60.0, high_gain: 140.0}
+    hidden_mode_visible_to_model: false
+    raw_actions_identical_between_modes: true
+    probe_block: rotated_copy_of_the_source_query_block_toward_free_space
+    recovery_block: >-
+      nearest source recovery block projected onto the exact free-space
+      position-and-velocity nullspace
+    common_query_state_before_prediction: true
+    history_reveals_mode: true
+    both_query_futures_make_contact: true
+  immutable_eval: artifacts/synthesis/pusht_hidden_actuation_h3_v1
+
+distribution_audit:
+  reference_population: >-
+    Original replay rows with at least 25 future steps, nontrivial five-step
+    block motion, and a nontrivial query action block.
+  audited_features:
+    - agent_x
+    - agent_y
+    - block_x
+    - block_y
+    - block_angle_sin
+    - block_angle_cos
+    - agent_block_distance
+    - goal_block_x
+    - goal_block_y
+    - query_action_x
+    - query_action_y
+    - query_action_magnitude
+  normalized_wasserstein:
+    normalization: reference_interquartile_range
+    v2_median_maximum: 0.25
+    v2_p90_maximum: 0.50
+    required_median_reduction_vs_v1: 0.50
+  causal_integrity:
+    all_pairs_pass: true
+    train_validation_source_episode_overlap: 0
+    train_validation_eval_query_pixel_hash_overlap: 0
+
+training:
+  source_checkpoint: external/pusht/pusht_lewm_baseline_seed3073_weights.ckpt
+  source_contrast_scale_calibration:
+    dataset: replay_matched_v2_training_pairs_only
+    checkpoint: frozen_source_checkpoint
+    formula: RMS((z_low-z_high)/sqrt(2))
+    active_observation_indices: [1, 3]
+    labels_or_evaluation_metrics_used: false
+    frozen_before_training: true
+  seed: 13313
+  optimizer_steps: 2048
+  batch_size: 128
+  standard_samples_per_batch: 64
+  replay_matched_hidden_samples_per_batch: 64
+  hidden_pairs_per_batch: 32
+  optimizer: AdamW
+  learning_rate: 5.0e-5
+  weight_decay: 1.0e-3
+  gradient_clip_norm: 1.0
+  precision: bf16_mixed
+  variants:
+    - id: mixed_native_sigreg_0p09
+      display_name_zh: 原始 LeWM
+      role: must_fail_hidden_rule_without_extra_distribution_regression
+    - id: mixed_dynamics_response_sigreg_0p02
+      display_name_zh: 动力学响应 SIGReg
+      role: must_learn_hidden_rule_without_extra_distribution_regression
+
+hidden_prediction_gates:
+  native_target_selection_failure_ceiling: 0.65
+  response:
+    target_selection_minimum: 0.95
+    correct_history_minimum: 0.95
+    rule_switch_minimum: 0.95
+    worst_mode_minimum: 0.90
+
+original_task_retention:
+  evaluation: exact_standard_history3_cem_300x30_top30
+  eval_seeds: [42, 43, 44, 45, 46, 47]
+  queries_per_seed: 50
+  primary_reference: standard_only_continuation_225_of_300
+  noninferiority_margin_absolute: 0.05
+  minimum_successes_out_of_300: 210
+  required_for_both_registered_variants: true
+  unchanged_source_237_of_300_is_secondary_reference: true
+
+hidden_closed_loop:
+  run_after_response_hidden_prediction_and_retention_pass: true
+  frozen_eval_seed: 13312
+  mode_action_classification_minimum: 0.90
+  real_environment_success_is_diagnostic_for_the_next_action_grid_stage: true
+
+decision_rules:
+  - >-
+    Do not alter v2 synthesis thresholds, training loss, weight, seed,
+    optimizer, or evaluation queries after observing a model result.
+  - >-
+    If v2 improves the registered distribution distances but both methods
+    still lose original-task CEM, reject the current definition of
+    distribution matching before changing the loss.
+  - >-
+    If native retains original CEM but fails the hidden rule, while response
+    retains original CEM and passes the hidden rule, conclude that conditional
+    learning and original-task CEM are not inherently in conflict.
+  - >-
+    The fair retention target is the same-protocol standard-only continuation
+    score, not the unchanged source checkpoint.
+  - >-
+    Keep v1 as a narrow-distribution stress test; never overwrite it with v2.

@@ -1,0 +1,277 @@
+schema_version: 1
+benchmark: tworoom_speed_door_rule_history3_pldm_training_v1
+status: preregistered_before_training_or_model_scoring
+preregistered_date: "2026-07-27"
+
+question: >-
+  在相同的原始 H3 初始化、训练目标和优化步数下，只见过速度或同时见过
+  速度与门规则的模型，能否分别完成单因素识别和双因素组合识别？
+
+stable_worldmodel:
+  repo: ../stable-worldmodel
+  commit: 5864b74980f6ed328fd0045e777b3865962eff43
+
+data:
+  original_read_only: ../../data/world_model/quentinll/lewm-tworooms/tworoom.h5
+  original_split:
+    strategy: episode_heldout
+    seed: 3072
+    train_fraction: 0.9
+    heldout_view: artifacts/splits/tworoom_original_episode_holdout_s3072.h5
+    heldout_manifest: artifacts/splits/tworoom_original_episode_holdout_s3072.json
+  frozen_normalizer:
+    path: artifacts/splits/tworoom_original_train_s3072_normalizer.json
+    sha256: 7a5be7ea867bced446c1671b0b2c0ff6450ffc61e1a7bdbbfc5eaa0942f635db
+    protocol: tworoom_original_train_s3072_unbiased_zscore_v1
+    statistics_scope: original_9000_train_episodes_only
+  training_exclusion_manifest:
+    path: artifacts/evaluation/history3/speed_door_rule_composition_validation_v1/training_exclusion_manifest.json
+    sha256: 1b02b26bf282ee72a4c57e7c62417c3c86ab2ae17b215c50d2302489587c88c0
+    content_sha256: b3548e9fe15bbf39f347bb7d012993cbd8e2a89437b3783e72fe16258d2585f4
+    query_count: 300
+  formal_build_report:
+    path: artifacts/synthesis/speed_door_rule_h3_v1/formal/build_report.json
+    sha256: 59f6ff8be840f69e72e5c7d6c356c31190fb62ea3425acd0f15dd7c1e5bc4e68
+    benchmark: tworoom_hidden_passage_history3_speed_door_rule_training_data_v1
+    scale: formal
+  catalogs:
+    passage_passable: artifacts/synthesis/speed_door_rule_h3_v1/formal/catalogs/tworoom_speed_door_rule_h3_passable_v1.json
+    passage_blocked: artifacts/synthesis/speed_door_rule_h3_v1/formal/catalogs/tworoom_speed_door_rule_h3_blocked_v1.json
+    passage_mixed: artifacts/synthesis/speed_door_rule_h3_v1/formal/catalogs/tworoom_speed_door_rule_h3_mixed_v1.json
+
+passage_support:
+  passage_passable:
+    train: [1]
+    validation: [1]
+  passage_blocked:
+    train: [0]
+    validation: [0]
+  passage_mixed:
+    train: [0, 1]
+    validation: [0, 1]
+  training_speeds: [2.7, 4.3, 6.1, 7.7]
+  eval_speeds: [3.1, 5.1, 7.0]
+  eval_only_door_positions:
+    [30, 34, 38, 42, 46, 50, 54, 58, 62, 66, 70, 74, 78, 82, 86,
+     90, 94, 98, 102, 106, 110, 114, 118, 122, 126, 130, 134, 138,
+     142, 146, 150, 154, 158, 162, 166, 170, 174, 178, 182, 186, 190,
+     194]
+  requirements:
+    - no_exact_train_eval_speed_overlap
+    - all_eval_speeds_inside_training_range
+    - training_and_loader_validation_exclude_every_eval_only_door
+    - selected_validation_query_pixels_excluded_from_training
+
+paired_collection_contract:
+  passage_rules:
+    pair_identity: [split, pair_id]
+    allowed_difference: passage.open
+    passable_value: 1
+    blocked_value: 0
+    equal_manifest_fields:
+      - split
+      - regime
+      - stable_worldmodel_commit
+      - pixel_codec
+      - seed_group
+      - pair_id
+    equal_manifest_count_fields:
+      - episode_count
+      - clip_count
+      - rows_per_episode
+      - raw_rows
+    equal_episode_fields:
+      - pair_id
+      - agent_speed
+      - direction
+      - door_position
+      - doorway_offset_px
+      - action_sha256
+      - initial_pixels_sha256
+      - query_pixels_sha256
+      - goal_pixels_sha256
+      - model_input_keys
+      - passed
+    allowed_episode_differences:
+      - rule
+      - passage_open
+      - middle_pixels_sha256
+      - future_pixels_sha256
+      - model_pixels_sha256
+      - model_proprio_sha256
+      - raw_pixels_sha256
+      - raw_proprio_sha256
+      - raw_state_sha256
+      - raw_variation_passage_open_sha256
+
+data_quality:
+  groups:
+    passage_passable:
+      require_complete_synthesis_report: true
+      required_pixel_codec: {format: png, compress_level: 1, lossless: true}
+      balance_by_factor: passage.open
+      exact_train_scenarios: 80
+      exact_validation_scenarios: 16
+      exact_test_scenarios: 0
+      exact_train_clips: 6400
+      exact_validation_clips: 1280
+      exact_test_clips: 0
+      factor_support_contract:
+        factor: agent.speed
+        expected_by_split:
+          train: [[2.7, 4.3, 6.1, 7.7]]
+          validation: [[2.7, 4.3, 6.1, 7.7]]
+      minimum_raw_train_clips: 6400
+      maximum_formal_mean_draws_per_raw_clip: 164.0
+      minimum_train_scenarios: 80
+      minimum_validation_scenarios: 16
+      required_catalog_sha256: e49115ab34ea277a3adc21fd4021c43f25b7f3453538a08c501f90f00c32170e
+      required_manifest_sha256: ddfd403095ef88e17b692ae32fb2a76a50b4f8255045180d486de9f8c269dcb6
+      required_synthesis_report_sha256: b80ef4fd41a372b9957412701b6c18a23c3482b4b0b4befab190ee41ecd614bf
+    passage_blocked:
+      require_complete_synthesis_report: true
+      required_pixel_codec: {format: png, compress_level: 1, lossless: true}
+      balance_by_factor: passage.open
+      exact_train_scenarios: 80
+      exact_validation_scenarios: 16
+      exact_test_scenarios: 0
+      exact_train_clips: 6400
+      exact_validation_clips: 1280
+      exact_test_clips: 0
+      factor_support_contract:
+        factor: agent.speed
+        expected_by_split:
+          train: [[2.7, 4.3, 6.1, 7.7]]
+          validation: [[2.7, 4.3, 6.1, 7.7]]
+      minimum_raw_train_clips: 6400
+      maximum_formal_mean_draws_per_raw_clip: 164.0
+      minimum_train_scenarios: 80
+      minimum_validation_scenarios: 16
+      required_catalog_sha256: 37e7a2de92c79852776d8ff0b8feaef824ac93e2f7dfd3ea16d4542e1a60cd0b
+      required_manifest_sha256: baa730d5e8ae924566368d446bb7d4f583e9a6b022f9611b9d19c9027ef1c6ed
+      required_synthesis_report_sha256: 8718e079cf28a5d12278dab4e39da58706a32a526a1213d03cd4edbbb596bc4b
+    passage_mixed:
+      require_complete_synthesis_report: true
+      required_pixel_codec: {format: png, compress_level: 1, lossless: true}
+      balance_by_factor: passage.open
+      exact_train_scenarios: 160
+      exact_validation_scenarios: 32
+      exact_test_scenarios: 0
+      exact_train_clips: 12800
+      exact_validation_clips: 2560
+      exact_test_clips: 0
+      factor_support_contract:
+        factor: agent.speed
+        expected_by_split:
+          train: [[2.7, 4.3, 6.1, 7.7]]
+          validation: [[2.7, 4.3, 6.1, 7.7]]
+      minimum_raw_train_clips: 12800
+      maximum_formal_mean_draws_per_raw_clip: 82.0
+      minimum_train_scenarios: 160
+      minimum_validation_scenarios: 32
+      required_catalog_sha256: 3b7cd160263f4d9305764150064cc3121131944c325b381b2520abad499211c4
+      required_manifest_sha256: da234e81377856bc7a5ff1e8c86a1f65ce4ec63300b91093254be93185936c05
+      required_synthesis_report_sha256: bd9bb55d5ef8ed8ca6e2760307f177554ac4adfdeb5f0e2ada0805b484ea80fa
+
+training_protocol:
+  architecture: stable_worldmodel_pldm_history3
+  training_method: pldm
+  history_tokens: 3
+  raw_steps_per_action_block: 5
+  model_visible_fields: [pixels, action]
+  diagnostic_only_fields: [proprio]
+  synthetic_only: true
+  initialization_checkpoint:
+    path: artifacts/training/runs/checkpoints/h3_origheldout_s3072/weights_final_step_6420.pt
+    sha256: 7d141b86cca49145444a69bff89c71ede69e8cf8252bfb933e656c3e2e962b54
+    config_sha256: 44b5bde83fbc91634ef84acbdba9a75d3436568ed72266c9a5aa057653f9162b
+    role: model_weight_initialization_only_not_resume
+  normalizer_source: frozen_original_training_split_only
+  paired_training_seeds: [3072, 4096, 5120]
+  optimizer_steps: 1024
+  effective_global_batch: 1024
+  total_logical_draws: 1048576
+  early_stopping: false
+  checkpoint_selection: final_fixed_step
+  distributed_execution:
+    strategy: ddp
+    transport_configuration: framework_defaults_with_frozen_rendezvous_timeout
+    rendezvous_timeout_seconds: 7200
+    rendezvous_timeout_scope: passage_multi_gpu_only
+    audit_scheduling:
+      policy: sibling_shared_flock
+      maximum_concurrency: 8
+      scope: per_rank_full_audit_and_fit_start_storage_revalidation
+      lock_protocol: contextworld.hidden_passage_h3.audit_scheduling_lock.v2
+      lock_order: release_shared_then_audit_shared
+      collective_holds_lock: false
+      topology_scope: single_node_8gpu
+      concurrent_training_runs_per_release: 1
+    rank_cpu_affinity:
+      policy: local_rank_disjoint_contiguous_from_zero
+      cpus_per_rank: 8
+      expected_world_size: 8
+      scope: full_rank_process
+      apply_before_stableworldmodel_and_lance_import: true
+    training_run_exclusivity:
+      protocol: contextworld.hidden_passage_h3.training_run_lock.v1
+      policy: one_root_training_run_per_release
+      maximum_concurrency: 1
+      blocking: false
+      scope: full_root_training_or_preflight_call
+      held_through_report_snapshot: true
+      nonzero_rank_admission: direct_parent_holds_root_training_lock
+    primary_formal_launch: fresh
+    resume_role: disaster_recovery_only
+    resume_scope: complete_epoch_boundary_only
+  group_sampling:
+    H3_SpeedOnly_PLDM: {passage_passable: 1.0}
+    H3_SpeedDoorJoint_PLDM: {passage_mixed: 1.0}
+
+models:
+  - model_id: H3_SpeedOnly_PLDM
+    display_name: 只见过多速度、门始终可通过的 PLDM
+    training_groups: [passage_passable]
+  - model_id: H3_SpeedDoorJoint_PLDM
+    display_name: 同时见过多速度与两种门规则的 PLDM
+    training_groups: [passage_mixed]
+
+comparison_controls:
+  original:
+    model_id: H3_Original_LEWM
+    training_seeds: [3072]
+    role: 未见过合成速度或隐藏门规则
+  door_only:
+    model_id: H3_Passage_MixedRules_PLDMObjective
+    training_seeds: [3072, 4096, 5120]
+    benchmark_config: configs/benchmark/tworoom_hidden_passage_h3_pldm_training_v1.yaml
+    role: 只见过固定速度 5.0 下的两种门规则
+
+evaluation_gate:
+  validation_catalog: artifacts/evaluation/history3/speed_door_rule_composition_validation_v1/catalog.json
+  eval_seeds: [42, 43, 44, 45, 46, 47]
+  independent_queries_per_seed: 50
+  independent_samples_per_true_condition: 300
+  conditions: 6
+  checkpoint_gates:
+    overall:
+      speed_history_accuracy: 0.75
+      door_history_accuracy: 0.85
+      joint_history_accuracy: 0.65
+      speed_target_accuracy: 0.75
+      door_target_accuracy: 0.85
+      joint_target_accuracy: 0.65
+    every_eval_seed:
+      speed_history_accuracy: 0.65
+      door_history_accuracy: 0.75
+      joint_history_accuracy: 0.50
+      speed_target_accuracy: 0.65
+      door_target_accuracy: 0.75
+      joint_target_accuracy: 0.50
+  method_gate:
+    joint_model_all_three_training_seeds_must_pass: true
+
+artifacts:
+  training_root: artifacts/training/runs
+  reports: artifacts/training/reports
+  logs: artifacts/training/logs

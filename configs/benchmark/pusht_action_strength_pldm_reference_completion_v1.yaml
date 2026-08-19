@@ -1,0 +1,64 @@
+schema_version: 1
+completion_id: pusht_action_strength_pldm_reference_completion_v1
+status: preregistered_before_training
+created_utc: "2026-08-17"
+
+scope:
+  component: ActionStrength
+  environment: PushT
+  model_family: pldm
+  history_tokens: 3
+  action_block_raw_steps: 5
+  public_boundary: frozen_public_test_read_only
+
+runtime:
+  stable_worldmodel:
+    repo: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/context_world/upstream/stable-worldmodel-875e607fc08aa72e
+    commit: 875e607fc08aa72eacb94d5d178127804134cc06
+    pldm_config: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/context_world/upstream/stable-worldmodel-875e607fc08aa72e/scripts/train/config/pldm.yaml
+    pldm_config_sha256: e03191b338289cf0577e9bf60283ba1ce13f6b04dc5d7a340a32ac47d53badbb
+
+initialization:
+  role: model_weight_initialization_only_not_resume
+  checkpoint: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-pusht/ckpt/pusht_pldm_baseline/pusht_pldm_baseline_weights.ckpt
+  checkpoint_sha256: 913e02728f6638409dc3931069caf34815a8ad0618bb40f690cb4a59a6bdc8ad
+  source_config: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-pusht/ckpt/pusht_pldm_baseline/config.yaml
+  source_config_sha256: 26a0589f25766246731746a53b198afb08bf0b2ec2148f7c1e1e33278c10dab6
+  expected_model_state_sha256: e51c497092f69146724bf76709cb9542baa16cee99ffba9bb345cd9d821a03fa
+
+data:
+  original_h5: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-pusht/pusht_expert_train.h5
+  original_h5_sha256: b6ebd9ac94bbe9e383f6e7a9cd92d74e9aa665ea57b758ed3717b0ee7df8d4fb
+  original_lance: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/lance-format/LeWorldModel/data/lewm_pusht.lance
+  training_root: artifacts/synthesis/pusht_action_strength_h3_release_v1
+  training_manifest_sha256: 61551e3aba02d33b4411548bbdc123c3926191f0892bb1f8aac8b8736d4531f0
+  public_root: artifacts/evaluation/history3/pusht_action_strength_h3_public_test_v1
+  public_manifest_sha256: 5abb504ea57f9525944fdbc75c418cfba2bc4afbe1a8f0b3fea2c489b3f62092
+
+training:
+  recipe: mixed_pldm_joint
+  seeds: [13313, 13314, 13315]
+  optimizer_steps: 4096
+  batch_size: 128
+  original_batch_size: 64
+  hidden_batch_size: 64
+  effective_global_batch: 128
+  checkpoint_selection: final_fixed_step
+  early_stopping: false
+  training_objective: native_pldm
+
+evaluation:
+  icl:
+    release_config: configs/benchmark/pusht_action_strength_icl_release_v1.yaml
+    pair_count: 256
+  action_planning:
+    condition_count: 512
+    cem: {candidates: 300, iterations: 30, topk: 30}
+  original_task_retention:
+    eval_seeds: [42, 43, 44, 45, 46, 47]
+    queries_per_seed: 50
+    total_cem_episodes: 300
+    cem: {samples: 300, iterations: 30, topk: 30}
+
+artifacts:
+  root: artifacts/evaluation/history3/pusht_action_strength_pldm_reference_completion_v1

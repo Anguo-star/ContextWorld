@@ -81,6 +81,31 @@ class _DummyHistoryRuleAdapter(SpeedICLModelAdapter):
         return "dummy-frozen-state"
 
 
+class _GeometryOnlyDoorAdapter(_DummyHistoryRuleAdapter):
+    @property
+    def protocol(self) -> AdapterProtocol:
+        return AdapterProtocol(
+            history_tokens=3,
+            action_block_raw_steps=5,
+            action_dim=2,
+            future_action_blocks=1,
+            native_target_encoder=False,
+            decoder_required=True,
+        )
+
+
+def test_door_adapter_audit_only_requires_public_geometry_fields() -> None:
+    result = validation._adapter_protocol_audit(_GeometryOnlyDoorAdapter())
+
+    assert result["passed"] is True
+    assert set(result["checks"]) == {
+        "history_tokens",
+        "action_block_raw_steps",
+        "action_dim",
+        "at_least_one_future",
+    }
+
+
 def _query_pixels(index: int) -> np.ndarray:
     pixels = np.zeros((2, 2, 3), dtype=np.uint8)
     pixels[0, 0, 0] = np.uint8(index % 256)

@@ -1,13 +1,17 @@
 from __future__ import annotations
 
+from copy import deepcopy
 from pathlib import Path
 
 import yaml
 
 from contextworld.evaluation.hidden_passage_validation import (
+    _is_recorded_h3_training_data_path_successor,
     candidate_templates,
+    file_sha256,
     select_validation_assignments,
 )
+from contextworld.synthesis.config import load_config
 from contextworld.training.tworoom_data import CATALOG_BY_GROUP
 from scripts.build_tworoom_hidden_passage_h3_tiny_overfit_data import (
     _select,
@@ -37,10 +41,38 @@ FROZEN_REPRESENTATION_TRAINING_CONFIG = (
     / "configs/benchmark/"
     "tworoom_hidden_passage_h3_tiny_frozen_representation_training_v1.yaml"
 )
+TRAINING_DATA_CONFIG = (
+    ROOT
+    / "configs/benchmark/tworoom_hidden_passage_h3_training_data_v1.yaml"
+)
+LEGACY_TRAINING_DATA_CONFIG_SHA256 = (
+    "c9ab2054c3421582d3464634e574711f3035686b41a11c4fc610bc9442bc5f82"
+)
 
 
 def _load(path: Path) -> dict:
     return yaml.safe_load(path.read_text(encoding="utf-8"))
+
+
+def test_recorded_training_data_portability_successor_is_fail_closed() -> None:
+    config = load_config(TRAINING_DATA_CONFIG)
+    observed = file_sha256(TRAINING_DATA_CONFIG)
+
+    assert _is_recorded_h3_training_data_path_successor(
+        expected_sha256=LEGACY_TRAINING_DATA_CONFIG_SHA256,
+        observed_sha256=observed,
+        config=config,
+        repo_root=ROOT,
+    )
+
+    geometry_drift = deepcopy(config)
+    geometry_drift["protocol"]["agent_speed"] = 6.0
+    assert not _is_recorded_h3_training_data_path_successor(
+        expected_sha256=LEGACY_TRAINING_DATA_CONFIG_SHA256,
+        observed_sha256=observed,
+        config=geometry_drift,
+        repo_root=ROOT,
+    )
 
 
 def test_train_seen_diagnostic_uses_exact_frozen_training_geometry() -> None:

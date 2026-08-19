@@ -1,0 +1,85 @@
+schema_version: 1
+benchmark: pusht_hidden_actuation_history3_action_coverage_v2
+experiment: mixed_conditional_unpaired_population_adaptive_v1
+status: adaptive_design_registered_after_v1_failure_before_training
+owner: ContextWorld
+
+observed_trigger:
+  source_standard_pusht_cem: 237/300
+  replay_matched_native_standard_pusht_cem: 230/300
+  conditional_0p01_standard_pusht_cem: 190/300
+  conditional_difference_from_replay_matched_native: -0.13333333333333333
+  hidden_prediction_for_conditional_0p01:
+    target_selection: 0.97
+    correct_history: 0.98
+    rule_switch: 1.00
+    worst_mode: 0.94
+  implementation_diagnosis: >-
+    At active times, the first Conditional SIGReg implementation replaces
+    the whole batch population with selected pair contrasts. In a 50/50
+    mixed batch, all 64 unpaired original Push-T samples therefore receive
+    no regularizer coverage at t1 or t3.
+
+adaptive_change:
+  name: include_unpaired_population
+  formula: >-
+    Apply one SIGReg statistic to concat(unpaired embeddings,
+    condition-matched Haar high-pass contrasts) at active time indices.
+  gaussian_null_argument:
+    - An unpaired standard-Gaussian embedding is standard Gaussian.
+    - The difference of two independent standard Gaussians divided by sqrt(2) is standard Gaussian.
+    - Their population mixture therefore has the same single Gaussian null.
+  additional_loss_components: 0
+  additional_coefficients: 0
+  conditional_weight: 0.01
+  hidden_labels_consumed: false
+  backward_compatibility: >-
+    include_unpaired defaults to false; the executed Door and hidden-only
+    results remain bitwise on their original objective.
+
+training:
+  source_checkpoint: external/pusht/pusht_lewm_baseline_seed3073_weights.ckpt
+  seed: 3073
+  optimizer_steps: 2048
+  batch_size: 128
+  original_samples_per_batch: 64
+  hidden_samples_per_batch: 64
+  hidden_pairs_per_batch: 32
+  learning_rate: 5.0e-5
+  weight_decay: 1.0e-3
+  gradient_clip_norm: 1.0
+  precision: bf16_mixed
+  exact_batch_order_match_to_v1: true
+
+gates:
+  hidden_prediction:
+    target_selection_minimum: 0.95
+    correct_history_minimum: 0.95
+    rule_switch_minimum: 0.95
+    worst_mode_minimum: 0.90
+  hidden_real_cem:
+    eval_seed: 4096
+    mode_action_classification_minimum: 0.90
+    real_environment_success_minimum: 0.80
+  standard_pusht:
+    eval_seeds:
+      - 42
+      - 43
+      - 44
+      - 45
+      - 46
+      - 47
+    queries_per_seed: 50
+    replay_matched_native_control: 230/300
+    noninferiority_margin_absolute: 0.05
+
+claim_boundary:
+  - >-
+    This is an adaptive mechanism screen because its design follows the v1
+    standard-CEM failure. Passing it does not replace new-seed confirmation.
+  - >-
+    Failure would establish that missing unpaired regularizer coverage is
+    not sufficient to explain the standard Push-T loss.
+  - >-
+    Passing hidden prediction and standard CEM but failing hidden real CEM
+    would still leave latent action calibration unresolved.

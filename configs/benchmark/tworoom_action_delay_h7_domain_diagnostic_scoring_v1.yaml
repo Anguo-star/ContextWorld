@@ -1,0 +1,204 @@
+schema_version: 1
+benchmark: tworoom_action_delay_history7_domain_diagnostic_scoring_v1
+status: frozen_after_data_audit_before_any_domain_model_scoring
+frozen_date: "2026-07-29"
+
+question: >-
+  正式 History=7 Validation 失败时，多延迟模型是否至少正确拟合了训练集中真实出现的
+  h1 转移，并把正确未来绑定到对应的延迟历史？
+
+claim_boundary:
+  post_gate_validation_diagnostic_only: true
+  changes_formal_prediction_gate: false
+  hidden_test_remains_sealed: true
+  cem_may_run_from_this_diagnostic: false
+  ability_retention_may_run_from_this_diagnostic: false
+
+source_identity:
+  diagnostic_data_config:
+    path: >-
+      configs/benchmark/tworoom_action_delay_h7_domain_diagnostic_data_v1.yaml
+    sha256: 746a1790f07bc37404fde47bcfc3c4dcb0288c807fdaf957ac98c2729b11a686
+  diagnostic_catalog:
+    path: >-
+      artifacts/evaluation/history7/action_delay_domain_diagnostic_v1/catalog.json
+    sha256: f454b3766a1faac5208cefec79567783971731b0c45dca0108f1abd322e5462d
+  diagnostic_build_report:
+    path: >-
+      artifacts/evaluation/history7/action_delay_domain_diagnostic_v1/build_report.json
+    sha256: fe46c6bd0cedd227beeb5618f848813d3edfba60869977a0a82870359a2bc113
+  diagnostic_audit_report:
+    path: >-
+      artifacts/evaluation/history7/action_delay_domain_diagnostic_v1/audit_report.json
+    sha256: d0a047f952b2477ac220b9897d503f5e6dd6c37644735038da5e0412ad404724
+  formal_training_config:
+    path: configs/benchmark/tworoom_action_delay_h7_training_v1.yaml
+    sha256: 0dded04b89ee412a30945e80c5cf59f6cf7a55a4a0d5a295a44f572755f80693
+  normalizer:
+    path: artifacts/splits/tworoom_original_train_s3072_normalizer.json
+    sha256: 7a5be7ea867bced446c1671b0b2c0ff6450ffc61e1a7bdbbfc5eaa0942f635db
+  formal_validation_summary:
+    path: >-
+      artifacts/evaluation/history7/action_delay_validation_v1/comparison_summary.json
+    sha256: 295e154104de491fa70f0cba354fd2e72e4003adf43e1c1382b8fbebab4d726c
+  adapter_source:
+    path: contextworld/benchmarks/adapters.py
+    sha256: a27a7c8f2ccf9587ea678d8b8b0f1ab5ff21e00baf86832a6caa43a1c492edaa
+  scoring_implementation:
+    path: contextworld/evaluation/action_delay_h7_domain_score.py
+    sha256: 84e8e40c036b38d556ecca524fc766aeaddac34d9e56f540b30accdcd652b2d4
+  evaluation_entrypoint:
+    path: scripts/eval_tworoom_action_delay_h7_domain_diagnostic.py
+    sha256: b1b2303fc75655d7c53387cf7556215889d5d3231efc004a6166effba474ed9d
+  matrix_entrypoint:
+    path: scripts/run_h7_action_delay_domain_diagnostic_matrix.py
+    sha256: a9c8d3ef80970c49820c295a2a1114f481d9f58d5892b47cd17dc701dbe167d0
+  aggregation_entrypoint:
+    path: scripts/analyze_tworoom_action_delay_h7_domain_diagnostic.py
+    sha256: d4984af693d01681313a847fb86c3b70e3b19f6f802648635386ef873363b8b7
+
+stable_worldmodel:
+  repo: ../stable-worldmodel
+  commit: ad2bc44579f2b5b65c004fd2c9d8edc8ebaa43ce
+  equivalent_detached_worktree_allowed: true
+
+evaluation:
+  tracks:
+    - training_replay_delay_0
+    - training_replay_delay_4
+    - training_replay_delay_8
+    - loader_validation_delay_0
+    - loader_validation_delay_4
+    - loader_validation_delay_8
+  history_tokens: 7
+  delay_values: [0, 4, 8]
+  future_horizons: [1, 2, 3]
+  diagnostic_eval_seeds: [142, 143, 144, 145, 146, 147]
+  queries_per_eval_seed_per_track: 50
+  queries_per_track: 300
+  batch_size: 128
+  target: current_checkpoint_encoder_of_offline_real_future_pixels
+  rollout: fully_autoregressive_without_true_frame_replacement
+  expected_counts_per_checkpoint:
+    queries: 1800
+    model_predictions: 5400
+    target_encodings: 16200
+    trajectory_comparisons: 16200
+    horizon_loss_records: 48600
+    online_environment_calls: 0
+
+diagnosis_gate:
+  required_training_seeds: [3072, 4096, 5120]
+  chance_reference_three_way: 0.3333333333333333
+  source_supervised_h1:
+    exact_target_selection_rate_minimum: 0.60
+    exact_history_selection_rate_minimum: 0.60
+    matching_history_strict_win_rate_minimum: 0.50
+    every_eval_seed_rate_minimum: 0.50
+    every_eval_seed_history_margin_must_be_positive: true
+  paired_multi_vs_single:
+    compare_within_same_training_seed: true
+    metrics:
+      - exact_target_selection_rate
+      - exact_history_selection_rate
+      - matching_history_strict_win_rate
+    every_metric_must_be_strictly_higher: true
+  interpretation_order:
+    - source_supervised_h1_not_fitted
+    - h1_fitted_without_delay_history_binding
+    - training_fit_not_attributable_to_multi_delay
+    - loader_validation_target_generalization_failed
+    - loader_validation_history_binding_failed
+    - training_domain_passed_check_formal_distribution
+
+models:
+  original_only:
+    - slug: h7_action_delay_original_only_formal_s3072
+      model_id: H7_OriginalOnly
+      training_seed: 3072
+      checkpoint: >-
+        artifacts/training/runs/checkpoints/h7_action_delay_original_only_formal_s3072/weights_final_step_1024.pt
+      checkpoint_sha256: 4dc261177fc03c22d5dfdf2d94e48b9bff235da0e8401b451bbff9ba8cce3fd8
+      training_report: >-
+        artifacts/training/reports/h7_action_delay_original_only_formal_s3072.json
+      training_report_sha256: 9b43b262cf2d4b44f01f92559b0b193ffb9855b7d1ed62a1d809ebb4abe15633
+    - slug: h7_action_delay_original_only_formal_s4096
+      model_id: H7_OriginalOnly
+      training_seed: 4096
+      checkpoint: >-
+        artifacts/training/runs/checkpoints/h7_action_delay_original_only_formal_s4096/weights_final_step_1024.pt
+      checkpoint_sha256: 19115c31772738126209004e779b6a8a36fa1fa9a76574045282ae4eb46dac0c
+      training_report: >-
+        artifacts/training/reports/h7_action_delay_original_only_formal_s4096.json
+      training_report_sha256: 43ec5e0f557051ed1795fb966704c3e41d00a270018df0bbd5ca5d8b85b91cab
+    - slug: h7_action_delay_original_only_formal_s5120
+      model_id: H7_OriginalOnly
+      training_seed: 5120
+      checkpoint: >-
+        artifacts/training/runs/checkpoints/h7_action_delay_original_only_formal_s5120/weights_final_step_1024.pt
+      checkpoint_sha256: f25ff2d6b5c385e04e9214c948334ea692068012e1fa35cc9a593cae6db06e54
+      training_report: >-
+        artifacts/training/reports/h7_action_delay_original_only_formal_s5120.json
+      training_report_sha256: 0dddb7794c3c21e3e565aa8323ca82e37f5980483061e47e9533039994d402b8
+  single_delay_control:
+    - slug: h7_action_delay_single_control_formal_s3072
+      model_id: H7_ActionDelay_SingleControl
+      training_seed: 3072
+      checkpoint: >-
+        artifacts/training/runs/checkpoints/h7_action_delay_single_control_formal_s3072/weights_final_step_1024.pt
+      checkpoint_sha256: 1fd98d0d71c869b8ff7a121dfbf4e2786861c9a030b6d0014cde6a7ef8a63bb9
+      training_report: >-
+        artifacts/training/reports/h7_action_delay_single_control_formal_s3072.json
+      training_report_sha256: 4c2e2e35de5fea42c393bc4f2e9c9f791d42de96f3451b9ed5205c714346da16
+    - slug: h7_action_delay_single_control_formal_s4096
+      model_id: H7_ActionDelay_SingleControl
+      training_seed: 4096
+      checkpoint: >-
+        artifacts/training/runs/checkpoints/h7_action_delay_single_control_formal_s4096/weights_final_step_1024.pt
+      checkpoint_sha256: 9c6702feba2df159c4430f6abbceed7f5002cf251cf8491d0634dd8633ba197c
+      training_report: >-
+        artifacts/training/reports/h7_action_delay_single_control_formal_s4096.json
+      training_report_sha256: 1573f02d617e0693eb1267ce94655fc0f7d4f6c50d80a354a66b6de798b893ed
+    - slug: h7_action_delay_single_control_formal_s5120
+      model_id: H7_ActionDelay_SingleControl
+      training_seed: 5120
+      checkpoint: >-
+        artifacts/training/runs/checkpoints/h7_action_delay_single_control_formal_s5120/weights_final_step_1024.pt
+      checkpoint_sha256: 6e5185eeb746847bcf152ac1844995b8d217fa56bf9d3d9dfa05aba411c4d2d7
+      training_report: >-
+        artifacts/training/reports/h7_action_delay_single_control_formal_s5120.json
+      training_report_sha256: 63dbcc48a40b306fa290fcab4f91b06cdb424fcfc28955464613384324dbc5c2
+  multi_delay_target:
+    - slug: h7_action_delay_multi_formal_s3072
+      model_id: H7_ActionDelay_Multi
+      training_seed: 3072
+      checkpoint: >-
+        artifacts/training/runs/checkpoints/h7_action_delay_multi_formal_s3072/weights_final_step_1024.pt
+      checkpoint_sha256: 590850aa93b7fdf8acc287bde537eff21b4f085d42ee54c8a506ee471d89e9f1
+      training_report: >-
+        artifacts/training/reports/h7_action_delay_multi_formal_s3072.json
+      training_report_sha256: 3e945e65414311fec7c1e39c3b1106b992ee527a7d66f0a166f79c1164a7a90d
+    - slug: h7_action_delay_multi_formal_s4096
+      model_id: H7_ActionDelay_Multi
+      training_seed: 4096
+      checkpoint: >-
+        artifacts/training/runs/checkpoints/h7_action_delay_multi_formal_s4096/weights_final_step_1024.pt
+      checkpoint_sha256: bb965b42f03ecdbf0701604d6b200895e0f583f95ff986bf6fca1f55d46e1396
+      training_report: >-
+        artifacts/training/reports/h7_action_delay_multi_formal_s4096.json
+      training_report_sha256: 99eba815f369856deb165ee841dc1238597d2ebf6c8d41b7d623a4c404453545
+    - slug: h7_action_delay_multi_formal_s5120
+      model_id: H7_ActionDelay_Multi
+      training_seed: 5120
+      checkpoint: >-
+        artifacts/training/runs/checkpoints/h7_action_delay_multi_formal_s5120/weights_final_step_1024.pt
+      checkpoint_sha256: 1d15226272cf5252a5a47b2f497e960ae2fffee2ccca3302f404530a93bf8dc0
+      training_report: >-
+        artifacts/training/reports/h7_action_delay_multi_formal_s5120.json
+      training_report_sha256: 5ff7065ee8e1c92199a5cb8481c802efd15d364be8ef8ba001cfcebbdee2d30b
+
+artifacts:
+  results_root: >-
+    artifacts/evaluation/history7/action_delay_domain_diagnostic_v1/model_results
+  aggregate: >-
+    artifacts/evaluation/history7/action_delay_domain_diagnostic_v1/domain_diagnostic_summary.json

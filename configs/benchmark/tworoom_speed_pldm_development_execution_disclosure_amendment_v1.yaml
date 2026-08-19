@@ -1,0 +1,64 @@
+schema_version: 1
+amendment_id: tworoom_speed_pldm_development_execution_disclosure_amendment_v1
+development_id: tworoom_speed_pldm_infrastructure_development_v1
+completion_id: tworoom_speed_pldm_reference_completion_v1
+status: registered_after_interruption_recovery_before_development_manifest
+created_utc: "2026-08-17"
+
+# This is deliberately a later lineage record.  It does not rewrite or
+# re-date the Development preregistration that existed while training ran.
+chronology:
+  base_development_preregistration_preserved: true
+  registered_after_external_interruption: true
+  registered_after_recovery_preparation: true
+  not_represented_as_pretraining_preregistration: true
+  development_public_or_cem_executed_at_registration: false
+
+scope:
+  training_recipe_changed: false
+  checkpoint_selection_changed: false
+  development_or_cem_executed: false
+  public_test_accessed: false
+  adds_predevelopment_execution_disclosure_gate: true
+  existing_preflight_receipts_used_only_as_preflight_records: true
+  recovery_completion_receipts_are_authoritative_for_training_completion: true
+
+# The live preregistration and the archival copy are byte-identical.  The
+# snapshot is retained so the original pre-interruption text remains directly
+# inspectable even after this separate amendment is introduced.
+base_development_config:
+  path: configs/benchmark/tworoom_speed_pldm_infrastructure_development_v1.yaml
+  sha256: 56c1311c2ef50937b85fd8efca03f6df4856fe6ad48c89cd55fa400a11b8dd7c
+  size_bytes: 7147
+pre_interruption_config_snapshot:
+  path: configs/benchmark/archive/tworoom_speed_pldm_infrastructure_development_v1_pre_interruption_amendment.yaml
+  sha256: 56c1311c2ef50937b85fd8efca03f6df4856fe6ad48c89cd55fa400a11b8dd7c
+  size_bytes: 7147
+
+source_lineage:
+  # This is the source identity declared by the preserved preregistration.
+  historical_manifest_freezer:
+    path: scripts/freeze_tworoom_speed_pldm_development_manifest_v1.py
+    sha256: 2cadd330388245d2ccc424963af0a96e609f9173dae6e615ce1d7a72469f2fa6
+  # The active, as-yet-unexecuted freezer is registered here explicitly.
+  active_manifest_freezer:
+    path: scripts/freeze_tworoom_speed_pldm_development_manifest_v1.py
+    sha256: 906fd0503ca51fdd6b7f31b588e4ed1d6bafb8180bc9ec604f9e2d51e3d02e11
+    size_bytes: 34283
+  historical_development_evaluator:
+    path: scripts/eval_tworoom_speed_pldm_infrastructure_development_v1.py
+    sha256: 4e76897e28a8e1e697df3d4704e4a9452677072b1c6b37a429b06b5fc537ccb5
+  active_development_evaluator:
+    path: scripts/eval_tworoom_speed_pldm_infrastructure_development_v1.py
+    sha256: d5fd5c732f70ea2e790429157e1b7a9f56a5e11cf7a6d2eaa5c8e4596dabca47
+    size_bytes: 26354
+
+execution_disclosure:
+  config:
+    path: configs/benchmark/tworoom_speed_pldm_training_interruption_execution_disclosure_v1.yaml
+    sha256: 7c9d053678a6942268770d145c05064bb8a3afa97eebb05d8644f78695bf948f
+    size_bytes: 4328
+  output: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/attempts/training_interruption_recovery_v1/execution_disclosure_v1.json
+
+outputs:
+  development_manifest: artifacts/evaluation/history3/tworoom_speed_pldm_reference_completion_v1/infrastructure_development_v1/development_manifest.json

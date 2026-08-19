@@ -1,0 +1,163 @@
+schema_version: 1
+release_id: contextworld_icl_benchmark_suite_v2
+release_status: public_test_release_candidate
+candidate_date: "2026-08-17"
+
+# Additive, inactive successor to integrity-reseal v1.  This preregistration
+# contains paths and contracts only: it deliberately does not freeze the
+# changing PLDM result table or the current public-document bytes.
+integrity_reseal:
+  reseal_id: contextworld_icl_suite_v2_integrity_reseal_v2
+  status: preregistered_pending_final_identity_freeze
+  scope: final_current_material_reseal_after_pldm_completion_and_public_documentation_stabilization
+  historical_predecessor:
+    v1_preregistration:
+      path: configs/benchmark/contextworld_icl_suite_v2_integrity_reseal_v1.yaml
+      sha256: 198391dadf1f9e713cf786e9fa479b58648814197814e72da2b9fafabb5771fd
+      size_bytes: 3790
+    v1_decision:
+      path: configs/benchmark/contextworld_icl_suite_v2_integrity_reseal_decision_v1.json
+      sha256: 60c15458294a08d817ca35ed517e5bb93c1da3f57cc35437e8b3264c91ae4ccf
+      size_bytes: 10059
+    v1_authority_module:
+      path: contextworld/benchmarks/suite_v2_integrity_reseal.py
+      sha256: 537288ed2bc8aa5bebb5a4f07f3453b3d1b951694bd2eb3e3def377a7c0ea7f7
+      size_bytes: 15801
+    v1_freeze_cli:
+      path: scripts/freeze_contextworld_icl_suite_v2_integrity_reseal_v1.py
+      sha256: 3a9d4b71e33b8292281e539a8189607939ee8bc773c8c8978ec4b1f3d64c969b
+      size_bytes: 2161
+  required_evidence:
+    engineering_identity_amendment:
+      path: configs/benchmark/contextworld_icl_suite_v2_engineering_identity_amendment_prereg_v1.yaml
+      amendment_id: contextworld_icl_suite_v2_engineering_identity_amendment_prereg_v1
+    capability_taxonomy_documentation_amendment:
+      path: configs/benchmark/contextworld_icl_suite_v2_capability_taxonomy_documentation_amendment_v1.yaml
+      record_id: contextworld_icl_suite_v2_capability_taxonomy_documentation_amendment_v1
+    action_strength_float32_consistency_amendment:
+      path: configs/benchmark/pusht_action_strength_score_float32_consistency_amendment_v1.yaml
+      sha256: 07ea18d4ebf9df5f798e5b3d0761b19145c5caab162ef513ffdb4150bc368d0a
+      size_bytes: 3676
+      amendment_id: pusht_action_strength_score_float32_consistency_amendment_v1
+      release_config: configs/benchmark/pusht_action_strength_icl_release_v1.yaml
+      scorer_path: contextworld/benchmarks/action_strength_icl_score.py
+      release_auditor_path: contextworld/benchmarks/action_strength_icl_data.py
+    original_baseline_archive_auditor:
+      module:
+        path: contextworld/benchmarks/original_baseline_archive.py
+        sha256: 0b076e05b7ee6d065dd0dba62556d1ff559367320dcf00669fc462acf9d403cc
+        size_bytes: 11462
+      cli:
+        path: scripts/audit_contextworld_original_baseline_matrix_freeze_v1.py
+        sha256: 0c971e75d76e29382df50ae5e3197e49c12b5ec444810353fd54ed69a4e753f3
+        size_bytes: 559
+      audit_id: contextworld_original_baseline_archive_audit_v1
+      expected_status: passed
+      archive_scope: immutable_frozen_results_only
+      live_release_rederivation_performed: false
+    current_results_overlay:
+      path: configs/benchmark/contextworld_icl_suite_v2_current_results_overlay_v1.yaml
+      overlay_id: contextworld_icl_suite_v2_current_results_overlay_v1
+    final_public_documents:
+      public_benchmark: docs/ContextWorld_ICL_Benchmark.md
+      repository_readme: README.md
+      docs_navigation: docs/README.md
+      public_release_readiness: docs/ContextWorld_Public_v1_Release_Readiness.md
+    current_component_release_configs:
+      speed: configs/benchmark/tworoom_speed_icl_release_v1.yaml
+      door: configs/benchmark/tworoom_door_icl_release_v1.yaml
+      action_delay: configs/benchmark/tworoom_action_delay_icl_release_v1.yaml
+      action_strength: configs/benchmark/pusht_action_strength_icl_release_v1.yaml
+      contact_friction: configs/benchmark/pusht_contact_friction_icl_release_v1.yaml
+      motion_damping: configs/benchmark/pusht_motion_damping_icl_release_v1.yaml
+      robot_arm_mass: configs/benchmark/reacher_arm_mass_icl_release_v1.yaml
+      portal_exit: configs/benchmark/tworoom_portal_exit_icl_release_v1.yaml
+      cube_gripper_carry: configs/benchmark/cube_gripper_carry_h3_v4r1_icl_release_v1.yaml
+    registered_suite_sources:
+      source_manifest: configs/benchmark/contextworld_icl_suite_v2_recovery_v2.yaml
+      paths:
+        - contextworld/benchmarks/__init__.py
+        - contextworld/benchmarks/causal_data_contract.py
+        - contextworld/benchmarks/adapters.py
+        - contextworld/benchmarks/public_score.py
+        - contextworld/benchmarks/public_score_cli.py
+        - contextworld/benchmarks/suite_data.py
+        - contextworld/benchmarks/suite_v2_cli.py
+        - contextworld/benchmarks/cube_grasp_rule_v4r1_icl_data.py
+        - contextworld/benchmarks/cube_grasp_rule_v4r1_icl_score.py
+        - contextworld/benchmarks/cube_grasp_rule_v4r1_icl_cli.py
+        - contextworld/benchmarks/cube_grasp_rule_suite_registration.py
+        - contextworld/benchmarks/cube_grasp_rule_suite_registration_recovery.py
+        - scripts/build_contextworld_icl_suite_v2_scoreboard.py
+        - scripts/finalize_cube_grasp_rule_h3_v4r1_suite_registration.py
+        - scripts/freeze_cube_grasp_rule_h3_v4r1_suite_registration_recovery_v2.py
+        - scripts/finalize_cube_grasp_rule_h3_v4r1_suite_registration_recovery_v2.py
+        - pyproject.toml
+    original_baseline_result_freezes:
+      original_icl:
+        path: configs/benchmark/contextworld_original_baseline_matrix_results_freeze_v1.json
+        freeze_id: contextworld_original_baseline_matrix_results_freeze_v1
+      original_cem:
+        path: configs/benchmark/contextworld_original_baseline_cem_results_freeze_v1.json
+        freeze_id: contextworld_original_baseline_cem_results_freeze_v1
+    pldm_completion_preregistrations:
+      speed:
+        path: configs/benchmark/tworoom_speed_pldm_reference_completion_v1.yaml
+        completion_id: tworoom_speed_pldm_reference_completion_v1
+      action_strength:
+        path: configs/benchmark/pusht_action_strength_pldm_reference_completion_v1.yaml
+        completion_id: pusht_action_strength_pldm_reference_completion_v1
+      contact_friction:
+        path: configs/benchmark/pusht_contact_friction_pldm_reference_completion_v1.yaml
+        completion_id: pusht_contact_friction_pldm_reference_completion_v1
+      motion_damping:
+        path: configs/benchmark/pusht_motion_damping_pldm_reference_completion_v1.yaml
+        completion_id: pusht_motion_damping_pldm_reference_completion_v1
+    final_pldm_completion_aggregate_results_freeze:
+      path: configs/benchmark/contextworld_pldm_reference_completion_aggregate_results_freeze_v1.json
+      freeze_id: contextworld_pldm_reference_completion_aggregate_results_freeze_v1
+      required_status: frozen_after_all_four_pldm_reference_completion_outcomes
+    public_scoreboard:
+      historical_base_specification:
+        path: artifacts/evaluation/contextworld_icl_suite_v2_release/public_scoreboard_spec.json
+        sha256: 0ee79cc901f4126b06eb800a7ef95a34b748f1b60fcf6c6c60f4e7646d4aa787
+        size_bytes: 11464
+        formal_reference_rows: 11
+      historical_base_scoreboard:
+        path: artifacts/evaluation/contextworld_icl_suite_v2_release/public_scoreboard.json
+        sha256: 43d1adb676d7b882b7d6a9518781cec440f7f40fa2b57f5e8cbe95cb748ecd2f
+        size_bytes: 14254
+        formal_reference_rows: 11
+      addendum_specification: artifacts/evaluation/contextworld_icl_suite_v2_release_addendum_v1/public_scoreboard_spec.json
+      addendum_scoreboard: artifacts/evaluation/contextworld_icl_suite_v2_release_addendum_v1/public_scoreboard.json
+      additive_resolution_preregistration:
+        path: configs/benchmark/contextworld_icl_suite_v2_scoreboard_addendum_prereg_v1.yaml
+        record_id: contextworld_icl_suite_v2_scoreboard_addendum_prereg_v1
+      additive_resolution_decision:
+        path: configs/benchmark/contextworld_icl_suite_v2_scoreboard_addendum_decision_v1.json
+        decision_id: contextworld_icl_suite_v2_scoreboard_addendum_decision_v1
+  decision_contract:
+    decision_path: configs/benchmark/contextworld_icl_suite_v2_integrity_reseal_decision_v2.json
+    exclusive_creation_required: true
+    current_materials_must_be_exactly_bound: true
+    historical_predecessor_must_remain_byte_identical: true
+    missing_evidence_blocks_check_only_and_decision_creation: true
+    scoreboard_resolution_must_be_independent: true
+    historical_base_scoreboard_must_remain_byte_identical: true
+    addendum_output_must_not_overwrite_historical_base: true
+    no_extension_requires_exactly_eleven_formal_rows: true
+    additive_extension_row_count_must_be_derived_from_final_files: true
+    activation_requires_new_decision: true
+
+membership_authority:
+  config_alone_grants_membership: false
+  activation_condition: passed_integrity_reseal_decision_v2
+  reseal_id: contextworld_icl_suite_v2_integrity_reseal_v2
+  decision_path: configs/benchmark/contextworld_icl_suite_v2_integrity_reseal_decision_v2.json
+  decision_is_commit_marker: true
+  historical_predecessor_must_remain_byte_identical: true
+  partial_outputs_grant_membership: false
+  public_test_rerun_authorized: false
+  training_or_checkpoint_selection_authorized: false
+  raw_dataset_or_checkpoint_mutation_authorized: false
+  config_is_not_a_suite_default_or_activation_switch: true

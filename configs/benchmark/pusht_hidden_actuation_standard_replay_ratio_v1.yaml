@@ -1,0 +1,78 @@
+schema_version: 1
+benchmark: pusht_hidden_actuation_history3_action_coverage_v2
+experiment: standard_replay_ratio_v1
+status: registered_before_training
+registered_at_utc: "2026-07-30"
+owner: ContextWorld
+
+motivation:
+  standard_only_control:
+    source_cem: 237/300
+    standard_only_continuation_cem: 225/300
+    same_seed_mixed_native_cem: 194/300
+    same_seed_mixed_dynamics_response_cem: 202/300
+  interpretation: >-
+    Replacing half of standard replay accounts for most of the standard-task
+    decline. This does not yet distinguish insufficient standard replay from
+    an intrinsically harmful narrow synthetic support.
+
+primary_question: >-
+  Can the unchanged Dynamics-Response SIGReg method learn the hidden
+  mechanism when the standard/hidden batch ratio changes from 64/64 to
+  96/32, while recovering standard Push-T CEM?
+
+training:
+  variant: mixed_dynamics_response_sigreg_0p02
+  formula_changed: false
+  source_scales_changed: false
+  source_checkpoint_changed: false
+  seed: 13313
+  optimizer_steps: 2048
+  batch_size: 128
+  standard_samples_per_batch: 96
+  hidden_samples_per_batch: 32
+  hidden_pairs_per_batch: 16
+  optimizer: AdamW
+  learning_rate: 5.0e-5
+  weight_decay: 1.0e-3
+  gradient_clip_norm: 1.0
+  precision: bf16_mixed
+  regularizer_weight: 0.02
+  additional_loss_components: 0
+
+stage_one_gates:
+  hidden_prediction:
+    target_selection_minimum: 0.95
+    correct_history_minimum: 0.95
+    rule_switch_minimum: 0.95
+    worst_mode_minimum: 0.90
+  standard_pusht_cem:
+    run_only_after_hidden_prediction_pass: true
+    eval_seeds: [42, 43, 44, 45, 46, 47]
+    queries_per_seed: 50
+    minimum_successes_for_source_5pp_band: 222
+    comparison_source: 237/300
+    comparison_same_seed_50_50_response: 202/300
+
+stage_two_if_hidden_exposure_is_insufficient:
+  trigger: stage_one_hidden_prediction_gate_fails
+  change: increase_only_optimizer_steps_to_4096
+  rationale: >-
+    At 4096 steps, the 96/32 mixture sees the same total number of hidden
+    rows as the successful 64/64, 2048-step response model. This separates
+    reduced hidden exposure from the sampling ratio itself.
+  run_standard_cem_only_after_hidden_prediction_pass: true
+
+decision_rules:
+  - >-
+    If stage one passes hidden prediction and reaches at least 222/300
+    standard CEM, sampling ratio is sufficient; do not rebuild synthesis.
+  - >-
+    If stage one misses only hidden learning, run the pre-registered
+    exposure-matched stage two before judging data support.
+  - >-
+    If exposure-matched training learns the mechanism but standard CEM again
+    declines, prefer curriculum or ratio scheduling before rebuilding data.
+  - >-
+    Broaden/rebuild synthesis only if adequate standard replay and adequate
+    hidden exposure cannot jointly pass, with no change to the loss or CEM.

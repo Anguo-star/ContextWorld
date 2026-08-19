@@ -33,6 +33,16 @@ FAILED_PREREG = (
     / "configs/benchmark/"
     "cube_gripper_carry_h3_v4r1_public_release_prereg_v1.yaml"
 )
+CURRENT_RELEASE_CONFIG = (
+    ROOT
+    / "configs/benchmark/"
+    "cube_gripper_carry_h3_v4r1_icl_release_v1.yaml"
+)
+ENGINEERING_IDENTITY_AMENDMENT = (
+    ROOT
+    / "configs/benchmark/"
+    "contextworld_icl_suite_v2_engineering_identity_amendment_prereg_v1.yaml"
+)
 
 
 def _load(path: Path) -> dict:
@@ -79,8 +89,32 @@ def test_recovery_lineage_is_exact_and_semantically_closed() -> None:
         validate_recovery_preregistration_contract(drifted)
 
 
-def test_recovery_preregistration_has_no_identity_placeholders() -> None:
+def test_recovery_preregistration_identities_are_historical_or_amended() -> None:
+    """Keep recovery evidence immutable while checking the active Cube chain.
+
+    The recovery preregistration is historical evidence and must retain the
+    code identities present when its one-use campaign was frozen.  A later,
+    additive suite amendment may register a current implementation identity;
+    it must not be simulated by editing that historical preregistration.
+    """
+
     recovery = _load(DEFAULT_PREREGISTRATION)
+    amendment = _load(ENGINEERING_IDENTITY_AMENDMENT)[
+        "engineering_identity_amendment"
+    ]
+    cube_update = amendment["approved_component_identity_updates"][
+        "cube_gripper_carry"
+    ]
+    assert cube_update["release_config"] == (
+        "configs/benchmark/cube_gripper_carry_h3_v4r1_icl_release_v1.yaml"
+    )
+    active_release = _load(CURRENT_RELEASE_CONFIG)
+    active_by_path = {
+        expected["path"]: expected
+        for expected in active_release["identity"].values()
+    }
+
+    amended = set()
     groups = (
         recovery["identity"]["implementation"],
         recovery["identity"]["recovery_implementation"],
@@ -89,7 +123,26 @@ def test_recovery_preregistration_has_no_identity_placeholders() -> None:
         for name, expected in group.items():
             assert "PLACEHOLDER" not in str(expected), name
             path = ROOT / expected["path"]
-            assert file_identity(path, logical_path=expected["path"]) == expected
+            observed = file_identity(path, logical_path=expected["path"])
+            if observed == expected:
+                continue
+            amended.add(name)
+            assert expected["path"] in cube_update["source_paths"]
+            active_identity = active_by_path.get(expected["path"])
+            if active_identity is not None:
+                assert active_identity["sha256"] == observed["sha256"]
+
+    # The four current identities are precisely the Cube-scoped changes
+    # permitted by the additive engineering amendment.  The fifth is this
+    # assertion: it records that the amendment, rather than a rewrite of the
+    # recovery preregistration, authorizes the current identity check.
+    assert amended == {
+        "adapters",
+        "cube_score_api",
+        "package",
+        "public_api",
+        "recovery_contract_tests",
+    }
 
 
 def test_shared_entrypoints_expose_recovery_loader_injection() -> None:

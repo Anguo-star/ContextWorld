@@ -1,0 +1,110 @@
+{
+  "schema_version": 1,
+  "freeze_id": "contextworld_original_baseline_matrix_results_freeze_v1",
+  "status": "frozen_after_derived_summary",
+  "frozen_date_utc": "2026-08-17",
+  "scientific_status": {
+    "kind": "post_release_descriptive_result_freeze",
+    "blind_preregistration_claimed": false,
+    "formal_scoreboard_mutated": false,
+    "training_performed": false,
+    "checkpoint_selection_performed": false,
+    "cem_authorized": false
+  },
+  "matrix_summary": {
+    "path": "artifacts/evaluation/original_baseline_matrix_v1/matrix_summary.json",
+    "sha256": "860e520b8582243c55eeed5364499d1afa36893e03fa1610b8319123a4626173",
+    "size_bytes": 39342,
+    "status": "completed",
+    "canonical_checkpoints": 8,
+    "capabilities": 9,
+    "icl_cells": 18,
+    "completed_cells": 18,
+    "passing_single_checkpoint_gates": 1,
+    "formal_scoreboard_eligible_cells": 0,
+    "cells_with_rescore_evidence": 12,
+    "cells_without_rescore_entrypoint": 6
+  },
+  "base_protocol": {
+    "preregistration": {
+      "path": "configs/benchmark/contextworld_original_baseline_completion_prereg_v1.yaml",
+      "sha256": "02508372afd6f55594fa6aff688f96dc2f5b9a49fa8946f65b9bf4dcc2fa8d4b",
+      "size_bytes": 19031
+    },
+    "freeze": {
+      "path": "configs/benchmark/contextworld_original_baseline_completion_freeze_v1.json",
+      "sha256": "6cff41820bd57137332f0d06787fec240d9d07459755cbb1714375038d5947e8",
+      "size_bytes": 634
+    },
+    "checkpoint_identity_audit": {
+      "path": "artifacts/evaluation/original_baseline_matrix_v1/checkpoint_identity_audit.json",
+      "sha256": "cdcb0d7741f044b58ce965b1c7fc33373330b2609007a15b3c65e83c9953c9d2",
+      "size_bytes": 6882
+    }
+  },
+  "derivation_implementation": {
+    "summary_module": {
+      "path": "contextworld/benchmarks/original_baseline_results.py",
+      "sha256": "3201b363f165add83f3dfd52819760d5984cd508a46cd9398403087f3fb859b7",
+      "size_bytes": 31542
+    },
+    "command_line": {
+      "path": "scripts/finalize_contextworld_original_baseline_matrix.py",
+      "sha256": "956fd850e8525bb7744f3d27864f980b3a434faf21fb1ae92acb703ab0756615",
+      "size_bytes": 1800
+    }
+  },
+  "recovery_receipts": {
+    "action_strength_lewm": {
+      "path": "artifacts/evaluation/original_baseline_matrix_v1/rescore_recovery/contextworld-action-strength/lewm_float32_rescore_recovery_v1.json",
+      "sha256": "0dfe92e61c6c27c9958cc13ca1c6106c591601ae760f1564ffb6e220727bcfc5",
+      "size_bytes": 21155
+    },
+    "portal_exit_lewm": {
+      "path": "artifacts/evaluation/original_baseline_matrix_v1/rescore_recovery/contextworld-portal-exit/lewm_float32_rescore_recovery_v1.json",
+      "sha256": "95ef2cc108c67d5911d16a7931c22dac5782bb1d409554c5c0ca32a0c1663005",
+      "size_bytes": 59467
+    },
+    "portal_exit_pldm": {
+      "path": "artifacts/evaluation/original_baseline_matrix_v1/rescore_recovery/contextworld-portal-exit/pldm_float32_rescore_recovery_v1.json",
+      "sha256": "25876e75898f8b372323606cb652ba0841201f39e5f9f55977d1ca7e95d43aca",
+      "size_bytes": 59710
+    }
+  },
+  "action_delay_recovery": {
+    "preregistration": {
+      "path": "configs/benchmark/contextworld_action_delay_original_baseline_recovery_prereg_v1.yaml",
+      "sha256": "5d5b90cce49292f8337abc377388abf812c3c9e317d93c52d01708dd9e9ddc69",
+      "size_bytes": 6707
+    },
+    "freeze": {
+      "path": "configs/benchmark/contextworld_action_delay_original_baseline_recovery_freeze_v1.json",
+      "sha256": "7fb74fd9e6b6737a9fcd0afbc9031c40c3440df17e535ad52cf3a1f695acaf30",
+      "size_bytes": 2238
+    },
+    "lewm_raw": {
+      "path": "artifacts/evaluation/original_baseline_matrix_v1/contextworld-action-delay/recovery_v1/lewm.json",
+      "sha256": "7d9ca00eaa33f363020f92e20cec322abbe9306714c9c971a108308744f36b4d",
+      "size_bytes": 38362651
+    },
+    "lewm_rescore": {
+      "path": "artifacts/evaluation/original_baseline_matrix_v1/contextworld-action-delay/recovery_v1/lewm.rescore.json",
+      "sha256": "1535cad1415322a05cfbd93f9e12d22ac4d92525f6f4f6e17faa601701ddf455",
+      "size_bytes": 1453
+    },
+    "pldm_raw": {
+      "path": "artifacts/evaluation/original_baseline_matrix_v1/contextworld-action-delay/recovery_v1/pldm.json",
+      "sha256": "52df5a0c5561bf988d1cfc8b5a3c37be3173c2b7fa8e485b959c4604c865ec77",
+      "size_bytes": 38307507
+    },
+    "pldm_rescore": {
+      "path": "artifacts/evaluation/original_baseline_matrix_v1/contextworld-action-delay/recovery_v1/pldm.rescore.json",
+      "sha256": "77ff041e08b153c81dd939aead618ef4b0031fdc6efd4784d71da2d52ee639da",
+      "size_bytes": 1453
+    }
+  },
+  "next_phase": {
+    "cem_status": "requires_separate_component_bound_preregistration",
+    "authorized_by_this_freeze": false
+  }
+}

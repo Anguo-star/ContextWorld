@@ -8,10 +8,11 @@ from pathlib import Path
 import pytest
 
 import contextworld.benchmarks.suite_data as suite_data
+import contextworld.benchmarks.suite_v2_integrity_reseal as integrity_reseal
 from contextworld.benchmarks.suite_data import (
     COMPONENT_IDS,
     DEFAULT_SUITE_V2_RELEASE_CONFIG,
-    SUITE_V2_DOCUMENT_AMENDMENT_ID,
+    SUITE_V2_INTEGRITY_RESEAL_ID,
     SUITE_V2_RECOVERY_CONFIG,
     SUITE_V2_COMPONENT_IDS,
     audit_icl_suite_release,
@@ -21,6 +22,9 @@ from contextworld.benchmarks.suite_data import (
     require_suite_membership_activation,
 )
 from contextworld.paths import resolve_contextworld_path
+from contextworld.benchmarks.suite_v2_integrity_reseal import (
+    build_integrity_reseal_decision,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -28,6 +32,80 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _install_fake_cem_result_freeze(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    logical_path = integrity_reseal.DESCRIPTIVE_RESULT_FREEZE_SPECS[
+        "original_baseline_cem"
+    ]["path"]
+    fake = tmp_path / "contextworld_original_baseline_cem_results_freeze_v1.json"
+    fake.write_text(
+        json.dumps(
+            {
+                "freeze_id": integrity_reseal.DESCRIPTIVE_RESULT_FREEZE_SPECS[
+                    "original_baseline_cem"
+                ]["freeze_id"],
+                "status": "frozen_test_fixture",
+            }
+        ),
+        encoding="utf-8",
+    )
+    original_resolve = integrity_reseal.resolve_contextworld_path
+
+    def resolve_with_fake_cem(value: str | Path, **kwargs: object) -> Path:
+        if str(value) == logical_path:
+            return fake
+        return original_resolve(value, **kwargs)
+
+    monkeypatch.setattr(
+        integrity_reseal,
+        "resolve_contextworld_path",
+        resolve_with_fake_cem,
+    )
+
+
+def _install_temporary_reseal_decision(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    decision: dict[str, object] | None = None,
+) -> tuple[dict[str, object], Path]:
+    _install_fake_cem_result_freeze(tmp_path, monkeypatch)
+    suite = load_icl_suite_release(DEFAULT_SUITE_V2_RELEASE_CONFIG)
+    payload = decision or build_integrity_reseal_decision(repo_root=ROOT)
+    decision_path = tmp_path / "integrity-reseal-decision.json"
+    decision_path.write_text(json.dumps(payload), encoding="utf-8")
+    original_resolve = suite_data.resolve_no_symlink_contextworld_path
+
+    def resolve_with_temporary_decision(
+        value: str | Path,
+        *,
+        repo_root: Path | None = None,
+        label: str,
+        allow_missing: bool = False,
+    ) -> Path:
+        if str(value) == suite["membership_authority"]["decision_path"]:
+            return decision_path
+        return original_resolve(
+            value,
+            repo_root=repo_root,
+            label=label,
+            allow_missing=allow_missing,
+        )
+
+    monkeypatch.setattr(
+        suite_data,
+        "resolve_no_symlink_contextworld_path",
+        resolve_with_temporary_decision,
+    )
+    monkeypatch.setattr(
+        suite_data,
+        "_validate_integrity_reseal_current_document",
+        lambda _path: {"passed": True, "fixture": True},
+    )
+    return suite, decision_path
 
 
 def test_suite_v2_adds_cube_without_rewriting_suite_v1() -> None:
@@ -44,15 +122,16 @@ def test_suite_v2_adds_cube_without_rewriting_suite_v1() -> None:
     authority = suite_v2["membership_authority"]
     assert authority["config_alone_grants_membership"] is False
     assert authority["activation_condition"] == (
-        "passed_public_document_amendment_decision_v1"
+        "passed_integrity_reseal_decision_v1"
     )
-    assert authority["amendment_id"] == SUITE_V2_DOCUMENT_AMENDMENT_ID
+    assert authority["reseal_id"] == SUITE_V2_INTEGRITY_RESEAL_ID
     assert authority["decision_path"].endswith(
-        "contextworld_icl_suite_v2_public_document_amendment_decision_v1.json"
+        "contextworld_icl_suite_v2_integrity_reseal_decision_v1.json"
     )
     assert authority["decision_is_commit_marker"] is True
     assert authority["partial_outputs_grant_membership"] is False
-    assert authority["base_membership_must_remain_active"] is True
+    assert authority["historical_chain_must_remain_byte_identical"] is True
+    assert authority["old_membership_may_not_be_silently_reactivated"] is True
     assert authority["formal_scoreboard_mutation_authorized"] is False
     assert authority["public_test_rerun_authorized"] is False
 
@@ -90,32 +169,44 @@ def test_suite_v2_scoreboard_contains_one_lewm_only_cube_row() -> None:
     )
 
 
-def test_suite_v2_document_amendment_adds_reference_comparisons_only() -> None:
-    suite = load_icl_suite_release(DEFAULT_SUITE_V2_RELEASE_CONFIG)
+def test_suite_v2_integrity_reseal_activates_only_with_a_new_decision(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    suite, _ = _install_temporary_reseal_decision(tmp_path, monkeypatch)
     activation = require_suite_membership_activation(suite, repo_root=ROOT)
 
     assert activation["status"] == (
-        "suite_registration_passed_with_documentation_amendment_v1"
+        "suite_registration_passed_with_integrity_reseal_v1"
     )
-    assert activation["base_membership"]["status"] == (
-        "suite_registration_passed"
+    assert activation["historical_chain_preserved"] is True
+    assert activation["old_membership_silently_reactivated"] is False
+    assert activation["current_document_contract"] == {
+        "passed": True,
+        "fixture": True,
+    }
+    assert set(activation["release_materials"]["components"]) == set(
+        SUITE_V2_COMPONENT_IDS
     )
-    assert activation["formal_scoreboard_mutated"] is False
-    assert activation["public_test_rerun"] is False
 
     document = (ROOT / "docs/ContextWorld_ICL_Benchmark.md").read_text(
         encoding="utf-8"
     )
-    assert "| Cube 夹爪携带规则 | LeWM | 原始 checkpoint |" in document
-    assert "| Cube 夹爪携带规则 | PLDM | 使用相同合成数据" in document
-    assert "50.13%（Development）" in document
-    assert "未通过（0/3；未进入 Public）" in document
-    assert "机器可读正式 scoreboard 仍保持 11 行" in document
-    assert document.count("| External-0") == 3
+    assert "#### 6.3.3 Cube 夹爪携带规则" in document
+    assert suite_data._audit_public_document_template(
+        ROOT / "docs/ContextWorld_ICL_Benchmark.md", suite
+    )["passed"] is True
+    assert len(
+        load_public_scoreboard(
+            DEFAULT_SUITE_V2_RELEASE_CONFIG, repo_root=ROOT
+        )["component_results"]
+    ) == 11
 
 
-def test_suite_v2_repository_identities_match_current_sources() -> None:
-    suite = load_icl_suite_release(DEFAULT_SUITE_V2_RELEASE_CONFIG)
+def test_suite_v2_reseal_decision_rebinds_current_identities(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    suite, _ = _install_temporary_reseal_decision(tmp_path, monkeypatch)
+    require_suite_membership_activation(suite, repo_root=ROOT)
     for logical, expected in suite["repository"]["source_sha256"].items():
         assert _sha256(ROOT / logical) == expected
     document = suite["repository"]["public_document"]
@@ -126,7 +217,62 @@ def test_suite_v2_repository_identities_match_current_sources() -> None:
         ]
 
 
-def test_suite_v2_membership_fails_closed_without_canonical_decision(
+def test_suite_v2_reseal_rejects_a_drifted_temporary_decision(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    suite, decision_path = _install_temporary_reseal_decision(
+        tmp_path, monkeypatch
+    )
+    decision = json.loads(decision_path.read_text(encoding="utf-8"))
+    decision["release_materials"]["components"]["speed"]["sha256"] = "0" * 64
+    decision_path.write_text(json.dumps(decision), encoding="utf-8")
+
+    with pytest.raises(RuntimeError, match="integrity reseal decision drifted"):
+        require_suite_membership_activation(suite, repo_root=ROOT)
+
+
+def test_suite_v2_reseal_current_document_contract_uses_new_section5_shape(
+    tmp_path: Path,
+) -> None:
+    def table(rows: int) -> str:
+        body = "\n".join(f"| r{index} | value |" for index in range(rows))
+        return "| task | result |\n|---|---|\n" + body
+
+    document = tmp_path / "benchmark.md"
+    document.write_text(
+        "\n\n".join(
+            (
+                "### 5.1 Original ICL\n" + table(18),
+                "### 5.2 Original environment CEM\n" + table(8),
+                "### 5.3 Trained 18 slots\n" + table(18),
+                "### 5.4 Cube external slots\n" + table(3),
+                "### 5.5 Cube recovery\nclosed",
+            )
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    audit = suite_data._validate_integrity_reseal_current_document(document)
+
+    assert audit["passed"] is True
+    assert audit["table_rows"] == {
+        "### 5.1 ": 18,
+        "### 5.2 ": 8,
+        "### 5.3 ": 18,
+        "### 5.4 ": 3,
+        "### 5.5 ": 0,
+    }
+
+    document.write_text(
+        document.read_text(encoding="utf-8").replace("| r17 | value |\n", ""),
+        encoding="utf-8",
+    )
+    assert suite_data._validate_integrity_reseal_current_document(document)[
+        "passed"
+    ] is False
+
+
+def test_suite_v2_membership_fails_closed_while_historical_results_remain_readable(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     suite = load_icl_suite_release(DEFAULT_SUITE_V2_RELEASE_CONFIG)
@@ -166,8 +312,8 @@ def test_suite_v2_membership_fails_closed_without_canonical_decision(
     )
     with pytest.raises(RuntimeError, match="decision is missing"):
         require_suite_membership_activation(suite, repo_root=ROOT)
-    with pytest.raises(RuntimeError, match="decision is missing"):
-        load_public_scoreboard(DEFAULT_SUITE_V2_RELEASE_CONFIG, repo_root=ROOT)
+    archive = load_public_scoreboard(DEFAULT_SUITE_V2_RELEASE_CONFIG, repo_root=ROOT)
+    assert len(archive["component_results"]) == 11
 
 
 def test_suite_v2_membership_rejects_a_symlinked_decision(

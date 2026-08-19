@@ -1,0 +1,313 @@
+schema_version: 1
+benchmark: pusht_hidden_actuation_history3_replay_matched
+status: three_training_seed_reference_complete
+updated_at_utc: "2026-08-01"
+owner: ContextWorld
+
+headline: >-
+  Dynamics-response constrained LeWM learned History=3 action-strength ICL
+  in all three training seeds, selected the correct action-strength region,
+  and retained standard PushT CEM above the frozen noninferiority floor.
+
+claim_scope:
+  training_seeds: [13313, 13314, 13315]
+  formal_multiseed_replication_complete: true
+  all_three_prediction_gates_passed: true
+  all_three_action_planning_gates_passed: true
+  all_three_original_task_retention_gates_passed: true
+  independent_confirmatory_source_episodes: true
+  confirmatory_threshold_was_diagnostic_informed: true
+  cross_synthesis_generalization_passed: false
+
+method_names:
+  native:
+    display_name_zh: 原始 LeWM
+    objective: prediction_mse_plus_0p09_marginal_sigreg
+  response:
+    display_name_zh: 动力学响应 SIGReg
+    objective: prediction_mse_plus_0p02_single_response_sigreg
+    extra_loss_components: 0
+
+protocols:
+  replay_matched_v2:
+    path: configs/benchmark/pusht_hidden_actuation_replay_matched_v2.yaml
+    sha256: e117e0d77f62b0873d0ecb50c1f7f3002a97da2fac24193f0b49722553ff21be
+  exposure_matched_v3:
+    path: configs/benchmark/pusht_hidden_actuation_replay_matched_exposure_v3.yaml
+    sha256: 3adbc7b33c6b8fac222e5d90597768ebe6704ee6ec13b383e83fa89cf8981fca
+  independent_confirmation_v4:
+    path: configs/benchmark/pusht_hidden_actuation_replay_matched_confirm_v4.yaml
+    sha256: 8d5d79c49d18fc94f8ecf2d021629d16a7a14091e653f840f380b500cd8af2b2
+
+data:
+  replay_matched_v2:
+    root: artifacts/synthesis/pusht_hidden_actuation_replay_matched_h3_v2
+    manifest_sha256: b27fc05d194843bd217f82e2e682afd218c8f3960abac320b773d3f903073f46
+    pairs:
+      train: 2048
+      validation: 256
+      frozen_v1_transfer_eval: 50
+    distribution_audit:
+      path: artifacts/synthesis/pusht_hidden_actuation_replay_matched_h3_v2/distribution_audit.json
+      sha256: 5e275679c543b55039dd8fd0e9a0d404a489762e20f3b1967205b745bd3b3aa3
+      normalized_wasserstein:
+        narrow_v1_median: 0.6453240780919061
+        replay_matched_v2_median: 0.09498665375969534
+        replay_matched_v2_p90: 0.2747703949655905
+        median_reduction_vs_v1: 0.8528078263551674
+      causal_and_source_receipts_passed: true
+  independent_confirmation:
+    root: artifacts/synthesis/pusht_hidden_actuation_replay_matched_confirm_h3_v3
+    manifest_sha256: 5fe0255ca98a1ded3403d697bebb7083d7480e90fed0c6e3fb89f919acfa97fb
+    pair_count: 256
+    minimum_future_block_gap_px: 15.0
+    prior_replay_eval_source_episode_overlap: 0
+    prior_query_pixel_hash_overlap: 0
+    note: >-
+      The 15 px threshold was selected after a gap-stratified diagnostic on
+      the old validation set. Confirmation used new source episodes and
+      already-frozen checkpoints.
+
+training:
+  source_checkpoint: external/pusht/pusht_lewm_baseline_seed3073_weights.ckpt
+  source_scales:
+    path: artifacts/evaluation/history3/pusht_hidden_actuation_replay_matched_h3_v2/source_scales.json
+    sha256: 17267b3d32b5c3c04cac6abd9d9239efaca3518d56a3fb3fb7e5f2ee0b0b7e61
+    active_times:
+      1: 0.12915422352890002
+      3: 0.3434059973412818
+  seed: 13313
+  batch:
+    total: 128
+    standard_replay: 64
+    replay_matched_hidden: 64
+    complete_hidden_pairs: 32
+  optimizer_steps: 4096
+  standard_samples_seen: 262144
+  standard_only_reference_samples_seen: 262144
+  report:
+    path: artifacts/evaluation/history3/pusht_hidden_actuation_replay_matched_h3_v2/training_seed13313_step4096_exposure_matched_standard64_hidden64/mixed_report.json
+    sha256: 7ee9c468b79da5ebbc97ff5849ea476ed134a8fabf139684cfc2a9d9154036ac
+
+formal_three_seed_reference:
+  method: action_strength_dynamics_response_lewm
+  recipe: mixed_dynamics_response_sigreg_0p02
+  prediction_contract_sha256: af58c413f64d8a20f90b5403152cbf1e8aecc62b095378a7ef9b20e85b948ceb
+  prediction_method_score:
+    path: >-
+      artifacts/evaluation/history3/pusht_hidden_actuation_replay_matched_h3_v2/three_seed_reference_v1/prediction_method_score.json
+    sha256: f43a6a56489f147d4b41e3f43cd5e0c564b393a35c82a6dd9b3d27dc71ceb7ed
+    passed: true
+    correct_future_rate_mean: 0.9661458333333334
+    correct_history_rate_mean: 0.984375
+    rule_switch_rate_mean: 0.99609375
+    worst_strength_correct_future_rate_mean: 0.9440104166666666
+  seeds:
+    13313:
+      checkpoint:
+        path: >-
+          artifacts/evaluation/history3/pusht_hidden_actuation_replay_matched_h3_v2/training_seed13313_step4096_exposure_matched_standard64_hidden64/mixed_dynamics_response_sigreg_0p02_step4096.pt
+        sha256: d16e7fb870eb78c891e74f1354ffebc4220c9b67b93d2e2b704588bbffdc1ebf
+      training_report:
+        path: >-
+          artifacts/evaluation/history3/pusht_hidden_actuation_replay_matched_h3_v2/training_seed13313_step4096_exposure_matched_standard64_hidden64/mixed_report.json
+        sha256: 7ee9c468b79da5ebbc97ff5849ea476ed134a8fabf139684cfc2a9d9154036ac
+      prediction:
+        path: >-
+          artifacts/evaluation/history3/pusht_hidden_actuation_replay_matched_h3_v2/training_seed13313_step4096_exposure_matched_standard64_hidden64/public_test_prediction_v1.json
+        sha256: 286cd81e84fbc2921208a5288a9cdbd50723e01c7123e2f31c3a8505fdc101b7
+        correct_future_rate: 0.970703125
+        correct_history_rate: 0.982421875
+        rule_switch_rate: 0.99609375
+        worst_strength_correct_future_rate: 0.94921875
+        passed: true
+      action_planning:
+        path: >-
+          artifacts/evaluation/history3/pusht_hidden_actuation_replay_matched_h3_v2/training_seed13313_step4096_exposure_matched_standard64_hidden64/public_test_action_strength_planning_v1_score.json
+        sha256: 5c6f56136ee11b1fe47f240f353ca5471e8a3df9d179b593ca227597af4b86ce
+        correct_action_region_rate: 0.974609375
+        passed: true
+      original_task_retention:
+        path: >-
+          artifacts/evaluation/history3/pusht_hidden_actuation_replay_matched_h3_v2/training_seed13313_step4096_exposure_matched_standard64_hidden64/public_test_standard_retention_v1_score.json
+        sha256: 03c00d217a20e2c1869a463f6a0a0ba504cbe4279802875c80553386011c8bb0
+        successes: 224
+        evaluations: 300
+        passed: true
+    13314:
+      checkpoint:
+        path: >-
+          artifacts/evaluation/history3/pusht_hidden_actuation_replay_matched_h3_v2/training_seed13314_step4096_exposure_matched_standard64_hidden64/mixed_dynamics_response_sigreg_0p02_step4096.pt
+        sha256: 49cdc065a9a08b5fcfc38fbf316cf9cae0d6104a57f71a4f69c3f6664f846132
+      training_report:
+        path: >-
+          artifacts/evaluation/history3/pusht_hidden_actuation_replay_matched_h3_v2/training_seed13314_step4096_exposure_matched_standard64_hidden64/mixed_report.json
+        sha256: 1a52cc543c39fd108f8201a7d26d238a9dad7ca9830fbae51dd1ed5778c991f6
+      prediction:
+        path: >-
+          artifacts/evaluation/history3/pusht_hidden_actuation_replay_matched_h3_v2/training_seed13314_step4096_exposure_matched_standard64_hidden64/public_test_prediction_v1.json
+        sha256: 1e2d7a80314d1e3df4d516aa923043dcac3079ba2f76868b56658cf3b8bae149
+        correct_future_rate: 0.96484375
+        correct_history_rate: 0.986328125
+        rule_switch_rate: 0.99609375
+        worst_strength_correct_future_rate: 0.94140625
+        passed: true
+      action_planning:
+        path: >-
+          artifacts/evaluation/history3/pusht_hidden_actuation_replay_matched_h3_v2/training_seed13314_step4096_exposure_matched_standard64_hidden64/public_test_action_strength_planning_v1_score.json
+        sha256: 748025fe71619a0ebe1100c62e8af777bcbbeb76f44a87673a6e327b6d64da0d
+        correct_action_region_rate: 0.970703125
+        passed: true
+      original_task_retention:
+        path: >-
+          artifacts/evaluation/history3/pusht_hidden_actuation_replay_matched_h3_v2/training_seed13314_step4096_exposure_matched_standard64_hidden64/public_test_standard_retention_v1_score.json
+        sha256: a3ba28db94845742dd7bb098f782e66cc9e796fbbd16ab622715d5d6eac33b81
+        successes: 216
+        evaluations: 300
+        passed: true
+    13315:
+      checkpoint:
+        path: >-
+          artifacts/evaluation/history3/pusht_hidden_actuation_replay_matched_h3_v2/training_seed13315_step4096_exposure_matched_standard64_hidden64/mixed_dynamics_response_sigreg_0p02_step4096.pt
+        sha256: 697e3bf33713ce56c0bbcb1c207ef325bcf8768f1ed5dc7efb115a25f8356a04
+      training_report:
+        path: >-
+          artifacts/evaluation/history3/pusht_hidden_actuation_replay_matched_h3_v2/training_seed13315_step4096_exposure_matched_standard64_hidden64/mixed_report.json
+        sha256: d71079c155b6f0f83c5d74a4606b67b3a346308d42678f5a1456843b76125efa
+      prediction:
+        path: >-
+          artifacts/evaluation/history3/pusht_hidden_actuation_replay_matched_h3_v2/training_seed13315_step4096_exposure_matched_standard64_hidden64/public_test_prediction_v1.json
+        sha256: 55ab1cf3eebc30acf0b2f215bcb8ecae9c3372c314dffb2960cc337a13d6300f
+        correct_future_rate: 0.962890625
+        correct_history_rate: 0.984375
+        rule_switch_rate: 0.99609375
+        worst_strength_correct_future_rate: 0.94140625
+        passed: true
+      action_planning:
+        path: >-
+          artifacts/evaluation/history3/pusht_hidden_actuation_replay_matched_h3_v2/training_seed13315_step4096_exposure_matched_standard64_hidden64/public_test_action_strength_planning_v1_score.json
+        sha256: f722d3cef07538fec01e208c65c76244ddf9dea6b59955923672a707a98ba77b
+        correct_action_region_rate: 0.974609375
+        passed: true
+      original_task_retention:
+        path: >-
+          artifacts/evaluation/history3/pusht_hidden_actuation_replay_matched_h3_v2/training_seed13315_step4096_exposure_matched_standard64_hidden64/public_test_standard_retention_v1_score.json
+        sha256: f9df0aca1fdbf60d5c56d6864e410f01a9e448404f8583b011ee54a67d063b4e
+        successes: 232
+        evaluations: 300
+        passed: true
+  aggregate:
+    prediction_checkpoints_passed: 3/3
+    action_planning_checkpoints_passed: 3/3
+    original_task_retention_checkpoints_passed: 3/3
+    action_region_rate_mean: 0.9733072916666666
+    original_task_retention_successes_total: 672
+    original_task_retention_evaluations_total: 900
+    original_task_retention_rate_mean: 0.7466666666666667
+  decision:
+    formal_three_seed_method_claim: true
+    passed: true
+    reason: all_three_checkpoints_passed_prediction_planning_and_retention
+
+primary_hidden_prediction:
+  protocol: configs/benchmark/pusht_hidden_actuation_replay_matched_confirm_v4.yaml
+  report:
+    path: artifacts/evaluation/history3/pusht_hidden_actuation_replay_matched_h3_v2/training_seed13313_step4096_exposure_matched_standard64_hidden64/confirmatory_v4_prediction.json
+    sha256: 00b93ec6c7969263f7e8fe15dc17b952e31abbc8cac69747a78117313563f8e0
+  gates:
+    target_selection_minimum: 0.95
+    correct_history_minimum: 0.95
+    rule_switch_minimum: 0.95
+    worst_mode_minimum: 0.90
+  source:
+    target_selection: 0.50
+  native:
+    target_selection: 0.900390625
+    correct_history: 0.96875
+    rule_switch: 0.98828125
+    worst_mode: 0.80859375
+    full_hidden_gate_passed: false
+    preregistered_0p90_separation_line_passed: false
+    separation_line_miss: one_of_512_decisions
+  response:
+    target_selection: 0.970703125
+    correct_history: 0.982421875
+    rule_switch: 0.99609375
+    worst_mode: 0.94921875
+    full_hidden_gate_passed: true
+
+standard_pusht_cem:
+  report:
+    path: artifacts/evaluation/history3/pusht_hidden_actuation_replay_matched_h3_v2/training_seed13313_step4096_exposure_matched_standard64_hidden64/standard_pusht_cem/aggregate.json
+    sha256: 35ddb770f8dedac62c8617a38be6b27707eb090f9f00c8b90b4febb838377b1d
+  eval_seeds: [42, 43, 44, 45, 46, 47]
+  queries_per_seed: 50
+  query_catalog_sha256: da974c821e3fa0f232ac59538e0c79cc2cb9a80ea4bb4a62b910c66c278ce2d4
+  noninferiority_minimum: 210/300
+  unchanged_source: 237/300
+  standard_only_continuation: 225/300
+  native:
+    per_seed: [37, 38, 35, 33, 34, 37]
+    aggregate: 214/300
+    passed: true
+  response:
+    per_seed: [36, 41, 36, 37, 36, 38]
+    aggregate: 224/300
+    passed: true
+
+replay_matched_hidden_cem:
+  report:
+    path: artifacts/evaluation/history3/pusht_hidden_actuation_replay_matched_h3_v2/training_seed13313_step4096_exposure_matched_standard64_hidden64/confirmatory_v4_hidden_cem_seed13312/aggregate.json
+    sha256: a52330bde20535080594903a5af68b1a649040b9072cce888dce83af1d9778d9
+  checkpoint: response
+  pair_count: 256
+  condition_count: 512
+  cem_seed: 13312
+  oracle_mode_action_classification: 0.974609375
+  mode_action_gate_minimum: 0.90
+  mode_action_gate_passed: true
+  low_gain_amplitude_greater_than_high_gain: 0.98828125
+  physical_oracle:
+    mean_low_gain_amplitude: 1.0
+    mean_high_gain_amplitude: 0.4299609374999999
+    low_gain_greater_than_high_gain_pairs: 1.0
+    mean_best_visible_state_distance_px: 0.05352150300569567
+  selected_by_mode:
+    low_gain:
+      mean_amplitude: 0.9624236223753542
+      mean_visible_state_distance_px: 0.9627238978148732
+      mode_action_classification: 0.97265625
+    high_gain:
+      mean_amplitude: 0.26015695445737896
+      mean_visible_state_distance_px: 11.470120838305089
+      mode_action_classification: 0.9765625
+  mean_executed_visible_state_distance_px: 6.216422368059982
+  executed_within_10px: 0.712890625
+  executed_within_15px: 0.857421875
+
+frozen_negative_results:
+  initial_v2_step2048:
+    training_report_sha256: 54acdb586296743db92471fd1339080f5cc9e0c2f968d51dcca2e28737330c4e
+    response_old_validation_target_selection: 0.927734375
+    response_frozen_v1_transfer_target_selection: 0.5099999904632568
+    standard_cem:
+      native: 195/300
+      response: 221/300
+  step4096_old_validation:
+    report_sha256: a73f7f63122d70218efc0f7690bb9c3c9eb378c206bdba6c7ac241e3cfad2b0a
+    native_target_selection: 0.8515625
+    response_target_selection: 0.9375
+  cross_synthesis:
+    v1_trained_response_to_v2_validation: 0.55078125
+    v2_trained_response_to_v1_eval: 0.5199999809265137
+    conclusion: >-
+      The current learned response is not invariant to the action and state
+      geometry of the two synthesis constructions.
+
+decision:
+  no_inherent_conflict_between_hidden_icl_and_standard_cem: supported
+  marginal_sigreg_conditional_blind_spot: supported
+  simple_single_statistic_response_fix: supported_on_resolvable_replay_matched_pairs
+  precise_continuous_action_calibration_complete: false
+  construction_invariant_complete_solution: not_supported
+  formal_multiseed_top_level_result: supported
