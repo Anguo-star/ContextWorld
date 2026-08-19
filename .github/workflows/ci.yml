@@ -1,0 +1,139 @@
+name: CI
+
+# The benchmark's frozen artifacts (22G of synthesised episodes, checkpoints
+# and evaluation payloads) are not in the repository, so CI cannot run the
+# scientific evaluations.  What it can do is guarantee that a clean checkout
+# installs, imports, and keeps its declared contracts internally consistent --
+# which is what an external contributor's pull request actually risks breaking.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  install:
+    name: Clean install and import
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install the core distribution only
+        # The core install must stay light: NumPy and PyYAML.  If this step
+        # starts pulling torch, the extras split has regressed.
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e .
+
+      - name: Import the package and its public adapter boundary
+        run: |
+          python - <<'PY'
+          import contextworld
+          from contextworld.benchmarks.adapters import LatentWorldModelAdapter
+          print("contextworld imported;", LatentWorldModelAdapter.__name__, "available")
+          PY
+
+      - name: Core install must not drag in heavy evaluation dependencies
+        run: |
+          python - <<'PY'
+          import importlib.util, sys
+          heavy = [m for m in ("torch", "lancedb", "stable_worldmodel")
+                   if importlib.util.find_spec(m) is not None]
+          if heavy:
+              sys.exit(f"core install pulled in heavy dependencies: {heavy}")
+          print("core install is light, as declared")
+          PY
+
+  tests:
+    name: Test suite
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          cache: pip
+
+      - name: Install with evaluation extras
+        # ``dev`` pulls the full Stable-WorldModel stack, which needs a GPU
+        # image and a pinned checkout; ``eval`` covers the frozen-artifact
+        # readers plus pytest, which is what the artifact-free tests need.
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[eval]" pytest
+
+      - name: Run the artifact-free test subset
+        # HONEST SCOPE: ``artifacts/`` is gitignored, so a CI checkout has no
+        # frozen evaluation tree.  52 of the ~181 test modules read that tree
+        # and cannot run here at all; the document-vs-frozen-results checks
+        # skip themselves and say so in the report.  What CI does enforce is
+        # the structural half: table shape, row counts, and the prose
+        # contracts that hold without artifacts.  Green here does NOT mean the
+        # full suite passed -- that gate is the local run before release.
+        run: |
+          python -m pytest -q -ra \
+            tests/test_public_document_numbers_match_frozen_results.py \
+            tests/test_speed_pldm_public_documentation.py
+
+  placeholders:
+    name: No unresolved release placeholders
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fail if a release placeholder is still unfilled
+        # These markers stand in for values that only a human can supply: the
+        # copyright holder, the citation authors, and the HuggingFace dataset
+        # repository that does not exist yet.  A release must never ship with
+        # one still in place, and a grep is the whole enforcement mechanism.
+        run: |
+          python - <<'PY'
+          import pathlib, sys
+
+          MARKERS = ("<COPYRIGHT_HOLDER>", "<AUTHOR>", "<HF_DATASET_REPO>",
+                     "<FAMILY>", "<GIVEN>", "<AFFILIATION>")
+          SKIP_DIRS = {".git", "artifacts", "build", "dist", "__pycache__",
+                       ".github"}
+
+          hits = []
+          for path in pathlib.Path(".").rglob("*"):
+              if not path.is_file():
+                  continue
+              if SKIP_DIRS & set(path.parts):
+                  continue
+              if path.suffix not in {".md", ".toml", ".cff", ".yaml", ".yml",
+                                     ".py", ""}:
+                  continue
+              try:
+                  text = path.read_text(encoding="utf-8")
+              except (UnicodeDecodeError, OSError):
+                  continue
+              for marker in MARKERS:
+                  if marker in text:
+                      hits.append(f"{path}: {marker}")
+
+          if hits:
+              print("Unresolved release placeholders:")
+              for hit in sorted(hits):
+                  print("  ", hit)
+              sys.exit(1)
+          print("No unresolved release placeholders.")
+          PY
