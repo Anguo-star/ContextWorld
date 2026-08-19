@@ -1,0 +1,115 @@
+schema_version: 1
+recovery_id: original_baseline_seed_completion_tworoom_pldm_seed3074_eval43_infra_relaunch_recovery_v1
+parent_preregistration_id: contextworld_original_baseline_seed_completion_v1
+status: preregistered_after_infrastructure_failure_before_relaunch
+created_utc: "2026-08-19"
+
+# One TwoRoom original-baseline CEM job (family pldm, training seed 3074, eval
+# seed 43) died during the seed-completion parallel execution on 2026-08-18.
+# The frozen runner had verified every input identity, written its 46-byte
+# pre-CEM reservation stub at 09:40 local, loaded the model, and begun CEM
+# solving; at 09:54:45 local the process aborted with
+# ``torch.AcceleratorError: CUDA error: unspecified launch failure`` raised
+# inside ``CEMSolver.solve`` (full Python traceback preserved in the runner
+# log).  No per-episode or per-seed score was ever produced or observed for
+# this job -- the only artifact is the reservation stub -- so this relaunch is
+# not a result-based retry.  The sibling jobs of the same cell (eval seeds 42,
+# 44, 45, 46, 47) and all other 41 frozen jobs completed normally.  Authorized
+# by the parent preregistration's
+# ``execution_policy.infrastructure_retry_requires_new_recovery_identity``.
+scope:
+  matrix: contextworld_original_baseline_seed_completion_v1
+  environment: tworoom
+  family: pldm
+  training_seed: 3074
+  eval_seed: 43
+  job_id: tworoom_pldm_seed3074_eval43
+  result_observed_before_failure: false
+  result_based_retry: false
+  relaunch_count_authorized: 1
+  checkpoint_selection_authorized: false
+  command_modification_authorized: false
+  threshold_or_recipe_change_authorized: false
+  other_jobs_touched: false
+
+failure_event:
+  failure_local_date: "2026-08-18"
+  runner_log:
+    path: artifacts/evaluation/original_baseline_seed_completion_v1/logs/tworoom_pldm_seed3074_eval43.log
+    sha256: a7d69d15323d024c45aca7d8fca62cf3b1ed092bfbf3683367c928c56361b39c
+    lines: 136
+    python_traceback_present: true
+    exception: "torch.AcceleratorError: CUDA error: unspecified launch failure"
+    raised_inside: stable_worldmodel/solver/cem.py CEMSolver.solve
+    evaluation_started_local: "09:41:28"
+    failure_local: "09:54:45"
+  stale_reservation_stub:
+    path: artifacts/evaluation/original_baseline_seed_completion_v1/tworoom/pldm/seed3074/seed43.json
+    size_bytes: 46
+    sha256: 53334f3f34cc373697796d8a995bcd15ca5f26e20fd7dcd0edfd92ed3198be9c
+    exact_content: '{"seed": 43, "status": "reserved_before_cem"}'
+    is_a_result: false
+  receipt_written: false
+  episodes_reported: 0
+
+parent_identity:
+  preregistration:
+    path: configs/benchmark/contextworld_original_baseline_seed_completion_prereg_v1.yaml
+    sha256: 3f179c66521f0a79a95ffd881502f373a9e6ad32c6080a5ae1b7abd6f1baa4be
+    size_bytes: 29066
+  freeze_receipt:
+    path: configs/benchmark/contextworld_original_baseline_seed_completion_freeze_v1.json
+  frozen_launcher:
+    path: scripts/run_contextworld_original_baseline_seed_completion_v1.py
+    sha256: 8112c0e7c0366efde34e131a955778a54a82273f92fefecafc9768fa16e8bef0
+    size_bytes: 15097
+  frozen_tworoom_runner:
+    path: scripts/eval_tworoom_original_baseline_cem_frozen_v1.py
+    sha256: 03e3863c6f3f9dc559095eeb01654f6b8e49675ce8dc90548b6aec0fdef106a6
+    size_bytes: 12353
+  cell:
+    checkpoint:
+      path: /opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-tworooms/ckpt/tworoom_pldm_baseline_seed3074/tworoom_pldm_baseline_seed3074_weights.ckpt
+      sha256: c8fae3e4463c27c11978410564904d4c1c62cc6cd299dfcae54d1190226d1e0b
+      size_bytes: 219234900
+      config_sha256: eb6217775c12d598f2fb29853a29d586ee60c038e5a1e27b3b80a5e3b2698f10
+      config_size_bytes: 1892
+    runtime_root: /tmp/stable-worldmodel-5864
+    runtime_ref: 5864b74980f6ed328fd0045e777b3865962eff43
+    catalog_sha256: 08233c6755c8f6f358f5fe35f84e7cfed626b922be0eeaba8f7392c7741b4b34
+    catalog_size_bytes: 119993
+    normalizer_sha256: a9e4b443bbac0d7a4e2d9d9f84d40ac40936556ffadfc7af0b0ce4fe4afed42c
+    normalizer_size_bytes: 859
+    source_sha256: 7e78254f70445231df4ccf2fd2b7994dfc5954e2085d61400518bd2336fa66bc
+    source_size_bytes: 2629676
+    mujoco_gl: egl
+    output: artifacts/evaluation/original_baseline_seed_completion_v1/tworoom/pldm/seed3074/seed43.json
+
+relaunch_rule:
+  remove_stale_reservation_stub_only_after_byte_exact_match: true
+  command_must_be_the_frozen_launcher_job: "run_contextworld_original_baseline_seed_completion_v1.py --job tworoom_pldm_seed3074_eval43"
+  launcher_rebuilds_frozen_argv_from_preregistration: true
+  device_substitution_allowed: true          # gpu-index is not part of the frozen identity
+  environment_exports_set_by_frozen_launcher: [CUDA_VISIBLE_DEVICES, MUJOCO_GL=egl, PYTHONHASHSEED=0, PYTHONUNBUFFERED=1]
+  original_failure_log_preserved_unmodified: true
+  relaunch_log: artifacts/evaluation/original_baseline_seed_completion_v1/logs/tworoom_pldm_seed3074_eval43_infra_relaunch_recovery_v1.log
+  runner_identity_must_match_parent_freeze: true
+  output_written_by_frozen_runner_only: true
+  further_failures_require_a_new_recovery_identity: true
+
+outputs:
+  relaunch_receipt:
+    path: artifacts/evaluation/original_baseline_seed_completion_v1/tworoom/pldm/seed3074/eval43_infra_relaunch_recovery_v1.json
+  exclusive_creation_required: true
+  overwrite_authorized: false
+
+# Recorded after execution.
+execution_record:
+  scientific_executions: 1
+  authorized_relaunch_count_consumed: 1
+  # The command was started twice.  The second process hit the pre-CEM
+  # exclusive output reservation (FileExistsError), evaluated zero episodes and
+  # wrote no result, so exactly one scientific execution took place.  Both
+  # processes redirected to the same log path, which is therefore a byte
+  # overlay; the log is preserved as written, not regenerated.
+  duplicate_launch_rejected_before_model_load: true

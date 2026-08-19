@@ -1,0 +1,415 @@
+{
+  "carried_membership": {
+    "cem_episodes_rerun_for_reused_cells": 0,
+    "lineage_note_cells": 1,
+    "parent_results_freeze": {
+      "path": "configs/benchmark/contextworld_original_baseline_cem_results_freeze_v1.json",
+      "sha256": "f3dcebe076aad73dec85cf7a5abe52854c1627a112b9511a1262e5e1cf1124ca",
+      "size_bytes": 4490
+    },
+    "reused_member_cells": 7
+  },
+  "downstream": {
+    "complete_comparison_v1_unmodified": true,
+    "complete_comparison_v2": {
+      "comparison_id": "contextworld_complete_reference_comparison_v2",
+      "path": "artifacts/evaluation/complete_reference_comparison_v1/complete_comparison_v2.json",
+      "sha256": "ff67709268b8d626202f2deb6bcd9aac8809732190fef233db67606d5f283887",
+      "size_bytes": 97867
+    },
+    "historical_scoreboard_unmodified": true
+  },
+  "execution_disclosures": [
+    {
+      "detail": "killed by a CUDA unspecified-launch-failure before any score existed; relaunched exactly once under a dedicated recovery identity after byte-verified removal of the 46-byte pre-CEM reservation stub",
+      "job_id": "tworoom_pldm_seed3074_eval43",
+      "kind": "infrastructure_relaunch",
+      "preregistration": {
+        "path": "/opt/huawei/explorer-env/dataset/ag_data/code/ContextWorld/configs/benchmark/original_baseline_seed_completion_tworoom_pldm_seed3074_eval43_infra_relaunch_recovery_v1.yaml",
+        "sha256": "9b7a42fe28d70389d2632cbf0e520d5578ed38a5212f0b2ffc1ccc8e9380cc2e",
+        "size_bytes": 5843
+      },
+      "recovery_id": "original_baseline_seed_completion_tworoom_pldm_seed3074_eval43_infra_relaunch_recovery_v1",
+      "relaunch_receipt": {
+        "path": "/opt/huawei/explorer-env/dataset/ag_data/code/ContextWorld/artifacts/evaluation/original_baseline_seed_completion_v1/tworoom/pldm/seed3074/eval43_infra_relaunch_recovery_v1.json",
+        "sha256": "000cd32036714529a2f888f0c7fc6e988469bb48aa212c086874b27ac28e6f41",
+        "size_bytes": 4780
+      }
+    }
+  ],
+  "families": [
+    {
+      "environment": "tworoom",
+      "family": "lewm",
+      "lineage_notes": [
+        {
+          "evaluation_count": 300,
+          "excluded_from_family_statistics": true,
+          "provenance": "carried_original_baseline_cem_v1",
+          "reason": "The evaluated tworoom/lewm cell used the repo-trained ContextWorld checkpoint h3_origheldout_s3072 (raw state-dict .pt, ContextWorld training code), not the quentinll lightning baseline lineage.  The lightning sibling tworoom_lewm_20260430 (seed 3072, epoch 9, global step 6420) carries numerically different weights (max abs tensor diff ~0.69; an independent training run).  For a homogeneous three-training-seed family statistic the lightning triplet 3072/3073/3074 is evaluated below; the 273/300 value remains a disclosed historical lineage note and is never averaged into the family mean +/- std.",
+          "success_count": 273,
+          "success_rate": 0.91,
+          "training_seed": 3072
+        }
+      ],
+      "maximum_success_rate": 0.93,
+      "mean_success_rate": 0.9244444444444445,
+      "members": [
+        {
+          "cell_id": "tworoom_lewm_seed3072",
+          "evaluation_count": 300,
+          "provenance": "new_cell_this_preregistration",
+          "success_count": 276,
+          "success_rate": 0.92,
+          "training_seed": 3072
+        },
+        {
+          "cell_id": "tworoom_lewm_seed3073",
+          "evaluation_count": 300,
+          "provenance": "new_cell_this_preregistration",
+          "success_count": 279,
+          "success_rate": 0.93,
+          "training_seed": 3073
+        },
+        {
+          "cell_id": "tworoom_lewm_seed3074",
+          "evaluation_count": 300,
+          "provenance": "new_cell_this_preregistration",
+          "success_count": 277,
+          "success_rate": 0.9233333333333333,
+          "training_seed": 3074
+        }
+      ],
+      "minimum_success_rate": 0.92,
+      "n_training_seeds": 3,
+      "sample_std": 0.005091750772173165,
+      "sample_variance": 2.5925925925926016e-05
+    },
+    {
+      "environment": "tworoom",
+      "family": "pldm",
+      "lineage_notes": [],
+      "maximum_success_rate": 0.9433333333333334,
+      "mean_success_rate": 0.9055555555555556,
+      "members": [
+        {
+          "evaluation_count": 300,
+          "provenance": "carried_original_baseline_cem_v1",
+          "success_count": 278,
+          "success_rate": 0.9266666666666666,
+          "training_seed": 3072
+        },
+        {
+          "cell_id": "tworoom_pldm_seed3073",
+          "evaluation_count": 300,
+          "provenance": "new_cell_this_preregistration",
+          "success_count": 254,
+          "success_rate": 0.8466666666666667,
+          "training_seed": 3073
+        },
+        {
+          "cell_id": "tworoom_pldm_seed3074",
+          "evaluation_count": 300,
+          "provenance": "new_cell_this_preregistration",
+          "success_count": 283,
+          "success_rate": 0.9433333333333334,
+          "training_seed": 3074
+        }
+      ],
+      "minimum_success_rate": 0.8466666666666667,
+      "n_training_seeds": 3,
+      "sample_std": 0.051675626463259926,
+      "sample_variance": 0.00267037037037037
+    },
+    {
+      "environment": "pusht",
+      "family": "lewm",
+      "lineage_notes": [],
+      "maximum_success_rate": 0.8566666666666667,
+      "mean_success_rate": 0.8222222222222223,
+      "members": [
+        {
+          "cell_id": "pusht_lewm_seed3072",
+          "evaluation_count": 300,
+          "provenance": "new_cell_this_preregistration",
+          "success_count": 248,
+          "success_rate": 0.8266666666666667,
+          "training_seed": 3072
+        },
+        {
+          "evaluation_count": 300,
+          "provenance": "carried_original_baseline_cem_v1",
+          "success_count": 235,
+          "success_rate": 0.7833333333333333,
+          "training_seed": 3073
+        },
+        {
+          "cell_id": "pusht_lewm_seed3074",
+          "evaluation_count": 300,
+          "provenance": "new_cell_this_preregistration",
+          "success_count": 257,
+          "success_rate": 0.8566666666666667,
+          "training_seed": 3074
+        }
+      ],
+      "minimum_success_rate": 0.7833333333333333,
+      "n_training_seeds": 3,
+      "sample_std": 0.03686813338452681,
+      "sample_variance": 0.0013592592592592601
+    },
+    {
+      "environment": "pusht",
+      "family": "pldm",
+      "lineage_notes": [],
+      "maximum_success_rate": 0.7766666666666666,
+      "mean_success_rate": 0.7566666666666667,
+      "members": [
+        {
+          "evaluation_count": 300,
+          "provenance": "carried_original_baseline_cem_v1",
+          "success_count": 233,
+          "success_rate": 0.7766666666666666,
+          "training_seed": 3072
+        },
+        {
+          "cell_id": "pusht_pldm_seed3073",
+          "evaluation_count": 300,
+          "provenance": "new_cell_this_preregistration",
+          "success_count": 219,
+          "success_rate": 0.73,
+          "training_seed": 3073
+        },
+        {
+          "cell_id": "pusht_pldm_seed3074",
+          "evaluation_count": 300,
+          "provenance": "new_cell_this_preregistration",
+          "success_count": 229,
+          "success_rate": 0.7633333333333333,
+          "training_seed": 3074
+        }
+      ],
+      "minimum_success_rate": 0.73,
+      "n_training_seeds": 3,
+      "sample_std": 0.024037008503093246,
+      "sample_variance": 0.0005777777777777771
+    },
+    {
+      "environment": "reacher",
+      "family": "lewm",
+      "lineage_notes": [],
+      "maximum_success_rate": 0.5666666666666667,
+      "mean_success_rate": 0.5588888888888889,
+      "members": [
+        {
+          "evaluation_count": 300,
+          "provenance": "carried_original_baseline_cem_v1",
+          "success_count": 164,
+          "success_rate": 0.5466666666666666,
+          "training_seed": 3072
+        },
+        {
+          "cell_id": "reacher_lewm_seed3073",
+          "evaluation_count": 300,
+          "provenance": "new_cell_this_preregistration",
+          "success_count": 170,
+          "success_rate": 0.5666666666666667,
+          "training_seed": 3073
+        },
+        {
+          "cell_id": "reacher_lewm_seed3074",
+          "evaluation_count": 300,
+          "provenance": "new_cell_this_preregistration",
+          "success_count": 169,
+          "success_rate": 0.5633333333333334,
+          "training_seed": 3074
+        }
+      ],
+      "minimum_success_rate": 0.5466666666666666,
+      "n_training_seeds": 3,
+      "sample_std": 0.010715167512214413,
+      "sample_variance": 0.00011481481481481519
+    },
+    {
+      "environment": "reacher",
+      "family": "pldm",
+      "lineage_notes": [],
+      "maximum_success_rate": 0.8266666666666667,
+      "mean_success_rate": 0.6966666666666667,
+      "members": [
+        {
+          "evaluation_count": 300,
+          "provenance": "carried_original_baseline_cem_v1",
+          "success_count": 248,
+          "success_rate": 0.8266666666666667,
+          "training_seed": 3072
+        },
+        {
+          "cell_id": "reacher_pldm_seed3073",
+          "evaluation_count": 300,
+          "provenance": "new_cell_this_preregistration",
+          "success_count": 240,
+          "success_rate": 0.8,
+          "training_seed": 3073
+        },
+        {
+          "cell_id": "reacher_pldm_seed3074",
+          "evaluation_count": 300,
+          "provenance": "new_cell_this_preregistration",
+          "success_count": 139,
+          "success_rate": 0.4633333333333333,
+          "training_seed": 3074
+        }
+      ],
+      "minimum_success_rate": 0.4633333333333333,
+      "n_training_seeds": 3,
+      "sample_std": 0.2025120023877872,
+      "sample_variance": 0.04101111111111112
+    },
+    {
+      "environment": "cube",
+      "family": "lewm",
+      "lineage_notes": [],
+      "maximum_success_rate": 0.66,
+      "mean_success_rate": 0.6544444444444445,
+      "members": [
+        {
+          "cell_id": "cube_lewm_seed3072",
+          "evaluation_count": 300,
+          "provenance": "new_cell_this_preregistration",
+          "success_count": 197,
+          "success_rate": 0.6566666666666666,
+          "training_seed": 3072
+        },
+        {
+          "evaluation_count": 300,
+          "provenance": "carried_original_baseline_cem_v1_reuse_of_retention_v2",
+          "success_count": 198,
+          "success_rate": 0.66,
+          "training_seed": 3073
+        },
+        {
+          "cell_id": "cube_lewm_seed3074",
+          "evaluation_count": 300,
+          "provenance": "new_cell_this_preregistration",
+          "success_count": 194,
+          "success_rate": 0.6466666666666666,
+          "training_seed": 3074
+        }
+      ],
+      "minimum_success_rate": 0.6466666666666666,
+      "n_training_seeds": 3,
+      "sample_std": 0.0069388866648871445,
+      "sample_variance": 4.814814814814864e-05
+    },
+    {
+      "environment": "cube",
+      "family": "pldm",
+      "lineage_notes": [],
+      "maximum_success_rate": 0.5466666666666666,
+      "mean_success_rate": 0.5344444444444444,
+      "members": [
+        {
+          "cell_id": "cube_pldm_seed3072",
+          "evaluation_count": 300,
+          "provenance": "new_cell_this_preregistration",
+          "success_count": 158,
+          "success_rate": 0.5266666666666666,
+          "training_seed": 3072
+        },
+        {
+          "evaluation_count": 300,
+          "provenance": "carried_original_baseline_cem_v1",
+          "success_count": 159,
+          "success_rate": 0.53,
+          "training_seed": 3073
+        },
+        {
+          "cell_id": "cube_pldm_seed3074",
+          "evaluation_count": 300,
+          "provenance": "new_cell_this_preregistration",
+          "success_count": 164,
+          "success_rate": 0.5466666666666666,
+          "training_seed": 3074
+        }
+      ],
+      "minimum_success_rate": 0.5266666666666666,
+      "n_training_seeds": 3,
+      "sample_std": 0.010715167512214388,
+      "sample_variance": 0.00011481481481481469
+    }
+  ],
+  "family_summary": {
+    "episodes_per_member": 300,
+    "families": 8,
+    "lineage_note_cells": 1,
+    "member_cells_total": 24,
+    "members_per_family": 3,
+    "newly_executed_episodes": 5100,
+    "newly_executed_member_cells": 17,
+    "path": "artifacts/evaluation/original_baseline_seed_completion_v1/family_summary.json",
+    "reused_member_cells": 7,
+    "sha256": "795d8bd5a298440684ca9ac90ce6891fd72cfbd781a56321b746eb5021708d0c",
+    "size_bytes": 49055,
+    "status": "completed_descriptive_original_environment_baseline_families",
+    "summary_id": "contextworld_original_baseline_seed_completion_family_summary_v1"
+  },
+  "freeze_id": "contextworld_original_baseline_seed_completion_results_freeze_v1",
+  "frozen_date_utc": "2026-08-19",
+  "implementation": {
+    "comparison_v2_builder": {
+      "path": "scripts/build_contextworld_complete_comparison_v2.py",
+      "sha256": "d85130d469fcdb2f3c12d8f8613509a871d0f82154b8a72319336ec67659a63a",
+      "size_bytes": 10977
+    },
+    "finalizer": {
+      "path": "scripts/finalize_contextworld_original_baseline_seed_completion_v1.py",
+      "sha256": "3b77fbb93bda874f5135de3997bffa36d8e57717d9eda9684f77ee9bc10e920b",
+      "size_bytes": 49750
+    },
+    "launcher": {
+      "path": "scripts/run_contextworld_original_baseline_seed_completion_v1.py",
+      "sha256": "8112c0e7c0366efde34e131a955778a54a82273f92fefecafc9768fa16e8bef0",
+      "size_bytes": 15097
+    },
+    "results_freezer": {
+      "path": "scripts/freeze_contextworld_original_baseline_seed_completion_results_v1.py",
+      "sha256": "b59d738fd9cbded709d4476429f7c3b7c3f8b06b0c4e8431626c048cb1fefd92",
+      "size_bytes": 12412
+    }
+  },
+  "pre_execution_authority": {
+    "execution_preflight": {
+      "path": "configs/benchmark/contextworld_original_baseline_seed_completion_preflight_v1.json",
+      "sha256": "723a61abbfc1587892c1f9b04205a43dd119a7e65980c3b33213b0c5fd7fa5d8",
+      "size_bytes": 5606
+    },
+    "freeze": {
+      "path": "configs/benchmark/contextworld_original_baseline_seed_completion_freeze_v1.json",
+      "sha256": "6aaaf054dab28ca5f32b629be070a9a47b36aeafcd0235bef823d4567f88a863",
+      "size_bytes": 1436
+    },
+    "infrastructure_relaunch_recovery": {
+      "path": "configs/benchmark/original_baseline_seed_completion_tworoom_pldm_seed3074_eval43_infra_relaunch_recovery_v1.yaml",
+      "sha256": "9b7a42fe28d70389d2632cbf0e520d5578ed38a5212f0b2ffc1ccc8e9380cc2e",
+      "size_bytes": 5843
+    },
+    "preregistration": {
+      "path": "configs/benchmark/contextworld_original_baseline_seed_completion_prereg_v1.yaml",
+      "sha256": "3f179c66521f0a79a95ffd881502f373a9e6ad32c6080a5ae1b7abd6f1baa4be",
+      "size_bytes": 29066
+    }
+  },
+  "schema_version": 1,
+  "scientific_status": {
+    "checkpoint_selection_performed": false,
+    "cross_environment_average_authorized": false,
+    "cross_environment_average_reported": false,
+    "formal_scoreboard_mutated": false,
+    "kind": "post_release_descriptive_original_environment_baseline_family_freeze",
+    "pass_fail_threshold": null,
+    "public_test_accessed": false,
+    "result_based_retry_performed": false,
+    "training_performed": false
+  },
+  "status": "frozen_after_completed_three_training_seed_baseline_families"
+}
