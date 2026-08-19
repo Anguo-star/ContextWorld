@@ -11,13 +11,14 @@ recorded_date: "2026-08-19"
 # Two reader-reported gaps in the public benchmark document are closed here:
 #
 #   1. The eight original baseline checkpoints were described without stating
-#      where they came from.  They are LeWM's published baselines, trained on
-#      the LeWorldModel official datasets under the published recipe for 10
-#      epochs, evaluated at the end-of-training weights.  This repository does
-#      not train, fine-tune, continue training, or score-select them.  The
-#      fact was already recorded per cell in the frozen preregistrations and
-#      checkpoint configs; it was simply never stated in the reader-facing
-#      document.
+#      where they came from.  CORRECTED 2026-08-19: they are trained in this
+#      repository from LeWM's public datasets under LeWM's baseline recipe for
+#      10 epochs, evaluated at the end-of-training weights.  The first version
+#      of this record said the opposite -- that they were LeWM's published
+#      checkpoints and that this repository does not train them -- and that
+#      claim was published before it was checked.  The correction and its
+#      evidence are recorded in
+#      ``contextworld_icl_suite_v2_baseline_provenance_correction_v1.yaml``.
 #
 #   2. Section 5.3 printed ICL primary scores next to pass/fail verdicts
 #      without printing the per-task gates, so a reader could not tell why
@@ -53,19 +54,28 @@ documentation_clarification_amendment:
 
   disclosed_facts:
     baseline_checkpoint_provenance:
-      source: lewm_published_original_baselines
-      training_data: leworldmodel_official_datasets
+      # CORRECTED 2026-08-19.  The first version of this block claimed the eight
+      # checkpoints were LeWM's published baselines and that this repository did
+      # not train them.  That was wrong, and it was published.  See
+      # contextworld_icl_suite_v2_baseline_provenance_correction_v1.yaml.
+      source: trained_in_this_repository_from_lewm_public_datasets
+      training_data: lewm_public_datasets
+      training_data_names:
+        tworoom: tworoom
+        pusht: pusht_expert_train
+        cube: ogbench/cube_single_expert
+        reacher: reacher
       dataset_evidence: >-
-        the TwoRoom dataset README distributed with the checkpoints states
-        "Official dataset for the TwoRoom navigation task used in
-        LeWorldModel"; the PushT, Reacher and Cube checkpoints come from the
-        sibling lewm-pusht / lewm-reacher / lewm-cube distributions
+        the four quentinll/lewm-* HuggingFace repositories were fetched for
+        their dataset archives and README cards only; each checkpoint
+        directory instead holds a complete local training trace (epoch_1
+        through epoch_10, a training config.yaml recording max_epochs: 10 and
+        the training seed, and locally rendered evaluation videos)
+      training_recipe: lewm_baseline_recipe
       training_length: 10_epochs
-      training_length_evidence: >-
-        every baseline training config records trainer.max_epochs: 10 and the
-        checkpoints carry the corresponding end-of-training weights
       evaluated_weights: end_of_training
-      repository_trained: false
+      repository_trained: true
+      pretrained_weights_downloaded_from_upstream: false
       fine_tuned_or_continued: false
       score_based_checkpoint_selection: false
     per_task_icl_gates:

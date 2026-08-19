@@ -1,0 +1,128 @@
+schema_version: 1
+record_id: contextworld_icl_suite_v2_baseline_provenance_correction_v1
+status: correction_of_a_published_false_statement
+recorded_date: "2026-08-19"
+
+# What was wrong
+#
+# On 2026-08-19, commit 0649499 published a baseline-provenance disclosure in
+# docs/ContextWorld_ICL_Benchmark.md sections 5.1 and 5.2, and a machine
+# readable counterpart in
+# ``contextworld_icl_suite_v2_baseline_provenance_and_gate_disclosure_amendment_v1``.
+# Both stated that the eight original baseline checkpoints were LeWM's
+# PUBLISHED baselines and that this repository does not train them
+# (``repository_trained: false``).
+#
+# That is false.  The eight checkpoints were trained in this repository, from
+# LeWM's public datasets.
+#
+# How the error was made
+#
+# The claim was inferred, not verified.  The checkpoints are stored under
+# directories named after the upstream HuggingFace repositories
+# (``.../quentinll/lewm-pusht/ckpt/...``), and the TwoRoom dataset README in
+# the same tree reads "Official dataset for the TwoRoom navigation task used
+# in LeWorldModel".  The provenance of the DATASET was transferred to the
+# provenance of the CHECKPOINTS on the strength of a shared directory name.
+# Reading ``epoch=9`` out of a checkpoint and ``max_epochs: 10`` out of a
+# training config was treated as corroboration, when in fact a local training
+# config is evidence of local training.
+#
+# No published number changes.  Scores, gates, verdicts and scoreboard rows do
+# not depend on the provenance sentence, and none of them move.  What changes
+# is a statement of fact about who produced the weights, which a benchmark
+# must state correctly.
+
+correction:
+  false_statement_published_in:
+    commit: 0649499
+    branch: main
+    remote: origin
+    documents:
+      - docs/ContextWorld_ICL_Benchmark.md
+      - configs/benchmark/contextworld_icl_suite_v2_baseline_provenance_and_gate_disclosure_amendment_v1.yaml
+  what_was_claimed:
+    source: lewm_published_original_baselines
+    repository_trained: false
+    verbatim_document_text: >-
+      这 8 个检查点是 LeWM 公开发布的原始基线 ... 它们不是本仓库训练的
+  what_is_true:
+    source: trained_in_this_repository_from_lewm_public_datasets
+    repository_trained: true
+    training_data: lewm_public_datasets
+    training_recipe: lewm_baseline_recipe
+    training_length: 10_epochs
+    evaluated_weights: end_of_training
+    pretrained_weights_downloaded_from_upstream: false
+
+evidence:
+  # Each item was checked directly on the artifact tree, not inferred.
+  huggingface_download_manifest:
+    method: >-
+      inspected the .cache/huggingface/download/*.metadata records under each
+      of the four quentinll/lewm-* directories, which list exactly the files
+      that were actually fetched
+    result_per_repository:
+      lewm-tworooms: [".gitattributes", "README.md", "tworoom.tar.zst"]
+      lewm-pusht: [".gitattributes", "README.md", "pusht_expert_train.h5.zst"]
+      lewm-reacher: [".gitattributes", "README.md", "reacher.tar.zst"]
+      lewm-cube: [".gitattributes", "README.md", "cube_single_expert.tar.zst"]
+    conclusion: >-
+      datasets and README cards only; not one checkpoint file was downloaded
+      from any upstream repository
+  local_training_traces:
+    method: listed each consumed checkpoint directory
+    finding: >-
+      all eight directories contain a complete ten-epoch local training trace
+      (epoch_1 ... epoch_10 plus a final weights checkpoint), a training
+      config.yaml, and locally rendered evaluation videos
+    epoch_checkpoints_present_per_baseline: 10
+  training_configs:
+    method: read config.yaml in each checkpoint directory
+    finding: >-
+      each records its own training seed and trainer.max_epochs: 10, together
+      with the LeWM dataset it trained on
+    dataset_names:
+      tworoom: tworoom
+      pusht: pusht_expert_train
+      cube: ogbench/cube_single_expert
+      reacher: reacher
+  directory_naming:
+    finding: >-
+      the checkpoint directories carry this repository's own three-seed naming
+      (*_baseline_seed3073 / 3074 / 3075), which upstream would have no reason
+      to produce
+  why_the_path_misled: >-
+    the checkpoints live under directories named for the upstream repositories
+    because the upstream datasets were unpacked there and training wrote its
+    outputs alongside them; the path records where the data came from, not who
+    trained the weights
+
+scope:
+  scores_changed: false
+  gates_changed: false
+  verdicts_changed: false
+  scoreboard_rows_changed: false
+  datasets_changed: false
+  checkpoints_changed: false
+  only_provenance_prose_and_its_machine_readable_counterpart_changed: true
+  licensing_consequence: >-
+    the weights are this repository's own output, trained from MIT-licensed
+    public datasets, which simplifies rather than complicates redistribution;
+    attribution text must credit LeWM for the DATASETS and must not describe
+    the checkpoints as LeWM's published models
+
+corrective_actions:
+  - corrected sections 5.1 and 5.2 of the public benchmark document
+  - corrected the disclosed_facts.baseline_checkpoint_provenance block and the
+    explanatory header of the provenance amendment record
+  - recorded this correction record alongside the amendment it corrects
+  - reseal regeneration required because the sealed document bytes changed
+
+process_lesson:
+  statement: >-
+    A provenance claim must be established from an acquisition record (what was
+    downloaded, or what was trained and when), never from a storage path or
+    from a neighbouring file's description.  Directory names are not evidence
+    of authorship.
+  applies_to_future_disclosures: true

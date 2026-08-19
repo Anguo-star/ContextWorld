@@ -207,10 +207,11 @@ PushT、Reacher 和传送门出口位置任务通常包含 256 对查询。每�
 这是已冻结的描述性证据，不是 18 条正式 reference。其中接触摩擦和运动阻尼只使用
 Development；Cube 两行来自独立 v4r1 运行，也不进入正式 scoreboard。
 
-这 8 个检查点是 LeWM 公开发布的原始基线，训练数据取自 LeWorldModel 官方数据集
-（TwoRoom / PushT / Reacher / Cube 各自的发布数据），按其发布配方训练 10 epochs，
-评测使用训练结束时的最终权重。它们不是本仓库训练的，本仓库也未做微调、继续训练或
-按分数挑选检查点；5.2 的 CEM 族基线使用同一来源的检查点。
+这 8 个检查点由本仓库训练：训练数据取自 LeWM 公开发布的数据集（TwoRoom `tworoom`、
+PushT `pusht_expert_train`、Cube `ogbench/cube_single_expert`、Reacher `reacher`），
+按 LeWM 的基线配方各训练 10 epochs，评测使用训练结束时的最终权重。它们不是 LeWM
+发布的预训练权重，而是用其公开数据在本地复现的基线；本仓库不做微调、继续训练或按
+分数挑选检查点。5.2 的 CEM 族基线使用同一批检查点。
 
 | 任务 | 模型 | 评测范围 | ICL 主分数 | 单检查点判定 | 关联原始环境 CEM（非任务分数） |
 |---|---|---|---:|---|---|
@@ -254,8 +255,8 @@ Test 关闭。
 eval seed（42–44）× 100 次。CEM 规划参数全环境一致：300 candidates、30 iterations、
 topk 30、History=3、action block 5、goal offset 25、budget 50。
 
-这些基线检查点的来源见 5.1：LeWM 公开发布的原始基线，在 LeWorldModel 官方数据集上
-按其发布配方训练 10 epochs，本仓库不做微调、继续训练或按分数挑选检查点。评测前后都会
+这些基线检查点的来源见 5.1：由本仓库在 LeWM 公开数据集上按其基线配方训练 10 epochs，
+不做微调、继续训练或按分数挑选检查点。评测前后都会
 核对权重的 state-dict SHA-256，确认规划过程没有改动模型（逐 cell 记录见
 `family_summary.json` 的 `model_state_audit`）。
 

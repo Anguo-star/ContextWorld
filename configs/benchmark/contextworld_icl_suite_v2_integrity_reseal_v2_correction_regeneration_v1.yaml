@@ -1,0 +1,101 @@
+schema_version: 1
+record_id: contextworld_icl_suite_v2_integrity_reseal_v2_correction_regeneration_v1
+status: preregistered_before_decision_regeneration
+created_utc: "2026-08-19"
+
+# Why this record exists
+#
+# The immediately preceding regeneration
+# (``..._postpublication_regeneration_v1``) resealed the published decision
+# against a documentation clarification, and its one-use authorization is
+# spent.  That clarification contained a FALSE provenance statement: it said
+# the eight original baseline checkpoints were LeWM's published baselines and
+# that this repository does not train them.  They are in fact trained here,
+# from LeWM's public datasets.  The error and its evidence are recorded in
+# ``contextworld_icl_suite_v2_baseline_provenance_correction_v1``.
+#
+# So this regeneration is not another clarification.  It is the reseal that
+# accompanies the withdrawal of a published false statement.  The distinction
+# matters to anyone auditing the lineage: the predecessor regeneration is not
+# merely superseded, it published something incorrect, and this record exists
+# because of that.
+#
+# As with both predecessors, no successor v3 identity is created.  Nothing
+# material changed -- no score, gate, verdict, dataset, checkpoint or
+# scoreboard row moves.  A correction to a statement of fact about who trained
+# the weights does not alter the evaluated material, so it does not warrant a
+# seal generation.
+
+scope:
+  reseal_id: contextworld_icl_suite_v2_integrity_reseal_v2
+  action: regenerate_the_published_decision_after_correcting_a_false_statement
+  regeneration_count_authorized: 1
+  predecessor_decision_was_published: true
+  predecessor_published_a_false_statement: true
+  published_decision_superseded_in_place: true
+  successor_identity_created: false
+  authority_module_changed: false
+  reseal_preregistration_modified: false
+  correction_record:
+    path: configs/benchmark/contextworld_icl_suite_v2_baseline_provenance_correction_v1.yaml
+    record_id: contextworld_icl_suite_v2_baseline_provenance_correction_v1
+  result_based_retry: false
+  score_or_threshold_mutation: false
+  verdict_mutation: false
+  scoreboard_mutation_authorized: false
+  public_test_rerun_authorized: false
+  training_or_checkpoint_selection_authorized: false
+
+published_predecessor:
+  commit: 0649499
+  branch: main
+  remote: origin
+  decision:
+    path: configs/benchmark/contextworld_icl_suite_v2_integrity_reseal_decision_v2.json
+    sha256: 01e6ed3b1d0b4b29463eb283047f1186a41dcbc84bcecf04901c1c8560e28947
+    size_bytes: 22330
+    sealed_public_benchmark_sha256: e67da7a3e6c30e7960252a7791d95ff9ae743e88e6bdf06e5b657932df57d828
+    sealed_public_benchmark_size_bytes: 51714
+  predecessor_regeneration_record:
+    path: configs/benchmark/contextworld_icl_suite_v2_integrity_reseal_v2_postpublication_regeneration_v1.yaml
+    record_id: contextworld_icl_suite_v2_integrity_reseal_v2_postpublication_regeneration_v1
+    one_use_authorization_spent: true
+  archived_copy:
+    path: configs/benchmark/contextworld_icl_suite_v2_integrity_reseal_decision_v2_superseded_20260819b.json
+    exclusive_creation_required: true
+
+drifted_material:
+  material: capability_taxonomy_documentation_amendment.final_public_documents.public_benchmark
+  path: docs/ContextWorld_ICL_Benchmark.md
+  previous_sha256: e67da7a3e6c30e7960252a7791d95ff9ae743e88e6bdf06e5b657932df57d828
+  previous_size_bytes: 51714
+  cause: >-
+    sections 5.1 and 5.2 withdrew the false claim that the eight baseline
+    checkpoints are LeWM's published weights, and now state correctly that
+    they are trained in this repository from LeWM's public datasets
+    (tworoom, pusht_expert_train, ogbench/cube_single_expert, reacher) under
+    LeWM's baseline recipe for 10 epochs
+  lines_added: 7
+  lines_removed: 6
+  numeric_values_changed: false
+  other_sealed_documents_drifted: false
+
+regeneration_rule:
+  delete_superseded_decision_only_after_byte_exact_archive: true
+  readiness_audit_must_pass_first: true
+  decision_must_be_written_by_the_frozen_cli: true
+  cli:
+    path: scripts/freeze_contextworld_icl_suite_v2_integrity_reseal_v2.py
+    invocation: "--write-decision --output configs/benchmark/contextworld_icl_suite_v2_integrity_reseal_decision_v2.json"
+  decision_must_validate_after_write: true
+  full_test_suite_must_pass_after_write: true
+  documents_must_not_change_after_the_decision_is_written: true
+  further_document_edits_require_a_new_regeneration_record: true
+
+outputs:
+  regenerated_decision:
+    path: configs/benchmark/contextworld_icl_suite_v2_integrity_reseal_decision_v2.json
+  regeneration_receipt:
+    path: configs/benchmark/contextworld_icl_suite_v2_integrity_reseal_v2_correction_regeneration_receipt_v1.json
+    exclusive_creation_required: true
+  overwrite_authorized: false
