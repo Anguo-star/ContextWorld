@@ -110,6 +110,53 @@ line, "so an external model is normalized exactly as the baselines were and
 cannot quietly evaluate under a different contract". Your adapter must
 therefore accept both shapes and normalise accordingly.
 
+## Pixel preprocessing
+
+`_preprocess_pixels` normalises with **ImageNet** mean/std. This is not an
+arbitrary ContextWorld choice — it is what Stable-WorldModel trains with.
+`scripts/train/lewm.py`, `pldm.py` and `prejepa.py` all build their transform
+from `spt.data.dataset_stats.ImageNet`, so the benchmark's preprocessing is
+aligned with the training pipeline by construction.
+
+An adapter for a Stable-WorldModel family should therefore reuse
+`_preprocess_pixels` as-is. Only a model trained *outside* Stable-WorldModel
+under different statistics needs its own chain — and in that case the
+mismatch is the integrator's to resolve, not the benchmark's.
+
+## Two routes for a new model family
+
+**Route A — Stable-WorldModel family (preferred).** If the model exists as a
+Stable-WorldModel world model, the work is small. `_load_model` already
+instantiates any family from `scripts/train/config/{name}.yaml`, so a new
+adapter is mostly `model_config_name = "<family>"` plus the geometry class
+attributes. Normalisation, checkpoint loading and the frozen-state hash all
+come for free, and the evaluation is aligned with the baselines by
+construction.
+
+**Route B — fully external model.** Implement the five members directly. You
+own preprocessing, checkpoint loading and latent representation. Use this
+only when the model cannot be expressed as a Stable-WorldModel family.
+
+### DINO-WM specifically
+
+Stable-WorldModel already ships a DINOv2-based world model: the `prejepa`
+family. Its `scripts/train/config/prejepa.yaml` matches DINO-WM's published
+architecture closely — `dinov2_small`, `patch_size: 14`, `image_size: 224`,
+`history_size: 3`, `frameskip: 5`, predictor `depth 6 / heads 16 /
+mlp_dim 2048 / dim_head 64`, action and proprio encoding width 10.
+
+That makes Route A available, and it is the better one: an adapter with
+`model_config_name = "prejepa"` inherits the aligned ImageNet preprocessing
+rather than reimplementing DINO-WM's own 0.5/0.5 chain, and is trained and
+evaluated under the same pipeline as the baselines.
+
+Two API differences from `lewm`/`pldm` to handle:
+
+* `prejepa.rollout(info, action_sequence)` takes **no** `history_size`
+  argument, unlike both other families.
+* It reads `info['id']` and `info['step_idx']` for its init-embedding cache,
+  and writes to `info['predicted_embedding']`.
+
 ## Invocation
 
 ```bash
