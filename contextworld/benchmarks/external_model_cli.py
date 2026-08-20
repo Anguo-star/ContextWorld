@@ -97,11 +97,25 @@ class TaskBinding:
 _ADAPTERS = "contextworld.benchmarks.adapters"
 _SCORE = "contextworld.benchmarks"
 
+# Built-in families, keyed by the name accepted by ``--adapter``.  Each value
+# is the module holding the family's adapters and the infix in their class
+# names, which follow the regular pattern
+# ``StableWorldModel{infix}{task}Adapter``.  Adding a family that keeps that
+# pattern is one entry here rather than one binding per task.
+#
+# ``prejepa`` lives in its own module because ``adapters.py`` is byte-pinned
+# by frozen release configs and must not be edited to add a model family.
+_BUILTIN_FAMILIES = {
+    "lewm": (_ADAPTERS, "LeWM"),
+    "pldm": (_ADAPTERS, "PLDM"),
+    "prejepa": (f"{_SCORE}.prejepa_adapters", "PreJEPA"),
+}
+
 
 def _families(prefix: str) -> dict[str, str]:
     return {
-        "lewm": f"{_ADAPTERS}.StableWorldModelLeWM{prefix}Adapter",
-        "pldm": f"{_ADAPTERS}.StableWorldModelPLDM{prefix}Adapter",
+        family: f"{module}.StableWorldModel{infix}{prefix}Adapter"
+        for family, (module, infix) in _BUILTIN_FAMILIES.items()
     }
 
 
@@ -316,7 +330,10 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--task", choices=sorted(TASKS), required=True)
     add_adapter_argument(
         parser,
-        builtins={"lewm": object, "pldm": object},
+        # Derived from the family table so the help text cannot drift out of
+        # step with what ``--adapter`` actually accepts.  Only the keys are
+        # read here; the classes are resolved per task.
+        builtins={family: object for family in _BUILTIN_FAMILIES},
         default=None,
         required=True,
     )

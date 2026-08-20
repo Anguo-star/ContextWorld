@@ -25,9 +25,11 @@ import yaml
 
 from contextworld.benchmarks import external_model_cli
 from contextworld.benchmarks.adapter_registry import AdapterRequest
+from contextworld.benchmarks.adapters import LatentWorldModelAdapter
 from contextworld.benchmarks.external_model_cli import (
     RESULT_KIND,
     TASKS,
+    _BUILTIN_FAMILIES,
     build_request,
 )
 
@@ -44,8 +46,43 @@ class TestTaskBindings:
         binding = TASKS[task]
         assert callable(binding.load_scorer())
         families = binding.load_builtins()
-        assert set(families) == {"lewm", "pldm"}
+        assert set(families) == set(_BUILTIN_FAMILIES)
         assert all(isinstance(value, type) for value in families.values())
+
+    @pytest.mark.parametrize("task", sorted(TASKS))
+    def test_every_family_covers_every_task(self, task: str) -> None:
+        """Each built-in family must reach all nine tasks with real geometry.
+
+        The class names are assembled by string interpolation, so a family
+        that is missing one task's variant fails only when that task runs.
+        """
+
+        families = TASKS[task].load_builtins()
+        for name, adapter in families.items():
+            assert issubclass(adapter, LatentWorldModelAdapter), name
+            assert not getattr(adapter, "__abstractmethods__", None), name
+            assert adapter.required_history_tokens > 0, name
+            assert adapter.raw_action_dim > 0, name
+
+    def test_families_agree_on_geometry_within_a_task(self) -> None:
+        """A family swap must not silently change what a task evaluates.
+
+        Geometry belongs to the task, not the model, so every family bound to
+        one task must declare identical history, horizon and action width. If
+        they diverge, two families' numbers for that task are not comparable.
+        """
+
+        for task, binding in TASKS.items():
+            geometries = {
+                name: (
+                    adapter.required_history_tokens,
+                    adapter.maximum_future_action_blocks,
+                    adapter.raw_action_dim,
+                    adapter.action_input_dim,
+                )
+                for name, adapter in binding.load_builtins().items()
+            }
+            assert len(set(geometries.values())) == 1, (task, geometries)
 
     def test_the_nine_benchmark_tasks_are_all_reachable(self) -> None:
         assert sorted(TASKS) == [

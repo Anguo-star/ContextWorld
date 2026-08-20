@@ -145,17 +145,45 @@ architecture closely — `dinov2_small`, `patch_size: 14`, `image_size: 224`,
 `history_size: 3`, `frameskip: 5`, predictor `depth 6 / heads 16 /
 mlp_dim 2048 / dim_head 64`, action and proprio encoding width 10.
 
-That makes Route A available, and it is the better one: an adapter with
-`model_config_name = "prejepa"` inherits the aligned ImageNet preprocessing
-rather than reimplementing DINO-WM's own 0.5/0.5 chain, and is trained and
-evaluated under the same pipeline as the baselines.
+**This is already implemented.** `contextworld/benchmarks/prejepa_adapters.py`
+provides all eight variants, and `--adapter prejepa` works for every task:
 
-Two API differences from `lewm`/`pldm` to handle:
+```bash
+contextworld-external-eval --task speed --adapter prejepa \
+    --checkpoint /path/to/prejepa.ckpt --model-name dino-wm
+```
 
-* `prejepa.rollout(info, action_sequence)` takes **no** `history_size`
-  argument, unlike both other families.
-* It reads `info['id']` and `info['step_idx']` for its init-embedding cache,
-  and writes to `info['predicted_embedding']`.
+Train the checkpoint with Stable-WorldModel's own
+`scripts/train/prejepa.py`; ContextWorld does not train.
+
+Three `prejepa` API differences are absorbed by a rollout shim, each with a
+silent failure mode if left unhandled:
+
+* `rollout` takes no `history_size` argument.
+* The visual stream is `predicted_visual`, not `predicted_emb`. Targets from
+  `encode_pixels` are visual-only, so scoring the concatenated action slots
+  would compare a model's action encoding against itself.
+* `rollout` caches its initial embedding on `info['id']`/`info['step_idx']`,
+  which benchmark bundles do not carry. The cache is dropped per call; a
+  stale hit would score one bundle from another's initial state.
+
+### Adding another family
+
+Adapters for a new Stable-WorldModel family go in a **new module**, not in
+`adapters.py` — that file's bytes are pinned by the speed and door release
+configs, so editing it invalidates published provenance. Then add one entry
+to `_BUILTIN_FAMILIES` in `external_model_cli.py`:
+
+```python
+_BUILTIN_FAMILIES = {
+    "lewm":    (_ADAPTERS, "LeWM"),
+    "pldm":    (_ADAPTERS, "PLDM"),
+    "prejepa": (f"{_SCORE}.prejepa_adapters", "PreJEPA"),
+}
+```
+
+Class names follow `StableWorldModel{infix}{task}Adapter`, so one entry
+reaches all nine tasks. The CLI help text is derived from this table.
 
 ## Invocation
 
