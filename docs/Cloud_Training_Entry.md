@@ -21,9 +21,11 @@ Then per run:
 
 | variable | default | meaning |
 |---|---|---|
-| `CW_TASK` | *(required)* | one of the nine benchmark tasks |
+| `CW_TASK` | *(required)* | one of the nine benchmark tasks, or `original` |
+| `CW_ENV` | — | with `CW_TASK=original`: `tworoom`, `pusht`, `reacher`, `cube` |
 | `CW_FAMILY` | `lewm` | `lewm`, `pldm` or `prejepa` |
 | `CW_SEED` | `3072` | training seed |
+| `CW_ALL_SEEDS` | unset | run all three baseline seeds in sequence |
 | `CW_MODE` | `preflight` | mode for the shell-backed tasks |
 | `CW_STAGE` | `paired` | `action_delay` only: `paired` or `curriculum` |
 | `CW_VARIANT` | recipe of record | override the launcher's variant |
@@ -47,6 +49,58 @@ CW_TASK=contact_friction CW_FAMILY=pldm bash scripts/cloud_train.sh
 CW_TASK=speed CW_FAMILY=prejepa CW_DATASET=/path/to/data \
     bash scripts/cloud_train.sh
 ```
+
+## Original task training
+
+The four unmodified environments the nine capabilities are built on. This is
+the baseline regime — same families, different data.
+
+```bash
+CW_TASK=original CW_ENV=tworoom CW_FAMILY=lewm bash scripts/cloud_train.sh
+CW_TASK=original CW_ENV=cube CW_FAMILY=prejepa bash scripts/cloud_train.sh
+
+# all three baseline seeds in sequence
+CW_TASK=original CW_ENV=pusht CW_FAMILY=prejepa CW_ALL_SEEDS=1 \
+    bash scripts/cloud_train.sh
+```
+
+`CW_ENV` takes the environment, not a capability — `tworoom`, not `speed`.
+
+### What the environments differ in
+
+Verified by loading each dataset and composing each config, not read off
+documentation:
+
+| env | lewm/pldm group | prejepa `dataset_name` | action | aux column |
+|---|---|---|---|---|
+| tworoom | `data=tworoom` | `quentinll/tworoom.h5` | 2 | `proprio` (2) |
+| pusht | `data=pusht` | `quentinll/pusht_expert_train.h5` | 2 | `proprio` (4) |
+| reacher | `data=dmc` | `quentinll/reacher.h5` | 2 | `observation` (6) |
+| cube | `data=ogb` | `quentinll/ogbench/cube_single_expert.h5` | 5 | `observation` (28) |
+
+Three traps the launcher absorbs:
+
+* **The data group names do not match the environment names.** Reacher is
+  `dmc` and cube is `ogb`.
+* **`prejepa.yaml` hardcodes `wm.encoding.proprio`**, and `prejepa.py` raises
+  if an encoding key is missing from the dataset. Reacher and Cube carry
+  `observation` instead, so the encoding is remapped for those two.
+* **A relative dataset name resolves under `$STABLEWM_HOME/datasets/`.** An
+  empty directory left by an interrupted download shadows the real file and
+  silently re-downloads several GB, so an absolute path is passed when one
+  resolves. Set `CONTEXTWORLD_DATASET_ROOT` to the directory holding the
+  data.
+
+Action width is **not** passed — `lewm.py:285` and `prejepa.py:209` both
+derive it from the loaded dataset.
+
+### The baseline already exists for lewm and pldm
+
+`artifacts/evaluation/original_baseline_matrix_v1/` holds 4 environments ×
+2 families × 3 seeds (3072/3073/3074), 300 evaluations per cell, frozen
+2026-08-17 with `training_performed: false`. Those columns do not need
+retraining. A new family needs **4 environments × 3 seeds = 12 runs** to
+report a comparable mean ± std.
 
 Check what a combination resolves to before spending a GPU on it:
 

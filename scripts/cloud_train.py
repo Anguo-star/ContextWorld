@@ -239,9 +239,53 @@ def _shared_engine_plan(args: argparse.Namespace) -> Plan:
     return Plan(command=command)
 
 
+ORIGINAL_ENVIRONMENTS = ("tworoom", "pusht", "reacher", "cube")
+
+
+def _original_plan(args: argparse.Namespace) -> Plan:
+    """The baseline regime: unmodified task data, not an ICL capability.
+
+    Reached with ``CW_TASK=original`` plus ``CW_ENV``, so a job template that
+    already sets one task variable can reach both regimes.
+    """
+
+    if args.env not in ORIGINAL_ENVIRONMENTS:
+        raise SystemExit(
+            f"original training needs CW_ENV in {ORIGINAL_ENVIRONMENTS}; "
+            f"got {args.env!r}"
+        )
+    command = _python(
+        "run_original_task_train.py",
+        "--env", args.env,
+        "--family", args.family,
+    )
+    if args.all_seeds:
+        command.append("--all-seeds")
+    else:
+        command += ["--seed", str(args.seed)]
+    if args.output:
+        command += ["--output", str(args.output)]
+    if args.batch_size:
+        command += ["--batch-size", str(args.batch_size)]
+    return Plan(
+        command=command,
+        note=(
+            "original task data, not a benchmark capability; "
+            "baseline seeds are 3072/3073/3074"
+        ),
+    )
+
+
 def build_plan(args: argparse.Namespace) -> Plan:
     """Resolve one launch. Raises SystemExit on a combination that has no
     launcher, rather than emitting a command that would fail later."""
+
+    if args.task == "original":
+        if args.family not in FAMILIES:
+            raise SystemExit(
+                f"Unknown family {args.family!r}; expected one of {FAMILIES}"
+            )
+        return _original_plan(args)
 
     if args.task not in TASKS:
         raise SystemExit(f"Unknown task {args.task!r}; expected one of {TASKS}")
@@ -282,7 +326,24 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--task",
         default=_environment_default("CW_TASK"),
-        help="Benchmark task (env: CW_TASK)",
+        help=(
+            "Benchmark task, or 'original' to train on unmodified task data "
+            "(env: CW_TASK)"
+        ),
+    )
+    parser.add_argument(
+        "--env",
+        default=_environment_default("CW_ENV"),
+        help=(
+            "Original task environment, used with --task original: "
+            f"{', '.join(ORIGINAL_ENVIRONMENTS)} (env: CW_ENV)"
+        ),
+    )
+    parser.add_argument(
+        "--all-seeds",
+        action="store_true",
+        default=bool(os.environ.get("CW_ALL_SEEDS")),
+        help="Run all three baseline seeds in sequence (env: CW_ALL_SEEDS)",
     )
     parser.add_argument(
         "--family",

@@ -30,6 +30,8 @@ import cloud_train as router  # noqa: E402
 def _args(**keywords: object) -> argparse.Namespace:
     defaults: dict[str, object] = {
         "task": "speed",
+        "env": None,
+        "all_seeds": False,
         "family": "lewm",
         "seed": 3072,
         "mode": "preflight",
@@ -261,6 +263,65 @@ class TestItRoutesRatherThanDecides:
         index = plan.command.index("--batch-size")
 
         assert plan.command[index + 1] == "64"
+
+
+class TestTheOriginalBaselineRegime:
+    """`CW_TASK=original` reaches the four unmodified task datasets.
+
+    This is a different regime from the nine ICL capabilities: same families,
+    different data, and the seeds are what make a baseline column reportable
+    as mean +/- std.
+    """
+
+    @pytest.mark.parametrize("env", router.ORIGINAL_ENVIRONMENTS)
+    @pytest.mark.parametrize("family", ["lewm", "pldm", "prejepa"])
+    def test_every_environment_and_family_routes(
+        self, env: str, family: str
+    ) -> None:
+        plan = router.build_plan(
+            _args(task="original", env=env, family=family)
+        )
+        command = " ".join(plan.command)
+
+        assert "run_original_task_train.py" in command
+        assert f"--env {env}" in command
+        assert f"--family {family}" in command
+
+    def test_it_does_not_need_a_dataset_for_prejepa(self) -> None:
+        """The benchmark route requires CW_DATASET; here the environment
+        determines the data, so requiring it too would be noise."""
+
+        plan = router.build_plan(
+            _args(task="original", env="cube", family="prejepa")
+        )
+
+        assert plan.command
+
+    def test_all_seeds_replaces_the_single_seed(self) -> None:
+        plan = router.build_plan(
+            _args(task="original", env="pusht", family="lewm", all_seeds=True)
+        )
+        command = " ".join(plan.command)
+
+        assert "--all-seeds" in command
+        assert "--seed" not in command
+
+    def test_a_missing_environment_fails_early(self) -> None:
+        with pytest.raises(SystemExit, match="CW_ENV"):
+            router.build_plan(_args(task="original", env=None))
+
+    def test_an_ICL_task_name_is_not_an_environment(self) -> None:
+        """'speed' is a capability, not one of the four base environments."""
+
+        with pytest.raises(SystemExit, match="CW_ENV"):
+            router.build_plan(_args(task="original", env="speed"))
+
+    def test_the_launcher_it_names_exists(self) -> None:
+        plan = router.build_plan(
+            _args(task="original", env="tworoom", family="lewm")
+        )
+
+        assert Path(plan.command[1]).is_file()
 
 
 class TestFailuresArriveEarly:
