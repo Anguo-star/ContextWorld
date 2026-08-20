@@ -75,6 +75,43 @@ TASK_GEOMETRY: dict[str, dict[str, int]] = {
 
 FRAMESKIP = 5
 
+# ``batch_size x devices x accumulate_grad_batches`` in every real profile of
+# ``train_tworoom_step1.PROFILE_DEFAULTS`` -- the lewm/pldm baselines were all
+# trained at this effective batch, whatever hardware layout produced it.
+#
+# ``prejepa.yaml`` defaults to ``batch_size: 32`` with ``devices: auto``, so an
+# unqualified run lands somewhere else entirely. That is worth saying out loud,
+# but it is not this script's business to refuse: the recipe of record lives in
+# the release configs, and a launcher that second-guesses the operator is a
+# launcher people work around.
+BASELINE_GLOBAL_BATCH = 1024
+
+
+def global_batch_advisory(args: argparse.Namespace) -> str | None:
+    """Warn when the effective batch will not match the baselines.
+
+    Returns ``None`` when nothing can be said -- an unset knob means the
+    upstream default applies, and this script does not know what ``devices:
+    auto`` will resolve to at runtime.
+    """
+
+    if args.batch_size is None or args.devices is None:
+        return (
+            "[prejepa] note: batch_size/devices not both set; upstream "
+            f"defaults apply (prejepa.yaml is batch_size 32, devices auto). "
+            f"The lewm/pldm baselines ran at global batch "
+            f"{BASELINE_GLOBAL_BATCH}."
+        )
+    global_batch = args.batch_size * args.devices * (args.accumulate or 1)
+    if global_batch == BASELINE_GLOBAL_BATCH:
+        return None
+    return (
+        f"[prejepa] note: global batch {global_batch} "
+        f"({args.batch_size} x {args.devices} x {args.accumulate or 1}) "
+        f"differs from the lewm/pldm baselines' {BASELINE_GLOBAL_BATCH}. "
+        "Results will not be batch-comparable with them."
+    )
+
 
 def resolve_stablewm_repo(explicit: str | None) -> Path:
     """Locate the Stable-WorldModel checkout that owns the training code."""
@@ -143,6 +180,7 @@ def build_overrides(args: argparse.Namespace) -> list[str]:
         (args.batch_size, "batch_size"),
         (args.num_workers, "num_workers"),
         (args.devices, "trainer.devices"),
+        (args.accumulate, "trainer.accumulate_grad_batches"),
         (args.max_epochs, "trainer.max_epochs"),
         (args.precision, "trainer.precision"),
     ):
@@ -182,6 +220,16 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--batch-size", type=int, default=None)
     parser.add_argument("--num-workers", type=int, default=None)
     parser.add_argument("--devices", type=int, default=None)
+    parser.add_argument(
+        "--accumulate",
+        type=int,
+        default=None,
+        help=(
+            "Gradient accumulation. Only the product "
+            "batch_size x devices x accumulate is comparable across runs; "
+            f"the lewm/pldm baselines use {BASELINE_GLOBAL_BATCH}."
+        ),
+    )
     parser.add_argument("--max-epochs", type=int, default=None)
     parser.add_argument("--precision", default=None)
     parser.add_argument(
@@ -208,6 +256,9 @@ def main(argv: list[str] | None = None) -> int:
     print(f"[prejepa] task={args.task} run={args.run_name}")
     print(f"[prejepa] stablewm={repo}")
     print(f"[prejepa] script={script}")
+    advisory = global_batch_advisory(args)
+    if advisory is not None:
+        print(advisory)
     print(f"[prejepa] {' '.join(command)}")
     if args.print_command:
         return 0

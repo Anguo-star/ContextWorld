@@ -10,6 +10,7 @@ wrong.
 
 from __future__ import annotations
 
+import argparse
 import sys
 from pathlib import Path
 
@@ -35,9 +36,11 @@ def repo(tmp_path: Path) -> Path:
     return tmp_path
 
 
-def _overrides(task: str, **keywords: object) -> dict[str, str]:
+def _namespace(**keywords: object) -> argparse.Namespace:
+    """A parsed command line with everything the launcher reads."""
+
     defaults: dict[str, object] = {
-        "task": task,
+        "task": "speed",
         "run_name": "r",
         "dataset": "d",
         "seed": 3072,
@@ -45,16 +48,18 @@ def _overrides(task: str, **keywords: object) -> dict[str, str]:
         "batch_size": None,
         "num_workers": None,
         "devices": None,
+        "accumulate": None,
         "max_epochs": None,
         "precision": None,
         "override": [],
     }
     defaults.update(keywords)
-    import argparse
+    return argparse.Namespace(**defaults)
 
-    args = argparse.Namespace(**defaults)
+
+def _overrides(task: str, **keywords: object) -> dict[str, str]:
     pairs = {}
-    for entry in launcher.build_overrides(args):
+    for entry in launcher.build_overrides(_namespace(task=task, **keywords)):
         key, _, value = entry.partition("=")
         pairs[key] = value
     return pairs
@@ -130,16 +135,82 @@ class TestItRemainsALauncher:
     def test_arbitrary_overrides_are_forwarded_last(self) -> None:
         """Hydra takes the last value, so an explicit override must win."""
 
-        import argparse
-
-        args = argparse.Namespace(
-            task="speed", run_name="r", dataset="d", seed=1, output=None,
-            batch_size=32, num_workers=None, devices=None, max_epochs=None,
-            precision=None, override=["batch_size=99"],
+        entries = launcher.build_overrides(
+            _namespace(batch_size=32, override=["batch_size=99"])
         )
-        entries = launcher.build_overrides(args)
 
         assert entries[-1] == "batch_size=99"
+
+
+class TestGlobalBatchAdvisory:
+    """The baselines all ran at one effective batch; prejepa's default is not it.
+
+    The advisory exists because ``prejepa`` bypasses
+    ``train_tworoom_step1._build_training_plan``, whose optimizer-budget
+    assertion is what forces the lewm/pldm runs onto that number. Nothing
+    would otherwise catch a mismatch, and nothing here should *refuse* one --
+    the recipe of record lives in the release configs.
+    """
+
+    def _args(self, **keywords: object) -> argparse.Namespace:
+        defaults: dict[str, object] = {
+            "batch_size": None, "devices": None, "accumulate": None
+        }
+        defaults.update(keywords)
+        return argparse.Namespace(**defaults)
+
+    def test_the_baseline_product_is_silent(self) -> None:
+        args = self._args(batch_size=128, devices=4, accumulate=2)
+
+        assert launcher.global_batch_advisory(args) is None
+
+    def test_any_layout_reaching_the_baseline_is_silent(self) -> None:
+        """Hardware shape is free; only the product is comparable."""
+
+        for batch, devices, accum in [(128, 8, 1), (128, 2, 4), (256, 4, 1)]:
+            args = self._args(
+                batch_size=batch, devices=devices, accumulate=accum
+            )
+
+            assert launcher.global_batch_advisory(args) is None
+
+    def test_the_upstream_default_is_flagged(self) -> None:
+        """prejepa.yaml ships batch_size 32 -- 8x off at four devices."""
+
+        args = self._args(batch_size=32, devices=4)
+        message = launcher.global_batch_advisory(args)
+
+        assert message is not None
+        assert "128" in message and str(launcher.BASELINE_GLOBAL_BATCH) in message
+
+    def test_it_stays_quiet_about_what_it_cannot_know(self) -> None:
+        """``devices: auto`` resolves at runtime; guessing would mislead."""
+
+        message = launcher.global_batch_advisory(self._args(batch_size=128))
+
+        assert message is not None
+        assert "defaults apply" in message
+
+    def test_the_advisory_never_blocks_the_run(self) -> None:
+        """A launcher that second-guesses the operator gets worked around."""
+
+        entries = launcher.build_overrides(
+            _namespace(batch_size=32, devices=1)
+        )
+
+        assert "batch_size=32" in entries
+        assert "trainer.devices=1" in entries
+
+    def test_accumulation_reaches_the_upstream_trainer(self) -> None:
+        """``pl.Trainer(**cfg.trainer)`` accepts it; a bare override would not
+        be discoverable."""
+
+        pairs = _overrides("speed", batch_size=128, devices=4, accumulate=2)
+
+        assert pairs["trainer.accumulate_grad_batches"] == "2"
+
+    def test_accumulation_is_omitted_when_unset(self) -> None:
+        assert "trainer.accumulate_grad_batches" not in _overrides("speed")
 
 
 class TestScriptResolution:
