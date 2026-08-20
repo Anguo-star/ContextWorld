@@ -142,70 +142,24 @@ class TestItRemainsALauncher:
         assert entries[-1] == "batch_size=99"
 
 
-class TestGlobalBatchAdvisory:
-    """The baselines all ran at one effective batch; prejepa's default is not it.
+class TestBaselineBatchSize:
+    """lewm/pldm are aligned by upstream default; prejepa is the odd one out.
 
-    The advisory exists because ``prejepa`` bypasses
-    ``train_tworoom_step1._build_training_plan``, whose optimizer-budget
-    assertion is what forces the lewm/pldm runs onto that number. Nothing
-    would otherwise catch a mismatch, and nothing here should *refuse* one --
-    the recipe of record lives in the release configs.
+    ``lewm.yaml`` and ``pldm.yaml`` both ship ``batch_size: 128`` with no
+    gradient accumulation. ``prejepa.yaml`` ships 32, so it is the single
+    value an operator has to override to train it like the baselines.
     """
 
-    def _args(self, **keywords: object) -> argparse.Namespace:
-        defaults: dict[str, object] = {
-            "batch_size": None, "devices": None, "accumulate": None
-        }
-        defaults.update(keywords)
-        return argparse.Namespace(**defaults)
+    def test_the_baseline_batch_size_is_reachable(self) -> None:
+        pairs = _overrides("speed", batch_size=launcher.BASELINE_BATCH_SIZE)
 
-    def test_the_baseline_product_is_silent(self) -> None:
-        args = self._args(batch_size=128, devices=4, accumulate=2)
-
-        assert launcher.global_batch_advisory(args) is None
-
-    def test_any_layout_reaching_the_baseline_is_silent(self) -> None:
-        """Hardware shape is free; only the product is comparable."""
-
-        for batch, devices, accum in [(128, 8, 1), (128, 2, 4), (256, 4, 1)]:
-            args = self._args(
-                batch_size=batch, devices=devices, accumulate=accum
-            )
-
-            assert launcher.global_batch_advisory(args) is None
-
-    def test_the_upstream_default_is_flagged(self) -> None:
-        """prejepa.yaml ships batch_size 32 -- 8x off at four devices."""
-
-        args = self._args(batch_size=32, devices=4)
-        message = launcher.global_batch_advisory(args)
-
-        assert message is not None
-        assert "128" in message and str(launcher.BASELINE_GLOBAL_BATCH) in message
-
-    def test_it_stays_quiet_about_what_it_cannot_know(self) -> None:
-        """``devices: auto`` resolves at runtime; guessing would mislead."""
-
-        message = launcher.global_batch_advisory(self._args(batch_size=128))
-
-        assert message is not None
-        assert "defaults apply" in message
-
-    def test_the_advisory_never_blocks_the_run(self) -> None:
-        """A launcher that second-guesses the operator gets worked around."""
-
-        entries = launcher.build_overrides(
-            _namespace(batch_size=32, devices=1)
-        )
-
-        assert "batch_size=32" in entries
-        assert "trainer.devices=1" in entries
+        assert pairs["batch_size"] == "128"
 
     def test_accumulation_reaches_the_upstream_trainer(self) -> None:
-        """``pl.Trainer(**cfg.trainer)`` accepts it; a bare override would not
-        be discoverable."""
+        """``pl.Trainer(**cfg.trainer)`` accepts it. Upstream uses none, but
+        fewer GPUs than the recipe assumed is exactly when it is needed."""
 
-        pairs = _overrides("speed", batch_size=128, devices=4, accumulate=2)
+        pairs = _overrides("speed", accumulate=2)
 
         assert pairs["trainer.accumulate_grad_batches"] == "2"
 
