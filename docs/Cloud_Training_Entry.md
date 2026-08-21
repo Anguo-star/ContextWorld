@@ -25,8 +25,34 @@ fails:
 |---|---|---|
 | `CW_DATA_ROOT` | `/opt/huawei/dataset/ag_data`, then the dev box's `explorer-env` variant | your mount is elsewhere |
 | `CONTEXTWORLD_STABLE_WORLDMODEL_REPO` | `<data root>/data/world_model/context_world/upstream/…`, then `pkg_x86/`, `code/` | the checkout moved |
-| `CONTEXTWORLD_DATASET_ROOT` | `<data root>/data/world_model` | data lives apart |
+| `CONTEXTWORLD_DATASET_ROOT` | `<data root>/data/world_model` | **original** LeWM data lives apart |
+| `CONTEXTWORLD_ARTIFACT_ROOT` | `<dataset root>/context_world` | **ContextWorld** data lives apart |
 | `HF_HUB_CACHE` / `HF_HUB_OFFLINE` | `<data root>/models`, offline when dinov2-small is present | weights are elsewhere |
+
+### Two data trees, deliberately separate
+
+```
+<data root>/data/world_model/
+├── quentinll/                 original LeWM open data   <- CONTEXTWORLD_DATASET_ROOT
+│   ├── tworoom.h5                 (resolved as quentinll/tworoom.h5)
+│   ├── pusht_expert_train.h5
+│   ├── reacher.h5
+│   └── ogbench/cube_single_expert.h5
+└── context_world/             ContextWorld's own data   <- CONTEXTWORLD_ARTIFACT_ROOT
+    ├── synthesis/                 synthesized benchmark data
+    ├── training/                  checkpoints and run logs
+    └── upstream/                  the Stable-WorldModel source checkout
+```
+
+`CW_TASK=original` reads the first tree; the nine benchmark capabilities read
+the second. Collapsing them into one variable would train a baseline on
+synthesized data without saying so, which is why they are exported
+separately.
+
+`CONTEXTWORLD_ARTIFACT_ROOT` matters especially in the cloud: without it,
+`contextworld.paths.artifact_root` infers the location from the checkout
+(`repo.parents[1]/data/world_model/context_world`), which is only correct
+when `work_dir` happens to sit two levels below the data root.
 
 The cloud mounts the data root as `/opt/huawei/dataset/ag_data`; the
 development box has an extra `explorer-env` segment. The script detects

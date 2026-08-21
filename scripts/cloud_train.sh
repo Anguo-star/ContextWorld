@@ -58,13 +58,39 @@ if [ -z "${CONTEXTWORLD_STABLE_WORLDMODEL_REPO:-}" ]; then
   done
 fi
 
-# --- Datasets --------------------------------------------------------------
-# A relative dataset name resolves under $STABLEWM_HOME/datasets/, where an
-# empty directory left by an interrupted download shadows the real file and
-# silently re-downloads several GB. The launcher passes an absolute path when
-# this root resolves one.
+# --- Data roots ------------------------------------------------------------
+# Three distinct trees live under the data root, and conflating them is the
+# failure this section exists to prevent:
+#
+#   <root>/data/world_model/quentinll/          original LeWM open data
+#   <root>/data/world_model/context_world/      ContextWorld's own outputs
+#                             synthesis/          synthesized benchmark data
+#                             training/           checkpoints and run logs
+#                             upstream/           the SWM source checkout
+#
+# Original-task training reads the first. Benchmark training reads the second.
+# A single variable covering both would silently train on the wrong data, so
+# they are exported separately.
+#
+# CONTEXTWORLD_DATASET_ROOT is the directory a dataset name is resolved
+# against: `quentinll/tworoom.h5` hangs off data/world_model, so that is the
+# root -- not the quentinll directory itself.
 : "${CONTEXTWORLD_DATASET_ROOT:=$CW_DATA_ROOT/data/world_model}"
 export CONTEXTWORLD_DATASET_ROOT
+
+# CONTEXTWORLD_ARTIFACT_ROOT is where ContextWorld reads synthesized data and
+# writes runs. Without it, contextworld.paths guesses from the checkout's
+# location (repo.parents[1]/data/world_model/context_world), which is wrong
+# whenever work_dir is not two levels below the data root -- exactly the
+# cloud's situation.
+: "${CONTEXTWORLD_ARTIFACT_ROOT:=$CONTEXTWORLD_DATASET_ROOT/context_world}"
+export CONTEXTWORLD_ARTIFACT_ROOT
+
+if [ ! -d "$CONTEXTWORLD_ARTIFACT_ROOT" ]; then
+  echo "[cloud-train] artifact root does not exist: $CONTEXTWORLD_ARTIFACT_ROOT" >&2
+  echo "[cloud-train] set CONTEXTWORLD_ARTIFACT_ROOT to the context_world directory" >&2
+  exit 2
+fi
 
 # --- Pretrained backbone ---------------------------------------------------
 # prejepa loads facebook/dinov2-small through transformers. Point the hub
@@ -83,7 +109,8 @@ PYTHON_BIN="${PYTHON_BIN:-python}"
 
 echo "[cloud-train] data_root=$CW_DATA_ROOT"
 echo "[cloud-train] stablewm=${CONTEXTWORLD_STABLE_WORLDMODEL_REPO:-<unset>}"
-echo "[cloud-train] datasets=${CONTEXTWORLD_DATASET_ROOT}"
+echo "[cloud-train] original data (datasets)=${CONTEXTWORLD_DATASET_ROOT}"
+echo "[cloud-train] contextworld data (artifacts)=${CONTEXTWORLD_ARTIFACT_ROOT}"
 echo "[cloud-train] hf_cache=${HF_HUB_CACHE:-<default>} offline=${HF_HUB_OFFLINE:-0}"
 
 exec "$PYTHON_BIN" "$ROOT/scripts/cloud_train.py" "$@"

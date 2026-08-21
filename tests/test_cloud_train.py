@@ -379,6 +379,36 @@ class TestTheCloudContract:
                 f": \"${{{exported}" in text
             ), exported
 
+    def test_it_separates_the_original_and_contextworld_data_roots(
+        self,
+    ) -> None:
+        """Original LeWM data and ContextWorld's own outputs are different
+        trees. One variable covering both would silently train a baseline on
+        synthesized data, or a capability on original data."""
+
+        text = (SCRIPTS / "cloud_train.sh").read_text(encoding="utf-8")
+
+        assert "CONTEXTWORLD_DATASET_ROOT" in text
+        assert "CONTEXTWORLD_ARTIFACT_ROOT" in text
+        assert "export CONTEXTWORLD_ARTIFACT_ROOT" in text
+
+    def test_the_artifact_root_is_not_left_to_inference(self) -> None:
+        """contextworld.paths falls back to repo.parents[1]/data/... , which
+        is wrong whenever work_dir is not two levels below the data root --
+        exactly the cloud's layout."""
+
+        text = (SCRIPTS / "cloud_train.sh").read_text(encoding="utf-8")
+
+        assert "artifact root does not exist" in text
+
+    def test_the_two_roots_are_reported_distinctly(self) -> None:
+        """An operator reading the log should see which is which."""
+
+        text = (SCRIPTS / "cloud_train.sh").read_text(encoding="utf-8")
+
+        assert "original data" in text
+        assert "contextworld data" in text
+
     def test_an_explicit_data_root_is_honoured(self) -> None:
         """A user who sets CW_DATA_ROOT is trusted; detection is skipped."""
 
