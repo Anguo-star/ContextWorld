@@ -18,6 +18,22 @@ repository-relative training script:
 repository. It changes into `work_dir` before invoking the relative
 `run_shell_script`.
 
+`cloud_train.sh` performs path normalization and then always enters
+`run_stablewm_train.py`, independent of model family. For modern training, the
+entry composes the family profile and explicit dataset. For historical
+LeWM/PLDM release reproduction, the same entry selects the frozen task recipe
+internally. The original task-specific launchers remain unchanged as protocol
+evidence, but `cloud_train.py` is no longer an extra process in the cloud path.
+
+The selection is intentional and requires no additional switch:
+
+| request | execution selected by `run_stablewm_train.py` |
+|---|---|
+| original environment, any family | current family profile |
+| benchmark component with an explicit `CW_DATASET` | current family profile |
+| benchmark component, LeWM/PLDM, no `CW_DATASET` | frozen release recipe |
+| benchmark component, PreJEPA, no `CW_DATASET` | rejected because training data is missing |
+
 ## Original DINO-WM training: one shared data root
 
 Stable-WorldModel calls its DINO-WM training entry `prejepa`; that is why the
@@ -148,12 +164,19 @@ Then per run:
 | `CW_DEVICES` | family YAML | Lightning devices (`auto`, integer, or Hydra value) |
 | `CW_LOGGER` | `none` | `wandb` or `swanlab` when the selected family trainer uses the common logger factory |
 | `CW_RESUME` | `never` | `never`, `auto`, or `required` |
-| `CW_POST_TRAIN_EVAL` | unset | optional original-environment MPC evaluation after successful training |
+| `CW_POST_TRAIN_EVAL` | unset | for current family-profile runs, run applicable original CEM and benchmark ICL through the common evaluator; frozen historical reproductions retain their component evaluator |
 | `CW_PRINT_ONLY` | unset | resolve and print without running |
 
-Anything after `--` is forwarded to the underlying launcher untouched. For a
-family-profile run, prefer the typed `CW_*` variables; an uncommon raw Hydra
-setting must be forwarded as `-- --override KEY=VALUE`.
+Arguments given to `cloud_train.sh` are parsed by the same public
+`run_stablewm_train.py` entry used outside the cloud. Prefer the typed `CW_*`
+variables; an uncommon upstream Hydra setting can be passed with a repeated
+`--override KEY=VALUE` option.
+
+Post-training evaluation also needs the ContextWorld artifact root because
+the benchmark scorers read their frozen evaluation assets. Its results are
+written beside each checkpoint under `eval_results/`; see
+[Stable-WorldModel training](StableWM_Training.md#optional-post-training-evaluation)
+for the exact layout and execution matrix.
 
 For benchmark data exported with the clean Hugging Face layout, pass the
 absolute training payload recorded in `task_registry.json` through

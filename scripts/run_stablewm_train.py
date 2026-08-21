@@ -7,6 +7,10 @@ The command line is stable; the Hydra keys are not.  LeWM and PLDM use a
 launcher reads the checked-in family profile and translates only parameters
 that the selected trainer actually accepts.
 
+For a benchmark component, omitting ``--dataset`` with LeWM or PLDM selects
+the component's frozen release recipe.  This keeps one public entry without
+rewriting the byte-pinned launchers that define historical reproduction.
+
 The selected Stable-WorldModel checkout still owns the model, objective,
 forward pass, optimizer and training loop.  ContextWorld owns path validation,
 run isolation, logger credentials, family-specific argument mapping and the
@@ -95,6 +99,7 @@ class Target:
     data_group: str | None
     history_size: int
     action_dim: int
+    environment: str
     encoding_key: str | None = None
     encoding_dim: int | None = None
     original_env: str | None = None
@@ -410,6 +415,7 @@ def resolve_target(args: argparse.Namespace, contract: dict[str, Any]) -> Target
             data_group=args.data_group or spec["data_group"],
             history_size=args.history_size or contract["defaults"]["history_size"],
             action_dim=int(spec["action_dim"]),
+            environment=args.original_env,
             encoding_key=str(spec["encoding_key"]),
             encoding_dim=int(spec["encoding_dim"]),
             original_env=args.original_env,
@@ -431,6 +437,7 @@ def resolve_target(args: argparse.Namespace, contract: dict[str, Any]) -> Target
         data_group=args.data_group or spec.get("data_group"),
         history_size=args.history_size or int(spec["history_size"]),
         action_dim=int(spec["action_dim"]),
+        environment=str(spec["environment"]),
         encoding_key=str(spec["encoding_key"]),
         encoding_dim=int(spec["encoding_dim"]),
     )
@@ -499,6 +506,8 @@ def _validate_args(args: argparse.Namespace, family: str) -> None:
             "accumulate",
             "prefetch_factor",
             "embed_dim",
+            "eval_batch_size",
+            "eval_num",
     ):
         _validate_positive(f"--{name.replace('_', '-')}", getattr(args, name))
     if args.num_workers is not None and args.num_workers <= 0:
@@ -888,25 +897,16 @@ def _post_eval_command(
     stablewm_repo: Path,
     profile: dict[str, Any],
     frameskip: int,
+    training_seed: int,
+    original_dataset: Path | None,
 ) -> list[str]:
-    if not target.original_env:
-        raise SystemExit(
-            "--post-eval is only the original-environment MPC sanity/CEM "
-            "stage. Benchmark ICL/CEM uses each component's frozen evaluator.")
-    if profile["post_train_eval"] != "validated":
-        raise SystemExit(
-            f"Post-train eval is not yet checkpoint-smoke-validated for "
-            f"{args.family}; train first, then run the explicit evaluator.")
     epoch = _effective_eval_epoch(args, stablewm_repo, profile)
     command = [
         sys.executable,
         str(REPO_ROOT / "scripts/run_stablewm_eval.py"),
+        "--suite",
         "--family",
         args.family,
-        "--original-env",
-        target.original_env,
-        "--dataset",
-        str(target.dataset),
         "--run-name",
         run_name,
         "--epoch",
@@ -915,6 +915,8 @@ def _post_eval_command(
         str(checkpoint_root),
         "--stablewm-repo",
         str(stablewm_repo),
+        "--training-seed",
+        str(training_seed),
         "--num-eval",
         str(args.eval_num),
         "--eval-seeds",
@@ -936,11 +938,49 @@ def _post_eval_command(
         "--corruption-apply-to",
         args.eval_corruption_apply_to,
     ]
+    if target.original_env:
+        command.extend(("--original-env", target.original_env))
+    else:
+        command.extend(("--component", target.label))
+    if original_dataset is not None:
+        command.extend(("--dataset", str(original_dataset)))
+    if args.eval_device:
+        command.extend(("--eval-device", args.eval_device))
+    if args.eval_batch_size is not None:
+        command.extend(("--eval-batch-size", str(args.eval_batch_size)))
     if args.eval_keep_videos:
         command.append("--keep-videos")
     if args.print_command:
         command.append("--print-command")
     return command
+
+
+def _original_dataset_for_post_eval(
+    args: argparse.Namespace,
+    contract: dict[str, Any],
+    target: Target,
+) -> Path | None:
+    """Resolve the original task data used by the CEM-retention step."""
+
+    if target.original_env:
+        return target.dataset
+    if args.eval_original_dataset:
+        dataset = _absolute_path(
+            args.eval_original_dataset,
+            label="--eval-original-dataset",
+        )
+        _validate_dataset_payload(dataset)
+        return dataset
+    if not args.dataset_root:
+        return None
+    root = _absolute_path(args.dataset_root, label="--dataset-root")
+    dataset = Path(
+        os.path.abspath(
+            root / contract["original_environments"][target.environment]["dataset"]
+        )
+    )
+    _validate_dataset_payload(dataset)
+    return dataset
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -960,6 +1000,22 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--original-env", default=_env("CW_ENV"))
     parser.add_argument("--component", default=_env("CW_COMPONENT"))
     parser.add_argument("--dataset", default=_env("CW_DATASET"))
+    parser.add_argument(
+        "--mode",
+        default=_env("CW_MODE", "preflight"),
+        help="Mode passed to a frozen release launcher (env: CW_MODE).",
+    )
+    parser.add_argument(
+        "--stage",
+        choices=("paired", "curriculum"),
+        default=_env("CW_STAGE", "paired"),
+        help="Action-delay release stage (env: CW_STAGE).",
+    )
+    parser.add_argument(
+        "--variant",
+        default=_env("CW_VARIANT"),
+        help="Frozen release recipe variant override (env: CW_VARIANT).",
+    )
     parser.add_argument("--dataset-root", default=_env("CONTEXTWORLD_DATASET_ROOT"))
     parser.add_argument("--data-group", default=_env("CW_DATA_GROUP"))
     parser.add_argument(
@@ -1099,6 +1155,20 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default=_env("CW_EVAL_SEEDS",
                      ",".join(str(x) for x in contract["evaluation"]["default_seeds"])))
     parser.add_argument("--eval-mujoco-gl", default=_env("CW_EVAL_MUJOCO_GL", "osmesa"))
+    parser.add_argument(
+        "--eval-original-dataset",
+        default=_env("CW_EVAL_ORIGINAL_DATASET"),
+        help=(
+            "Original-environment H5 used by component CEM retention. "
+            "CONTEXTWORLD_DATASET_ROOT is used when this is omitted."
+        ),
+    )
+    parser.add_argument("--eval-device", default=_env("CW_EVAL_DEVICE", "cuda:0"))
+    parser.add_argument(
+        "--eval-batch-size",
+        type=int,
+        default=int(_env("CW_EVAL_BATCH_SIZE", "64")),
+    )
     parser.add_argument("--eval-corruption-type",
                         default=_env("CW_EVAL_CORRUPTION_TYPE", "gaussian_noise"))
     parser.add_argument("--eval-corruption-std",
@@ -1126,11 +1196,89 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     return args
 
 
+def _uses_release_recipe(args: argparse.Namespace) -> bool:
+    """Return whether this is a frozen LeWM/PLDM component reproduction."""
+
+    return bool(
+        args.component
+        and not args.original_env
+        and not args.dataset
+        and args.family in {"lewm", "pldm"}
+    )
+
+
+def _run_release_reproduction(args: argparse.Namespace) -> int:
+    """Resolve and run frozen task launchers without another router process."""
+
+    # cloud_train remains the compatibility CLI and the registry for the
+    # historical task-to-recipe mappings. Importing its planner here preserves
+    # those mappings while keeping it out of the process chain.
+    import cloud_train as release_recipes
+
+    if args.post_eval:
+        raise SystemExit(
+            "--post-eval is unavailable for a frozen historical component "
+            "reproduction. Use the evaluator named by that component's "
+            "release protocol, or supply --dataset to select the current "
+            "family-profile training and common evaluation suite."
+        )
+
+    request = argparse.Namespace(
+        task=args.component,
+        env=None,
+        family=args.family,
+        seeds=args.seeds,
+        mode=args.mode,
+        stage=args.stage,
+        variant=args.variant,
+        dataset=None,
+        run_name=args.run_name,
+        output=args.output,
+        batch_size=args.batch_size,
+        print_command=args.print_command,
+        extra=[],
+    )
+    runs = release_recipes._seed_runs(request)
+    print(
+        "[stablewm-train] mode=release-reproduction "
+        f"component={args.component} family={args.family} "
+        f"seeds={','.join(str(seed) for seed in args.seeds)}"
+    )
+    print(
+        "[stablewm-train] recipe=frozen; generic family-profile overrides "
+        "are not applied"
+    )
+    for run in runs:
+        plan = release_recipes.build_plan(run)
+        print(f"[stablewm-train] seed={run.seed}")
+        if plan.note:
+            print(f"[stablewm-train] note: {plan.note}")
+        for key, value in sorted(plan.env.items()):
+            print(f"[stablewm-train] env {key}={value}")
+        print(f"[stablewm-train] train: {shlex.join(plan.command)}")
+        if args.print_command:
+            continue
+
+        environment = {**os.environ, **plan.env}
+        sys.stdout.flush()
+        completed = subprocess.run(
+            plan.command,
+            cwd=str(REPO_ROOT),
+            env=environment,
+            check=False,
+        )
+        if completed.returncode != 0:
+            return completed.returncode
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     contract = load_profile_contract(args.profile_config.resolve())
     if args.family not in contract["families"]:
         raise SystemExit(f"Unknown family in profile contract: {args.family}")
+    if _uses_release_recipe(args):
+        return _run_release_reproduction(args)
     target = resolve_target(args, contract)
     stablewm_repo = resolve_stablewm_repo(args)
     validate_training_dataset_schema(
@@ -1142,6 +1290,11 @@ def main(argv: list[str] | None = None) -> int:
     profile = contract["families"][args.family]
     trainer_script = stablewm_repo / profile["entrypoint"]
     seeds = args.seeds
+    original_eval_dataset = (
+        _original_dataset_for_post_eval(args, contract, target)
+        if args.post_eval
+        else None
+    )
 
     environment = dict(os.environ)
     environment["STABLEWM_HOME"] = str(checkpoint_root)
@@ -1179,6 +1332,8 @@ def main(argv: list[str] | None = None) -> int:
             stablewm_repo=stablewm_repo,
             profile=profile,
             frameskip=(args.frameskip or contract["defaults"]["frameskip"]),
+            training_seed=seed,
+            original_dataset=original_eval_dataset,
         ) if args.post_eval else None)
         commands.append((train_command, eval_command))
 

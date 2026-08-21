@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import argparse
+import json
 import sys
 from pathlib import Path
 
@@ -186,6 +188,25 @@ class TestFamilyDialects:
 
         assert one.seeds == (3072,)
         assert three.seeds == (3072, 3073, 3074)
+
+    def test_frozen_release_reproduction_uses_the_same_public_entry(
+        self, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        status = launcher.main([
+            "--component",
+            "door",
+            "--family",
+            "pldm",
+            "--seeds",
+            "3072",
+            "--print-command",
+        ])
+
+        output = capsys.readouterr().out
+        assert status == 0
+        assert "mode=release-reproduction" in output
+        assert "run_h3_hidden_passage_train.sh" in output
+        assert "pldm-mixed" in output
 
     def test_component_selects_its_family_data_yaml_without_manual_mapping(
             self, stablewm_repo: Path, dataset: Path) -> None:
@@ -694,6 +715,234 @@ class TestLoggingAndLossBoundaries:
 
 
 class TestExplicitEvaluation:
+
+    def test_suite_reuses_original_cem_and_all_environment_icl_scorers(
+        self,
+        stablewm_repo: Path,
+        dataset: Path,
+        tmp_path: Path,
+        capsys: pytest.CaptureFixture[str],
+    ) -> None:
+        status = evaluator.main([
+            "--suite",
+            "--family",
+            "prejepa",
+            "--original-env",
+            "tworoom",
+            "--dataset",
+            str(dataset),
+            "--run-name",
+            "tworoom_prejepa_original_s3072",
+            "--epoch",
+            "10",
+            "--checkpoint-root",
+            str(tmp_path / "checkpoint-root"),
+            "--stablewm-repo",
+            str(stablewm_repo),
+            "--stablewm-ref",
+            "a" * 40,
+            "--training-seed",
+            "3072",
+            "--print-command",
+        ])
+
+        output = capsys.readouterr().out
+        assert status == 0
+        assert "original-cem:" in output
+        for component in ("speed", "door", "action_delay", "portal_exit"):
+            assert f"component={component}" in output
+            assert f"benchmark_icl/{component}/result.json" in output
+        assert "contact_friction" not in output
+
+    def test_component_suite_skips_only_cem_when_original_data_is_absent(
+        self,
+        stablewm_repo: Path,
+        tmp_path: Path,
+        capsys: pytest.CaptureFixture[str],
+    ) -> None:
+        status = evaluator.main([
+            "--suite",
+            "--family",
+            "lewm",
+            "--component",
+            "contact_friction",
+            "--checkpoint",
+            str(tmp_path / "run" / "weights_epoch_10.pt"),
+            "--stablewm-repo",
+            str(stablewm_repo),
+            "--stablewm-ref",
+            "b" * 40,
+            "--print-command",
+        ])
+
+        output = capsys.readouterr().out
+        assert status == 0
+        assert "original-cem skipped" in output
+        assert "component=contact_friction" in output
+        assert "benchmark_icl/contact_friction/result.json" in output
+        assert "--evaluation-split development" in output
+
+    def test_original_suite_never_silently_skips_its_primary_cem(
+        self,
+        stablewm_repo: Path,
+        tmp_path: Path,
+    ) -> None:
+        with pytest.raises(SystemExit, match="primary target"):
+            evaluator.main([
+                "--suite",
+                "--family",
+                "lewm",
+                "--original-env",
+                "tworoom",
+                "--checkpoint",
+                str(tmp_path / "run/weights_epoch_10.pt"),
+                "--stablewm-repo",
+                str(stablewm_repo),
+                "--stablewm-ref",
+                "b" * 40,
+                "--print-command",
+            ])
+
+    def test_standalone_suite_writes_results_beside_the_checkpoint(
+        self,
+        stablewm_repo: Path,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        checkpoint = tmp_path / "checkpoints/run/weights_epoch_10.pt"
+        checkpoint.parent.mkdir(parents=True)
+        checkpoint.write_bytes(b"checkpoint")
+
+        def fake_run(command: list[str], **_: object) -> argparse.Namespace:
+            output = Path(command[command.index("--output") + 1])
+            output.parent.mkdir(parents=True, exist_ok=True)
+            output.write_text('{"status":"completed"}\n', encoding="utf-8")
+            return argparse.Namespace(returncode=0)
+
+        monkeypatch.setattr(evaluator.subprocess, "run", fake_run)
+
+        status = evaluator.main([
+            "--suite",
+            "--family",
+            "lewm",
+            "--component",
+            "speed",
+            "--checkpoint",
+            str(checkpoint),
+            "--stablewm-repo",
+            str(stablewm_repo),
+            "--stablewm-ref",
+            "c" * 40,
+            "--result-subdir",
+            "attempt-2",
+        ])
+
+        eval_root = checkpoint.parent / "eval_results/attempt-2"
+        manifest = json.loads(
+            (eval_root / "manifest.json").read_text(encoding="utf-8")
+        )
+        assert status == 0
+        assert manifest["status"] == "completed"
+        assert manifest["steps"][0]["status"] == "skipped"
+        assert manifest["steps"][1]["status"] == "completed"
+        assert (eval_root / "benchmark_icl/speed/result.json").is_file()
+        assert manifest["outputs"][0]["path"] == (
+            "benchmark_icl/speed/result.json"
+        )
+
+    def test_suite_exception_is_recorded_as_failed(
+        self,
+        stablewm_repo: Path,
+        dataset: Path,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        checkpoint = tmp_path / "checkpoints/run/weights_epoch_10.pt"
+        checkpoint.parent.mkdir(parents=True)
+        checkpoint.write_bytes(b"checkpoint")
+
+        def fail_original(_: argparse.Namespace) -> int:
+            raise SystemExit("upstream evaluator wrote no metrics")
+
+        monkeypatch.setattr(evaluator, "_run_original", fail_original)
+
+        with pytest.raises(SystemExit, match="wrote no metrics"):
+            evaluator.main([
+                "--suite",
+                "--family",
+                "lewm",
+                "--component",
+                "speed",
+                "--dataset",
+                str(dataset),
+                "--checkpoint",
+                str(checkpoint),
+                "--stablewm-repo",
+                str(stablewm_repo),
+                "--stablewm-ref",
+                "d" * 40,
+            ])
+
+        manifest = json.loads(
+            (checkpoint.parent / "eval_results/manifest.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        assert manifest["status"] == "failed"
+        assert manifest["error"]["type"] == "SystemExit"
+
+    def test_suite_runs_remaining_icl_steps_after_cem_failure(
+        self,
+        stablewm_repo: Path,
+        dataset: Path,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        checkpoint = tmp_path / "checkpoints/run/weights_epoch_10.pt"
+        checkpoint.parent.mkdir(parents=True)
+        checkpoint.write_bytes(b"checkpoint")
+        executed: list[str] = []
+
+        monkeypatch.setattr(evaluator, "_run_original", lambda _: 7)
+
+        def fake_run(command: list[str], **_: object) -> argparse.Namespace:
+            component = command[command.index("--task") + 1]
+            executed.append(component)
+            output = Path(command[command.index("--output") + 1])
+            output.parent.mkdir(parents=True, exist_ok=True)
+            output.write_text('{"status":"completed"}\n', encoding="utf-8")
+            return argparse.Namespace(returncode=0)
+
+        monkeypatch.setattr(evaluator.subprocess, "run", fake_run)
+
+        status = evaluator.main([
+            "--suite",
+            "--family",
+            "lewm",
+            "--original-env",
+            "tworoom",
+            "--dataset",
+            str(dataset),
+            "--checkpoint",
+            str(checkpoint),
+            "--stablewm-repo",
+            str(stablewm_repo),
+            "--stablewm-ref",
+            "e" * 40,
+        ])
+
+        manifest = json.loads(
+            (checkpoint.parent / "eval_results/manifest.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        assert status == 7
+        assert executed == ["speed", "door", "action_delay", "portal_exit"]
+        assert manifest["status"] == "failed"
+        assert manifest["steps"][0]["status"] == "failed"
+        assert all(
+            row["status"] == "completed" for row in manifest["steps"][1:]
+        )
 
     def test_eval_uses_the_exact_checkpoint_and_never_overwrites_by_default(
             self, stablewm_repo: Path, dataset: Path, tmp_path: Path) -> None:

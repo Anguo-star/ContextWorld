@@ -27,6 +27,16 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 cd "$ROOT"
 
+POST_TRAIN_EVAL=0
+case "${CW_POST_TRAIN_EVAL:-0}" in
+  1|true|TRUE|yes|YES|on|ON) POST_TRAIN_EVAL=1 ;;
+  0|false|FALSE|no|NO|off|OFF) ;;
+  *)
+    echo "[cloud-train] CW_POST_TRAIN_EVAL must be a boolean" >&2
+    exit 2
+    ;;
+esac
+
 # --- Optional umbrella root ------------------------------------------------
 # The cloud mounts this as /opt/huawei/dataset/ag_data; the development box
 # has an extra `explorer-env` segment. Detect rather than hardcode, so the
@@ -91,7 +101,8 @@ fi
 # whenever work_dir is not two levels below the data root -- exactly the
 # cloud's situation.
 if [ -z "${CONTEXTWORLD_ARTIFACT_ROOT:-}" ] && \
-   [ "${CW_TASK:-}" != "original" ] && [ -n "${CW_DATA_ROOT:-}" ]; then
+   { [ "${CW_TASK:-}" != "original" ] || [ "$POST_TRAIN_EVAL" = "1" ]; } && \
+   [ -n "${CW_DATA_ROOT:-}" ]; then
   CONTEXTWORLD_ARTIFACT_ROOT="$CW_DATA_ROOT/data/world_model/context_world"
 fi
 if [ -n "${CONTEXTWORLD_ARTIFACT_ROOT:-}" ]; then
@@ -100,8 +111,9 @@ fi
 
 # An original-data run does not read the ContextWorld artifact tree when its
 # dataset is supplied explicitly. Benchmark capability runs do.
-if [ "${CW_TASK:-}" != "original" ] && \
-   [ "${CW_FAMILY:-lewm}" != "prejepa" ] && \
+if { { [ "${CW_TASK:-}" != "original" ] && \
+       [ "${CW_FAMILY:-lewm}" != "prejepa" ]; } || \
+     [ "$POST_TRAIN_EVAL" = "1" ]; } && \
    [ ! -d "${CONTEXTWORLD_ARTIFACT_ROOT:-}" ]; then
   echo "[cloud-train] benchmark artifact root does not exist: ${CONTEXTWORLD_ARTIFACT_ROOT:-<unset>}" >&2
   echo "[cloud-train] set CONTEXTWORLD_ARTIFACT_ROOT to the context_world directory" >&2
@@ -206,6 +218,7 @@ echo "[cloud-train] checkpoint root=${STABLEWM_HOME:-<upstream default>}"
 echo "[cloud-train] run output=${CW_OUTPUT:-<launcher default>}"
 echo "[cloud-train] hf_cache=${HF_HUB_CACHE:-<default>} offline=${HF_HUB_OFFLINE:-0}"
 echo "[cloud-train] logger=${CW_LOGGER:-none}"
+echo "[cloud-train] post_train_eval=$POST_TRAIN_EVAL"
 if [ "${CW_LOGGER:-none}" = "swanlab" ]; then
   # Authentication is deliberately performed by run_stablewm_train.py via
   # the Python SDK immediately before training. Passing the key to
@@ -213,4 +226,15 @@ if [ "${CW_LOGGER:-none}" = "swanlab" ]; then
   echo "[cloud-train] swanlab auth=python-sdk-before-training mode=${CW_SWANLAB_MODE:-cloud}"
 fi
 
-exec "$PYTHON_BIN" "$ROOT/scripts/cloud_train.py" "$@"
+# Every cloud training request has one public Python entry. For a historical
+# release reproduction, run_stablewm_train.py selects the frozen task recipe
+# internally; it does not start a second router process.
+if [ "${CW_TASK:-}" != "original" ]; then
+  export CW_COMPONENT="${CW_COMPONENT:-${CW_TASK:-}}"
+fi
+if [ "${CW_FAMILY:-lewm}" = "prejepa" ] && \
+   [ -z "${CW_BATCH_SIZE:-}" ]; then
+  export CW_BATCH_SIZE=128
+fi
+echo "[cloud-train] route=stablewm-train"
+exec "$PYTHON_BIN" "$ROOT/scripts/run_stablewm_train.py" "$@"

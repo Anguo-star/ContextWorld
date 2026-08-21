@@ -129,54 +129,63 @@ original_environments:
 
 benchmark_components:
   speed:
+    environment: tworoom
     data_group: tworoom
     history_size: 3
     action_dim: 2
     encoding_key: proprio
     encoding_dim: 2
   door:
+    environment: tworoom
     data_group: tworoom
     history_size: 3
     action_dim: 2
     encoding_key: proprio
     encoding_dim: 2
   action_delay:
+    environment: tworoom
     data_group: tworoom
     history_size: 7
     action_dim: 2
     encoding_key: proprio
     encoding_dim: 2
   portal_exit:
+    environment: tworoom
     data_group: tworoom
     history_size: 3
     action_dim: 2
     encoding_key: proprio
     encoding_dim: 2
   action_strength:
+    environment: pusht
     data_group: pusht
     history_size: 3
     action_dim: 2
     encoding_key: proprio
     encoding_dim: 4
   contact_friction:
+    environment: pusht
     data_group: pusht
     history_size: 3
     action_dim: 2
     encoding_key: proprio
     encoding_dim: 4
   motion_damping:
+    environment: pusht
     data_group: pusht
     history_size: 3
     action_dim: 2
     encoding_key: proprio
     encoding_dim: 4
   robot_arm_mass:
+    environment: reacher
     data_group: dmc
     history_size: 3
     action_dim: 2
     encoding_key: observation
     encoding_dim: 6
   cube_gripper_carry:
+    environment: cube
     data_group: ogb
     history_size: 3
     action_dim: 5
@@ -193,6 +202,6 @@ evaluation:
   default_seeds: [42, 43, 44]
   default_num_eval: 50
   note: >-
-    This optional stage is the upstream original-environment MPC sanity/CEM
-    evaluation. Published ContextWorld ICL and CEM results continue to use
-    each component's frozen evaluation protocol.
+    The optional suite combines the upstream original-environment MPC/CEM
+    evaluator with existing ContextWorld component scorers. Outputs remain
+    per-checkpoint evidence and do not create formal scoreboard rows.

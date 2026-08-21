@@ -429,12 +429,12 @@ class TestFailuresArriveEarly:
 
 
 class TestTheCloudContract:
-    def test_the_shell_entry_delegates_to_the_router(self) -> None:
+    def test_the_shell_entry_uses_one_public_python_entry(self) -> None:
         """The job template can only call `bash <path>`."""
 
         text = (SCRIPTS / "cloud_train.sh").read_text(encoding="utf-8")
 
-        assert "cloud_train.py" in text
+        assert 'exec "$PYTHON_BIN" "$ROOT/scripts/run_stablewm_train.py"' in text
         assert text.startswith("#!/usr/bin/env bash")
 
     def test_the_shell_entry_locates_the_repo_itself(self) -> None:
@@ -578,7 +578,7 @@ class TestTheCloudContract:
         assert f"original dataset={dataset}" in completed.stdout
         assert f"checkpoint root={checkpoint_root}" in completed.stdout
         assert "contextworld data=<not needed>" in completed.stdout
-        assert f"--dataset {dataset}" in completed.stdout
+        assert f"dataset_name={dataset}" in completed.stdout
 
     def test_one_dataset_root_selects_the_original_file_by_environment(
         self, tmp_path: Path
@@ -632,6 +632,47 @@ class TestTheCloudContract:
         assert completed.returncode == 0, completed.stderr
         assert f"dataset_name={dataset}" in completed.stdout
         assert "subdir=tworoom_prejepa_original_s3072" in completed.stdout
+        assert "route=stablewm-train" in completed.stdout
+
+    def test_historical_release_uses_the_same_public_entry(
+        self, tmp_path: Path
+    ) -> None:
+        artifact_root = tmp_path / "context_world"
+        artifact_root.mkdir()
+        environment = dict(os.environ)
+        for name in (
+            "CW_COMPONENT",
+            "CW_DATASET",
+            "CW_CHECKPOINT_ROOT",
+            "STABLEWM_HOME",
+            "CONTEXTWORLD_STABLE_WORLDMODEL_REPO",
+        ):
+            environment.pop(name, None)
+        environment.update(
+            {
+                "CW_TASK": "door",
+                "CW_FAMILY": "pldm",
+                "CW_SEEDS": "3072",
+                "CW_PRINT_ONLY": "1",
+                "CONTEXTWORLD_ARTIFACT_ROOT": str(artifact_root),
+                "PYTHON_BIN": sys.executable,
+            }
+        )
+
+        completed = subprocess.run(
+            ["bash", str(SCRIPTS / "cloud_train.sh")],
+            cwd=ROOT,
+            env=environment,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+
+        assert completed.returncode == 0, completed.stderr
+        assert "route=stablewm-train" in completed.stdout
+        assert "mode=release-reproduction" in completed.stdout
+        assert "run_h3_hidden_passage_train.sh" in completed.stdout
+        assert "pldm-mixed" in completed.stdout
 
     def test_a_relative_dataset_root_fails_before_python(
         self, tmp_path: Path

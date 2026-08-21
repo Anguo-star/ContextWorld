@@ -97,6 +97,13 @@ class TestTaskBindings:
             "speed",
         ]
 
+    def test_cube_binding_uses_the_current_v4r1_release(self) -> None:
+        release = TASKS["cube_gripper_carry"].load_release()
+
+        assert release["release_id"] == (
+            "contextworld_cube_gripper_carry_icl_history3_v4r1"
+        )
+
     def test_statistics_tasks_declare_which_deviation_they_use(self) -> None:
         """PushT-family tasks are not uniform: portal_exit is unbiased."""
 
@@ -229,6 +236,52 @@ class TestResultLabelling:
         # an external result cannot be replayed as a frozen submission.
         assert payload["result"] == {"icl_score": 0.5}
         assert "icl_score" not in payload
+
+    def test_development_split_uses_only_the_development_scorer(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        binding = TASKS["contact_friction"]
+        monkeypatch.setattr(
+            type(binding), "load_release", lambda self: {"release_id": "friction-v1"}
+        )
+        monkeypatch.setattr(type(binding), "load_builtins", lambda self: {})
+        monkeypatch.setattr(
+            external_model_cli, "build_adapter", lambda *a, **k: object()
+        )
+        monkeypatch.setattr(
+            external_model_cli, "build_request", lambda *a, **k: None
+        )
+        monkeypatch.setattr(
+            type(binding),
+            "load_scorer",
+            lambda self: (_ for _ in ()).throw(
+                AssertionError("Public scorer must remain closed")
+            ),
+        )
+        monkeypatch.setattr(
+            type(binding),
+            "load_development_scorer",
+            lambda self: (lambda **kwargs: {"split": "development"}),
+        )
+
+        payload = external_model_cli.run(
+            argparse.Namespace(
+                task="contact_friction",
+                adapter="pkg:Cls",
+                model_name="my-model",
+                training_recipe="external_method",
+                training_seed=None,
+                batch_size=8,
+                checkpoint=Path("/tmp/x.pt"),
+                device="cpu",
+                stablewm_repo=None,
+                stablewm_ref=None,
+                evaluation_split="development",
+            )
+        )
+
+        assert payload["evaluation_split"] == "development"
+        assert payload["result"] == {"split": "development"}
 
     def test_speed_receives_its_three_batch_sizes(self) -> None:
         keywords = external_model_cli._scorer_keywords(

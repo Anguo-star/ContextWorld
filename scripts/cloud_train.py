@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""Route ``(task, family, seed)`` to whichever launcher already trains it.
+"""Historical release recipe registry and compatibility command.
 
 The cloud job template ends in ``bash ${run_shell_script} "$@"``, so the
-platform holds exactly one script path. Pointing that at ``cloud_train.sh``
--- which delegates here -- means switching tasks is an environment variable
-rather than a new job configuration.
+platform holds exactly one script path. ``cloud_train.sh`` now enters
+``run_stablewm_train.py`` for every family; that public entry imports the
+planner in this module when it needs a frozen LeWM/PLDM release recipe.
+Executing this file directly remains supported for compatibility.
 
 This is a router, not a trainer. Every command it emits is one an operator
 could type by hand; nothing here trains, and nothing here edits a launcher.

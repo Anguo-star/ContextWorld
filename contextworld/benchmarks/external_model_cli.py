@@ -74,6 +74,7 @@ class TaskBinding:
     action_source: str
     std_key: str | None = None
     recipe_keyword: str = "training_recipe"
+    development_scorer: str | None = None
 
     def load_release(self) -> dict[str, Any]:
         module_name, _, attribute = self.loader.rpartition(".")
@@ -82,6 +83,13 @@ class TaskBinding:
 
     def load_scorer(self) -> Callable[..., dict[str, Any]]:
         module_name, _, attribute = self.scorer.rpartition(".")
+        module = __import__(module_name, fromlist=[attribute])
+        return getattr(module, attribute)
+
+    def load_development_scorer(self) -> Callable[..., dict[str, Any]]:
+        if self.development_scorer is None:
+            raise ValueError(f"{self.task} has no separate Development scorer")
+        module_name, _, attribute = self.development_scorer.rpartition(".")
         module = __import__(module_name, fromlist=[attribute])
         return getattr(module, attribute)
 
@@ -171,6 +179,10 @@ TASKS: dict[str, TaskBinding] = {
         builtins=_families("ContactFriction"),
         action_source="statistics",
         std_key="std_population",
+        development_scorer=(
+            f"{_SCORE}.contact_friction_icl_score."
+            "evaluate_contact_friction_icl_development_model"
+        ),
     ),
     "motion_damping": TaskBinding(
         task="motion_damping",
@@ -185,6 +197,10 @@ TASKS: dict[str, TaskBinding] = {
         builtins=_families("MotionDamping"),
         action_source="statistics",
         std_key="std_population",
+        development_scorer=(
+            f"{_SCORE}.motion_damping_icl_score."
+            "evaluate_motion_damping_icl_development_model"
+        ),
     ),
     "portal_exit": TaskBinding(
         task="portal_exit",
@@ -213,12 +229,12 @@ TASKS: dict[str, TaskBinding] = {
     "cube_gripper_carry": TaskBinding(
         task="cube_gripper_carry",
         loader=(
-            f"{_SCORE}.cube_grasp_rule_icl_data."
-            "load_cube_grasp_rule_icl_release"
+            f"{_SCORE}.cube_grasp_rule_v4r1_icl_data."
+            "load_cube_grasp_rule_v4r1_icl_release"
         ),
         scorer=(
-            f"{_SCORE}.cube_grasp_rule_icl_score."
-            "evaluate_cube_grasp_rule_icl_model"
+            f"{_SCORE}.cube_grasp_rule_v4r1_icl_score."
+            "evaluate_cube_grasp_rule_v4r1_icl_model"
         ),
         builtins=_families("CubeGraspRule"),
         action_source="statistics",
@@ -295,7 +311,13 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         builtins=binding.load_builtins(),
         request=build_request(binding, release, args),
     )
-    payload = binding.load_scorer()(
+    evaluation_split = getattr(args, "evaluation_split", "public")
+    scorer = (
+        binding.load_development_scorer()
+        if evaluation_split == "development"
+        else binding.load_scorer()
+    )
+    payload = scorer(
         adapter=adapter, **_scorer_keywords(binding, args)
     )
 
@@ -305,6 +327,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "schema_version": 1,
         "result_kind": RESULT_KIND,
         "task": binding.task,
+        "evaluation_split": evaluation_split,
         "adapter_spec": args.adapter,
         "model_name": args.model_name,
         "release_id": release.get("release_id"),
@@ -343,6 +366,15 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--training-seed", type=int)
     parser.add_argument("--device", default="cuda")
     parser.add_argument("--batch-size", type=int, default=32)
+    parser.add_argument(
+        "--evaluation-split",
+        choices=("public", "development"),
+        default="public",
+        help=(
+            "Use Development only when the component's Public Test remains "
+            "closed. Components without a separate Development scorer reject it."
+        ),
+    )
     parser.add_argument("--stablewm-repo")
     parser.add_argument("--stablewm-ref")
     parser.add_argument("--output", type=Path)

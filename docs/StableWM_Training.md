@@ -11,8 +11,8 @@ The command calls the selected Stable-WorldModel checkout's own trainer. It
 does not copy or reimplement the model, forward pass, loss, optimizer or
 training loop. Its job is narrower: select the correct family profile,
 validate paths, translate common options to the family's Hydra schema, keep
-runs isolated, and optionally start an original-environment MPC evaluation
-after training.
+runs isolated, and optionally start the applicable evaluation suite after
+training.
 
 The machine-readable profile is
 [`configs/training/stablewm_family_profiles_v1.yaml`](../configs/training/stablewm_family_profiles_v1.yaml).
@@ -263,28 +263,89 @@ the same per-epoch full-state guarantee.
 
 ## Optional post-training evaluation
 
-`CW_POST_TRAIN_EVAL=1` starts the separate
-`scripts/run_stablewm_eval.py` command only after training succeeds. This
-stage runs Stable-WorldModel's original-environment MPC/CEM evaluator and
-writes seed-specific logs, metrics and receipts below the checkpoint's
-`eval_results/` directory. Existing outputs are never overwritten.
+`CW_POST_TRAIN_EVAL=1` calls `scripts/run_stablewm_eval.py --suite` only after
+training succeeds. The same script can be invoked later against an existing
+checkpoint; training does not contain a second copy of the evaluation logic.
 
-The automatic hand-off is enabled for the checkpoint families already
-validated with this evaluator (LeWM and PLDM). PreJEPA can be trained now, but
-automatic post-eval remains disabled until a real saved checkpoint completes
-the family smoke test. This restriction does not affect training.
+This automatic hand-off applies to current family-profile runs: every
+original-environment run and any component run supplied with an explicit
+dataset. A historical LeWM/PLDM component reproduction selected by omitting
+`CW_DATASET` keeps its frozen evaluator and does not accept
+`CW_POST_TRAIN_EVAL`; that evaluator is part of the historical release
+protocol.
 
-Useful variables are `CW_EVAL_EPOCH`, `CW_EVAL_NUM`, `CW_EVAL_SEEDS` and
+For an original-environment run, the suite runs that environment's MPC/CEM
+evaluation and its registered benchmark components:
+
+| original environment | benchmark ICL evaluations |
+|---|---|
+| TwoRoom | speed, door rule, action delay, portal exit |
+| PushT | action strength, contact friction, motion damping |
+| Reacher | arm mass |
+| Cube | gripper-carry rule |
+
+For a benchmark-component run, the suite runs that component's ICL evaluator
+and the matching original-environment CEM retention check. Component training
+therefore also needs either `CONTEXTWORLD_DATASET_ROOT` or an exact
+`CW_EVAL_ORIGINAL_DATASET`. If neither is available, only the CEM step is
+recorded as skipped; the ICL step still runs.
+
+Contact Friction and Motion Damping remain Development-only, so the automatic
+suite uses their Development scorers and does not open Public Test. Other ICL
+steps use the component's registered external-evaluation path and are marked
+as unofficial results; this command never adds or changes a scoreboard row.
+Run it only after the training recipe and checkpoint rule are fixed, not as a
+Public-Test model-selection loop.
+
+PreJEPA uses the same opt-in suite. Its original MPC/CEM path remains a
+checkpoint smoke until a completed run has been reviewed; setting
+`CW_POST_TRAIN_EVAL=1` explicitly authorizes that attempt, and an evaluator
+failure makes the cloud job fail rather than being reported as a valid score.
+
+Useful variables are `CW_EVAL_EPOCH`, `CW_EVAL_NUM`, `CW_EVAL_SEEDS`,
+`CW_EVAL_DEVICE`, `CW_EVAL_BATCH_SIZE`, `CW_EVAL_ORIGINAL_DATASET` and
 `CW_EVAL_KEEP_VIDEOS`. If `CW_EVAL_EPOCH` is omitted, the launcher uses
 `CW_MAX_EPOCHS` or the selected upstream YAML default.
+
+The same suite can be run later without retraining by naming the exact saved
+checkpoint:
+
+```bash
+python scripts/run_stablewm_eval.py --suite \
+  --family prejepa \
+  --original-env tworoom \
+  --dataset /absolute/path/to/tworoom.h5 \
+  --checkpoint /absolute/path/to/checkpoints/run/weights_epoch_10.pt \
+  --stablewm-repo /absolute/path/to/stable-worldmodel \
+  --training-seed 3072
+```
+
+Use `--component <id>` instead of `--original-env` for a component-trained
+checkpoint. An optional `--result-subdir <name>` places the whole suite in a
+separate namespace below `eval_results/`, which is useful for an explicitly
+named rerun without overwriting earlier evidence.
 
 The evaluation profile carries the training `CW_FRAMESKIP` into the planner's
 action block. This keeps the candidate-action width equal to the model's
 action-encoder width when a run intentionally differs from the default of 5.
 
-This optional evaluation is not the published ContextWorld benchmark score.
-ICL and component CEM results must still be produced by the component's frozen
-evaluation protocol.
+With the default namespace, all outputs are colocated with the evaluated
+checkpoint:
+
+```text
+<checkpoint run>/eval_results/
+├── original_cem/                 # original-data training
+├── benchmark_cem/<component>/    # component-training retention
+├── benchmark_icl/<component>/result.json
+└── manifest.json
+```
+
+The manifest records the checkpoint path and SHA-256, Stable-WorldModel
+revision, commands, completed/skipped/failed status, and output identities.
+Existing results are never overwritten. A completed suite is evaluation
+evidence, not by itself a formal release or scoreboard registration. If one
+evaluator returns a failure status, the suite still attempts the remaining
+applicable steps and returns a nonzero status after recording all outcomes.
 
 ## Independent sweeps are not distributed training
 
