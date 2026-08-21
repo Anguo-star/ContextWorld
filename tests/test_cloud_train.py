@@ -354,6 +354,46 @@ class TestTheCloudContract:
 
         assert "BASH_SOURCE" in text
 
+    def test_it_does_not_hardcode_a_single_data_root(self) -> None:
+        """The cloud mounts /opt/huawei/dataset/ag_data; the dev box adds an
+        `explorer-env` segment. Hardcoding either breaks the other."""
+
+        text = (SCRIPTS / "cloud_train.sh").read_text(encoding="utf-8")
+
+        assert "/opt/huawei/dataset/ag_data" in text
+        assert "/opt/huawei/explorer-env/dataset/ag_data" in text
+        assert "CW_DATA_ROOT" in text
+
+    def test_it_exports_the_paths_the_launcher_reads(self) -> None:
+        """The GUI sets only CW_* variables; the rest must be derived and
+        exported here, because there is nowhere else to set them."""
+
+        text = (SCRIPTS / "cloud_train.sh").read_text(encoding="utf-8")
+
+        for exported in (
+            "CONTEXTWORLD_STABLE_WORLDMODEL_REPO",
+            "CONTEXTWORLD_DATASET_ROOT",
+            "HF_HUB_CACHE",
+        ):
+            assert f"export {exported}" in text or (
+                f": \"${{{exported}" in text
+            ), exported
+
+    def test_an_explicit_data_root_is_honoured(self) -> None:
+        """A user who sets CW_DATA_ROOT is trusted; detection is skipped."""
+
+        text = (SCRIPTS / "cloud_train.sh").read_text(encoding="utf-8")
+
+        assert 'if [ -z "${CW_DATA_ROOT:-}" ]' in text
+
+    def test_detection_failure_is_loud(self) -> None:
+        """A silent wrong path re-downloads GB or trains on nothing."""
+
+        text = (SCRIPTS / "cloud_train.sh").read_text(encoding="utf-8")
+
+        assert "cannot locate the data root" in text
+        assert "exit 2" in text
+
     @pytest.mark.parametrize(
         "variable,option",
         [

@@ -17,6 +17,21 @@ instead of creating a job configuration per task.
 | `work_dir` | the ContextWorld checkout |
 | `run_shell_script` | `scripts/cloud_train.sh` |
 
+The launch GUI has no place to type extra commands, so everything else is
+resolved by `cloud_train.sh` itself and only needs setting when detection
+fails:
+
+| variable | detected from | set it when |
+|---|---|---|
+| `CW_DATA_ROOT` | `/opt/huawei/dataset/ag_data`, then the dev box's `explorer-env` variant | your mount is elsewhere |
+| `CONTEXTWORLD_STABLE_WORLDMODEL_REPO` | `<data root>/data/world_model/context_world/upstream/…`, then `pkg_x86/`, `code/` | the checkout moved |
+| `CONTEXTWORLD_DATASET_ROOT` | `<data root>/data/world_model` | data lives apart |
+| `HF_HUB_CACHE` / `HF_HUB_OFFLINE` | `<data root>/models`, offline when dinov2-small is present | weights are elsewhere |
+
+The cloud mounts the data root as `/opt/huawei/dataset/ag_data`; the
+development box has an extra `explorer-env` segment. The script detects
+rather than hardcodes, so the same file works in both.
+
 Then per run:
 
 | variable | default | meaning |
@@ -93,6 +108,40 @@ Three traps the launcher absorbs:
 
 Action width is **not** passed — `lewm.py:285` and `prejepa.py:209` both
 derive it from the loaded dataset.
+
+### GPUs
+
+`trainer.devices` is `auto` in all three family configs, and the launcher
+only overrides it when `--devices` is passed. Leaving it unset uses every
+visible GPU, which is normally what you want.
+
+Set it only to reach a specific effective batch — the frozen baselines ran at
+`batch × devices × accumulate = 1024`, so on four GPUs that is:
+
+```bash
+CW_TASK=original CW_ENV=tworoom CW_FAMILY=prejepa CW_ALL_SEEDS=1 \
+    bash scripts/cloud_train.sh -- trainer.devices=4 \
+        trainer.accumulate_grad_batches=2
+```
+
+### The pretrained backbone
+
+`prejepa` loads `facebook/dinov2-small` (22M params, patch 14, hidden 384)
+through `transformers.AutoModel`. `dinov2_small` in the config is an alias
+resolved by `BACKBONE_ALIASES` in `wm/prejepa/module.py`.
+
+```bash
+HF_ENDPOINT=https://hf-mirror.com huggingface-cli download facebook/dinov2-small
+```
+
+Anything in `BACKBONE_ALIASES` works as a drop-in — `dinov2_base`,
+`dinov2_large`, `dinov2_giant` — via `-- backbone.name=dinov2_base
+backbone.type=dinov2_base`. Changing it is a second variable, so the
+baseline-comparable runs should stay on `small`.
+
+Note that a torch-hub `.pth` (e.g. `dinov2_vitb14_pretrain.pth`) will **not**
+load: `from_pretrained` needs the HF layout of `config.json` plus
+`model.safetensors`.
 
 ### The baseline already exists for lewm and pldm
 
