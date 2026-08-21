@@ -11,7 +11,10 @@
 #   work_dir=/path/to/ContextWorld
 #   run_shell_script=scripts/cloud_train.sh
 #   CW_TASK=original   CW_ENV=tworoom   CW_FAMILY=prejepa
-#   CW_SEEDS=3072,3073,3074
+#   CW_SEEDS=3072
+#
+# Submit one seed per requeueable SLURM job or array task. Comma-separated
+# seeds remain available for non-SLURM serial sweeps.
 #
 # For the four standard original tasks, pass one dataset root and one shared
 # checkpoint root as absolute paths:
@@ -33,6 +36,16 @@ case "${CW_POST_TRAIN_EVAL:-0}" in
   0|false|FALSE|no|NO|off|OFF) ;;
   *)
     echo "[cloud-train] CW_POST_TRAIN_EVAL must be a boolean" >&2
+    exit 2
+    ;;
+esac
+
+EVAL_ONLY=0
+case "${CW_EVAL_ONLY:-0}" in
+  1|true|TRUE|yes|YES|on|ON) EVAL_ONLY=1 ;;
+  0|false|FALSE|no|NO|off|OFF) ;;
+  *)
+    echo "[cloud-train] CW_EVAL_ONLY must be a boolean" >&2
     exit 2
     ;;
 esac
@@ -101,7 +114,8 @@ fi
 # whenever work_dir is not two levels below the data root -- exactly the
 # cloud's situation.
 if [ -z "${CONTEXTWORLD_ARTIFACT_ROOT:-}" ] && \
-   { [ "${CW_TASK:-}" != "original" ] || [ "$POST_TRAIN_EVAL" = "1" ]; } && \
+   { [ "${CW_TASK:-}" != "original" ] || [ "$POST_TRAIN_EVAL" = "1" ] || \
+     [ "$EVAL_ONLY" = "1" ]; } && \
    [ -n "${CW_DATA_ROOT:-}" ]; then
   CONTEXTWORLD_ARTIFACT_ROOT="$CW_DATA_ROOT/data/world_model/context_world"
 fi
@@ -113,7 +127,7 @@ fi
 # dataset is supplied explicitly. Benchmark capability runs do.
 if { { [ "${CW_TASK:-}" != "original" ] && \
        [ "${CW_FAMILY:-lewm}" != "prejepa" ]; } || \
-     [ "$POST_TRAIN_EVAL" = "1" ]; } && \
+     [ "$POST_TRAIN_EVAL" = "1" ] || [ "$EVAL_ONLY" = "1" ]; } && \
    [ ! -d "${CONTEXTWORLD_ARTIFACT_ROOT:-}" ]; then
   echo "[cloud-train] benchmark artifact root does not exist: ${CONTEXTWORLD_ARTIFACT_ROOT:-<unset>}" >&2
   echo "[cloud-train] set CONTEXTWORLD_ARTIFACT_ROOT to the context_world directory" >&2
@@ -166,13 +180,29 @@ if [ -n "${CW_CHECKPOINT_ROOT:-}" ]; then
       exit 2
       ;;
   esac
+  CW_CHECKPOINT_ROOT="$(readlink -m -- "$CW_CHECKPOINT_ROOT")"
   if [ -n "${STABLEWM_HOME:-}" ] && \
-     [ "$STABLEWM_HOME" != "$CW_CHECKPOINT_ROOT" ]; then
+     [ "$(readlink -m -- "$STABLEWM_HOME")" != "$CW_CHECKPOINT_ROOT" ]; then
     echo "[cloud-train] CW_CHECKPOINT_ROOT and STABLEWM_HOME disagree" >&2
     exit 2
   fi
   STABLEWM_HOME="$CW_CHECKPOINT_ROOT"
   export STABLEWM_HOME
+fi
+
+# StablePretraining owns optimizer/scheduler/epoch checkpointing and native
+# scheduler requeue. Its default (~/.cache/stable-pretraining) is ephemeral in
+# cloud containers, so persist that state beside StableWM's inference weights.
+if [ -n "${STABLEWM_HOME:-}" ]; then
+  STABLEWM_HOME="$(readlink -m -- "$STABLEWM_HOME")"
+  export STABLEWM_HOME
+  if [ -n "${SPT_CACHE_DIR:-}" ] && \
+     [ "$(readlink -m -- "$SPT_CACHE_DIR")" != "$STABLEWM_HOME" ]; then
+    echo "[cloud-train] SPT_CACHE_DIR and CW_CHECKPOINT_ROOT disagree" >&2
+    exit 2
+  fi
+  SPT_CACHE_DIR="$STABLEWM_HOME"
+  export SPT_CACHE_DIR
 fi
 
 if [ "${CW_TASK:-}" = "original" ]; then
@@ -215,10 +245,13 @@ echo "[cloud-train] stablewm=${CONTEXTWORLD_STABLE_WORLDMODEL_REPO:-<unset>}"
 echo "[cloud-train] original dataset=${CW_DATASET:-<selected from ${CONTEXTWORLD_DATASET_ROOT:-upstream defaults}>}"
 echo "[cloud-train] contextworld data=${CONTEXTWORLD_ARTIFACT_ROOT:-<not needed>}"
 echo "[cloud-train] checkpoint root=${STABLEWM_HOME:-<upstream default>}"
+echo "[cloud-train] spt cache=${SPT_CACHE_DIR:-<upstream default>}"
 echo "[cloud-train] run output=${CW_OUTPUT:-<launcher default>}"
 echo "[cloud-train] hf_cache=${HF_HUB_CACHE:-<default>} offline=${HF_HUB_OFFLINE:-0}"
 echo "[cloud-train] logger=${CW_LOGGER:-none}"
 echo "[cloud-train] post_train_eval=$POST_TRAIN_EVAL"
+echo "[cloud-train] eval_only=$EVAL_ONLY"
+echo "[cloud-train] eval_result_subdir=${CW_EVAL_RESULT_SUBDIR:-<default>}"
 if [ "${CW_LOGGER:-none}" = "swanlab" ]; then
   # Authentication is deliberately performed by run_stablewm_train.py via
   # the Python SDK immediately before training. Passing the key to

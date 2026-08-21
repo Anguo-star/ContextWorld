@@ -40,7 +40,7 @@ Two things to note. `action_delay` needs **history 7** — that is why the
 built-ins ship `History7` variants. `cube_gripper_carry` has **action_dim 5**,
 every other task is 2.
 
-A single adapter can serve eight of the nine if it declares
+A single adapter can serve seven of the nine if it declares
 `history_tokens=3, action_block_raw_steps=5, action_dim=2,
 future_action_blocks=5`. Cube needs a separate instance (action_dim 5),
 action_delay needs another (history 7).
@@ -125,47 +125,57 @@ mismatch is the integrator's to resolve, not the benchmark's.
 
 ## Two routes for a new model family
 
-**Route A — Stable-WorldModel family (preferred).** If the model exists as a
-Stable-WorldModel world model, the work is small. `_load_model` already
-instantiates any family from `scripts/train/config/{name}.yaml`, so a new
-adapter is mostly `model_config_name = "<family>"` plus the geometry class
-attributes. Normalisation, checkpoint loading and the frozen-state hash all
-come for free, and the evaluation is aligned with the baselines by
-construction.
+**Route A — Stable-WorldModel family (preferred).** Reuse the family's native
+checkpoint loader and its public `encode` / `rollout` interfaces where
+available. A thin ContextWorld adapter must still verify the frozen input
+contract—preprocessing, history length, action-block geometry, required
+context streams, and prediction key—because these details differ across
+families. `model_config_name` alone is therefore not a compatibility
+guarantee.
 
 **Route B — fully external model.** Implement the five members directly. You
 own preprocessing, checkpoint loading and latent representation. Use this
 only when the model cannot be expressed as a Stable-WorldModel family.
 
-### DINO-WM specifically
+### DINO-WM / PreJEPA
 
-Stable-WorldModel already ships a DINOv2-based world model: the `prejepa`
-family. Its `scripts/train/config/prejepa.yaml` matches DINO-WM's published
-architecture closely — `dinov2_small`, `patch_size: 14`, `image_size: 224`,
-`history_size: 3`, `frameskip: 5`, predictor `depth 6 / heads 16 /
-mlp_dim 2048 / dim_head 64`, action and proprio encoding width 10.
+Stable-WorldModel provides the DINOv2-based `prejepa` family. ContextWorld
+includes a native PreJEPA adapter for checkpoints that satisfy the frozen v1
+input contract.
 
-**This is already implemented.** `contextworld/benchmarks/prejepa_adapters.py`
-provides all eight variants, and `--adapter prejepa` works for every task:
+That contract is intentionally narrow: the ICL scorer supplies RGB history
+and raw actions only. A checkpoint is eligible only when its predictor
+requires no additional context stream and its trained history length, action
+block, and action dimension match the selected task. In particular,
+original-data PreJEPA checkpoints that require `proprio` or `observation` are
+not eligible for frozen-v1 ICL: supplying zero state would change the trained
+model input, while supplying simulator state would widen the public protocol.
+The evaluation suite records this condition as `not_compatible`; it is a
+protocol mismatch, not a model failure or a benchmark score. A direct
+external-evaluation request for such a checkpoint is rejected before scoring.
+
+For an eligible native `.pt` checkpoint with its accompanying `config.json`,
+the built-in adapter loads Stable-WorldModel's public `encode` and `rollout`
+interfaces. It encodes targets from the pixel stream and reads predictions
+from `predicted_pixels_emb`. It does not score action embeddings as visual
+state.
+
+The adapter also preserves the temporal meaning of the request: for history
+length `H`, it passes the first `H-1` normalized action blocks as
+`action_history` and the remaining blocks as future actions. This is why the
+adapter returns `T-(H-1)` predictions for `T` supplied action blocks. The
+upstream rollout cache is cleared for every independent benchmark bundle.
+
+For example, a compatible state-free checkpoint can be evaluated with:
 
 ```bash
 contextworld-external-eval --task speed --adapter prejepa \
-    --checkpoint /path/to/prejepa.ckpt --model-name dino-wm
+    --checkpoint /path/to/weights_epoch_10.pt --model-name dino-wm
 ```
 
 Train the checkpoint with Stable-WorldModel's own
-`scripts/train/prejepa.py`; ContextWorld does not train.
-
-Three `prejepa` API differences are absorbed by a rollout shim, each with a
-silent failure mode if left unhandled:
-
-* `rollout` takes no `history_size` argument.
-* The visual stream is `predicted_visual`, not `predicted_emb`. Targets from
-  `encode_pixels` are visual-only, so scoring the concatenated action slots
-  would compare a model's action encoding against itself.
-* `rollout` caches its initial embedding on `info['id']`/`info['step_idx']`,
-  which benchmark bundles do not carry. The cache is dropped per call; a
-  stale hit would score one bundle from another's initial state.
+`scripts/train/prejepa.py`; ContextWorld provides the adapter and evaluator,
+not a second training loop.
 
 ### Adding another family
 
@@ -195,7 +205,7 @@ contextworld-external-eval \
     --model-name dino-wm
 ```
 
-`--adapter` accepts a built-in name (`lewm`, `pldm`), an import path
+`--adapter` accepts a built-in name (`lewm`, `pldm`, `prejepa`), an import path
 `package.module:ClassName`, or an installed `contextworld.adapters` entry
 point. Built-in names cannot be overridden by an installed package.
 

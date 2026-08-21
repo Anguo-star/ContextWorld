@@ -521,6 +521,8 @@ class TestTheCloudContract:
 
         assert "CW_CHECKPOINT_ROOT" in text
         assert 'STABLEWM_HOME="$CW_CHECKPOINT_ROOT"' in text
+        assert 'SPT_CACHE_DIR="$STABLEWM_HOME"' in text
+        assert "export SPT_CACHE_DIR" in text
 
     def test_original_data_does_not_require_contextworld_artifacts(self) -> None:
         text = (SCRIPTS / "cloud_train.sh").read_text(encoding="utf-8")
@@ -549,6 +551,7 @@ class TestTheCloudContract:
             "CONTEXTWORLD_DATASET_ROOT",
             "CONTEXTWORLD_ARTIFACT_ROOT",
             "STABLEWM_HOME",
+            "SPT_CACHE_DIR",
         ):
             environment.pop(name, None)
         environment.update(
@@ -559,7 +562,9 @@ class TestTheCloudContract:
                 "CW_FAMILY": "prejepa",
                 "CW_PRINT_ONLY": "1",
                 "CW_DATASET": str(dataset),
-                "CW_CHECKPOINT_ROOT": str(checkpoint_root),
+                "CW_CHECKPOINT_ROOT": f"{checkpoint_root}/",
+                "STABLEWM_HOME": f"{checkpoint_root}/.",
+                "SPT_CACHE_DIR": f"{checkpoint_root}//",
                 "CONTEXTWORLD_STABLE_WORLDMODEL_REPO": str(stablewm),
                 "PYTHON_BIN": sys.executable,
             }
@@ -577,6 +582,7 @@ class TestTheCloudContract:
         assert completed.returncode == 0, completed.stderr
         assert f"original dataset={dataset}" in completed.stdout
         assert f"checkpoint root={checkpoint_root}" in completed.stdout
+        assert f"spt cache={checkpoint_root}" in completed.stdout
         assert "contextworld data=<not needed>" in completed.stdout
         assert f"dataset_name={dataset}" in completed.stdout
 

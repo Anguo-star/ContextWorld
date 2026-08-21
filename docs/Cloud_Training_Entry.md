@@ -53,7 +53,7 @@ once in the common job configuration:
 ```text
 CW_TASK=original
 CW_FAMILY=prejepa
-CW_SEEDS=3072,3073,3074
+CW_SEEDS=3072
 CW_MAX_EPOCHS=10
 CW_BATCH_SIZE=128
 CONTEXTWORLD_DATASET_ROOT=/absolute/path/data/world_model
@@ -72,8 +72,10 @@ CW_ENV=reacher
 CW_ENV=cube
 ```
 
-`CW_SEEDS` accepts one seed or a comma-separated list. The value above runs
-3072, 3073 and 3074 sequentially; omitting it runs only seed 3072.
+`CW_SEEDS` accepts one seed or a comma-separated list. Submit 3072, 3073 and
+3074 as separate jobs when scheduler requeue recovery is enabled. Non-SLURM
+launchers may use `CW_SEEDS=3072,3073,3074` for a serial sweep; omitting the
+variable runs only seed 3072.
 The complete copy-ready job environment is recorded in
 [`dinowm_original_cloud_v1.env.example`](../configs/training/dinowm_original_cloud_v1.env.example).
 The checked-in template sets the comparison recipe recorded in the profile:
@@ -170,8 +172,10 @@ Then per run:
 | `CW_NUM_WORKERS` | family YAML | data loader workers |
 | `CW_DEVICES` | family YAML | Lightning devices (`auto`, integer, or Hydra value) |
 | `CW_LOGGER` | `none` | `wandb` or `swanlab` when the selected family trainer uses the common logger factory |
-| `CW_RESUME` | `never` | `never`, `auto`, or `required` |
+| `CW_RESUME` | `auto` | `never`, `auto`, or `required`; native full-state recovery applies only to a same-job scheduler requeue |
 | `CW_POST_TRAIN_EVAL` | unset | for current family-profile runs, run applicable original CEM and benchmark ICL through the common evaluator; frozen historical reproductions retain their component evaluator |
+| `CW_EVAL_ONLY` | unset | skip training/resume and evaluate an existing family-profile checkpoint selected by `CW_ENV`, `CW_FAMILY`, `CW_SEEDS` and `CW_EVAL_EPOCH`/`CW_MAX_EPOCHS` |
+| `CW_EVAL_RESULT_SUBDIR` | unset | new immutable name below `eval_results/` for a later evaluation attempt |
 | `CW_PRINT_ONLY` | unset | resolve and print without running |
 
 Arguments given to `cloud_train.sh` are parsed by the same public
@@ -184,6 +188,24 @@ the benchmark scorers read their frozen evaluation assets. Its results are
 written beside each checkpoint under `eval_results/`; see
 [Stable-WorldModel training](StableWM_Training.md#optional-post-training-evaluation)
 for the exact layout and execution matrix.
+
+`CW_CHECKPOINT_ROOT` is a persistent run root: the cloud entry sets both
+`STABLEWM_HOME` and `SPT_CACHE_DIR` to it. Evaluation weights live in
+`checkpoints/`; StablePretraining's native recovery and scheduler-requeue state
+live in `runs/`. Native full-state restoration applies only when the same
+SLURM job or array task is requeued. A newly submitted job does not inherit
+that state. When a requested epoch weight already exists,
+post-training evaluation skips training only under `CW_RESUME=auto` or
+`required` and only after the saved `config.yaml` and
+`contextworld_training_identity_v1.json` prove an exact recipe match. Older
+checkpoints without that launcher identity are never accepted automatically;
+use `CW_EVAL_ONLY=1` after reviewing them. Set `CW_EVAL_RESULT_SUBDIR` to
+preserve an earlier evaluation attempt and write new evidence separately.
+
+For PreJEPA, the CEM smoke uses the upstream planner with the checkpoint's
+declared history stream. Its frozen v1 ICL eligibility is checked separately;
+a `not_compatible` row is a protocol mismatch, not a failed model. See the
+training guide for the exact boundary.
 
 For benchmark data exported with the clean Hugging Face layout, pass the
 absolute training payload recorded in `task_registry.json` through
@@ -222,7 +244,7 @@ CW_TASK=original CW_ENV=tworoom CW_FAMILY=prejepa \
     CW_CHECKPOINT_ROOT=/abs/checkpoints/dino-wm \
     bash scripts/cloud_train.sh
 
-# three baseline seeds in sequence
+# optional non-SLURM serial sweep; use one seed per requeueable scheduler job
 CW_TASK=original CW_ENV=pusht CW_FAMILY=prejepa CW_SEEDS=3072,3073,3074 \
     CONTEXTWORLD_DATASET_ROOT=/abs/data/world_model \
     CW_CHECKPOINT_ROOT=/abs/checkpoints/dino-wm \

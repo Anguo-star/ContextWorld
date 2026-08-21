@@ -20,6 +20,9 @@ optional hand-off to original-environment MPC evaluation.
 from __future__ import annotations
 
 import argparse
+import hashlib
+import importlib.metadata
+import json
 import os
 import re
 import shlex
@@ -43,6 +46,8 @@ from contextworld.training.seeds import (  # noqa: E402
 
 DEFAULT_PROFILE_CONFIG = (REPO_ROOT /
                           "configs/training/stablewm_family_profiles_v1.yaml")
+TRAINING_IDENTITY_FILENAME = "contextworld_training_identity_v1.json"
+TRAINING_IDENTITY_SCHEMA = "contextworld.stablewm-training-identity.v1"
 
 
 def _env(name: str, fallback: str | None = None) -> str | None:
@@ -565,7 +570,7 @@ def _validate_args(args: argparse.Namespace, family: str) -> None:
         raise SystemExit(
             "--lewm-sigreg-weight is inactive with VISReg and must be omitted.")
     for override in args.override:
-        key, separator, _ = override.partition("=")
+        key, separator, value = override.partition("=")
         normalized = key.lstrip("+~")
         if not separator:
             raise SystemExit(f"--override must be KEY=VALUE; got {override!r}")
@@ -580,6 +585,18 @@ def _validate_args(args: argparse.Namespace, family: str) -> None:
             raise SystemExit(
                 f"--override cannot replace launcher-owned identity/path key "
                 f"{normalized}; use the corresponding typed option.")
+        if (
+            "${" in value
+            or normalized == "defaults"
+            or normalized.startswith("hydra.")
+            or "@" in normalized
+        ):
+            raise SystemExit(
+                "Raw overrides cannot use Hydra resolvers, defaults/config "
+                "routing, package redirects, or hydra.* keys because their "
+                "resolved recipe cannot be bound to the launcher identity: "
+                f"{normalized}"
+            )
         lowered = normalized.lower()
         if any(word in lowered for word in ("api_key", "password", "secret", "token")):
             raise SystemExit("Secrets must be injected through standard environment "
@@ -834,21 +851,332 @@ def _run_name(args: argparse.Namespace, target: Target, seed: int,
     return name
 
 
-def _resume_checkpoint(root: Path, run_name: str) -> Path:
-    return root / "checkpoints" / run_name / f"{run_name}_weights.ckpt"
+def _evaluation_checkpoint(root: Path, run_name: str, epoch: int) -> Path:
+    return root / "checkpoints" / run_name / f"weights_epoch_{epoch}.pt"
 
 
-def validate_resume(root: Path, run_name: str, policy: str) -> None:
-    run_dir = root / "checkpoints" / run_name
-    checkpoint = _resume_checkpoint(root, run_name)
-    if policy == "required" and not checkpoint.is_file():
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _stablewm_source_identity(
+    stablewm_repo: Path,
+    trainer_script: Path,
+) -> dict[str, Any]:
+    """Fingerprint code and YAML inputs that can change the training recipe."""
+
+    candidates = {trainer_script}
+    candidates.update(
+        path
+        for root, pattern in (
+            (stablewm_repo / "stable_worldmodel", "*.py"),
+            (stablewm_repo / "scripts/train/config", "*.yaml"),
+        )
+        if root.is_dir()
+        for path in root.rglob(pattern)
+        if path.is_file()
+    )
+    pyproject = stablewm_repo / "pyproject.toml"
+    if pyproject.is_file():
+        candidates.add(pyproject)
+
+    digest = hashlib.sha256()
+    for path in sorted(candidates):
+        relative = path.relative_to(stablewm_repo).as_posix()
+        digest.update(relative.encode("utf-8"))
+        digest.update(b"\0")
+        digest.update(bytes.fromhex(_sha256_file(path)))
+    return {
+        "sha256": digest.hexdigest(),
+        "file_count": len(candidates),
+    }
+
+
+def _training_dependency_identity() -> dict[str, Any]:
+    """Record direct runtime versions and SPT source used for recovery."""
+
+    result: dict[str, Any] = {}
+    for distribution_name in (
+        "stable-pretraining",
+        "torch",
+        "lightning",
+        "hydra-core",
+        "omegaconf",
+        "transformers",
+    ):
+        try:
+            distribution = importlib.metadata.distribution(distribution_name)
+        except importlib.metadata.PackageNotFoundError:
+            result[distribution_name] = {"version": None}
+            continue
+        entry: dict[str, Any] = {"version": distribution.version}
+        if distribution_name == "stable-pretraining":
+            source_files = [
+                relative
+                for relative in (distribution.files or ())
+                if relative.suffix == ".py"
+                and "stable_pretraining" in relative.parts
+            ]
+            digest = hashlib.sha256()
+            included = 0
+            for relative in sorted(source_files, key=str):
+                path = Path(distribution.locate_file(relative))
+                if not path.is_file():
+                    continue
+                digest.update(str(relative).encode("utf-8"))
+                digest.update(b"\0")
+                digest.update(bytes.fromhex(_sha256_file(path)))
+                included += 1
+            entry.update(
+                source_sha256=digest.hexdigest(),
+                source_file_count=included,
+            )
+        result[distribution_name] = entry
+    return result
+
+
+def _dataset_identity(path: Path) -> dict[str, Any]:
+    """Record a cheap, fail-closed identity without hashing a multi-GB dataset."""
+
+    if path.is_file():
+        stat = path.stat()
+        return {
+            "kind": "file",
+            "path": str(path),
+            "size": stat.st_size,
+            "mtime_ns": stat.st_mtime_ns,
+        }
+
+    digest = hashlib.sha256()
+    count = 0
+    total_size = 0
+    for item in sorted(candidate for candidate in path.rglob("*")
+                       if candidate.is_file()):
+        stat = item.stat()
+        relative = item.relative_to(path).as_posix()
+        digest.update(
+            f"{relative}\0{stat.st_size}\0{stat.st_mtime_ns}\n".encode("utf-8")
+        )
+        count += 1
+        total_size += stat.st_size
+    return {
+        "kind": "directory",
+        "path": str(path),
+        "file_count": count,
+        "total_size": total_size,
+        "metadata_sha256": digest.hexdigest(),
+    }
+
+
+def _training_identity_document(
+    *,
+    args: argparse.Namespace,
+    target: Target,
+    profile: dict[str, Any],
+    stablewm_repo: Path,
+    trainer_script: Path,
+    run_name: str,
+    seed: int,
+    overrides: list[str],
+) -> dict[str, Any]:
+    """Create the exact launcher recipe used to authorize automatic skipping."""
+
+    identity = {
+        "family": args.family,
+        "run_name": run_name,
+        "seed": seed,
+        "target": {
+            "label": target.label,
+            "environment": target.environment,
+            "history_size": target.history_size,
+            "action_dim": target.action_dim,
+            "encoding_key": target.encoding_key,
+            "encoding_dim": target.encoding_dim,
+            "dataset": _dataset_identity(target.dataset),
+        },
+        "profile": {
+            "path": str(args.profile_config.resolve()),
+            "sha256": _sha256_file(args.profile_config.resolve()),
+            "config_name": profile["config_name"],
+            "entrypoint": profile["entrypoint"],
+        },
+        "stablewm_source": _stablewm_source_identity(
+            stablewm_repo,
+            trainer_script,
+        ),
+        "training_dependencies": _training_dependency_identity(),
+        "hydra_overrides": overrides,
+    }
+    serialized = json.dumps(
+        identity,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    return {
+        "schema_version": TRAINING_IDENTITY_SCHEMA,
+        "identity_sha256": hashlib.sha256(serialized).hexdigest(),
+        "identity": identity,
+    }
+
+
+def _read_training_identity(path: Path) -> dict[str, Any]:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise SystemExit(f"Could not read training identity {path}: {exc}") from exc
+    if not isinstance(payload, dict):
+        raise SystemExit(f"Training identity is not a mapping: {path}")
+    return payload
+
+
+def _assert_training_identity(
+    path: Path,
+    expected: dict[str, Any],
+    *,
+    context: str,
+) -> None:
+    if not path.is_file():
         raise SystemExit(
-            f"Resume was required, but the full-state checkpoint is missing: "
-            f"{checkpoint}")
+            f"{context} has no launcher training identity: {path}. Use "
+            "CW_EVAL_ONLY=1 only after reviewing the checkpoint manually."
+        )
+    observed = _read_training_identity(path)
+    if observed != expected:
+        raise SystemExit(
+            f"{context} training identity differs from this request: "
+            f"saved={observed.get('identity_sha256')!r}, "
+            f"requested={expected['identity_sha256']!r}. Use CW_EVAL_ONLY=1 "
+            "only after reviewing the difference."
+        )
+
+
+def _install_training_identity(
+    checkpoint_root: Path,
+    run_name: str,
+    expected: dict[str, Any],
+) -> None:
+    """Write once for a new run; require an exact match on native requeue."""
+
+    run_dir = checkpoint_root / "checkpoints" / run_name
+    path = run_dir / TRAINING_IDENTITY_FILENAME
+    if path.exists():
+        _assert_training_identity(path, expected, context=f"Run {run_name!r}")
+        return
+    if run_dir.exists() and any(run_dir.iterdir()):
+        raise SystemExit(
+            f"Existing run {run_name!r} has no {TRAINING_IDENTITY_FILENAME}; "
+            "refusing to attach the current recipe to older artifacts."
+        )
+    run_dir.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_name(f".{path.name}.{os.getpid()}.tmp")
+    with temporary.open("x", encoding="utf-8") as stream:
+        stream.write(json.dumps(expected, indent=2, sort_keys=True) + "\n")
+        stream.flush()
+        os.fsync(stream.fileno())
+    try:
+        # A hard link is an atomic no-replace reservation on the same
+        # filesystem. Two submissions with one run name cannot overwrite
+        # each other's recipe identity.
+        os.link(temporary, path)
+    except FileExistsError:
+        _assert_training_identity(path, expected, context=f"Run {run_name!r}")
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
+def _validate_completed_training_identity(
+    checkpoint: Path,
+    *,
+    expected: dict[str, Any],
+) -> None:
+    """Bind an automatic eval hand-off to the completed training request.
+
+    A non-empty ``weights_epoch_N.pt`` proves only that some run used the same
+    directory name. The launcher's immutable identity records the complete
+    Hydra override vector, dataset metadata, family profile and relevant
+    StableWM source tree. Legacy checkpoints can still be evaluated
+    intentionally with ``--eval-only``; they are never accepted here.
+    """
+
+    config_path = checkpoint.parent / "config.yaml"
+    if not config_path.is_file():
+        raise SystemExit(
+            "Automatic post-training evaluation found a target checkpoint "
+            f"but no resolved training config: {config_path}. Use "
+            "CW_EVAL_ONLY=1 only if evaluating that checkpoint is intentional."
+        )
+    identity_path = checkpoint.parent / TRAINING_IDENTITY_FILENAME
+    _assert_training_identity(
+        identity_path,
+        expected,
+        context="Automatic post-training evaluation checkpoint",
+    )
+
+
+def _stablepretraining_native_requeue() -> bool:
+    value = os.environ.get("SLURM_RESTART_COUNT", "0")
+    try:
+        restart_count = int(value)
+    except ValueError as exc:
+        raise SystemExit("SLURM_RESTART_COUNT must be an integer") from exc
+    return bool(os.environ.get("SLURM_JOB_ID")) and restart_count >= 1
+
+
+def _validate_scheduler_seed_isolation(training_runs: list[str]) -> None:
+    """Prevent StablePretraining's job-scoped index crossing seed runs.
+
+    StablePretraining keys native requeue state by SLURM job/array-task, not
+    by ContextWorld's run name. Multiple trainers launched serially inside one
+    such task would therefore share one recovery index. Non-SLURM launchers do
+    not use that index and retain the comma-separated seed convenience.
+    """
+
+    if os.environ.get("SLURM_JOB_ID") and len(training_runs) > 1:
+        raise SystemExit(
+            "A requeue-capable SLURM job may train only one CW_SEEDS value. "
+            "Submit one seed per job or array task so StablePretraining's "
+            "job-scoped recovery index cannot restore a different seed. "
+            f"Planned training runs: {', '.join(training_runs)}"
+        )
+
+
+def validate_resume(
+    root: Path,
+    run_name: str,
+    policy: str,
+    *,
+    family: str,
+) -> None:
+    run_dir = root / "checkpoints" / run_name
+    native_requeue = _stablepretraining_native_requeue()
+    if policy == "required" and not native_requeue:
+        raise SystemExit(
+            "Resume was required, but StablePretraining full-state restore "
+            f"for {family} is available only when the same scheduler job or "
+            "array task is requeued. A newly submitted job is not a native "
+            "continuation."
+        )
     if policy == "never" and run_dir.exists() and any(run_dir.iterdir()):
         raise SystemExit(
             f"Fresh training refuses the non-empty run directory: {run_dir}. "
             "Choose another run name or set --resume auto/required.")
+    if (
+        policy == "auto"
+        and run_dir.exists()
+        and any(run_dir.iterdir())
+        and not native_requeue
+    ):
+        raise SystemExit(
+            "Resume=auto found an incomplete run that this newly submitted "
+            f"{family} job cannot restore with full training state. "
+            "StablePretraining restores its native last.ckpt only when the "
+            "same scheduler job or array task is requeued; refusing to "
+            "restart the run from epoch zero."
+        )
 
 
 def _login_swanlab_without_exposing_key(environment: dict[str, str]) -> None:
@@ -944,6 +1272,8 @@ def _post_eval_command(
         command.extend(("--component", target.label))
     if original_dataset is not None:
         command.extend(("--dataset", str(original_dataset)))
+    if args.eval_result_subdir:
+        command.extend(("--result-subdir", args.eval_result_subdir))
     if args.eval_device:
         command.extend(("--eval-device", args.eval_device))
     if args.eval_batch_size is not None:
@@ -1144,7 +1474,24 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         action="store_true",
         default=bool(_env_bool("CW_POST_TRAIN_EVAL") or False),
     )
+    parser.add_argument(
+        "--eval-only",
+        action="store_true",
+        default=bool(_env_bool("CW_EVAL_ONLY") or False),
+        help=(
+            "Skip training and run the common evaluation suite against an "
+            "existing checkpoint (env: CW_EVAL_ONLY)."
+        ),
+    )
     parser.add_argument("--eval-epoch", type=int, default=_env_int("CW_EVAL_EPOCH"))
+    parser.add_argument(
+        "--eval-result-subdir",
+        default=_env("CW_EVAL_RESULT_SUBDIR", ""),
+        help=(
+            "Optional immutable retry namespace below eval_results/ "
+            "(env: CW_EVAL_RESULT_SUBDIR)."
+        ),
+    )
     parser.add_argument("--eval-num",
                         type=int,
                         default=int(
@@ -1215,6 +1562,11 @@ def _run_release_reproduction(args: argparse.Namespace) -> int:
     # those mappings while keeping it out of the process chain.
     import cloud_train as release_recipes
 
+    if args.eval_only:
+        raise SystemExit(
+            "--eval-only is unavailable for a frozen historical component "
+            "recipe; use the evaluator named by that release protocol."
+        )
     if args.post_eval:
         raise SystemExit(
             "--post-eval is unavailable for a frozen historical component "
@@ -1292,12 +1644,27 @@ def main(argv: list[str] | None = None) -> int:
     seeds = args.seeds
     original_eval_dataset = (
         _original_dataset_for_post_eval(args, contract, target)
-        if args.post_eval
+        if args.post_eval or args.eval_only
         else None
     )
 
     environment = dict(os.environ)
     environment["STABLEWM_HOME"] = str(checkpoint_root)
+    # StablePretraining owns full-state checkpoint/requeue. Its default cache
+    # is container-local (~/.cache), so bind it to the same persistent root as
+    # StableWM unless the caller explicitly selected another durable path.
+    configured_spt_cache = environment.get("SPT_CACHE_DIR")
+    if configured_spt_cache:
+        configured_spt_path = _absolute_path(
+            configured_spt_cache,
+            label="SPT_CACHE_DIR",
+        )
+        if configured_spt_path != checkpoint_root:
+            raise SystemExit(
+                "SPT_CACHE_DIR and --checkpoint-root/CW_CHECKPOINT_ROOT "
+                "must identify the same persistent storage root."
+            )
+    environment["SPT_CACHE_DIR"] = str(checkpoint_root)
     if args.dataset_cache_root:
         cache = _absolute_path(args.dataset_cache_root, label="--dataset-cache-root")
         environment["LOCAL_DATASET_DIR"] = str(cache)
@@ -1307,23 +1674,77 @@ def main(argv: list[str] | None = None) -> int:
         environment.get("PYTHONPATH", ""),
     ]).strip(os.pathsep)
 
-    commands: list[tuple[list[str], list[str] | None]] = []
+    eval_epoch = (
+        _effective_eval_epoch(args, stablewm_repo, profile)
+        if args.post_eval or args.eval_only
+        else None
+    )
+    commands: list[
+        tuple[
+            str,
+            list[str] | None,
+            list[str] | None,
+            str | None,
+            dict[str, Any] | None,
+        ]
+    ] = []
     for seed in seeds:
         run_name = _run_name(args, target, seed, seeds)
-        overrides = build_overrides(
-            args,
-            contract,
-            target,
-            run_name=run_name,
-            seed=seed,
-            stablewm_repo=stablewm_repo,
+        overrides = None
+        training_identity = None
+        if not args.eval_only:
+            overrides = build_overrides(
+                args,
+                contract,
+                target,
+                run_name=run_name,
+                seed=seed,
+                stablewm_repo=stablewm_repo,
+            )
+            training_identity = _training_identity_document(
+                args=args,
+                target=target,
+                profile=profile,
+                stablewm_repo=stablewm_repo,
+                trainer_script=trainer_script,
+                run_name=run_name,
+                seed=seed,
+                overrides=overrides,
+            )
+        completed_checkpoint = (
+            _evaluation_checkpoint(checkpoint_root, run_name, eval_epoch)
+            if eval_epoch is not None
+            else None
         )
-        train_command = [
-            sys.executable,
-            str(trainer_script),
-            f"--config-name={profile['config_name']}",
-            *overrides,
-        ]
+        auto_eval_recovery = bool(
+            args.post_eval
+            and not args.eval_only
+            and args.resume != "never"
+            and completed_checkpoint is not None
+            and completed_checkpoint.is_file()
+            and completed_checkpoint.stat().st_size > 0
+        )
+        train_command = None
+        skip_reason = None
+        if args.eval_only:
+            skip_reason = "CW_EVAL_ONLY requested"
+        elif auto_eval_recovery:
+            _validate_completed_training_identity(
+                completed_checkpoint,
+                expected=training_identity,
+            )
+            skip_reason = (
+                "verified target epoch checkpoint already exists: "
+                f"{completed_checkpoint}"
+            )
+        else:
+            assert overrides is not None
+            train_command = [
+                sys.executable,
+                str(trainer_script),
+                f"--config-name={profile['config_name']}",
+                *overrides,
+            ]
         eval_command = (_post_eval_command(
             args,
             target=target,
@@ -1334,51 +1755,90 @@ def main(argv: list[str] | None = None) -> int:
             frameskip=(args.frameskip or contract["defaults"]["frameskip"]),
             training_seed=seed,
             original_dataset=original_eval_dataset,
-        ) if args.post_eval else None)
-        commands.append((train_command, eval_command))
+        ) if args.post_eval or args.eval_only else None)
+        commands.append(
+            (
+                run_name,
+                train_command,
+                eval_command,
+                skip_reason,
+                training_identity,
+            )
+        )
+
+    _validate_scheduler_seed_isolation(
+        [
+            run_name
+            for run_name, train_command, _, _, _ in commands
+            if train_command is not None
+        ]
+    )
 
     # Resume policy is read-only to validate, so dry runs should catch a stale
     # or missing run just as a real launch would.
-    for train_command, _ in commands:
+    for _, train_command, _, _, _ in commands:
+        if train_command is None:
+            continue
         run_entry = next(item for item in train_command if item.startswith("subdir="))
         validate_resume(
             checkpoint_root,
             run_entry.split("=", 1)[1],
             args.resume,
+            family=args.family,
         )
 
     print(f"[stablewm-train] target={target.label} family={args.family} "
           f"dataset={target.dataset}")
     print(f"[stablewm-train] stablewm={stablewm_repo}")
     print(f"[stablewm-train] checkpoint_root={checkpoint_root}")
+    print(f"[stablewm-train] spt_cache={environment['SPT_CACHE_DIR']}")
     print("[stablewm-train] dataset_cache="
           f"{environment.get('LOCAL_DATASET_DIR', '<upstream default>')}")
     print(f"[stablewm-train] logger={args.logger} resume={args.resume}")
-    for train_command, eval_command in commands:
-        print(f"[stablewm-train] train: {shlex.join(train_command)}")
+    print(f"[stablewm-train] mode={'eval-only' if args.eval_only else 'train'}")
+    for run_name, train_command, eval_command, skip_reason, _ in commands:
+        print(f"[stablewm-train] run={run_name}")
+        if skip_reason:
+            print(f"[stablewm-train] training skipped: {skip_reason}")
+        if train_command:
+            print(f"[stablewm-train] train: {shlex.join(train_command)}")
         if eval_command:
             print(f"[stablewm-train] eval:  {shlex.join(eval_command)}")
     if args.print_command:
         return 0
 
-    checkpoint_root.mkdir(parents=True, exist_ok=True)
+    if args.eval_only:
+        if not checkpoint_root.is_dir():
+            raise SystemExit(
+                f"Evaluation-only checkpoint root does not exist: {checkpoint_root}"
+            )
+    else:
+        checkpoint_root.mkdir(parents=True, exist_ok=True)
     if args.output:
         _absolute_path(args.output, label="--output").mkdir(parents=True, exist_ok=True)
     if args.dataset_cache_root:
         Path(environment["LOCAL_DATASET_DIR"]).mkdir(parents=True, exist_ok=True)
-    if args.logger == "swanlab" and args.swanlab_mode != "offline":
+    if (not args.eval_only and args.logger == "swanlab"
+            and args.swanlab_mode != "offline"):
         _login_swanlab_without_exposing_key(environment)
 
-    for train_command, eval_command in commands:
-        sys.stdout.flush()
-        completed = subprocess.run(
-            train_command,
-            cwd=str(stablewm_repo),
-            env=environment,
-            check=False,
-        )
-        if completed.returncode != 0:
-            return completed.returncode
+    for run_name, train_command, eval_command, _, training_identity in commands:
+        if train_command:
+            assert training_identity is not None
+            _install_training_identity(
+                checkpoint_root,
+                run_name,
+                training_identity,
+            )
+            sys.stdout.flush()
+            completed = subprocess.run(
+                train_command,
+                cwd=str(stablewm_repo),
+                env=environment,
+                check=False,
+            )
+            if completed.returncode != 0:
+                return completed.returncode
         if eval_command:
             evaluated = subprocess.run(
                 eval_command,

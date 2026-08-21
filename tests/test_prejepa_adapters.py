@@ -1,62 +1,33 @@
-"""The ``prejepa`` family reaches the benchmark without touching pinned bytes.
-
-Two properties are worth holding still. The first is that ``adapters.py``
-stays byte-identical to what the frozen release configs pin -- adding a model
-family must never be a reason to break a published result's provenance. The
-second is the rollout shim, which reconciles three differences between
-``prejepa`` and the ``lewm``/``pldm`` rollout surface. Each of those has a
-silent failure mode, so each gets a test.
-"""
+"""PreJEPA uses its native rollout without widening the frozen ICL inputs."""
 
 from __future__ import annotations
 
 import hashlib
+import json
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
+import numpy as np
 import pytest
 import yaml
 
+from contextworld.benchmarks.adapter_registry import AdapterRequest
 from contextworld.benchmarks.adapters import LatentWorldModelAdapter
 from contextworld.benchmarks.prejepa_adapters import (
-    _PreJEPARolloutShim,
+    PreJEPAInputContractError,
     StableWorldModelPreJEPAAdapter,
     StableWorldModelPreJEPACubeGraspRuleAdapter,
     StableWorldModelPreJEPAHistory7Adapter,
 )
+from contextworld.evaluation.protocol import ColumnStandardizer
 
 
 ROOT = Path(__file__).resolve().parents[1]
 ADAPTERS = ROOT / "contextworld/benchmarks/adapters.py"
 
 
-class _FakePreJEPA:
-    """Stands in for the Stable-WorldModel module, recording its calls."""
-
-    def __init__(self, result: dict[str, Any] | None = None) -> None:
-        self.calls: list[dict[str, Any]] = []
-        self._result = result if result is not None else {
-            "predicted_visual": "visual",
-            "predicted_proprio": "proprio",
-        }
-
-    def rollout(self, info: Any, action_sequence: Any) -> dict[str, Any]:
-        self.calls.append({"info": info, "actions": action_sequence})
-        return self._result
-
-
 def test_adapters_module_still_matches_its_frozen_pins() -> None:
-    """Adding a family must not invalidate a published result's provenance.
-
-    The speed and door releases both record this file's sha256. A prejepa
-    adapter written directly into it would have broken both.
-
-    Only the live component releases are checked. The suite-level manifests
-    (``contextworld_icl_suite_v1``, ``_v2``, ``_v2_recovery_v2``) froze on
-    2026-08-14 as historical commit markers and are *expected* to carry older
-    hashes -- see ``test_suite_export_manifest_selection.py``.
-    """
-
     live = hashlib.sha256(ADAPTERS.read_bytes()).hexdigest()
     historical = {
         "contextworld_icl_suite_v1.yaml",
@@ -87,113 +58,162 @@ def test_adapters_module_still_matches_its_frozen_pins() -> None:
     assert {name: live for name in pinned} == pinned
 
 
-class TestRolloutShim:
-    def test_it_exposes_the_predicted_emb_key_the_base_adapter_reads(
-        self,
-    ) -> None:
-        """The base adapter indexes ``predicted_emb``; prejepa has no such key."""
-
-        shim = _PreJEPARolloutShim(_FakePreJEPA())
-
-        result = shim.rollout({"pixels": "p"}, "actions")
-
-        assert result["predicted_emb"] == "visual"
-
-    def test_it_selects_the_visual_stream(self) -> None:
-        """Targets from ``encode_pixels`` are visual-only.
-
-        Scoring the concatenated action or proprio slots would compare a
-        model's own action encoding against itself, which is not the
-        capability the benchmark measures.
-        """
-
-        shim = _PreJEPARolloutShim(_FakePreJEPA())
-
-        result = shim.rollout({"pixels": "p"}, "actions")
-
-        assert result["predicted_emb"] != "proprio"
-        assert set(result) == {"predicted_emb"}
-
-    def test_it_swallows_the_history_size_argument(self) -> None:
-        """``prejepa.rollout`` takes no ``history_size``; the base passes one."""
-
-        model = _FakePreJEPA()
-        shim = _PreJEPARolloutShim(model)
-
-        shim.rollout({"pixels": "p"}, "actions", history_size=3)
-
-        assert len(model.calls) == 1
-
-    def test_it_drops_a_cached_initial_embedding(self) -> None:
-        """A stale cache would score one bundle from another's initial state.
-
-        ``prejepa`` keys its cache on ``info['id']`` and ``info['step_idx']``.
-        ContextWorld's query bundles carry neither, so a surviving cache could
-        be reused across unrelated bundles.
-        """
-
-        model = _FakePreJEPA()
-        model._init_cached_info = {"stale": True}
-        shim = _PreJEPARolloutShim(model)
-
-        shim.rollout({"pixels": "p"}, "actions")
-
-        assert not hasattr(model, "_init_cached_info")
-
-    def test_a_missing_visual_stream_is_an_error_not_a_silent_wrong_score(
-        self,
-    ) -> None:
-        shim = _PreJEPARolloutShim(_FakePreJEPA({"predicted_proprio": "p"}))
-
-        with pytest.raises(RuntimeError, match="predicted_visual"):
-            shim.rollout({"pixels": "p"}, "actions")
-
-    def test_it_forwards_unknown_attributes_to_the_model(self) -> None:
-        """The adapter reads ``parameters()`` and the state dict through this."""
-
-        model = _FakePreJEPA()
-        model.marker = "forwarded"
-
-        assert _PreJEPARolloutShim(model).marker == "forwarded"
+class _FakeEmbedder:
+    def __init__(self, in_chans: int, emb_dim: int = 10) -> None:
+        self.in_chans = in_chans
+        self.emb_dim = emb_dim
 
 
-class TestFamilyGeometry:
-    @pytest.mark.parametrize(
-        "adapter,history,action_dim",
-        [
-            (StableWorldModelPreJEPAAdapter, 3, 2),
-            (StableWorldModelPreJEPAHistory7Adapter, 7, 2),
-            (StableWorldModelPreJEPACubeGraspRuleAdapter, 3, 5),
-        ],
+def _fake_model(*, history: int = 3, action_width: int = 10, state=False):
+    torch = pytest.importorskip("torch")
+
+    class FakePreJEPA(torch.nn.Module):
+        def __init__(self) -> None:
+            super().__init__()
+            self.anchor = torch.nn.Parameter(torch.ones(()))
+            self.history_size = history
+            self.extra_encoders = {
+                "action": _FakeEmbedder(action_width),
+            }
+            if state:
+                self.extra_encoders = {
+                    "proprio": _FakeEmbedder(2),
+                    **self.extra_encoders,
+                }
+            self.encode_calls: list[list[str] | None] = []
+            self.rollout_calls: list[tuple[dict[str, Any], Any]] = []
+
+        def encode(self, info, *, emb_keys=None, **_):
+            self.encode_calls.append(emb_keys)
+            batch, frames = info["pixels"].shape[:2]
+            pixels_emb = torch.ones(batch, frames, 2, 3)
+            return {**info, "pixels_emb": pixels_emb, "emb": pixels_emb}
+
+        def rollout(self, info, future_actions):
+            self.rollout_calls.append((info, future_actions))
+            batch, samples, frames = info["pixels"].shape[:3]
+            future = future_actions.shape[2]
+            predicted = torch.arange(
+                batch * samples * (frames + future) * 2 * 3,
+                dtype=torch.float32,
+            ).reshape(batch, samples, frames + future, 2, 3)
+            return {"predicted_pixels_emb": predicted}
+
+    return FakePreJEPA()
+
+
+def _adapter(model, *, cls=StableWorldModelPreJEPAAdapter):
+    return cls(
+        model=model,
+        checkpoint=Path(__file__),
+        stable_repo=ROOT,
+        stable_commit="a" * 40,
+        action_standardizer=ColumnStandardizer(
+            np.zeros((1, cls.raw_action_dim), dtype=np.float32),
+            np.ones((1, cls.raw_action_dim), dtype=np.float32),
+        ),
+        device="cpu",
     )
-    def test_geometry_is_inherited_from_the_task_not_the_family(
-        self, adapter: type, history: int, action_dim: int
-    ) -> None:
-        """Swapping families must not change what a task evaluates."""
 
-        assert adapter.required_history_tokens == history
-        assert adapter.raw_action_dim == action_dim
-        assert adapter.model_config_name == "prejepa"
 
-    def test_every_variant_is_concrete_and_in_the_hierarchy(self) -> None:
-        from contextworld.benchmarks import prejepa_adapters
+def test_native_visual_encode_excludes_action_encoder() -> None:
+    model = _fake_model()
+    adapter = _adapter(model)
 
-        exported = [
-            getattr(prejepa_adapters, name)
-            for name in prejepa_adapters.__all__
-        ]
+    encoded = adapter.encode_pixels(
+        np.zeros((2, 8, 8, 3), dtype=np.uint8), batch_size=2
+    )
 
-        assert len(exported) == 8
-        for adapter in exported:
-            assert issubclass(adapter, LatentWorldModelAdapter)
-            assert not adapter.__abstractmethods__
+    assert encoded.shape == (2, 2, 3)
+    assert model.encode_calls == [[]]
+
+
+def test_native_rollout_splits_past_and_strictly_future_actions() -> None:
+    model = _fake_model()
+    model._init_cached_info = {"stale": True}
+    adapter = _adapter(model)
+    pixels = np.zeros((2, 3, 8, 8, 3), dtype=np.uint8)
+    # H=3 consumes two past blocks; three blocks remain as future actions.
+    actions = np.zeros((2, 5, 5, 2), dtype=np.float32)
+
+    predicted = adapter.rollout_latents(pixels, actions, batch_size=2)
+
+    info, future = model.rollout_calls[0]
+    assert info["pixels"].shape == (2, 1, 3, 3, 8, 8)
+    assert info["action_history"].shape == (2, 1, 2, 10)
+    assert future.shape == (2, 1, 3, 10)
+    assert predicted.shape == (2, 3, 2, 3)
+    assert not hasattr(model, "_init_cached_info")
+
+
+def test_state_conditioned_checkpoint_is_rejected_without_fabricated_state() -> None:
+    with pytest.raises(PreJEPAInputContractError, match="only pixels and actions"):
+        _adapter(_fake_model(state=True))
+
+
+def test_checkpoint_history_must_match_the_frozen_task() -> None:
+    with pytest.raises(PreJEPAInputContractError, match="history_size=3"):
+        _adapter(_fake_model(history=3), cls=StableWorldModelPreJEPAHistory7Adapter)
+
+
+def test_request_constructor_uses_native_loader_not_get_cost(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from contextworld.benchmarks import prejepa_adapters
+
+    checkpoint = tmp_path / "weights.pt"
+    checkpoint.write_bytes(b"native")
+    (tmp_path / "config.json").write_text(json.dumps({}), encoding="utf-8")
+    model = _fake_model()
+    calls = []
+
+    class Utils:
+        @staticmethod
+        def load_pretrained(name, cache_dir=None):
+            calls.append((name, cache_dir))
+            return model
+
+    swm = SimpleNamespace(wm=SimpleNamespace(utils=Utils()))
+    monkeypatch.setattr(
+        prejepa_adapters,
+        "load_stable_worldmodel",
+        lambda *_: (swm, tmp_path, "b" * 40),
+    )
+    request = AdapterRequest(
+        task="speed",
+        checkpoint=checkpoint,
+        device="cpu",
+        repo_root=ROOT,
+        action_mean=(0.0, 0.0),
+        action_std=(1.0, 1.0),
+        runtime={"stablewm_repo": str(tmp_path), "stablewm_ref": "b" * 40},
+    )
+
+    adapter = StableWorldModelPreJEPAAdapter.from_contextworld_request(request)
+
+    assert isinstance(adapter, LatentWorldModelAdapter)
+    assert calls and calls[0][0] == str(checkpoint)
+
+
+@pytest.mark.parametrize(
+    "adapter,history,action_dim",
+    [
+        (StableWorldModelPreJEPAAdapter, 3, 2),
+        (StableWorldModelPreJEPAHistory7Adapter, 7, 2),
+        (StableWorldModelPreJEPACubeGraspRuleAdapter, 3, 5),
+    ],
+)
+def test_geometry_is_inherited_from_the_task(
+    adapter: type, history: int, action_dim: int
+) -> None:
+    assert adapter.required_history_tokens == history
+    assert adapter.raw_action_dim == action_dim
+    assert adapter.model_config_name == "prejepa"
 
 
 def test_the_help_text_advertises_every_built_in_family(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    """A family the CLI accepts but never mentions is a family nobody uses."""
-
     from contextworld.benchmarks.external_model_cli import (
         _BUILTIN_FAMILIES,
         parse_args,
@@ -202,6 +222,5 @@ def test_the_help_text_advertises_every_built_in_family(
     with pytest.raises(SystemExit):
         parse_args(["--help"])
     help_text = capsys.readouterr().out
-
     for family in _BUILTIN_FAMILIES:
         assert family in help_text

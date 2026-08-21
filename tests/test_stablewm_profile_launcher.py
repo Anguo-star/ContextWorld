@@ -519,16 +519,66 @@ class TestTargetAndStorageSafety:
         (run / "config.yaml").write_text("x", encoding="utf-8")
 
         with pytest.raises(SystemExit, match="non-empty run directory"):
-            launcher.validate_resume(tmp_path, "run", "never")
+            launcher.validate_resume(
+                tmp_path, "run", "never", family="prejepa"
+            )
 
-    def test_resume_required_means_full_training_state(self, tmp_path: Path) -> None:
-        with pytest.raises(SystemExit, match="full-state checkpoint"):
-            launcher.validate_resume(tmp_path, "run", "required")
-        checkpoint = tmp_path / "checkpoints/run/run_weights.ckpt"
-        checkpoint.parent.mkdir(parents=True)
-        checkpoint.write_bytes(b"")
+    @pytest.mark.parametrize("family", ["lewm", "pldm", "prejepa"])
+    def test_new_job_cannot_claim_native_full_state_resume(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+        family: str,
+    ) -> None:
+        monkeypatch.delenv("SLURM_JOB_ID", raising=False)
+        monkeypatch.delenv("SLURM_RESTART_COUNT", raising=False)
+        with pytest.raises(SystemExit, match="newly submitted job"):
+            launcher.validate_resume(
+                tmp_path, "run", "required", family=family
+            )
 
-        launcher.validate_resume(tmp_path, "run", "required")
+    def test_resume_auto_never_restarts_an_incomplete_manual_run(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.delenv("SLURM_JOB_ID", raising=False)
+        monkeypatch.delenv("SLURM_RESTART_COUNT", raising=False)
+        run = tmp_path / "checkpoints/run"
+        run.mkdir(parents=True)
+        (run / "weights_epoch_5.pt").write_bytes(b"inference-only")
+
+        with pytest.raises(SystemExit, match="refusing to restart"):
+            launcher.validate_resume(
+                tmp_path, "run", "auto", family="prejepa"
+            )
+
+    def test_restart_count_without_job_identity_is_not_a_native_requeue(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.delenv("SLURM_JOB_ID", raising=False)
+        monkeypatch.setenv("SLURM_RESTART_COUNT", "1")
+
+        assert launcher._stablepretraining_native_requeue() is False
+
+    def test_native_scheduler_requeue_is_left_to_stablepretraining(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        run = tmp_path / "checkpoints/run"
+        run.mkdir(parents=True)
+        (run / "weights_epoch_5.pt").write_bytes(b"inference-only")
+        monkeypatch.setenv("SLURM_JOB_ID", "12345")
+        monkeypatch.setenv("SLURM_RESTART_COUNT", "1")
+
+        launcher.validate_resume(
+            tmp_path, "run", "auto", family="prejepa"
+        )
+        launcher.validate_resume(
+            tmp_path, "run", "required", family="prejepa"
+        )
 
     def test_run_name_cannot_escape_the_checkpoint_root(self, stablewm_repo: Path,
                                                         dataset: Path) -> None:
@@ -551,6 +601,9 @@ class TestTargetAndStorageSafety:
             "subdir=elsewhere",
             "data.dataset.name=/wrong.h5",
             "service.api_key=visible-secret",
+            "optimizer.lr=${oc.env:LEARNING_RATE}",
+            "hydra.searchpath=[file:///tmp/external-config]",
+            "model@external_package=alternate",
         ],
     )
     def test_raw_overrides_cannot_bypass_path_or_secret_safety(
@@ -572,6 +625,387 @@ class TestTargetAndStorageSafety:
 
         with pytest.raises(SystemExit):
             _build(args, stablewm_repo)
+
+
+class TestRecoveryPaths:
+
+    def test_slurm_requeue_index_cannot_span_multiple_training_seeds(
+        self,
+        stablewm_repo: Path,
+        dataset: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.setenv("SLURM_JOB_ID", "12345")
+        monkeypatch.delenv("SLURM_ARRAY_TASK_ID", raising=False)
+
+        with pytest.raises(SystemExit, match="only one CW_SEEDS value"):
+            launcher.main(
+                [
+                    "--family",
+                    "prejepa",
+                    "--original-env",
+                    "tworoom",
+                    "--dataset",
+                    str(dataset),
+                    "--stablewm-repo",
+                    str(stablewm_repo),
+                    "--checkpoint-root",
+                    str(dataset.parent / "persistent-checkpoints"),
+                    "--seeds",
+                    "3072,3073",
+                    "--print-command",
+                ]
+            )
+
+    def test_non_slurm_launcher_keeps_serial_seed_sweeps(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.delenv("SLURM_JOB_ID", raising=False)
+        launcher._validate_scheduler_seed_isolation(["seed-a", "seed-b"])
+
+    def test_training_persists_stablepretraining_state_at_checkpoint_root(
+        self,
+        stablewm_repo: Path,
+        dataset: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.delenv("SPT_CACHE_DIR", raising=False)
+        monkeypatch.delenv("SLURM_JOB_ID", raising=False)
+        checkpoint_root = dataset.parent / "persistent-checkpoints"
+        calls: list[tuple[list[str], dict[str, str]]] = []
+
+        class Completed:
+            returncode = 0
+
+        def run(command: list[str], **kwargs: object) -> Completed:
+            calls.append((command, kwargs["env"]))  # type: ignore[index]
+            return Completed()
+
+        monkeypatch.setattr(launcher.subprocess, "run", run)
+
+        status = launcher.main([
+            "--family",
+            "prejepa",
+            "--original-env",
+            "tworoom",
+            "--dataset",
+            str(dataset),
+            "--stablewm-repo",
+            str(stablewm_repo),
+            "--checkpoint-root",
+            str(checkpoint_root),
+            "--seeds",
+            "3072,3073",
+            "--resume",
+            "auto",
+        ])
+
+        assert status == 0
+        assert len(calls) == 2
+        assert all(
+            environment["STABLEWM_HOME"] == str(checkpoint_root)
+            and environment["SPT_CACHE_DIR"] == str(checkpoint_root)
+            for _, environment in calls
+        )
+        assert "subdir=tworoom_prejepa_original_s3072" in calls[0][0]
+        assert "subdir=tworoom_prejepa_original_s3073" in calls[1][0]
+        for seed in (3072, 3073):
+            identity_path = (
+                checkpoint_root
+                / "checkpoints"
+                / f"tworoom_prejepa_original_s{seed}"
+                / launcher.TRAINING_IDENTITY_FILENAME
+            )
+            payload = json.loads(identity_path.read_text(encoding="utf-8"))
+            assert payload["schema_version"] == launcher.TRAINING_IDENTITY_SCHEMA
+            assert payload["identity"]["seed"] == seed
+            assert payload["identity"]["hydra_overrides"]
+            dependencies = payload["identity"]["training_dependencies"]
+            assert "stable-pretraining" in dependencies
+            assert "version" in dependencies["stable-pretraining"]
+
+    def test_training_identity_never_overwrites_an_existing_recipe(
+        self,
+        tmp_path: Path,
+    ) -> None:
+        run_name = "one-run"
+        run_dir = tmp_path / "checkpoints" / run_name
+        run_dir.mkdir(parents=True)
+        path = run_dir / launcher.TRAINING_IDENTITY_FILENAME
+        original = {
+            "schema_version": launcher.TRAINING_IDENTITY_SCHEMA,
+            "identity_sha256": "first",
+            "identity": {"recipe": 1},
+        }
+        path.write_text(json.dumps(original), encoding="utf-8")
+
+        with pytest.raises(SystemExit, match="training identity differs"):
+            launcher._install_training_identity(
+                tmp_path,
+                run_name,
+                {
+                    "schema_version": launcher.TRAINING_IDENTITY_SCHEMA,
+                    "identity_sha256": "second",
+                    "identity": {"recipe": 2},
+                },
+            )
+
+        assert json.loads(path.read_text(encoding="utf-8")) == original
+
+    def test_completed_epoch_automatically_recovers_at_eval(
+        self,
+        stablewm_repo: Path,
+        dataset: Path,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.delenv("CW_EVAL_ONLY", raising=False)
+        monkeypatch.delenv("SPT_CACHE_DIR", raising=False)
+        checkpoint_root = tmp_path / "root"
+        checkpoint = (
+            checkpoint_root
+            / "checkpoints/tworoom_prejepa_original_s3072/weights_epoch_10.pt"
+        )
+        checkpoint.parent.mkdir(parents=True)
+        checkpoint.write_bytes(b"complete inference checkpoint")
+        (checkpoint.parent / "config.yaml").write_text(
+            yaml.safe_dump(
+                {
+                    "output_model_name": "tworoom_prejepa_original_s3072",
+                    "subdir": "tworoom_prejepa_original_s3072",
+                    "seed": 3072,
+                    "dataset_name": str(dataset),
+                    "frameskip": 5,
+                    "wm": {"history_size": 3, "num_preds": 1},
+                    "trainer": {"max_epochs": 10},
+                }
+            ),
+            encoding="utf-8",
+        )
+        identity = {
+            "schema_version": launcher.TRAINING_IDENTITY_SCHEMA,
+            "identity_sha256": "verified-test-identity",
+            "identity": {"recipe": "test"},
+        }
+        (checkpoint.parent / launcher.TRAINING_IDENTITY_FILENAME).write_text(
+            json.dumps(identity),
+            encoding="utf-8",
+        )
+        calls: list[tuple[list[str], dict[str, str]]] = []
+
+        def forbidden(*_: object, **__: object) -> None:
+            raise AssertionError("completed training must bypass trainer resume")
+
+        class Completed:
+            returncode = 0
+
+        def run(command: list[str], **kwargs: object) -> Completed:
+            calls.append((command, kwargs["env"]))  # type: ignore[index]
+            return Completed()
+
+        monkeypatch.setattr(
+            launcher,
+            "_training_identity_document",
+            lambda **_: identity,
+        )
+        monkeypatch.setattr(launcher, "validate_resume", forbidden)
+        monkeypatch.setattr(launcher.subprocess, "run", run)
+
+        status = launcher.main([
+            "--family",
+            "prejepa",
+            "--original-env",
+            "tworoom",
+            "--dataset",
+            str(dataset),
+            "--stablewm-repo",
+            str(stablewm_repo),
+            "--checkpoint-root",
+            str(checkpoint_root),
+            "--seeds",
+            "3072",
+            "--resume",
+            "auto",
+            "--post-eval",
+            "--eval-epoch",
+            "10",
+            "--eval-result-subdir",
+            "recovery-v2",
+        ])
+
+        assert status == 0
+        assert len(calls) == 1
+        command, environment = calls[0]
+        assert command[1].endswith("run_stablewm_eval.py")
+        assert "--suite" in command
+        assert command[command.index("--run-name") + 1] == (
+            "tworoom_prejepa_original_s3072"
+        )
+        assert command[command.index("--epoch") + 1] == "10"
+        assert command[command.index("--result-subdir") + 1] == "recovery-v2"
+        assert environment["SPT_CACHE_DIR"] == str(checkpoint_root)
+
+    def test_resume_never_cannot_turn_a_stale_epoch_into_eval_recovery(
+        self,
+        stablewm_repo: Path,
+        dataset: Path,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.delenv("SLURM_JOB_ID", raising=False)
+        checkpoint_root = tmp_path / "root"
+        checkpoint = (
+            checkpoint_root
+            / "checkpoints/tworoom_prejepa_original_s3072/weights_epoch_10.pt"
+        )
+        checkpoint.parent.mkdir(parents=True)
+        checkpoint.write_bytes(b"stale")
+
+        with pytest.raises(SystemExit, match="non-empty run directory"):
+            launcher.main([
+                "--family",
+                "prejepa",
+                "--original-env",
+                "tworoom",
+                "--dataset",
+                str(dataset),
+                "--stablewm-repo",
+                str(stablewm_repo),
+                "--checkpoint-root",
+                str(checkpoint_root),
+                "--seeds",
+                "3072",
+                "--resume",
+                "never",
+                "--post-eval",
+                "--eval-epoch",
+                "10",
+                "--print-command",
+            ])
+
+    def test_auto_eval_recovery_rejects_mismatched_training_identity(
+        self,
+        stablewm_repo: Path,
+        dataset: Path,
+        tmp_path: Path,
+    ) -> None:
+        checkpoint_root = tmp_path / "root"
+        checkpoint = (
+            checkpoint_root
+            / "checkpoints/tworoom_prejepa_original_s3072/weights_epoch_10.pt"
+        )
+        checkpoint.parent.mkdir(parents=True)
+        checkpoint.write_bytes(b"stale")
+        (checkpoint.parent / "config.yaml").write_text(
+            yaml.safe_dump(
+                {
+                    "output_model_name": "tworoom_prejepa_original_s3072",
+                    "subdir": "tworoom_prejepa_original_s3072",
+                    "seed": 9999,
+                    "dataset_name": str(dataset),
+                    "frameskip": 5,
+                    "wm": {"history_size": 3, "num_preds": 1},
+                    "trainer": {"max_epochs": 10},
+                }
+            ),
+            encoding="utf-8",
+        )
+        (checkpoint.parent / launcher.TRAINING_IDENTITY_FILENAME).write_text(
+            json.dumps(
+                {
+                    "schema_version": launcher.TRAINING_IDENTITY_SCHEMA,
+                    "identity_sha256": "stale-recipe",
+                    "identity": {"seed": 9999},
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        with pytest.raises(SystemExit, match="training identity differs"):
+            launcher.main([
+                "--family",
+                "prejepa",
+                "--original-env",
+                "tworoom",
+                "--dataset",
+                str(dataset),
+                "--stablewm-repo",
+                str(stablewm_repo),
+                "--checkpoint-root",
+                str(checkpoint_root),
+                "--seeds",
+                "3072",
+                "--resume",
+                "auto",
+                "--post-eval",
+                "--eval-epoch",
+                "10",
+                "--print-command",
+            ])
+
+    def test_eval_only_never_logs_into_swanlab_or_validates_training_resume(
+        self,
+        stablewm_repo: Path,
+        dataset: Path,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        checkpoint_root = tmp_path / "root"
+        checkpoint = (
+            checkpoint_root
+            / "checkpoints/tworoom_prejepa_original_s3072/weights_epoch_10.pt"
+        )
+        checkpoint.parent.mkdir(parents=True)
+        checkpoint.write_bytes(b"complete inference checkpoint")
+        monkeypatch.setenv("SWANLAB_API_KEY", "sentinel-secret")
+        monkeypatch.delenv("SPT_CACHE_DIR", raising=False)
+        commands: list[list[str]] = []
+
+        def forbidden(*_: object, **__: object) -> None:
+            raise AssertionError("eval-only must not enter training setup")
+
+        class Completed:
+            returncode = 0
+
+        def run(command: list[str], **_: object) -> Completed:
+            commands.append(command)
+            return Completed()
+
+        monkeypatch.setattr(launcher, "validate_resume", forbidden)
+        monkeypatch.setattr(
+            launcher,
+            "_login_swanlab_without_exposing_key",
+            forbidden,
+        )
+        monkeypatch.setattr(launcher.subprocess, "run", run)
+
+        status = launcher.main([
+            "--family",
+            "prejepa",
+            "--original-env",
+            "tworoom",
+            "--dataset",
+            str(dataset),
+            "--stablewm-repo",
+            str(stablewm_repo),
+            "--checkpoint-root",
+            str(checkpoint_root),
+            "--seeds",
+            "3072",
+            "--resume",
+            "required",
+            "--logger",
+            "swanlab",
+            "--eval-only",
+            "--eval-epoch",
+            "10",
+        ])
+
+        assert status == 0
+        assert len(commands) == 1
+        assert commands[0][1].endswith("run_stablewm_eval.py")
+        assert "sentinel-secret" not in " ".join(commands[0])
 
 
 class TestLoggingAndLossBoundaries:
@@ -715,6 +1149,52 @@ class TestLoggingAndLossBoundaries:
 
 
 class TestExplicitEvaluation:
+
+    def test_original_metric_receipt_parser_returns_typed_values(
+        self,
+        tmp_path: Path,
+    ) -> None:
+        path = tmp_path / "metrics.txt"
+        path.write_text(
+            "==== RESULTS ====\n"
+            "metrics: {'success_rate': 58.0, "
+            "'episode_successes': array([True, False])}\n"
+            "evaluation_time: 2071.4979 seconds\n",
+            encoding="utf-8",
+        )
+
+        assert evaluator._parse_original_metrics(path, num_eval=50) == {
+            "success_rate_percent": 58.0,
+            "successful_episodes": 29,
+            "evaluation_time_seconds": 2071.4979,
+        }
+
+    def test_eval_revision_reads_git_metadata_without_running_git(
+        self,
+        stablewm_repo: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        revision = "f" * 40
+        git_dir = stablewm_repo / ".git"
+        ref = git_dir / "refs/heads/main"
+        ref.parent.mkdir(parents=True)
+        ref.write_text(revision + "\n", encoding="utf-8")
+        (git_dir / "HEAD").write_text(
+            "ref: refs/heads/main\n", encoding="utf-8"
+        )
+
+        def reject_git(*_: object, **__: object) -> None:
+            raise AssertionError("evaluation must not invoke git rev-parse")
+
+        monkeypatch.setattr(evaluator.subprocess, "run", reject_git)
+
+        assert evaluator._stablewm_ref(stablewm_repo, None) == revision
+
+    def test_explicit_eval_revision_must_be_a_full_sha(
+        self, stablewm_repo: Path
+    ) -> None:
+        with pytest.raises(SystemExit, match="40-digit SHA"):
+            evaluator._stablewm_ref(stablewm_repo, "875e607")
 
     def test_suite_reuses_original_cem_and_all_environment_icl_scorers(
         self,
@@ -1000,3 +1480,181 @@ class TestExplicitEvaluation:
 
         with pytest.raises(SystemExit, match="Run names"):
             evaluator.build_commands(args)
+
+    @pytest.mark.parametrize(
+        "environment,state_key,extra",
+        [
+            ("tworoom", "proprio", []),
+            ("pusht", "proprio", []),
+            (
+                "reacher",
+                "observation",
+                [
+                    "objective.terms.0.1.pred_key=predicted_observation_emb",
+                    "objective.terms.0.1.goal_key=observation_goal_emb",
+                    "dataset.keys_to_cache=[action,observation]",
+                ],
+            ),
+            (
+                "cube",
+                "observation",
+                [
+                    "objective.terms.0.1.pred_key=predicted_observation_emb",
+                    "objective.terms.0.1.goal_key=observation_goal_emb",
+                    "dataset.keys_to_cache=[action,observation]",
+                ],
+            ),
+        ],
+    )
+    def test_prejepa_cem_uses_split_objective_and_state_history_bridge(
+        self,
+        stablewm_repo: Path,
+        dataset: Path,
+        tmp_path: Path,
+        environment: str,
+        state_key: str,
+        extra: list[str],
+    ) -> None:
+        args = evaluator.parse_args(
+            [
+                "--family",
+                "prejepa",
+                "--original-env",
+                environment,
+                "--dataset",
+                str(dataset),
+                "--run-name",
+                "run",
+                "--epoch",
+                "10",
+                "--checkpoint-root",
+                str(tmp_path / "root"),
+                "--stablewm-repo",
+                str(stablewm_repo),
+                "--print-command",
+            ]
+        )
+
+        _, commands = evaluator.build_commands(args)
+        command = commands[0][-1]
+
+        assert command[1].endswith("scripts/run_stablewm_plan.py")
+        assert command[command.index("--history-keys") + 1] == (
+            f"pixels,{state_key}"
+        )
+        assert "objective=goal_mse_pixels_proprio" in command
+        for value in extra:
+            assert value in command
+
+    @pytest.mark.parametrize(
+        "history_size,action_width,error",
+        [
+            (7, 10, "trained with history_size=7"),
+            (3, 14, "trained with action_block=7"),
+        ],
+    )
+    def test_prejepa_cem_rejects_checkpoint_geometry_mismatch(
+        self,
+        stablewm_repo: Path,
+        dataset: Path,
+        tmp_path: Path,
+        history_size: int,
+        action_width: int,
+        error: str,
+    ) -> None:
+        checkpoint = tmp_path / "run/weights_epoch_10.pt"
+        checkpoint.parent.mkdir(parents=True)
+        checkpoint.write_bytes(b"checkpoint")
+        (checkpoint.parent / "config.json").write_text(
+            json.dumps(
+                {
+                    "history_size": history_size,
+                    "extra_encoders": {
+                        "modules": {
+                            "proprio": {"in_chans": 2},
+                            "action": {"in_chans": action_width},
+                        }
+                    },
+                }
+            ),
+            encoding="utf-8",
+        )
+        args = evaluator.parse_args(
+            [
+                "--family",
+                "prejepa",
+                "--original-env",
+                "tworoom",
+                "--dataset",
+                str(dataset),
+                "--checkpoint",
+                str(checkpoint),
+                "--stablewm-repo",
+                str(stablewm_repo),
+                "--print-command",
+            ]
+        )
+
+        with pytest.raises(SystemExit, match=error):
+            evaluator.build_commands(args)
+
+    def test_state_conditioned_prejepa_icl_is_recorded_as_not_compatible(
+        self,
+        stablewm_repo: Path,
+        dataset: Path,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        checkpoint = tmp_path / "run/weights_epoch_10.pt"
+        checkpoint.parent.mkdir(parents=True)
+        checkpoint.write_bytes(b"checkpoint")
+        (checkpoint.parent / "config.json").write_text(
+            json.dumps(
+                {
+                    "history_size": 3,
+                    "extra_encoders": {
+                        "modules": {"proprio": {}, "action": {}}
+                    },
+                }
+            ),
+            encoding="utf-8",
+        )
+        monkeypatch.setattr(evaluator, "_run_original", lambda _: 0)
+
+        def forbidden(*_: object, **__: object) -> None:
+            raise AssertionError("incompatible ICL step must not run")
+
+        monkeypatch.setattr(evaluator.subprocess, "run", forbidden)
+
+        status = evaluator.main(
+            [
+                "--suite",
+                "--family",
+                "prejepa",
+                "--original-env",
+                "tworoom",
+                "--dataset",
+                str(dataset),
+                "--checkpoint",
+                str(checkpoint),
+                "--stablewm-repo",
+                str(stablewm_repo),
+                "--stablewm-ref",
+                "e" * 40,
+                "--result-subdir",
+                "state-input-contract",
+            ]
+        )
+
+        manifest = json.loads(
+            (
+                checkpoint.parent
+                / "eval_results/state-input-contract/manifest.json"
+            ).read_text(encoding="utf-8")
+        )
+        assert status == 0
+        assert manifest["status"] == "completed"
+        icl = manifest["steps"][1:]
+        assert icl
+        assert all(row["status"] == "not_compatible" for row in icl)
+        assert all("only pixels and actions" in row["reason"] for row in icl)

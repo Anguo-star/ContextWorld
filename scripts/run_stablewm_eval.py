@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import json
 import os
 import re
 import shlex
@@ -33,6 +34,7 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from contextworld.synthesis.manifest import write_json  # noqa: E402
+from contextworld.synthesis.stablewm import _git_commit  # noqa: E402
 
 
 PROFILE_CONFIG = REPO_ROOT / "configs/training/stablewm_family_profiles_v1.yaml"
@@ -192,6 +194,153 @@ class ResolvedCheckpoint:
     policy: str
 
 
+def _prejepa_model_config(checkpoint: Path) -> dict[str, Any] | None:
+    """Read the native PreJEPA model config beside a ``.pt`` checkpoint.
+
+    Stable-WorldModel's native save format always places ``config.json`` next
+    to the weights.  Dry-run commands are also allowed to name a checkpoint
+    that does not exist yet, so absence returns ``None`` and lets profile
+    defaults drive command rendering.
+    """
+
+    path = checkpoint.parent / "config.json"
+    if not path.is_file():
+        return None
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise SystemExit(f"Could not read PreJEPA model config {path}: {exc}") from exc
+    if not isinstance(payload, dict):
+        raise SystemExit(f"PreJEPA model config must be a JSON object: {path}")
+    model = payload.get("model", payload)
+    if not isinstance(model, dict):
+        raise SystemExit(f"PreJEPA model entry must be a JSON object: {path}")
+    return model
+
+
+def _prejepa_extra_encoder_keys(model_config: dict[str, Any]) -> tuple[str, ...]:
+    extra = model_config.get("extra_encoders", {})
+    if not isinstance(extra, dict):
+        return ()
+    modules = extra.get("modules", extra)
+    if not isinstance(modules, dict):
+        return ()
+    return tuple(str(key) for key in modules if not str(key).startswith("_"))
+
+
+def _prejepa_state_keys(
+    *,
+    checkpoint: ResolvedCheckpoint,
+    original_env: str,
+    contract: dict[str, Any],
+) -> tuple[str, ...]:
+    model_config = _prejepa_model_config(checkpoint.path)
+    if model_config is None:
+        fallback = contract["original_environments"][original_env].get(
+            "encoding_key"
+        )
+        return (str(fallback),) if fallback else ()
+    return tuple(
+        key
+        for key in _prejepa_extra_encoder_keys(model_config)
+        if key != "action"
+    )
+
+
+def _validate_prejepa_cem_geometry(
+    *,
+    checkpoint: ResolvedCheckpoint,
+    original_env: str,
+    history_size: int,
+    action_block: int,
+    contract: dict[str, Any],
+) -> None:
+    """Reject planner geometry that differs from the trained checkpoint."""
+
+    model_config = _prejepa_model_config(checkpoint.path)
+    if model_config is None:
+        return
+    trained_history = model_config.get("history_size")
+    if trained_history is None:
+        raise SystemExit(
+            "PreJEPA checkpoint config does not declare history_size: "
+            f"{checkpoint.path.parent / 'config.json'}"
+        )
+    try:
+        trained_history = int(trained_history)
+    except (TypeError, ValueError) as exc:
+        raise SystemExit(
+            f"Invalid PreJEPA checkpoint history_size: {trained_history!r}"
+        ) from exc
+    if trained_history != history_size:
+        raise SystemExit(
+            f"PreJEPA checkpoint was trained with history_size={trained_history}, "
+            f"but CEM requested history_size={history_size}."
+        )
+
+    extra = model_config.get("extra_encoders", {})
+    modules = extra.get("modules", extra) if isinstance(extra, dict) else {}
+    action = modules.get("action", {}) if isinstance(modules, dict) else {}
+    width = action.get("in_chans") if isinstance(action, dict) else None
+    if width is None:
+        return
+    raw_action_dim = int(
+        contract["original_environments"][original_env]["action_dim"]
+    )
+    try:
+        width = int(width)
+    except (TypeError, ValueError) as exc:
+        raise SystemExit(
+            f"Invalid PreJEPA action encoder width: {width!r}"
+        ) from exc
+    if width <= 0 or width % raw_action_dim:
+        raise SystemExit(
+            "PreJEPA action encoder width is incompatible with the original "
+            f"environment: width={width}, action_dim={raw_action_dim}."
+        )
+    trained_action_block = width // raw_action_dim
+    if trained_action_block != action_block:
+        raise SystemExit(
+            "PreJEPA checkpoint was trained with action_block="
+            f"{trained_action_block}, but CEM requested action_block="
+            f"{action_block}."
+        )
+
+
+def _prejepa_objective_overrides(
+    *,
+    state_keys: tuple[str, ...],
+) -> list[str]:
+    """Select SWM's split-latent goal objective for a PreJEPA checkpoint.
+
+    A PreJEPA prediction contains pixels, state and action slots.  A goal has
+    no action slot, so the generic fused ``goal_mse`` objective is
+    dimensionally invalid.  Stable-WorldModel already exposes the correct
+    per-source ``WeightedSum`` objective; this function only selects it and,
+    for Reacher/Cube, renames the state stream from ``proprio`` to the key
+    recorded by the checkpoint.
+    """
+
+    if not state_keys:
+        return ["objective=goal_mse_pixels"]
+    if len(state_keys) != 1:
+        raise SystemExit(
+            "PreJEPA CEM currently supports zero or one non-action latent "
+            f"source; checkpoint declares {state_keys}."
+        )
+
+    state_key = state_keys[0]
+    overrides = ["objective=goal_mse_pixels_proprio"]
+    if state_key != "proprio":
+        overrides.extend(
+            [
+                f"objective.terms.0.1.pred_key=predicted_{state_key}_emb",
+                f"objective.terms.0.1.goal_key={state_key}_goal_emb",
+            ]
+        )
+    return overrides
+
+
 def _run_name(value: str) -> str:
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,127}", value):
         raise SystemExit(
@@ -277,18 +426,27 @@ def _stablewm_repo(args: argparse.Namespace) -> Path:
 
 def _stablewm_ref(repo: Path, explicit: str | None) -> str:
     if explicit:
+        if not re.fullmatch(r"[0-9a-f]{40}", explicit):
+            raise SystemExit("--stablewm-ref/CW_STABLEWM_REF must be a 40-digit SHA")
         return explicit
-    completed = subprocess.run(
-        ["git", "-C", str(repo), "rev-parse", "HEAD"],
-        check=False,
-        capture_output=True,
-        text=True,
-    )
-    revision = completed.stdout.strip()
-    if completed.returncode != 0 or not re.fullmatch(r"[0-9a-f]{40}", revision):
+
+    # Dataset/code mounts are commonly owned by a different uid than the
+    # training process. ``git rev-parse`` then refuses the checkout as an
+    # unsafe directory even though its metadata is readable. The benchmark
+    # adapters already resolve HEAD directly for exactly this reason, so use
+    # the same implementation during the suite hand-off.
+    try:
+        revision = _git_commit(repo)
+    except (OSError, RuntimeError) as exc:
         raise SystemExit(
-            "Could not identify the Stable-WorldModel checkout revision; pass "
-            "--stablewm-ref explicitly."
+            "Could not read the Stable-WorldModel checkout revision from "
+            f"{repo}/.git. Keep Git metadata with the cloud checkout; an "
+            "explicit CW_STABLEWM_REF alone cannot verify a source tree that "
+            "has no Git metadata."
+        ) from exc
+    if not re.fullmatch(r"[0-9a-f]{40}", revision):
+        raise SystemExit(
+            f"Stable-WorldModel HEAD is not a 40-digit SHA: {revision!r}"
         )
     return revision
 
@@ -328,8 +486,35 @@ def build_commands(
     results_dir = run_dir / "eval_results" / _safe_subdir(args.result_subdir)
     config_name = contract["evaluation"]["original_config_names"][args.original_env]
     checkpoint_label = (
-        f"epoch{checkpoint.epoch}" if checkpoint.epoch is not None else checkpoint.path.stem
+        f"epoch{checkpoint.epoch}"
+        if checkpoint.epoch is not None
+        else checkpoint.path.stem
     )
+    prejepa_state_keys: tuple[str, ...] = ()
+    if args.family == "prejepa":
+        _validate_prejepa_cem_geometry(
+            checkpoint=checkpoint,
+            original_env=args.original_env,
+            history_size=args.history_size,
+            action_block=args.action_block,
+            contract=contract,
+        )
+        prejepa_state_keys = _prejepa_state_keys(
+            checkpoint=checkpoint,
+            original_env=args.original_env,
+            contract=contract,
+        )
+        history_keys = ",".join(("pixels", *prejepa_state_keys))
+        command_prefix = [
+            sys.executable,
+            str(REPO_ROOT / "scripts/run_stablewm_plan.py"),
+            "--upstream-entry",
+            str(entry),
+            "--history-keys",
+            history_keys,
+        ]
+    else:
+        command_prefix = [sys.executable, str(entry)]
     commands = []
     for seed in args.eval_seeds:
         label = (
@@ -340,8 +525,7 @@ def build_commands(
         metrics_path = results_dir / f"{label}_metrics.txt"
         metrics_relative = metrics_path.relative_to(run_dir).as_posix()
         command = [
-            sys.executable,
-            str(entry),
+            *command_prefix,
             f"--config-name={config_name}",
             f"policy={checkpoint.policy}",
             f"eval.dataset_name={dataset}",
@@ -356,6 +540,17 @@ def build_commands(
             f"++eval.corruption.kernel_size={args.corruption_kernel_size}",
             f"++eval.corruption.apply_to=[{args.corruption_apply_to}]",
         ]
+        if args.family == "prejepa":
+            command.extend(
+                _prejepa_objective_overrides(state_keys=prejepa_state_keys)
+            )
+            # Reacher and Cube train PreJEPA's state stream from the
+            # ``observation`` column.  Their historical planner configs cache
+            # only actions, which would leave both current and goal state
+            # unstandardized.  The upstream evaluator already builds the
+            # required normalizers for every listed key.
+            if prejepa_state_keys == ("observation",):
+                command.append("dataset.keys_to_cache=[action,observation]")
         commands.append((seed, log_path, metrics_path, command))
     return stablewm_repo, commands
 
@@ -366,6 +561,39 @@ def _print_original_commands(
     for _, log_path, metrics_path, command in commands:
         print(f"[stablewm-eval] original-cem: {shlex.join(command)}")
         print(f"[stablewm-eval] log={log_path} metrics={metrics_path}")
+
+
+def _parse_original_metrics(path: Path, *, num_eval: int) -> dict[str, Any]:
+    """Turn the upstream human-readable CEM result into typed evidence."""
+
+    text = path.read_text(encoding="utf-8")
+    number = r"[-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?"
+    success = re.search(
+        rf"['\"]success_rate['\"]\s*:\s*({number})",
+        text,
+    )
+    duration = re.search(rf"evaluation_time:\s*({number})\s*seconds", text)
+    if success is None or duration is None:
+        raise SystemExit(
+            "Could not parse success_rate and evaluation_time from upstream "
+            f"metrics: {path}"
+        )
+    success_rate = float(success.group(1))
+    evaluation_time = float(duration.group(1))
+    if not 0.0 <= success_rate <= 100.0 or evaluation_time < 0.0:
+        raise SystemExit(f"Upstream metrics are outside valid bounds: {path}")
+    successful_episodes = success_rate * num_eval / 100.0
+    rounded_successes = round(successful_episodes)
+    if abs(successful_episodes - rounded_successes) > 1e-6:
+        raise SystemExit(
+            "Upstream success_rate is inconsistent with eval.num_eval: "
+            f"rate={success_rate}, num_eval={num_eval}, path={path}"
+        )
+    return {
+        "success_rate_percent": success_rate,
+        "successful_episodes": rounded_successes,
+        "evaluation_time_seconds": evaluation_time,
+    }
 
 
 def _run_original(args: argparse.Namespace) -> int:
@@ -421,8 +649,12 @@ def _run_original(args: argparse.Namespace) -> int:
         if not args.keep_videos:
             for video in set(run_dir.glob("*.mp4")) - before_videos:
                 video.unlink()
+        parsed_metrics = _parse_original_metrics(
+            metrics_path,
+            num_eval=args.num_eval,
+        )
         receipt = {
-            "schema_version": "contextworld.stablewm-original-eval.v2",
+            "schema_version": "contextworld.stablewm-original-eval.v3",
             "family": args.family,
             "original_environment": args.original_env,
             "run_name": checkpoint.run_name,
@@ -442,6 +674,7 @@ def _run_original(args: argparse.Namespace) -> int:
             "dataset": str(_absolute(args.dataset, "--dataset")),
             "metrics_file": str(metrics_path),
             "log_file": str(log_path),
+            "metrics": parsed_metrics,
         }
         receipt_path = metrics_path.with_suffix(".json")
         write_json(receipt_path, receipt)
@@ -454,6 +687,51 @@ class ICLStep:
     component: str
     output: Path
     command: list[str]
+    skip_reason: str | None = None
+
+
+def _prejepa_icl_skip_reason(
+    *,
+    checkpoint: ResolvedCheckpoint,
+    component: str,
+    contract: dict[str, Any],
+) -> str | None:
+    """Return why a native PreJEPA checkpoint cannot enter the v1 scorer.
+
+    ContextWorld v1 deliberately exposes only RGB history and actions to a
+    model adapter.  A PreJEPA checkpoint trained with an additional state
+    stream cannot be evaluated faithfully without that stream: zero filling
+    changes the trained input, while passing simulator state would silently
+    widen the frozen public protocol.  State-free checkpoints remain runnable.
+    """
+
+    model_config = _prejepa_model_config(checkpoint.path)
+    if model_config is None:
+        return None
+
+    reasons = []
+    state_keys = tuple(
+        key
+        for key in _prejepa_extra_encoder_keys(model_config)
+        if key != "action"
+    )
+    if state_keys:
+        reasons.append(
+            "checkpoint requires context stream(s) "
+            f"{list(state_keys)}, but the frozen v1 ICL adapter contract "
+            "provides only pixels and actions"
+        )
+
+    required_history = int(
+        contract["benchmark_components"][component]["history_size"]
+    )
+    trained_history = model_config.get("history_size")
+    if trained_history is not None and int(trained_history) != required_history:
+        reasons.append(
+            f"checkpoint history_size={int(trained_history)} does not match "
+            f"the component's frozen History={required_history} protocol"
+        )
+    return "; ".join(reasons) if reasons else None
 
 
 def _suite_environment(args: argparse.Namespace, contract: dict[str, Any]) -> str:
@@ -487,6 +765,7 @@ def _build_icl_steps(
     stablewm_ref: str,
     components: tuple[str, ...],
     eval_root: Path,
+    contract: dict[str, Any],
 ) -> list[ICLStep]:
     recipe = args.training_recipe or (
         f"original_{args.original_env}"
@@ -497,6 +776,15 @@ def _build_icl_steps(
     steps = []
     for component in components:
         output = root / component / "result.json"
+        skip_reason = (
+            _prejepa_icl_skip_reason(
+                checkpoint=checkpoint,
+                component=component,
+                contract=contract,
+            )
+            if args.family == "prejepa"
+            else None
+        )
         command = [
             sys.executable,
             "-m",
@@ -526,7 +814,14 @@ def _build_icl_steps(
             command.extend(("--evaluation-split", "development"))
         if args.training_seed is not None:
             command.extend(("--training-seed", str(args.training_seed)))
-        steps.append(ICLStep(component=component, output=output, command=command))
+        steps.append(
+            ICLStep(
+                component=component,
+                output=output,
+                command=command,
+                skip_reason=skip_reason,
+            )
+        )
     return steps
 
 
@@ -563,6 +858,7 @@ def _run_suite(args: argparse.Namespace) -> int:
         stablewm_ref=stablewm_ref,
         components=components,
         eval_root=eval_root,
+        contract=contract,
     )
 
     cem_args = argparse.Namespace(**vars(args))
@@ -602,11 +898,17 @@ def _run_suite(args: argparse.Namespace) -> int:
     else:
         _print_original_commands(cem_commands)
     for step in icl_steps:
-        print(
-            f"[stablewm-eval] benchmark-icl component={step.component}: "
-            f"{shlex.join(step.command)}"
-        )
-        print(f"[stablewm-eval] output={step.output}")
+        if step.skip_reason:
+            print(
+                f"[stablewm-eval] benchmark-icl component={step.component} "
+                f"not compatible: {step.skip_reason}"
+            )
+        else:
+            print(
+                f"[stablewm-eval] benchmark-icl component={step.component}: "
+                f"{shlex.join(step.command)}"
+            )
+            print(f"[stablewm-eval] output={step.output}")
     if args.print_command:
         return 0
 
@@ -616,7 +918,7 @@ def _run_suite(args: argparse.Namespace) -> int:
             f"Refusing to overwrite existing evaluation manifest: {manifest_path}"
         )
     for step in icl_steps:
-        if step.output.exists():
+        if not step.skip_reason and step.output.exists():
             raise SystemExit(
                 f"Refusing to overwrite existing ICL result: {step.output}"
             )
@@ -655,7 +957,8 @@ def _run_suite(args: argparse.Namespace) -> int:
                 "id": f"benchmark_icl/{step.component}",
                 "kind": "benchmark_icl",
                 "component": step.component,
-                "status": "planned",
+                "status": "not_compatible" if step.skip_reason else "planned",
+                "reason": step.skip_reason,
                 "command": step.command,
                 "output": str(step.output),
                 "official_scoreboard_row": False,
@@ -683,6 +986,8 @@ def _run_suite(args: argparse.Namespace) -> int:
             ]
         ).strip(os.pathsep)
         for index, step in enumerate(icl_steps, start=1):
+            if step.skip_reason:
+                continue
             print(
                 f"[stablewm-eval] ICL {index}/{len(icl_steps)}: "
                 f"{step.component}",

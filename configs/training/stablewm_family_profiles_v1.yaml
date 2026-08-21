@@ -15,7 +15,7 @@ defaults:
   history_size: 3
   num_preds: 1
   logger: none
-  resume: never
+  resume: auto
 
 comparison_recipe:
   original_environment_baseline:
@@ -71,7 +71,13 @@ families:
     config_name: prejepa
     data_group: false
     logger_backends: [none, swanlab, wandb]
-    post_train_eval: pending_checkpoint_smoke
+    post_train_eval: validated
+    post_train_eval_note: >-
+      Original-environment CEM execution was validated for TwoRoom, PushT,
+      Reacher, and Cube with one epoch-10, training-seed-3072 checkpoint per
+      environment and evaluation seeds 42, 43, and 44. This validates the
+      execution path, not a formal benchmark score. Frozen-v1 ICL remains
+      incompatible with these state-conditioned original-data checkpoints.
     keys:
       dataset: dataset_name
       batch_size: batch_size

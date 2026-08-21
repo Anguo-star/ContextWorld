@@ -59,9 +59,11 @@ CONTEXTWORLD_STABLE_WORLDMODEL_REPO=/absolute/path/stable-worldmodel
 ```
 
 Change only `CW_ENV` for the other original tasks: `pusht`, `reacher`, or
-`cube`. Set `CW_SEEDS=3072,3073,3074` to run the three frozen baseline seeds
-sequentially; the default `CW_SEEDS=3072` runs once. `CW_DATASET` is a higher-priority
-one-off override when the standard root layout is not used.
+`cube`. The default `CW_SEEDS=3072` runs one seed. Submit seeds 3072, 3073 and
+3074 as separate jobs when scheduler requeue recovery is enabled. A
+comma-separated list remains available for non-SLURM serial sweeps.
+`CW_DATASET` is a higher-priority one-off override when the standard root
+layout is not used.
 
 For the DINO-WM comparison run, use the checked-in cloud template:
 
@@ -92,6 +94,7 @@ training, or run evaluation.
 | `CONTEXTWORLD_DATASET_ROOT` | root used only to resolve the four built-in original datasets |
 | `CW_DATASET_CACHE_ROOT` | Stable-WorldModel download/data cache (`LOCAL_DATASET_DIR`) |
 | `CW_CHECKPOINT_ROOT` | Stable-WorldModel storage root; models are written below `<root>/checkpoints/` |
+| `SPT_CACHE_DIR` | StablePretraining full-state/requeue storage; the launcher sets it equal to `CW_CHECKPOINT_ROOT` |
 | `CW_OUTPUT` | Hydra logs and run files, written below `<output>/<run-name>/` |
 | `HF_HUB_CACHE` | pretrained backbone cache, used by PreJEPA |
 
@@ -158,7 +161,7 @@ keys. Equivalent command-line flags are shown by `--help`.
 | `CW_LEARNING_RATE`, `CW_WEIGHT_DECAY` | optimizer overrides |
 | `CW_FAST_DEV_RUN` | Lightning fast-development run |
 | `CW_LIMIT_TRAIN_BATCHES`, `CW_LIMIT_VAL_BATCHES` | bounded smoke runs |
-| `CW_RESUME` | `never` (default), `auto`, or `required` |
+| `CW_RESUME` | `auto` (default), `never`, or `required` |
 
 LeWM and PLDM additionally expose loader controls through
 `CW_PERSISTENT_WORKERS`, `CW_PREFETCH_FACTOR` and `CW_PIN_MEMORY`. PreJEPA's
@@ -245,21 +248,33 @@ WandB uses the standard `WANDB_API_KEY` environment variable, plus
 
 ## Resume behavior
 
-The new entry defaults to `CW_RESUME=never`. A non-empty checkpoint directory
-then fails before training, preventing an old run from being resumed or
-overwritten without notice.
+`CW_CHECKPOINT_ROOT` is one persistent run root. ContextWorld sets both
+`STABLEWM_HOME` and `SPT_CACHE_DIR` to that same absolute path and rejects a
+different `SPT_CACHE_DIR`. This co-location does not merge formats:
+Stable-WorldModel writes evaluation weights under `checkpoints/<run>/`, while
+StablePretraining keeps its native full-state `last.ckpt` and
+scheduler-requeue state under `runs/`.
+
+The default is `CW_RESUME=auto`.
 
 - `never`: require a fresh run directory.
-- `auto`: allow the selected trainer to resume if its full-state checkpoint
-  exists.
-- `required`: require
-  `<CW_CHECKPOINT_ROOT>/checkpoints/<run>/<run>_weights.ckpt` before launch.
+- `auto`: let StablePretraining restore `last.ckpt` when the same scheduler
+  job is requeued. A completed target-epoch weight also skips directly to
+  post-training evaluation.
+- `required`: accept only StablePretraining's same-job scheduler requeue and
+  fail on a newly submitted job.
+
+`SPT_CACHE_DIR` persists StablePretraining's native recovery state. Automatic
+full-state restoration is supported only when the same SLURM job or array task
+is requeued. Setting the directory makes the state durable; it does not make a
+newly submitted job a requeue of the old one.
 
 Exported `weights_epoch_*.pt` files contain model weights for evaluation; they
-are not a guarantee that optimizer and scheduler state can be resumed. LeWM's
-compatible extension can additionally set
-`LEWM_SAVE_FULL_RESUME_EACH_EPOCH=1`. PLDM and PreJEPA do not currently make
-the same per-epoch full-state guarantee.
+are not optimizer checkpoints. StablePretraining's `last.ckpt` contains the
+model, optimizer, scheduler and progress state used by native requeue. The
+family trainers do not expose that SPT run state as a portable manual new-job
+resume input. If `auto` sees an incomplete run outside a scheduler requeue, it
+fails rather than silently starting again from epoch zero.
 
 ## Optional post-training evaluation
 
@@ -273,6 +288,18 @@ dataset. A historical LeWM/PLDM component reproduction selected by omitting
 `CW_DATASET` keeps its frozen evaluator and does not accept
 `CW_POST_TRAIN_EVAL`; that evaluator is part of the historical release
 protocol.
+
+With `CW_RESUME=auto` or `required`, an existing target-epoch weight can skip
+training only when two records are present: StableWM's resolved `config.yaml`
+and ContextWorld's `contextworld_training_identity_v1.json`. The latter binds
+the complete Hydra override vector, dataset metadata, family profile, and the
+relevant StableWM source/configuration tree to one digest. An exact match is
+required; a same-named checkpoint from another recipe is rejected.
+`CW_RESUME=never` never takes this shortcut. Runs created before this identity
+record was introduced require the explicit `CW_EVAL_ONLY=1` path after manual
+review. Evaluation evidence is immutable: if an earlier suite wrote a manifest
+or result, start a new evaluation namespace with
+`CW_EVAL_RESULT_SUBDIR=<name>`.
 
 For an original-environment run, the suite runs that environment's MPC/CEM
 evaluation and its registered benchmark components:
@@ -290,22 +317,39 @@ therefore also needs either `CONTEXTWORLD_DATASET_ROOT` or an exact
 `CW_EVAL_ORIGINAL_DATASET`. If neither is available, only the CEM step is
 recorded as skipped; the ICL step still runs.
 
-Contact Friction and Motion Damping remain Development-only, so the automatic
-suite uses their Development scorers and does not open Public Test. Other ICL
+Contact Friction and Motion Damping can currently be evaluated only on their
+Development splits; Public Test remains closed. Other ICL
 steps use the component's registered external-evaluation path and are marked
 as unofficial results; this command never adds or changes a scoreboard row.
 Run it only after the training recipe and checkpoint rule are fixed, not as a
 Public-Test model-selection loop.
 
-PreJEPA uses the same opt-in suite. Its original MPC/CEM path remains a
-checkpoint smoke until a completed run has been reviewed; setting
-`CW_POST_TRAIN_EVAL=1` explicitly authorizes that attempt, and an evaluator
-failure makes the cloud job fail rather than being reported as a valid score.
+For PreJEPA, the original-environment CEM path has been execution-validated on
+TwoRoom, PushT, Reacher, and Cube, but remains checkpoint-level evidence rather
+than a published benchmark score. ContextWorld invokes the upstream planner
+through a small history-key bridge:
+it supplies pixels plus the state stream declared by the checkpoint
+(`proprio` or `observation`) and selects the upstream split pixel/state goal
+objective. Before launch, it also requires the checkpoint's trained history
+length and action block to match the planner request. This makes the planner
+inputs and objective agree with the trained checkpoint; it does not turn the
+smoke check into a published benchmark score.
+
+The frozen v1 external ICL adapter has a narrower contract: pixel history and
+actions only. Current original-dataset PreJEPA checkpoints additionally
+require `proprio` or `observation`, so the suite records their ICL rows as
+`not_compatible` and emits no score. This is an input-protocol mismatch, not a
+model failure. Supplying zero state or widening the frozen ICL interface with
+simulator state would make the comparison invalid. The suite also records
+`not_compatible` when a checkpoint's trained history length differs from a
+component's frozen protocol.
 
 Useful variables are `CW_EVAL_EPOCH`, `CW_EVAL_NUM`, `CW_EVAL_SEEDS`,
-`CW_EVAL_DEVICE`, `CW_EVAL_BATCH_SIZE`, `CW_EVAL_ORIGINAL_DATASET` and
-`CW_EVAL_KEEP_VIDEOS`. If `CW_EVAL_EPOCH` is omitted, the launcher uses
-`CW_MAX_EPOCHS` or the selected upstream YAML default.
+`CW_EVAL_DEVICE`, `CW_EVAL_BATCH_SIZE`, `CW_EVAL_ORIGINAL_DATASET`,
+`CW_EVAL_RESULT_SUBDIR` and `CW_EVAL_KEEP_VIDEOS`. `CW_EVAL_RESULT_SUBDIR` is a
+new named directory below `eval_results/`; it never overwrites an earlier
+attempt. If `CW_EVAL_EPOCH` is omitted, the launcher uses `CW_MAX_EPOCHS` or
+the selected upstream YAML default.
 
 The same suite can be run later without retraining by naming the exact saved
 checkpoint:
@@ -321,9 +365,9 @@ python scripts/run_stablewm_eval.py --suite \
 ```
 
 Use `--component <id>` instead of `--original-env` for a component-trained
-checkpoint. An optional `--result-subdir <name>` places the whole suite in a
-separate namespace below `eval_results/`, which is useful for an explicitly
-named rerun without overwriting earlier evidence.
+checkpoint. `--result-subdir <name>` (or `CW_EVAL_RESULT_SUBDIR=<name>` through
+the training entry) creates a new immutable namespace below `eval_results/`
+for a later attempt.
 
 The evaluation profile carries the training `CW_FRAMESKIP` into the planner's
 action block. This keeps the candidate-action width equal to the model's
@@ -334,7 +378,7 @@ checkpoint:
 
 ```text
 <checkpoint run>/eval_results/
-├── original_cem/                 # original-data training
+├── original_cem/                 # original-environment CEM
 ├── benchmark_cem/<component>/    # component-training retention
 ├── benchmark_icl/<component>/result.json
 └── manifest.json
@@ -342,16 +386,29 @@ checkpoint:
 
 The manifest records the checkpoint path and SHA-256, Stable-WorldModel
 revision, commands, completed/skipped/failed status, and output identities.
+Each original-CEM JSON receipt also records the success rate, successful
+episode count, and evaluation time as typed values; the upstream text report
+is retained alongside it.
 Existing results are never overwritten. A completed suite is evaluation
 evidence, not by itself a formal release or scoreboard registration. If one
 evaluator returns a failure status, the suite still attempts the remaining
 applicable steps and returns a nonzero status after recording all outcomes.
 
+The evaluator reads the Stable-WorldModel revision directly from the
+checkout's `.git/HEAD` and refs. This avoids Git `safe.directory` failures on
+read-only cloud mounts while preserving the exact source identity required by
+the model adapters. Keep `.git` metadata with the checkout used for
+evaluation. `CW_STABLEWM_REF` can record a caller-supplied full SHA when a
+separately identified source snapshot has no Git metadata; that value is an
+assertion by the caller, not an independent source-tree verification.
+
 ## Independent sweeps are not distributed training
 
-Multiple values in `CW_SEEDS`, for example `3072,3073,3074`, run independent
-seeds sequentially in one job. A platform may instead submit one job per
-seed. The legacy Stable-WorldModel
+StablePretraining indexes recovery state by `JOB_ID[_ARRAY_TASK_ID]`, so
+serializing multiple `CW_SEEDS` within one requeueable SLURM task is unsafe and
+the launcher rejects it. Submit one seed per job or array task. Non-SLURM
+serial sweeps remain supported, but do not receive automatic StablePretraining
+recovery. The legacy Stable-WorldModel
 `run_trainer_batch.sh` assigns independent comma-separated runs to hosts; it
 does not configure `torchrun`, ranks or a shared multi-node DDP process.
 Distributed strategy remains a trainer/Lightning setting selected with
