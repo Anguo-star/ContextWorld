@@ -634,6 +634,76 @@ class TestTheCloudContract:
         assert "subdir=tworoom_prejepa_original_s3072" in completed.stdout
         assert "route=stablewm-train" in completed.stdout
 
+    def test_cloud_duplicate_parameter_argv_is_filtered_without_secret_leak(
+        self, tmp_path: Path
+    ) -> None:
+        dataset_root = tmp_path / "data" / "world_model"
+        dataset = dataset_root / "quentinll" / "tworoom.h5"
+        dataset.parent.mkdir(parents=True)
+        with h5py.File(dataset, "w") as handle:
+            handle.create_dataset("pixels", shape=(2, 8, 8, 3), dtype="uint8")
+            handle.create_dataset("action", shape=(2, 2), dtype="float32")
+            handle.create_dataset("proprio", shape=(2, 2), dtype="float32")
+        stablewm = tmp_path / "stablewm"
+        (stablewm / "scripts/train/config").mkdir(parents=True)
+        (stablewm / "scripts/train/prejepa.py").write_text(
+            "enabled = cfg.wandb.enabled\n", encoding="utf-8"
+        )
+        (stablewm / "scripts/train/config/prejepa.yaml").write_text(
+            "trainer:\n  max_epochs: 10\n", encoding="utf-8"
+        )
+        environment = dict(os.environ)
+        for name in ("CW_DATASET", "CONTEXTWORLD_ARTIFACT_ROOT", "STABLEWM_HOME"):
+            environment.pop(name, None)
+        environment.update(
+            {
+                "CW_TASK": "original",
+                "CW_ENV": "tworoom",
+                "CW_FAMILY": "prejepa",
+                "CW_PRINT_ONLY": "1",
+                "CW_CHECKPOINT_ROOT": str(tmp_path / "checkpoints"),
+                "CONTEXTWORLD_DATASET_ROOT": str(dataset_root),
+                "CONTEXTWORLD_STABLE_WORLDMODEL_REPO": str(stablewm),
+                "PYTHON_BIN": sys.executable,
+            }
+        )
+        secret = "must-not-appear-in-cloud-log"
+
+        completed = subprocess.run(
+            [
+                "bash",
+                str(SCRIPTS / "cloud_train.sh"),
+                "--CW_FAMILY",
+                "prejepa",
+                "--work_dir",
+                str(ROOT),
+                "--CW_ENV",
+                "tworoom",
+                "--SWANLAB_API_KEY",
+                secret,
+                "--run_shell_script",
+                "scripts/cloud_train.sh",
+                "--CW_PRINT_ONLY",
+                "0",
+                "--np",
+                "8",
+                "--max-epochs",
+                "2",
+            ],
+            cwd=ROOT,
+            env=environment,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+
+        output = completed.stdout + completed.stderr
+        assert completed.returncode == 0, output
+        assert "ignored duplicate platform arguments=7" in output
+        assert "trainer.max_epochs=2" in output
+        assert secret not in output
+        assert "unrecognized arguments" not in output
+
     def test_historical_release_uses_the_same_public_entry(
         self, tmp_path: Path
     ) -> None:

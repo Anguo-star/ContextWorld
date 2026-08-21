@@ -34,6 +34,13 @@ The selection is intentional and requires no additional switch:
 | benchmark component, LeWM/PLDM, no `CW_DATASET` | frozen release recipe |
 | benchmark component, PreJEPA, no `CW_DATASET` | rejected because training data is missing |
 
+Huawei's `startup_cce.sh` may both export GUI custom parameters and repeat
+them as command-line pairs such as `--CW_FAMILY prejepa`. `cloud_train.sh`
+consumes those duplicate platform arguments before entering Python. Their
+environment values remain authoritative, while ordinary lowercase options
+such as `--max-epochs 10` are still accepted for local use. Secret parameter
+values are never included in the filtering log.
+
 ## Original DINO-WM training: one shared data root
 
 Stable-WorldModel calls its DINO-WM training entry `prejepa`; that is why the

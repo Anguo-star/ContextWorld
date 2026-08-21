@@ -237,4 +237,35 @@ if [ "${CW_FAMILY:-lewm}" = "prejepa" ] && \
   export CW_BATCH_SIZE=128
 fi
 echo "[cloud-train] route=stablewm-train"
-exec "$PYTHON_BIN" "$ROOT/scripts/run_stablewm_train.py" "$@"
+
+# Huawei's startup_cce.sh exports the GUI's custom parameters and also
+# repeats them as ``--NAME value`` arguments. The exported environment is the
+# cloud contract; forwarding the duplicate argv would make argparse reject
+# names such as --CW_FAMILY and could echo secret values in its error message.
+# Keep ordinary lowercase launcher options working for local invocations,
+# while consuming only platform metadata and environment-variable mirrors.
+FORWARD_ARGS=()
+IGNORED_PLATFORM_ARGS=0
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --[A-Z]*|--work_dir|--work_dir=*|--run_shell_script|--run_shell_script=*|\
+    --ag_data|--ag_data=*|--np|--np=*)
+      IGNORED_PLATFORM_ARGS=$((IGNORED_PLATFORM_ARGS + 1))
+      if [[ "$1" == *=* ]]; then
+        shift
+      elif [ "$#" -ge 2 ] && [[ "$2" != --* ]]; then
+        shift 2
+      else
+        shift
+      fi
+      ;;
+    *)
+      FORWARD_ARGS+=("$1")
+      shift
+      ;;
+  esac
+done
+if [ "$IGNORED_PLATFORM_ARGS" -gt 0 ]; then
+  echo "[cloud-train] ignored duplicate platform arguments=$IGNORED_PLATFORM_ARGS"
+fi
+exec "$PYTHON_BIN" "$ROOT/scripts/run_stablewm_train.py" "${FORWARD_ARGS[@]}"
