@@ -55,6 +55,11 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from contextworld.paths import artifact_root  # noqa: E402
+from contextworld.training.seeds import (  # noqa: E402
+    DEFAULT_TRAINING_SEEDS,
+    parse_training_seeds,
+    reject_legacy_seed_environment,
+)
 
 
 SCRIPTS = REPO_ROOT / "scripts"
@@ -145,7 +150,7 @@ def _prejepa_plan(args: argparse.Namespace) -> Plan:
             args.task, "prejepa", args.seed
         ),
         "--dataset", args.dataset,
-        "--seed", str(args.seed),
+        "--seeds", str(args.seed),
         "--batch-size", str(args.batch_size or BASELINE_BATCH_SIZE),
     )
     if args.output:
@@ -260,10 +265,9 @@ def _original_plan(args: argparse.Namespace) -> Plan:
         "--original-env", args.env,
         "--family", args.family,
     )
-    if args.all_seeds:
-        command.append("--all-seeds")
-    else:
-        command += ["--seed", str(args.seed)]
+    command += ["--seeds", str(args.seed)]
+    if args.run_name:
+        command += ["--run-name", args.run_name]
     if args.dataset:
         command += ["--dataset", str(args.dataset)]
     if args.output:
@@ -366,21 +370,21 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         ),
     )
     parser.add_argument(
-        "--all-seeds",
-        action="store_true",
-        default=_environment_bool("CW_ALL_SEEDS"),
-        help="Run all three baseline seeds in sequence (env: CW_ALL_SEEDS)",
-    )
-    parser.add_argument(
         "--family",
         default=_environment_default("CW_FAMILY", "lewm"),
         help="Model family: lewm, pldm or prejepa (env: CW_FAMILY)",
     )
     parser.add_argument(
-        "--seed",
-        type=int,
-        default=int(_environment_default("CW_SEED", "3072")),
-        help="Training seed (env: CW_SEED)",
+        "--seeds",
+        type=parse_training_seeds,
+        default=_environment_default(
+            "CW_SEEDS",
+            ",".join(str(seed) for seed in DEFAULT_TRAINING_SEEDS),
+        ),
+        help=(
+            "Comma-separated training seeds (env: CW_SEEDS). Defaults to "
+            "one run: 3072"
+        ),
     )
     parser.add_argument(
         "--mode",
@@ -442,42 +446,73 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Arguments after -- are forwarded to the launcher untouched",
     )
     args = parser.parse_args(argv)
+    reject_legacy_seed_environment(parser, os.environ)
     if not args.task:
         parser.error("no task: set CW_TASK or pass --task")
     return args
 
 
+def _seed_runs(args: argparse.Namespace) -> list[argparse.Namespace]:
+    """Expand one cloud request into isolated, sequential seed runs."""
+
+    multiple = len(args.seeds) > 1
+    runs: list[argparse.Namespace] = []
+    for seed in args.seeds:
+        values = vars(args).copy()
+        values["seed"] = seed
+        if multiple and args.run_name:
+            values["run_name"] = f"{args.run_name}_s{seed}"
+        if (
+            multiple
+            and args.output
+            and args.task != "original"
+            and args.family != "prejepa"
+        ):
+            values["output"] = str(
+                Path(args.output) / default_run_name(args.task, args.family, seed)
+            )
+        runs.append(argparse.Namespace(**values))
+    return runs
+
+
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
-    plan = build_plan(args)
+    runs = _seed_runs(args)
 
-    extra = [item for item in args.extra if item != "--"]
-    command = [*plan.command, *extra]
-    # The profile launcher performs the useful final resolution: it composes
-    # the family-specific YAML dialect and validates the concrete dataset.
-    # Let print-only reach it while explicitly keeping it dry. Frozen benchmark
-    # launchers own different preflight vocabularies and remain router-only.
-    resolve_profile = args.print_command and (
-        args.task == "original" or args.family == "prejepa"
+    print(
+        f"[cloud-train] task={args.task} family={args.family} "
+        f"seeds={','.join(str(seed) for seed in args.seeds)}"
     )
-    if resolve_profile and "--print-command" not in command:
-        command.append("--print-command")
+    for run in runs:
+        plan = build_plan(run)
+        extra = [item for item in run.extra if item != "--"]
+        command = [*plan.command, *extra]
+        # The profile launcher performs the useful final resolution: it
+        # composes the family-specific YAML dialect and validates the concrete
+        # dataset. Let print-only reach it while explicitly keeping it dry.
+        resolve_profile = run.print_command and (
+            run.task == "original" or run.family == "prejepa"
+        )
+        if resolve_profile and "--print-command" not in command:
+            command.append("--print-command")
 
-    print(f"[cloud-train] task={args.task} family={args.family} "
-          f"seed={args.seed}")
-    if plan.note:
-        print(f"[cloud-train] note: {plan.note}")
-    for key, value in sorted(plan.env.items()):
-        print(f"[cloud-train] env {key}={value}")
-    print(f"[cloud-train] {' '.join(command)}")
-    if args.print_command and not resolve_profile:
-        return 0
+        print(f"[cloud-train] seed={run.seed}")
+        if plan.note:
+            print(f"[cloud-train] note: {plan.note}")
+        for key, value in sorted(plan.env.items()):
+            print(f"[cloud-train] env {key}={value}")
+        print(f"[cloud-train] {' '.join(command)}")
+        if run.print_command and not resolve_profile:
+            continue
 
-    environment = {**os.environ, **plan.env}
-    # Keep the routing decision ahead of child-process output in buffered
-    # cloud logs.
-    sys.stdout.flush()
-    return subprocess.call(command, cwd=str(REPO_ROOT), env=environment)
+        environment = {**os.environ, **plan.env}
+        # Keep the routing decision ahead of child-process output in buffered
+        # cloud logs.
+        sys.stdout.flush()
+        status = subprocess.call(command, cwd=str(REPO_ROOT), env=environment)
+        if status != 0:
+            return status
+    return 0
 
 
 if __name__ == "__main__":

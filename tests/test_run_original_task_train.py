@@ -65,6 +65,31 @@ class TestTheFourEnvironments:
 
         assert launcher.BASELINE_SEEDS == (3072, 3073, 3074)
 
+    def test_seed_list_defaults_to_one_and_accepts_multiple(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.delenv("CW_SEEDS", raising=False)
+        one = launcher.parse_args(["--env", "tworoom"])
+        three = launcher.parse_args(
+            ["--env", "tworoom", "--seeds", "3072,3073,3074"]
+        )
+
+        assert one.seeds == (3072,)
+        assert three.seeds == launcher.BASELINE_SEEDS
+
+    @pytest.mark.parametrize("legacy", ["CW_SEED", "CW_ALL_SEEDS"])
+    def test_old_seed_environment_is_rejected(
+        self,
+        legacy: str,
+        monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str],
+    ) -> None:
+        monkeypatch.setenv(legacy, "1")
+
+        with pytest.raises(SystemExit):
+            launcher.parse_args(["--env", "tworoom"])
+        assert "CW_SEEDS" in capsys.readouterr().err
+
     @pytest.mark.parametrize(
         "env,action_dim,key,encoding_dim",
         [

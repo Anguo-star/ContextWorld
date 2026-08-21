@@ -30,7 +30,7 @@ once in the common job configuration:
 ```text
 CW_TASK=original
 CW_FAMILY=prejepa
-CW_ALL_SEEDS=1
+CW_SEEDS=3072,3073,3074
 CW_MAX_EPOCHS=10
 CW_BATCH_SIZE=128
 CONTEXTWORLD_DATASET_ROOT=/absolute/path/data/world_model
@@ -49,7 +49,8 @@ CW_ENV=reacher
 CW_ENV=cube
 ```
 
-With `CW_ALL_SEEDS=1`, each job runs seeds 3072, 3073 and 3074 in sequence.
+`CW_SEEDS` accepts one seed or a comma-separated list. The value above runs
+3072, 3073 and 3074 sequentially; omitting it runs only seed 3072.
 The complete copy-ready job environment is recorded in
 [`dinowm_original_cloud_v1.env.example`](../configs/training/dinowm_original_cloud_v1.env.example).
 The checked-in template sets the comparison recipe recorded in the profile:
@@ -134,8 +135,7 @@ Then per run:
 | `CW_TASK` | *(required)* | one of the nine benchmark tasks, or `original` |
 | `CW_ENV` | — | with `CW_TASK=original`: `tworoom`, `pusht`, `reacher`, `cube` |
 | `CW_FAMILY` | `lewm` | `lewm`, `pldm` or `prejepa` |
-| `CW_SEED` | `3072` | training seed |
-| `CW_ALL_SEEDS` | unset | run all three baseline seeds in sequence |
+| `CW_SEEDS` | `3072` | one seed, or a comma-separated sequence such as `3072,3073,3074` |
 | `CW_MODE` | `preflight` | mode for the shell-backed tasks |
 | `CW_STAGE` | `paired` | `action_delay` only: `paired` or `curriculum` |
 | `CW_VARIANT` | recipe of record | override the launcher's variant |
@@ -146,7 +146,7 @@ Then per run:
 | `CW_MAX_EPOCHS` | family YAML | training epochs |
 | `CW_NUM_WORKERS` | family YAML | data loader workers |
 | `CW_DEVICES` | family YAML | Lightning devices (`auto`, integer, or Hydra value) |
-| `CW_LOGGER` | `none` | optional `wandb`; compatible LeWM/PLDM checkouts also support `swanlab` |
+| `CW_LOGGER` | `none` | `wandb` or `swanlab` when the selected family trainer uses the common logger factory |
 | `CW_RESUME` | `never` | `never`, `auto`, or `required` |
 | `CW_POST_TRAIN_EVAL` | unset | optional original-environment MPC evaluation after successful training |
 | `CW_PRINT_ONLY` | unset | resolve and print without running |
@@ -192,8 +192,8 @@ CW_TASK=original CW_ENV=tworoom CW_FAMILY=prejepa \
     CW_CHECKPOINT_ROOT=/abs/checkpoints/dino-wm \
     bash scripts/cloud_train.sh
 
-# all three baseline seeds in sequence
-CW_TASK=original CW_ENV=pusht CW_FAMILY=prejepa CW_ALL_SEEDS=1 \
+# three baseline seeds in sequence
+CW_TASK=original CW_ENV=pusht CW_FAMILY=prejepa CW_SEEDS=3072,3073,3074 \
     CONTEXTWORLD_DATASET_ROOT=/abs/data/world_model \
     CW_CHECKPOINT_ROOT=/abs/checkpoints/dino-wm \
     bash scripts/cloud_train.sh

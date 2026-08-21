@@ -126,6 +126,35 @@ def _pairs(entries: list[str]) -> dict[str, str]:
     return result
 
 
+def _enable_prejepa_common_logger(stablewm_repo: Path) -> None:
+    train = stablewm_repo / "scripts/train"
+    (train / "prejepa.py").write_text(
+        "from stable_worldmodel.loggers import build_training_logger\n",
+        encoding="utf-8",
+    )
+    (train / "config/prejepa.yaml").write_text(
+        yaml.safe_dump(
+            {
+                "trainer": {"max_epochs": 10},
+                "logger_backend": "none",
+                "swanlab": {
+                    "enabled": False,
+                    "config": {
+                        "project": None,
+                        "workspace": None,
+                        "experiment_name": None,
+                        "id": None,
+                        "logdir": None,
+                        "mode": None,
+                    },
+                },
+                "wandb": {"enabled": False, "config": {}},
+            }
+        ),
+        encoding="utf-8",
+    )
+
+
 def _build(
     args: launcher.argparse.Namespace,
     stablewm_repo: Path,
@@ -144,6 +173,19 @@ def _build(
 
 
 class TestFamilyDialects:
+
+    def test_seed_list_accepts_one_or_multiple_runs(
+            self, stablewm_repo: Path, dataset: Path) -> None:
+        one = _args(stablewm_repo, dataset, "--seeds", "3072")
+        three = _args(
+            stablewm_repo,
+            dataset,
+            "--seeds",
+            "3072,3073,3074",
+        )
+
+        assert one.seeds == (3072,)
+        assert three.seeds == (3072, 3073, 3074)
 
     def test_component_selects_its_family_data_yaml_without_manual_mapping(
             self, stablewm_repo: Path, dataset: Path) -> None:
@@ -548,7 +590,7 @@ class TestLoggingAndLossBoundaries:
         assert "swanlab.config.project=contextworld" in output
         assert secret not in output
 
-    def test_prejepa_rejects_swanlab_instead_of_silently_ignoring_it(
+    def test_prejepa_rejects_swanlab_when_the_trainer_does_not_consume_it(
             self, stablewm_repo: Path, dataset: Path) -> None:
         args = _args(
             stablewm_repo,
@@ -559,8 +601,76 @@ class TestLoggingAndLossBoundaries:
             "swanlab",
         )
 
-        with pytest.raises(SystemExit, match="does not support logger"):
+        with pytest.raises(SystemExit, match="does not call build_training_logger"):
             _build(args, stablewm_repo)
+
+    def test_compatible_prejepa_uses_the_common_swanlab_contract(
+        self, stablewm_repo: Path, dataset: Path
+    ) -> None:
+        _enable_prejepa_common_logger(stablewm_repo)
+        args = _args(
+            stablewm_repo,
+            dataset,
+            "--family",
+            "prejepa",
+            "--logger",
+            "swanlab",
+            "--swanlab-project",
+            "contextworld",
+        )
+
+        _, pairs, _ = _build(args, stablewm_repo)
+
+        assert pairs["logger_backend"] == "swanlab"
+        assert pairs["swanlab.enabled"] == "true"
+        assert pairs["swanlab.config.project"] == "contextworld"
+        assert pairs["swanlab.config.experiment_name"] == "run"
+
+    def test_prejepa_swanlab_login_precedes_the_training_process(
+        self,
+        stablewm_repo: Path,
+        dataset: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        _enable_prejepa_common_logger(stablewm_repo)
+        monkeypatch.setenv("SWANLAB_API_KEY", "injected-secret")
+        events: list[str] = []
+
+        def login(environment: dict[str, str]) -> None:
+            assert environment["SWANLAB_API_KEY"] == "injected-secret"
+            events.append("login")
+
+        class Completed:
+            returncode = 0
+
+        def run(*_args: object, **_kwargs: object) -> Completed:
+            events.append("train")
+            return Completed()
+
+        monkeypatch.setattr(launcher, "_login_swanlab_without_exposing_key", login)
+        monkeypatch.setattr(launcher.subprocess, "run", run)
+
+        status = launcher.main(
+            [
+                "--family",
+                "prejepa",
+                "--component",
+                "speed",
+                "--dataset",
+                str(dataset),
+                "--stablewm-repo",
+                str(stablewm_repo),
+                "--checkpoint-root",
+                str(dataset.parent / "swanlab-checkpoints"),
+                "--logger",
+                "swanlab",
+                "--seeds",
+                "3072",
+            ]
+        )
+
+        assert status == 0
+        assert events == ["login", "train"]
 
     def test_visreg_is_only_emitted_when_the_checkout_declares_it(
             self, stablewm_repo: Path, dataset: Path) -> None:

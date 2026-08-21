@@ -46,11 +46,11 @@ staler source of truth.
 Usage::
 
     python scripts/run_original_task_train.py --env tworoom --family lewm \\
-        --seed 3072
+        --seeds 3072
 
-    # all three seeds, printed rather than run
+    # three seeds, printed rather than run
     python scripts/run_original_task_train.py --env pusht --family prejepa \\
-        --all-seeds --print-command
+        --seeds 3072,3073,3074 --print-command
 """
 
 from __future__ import annotations
@@ -68,6 +68,11 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from contextworld.paths import artifact_root  # noqa: E402
+from contextworld.training.seeds import (  # noqa: E402
+    DEFAULT_TRAINING_SEEDS,
+    parse_training_seeds,
+    reject_legacy_seed_environment,
+)
 
 
 # The three seeds the frozen baseline families were completed to, so a new
@@ -322,18 +327,15 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Model family (env: CW_FAMILY)",
     )
     parser.add_argument(
-        "--seed",
-        type=int,
-        default=int(os.environ.get("CW_SEED", BASELINE_SEEDS[0])),
-        help=f"Training seed (env: CW_SEED). Baselines used {BASELINE_SEEDS}",
-    )
-    parser.add_argument(
-        "--all-seeds",
-        action="store_true",
-        default=bool(os.environ.get("CW_ALL_SEEDS")),
+        "--seeds",
+        type=parse_training_seeds,
+        default=os.environ.get(
+            "CW_SEEDS",
+            ",".join(str(seed) for seed in DEFAULT_TRAINING_SEEDS),
+        ),
         help=(
-            f"Run all three baseline seeds {BASELINE_SEEDS} in sequence "
-            "(env: CW_ALL_SEEDS)"
+            "Comma-separated training seeds (env: CW_SEEDS). The frozen "
+            f"baseline comparison uses {BASELINE_SEEDS}"
         ),
     )
     parser.add_argument("--run-name", default=os.environ.get("CW_RUN_NAME"))
@@ -393,6 +395,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default=bool(os.environ.get("CW_PRINT_ONLY")),
     )
     args = parser.parse_args(argv)
+    reject_legacy_seed_environment(parser, os.environ)
     if not args.env:
         parser.error("no environment: set CW_ENV or pass --env")
     return args
@@ -409,10 +412,14 @@ def main(argv: list[str] | None = None) -> int:
         None if args.dataset else resolve_dataset_root(args.dataset_dir)
     )
 
-    seeds = BASELINE_SEEDS if args.all_seeds else (args.seed,)
-    if not args.all_seeds and args.seed not in BASELINE_SEEDS:
+    seeds = args.seeds
+    outside_baseline = tuple(
+        seed for seed in seeds if seed not in BASELINE_SEEDS
+    )
+    if outside_baseline:
         print(
-            f"[original] note: seed {args.seed} is outside the baseline set "
+            f"[original] note: seed(s) {outside_baseline} are outside the "
+            "baseline set "
             f"{BASELINE_SEEDS}; this run will not be family-comparable."
         )
 

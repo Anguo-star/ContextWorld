@@ -34,9 +34,9 @@ def _args(**keywords: object) -> argparse.Namespace:
     defaults: dict[str, object] = {
         "task": "speed",
         "env": None,
-        "all_seeds": False,
         "family": "lewm",
         "seed": 3072,
+        "seeds": (3072,),
         "mode": "preflight",
         "stage": "paired",
         "variant": None,
@@ -75,6 +75,7 @@ class TestEveryTaskIsReachable:
 
         assert "run_stablewm_train.py" in " ".join(plan.command)
         assert f"--component {task}" in " ".join(plan.command)
+        assert "--seeds 3072" in " ".join(plan.command)
 
     @pytest.mark.parametrize("task", router.TASKS)
     def test_every_launcher_it_names_exists(self, task: str) -> None:
@@ -89,17 +90,30 @@ class TestEveryTaskIsReachable:
             assert script.is_file(), f"{task}/{family} -> missing {script}"
 
 
-class TestEnvironmentBooleans:
-    def test_zero_is_false_not_a_requested_all_seed_sweep(
+class TestEnvironmentParsing:
+    def test_comma_separated_seeds_expand_in_order(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        monkeypatch.setenv("CW_ALL_SEEDS", "0")
+        monkeypatch.setenv("CW_SEEDS", "3072, 3073,3074")
         monkeypatch.setenv("CW_TASK", "original")
         monkeypatch.setenv("CW_ENV", "tworoom")
 
         args = router.parse_args([])
 
-        assert args.all_seeds is False
+        assert args.seeds == (3072, 3073, 3074)
+
+    @pytest.mark.parametrize("legacy", ["CW_SEED", "CW_ALL_SEEDS"])
+    def test_legacy_seed_variables_fail_with_a_migration_message(
+        self,
+        legacy: str,
+        monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str],
+    ) -> None:
+        monkeypatch.setenv(legacy, "3072")
+
+        with pytest.raises(SystemExit):
+            router.parse_args(["--task", "speed"])
+        assert "CW_SEEDS" in capsys.readouterr().err
 
     def test_invalid_boolean_fails_before_launch(
         self, monkeypatch: pytest.MonkeyPatch
@@ -356,14 +370,31 @@ class TestTheOriginalBaselineRegime:
 
         assert plan.command[index + 1] == "/datasets/tworoom.h5"
 
-    def test_all_seeds_replaces_the_single_seed(self) -> None:
+    def test_original_forwards_one_resolved_seed(self) -> None:
         plan = router.build_plan(
-            _args(task="original", env="pusht", family="lewm", all_seeds=True)
+            _args(task="original", env="pusht", family="lewm", seed=3074)
         )
         command = " ".join(plan.command)
 
-        assert "--all-seeds" in command
-        assert "--seed" not in command
+        assert "--seeds 3074" in command
+
+    def test_multiple_seeds_create_sequential_isolated_runs(self) -> None:
+        args = _args(
+            task="contact_friction",
+            family="pldm",
+            seeds=(3072, 3073),
+            run_name="formal",
+            output="/runs",
+        )
+
+        runs = router._seed_runs(args)
+
+        assert [run.seed for run in runs] == [3072, 3073]
+        assert [run.run_name for run in runs] == ["formal_s3072", "formal_s3073"]
+        assert [run.output for run in runs] == [
+            "/runs/contact_friction_pldm_s3072",
+            "/runs/contact_friction_pldm_s3073",
+        ]
 
     def test_a_missing_environment_fails_early(self) -> None:
         with pytest.raises(SystemExit, match="CW_ENV"):
@@ -660,7 +691,6 @@ class TestTheCloudContract:
         [
             ("CW_TASK", "task"),
             ("CW_FAMILY", "family"),
-            ("CW_SEED", "seed"),
             ("CW_MODE", "mode"),
             ("CW_DATASET", "dataset"),
         ],
@@ -670,12 +700,20 @@ class TestTheCloudContract:
     ) -> None:
         """The platform passes environment variables, not flags."""
 
-        expected = "7" if option == "seed" else "door"
+        expected = "door"
         monkeypatch.setenv("CW_TASK", "door")
         monkeypatch.setenv(variable, expected)
         parsed = router.parse_args([])
 
         assert str(getattr(parsed, option)) == expected
+
+    def test_seed_list_is_settable_from_the_environment(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("CW_TASK", "door")
+        monkeypatch.setenv("CW_SEEDS", "7,11")
+
+        assert router.parse_args([]).seeds == (7, 11)
 
     def test_a_missing_task_fails_with_a_usable_message(
         self, monkeypatch: pytest.MonkeyPatch

@@ -28,6 +28,15 @@ from typing import Any
 import yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from contextworld.training.seeds import (  # noqa: E402
+    DEFAULT_TRAINING_SEEDS,
+    parse_training_seeds,
+    reject_legacy_seed_environment,
+)
+
 DEFAULT_PROFILE_CONFIG = (REPO_ROOT /
                           "configs/training/stablewm_family_profiles_v1.yaml")
 
@@ -590,22 +599,39 @@ def _logger_overrides(
 
     if family == "prejepa":
         source = trainer_script.read_text(encoding="utf-8")
-        reads_wandb = "cfg.wandb" in source
-        if not reads_wandb:
-            if backend != "none":
-                raise SystemExit("This PreJEPA trainer has no logger integration. "
-                                 "Use --logger none.")
-            return []
-        entries = [f"++wandb.enabled={_hydra_bool(backend == 'wandb')}"]
-        if backend == "wandb":
-            for key, value in (
-                ("project", args.wandb_project),
-                ("entity", args.wandb_entity),
-                ("name", args.tracker_name or run_name),
-                ("id", args.tracker_id or run_name),
-            ):
-                _add(entries, f"++wandb.config.{key}", value)
-        return entries
+        uses_common_logger = (
+            "build_training_logger" in source
+            and "logger_backend" in upstream_config
+        )
+        if not uses_common_logger:
+            if backend == "swanlab":
+                raise SystemExit(
+                    "The selected PreJEPA trainer does not call "
+                    "build_training_logger and therefore cannot consume "
+                    "SwanLab settings. Use a compatible Stable-WorldModel "
+                    "checkout or --logger none."
+                )
+            reads_wandb = "cfg.wandb" in source
+            if not reads_wandb:
+                if backend != "none":
+                    raise SystemExit(
+                        "This PreJEPA trainer has no logger integration. "
+                        "Use --logger none."
+                    )
+                return []
+            entries = [f"++wandb.enabled={_hydra_bool(backend == 'wandb')}"]
+            if backend == "wandb":
+                for key, value in (
+                    ("project", args.wandb_project),
+                    ("entity", args.wandb_entity),
+                    ("name", args.tracker_name or run_name),
+                    ("id", args.tracker_id or run_name),
+                ):
+                    _add(entries, f"++wandb.config.{key}", value)
+            return entries
+
+        # Current compatible checkouts use the same logger factory as
+        # LeWM/PLDM, so the common mapping below is authoritative.
 
     # The pinned public upstream config has no logger block.  A checkout that
     # implements logging declares both keys; otherwise accepting the option
@@ -950,11 +976,17 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument("--output", default=_env("CW_OUTPUT"))
     parser.add_argument("--run-name", default=_env("CW_RUN_NAME"))
-    parser.add_argument("--seed", type=int, default=int(_env("CW_SEED", "3072")))
     parser.add_argument(
-        "--all-seeds",
-        action="store_true",
-        default=bool(_env_bool("CW_ALL_SEEDS") or False),
+        "--seeds",
+        type=parse_training_seeds,
+        default=_env(
+            "CW_SEEDS",
+            ",".join(str(seed) for seed in DEFAULT_TRAINING_SEEDS),
+        ),
+        help=(
+            "Comma-separated training seeds (env: CW_SEEDS). Defaults to "
+            "one run: 3072"
+        ),
     )
     parser.add_argument("--batch-size", type=int, default=_env_int("CW_BATCH_SIZE"))
     parser.add_argument("--num-workers", type=int, default=_env_int("CW_NUM_WORKERS"))
@@ -1089,7 +1121,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         action="store_true",
         default=bool(_env_bool("CW_PRINT_ONLY") or False),
     )
-    return parser.parse_args(argv)
+    args = parser.parse_args(argv)
+    reject_legacy_seed_environment(parser, os.environ)
+    return args
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -1107,10 +1141,7 @@ def main(argv: list[str] | None = None) -> int:
     checkpoint_root = resolve_checkpoint_root(args)
     profile = contract["families"][args.family]
     trainer_script = stablewm_repo / profile["entrypoint"]
-    seeds = (tuple(
-        int(seed)
-        for seed in contract["defaults"]["baseline_seeds"]) if args.all_seeds else
-             (args.seed, ))
+    seeds = args.seeds
 
     environment = dict(os.environ)
     environment["STABLEWM_HOME"] = str(checkpoint_root)

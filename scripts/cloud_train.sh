@@ -10,7 +10,8 @@
 #
 #   work_dir=/path/to/ContextWorld
 #   run_shell_script=scripts/cloud_train.sh
-#   CW_TASK=original   CW_ENV=tworoom   CW_FAMILY=prejepa   CW_ALL_SEEDS=1
+#   CW_TASK=original   CW_ENV=tworoom   CW_FAMILY=prejepa
+#   CW_SEEDS=3072,3073,3074
 #
 # For the four standard original tasks, pass one dataset root and one shared
 # checkpoint root as absolute paths:
@@ -204,5 +205,12 @@ echo "[cloud-train] contextworld data=${CONTEXTWORLD_ARTIFACT_ROOT:-<not needed>
 echo "[cloud-train] checkpoint root=${STABLEWM_HOME:-<upstream default>}"
 echo "[cloud-train] run output=${CW_OUTPUT:-<launcher default>}"
 echo "[cloud-train] hf_cache=${HF_HUB_CACHE:-<default>} offline=${HF_HUB_OFFLINE:-0}"
+echo "[cloud-train] logger=${CW_LOGGER:-none}"
+if [ "${CW_LOGGER:-none}" = "swanlab" ]; then
+  # Authentication is deliberately performed by run_stablewm_train.py via
+  # the Python SDK immediately before training. Passing the key to
+  # `swanlab login -k ...` here would expose it in the process argument list.
+  echo "[cloud-train] swanlab auth=python-sdk-before-training mode=${CW_SWANLAB_MODE:-cloud}"
+fi
 
 exec "$PYTHON_BIN" "$ROOT/scripts/cloud_train.py" "$@"

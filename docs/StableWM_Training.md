@@ -59,8 +59,8 @@ CONTEXTWORLD_STABLE_WORLDMODEL_REPO=/absolute/path/stable-worldmodel
 ```
 
 Change only `CW_ENV` for the other original tasks: `pusht`, `reacher`, or
-`cube`. Set `CW_ALL_SEEDS=1` to run the frozen baseline seeds 3072, 3073 and
-3074 sequentially. `CW_DATASET=/absolute/path/to/data.h5` is a higher-priority
+`cube`. Set `CW_SEEDS=3072,3073,3074` to run the three frozen baseline seeds
+sequentially; the default `CW_SEEDS=3072` runs once. `CW_DATASET` is a higher-priority
 one-off override when the standard root layout is not used.
 
 For the DINO-WM comparison run, use the checked-in cloud template:
@@ -146,7 +146,7 @@ keys. Equivalent command-line flags are shown by `--help`.
 
 | variable | purpose |
 |---|---|
-| `CW_SEED`, `CW_ALL_SEEDS` | one seed or the three frozen baseline seeds |
+| `CW_SEEDS` | one seed, or a comma-separated sequence of seeds |
 | `CW_RUN_NAME` | model name and checkpoint subdirectory |
 | `CW_MAX_EPOCHS` | training epochs |
 | `CW_BATCH_SIZE`, `CW_NUM_WORKERS` | input throughput |
@@ -222,14 +222,15 @@ CW_LOGGER=none
 |---|---:|---:|---:|
 | LeWM | yes | compatible checkout required | compatible checkout required |
 | PLDM | yes | compatible checkout required | compatible checkout required |
-| PreJEPA | yes | yes | no |
+| PreJEPA | yes | yes | compatible checkout required |
 
-The public upstream PreJEPA trainer has a WandB hook but its YAML omits the
-disabled flag; the profile supplies that flag explicitly for logger-free runs.
-It does not claim SwanLab support. LeWM and PLDM SwanLab/WandB options are
-enabled only when the selected checkout declares and consumes the logger
-schema. Otherwise the launcher asks the user to select `none`, rather than
-silently producing an untracked run.
+The public Stable-WorldModel revision pinned by this repository exposes only
+a WandB hook for PreJEPA; it does not provide PreJEPA SwanLab logging. SwanLab
+is available only with a separately identified compatible checkout whose
+PreJEPA trainer calls `build_training_logger` and declares the corresponding
+logger schema. ContextWorld detects that interface at launch and then supplies
+the SwanLab or WandB configuration. For every family, an unsupported backend
+fails before training instead of silently producing an untracked run.
 
 For SwanLab, inject the standard secret `SWANLAB_API_KEY` through the cloud
 platform. Do not place the key in a command-line option or YAML file. The
@@ -287,8 +288,9 @@ evaluation protocol.
 
 ## Independent sweeps are not distributed training
 
-`CW_ALL_SEEDS=1` runs independent seeds sequentially in one job. A platform
-may instead submit one job per seed. The legacy Stable-WorldModel
+Multiple values in `CW_SEEDS`, for example `3072,3073,3074`, run independent
+seeds sequentially in one job. A platform may instead submit one job per
+seed. The legacy Stable-WorldModel
 `run_trainer_batch.sh` assigns independent comma-separated runs to hosts; it
 does not configure `torchrun`, ranks or a shared multi-node DDP process.
 Distributed strategy remains a trainer/Lightning setting selected with
