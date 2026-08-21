@@ -12,9 +12,12 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import os
+import subprocess
 import sys
 from pathlib import Path
 
+import h5py
 import pytest
 import yaml
 
@@ -70,8 +73,8 @@ class TestEveryTaskIsReachable:
             _args(task=task, family="prejepa", dataset="d")
         )
 
-        assert "run_prejepa_train.py" in " ".join(plan.command)
-        assert f"--task {task}" in " ".join(plan.command)
+        assert "run_stablewm_train.py" in " ".join(plan.command)
+        assert f"--component {task}" in " ".join(plan.command)
 
     @pytest.mark.parametrize("task", router.TASKS)
     def test_every_launcher_it_names_exists(self, task: str) -> None:
@@ -85,6 +88,26 @@ class TestEveryTaskIsReachable:
 
             assert script.is_file(), f"{task}/{family} -> missing {script}"
 
+
+class TestEnvironmentBooleans:
+    def test_zero_is_false_not_a_requested_all_seed_sweep(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("CW_ALL_SEEDS", "0")
+        monkeypatch.setenv("CW_TASK", "original")
+        monkeypatch.setenv("CW_ENV", "tworoom")
+
+        args = router.parse_args([])
+
+        assert args.all_seeds is False
+
+    def test_invalid_boolean_fails_before_launch(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("CW_PRINT_ONLY", "sometimes")
+
+        with pytest.raises(SystemExit, match="CW_PRINT_ONLY"):
+            router.parse_args(["--task", "speed"])
 
 class TestTheDivergencesThatWouldFailLate:
     def test_door_uses_mixture_names_not_family_names(self) -> None:
@@ -283,8 +306,8 @@ class TestTheOriginalBaselineRegime:
         )
         command = " ".join(plan.command)
 
-        assert "run_original_task_train.py" in command
-        assert f"--env {env}" in command
+        assert "run_stablewm_train.py" in command
+        assert f"--original-env {env}" in command
         assert f"--family {family}" in command
 
     def test_it_does_not_need_a_dataset_for_prejepa(self) -> None:
@@ -296,6 +319,42 @@ class TestTheOriginalBaselineRegime:
         )
 
         assert plan.command
+
+    def test_prejepa_original_defaults_to_the_comparable_batch_size(self) -> None:
+        plan = router.build_plan(
+            _args(task="original", env="cube", family="prejepa")
+        )
+        index = plan.command.index("--batch-size")
+
+        assert plan.command[index + 1] == str(router.BASELINE_BATCH_SIZE)
+        assert "comparability" in plan.note
+
+    def test_explicit_original_batch_size_wins(self) -> None:
+        plan = router.build_plan(
+            _args(
+                task="original",
+                env="cube",
+                family="prejepa",
+                batch_size=64,
+            )
+        )
+        index = plan.command.index("--batch-size")
+
+        assert plan.command[index + 1] == "64"
+
+    def test_an_explicit_original_dataset_reaches_the_launcher(self) -> None:
+        plan = router.build_plan(
+            _args(
+                task="original",
+                env="tworoom",
+                family="prejepa",
+                dataset="/datasets/tworoom.h5",
+            )
+        )
+
+        index = plan.command.index("--dataset")
+
+        assert plan.command[index + 1] == "/datasets/tworoom.h5"
 
     def test_all_seeds_replaces_the_single_seed(self) -> None:
         plan = router.build_plan(
@@ -399,7 +458,7 @@ class TestTheCloudContract:
 
         text = (SCRIPTS / "cloud_train.sh").read_text(encoding="utf-8")
 
-        assert "artifact root does not exist" in text
+        assert "benchmark artifact root does not exist" in text
 
     def test_the_two_roots_are_reported_distinctly(self) -> None:
         """An operator reading the log should see which is which."""
@@ -416,13 +475,185 @@ class TestTheCloudContract:
 
         assert 'if [ -z "${CW_DATA_ROOT:-}" ]' in text
 
-    def test_detection_failure_is_loud(self) -> None:
-        """A silent wrong path re-downloads GB or trains on nothing."""
+    def test_explicit_leaf_paths_do_not_require_the_umbrella_root(self) -> None:
+        """CW_DATA_ROOT is a fallback, not a prerequisite."""
 
         text = (SCRIPTS / "cloud_train.sh").read_text(encoding="utf-8")
 
-        assert "cannot locate the data root" in text
-        assert "exit 2" in text
+        assert "This umbrella root is only a" in text
+        assert "fallback" in text
+
+    def test_checkpoint_root_controls_stablewm_checkpoints(self) -> None:
+        """Hydra's run directory is not where upstream saves weights."""
+
+        text = (SCRIPTS / "cloud_train.sh").read_text(encoding="utf-8")
+
+        assert "CW_CHECKPOINT_ROOT" in text
+        assert 'STABLEWM_HOME="$CW_CHECKPOINT_ROOT"' in text
+
+    def test_original_data_does_not_require_contextworld_artifacts(self) -> None:
+        text = (SCRIPTS / "cloud_train.sh").read_text(encoding="utf-8")
+
+        assert '[ "${CW_TASK:-}" != "original" ]' in text
+
+    def test_explicit_original_paths_work_without_an_artifact_root(
+        self, tmp_path: Path
+    ) -> None:
+        dataset = tmp_path / "tworoom.h5"
+        with h5py.File(dataset, "w") as handle:
+            handle.create_dataset("pixels", shape=(2, 8, 8, 3), dtype="uint8")
+            handle.create_dataset("action", shape=(2, 2), dtype="float32")
+            handle.create_dataset("proprio", shape=(2, 2), dtype="float32")
+        stablewm = tmp_path / "stablewm"
+        (stablewm / "scripts/train/config").mkdir(parents=True)
+        (stablewm / "scripts/train/prejepa.py").write_text(
+            "enabled = cfg.wandb.enabled\n", encoding="utf-8"
+        )
+        (stablewm / "scripts/train/config/prejepa.yaml").write_text(
+            "trainer:\n  max_epochs: 10\n", encoding="utf-8"
+        )
+        checkpoint_root = tmp_path / "checkpoints"
+        environment = dict(os.environ)
+        for name in (
+            "CONTEXTWORLD_DATASET_ROOT",
+            "CONTEXTWORLD_ARTIFACT_ROOT",
+            "STABLEWM_HOME",
+        ):
+            environment.pop(name, None)
+        environment.update(
+            {
+                "CW_DATA_ROOT": str(tmp_path / "unused-umbrella"),
+                "CW_TASK": "original",
+                "CW_ENV": "tworoom",
+                "CW_FAMILY": "prejepa",
+                "CW_PRINT_ONLY": "1",
+                "CW_DATASET": str(dataset),
+                "CW_CHECKPOINT_ROOT": str(checkpoint_root),
+                "CONTEXTWORLD_STABLE_WORLDMODEL_REPO": str(stablewm),
+                "PYTHON_BIN": sys.executable,
+            }
+        )
+
+        completed = subprocess.run(
+            ["bash", str(SCRIPTS / "cloud_train.sh")],
+            cwd=ROOT,
+            env=environment,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+
+        assert completed.returncode == 0, completed.stderr
+        assert f"original dataset={dataset}" in completed.stdout
+        assert f"checkpoint root={checkpoint_root}" in completed.stdout
+        assert "contextworld data=<not needed>" in completed.stdout
+        assert f"--dataset {dataset}" in completed.stdout
+
+    def test_one_dataset_root_selects_the_original_file_by_environment(
+        self, tmp_path: Path
+    ) -> None:
+        dataset_root = tmp_path / "data" / "world_model"
+        dataset = dataset_root / "quentinll" / "tworoom.h5"
+        dataset.parent.mkdir(parents=True)
+        with h5py.File(dataset, "w") as handle:
+            handle.create_dataset("pixels", shape=(2, 8, 8, 3), dtype="uint8")
+            handle.create_dataset("action", shape=(2, 2), dtype="float32")
+            handle.create_dataset("proprio", shape=(2, 2), dtype="float32")
+        stablewm = tmp_path / "stablewm"
+        (stablewm / "scripts/train/config").mkdir(parents=True)
+        (stablewm / "scripts/train/prejepa.py").write_text(
+            "enabled = cfg.wandb.enabled\n", encoding="utf-8"
+        )
+        (stablewm / "scripts/train/config/prejepa.yaml").write_text(
+            "trainer:\n  max_epochs: 10\n", encoding="utf-8"
+        )
+        checkpoint_root = tmp_path / "checkpoints"
+        environment = dict(os.environ)
+        for name in (
+            "CW_DATASET",
+            "CONTEXTWORLD_ARTIFACT_ROOT",
+            "STABLEWM_HOME",
+        ):
+            environment.pop(name, None)
+        environment.update(
+            {
+                "CW_DATA_ROOT": str(tmp_path / "unused-umbrella"),
+                "CW_TASK": "original",
+                "CW_ENV": "tworoom",
+                "CW_FAMILY": "prejepa",
+                "CW_PRINT_ONLY": "1",
+                "CW_CHECKPOINT_ROOT": str(checkpoint_root),
+                "CONTEXTWORLD_DATASET_ROOT": str(dataset_root),
+                "CONTEXTWORLD_STABLE_WORLDMODEL_REPO": str(stablewm),
+                "PYTHON_BIN": sys.executable,
+            }
+        )
+
+        completed = subprocess.run(
+            ["bash", str(SCRIPTS / "cloud_train.sh")],
+            cwd=ROOT,
+            env=environment,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+
+        assert completed.returncode == 0, completed.stderr
+        assert f"dataset_name={dataset}" in completed.stdout
+        assert "subdir=tworoom_prejepa_original_s3072" in completed.stdout
+
+    def test_a_relative_dataset_root_fails_before_python(
+        self, tmp_path: Path
+    ) -> None:
+        environment = dict(os.environ)
+        environment.pop("CW_DATASET", None)
+        environment.update(
+            {
+                "CW_TASK": "original",
+                "CW_ENV": "tworoom",
+                "CW_FAMILY": "prejepa",
+                "CONTEXTWORLD_DATASET_ROOT": "relative/data/world_model",
+                "CW_CHECKPOINT_ROOT": str(tmp_path / "checkpoints"),
+            }
+        )
+
+        completed = subprocess.run(
+            ["bash", str(SCRIPTS / "cloud_train.sh")],
+            cwd=ROOT,
+            env=environment,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+
+        assert completed.returncode == 2
+        assert "CONTEXTWORLD_DATASET_ROOT must be absolute" in completed.stderr
+
+    def test_a_relative_cloud_dataset_fails_before_python(
+        self, tmp_path: Path
+    ) -> None:
+        environment = dict(os.environ)
+        environment.update(
+            {
+                "CW_TASK": "original",
+                "CW_ENV": "tworoom",
+                "CW_FAMILY": "prejepa",
+                "CW_DATASET": "relative/tworoom.h5",
+                "CW_CHECKPOINT_ROOT": str(tmp_path / "checkpoints"),
+            }
+        )
+
+        completed = subprocess.run(
+            ["bash", str(SCRIPTS / "cloud_train.sh")],
+            cwd=ROOT,
+            env=environment,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+
+        assert completed.returncode == 2
+        assert "CW_DATASET must be an absolute path" in completed.stderr
 
     @pytest.mark.parametrize(
         "variable,option",

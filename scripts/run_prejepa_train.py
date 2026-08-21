@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Launch Stable-WorldModel's ``prejepa`` (DINOv2) training for a benchmark task.
+"""Compatibility PreJEPA launcher for a benchmark task.
+
+New public and cloud runs use the family-profile entry
+``run_stablewm_train.py``. This module remains for existing commands and its
+task-geometry regression tests.
 
 ContextWorld is the benchmark entry point, not a trainer. This script composes
 Stable-WorldModel's own ``scripts/train/prejepa.py`` configuration, points it
@@ -59,8 +63,6 @@ FAMILY = "prejepa"
 # model, so they are stated here and pushed into the upstream config rather
 # than left to whatever the family's default config happens to carry.
 #
-# ``action_input_dim`` is the raw action width times the frameskip, matching
-# how the benchmark packs an action block.
 TASK_GEOMETRY: dict[str, dict[str, int]] = {
     "speed": {"history": 3, "action_dim": 2},
     "door": {"history": 3, "action_dim": 2},
@@ -139,10 +141,17 @@ def build_overrides(args: argparse.Namespace) -> list[str]:
         f"seed={args.seed}",
         f"frameskip={FRAMESKIP}",
         f"wm.history_size={geometry['history']}",
-        f"model.action_encoder.input_dim="
-        f"{geometry['action_dim'] * FRAMESKIP}",
         f"output_model_name={args.run_name}",
+        # prejepa.yaml defaults subdir to null. Without an explicit value,
+        # unrelated jobs sharing STABLEWM_HOME overwrite config.yaml and may
+        # resume from the wrong checkpoint.
+        f"subdir={args.run_name}",
     ]
+    # Upstream prejepa.py reads cfg.wandb even though the public YAML does not
+    # declare a wandb block. Add the disabled flag explicitly so a logger-free
+    # public run reaches training. The canonical profile launcher owns actual
+    # logger selection.
+    overrides.append("++wandb.enabled=false")
     # Hardware-shaped knobs. These change throughput, not the objective, so
     # they are plain pass-throughs with upstream defaults when unset.
     for flag, key in (
@@ -236,6 +245,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.print_command:
         return 0
 
+    sys.stdout.flush()
     environment = dict(os.environ)
     # Upstream resolves its own imports relative to the checkout.
     environment["PYTHONPATH"] = os.pathsep.join(

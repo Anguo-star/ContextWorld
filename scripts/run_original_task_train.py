@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Train a world model on one of the four ORIGINAL task datasets.
+"""Compatibility launcher for the four ORIGINAL task datasets.
+
+New public and cloud runs use ``run_stablewm_train.py``. This module remains
+for existing commands and for its focused mapping regression tests.
 
 This is the baseline regime, not the benchmark one. ``cloud_train.py`` routes
 the nine ContextWorld ICL capabilities; this trains on the unmodified
@@ -153,8 +156,10 @@ def resolve_dataset_root(explicit: str | None) -> Path | None:
     ``<STABLEWM_HOME>/datasets/``. On this machine the LeWM data sits one
     level higher, so the root is passed explicitly rather than assumed.
 
-    Returns ``None`` when nothing is configured and no default exists, which
-    leaves upstream's own resolution untouched.
+    Returns ``None`` when nothing is configured, which leaves upstream's own
+    resolution untouched.  It deliberately does not infer a data location
+    from the ContextWorld checkout: source data and generated artifacts are
+    separate trees and a coincidental checkout layout is not authority.
     """
 
     candidate = explicit or os.environ.get("CONTEXTWORLD_DATASET_ROOT")
@@ -163,11 +168,14 @@ def resolve_dataset_root(explicit: str | None) -> Path | None:
         if not root.is_dir():
             raise SystemExit(f"Dataset root not found: {root}")
         return root
-    default = artifact_root(REPO_ROOT).parent
-    return default if default.is_dir() else None
+    return None
 
 
-def dataset_argument(environment: Environment, root: Path | None) -> str:
+def dataset_argument(
+    environment: Environment,
+    root: Path | None,
+    explicit: str | None = None,
+) -> str:
     """Give upstream an absolute path when we can resolve one.
 
     A relative name goes through ``<STABLEWM_HOME>/datasets/<name>``, and an
@@ -176,10 +184,19 @@ def dataset_argument(environment: Environment, root: Path | None) -> str:
     bypasses that lookup entirely (``data/utils.py:110``).
     """
 
+    if explicit:
+        resolved = Path(explicit).expanduser().resolve()
+        if not resolved.is_file():
+            raise SystemExit(f"Dataset file not found: {resolved}")
+        return str(resolved)
     if root is None:
         return environment.dataset_name
     resolved = root / environment.dataset_name
-    return str(resolved) if resolved.exists() else environment.dataset_name
+    if not resolved.is_file():
+        raise SystemExit(
+            f"Dataset file not found under explicit root: {resolved}"
+        )
+    return str(resolved)
 
 
 def resolve_stablewm_repo(explicit: str | None) -> Path:
@@ -235,11 +252,18 @@ def build_overrides(
     name = args.run_name or run_name(environment.name, family, seed)
     # All three families name the run the same way. ``exp_name`` is the
     # wm_exp wrapper's spelling and is rejected by these configs.
-    overrides = [f"seed={seed}", f"output_model_name={name}"]
+    overrides = [
+        f"seed={seed}",
+        f"output_model_name={name}",
+        # Upstream writes checkpoints and config.yaml below this directory.
+        # Pinning it to the unique run name lets every environment and seed
+        # safely share one STABLEWM_HOME/CW_CHECKPOINT_ROOT.
+        f"subdir={name}",
+    ]
 
     if family == "prejepa":
         overrides.append(
-            f"dataset_name={dataset_argument(environment, dataset_root)}"
+            f"dataset_name={dataset_argument(environment, dataset_root, args.dataset)}"
         )
         overrides.extend(environment.prejepa_encoding_overrides())
         overrides.append(
@@ -251,10 +275,10 @@ def build_overrides(
         # lewm/pldm select data through the defaults group, and read batch
         # size and workers from under ``loader``.
         overrides.insert(0, f"data={environment.data_group}")
-        if args.dataset_override:
+        if args.dataset or args.dataset_override:
             overrides.append(
                 f"data.dataset.name="
-                f"{dataset_argument(environment, dataset_root)}"
+                f"{dataset_argument(environment, dataset_root, args.dataset)}"
             )
         if args.batch_size is not None:
             overrides.append(f"loader.batch_size={args.batch_size}")
@@ -314,6 +338,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument("--run-name", default=os.environ.get("CW_RUN_NAME"))
     parser.add_argument("--output", default=os.environ.get("CW_OUTPUT"))
+    parser.add_argument(
+        "--dataset",
+        default=os.environ.get("CW_DATASET"),
+        help=(
+            "Exact original dataset path (env: CW_DATASET). An explicit "
+            "path overrides the environment's built-in dataset name."
+        ),
+    )
     parser.add_argument("--stablewm-repo", default=None)
     parser.add_argument("--train-script", default=None)
     parser.add_argument(
@@ -371,7 +403,11 @@ def main(argv: list[str] | None = None) -> int:
     environment = ENVIRONMENTS[args.env]
     repo = resolve_stablewm_repo(args.stablewm_repo)
     script = resolve_train_script(repo, args.family, args.train_script)
-    dataset_root = resolve_dataset_root(args.dataset_dir)
+    # An exact file is already authoritative and must not be blocked by a
+    # stale root variable inherited from a generic cloud job template.
+    dataset_root = (
+        None if args.dataset else resolve_dataset_root(args.dataset_dir)
+    )
 
     seeds = BASELINE_SEEDS if args.all_seeds else (args.seed,)
     if not args.all_seeds and args.seed not in BASELINE_SEEDS:
@@ -400,6 +436,7 @@ def main(argv: list[str] | None = None) -> int:
         if args.print_command:
             continue
 
+        sys.stdout.flush()
         code = subprocess.call(
             command, cwd=str(repo), env=environment_variables
         )

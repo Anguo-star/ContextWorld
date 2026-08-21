@@ -1,0 +1,198 @@
+schema_version: contextworld.stablewm-family-profiles.v1
+status: public_reproduction_contract
+
+upstream:
+  repository: https://github.com/galilai-group/stable-worldmodel
+  validated_revision: addbab40377da680dadbfbc90250fe749f6f57e3
+  note: >-
+    The launcher calls the selected checkout's own trainer. ContextWorld maps
+    a stable command-line interface to each trainer's Hydra schema; it does
+    not copy the model, forward pass, loss, or optimizer implementation.
+
+defaults:
+  baseline_seeds: [3072, 3073, 3074]
+  frameskip: 5
+  history_size: 3
+  num_preds: 1
+  logger: none
+  resume: never
+
+comparison_recipe:
+  original_environment_baseline:
+    max_epochs: 10
+    batch_size_per_device: 128
+    reference_devices: 8
+    gradient_accumulation: 1
+    effective_global_batch_size: 1024
+    note: >-
+      These values reproduce the training scale of the frozen LeWM/PLDM
+      original-environment baselines. PreJEPA's upstream YAML uses batch 32,
+      so the ContextWorld cloud router raises it to 128 unless explicitly
+      overridden. On fewer devices, increase gradient accumulation to retain
+      the effective global batch.
+
+families:
+  lewm:
+    entrypoint: scripts/train/lewm.py
+    config_name: lewm
+    data_group: true
+    logger_backends: [none, swanlab, wandb]
+    post_train_eval: validated
+    keys:
+      dataset: data.dataset.name
+      batch_size: loader.batch_size
+      num_workers: loader.num_workers
+      persistent_workers: loader.persistent_workers
+      prefetch_factor: loader.prefetch_factor
+      pin_memory: loader.pin_memory
+      frameskip: data.dataset.frameskip
+      history_size: wm.history_size
+      num_preds: wm.num_preds
+      embed_dim: embed_dim
+  pldm:
+    entrypoint: scripts/train/pldm.py
+    config_name: pldm
+    data_group: true
+    logger_backends: [none, swanlab, wandb]
+    post_train_eval: validated
+    keys:
+      dataset: data.dataset.name
+      batch_size: loader.batch_size
+      num_workers: loader.num_workers
+      persistent_workers: loader.persistent_workers
+      prefetch_factor: loader.prefetch_factor
+      pin_memory: loader.pin_memory
+      frameskip: data.dataset.frameskip
+      history_size: wm.history_size
+      num_preds: wm.num_preds
+      embed_dim: wm.embed_dim
+  prejepa:
+    entrypoint: scripts/train/prejepa.py
+    config_name: prejepa
+    data_group: false
+    logger_backends: [none, wandb]
+    post_train_eval: pending_checkpoint_smoke
+    keys:
+      dataset: dataset_name
+      batch_size: batch_size
+      num_workers: num_workers
+      frameskip: frameskip
+      history_size: wm.history_size
+      num_preds: wm.num_preds
+
+common_keys:
+  seed: seed
+  run_name: output_model_name
+  run_subdir: subdir
+  train_split: train_split
+  max_epochs: trainer.max_epochs
+  devices: trainer.devices
+  accelerator: trainer.accelerator
+  strategy: trainer.strategy
+  precision: trainer.precision
+  accumulate_grad_batches: ++trainer.accumulate_grad_batches
+  gradient_clip_val: trainer.gradient_clip_val
+  fast_dev_run: ++trainer.fast_dev_run
+  limit_train_batches: ++trainer.limit_train_batches
+  limit_val_batches: ++trainer.limit_val_batches
+  trainer_default_root_dir: ++trainer.default_root_dir
+  optimizer_lr: optimizer.lr
+  optimizer_weight_decay: optimizer.weight_decay
+  hydra_run_dir: hydra.run.dir
+  hydra_job_chdir: hydra.job.chdir
+
+original_environments:
+  tworoom:
+    data_group: tworoom
+    dataset: quentinll/tworoom.h5
+    encoding_key: proprio
+    encoding_dim: 2
+    action_dim: 2
+  pusht:
+    data_group: pusht
+    dataset: quentinll/pusht_expert_train.h5
+    encoding_key: proprio
+    encoding_dim: 4
+    action_dim: 2
+  reacher:
+    data_group: dmc
+    dataset: quentinll/reacher.h5
+    encoding_key: observation
+    encoding_dim: 6
+    action_dim: 2
+  cube:
+    data_group: ogb
+    dataset: quentinll/ogbench/cube_single_expert.h5
+    encoding_key: observation
+    encoding_dim: 28
+    action_dim: 5
+
+benchmark_components:
+  speed:
+    data_group: tworoom
+    history_size: 3
+    action_dim: 2
+    encoding_key: proprio
+    encoding_dim: 2
+  door:
+    data_group: tworoom
+    history_size: 3
+    action_dim: 2
+    encoding_key: proprio
+    encoding_dim: 2
+  action_delay:
+    data_group: tworoom
+    history_size: 7
+    action_dim: 2
+    encoding_key: proprio
+    encoding_dim: 2
+  portal_exit:
+    data_group: tworoom
+    history_size: 3
+    action_dim: 2
+    encoding_key: proprio
+    encoding_dim: 2
+  action_strength:
+    data_group: pusht
+    history_size: 3
+    action_dim: 2
+    encoding_key: proprio
+    encoding_dim: 4
+  contact_friction:
+    data_group: pusht
+    history_size: 3
+    action_dim: 2
+    encoding_key: proprio
+    encoding_dim: 4
+  motion_damping:
+    data_group: pusht
+    history_size: 3
+    action_dim: 2
+    encoding_key: proprio
+    encoding_dim: 4
+  robot_arm_mass:
+    data_group: dmc
+    history_size: 3
+    action_dim: 2
+    encoding_key: observation
+    encoding_dim: 6
+  cube_gripper_carry:
+    data_group: ogb
+    history_size: 3
+    action_dim: 5
+    encoding_key: observation
+    encoding_dim: 28
+
+evaluation:
+  entrypoint: scripts/plan/eval_wm.py
+  original_config_names:
+    tworoom: tworoom
+    pusht: pusht
+    reacher: reacher
+    cube: cube
+  default_seeds: [42, 43, 44]
+  default_num_eval: 50
+  note: >-
+    This optional stage is the upstream original-environment MPC sanity/CEM
+    evaluation. Published ContextWorld ICL and CEM results continue to use
+    each component's frozen evaluation protocol.

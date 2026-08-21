@@ -28,7 +28,7 @@ action_delay            positional ``$1`` family, positional ``$2`` seed,
 five hidden-property    ``--model`` / ``--seed`` / ``--output`` flags
 action_strength         lewm: ``--variants <recipe string>``
                         pldm: the same different program as speed
-prejepa (any task)      uniform, via ``run_prejepa_train.py``
+prejepa (any task)      uniform, via the public StableWM family profile
 ======================  ==================================================
 
 Usage::
@@ -131,15 +131,16 @@ def default_output(task: str, family: str, seed: int) -> Path:
 
 
 def _prejepa_plan(args: argparse.Namespace) -> Plan:
-    """Every task reaches prejepa the same way, so this needs no table."""
+    """Every task reaches PreJEPA through the public family profile."""
 
     if not args.dataset:
         raise SystemExit(
             "prejepa needs a dataset: set CW_DATASET or pass --dataset."
         )
     command = _python(
-        "run_prejepa_train.py",
-        "--task", args.task,
+        "run_stablewm_train.py",
+        "--component", args.task,
+        "--family", "prejepa",
         "--run-name", args.run_name or default_run_name(
             args.task, "prejepa", args.seed
         ),
@@ -255,24 +256,35 @@ def _original_plan(args: argparse.Namespace) -> Plan:
             f"got {args.env!r}"
         )
     command = _python(
-        "run_original_task_train.py",
-        "--env", args.env,
+        "run_stablewm_train.py",
+        "--original-env", args.env,
         "--family", args.family,
     )
     if args.all_seeds:
         command.append("--all-seeds")
     else:
         command += ["--seed", str(args.seed)]
+    if args.dataset:
+        command += ["--dataset", str(args.dataset)]
     if args.output:
         command += ["--output", str(args.output)]
-    if args.batch_size:
-        command += ["--batch-size", str(args.batch_size)]
+    effective_batch_size = args.batch_size
+    if effective_batch_size is None and args.family == "prejepa":
+        effective_batch_size = BASELINE_BATCH_SIZE
+    if effective_batch_size is not None:
+        command += ["--batch-size", str(effective_batch_size)]
+    note = (
+        "original task data, not a benchmark capability; "
+        "baseline seeds are 3072/3073/3074"
+    )
+    if args.family == "prejepa" and args.batch_size is None:
+        note += (
+            f"; batch_size defaulted to {BASELINE_BATCH_SIZE} for "
+            "LeWM/PLDM baseline comparability"
+        )
     return Plan(
         command=command,
-        note=(
-            "original task data, not a benchmark capability; "
-            "baseline seeds are 3072/3073/3074"
-        ),
+        note=note,
     )
 
 
@@ -314,6 +326,20 @@ def _environment_default(name: str, fallback: str | None = None) -> str | None:
     return value if value else fallback
 
 
+def _environment_bool(name: str) -> bool:
+    value = _environment_default(name)
+    if value is None:
+        return False
+    normalized = value.strip().lower()
+    if normalized in {"1", "true", "yes", "on"}:
+        return True
+    if normalized in {"0", "false", "no", "off"}:
+        return False
+    raise SystemExit(
+        f"{name} must be one of 1/0, true/false, yes/no, or on/off"
+    )
+
+
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         prog="cloud_train",
@@ -342,7 +368,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--all-seeds",
         action="store_true",
-        default=bool(os.environ.get("CW_ALL_SEEDS")),
+        default=_environment_bool("CW_ALL_SEEDS"),
         help="Run all three baseline seeds in sequence (env: CW_ALL_SEEDS)",
     )
     parser.add_argument(
@@ -407,7 +433,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--print-command",
         action="store_true",
-        default=bool(os.environ.get("CW_PRINT_ONLY")),
+        default=_environment_bool("CW_PRINT_ONLY"),
         help="Resolve and print without running (env: CW_PRINT_ONLY)",
     )
     parser.add_argument(
@@ -427,6 +453,15 @@ def main(argv: list[str] | None = None) -> int:
 
     extra = [item for item in args.extra if item != "--"]
     command = [*plan.command, *extra]
+    # The profile launcher performs the useful final resolution: it composes
+    # the family-specific YAML dialect and validates the concrete dataset.
+    # Let print-only reach it while explicitly keeping it dry. Frozen benchmark
+    # launchers own different preflight vocabularies and remain router-only.
+    resolve_profile = args.print_command and (
+        args.task == "original" or args.family == "prejepa"
+    )
+    if resolve_profile and "--print-command" not in command:
+        command.append("--print-command")
 
     print(f"[cloud-train] task={args.task} family={args.family} "
           f"seed={args.seed}")
@@ -435,10 +470,13 @@ def main(argv: list[str] | None = None) -> int:
     for key, value in sorted(plan.env.items()):
         print(f"[cloud-train] env {key}={value}")
     print(f"[cloud-train] {' '.join(command)}")
-    if args.print_command:
+    if args.print_command and not resolve_profile:
         return 0
 
     environment = {**os.environ, **plan.env}
+    # Keep the routing decision ahead of child-process output in buffered
+    # cloud logs.
+    sys.stdout.flush()
     return subprocess.call(command, cwd=str(REPO_ROOT), env=environment)
 
 

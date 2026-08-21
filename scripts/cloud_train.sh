@@ -12,17 +12,25 @@
 #   run_shell_script=scripts/cloud_train.sh
 #   CW_TASK=original   CW_ENV=tworoom   CW_FAMILY=prejepa   CW_ALL_SEEDS=1
 #
-# Everything below is resolved automatically and only needs setting when
-# detection fails or you want a different location.
+# For the four standard original tasks, pass one dataset root and one shared
+# checkpoint root as absolute paths:
+#
+#   CONTEXTWORLD_DATASET_ROOT=/path/to/data/world_model
+#   CW_CHECKPOINT_ROOT=/path/to/dino-wm-output
+#
+# CW_ENV selects the task-specific YAML/data mapping. CW_DATASET remains an
+# optional exact-file override for non-standard layouts. Auto-detection is a
+# local convenience and never overrides an explicitly supplied path.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 cd "$ROOT"
 
-# --- Data root -------------------------------------------------------------
+# --- Optional umbrella root ------------------------------------------------
 # The cloud mounts this as /opt/huawei/dataset/ag_data; the development box
 # has an extra `explorer-env` segment. Detect rather than hardcode, so the
-# same script works in both without an edit.
+# same script works in both without an edit.  This umbrella root is only a
+# fallback: a job that supplies the concrete paths below does not need it.
 if [ -z "${CW_DATA_ROOT:-}" ]; then
   for candidate in \
     /opt/huawei/dataset/ag_data \
@@ -31,28 +39,6 @@ if [ -z "${CW_DATA_ROOT:-}" ]; then
   do
     if [ -d "$candidate/data/world_model" ]; then
       CW_DATA_ROOT="$candidate"
-      break
-    fi
-  done
-fi
-
-if [ -z "${CW_DATA_ROOT:-}" ]; then
-  echo "[cloud-train] cannot locate the data root." >&2
-  echo "[cloud-train] set CW_DATA_ROOT to the directory holding data/world_model" >&2
-  exit 2
-fi
-
-# --- Stable-WorldModel checkout --------------------------------------------
-# Training runs upstream's own scripts/train/<family>.py, which lives in a
-# source checkout -- the pip-installed package does not ship it.
-if [ -z "${CONTEXTWORLD_STABLE_WORLDMODEL_REPO:-}" ]; then
-  for candidate in \
-    "$CW_DATA_ROOT/data/world_model/context_world/upstream/stable-worldmodel-875e607fc08aa72e" \
-    "$CW_DATA_ROOT/pkg_x86/stable-worldmodel" \
-    "$CW_DATA_ROOT/code/stable-worldmodel"
-  do
-    if [ -d "$candidate/scripts/train" ]; then
-      export CONTEXTWORLD_STABLE_WORLDMODEL_REPO="$candidate"
       break
     fi
   done
@@ -75,20 +61,123 @@ fi
 # CONTEXTWORLD_DATASET_ROOT is the directory a dataset name is resolved
 # against: `quentinll/tworoom.h5` hangs off data/world_model, so that is the
 # root -- not the quentinll directory itself.
-: "${CONTEXTWORLD_DATASET_ROOT:=$CW_DATA_ROOT/data/world_model}"
-export CONTEXTWORLD_DATASET_ROOT
+if [ -z "${CONTEXTWORLD_DATASET_ROOT:-}" ] && \
+   [ -z "${CW_DATASET:-}" ] && [ -n "${CW_DATA_ROOT:-}" ]; then
+  CONTEXTWORLD_DATASET_ROOT="$CW_DATA_ROOT/data/world_model"
+fi
+if [ -n "${CONTEXTWORLD_DATASET_ROOT:-}" ]; then
+  export CONTEXTWORLD_DATASET_ROOT
+fi
+
+# A configured root is the public cloud contract for standard original-data
+# jobs. Reject a relative value before Python can resolve it against work_dir
+# and make an accidental location look valid. An exact CW_DATASET is
+# authoritative and intentionally ignores a stale inherited root.
+if [ "${CW_TASK:-}" = "original" ] && [ -z "${CW_DATASET:-}" ] && \
+   [ -n "${CONTEXTWORLD_DATASET_ROOT:-}" ]; then
+  case "$CONTEXTWORLD_DATASET_ROOT" in
+    /*) ;;
+    *)
+      echo "[cloud-train] CONTEXTWORLD_DATASET_ROOT must be absolute: $CONTEXTWORLD_DATASET_ROOT" >&2
+      exit 2
+      ;;
+  esac
+fi
 
 # CONTEXTWORLD_ARTIFACT_ROOT is where ContextWorld reads synthesized data and
 # writes runs. Without it, contextworld.paths guesses from the checkout's
 # location (repo.parents[1]/data/world_model/context_world), which is wrong
 # whenever work_dir is not two levels below the data root -- exactly the
 # cloud's situation.
-: "${CONTEXTWORLD_ARTIFACT_ROOT:=$CONTEXTWORLD_DATASET_ROOT/context_world}"
-export CONTEXTWORLD_ARTIFACT_ROOT
+if [ -z "${CONTEXTWORLD_ARTIFACT_ROOT:-}" ] && \
+   [ "${CW_TASK:-}" != "original" ] && [ -n "${CW_DATA_ROOT:-}" ]; then
+  CONTEXTWORLD_ARTIFACT_ROOT="$CW_DATA_ROOT/data/world_model/context_world"
+fi
+if [ -n "${CONTEXTWORLD_ARTIFACT_ROOT:-}" ]; then
+  export CONTEXTWORLD_ARTIFACT_ROOT
+fi
 
-if [ ! -d "$CONTEXTWORLD_ARTIFACT_ROOT" ]; then
-  echo "[cloud-train] artifact root does not exist: $CONTEXTWORLD_ARTIFACT_ROOT" >&2
+# An original-data run does not read the ContextWorld artifact tree when its
+# dataset is supplied explicitly. Benchmark capability runs do.
+if [ "${CW_TASK:-}" != "original" ] && \
+   [ "${CW_FAMILY:-lewm}" != "prejepa" ] && \
+   [ ! -d "${CONTEXTWORLD_ARTIFACT_ROOT:-}" ]; then
+  echo "[cloud-train] benchmark artifact root does not exist: ${CONTEXTWORLD_ARTIFACT_ROOT:-<unset>}" >&2
   echo "[cloud-train] set CONTEXTWORLD_ARTIFACT_ROOT to the context_world directory" >&2
+  exit 2
+fi
+
+# --- Stable-WorldModel checkout --------------------------------------------
+# Training runs upstream's own scripts/train/<family>.py, which lives in a
+# source checkout -- the pip-installed package does not ship it.
+if [ -z "${CONTEXTWORLD_STABLE_WORLDMODEL_REPO:-}" ]; then
+  for candidate in \
+    "${CONTEXTWORLD_ARTIFACT_ROOT:-}/upstream/stable-worldmodel-875e607fc08aa72e" \
+    "${CW_DATA_ROOT:-}/data/world_model/context_world/upstream/stable-worldmodel-875e607fc08aa72e" \
+    "${CW_DATA_ROOT:-}/pkg_x86/stable-worldmodel" \
+    "${CW_DATA_ROOT:-}/code/stable-worldmodel"
+  do
+    if [ -d "$candidate/scripts/train" ]; then
+      CONTEXTWORLD_STABLE_WORLDMODEL_REPO="$candidate"
+      export CONTEXTWORLD_STABLE_WORLDMODEL_REPO
+      break
+    fi
+  done
+fi
+
+# --- Explicit dataset and checkpoint paths ---------------------------------
+# CW_DATASET names the exact dataset for an original-task run.  It is routed
+# all the way to Stable-WorldModel; it is not merely printed in the banner.
+if [ -n "${CW_DATASET:-}" ]; then
+  case "$CW_DATASET" in
+    /*) ;;
+    *)
+      echo "[cloud-train] CW_DATASET must be an absolute path: $CW_DATASET" >&2
+      exit 2
+      ;;
+  esac
+  if [ ! -e "$CW_DATASET" ]; then
+    echo "[cloud-train] dataset does not exist: $CW_DATASET" >&2
+    exit 2
+  fi
+fi
+
+# Stable-WorldModel stores real checkpoints under
+# $STABLEWM_HOME/checkpoints.  CW_OUTPUT only controls per-run Hydra/output
+# files, so expose a separate, accurately named cloud variable.
+if [ -n "${CW_CHECKPOINT_ROOT:-}" ]; then
+  case "$CW_CHECKPOINT_ROOT" in
+    /*) ;;
+    *)
+      echo "[cloud-train] CW_CHECKPOINT_ROOT must be absolute: $CW_CHECKPOINT_ROOT" >&2
+      exit 2
+      ;;
+  esac
+  if [ -n "${STABLEWM_HOME:-}" ] && \
+     [ "$STABLEWM_HOME" != "$CW_CHECKPOINT_ROOT" ]; then
+    echo "[cloud-train] CW_CHECKPOINT_ROOT and STABLEWM_HOME disagree" >&2
+    exit 2
+  fi
+  STABLEWM_HOME="$CW_CHECKPOINT_ROOT"
+  export STABLEWM_HOME
+fi
+
+if [ "${CW_TASK:-}" = "original" ]; then
+  if [ -z "${CW_DATASET:-}" ] && \
+     [ ! -d "${CONTEXTWORLD_DATASET_ROOT:-}" ]; then
+    echo "[cloud-train] original training needs CW_DATASET or CONTEXTWORLD_DATASET_ROOT" >&2
+    exit 2
+  fi
+fi
+
+# The public family-profile entry handles original runs for all three
+# families and benchmark PreJEPA runs. Both write real Stable-WorldModel
+# checkpoints and therefore require an explicit storage root. Frozen LeWM /
+# PLDM component launchers retain their own registered output contracts.
+if { [ "${CW_TASK:-}" = "original" ] || \
+     [ "${CW_FAMILY:-lewm}" = "prejepa" ]; } && \
+   [ -z "${STABLEWM_HOME:-}" ]; then
+  echo "[cloud-train] StableWM profile training needs CW_CHECKPOINT_ROOT or STABLEWM_HOME" >&2
   exit 2
 fi
 
@@ -96,7 +185,7 @@ fi
 # prejepa loads facebook/dinov2-small through transformers. Point the hub
 # cache at wherever the weights were placed, and prefer offline so a missing
 # file fails loudly instead of silently pulling from the network mid-run.
-if [ -z "${HF_HUB_CACHE:-}" ] && [ -d "$CW_DATA_ROOT/models" ]; then
+if [ -z "${HF_HUB_CACHE:-}" ] && [ -d "${CW_DATA_ROOT:-}/models" ]; then
   export HF_HUB_CACHE="$CW_DATA_ROOT/models"
 fi
 if [ -n "${HF_HUB_CACHE:-}" ] && [ -z "${HF_HUB_OFFLINE:-}" ]; then
@@ -107,10 +196,13 @@ fi
 
 PYTHON_BIN="${PYTHON_BIN:-python}"
 
-echo "[cloud-train] data_root=$CW_DATA_ROOT"
+echo "[cloud-train] checkout=$ROOT"
+echo "[cloud-train] umbrella data root=${CW_DATA_ROOT:-<not needed>}"
 echo "[cloud-train] stablewm=${CONTEXTWORLD_STABLE_WORLDMODEL_REPO:-<unset>}"
-echo "[cloud-train] original data (datasets)=${CONTEXTWORLD_DATASET_ROOT}"
-echo "[cloud-train] contextworld data (artifacts)=${CONTEXTWORLD_ARTIFACT_ROOT}"
+echo "[cloud-train] original dataset=${CW_DATASET:-<selected from ${CONTEXTWORLD_DATASET_ROOT:-upstream defaults}>}"
+echo "[cloud-train] contextworld data=${CONTEXTWORLD_ARTIFACT_ROOT:-<not needed>}"
+echo "[cloud-train] checkpoint root=${STABLEWM_HOME:-<upstream default>}"
+echo "[cloud-train] run output=${CW_OUTPUT:-<launcher default>}"
 echo "[cloud-train] hf_cache=${HF_HUB_CACHE:-<default>} offline=${HF_HUB_OFFLINE:-0}"
 
 exec "$PYTHON_BIN" "$ROOT/scripts/cloud_train.py" "$@"

@@ -28,6 +28,7 @@ def _args(**keywords: object) -> argparse.Namespace:
     defaults: dict[str, object] = {
         "run_name": None,
         "output": None,
+        "dataset": None,
         "batch_size": None,
         "num_workers": None,
         "devices": None,
@@ -128,6 +129,17 @@ class TestTheTwoConfigDialects:
 
         assert "output_model_name" in pairs
         assert "exp_name" not in pairs
+
+    @pytest.mark.parametrize("family", ["lewm", "pldm", "prejepa"])
+    def test_every_family_isolates_checkpoints_by_run(
+        self, family: str
+    ) -> None:
+        """All jobs may share one STABLEWM_HOME without sharing config or
+        resume state. PreJEPA's upstream default is otherwise ``null``."""
+
+        pairs, _ = _pairs("tworoom", family)
+
+        assert pairs["subdir"] == pairs["output_model_name"]
 
     def test_batch_size_goes_under_loader_for_lewm_only(self) -> None:
         lewm, _ = _pairs("tworoom", "lewm", batch_size=64)
@@ -233,15 +245,13 @@ class TestDatasetResolution:
 
         assert launcher.dataset_argument(environment, tmp_path) == str(target)
 
-    def test_it_falls_back_to_the_plain_name(self, tmp_path: Path) -> None:
-        """If we cannot resolve it, upstream's own lookup should still run."""
+    def test_an_explicit_root_missing_the_dataset_fails(self, tmp_path: Path) -> None:
+        """A configured root is authoritative; do not silently download."""
 
         environment = launcher.ENVIRONMENTS["tworoom"]
 
-        assert (
+        with pytest.raises(SystemExit, match="Dataset file not found"):
             launcher.dataset_argument(environment, tmp_path)
-            == environment.dataset_name
-        )
 
     def test_no_root_means_no_opinion(self) -> None:
         environment = launcher.ENVIRONMENTS["cube"]
@@ -263,6 +273,18 @@ class TestDatasetResolution:
 
         assert "data.dataset.name" not in pairs
 
+    @pytest.mark.parametrize("family", ["lewm", "pldm", "prejepa"])
+    def test_an_explicit_dataset_wins_for_every_family(
+        self, family: str, tmp_path: Path
+    ) -> None:
+        dataset = tmp_path / "source.h5"
+        dataset.write_bytes(b"")
+
+        pairs, _ = _pairs("tworoom", family, dataset=str(dataset))
+        key = "dataset_name" if family == "prejepa" else "data.dataset.name"
+
+        assert pairs[key] == str(dataset.resolve())
+
 
 class TestRunNaming:
     def test_runs_are_named_by_env_family_and_seed(self) -> None:
@@ -275,6 +297,7 @@ class TestRunNaming:
         pairs, _ = _pairs("cube", "prejepa", run_name="mine")
 
         assert pairs["output_model_name"] == "mine"
+        assert pairs["subdir"] == "mine"
 
     @pytest.mark.parametrize("seed", launcher.BASELINE_SEEDS)
     def test_each_seed_gets_its_own_run(self, seed: int) -> None:
@@ -282,3 +305,4 @@ class TestRunNaming:
 
         assert pairs["seed"] == str(seed)
         assert pairs["output_model_name"].endswith(f"_s{seed}")
+        assert pairs["subdir"] == pairs["output_model_name"]

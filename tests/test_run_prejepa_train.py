@@ -85,17 +85,17 @@ class TestTaskGeometry:
         assert _overrides("action_delay")["wm.history_size"] == "7"
         assert _overrides("speed")["wm.history_size"] == "3"
 
-    def test_cube_widens_the_action_encoder(self) -> None:
-        """Cube's raw action width is 5, every other task's is 2.
+    def test_action_width_is_derived_by_upstream(self) -> None:
+        """PreJEPA builds extra encoders after loading the dataset.
 
-        The encoder input is the raw width times the frameskip, matching how
-        the benchmark packs an action block.
+        ``model.action_encoder`` is not a key in prejepa.yaml; passing it was
+        both stale and a Hydra composition error for Cube.
         """
 
-        assert _overrides("cube_gripper_carry")[
-            "model.action_encoder.input_dim"
-        ] == "25"
-        assert _overrides("speed")["model.action_encoder.input_dim"] == "10"
+        for task in launcher.TASK_GEOMETRY:
+            assert not any(
+                "action_encoder.input_dim" in key for key in _overrides(task)
+            )
 
     @pytest.mark.parametrize("task", sorted(launcher.TASK_GEOMETRY))
     def test_every_task_pins_geometry_and_frameskip(self, task: str) -> None:
@@ -103,10 +103,19 @@ class TestTaskGeometry:
 
         assert pairs["frameskip"] == "5"
         assert int(pairs["wm.history_size"]) > 0
-        assert int(pairs["model.action_encoder.input_dim"]) > 0
+        assert pairs["++wandb.enabled"] == "false"
 
 
 class TestItRemainsALauncher:
+    def test_checkpoints_are_isolated_by_run_name(self) -> None:
+        """prejepa.yaml defaults ``subdir`` to null, which makes concurrent
+        jobs share config and resume state below STABLEWM_HOME/checkpoints."""
+
+        pairs = _overrides("speed", run_name="speed_prejepa_s3072")
+
+        assert pairs["subdir"] == "speed_prejepa_s3072"
+        assert pairs["output_model_name"] == "speed_prejepa_s3072"
+
     def test_it_sets_no_loss_or_objective_override(self) -> None:
         """The objective is upstream's. Setting it here would fork the recipe."""
 
