@@ -73,9 +73,11 @@ CW_ENV=cube
 ```
 
 `CW_SEEDS` accepts one seed or a comma-separated list. Submit 3072, 3073 and
-3074 as separate jobs when scheduler requeue recovery is enabled. Non-SLURM
-launchers may use `CW_SEEDS=3072,3073,3074` for a serial sweep; omitting the
-variable runs only seed 3072.
+3074 as separate scheduler jobs so each task keeps its recovery state separate.
+Non-SLURM launchers may use `CW_SEEDS=3072,3073,3074` for a serial sweep;
+omitting the variable runs only seed 3072. For such a sweep, all training runs
+finish or resume before post-training evaluation begins. Each seed keeps its
+own immutable recipe identity and full-state `last.ckpt`.
 The complete copy-ready job environment is recorded in
 [`dinowm_original_cloud_v1.env.example`](../configs/training/dinowm_original_cloud_v1.env.example).
 The checked-in template sets the comparison recipe recorded in the profile:
@@ -172,7 +174,7 @@ Then per run:
 | `CW_NUM_WORKERS` | family YAML | data loader workers |
 | `CW_DEVICES` | family YAML | Lightning devices (`auto`, integer, or Hydra value) |
 | `CW_LOGGER` | `none` | `wandb` or `swanlab` when the selected family trainer uses the common logger factory |
-| `CW_RESUME` | `auto` | `never`, `auto`, or `required`; native full-state recovery applies only to a same-job scheduler requeue |
+| `CW_RESUME` | `auto` | `never`, `auto`, or `required`; full state can resume through a same-job requeue or an identity-matched `last.ckpt` in persistent storage |
 | `CW_POST_TRAIN_EVAL` | unset | for current family-profile runs, run applicable original CEM and benchmark ICL through the common evaluator; frozen historical reproductions retain their component evaluator |
 | `CW_EVAL_ONLY` | unset | skip training/resume and evaluate an existing family-profile checkpoint selected by `CW_ENV`, `CW_FAMILY`, `CW_SEEDS` and `CW_EVAL_EPOCH`/`CW_MAX_EPOCHS` |
 | `CW_EVAL_RESULT_SUBDIR` | unset | new immutable name below `eval_results/` for a later evaluation attempt |
@@ -192,15 +194,22 @@ for the exact layout and execution matrix.
 `CW_CHECKPOINT_ROOT` is a persistent run root: the cloud entry sets both
 `STABLEWM_HOME` and `SPT_CACHE_DIR` to it. Evaluation weights live in
 `checkpoints/`; StablePretraining's native recovery and scheduler-requeue state
-live in `runs/`. Native full-state restoration applies only when the same
-SLURM job or array task is requeued. A newly submitted job does not inherit
-that state. When a requested epoch weight already exists,
+live in `runs/`. StablePretraining handles a same-job scheduler requeue
+directly. ContextWorld also marks each SPT UUID run with its run name and
+immutable recipe identity. A newly submitted job can therefore locate the
+newest matching `last.ckpt` and pass it back to the upstream `spt.Manager` with
+full-state semantics. No scheduler ID is copied or forged, and replacement
+containers work as long as the checkpoint root remains mounted. When a
+requested epoch weight already exists,
 post-training evaluation skips training only under `CW_RESUME=auto` or
 `required` and only after the saved `config.yaml` and
 `contextworld_training_identity_v1.json` prove an exact recipe match. Older
 checkpoints without that launcher identity are never accepted automatically;
 use `CW_EVAL_ONLY=1` after reviewing them. Set `CW_EVAL_RESULT_SUBDIR` to
-preserve an earlier evaluation attempt and write new evidence separately.
+preserve a failed, interrupted, or changed evaluation attempt and write new
+evidence separately. An exact repeat of a completed suite is accepted
+idempotently only when its request digest matches and every output file still
+has its recorded size and SHA-256.
 
 For PreJEPA, the CEM smoke uses the upstream planner with the checkpoint's
 declared history stream. Its frozen v1 ICL eligibility is checked separately;

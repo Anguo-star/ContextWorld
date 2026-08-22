@@ -60,8 +60,8 @@ CONTEXTWORLD_STABLE_WORLDMODEL_REPO=/absolute/path/stable-worldmodel
 
 Change only `CW_ENV` for the other original tasks: `pusht`, `reacher`, or
 `cube`. The default `CW_SEEDS=3072` runs one seed. Submit seeds 3072, 3073 and
-3074 as separate jobs when scheduler requeue recovery is enabled. A
-comma-separated list remains available for non-SLURM serial sweeps.
+3074 as separate scheduler jobs so each task keeps its recovery state separate.
+A comma-separated list remains available for non-SLURM serial sweeps.
 `CW_DATASET` is a higher-priority one-off override when the standard root
 layout is not used.
 
@@ -258,29 +258,36 @@ scheduler-requeue state under `runs/`.
 The default is `CW_RESUME=auto`.
 
 - `never`: require a fresh run directory.
-- `auto`: let StablePretraining restore `last.ckpt` when the same scheduler
-  job is requeued. A completed target-epoch weight also skips directly to
-  post-training evaluation.
-- `required`: accept only StablePretraining's same-job scheduler requeue and
-  fail on a newly submitted job.
+- `auto`: resume full state either through StablePretraining's same-job
+  scheduler requeue or from the newest `last.ckpt` carrying the same run name
+  and immutable recipe identity. A completed target-epoch weight instead
+  skips directly to post-training evaluation.
+- `required`: require one of those two full-state paths and fail if neither is
+  available.
 
 `SPT_CACHE_DIR` persists StablePretraining's native recovery state. Automatic
-full-state restoration is supported only when the same SLURM job or array task
-is requeued. Setting the directory makes the state durable; it does not make a
-newly submitted job a requeue of the old one.
+same-job recovery still uses StablePretraining's SLURM index. For a newly
+submitted job, ContextWorld locates the previous SPT UUID run by an immutable
+`contextworld_run_identity_v1.json` marker and passes its `last.ckpt` to the
+upstream `spt.Manager` with `weights_only=False`. This works across replacement
+containers as long as `CW_CHECKPOINT_ROOT` is mounted persistently.
 
 Exported `weights_epoch_*.pt` files contain model weights for evaluation; they
 are not optimizer checkpoints. StablePretraining's `last.ckpt` contains the
-model, optimizer, scheduler and progress state used by native requeue. The
-family trainers do not expose that SPT run state as a portable manual new-job
-resume input. If `auto` sees an incomplete run outside a scheduler requeue, it
-fails rather than silently starting again from epoch zero.
+model, optimizer, scheduler and progress state. The ContextWorld family entry
+supplies this checkpoint to the unchanged upstream LeWM, PLDM or PreJEPA
+trainer. If `auto` sees an incomplete run without an identity-matched
+`last.ckpt`, it fails rather than silently starting again from epoch zero.
 
 ## Optional post-training evaluation
 
 `CW_POST_TRAIN_EVAL=1` calls `scripts/run_stablewm_eval.py --suite` only after
-training succeeds. The same script can be invoked later against an existing
-checkpoint; training does not contain a second copy of the evaluation logic.
+all requested training seeds succeed. In a comma-separated seed sweep, the
+launcher finishes or resumes every training run before it starts the first
+evaluation, so an evaluation failure cannot prevent a later seed from reaching
+its requested checkpoint. The same evaluation script can be invoked later
+against an existing checkpoint; training does not contain a second copy of the
+evaluation logic.
 
 This automatic hand-off applies to current family-profile runs: every
 original-environment run and any component run supplied with an explicit
@@ -297,8 +304,10 @@ relevant StableWM source/configuration tree to one digest. An exact match is
 required; a same-named checkpoint from another recipe is rejected.
 `CW_RESUME=never` never takes this shortcut. Runs created before this identity
 record was introduced require the explicit `CW_EVAL_ONLY=1` path after manual
-review. Evaluation evidence is immutable: if an earlier suite wrote a manifest
-or result, start a new evaluation namespace with
+review. Evaluation evidence is immutable. Repeating the exact request reuses a
+completed manifest only after its request digest and every output size/SHA-256
+still match; no evaluator is run again. A failed or interrupted suite, a
+changed request, or damaged output requires a new namespace with
 `CW_EVAL_RESULT_SUBDIR=<name>`.
 
 For an original-environment run, the suite runs that environment's MPC/CEM
@@ -407,8 +416,10 @@ assertion by the caller, not an independent source-tree verification.
 StablePretraining indexes recovery state by `JOB_ID[_ARRAY_TASK_ID]`, so
 serializing multiple `CW_SEEDS` within one requeueable SLURM task is unsafe and
 the launcher rejects it. Submit one seed per job or array task. Non-SLURM
-serial sweeps remain supported, but do not receive automatic StablePretraining
-recovery. The legacy Stable-WorldModel
+serial sweeps remain supported. Each seed has a separate run identity; a newly
+submitted non-SLURM job can resume each incomplete seed from its own
+identity-matched `last.ckpt`. This is ContextWorld's portable new-job hand-off,
+not StablePretraining's scheduler-index requeue. The legacy Stable-WorldModel
 `run_trainer_batch.sh` assigns independent comma-separated runs to hosts; it
 does not configure `torchrun`, ranks or a shared multi-node DDP process.
 Distributed strategy remains a trainer/Lightning setting selected with

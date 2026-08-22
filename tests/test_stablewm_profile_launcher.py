@@ -17,6 +17,7 @@ if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
 import run_stablewm_eval as evaluator  # noqa: E402
+import run_stablewm_family_entry as family_entry  # noqa: E402
 import run_stablewm_train as launcher  # noqa: E402
 
 
@@ -298,6 +299,15 @@ class TestFamilyDialects:
 
 
 class TestTargetAndStorageSafety:
+    def test_resume_defaults_to_auto(
+        self,
+        stablewm_repo: Path,
+        dataset: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.delenv("CW_RESUME", raising=False)
+
+        assert _args(stablewm_repo, dataset).resume == "auto"
 
     def test_h5_action_width_is_checked_before_training(
             self, stablewm_repo: Path, tmp_path: Path) -> None:
@@ -518,13 +528,17 @@ class TestTargetAndStorageSafety:
         run.mkdir(parents=True)
         (run / "config.yaml").write_text("x", encoding="utf-8")
 
-        with pytest.raises(SystemExit, match="non-empty run directory"):
+        with pytest.raises(SystemExit, match="refuses existing state"):
             launcher.validate_resume(
-                tmp_path, "run", "never", family="prejepa"
+                tmp_path,
+                "run",
+                "never",
+                family="prejepa",
+                identity_sha256="recipe",
             )
 
     @pytest.mark.parametrize("family", ["lewm", "pldm", "prejepa"])
-    def test_new_job_cannot_claim_native_full_state_resume(
+    def test_new_job_required_resume_needs_a_matching_full_state_checkpoint(
         self,
         tmp_path: Path,
         monkeypatch: pytest.MonkeyPatch,
@@ -532,9 +546,13 @@ class TestTargetAndStorageSafety:
     ) -> None:
         monkeypatch.delenv("SLURM_JOB_ID", raising=False)
         monkeypatch.delenv("SLURM_RESTART_COUNT", raising=False)
-        with pytest.raises(SystemExit, match="newly submitted job"):
+        with pytest.raises(SystemExit, match="no full-state StablePretraining"):
             launcher.validate_resume(
-                tmp_path, "run", "required", family=family
+                tmp_path,
+                "run",
+                "required",
+                family=family,
+                identity_sha256="recipe",
             )
 
     def test_resume_auto_never_restarts_an_incomplete_manual_run(
@@ -550,7 +568,11 @@ class TestTargetAndStorageSafety:
 
         with pytest.raises(SystemExit, match="refusing to restart"):
             launcher.validate_resume(
-                tmp_path, "run", "auto", family="prejepa"
+                tmp_path,
+                "run",
+                "auto",
+                family="prejepa",
+                identity_sha256="recipe",
             )
 
     def test_restart_count_without_job_identity_is_not_a_native_requeue(
@@ -574,11 +596,179 @@ class TestTargetAndStorageSafety:
         monkeypatch.setenv("SLURM_RESTART_COUNT", "1")
 
         launcher.validate_resume(
-            tmp_path, "run", "auto", family="prejepa"
+            tmp_path,
+            "run",
+            "auto",
+            family="prejepa",
+            identity_sha256="recipe",
         )
         launcher.validate_resume(
-            tmp_path, "run", "required", family="prejepa"
+            tmp_path,
+            "run",
+            "required",
+            family="prejepa",
+            identity_sha256="recipe",
         )
+
+    @pytest.mark.parametrize("policy", ["auto", "required"])
+    def test_new_job_uses_matching_portable_full_state_checkpoint(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+        policy: str,
+    ) -> None:
+        monkeypatch.delenv("SLURM_JOB_ID", raising=False)
+        monkeypatch.delenv("SLURM_RESTART_COUNT", raising=False)
+        spt_run = tmp_path / "runs/20260822/001122/uuid-one"
+        checkpoint = spt_run / "checkpoints/last.ckpt"
+        checkpoint.parent.mkdir(parents=True)
+        checkpoint.write_bytes(b"full trainer state")
+        (spt_run / launcher.SPT_RUN_MARKER_FILENAME).write_text(
+            json.dumps({
+                "schema_version": launcher.SPT_RUN_MARKER_SCHEMA,
+                "run_name": "run",
+                "training_identity_sha256": "recipe",
+            }),
+            encoding="utf-8",
+        )
+        stablewm_run = tmp_path / "checkpoints/run"
+        stablewm_run.mkdir(parents=True)
+        (stablewm_run / "config.yaml").write_text("incomplete", encoding="utf-8")
+
+        resolved = launcher.validate_resume(
+            tmp_path,
+            "run",
+            policy,
+            family="prejepa",
+            identity_sha256="recipe",
+        )
+
+        assert resolved == checkpoint.resolve()
+
+    def test_portable_resume_ignores_another_recipe_checkpoint(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.delenv("SLURM_JOB_ID", raising=False)
+        spt_run = tmp_path / "runs/20260822/001122/uuid-other"
+        checkpoint = spt_run / "checkpoints/last.ckpt"
+        checkpoint.parent.mkdir(parents=True)
+        checkpoint.write_bytes(b"full trainer state")
+        (spt_run / launcher.SPT_RUN_MARKER_FILENAME).write_text(
+            json.dumps({
+                "schema_version": launcher.SPT_RUN_MARKER_SCHEMA,
+                "run_name": "run",
+                "training_identity_sha256": "different-recipe",
+            }),
+            encoding="utf-8",
+        )
+
+        with pytest.raises(SystemExit, match="no full-state StablePretraining"):
+            launcher.validate_resume(
+                tmp_path,
+                "run",
+                "required",
+                family="pldm",
+                identity_sha256="recipe",
+            )
+
+    def test_family_entry_delegates_full_state_resume_to_spt_manager(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        import pickle
+
+        import stable_pretraining as spt
+
+        monkeypatch.delenv("SLURM_JOB_ID", raising=False)
+        monkeypatch.delenv("SLURM_RESTART_COUNT", raising=False)
+        spt_run = tmp_path / "runs/uuid"
+        resume = tmp_path / "prior/last.ckpt"
+        resume.parent.mkdir(parents=True)
+        resume.write_bytes(b"full trainer state")
+
+        class FakeManager:
+            def __init__(
+                self,
+                *args: object,
+                ckpt_path: object = None,
+                weights_only: bool = True,
+                **kwargs: object,
+            ) -> None:
+                self.args = args
+                self.kwargs = {
+                    **kwargs,
+                    "ckpt_path": ckpt_path,
+                    "weights_only": weights_only,
+                }
+
+            def _resolve_run_dir(self) -> Path:
+                return spt_run
+
+        monkeypatch.setattr(spt, "Manager", FakeManager)
+        family_entry._install_manager_bridge(
+            run_name="tworoom_prejepa_original_s3073",
+            identity_sha256="recipe",
+            resume_checkpoint=resume,
+        )
+
+        manager = spt.Manager(ckpt_path="upstream-weights.ckpt")
+        resolved = manager._resolve_run_dir()
+
+        assert resolved == spt_run
+        assert manager.kwargs["ckpt_path"] == str(resume)
+        assert manager.kwargs["weights_only"] is False
+        assert pickle.loads(pickle.dumps(spt.Manager)) is spt.Manager
+        marker = json.loads(
+            (spt_run / family_entry.RUN_MARKER_FILENAME).read_text(
+                encoding="utf-8"
+            )
+        )
+        assert marker == {
+            "schema_version": family_entry.RUN_MARKER_SCHEMA,
+            "run_name": "tworoom_prejepa_original_s3073",
+            "training_identity_sha256": "recipe",
+        }
+
+    def test_native_requeue_refuses_an_unmarked_legacy_spt_run(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        import stable_pretraining as spt
+
+        legacy_run = tmp_path / "runs/20260822/001122/legacy"
+        legacy_run.mkdir(parents=True)
+
+        class FakeManager:
+            _early_preempt_fallback = False
+
+            def __init__(
+                self,
+                *args: object,
+                ckpt_path: object = None,
+                weights_only: bool = True,
+                **kwargs: object,
+            ) -> None:
+                pass
+
+            def _resolve_run_dir(self) -> Path:
+                return legacy_run
+
+        monkeypatch.setenv("SLURM_JOB_ID", "12345")
+        monkeypatch.setenv("SLURM_RESTART_COUNT", "1")
+        monkeypatch.setattr(spt, "Manager", FakeManager)
+        family_entry._install_manager_bridge(
+            run_name="tworoom_prejepa_original_s3073",
+            identity_sha256="recipe",
+            resume_checkpoint=None,
+        )
+
+        with pytest.raises(RuntimeError, match="without its immutable"):
+            spt.Manager()._resolve_run_dir()
+        assert not (legacy_run / family_entry.RUN_MARKER_FILENAME).exists()
 
     def test_run_name_cannot_escape_the_checkpoint_root(self, stablewm_repo: Path,
                                                         dataset: Path) -> None:
@@ -706,7 +896,16 @@ class TestRecoveryPaths:
         assert all(
             environment["STABLEWM_HOME"] == str(checkpoint_root)
             and environment["SPT_CACHE_DIR"] == str(checkpoint_root)
+            and environment["CONTEXTWORLD_SPT_BRIDGE"] == "1"
+            and environment["PYTHONPATH"].split(":")[0]
+            == str(launcher.STABLEWM_BOOTSTRAP_DIR)
             for _, environment in calls
+        )
+        assert calls[0][1]["CONTEXTWORLD_SPT_RUN_NAME"] == (
+            "tworoom_prejepa_original_s3072"
+        )
+        assert calls[1][1]["CONTEXTWORLD_SPT_RUN_NAME"] == (
+            "tworoom_prejepa_original_s3073"
         )
         assert "subdir=tworoom_prejepa_original_s3072" in calls[0][0]
         assert "subdir=tworoom_prejepa_original_s3073" in calls[1][0]
@@ -724,6 +923,132 @@ class TestRecoveryPaths:
             dependencies = payload["identity"]["training_dependencies"]
             assert "stable-pretraining" in dependencies
             assert "version" in dependencies["stable-pretraining"]
+
+    def test_multi_seed_post_eval_finishes_all_training_before_evaluation(
+        self,
+        stablewm_repo: Path,
+        dataset: Path,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.delenv("SPT_CACHE_DIR", raising=False)
+        monkeypatch.delenv("SLURM_JOB_ID", raising=False)
+        calls: list[tuple[str, str]] = []
+
+        class Completed:
+            returncode = 0
+
+        def run(command: list[str], **_: object) -> Completed:
+            if command[1].endswith("run_stablewm_eval.py"):
+                run_name = command[command.index("--run-name") + 1]
+                calls.append(("eval", run_name))
+            else:
+                subdir = next(
+                    value for value in command if value.startswith("subdir=")
+                )
+                calls.append(("train", subdir.removeprefix("subdir=")))
+            return Completed()
+
+        monkeypatch.setattr(launcher.subprocess, "run", run)
+
+        status = launcher.main([
+            "--family",
+            "prejepa",
+            "--original-env",
+            "tworoom",
+            "--dataset",
+            str(dataset),
+            "--stablewm-repo",
+            str(stablewm_repo),
+            "--checkpoint-root",
+            str(tmp_path / "persistent-checkpoints"),
+            "--seeds",
+            "3073,3074",
+            "--resume",
+            "auto",
+            "--post-eval",
+            "--eval-epoch",
+            "10",
+        ])
+
+        assert status == 0
+        assert calls == [
+            ("train", "tworoom_prejepa_original_s3073"),
+            ("train", "tworoom_prejepa_original_s3074"),
+            ("eval", "tworoom_prejepa_original_s3073"),
+            ("eval", "tworoom_prejepa_original_s3074"),
+        ]
+
+    def test_new_job_forwards_identity_matched_last_checkpoint_to_every_rank(
+        self,
+        stablewm_repo: Path,
+        dataset: Path,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.delenv("SLURM_JOB_ID", raising=False)
+        monkeypatch.delenv("SLURM_RESTART_COUNT", raising=False)
+        checkpoint_root = tmp_path / "persistent-checkpoints"
+        identity = {
+            "schema_version": launcher.TRAINING_IDENTITY_SCHEMA,
+            "identity_sha256": "recipe",
+            "identity": {"seed": 3073},
+        }
+        spt_run = checkpoint_root / "runs/20260822/001122/uuid-prior"
+        checkpoint = spt_run / "checkpoints/last.ckpt"
+        checkpoint.parent.mkdir(parents=True)
+        checkpoint.write_bytes(b"full trainer state")
+        (spt_run / launcher.SPT_RUN_MARKER_FILENAME).write_text(
+            json.dumps({
+                "schema_version": launcher.SPT_RUN_MARKER_SCHEMA,
+                "run_name": "tworoom_prejepa_original_s3073",
+                "training_identity_sha256": "recipe",
+            }),
+            encoding="utf-8",
+        )
+        calls: list[tuple[list[str], dict[str, str]]] = []
+
+        class Completed:
+            returncode = 0
+
+        def run(command: list[str], **kwargs: object) -> Completed:
+            calls.append((command, kwargs["env"]))  # type: ignore[index]
+            return Completed()
+
+        monkeypatch.setattr(
+            launcher,
+            "_training_identity_document",
+            lambda **_: identity,
+        )
+        monkeypatch.setattr(launcher.subprocess, "run", run)
+
+        status = launcher.main([
+            "--family",
+            "prejepa",
+            "--original-env",
+            "tworoom",
+            "--dataset",
+            str(dataset),
+            "--stablewm-repo",
+            str(stablewm_repo),
+            "--checkpoint-root",
+            str(checkpoint_root),
+            "--seeds",
+            "3073",
+            "--resume",
+            "auto",
+        ])
+
+        assert status == 0
+        assert len(calls) == 1
+        command, environment = calls[0]
+        assert command[1].endswith("scripts/train/prejepa.py")
+        assert environment["CONTEXTWORLD_SPT_RESUME_CHECKPOINT"] == str(
+            checkpoint.resolve()
+        )
+        assert environment["CONTEXTWORLD_SPT_RUN_NAME"] == (
+            "tworoom_prejepa_original_s3073"
+        )
 
     def test_training_identity_never_overwrites_an_existing_recipe(
         self,
@@ -752,6 +1077,27 @@ class TestRecoveryPaths:
             )
 
         assert json.loads(path.read_text(encoding="utf-8")) == original
+
+    def test_failed_preflight_empty_run_directory_is_safe_to_retry(
+        self,
+        tmp_path: Path,
+    ) -> None:
+        run_name = "tworoom_prejepa_original_s3073"
+        run_dir = tmp_path / "checkpoints" / run_name
+        run_dir.mkdir(parents=True)
+        identity = {
+            "schema_version": launcher.TRAINING_IDENTITY_SCHEMA,
+            "identity_sha256": "recipe",
+            "identity": {"seed": 3073},
+        }
+
+        launcher._install_training_identity(tmp_path, run_name, identity)
+
+        assert json.loads(
+            (run_dir / launcher.TRAINING_IDENTITY_FILENAME).read_text(
+                encoding="utf-8"
+            )
+        ) == identity
 
     def test_completed_epoch_automatically_recovers_at_eval(
         self,
@@ -862,7 +1208,7 @@ class TestRecoveryPaths:
         checkpoint.parent.mkdir(parents=True)
         checkpoint.write_bytes(b"stale")
 
-        with pytest.raises(SystemExit, match="non-empty run directory"):
+        with pytest.raises(SystemExit, match="refuses existing state"):
             launcher.main([
                 "--family",
                 "prejepa",
@@ -1293,7 +1639,10 @@ class TestExplicitEvaluation:
         checkpoint.parent.mkdir(parents=True)
         checkpoint.write_bytes(b"checkpoint")
 
+        calls: list[list[str]] = []
+
         def fake_run(command: list[str], **_: object) -> argparse.Namespace:
+            calls.append(command)
             output = Path(command[command.index("--output") + 1])
             output.parent.mkdir(parents=True, exist_ok=True)
             output.write_text('{"status":"completed"}\n', encoding="utf-8")
@@ -1301,7 +1650,7 @@ class TestExplicitEvaluation:
 
         monkeypatch.setattr(evaluator.subprocess, "run", fake_run)
 
-        status = evaluator.main([
+        arguments = [
             "--suite",
             "--family",
             "lewm",
@@ -1315,7 +1664,8 @@ class TestExplicitEvaluation:
             "c" * 40,
             "--result-subdir",
             "attempt-2",
-        ])
+        ]
+        status = evaluator.main(arguments)
 
         eval_root = checkpoint.parent / "eval_results/attempt-2"
         manifest = json.loads(
@@ -1329,6 +1679,26 @@ class TestExplicitEvaluation:
         assert manifest["outputs"][0]["path"] == (
             "benchmark_icl/speed/result.json"
         )
+        assert manifest["schema_version"] == evaluator.SUITE_MANIFEST_SCHEMA
+        assert manifest["request_sha256"] == evaluator._json_sha256(
+            manifest["request"]
+        )
+
+        original_manifest = (eval_root / "manifest.json").read_bytes()
+        assert evaluator.main(arguments) == 0
+        assert len(calls) == 1
+        assert (eval_root / "manifest.json").read_bytes() == original_manifest
+
+        with pytest.raises(SystemExit, match="different"):
+            evaluator.main([*arguments, "--eval-batch-size", "65"])
+        assert len(calls) == 1
+        assert (eval_root / "manifest.json").read_bytes() == original_manifest
+
+        result = eval_root / "benchmark_icl/speed/result.json"
+        result.write_text('{"status":"tampered"}\n', encoding="utf-8")
+        with pytest.raises(SystemExit, match="size/SHA256"):
+            evaluator.main(arguments)
+        assert len(calls) == 1
 
     def test_suite_exception_is_recorded_as_failed(
         self,

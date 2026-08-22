@@ -193,6 +193,8 @@ fi
 # StablePretraining owns optimizer/scheduler/epoch checkpointing and native
 # scheduler requeue. Its default (~/.cache/stable-pretraining) is ephemeral in
 # cloud containers, so persist that state beside StableWM's inference weights.
+# ContextWorld also uses the persisted SPT last.ckpt for identity-checked
+# full-state recovery when the cloud platform submits a replacement job.
 if [ -n "${STABLEWM_HOME:-}" ]; then
   STABLEWM_HOME="$(readlink -m -- "$STABLEWM_HOME")"
   export STABLEWM_HOME

@@ -48,6 +48,11 @@ DEFAULT_PROFILE_CONFIG = (REPO_ROOT /
                           "configs/training/stablewm_family_profiles_v1.yaml")
 TRAINING_IDENTITY_FILENAME = "contextworld_training_identity_v1.json"
 TRAINING_IDENTITY_SCHEMA = "contextworld.stablewm-training-identity.v1"
+FAMILY_ENTRY_SCRIPT = REPO_ROOT / "scripts/run_stablewm_family_entry.py"
+STABLEWM_BOOTSTRAP_DIR = REPO_ROOT / "scripts/stablewm_bootstrap"
+STABLEWM_SITECUSTOMIZE = STABLEWM_BOOTSTRAP_DIR / "sitecustomize.py"
+SPT_RUN_MARKER_FILENAME = "contextworld_run_identity_v1.json"
+SPT_RUN_MARKER_SCHEMA = "contextworld.stablepretraining-run-identity.v1"
 
 
 def _env(name: str, fallback: str | None = None) -> str | None:
@@ -1004,6 +1009,13 @@ def _training_identity_document(
             "config_name": profile["config_name"],
             "entrypoint": profile["entrypoint"],
         },
+        "contextworld_family_entry": {
+            "path": str(FAMILY_ENTRY_SCRIPT),
+            "sha256": _sha256_file(FAMILY_ENTRY_SCRIPT),
+            "sitecustomize_path": str(STABLEWM_SITECUSTOMIZE),
+            "sitecustomize_sha256": _sha256_file(STABLEWM_SITECUSTOMIZE),
+            "role": "upstream_manager_full_state_resume_bridge",
+        },
         "stablewm_source": _stablewm_source_identity(
             stablewm_repo,
             trainer_script,
@@ -1072,20 +1084,17 @@ def _install_training_identity(
             "refusing to attach the current recipe to older artifacts."
         )
     run_dir.mkdir(parents=True, exist_ok=True)
-    temporary = path.with_name(f".{path.name}.{os.getpid()}.tmp")
-    with temporary.open("x", encoding="utf-8") as stream:
-        stream.write(json.dumps(expected, indent=2, sort_keys=True) + "\n")
-        stream.flush()
-        os.fsync(stream.fileno())
     try:
-        # A hard link is an atomic no-replace reservation on the same
-        # filesystem. Two submissions with one run name cannot overwrite
-        # each other's recipe identity.
-        os.link(temporary, path)
+        # Cloud object/NFS mounts may reject hard links even when ordinary
+        # exclusive file creation works.  Write the immutable target itself
+        # with O_EXCL semantics; a crash can leave only a fail-closed partial
+        # identity, never a silently replaced recipe.
+        with path.open("x", encoding="utf-8") as stream:
+            stream.write(json.dumps(expected, indent=2, sort_keys=True) + "\n")
+            stream.flush()
+            os.fsync(stream.fileno())
     except FileExistsError:
         _assert_training_identity(path, expected, context=f"Run {run_name!r}")
-    finally:
-        temporary.unlink(missing_ok=True)
 
 
 def _validate_completed_training_identity(
@@ -1144,39 +1153,108 @@ def _validate_scheduler_seed_isolation(training_runs: list[str]) -> None:
         )
 
 
+def _portable_resume_candidates(
+    root: Path,
+    run_name: str,
+    identity_sha256: str,
+) -> list[Path]:
+    """Return full-state SPT checkpoints bound to this exact run recipe."""
+
+    runs_root = root / "runs"
+    if not runs_root.is_dir():
+        return []
+    candidates: list[Path] = []
+    # StablePretraining currently uses runs/YYYYMMDD/HHMMSS/<uuid>/, but the
+    # marker is the public binding contract and avoids coupling recovery to a
+    # particular date-bucket layout.
+    for marker in runs_root.rglob(SPT_RUN_MARKER_FILENAME):
+        run_dir = marker.parent
+        relative = run_dir.relative_to(runs_root)
+        cursor = runs_root
+        unsafe_ancestor = False
+        for part in relative.parts:
+            cursor = cursor / part
+            if cursor.is_symlink():
+                unsafe_ancestor = True
+                break
+        if unsafe_ancestor or not run_dir.is_dir():
+            raise SystemExit(f"Unsafe StablePretraining run directory: {run_dir}")
+        if not marker.is_file() or marker.is_symlink():
+            raise SystemExit(f"Unsafe StablePretraining run marker: {marker}")
+        try:
+            payload = json.loads(marker.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            raise SystemExit(
+                f"Could not read StablePretraining run marker {marker}: {exc}"
+            ) from exc
+        if not isinstance(payload, dict):
+            raise SystemExit(f"StablePretraining run marker is not a mapping: {marker}")
+        if payload.get("schema_version") != SPT_RUN_MARKER_SCHEMA:
+            raise SystemExit(f"Unsupported StablePretraining run marker: {marker}")
+        if (
+            payload.get("run_name") != run_name
+            or payload.get("training_identity_sha256") != identity_sha256
+        ):
+            continue
+        checkpoint = run_dir / "checkpoints/last.ckpt"
+        if (
+            checkpoint.is_file()
+            and not checkpoint.is_symlink()
+            and checkpoint.stat().st_size > 0
+        ):
+            candidates.append(checkpoint.resolve())
+    return sorted(
+        candidates,
+        key=lambda path: (path.stat().st_mtime_ns, path.stat().st_size, str(path)),
+        reverse=True,
+    )
+
+
 def validate_resume(
     root: Path,
     run_name: str,
     policy: str,
     *,
     family: str,
-) -> None:
+    identity_sha256: str,
+) -> Path | None:
+    """Resolve either native requeue or portable full-state resume."""
+
     run_dir = root / "checkpoints" / run_name
     native_requeue = _stablepretraining_native_requeue()
-    if policy == "required" and not native_requeue:
+    candidates = _portable_resume_candidates(root, run_name, identity_sha256)
+    run_nonempty = run_dir.exists() and any(run_dir.iterdir())
+
+    if policy == "never":
+        if run_nonempty or candidates:
+            raise SystemExit(
+                f"Fresh training refuses existing state for run {run_name!r}. "
+                "Choose another run name or set --resume auto/required."
+            )
+        return None
+
+    if native_requeue:
+        # StablePretraining resolves the same-job .slurm_index and forces
+        # weights_only=False itself. Supplying a second path would be ignored.
+        return None
+
+    if candidates:
+        return candidates[0]
+
+    if policy == "required":
         raise SystemExit(
-            "Resume was required, but StablePretraining full-state restore "
-            f"for {family} is available only when the same scheduler job or "
-            "array task is requeued. A newly submitted job is not a native "
-            "continuation."
+            "Resume was required, but no full-state StablePretraining "
+            f"last.ckpt matching {family} run {run_name!r} and its immutable "
+            "training identity was found."
         )
-    if policy == "never" and run_dir.exists() and any(run_dir.iterdir()):
+
+    if run_nonempty:
         raise SystemExit(
-            f"Fresh training refuses the non-empty run directory: {run_dir}. "
-            "Choose another run name or set --resume auto/required.")
-    if (
-        policy == "auto"
-        and run_dir.exists()
-        and any(run_dir.iterdir())
-        and not native_requeue
-    ):
-        raise SystemExit(
-            "Resume=auto found an incomplete run that this newly submitted "
-            f"{family} job cannot restore with full training state. "
-            "StablePretraining restores its native last.ckpt only when the "
-            "same scheduler job or array task is requeued; refusing to "
-            "restart the run from epoch zero."
+            "Resume=auto found an incomplete run but no matching full-state "
+            f"StablePretraining checkpoint for {family} run {run_name!r}; "
+            "refusing to restart it from epoch zero."
         )
+    return None
 
 
 def _login_swanlab_without_exposing_key(environment: dict[str, str]) -> None:
@@ -1649,6 +1727,13 @@ def main(argv: list[str] | None = None) -> int:
     )
 
     environment = dict(os.environ)
+    for internal_name in (
+        "CONTEXTWORLD_SPT_BRIDGE",
+        "CONTEXTWORLD_SPT_RUN_NAME",
+        "CONTEXTWORLD_SPT_IDENTITY_SHA256",
+        "CONTEXTWORLD_SPT_RESUME_CHECKPOINT",
+    ):
+        environment.pop(internal_name, None)
     environment["STABLEWM_HOME"] = str(checkpoint_root)
     # StablePretraining owns full-state checkpoint/requeue. Its default cache
     # is container-local (~/.cache), so bind it to the same persistent root as
@@ -1686,6 +1771,7 @@ def main(argv: list[str] | None = None) -> int:
             list[str] | None,
             str | None,
             dict[str, Any] | None,
+            Path | None,
         ]
     ] = []
     for seed in seeds:
@@ -1725,6 +1811,7 @@ def main(argv: list[str] | None = None) -> int:
             and completed_checkpoint.stat().st_size > 0
         )
         train_command = None
+        resume_checkpoint = None
         skip_reason = None
         if args.eval_only:
             skip_reason = "CW_EVAL_ONLY requested"
@@ -1739,12 +1826,22 @@ def main(argv: list[str] | None = None) -> int:
             )
         else:
             assert overrides is not None
+            assert training_identity is not None
+            resume_checkpoint = validate_resume(
+                checkpoint_root,
+                run_name,
+                args.resume,
+                family=args.family,
+                identity_sha256=training_identity["identity_sha256"],
+            )
             train_command = [
                 sys.executable,
                 str(trainer_script),
+            ]
+            train_command.extend([
                 f"--config-name={profile['config_name']}",
                 *overrides,
-            ]
+            ])
         eval_command = (_post_eval_command(
             args,
             target=target,
@@ -1763,29 +1860,17 @@ def main(argv: list[str] | None = None) -> int:
                 eval_command,
                 skip_reason,
                 training_identity,
+                resume_checkpoint,
             )
         )
 
     _validate_scheduler_seed_isolation(
         [
             run_name
-            for run_name, train_command, _, _, _ in commands
+            for run_name, train_command, _, _, _, _ in commands
             if train_command is not None
         ]
     )
-
-    # Resume policy is read-only to validate, so dry runs should catch a stale
-    # or missing run just as a real launch would.
-    for _, train_command, _, _, _ in commands:
-        if train_command is None:
-            continue
-        run_entry = next(item for item in train_command if item.startswith("subdir="))
-        validate_resume(
-            checkpoint_root,
-            run_entry.split("=", 1)[1],
-            args.resume,
-            family=args.family,
-        )
 
     print(f"[stablewm-train] target={target.label} family={args.family} "
           f"dataset={target.dataset}")
@@ -1796,10 +1881,24 @@ def main(argv: list[str] | None = None) -> int:
           f"{environment.get('LOCAL_DATASET_DIR', '<upstream default>')}")
     print(f"[stablewm-train] logger={args.logger} resume={args.resume}")
     print(f"[stablewm-train] mode={'eval-only' if args.eval_only else 'train'}")
-    for run_name, train_command, eval_command, skip_reason, _ in commands:
+    for (
+        run_name,
+        train_command,
+        eval_command,
+        skip_reason,
+        _,
+        resume_checkpoint,
+    ) in commands:
         print(f"[stablewm-train] run={run_name}")
         if skip_reason:
             print(f"[stablewm-train] training skipped: {skip_reason}")
+        elif train_command:
+            if _stablepretraining_native_requeue():
+                print("[stablewm-train] full_state_resume=native-scheduler-requeue")
+            elif resume_checkpoint is not None:
+                print(f"[stablewm-train] full_state_resume={resume_checkpoint}")
+            else:
+                print("[stablewm-train] full_state_resume=fresh")
         if train_command:
             print(f"[stablewm-train] train: {shlex.join(train_command)}")
         if eval_command:
@@ -1822,7 +1921,17 @@ def main(argv: list[str] | None = None) -> int:
             and args.swanlab_mode != "offline"):
         _login_swanlab_without_exposing_key(environment)
 
-    for run_name, train_command, eval_command, _, training_identity in commands:
+    # Finish or recover every requested training seed before starting the
+    # post-training suite.  A CEM/ICL failure for an earlier seed must never
+    # prevent a later seed from reaching its requested training checkpoint.
+    for (
+        run_name,
+        train_command,
+        _,
+        _,
+        training_identity,
+        resume_checkpoint,
+    ) in commands:
         if train_command:
             assert training_identity is not None
             _install_training_identity(
@@ -1830,15 +1939,43 @@ def main(argv: list[str] | None = None) -> int:
                 run_name,
                 training_identity,
             )
+            training_environment = dict(environment)
+            training_environment["PYTHONPATH"] = os.pathsep.join([
+                str(STABLEWM_BOOTSTRAP_DIR),
+                environment["PYTHONPATH"],
+            ])
+            training_environment["CONTEXTWORLD_SPT_BRIDGE"] = "1"
+            training_environment["CONTEXTWORLD_SPT_RUN_NAME"] = run_name
+            training_environment["CONTEXTWORLD_SPT_IDENTITY_SHA256"] = (
+                training_identity["identity_sha256"]
+            )
+            if resume_checkpoint is not None:
+                training_environment["CONTEXTWORLD_SPT_RESUME_CHECKPOINT"] = str(
+                    resume_checkpoint
+                )
+            else:
+                training_environment.pop(
+                    "CONTEXTWORLD_SPT_RESUME_CHECKPOINT",
+                    None,
+                )
             sys.stdout.flush()
             completed = subprocess.run(
                 train_command,
                 cwd=str(stablewm_repo),
-                env=environment,
+                env=training_environment,
                 check=False,
             )
             if completed.returncode != 0:
                 return completed.returncode
+
+    for (
+        _,
+        _,
+        eval_command,
+        _,
+        _,
+        _,
+    ) in commands:
         if eval_command:
             evaluated = subprocess.run(
                 eval_command,

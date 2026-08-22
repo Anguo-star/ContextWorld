@@ -39,6 +39,7 @@ from contextworld.synthesis.stablewm import _git_commit  # noqa: E402
 
 PROFILE_CONFIG = REPO_ROOT / "configs/training/stablewm_family_profiles_v1.yaml"
 DEVELOPMENT_ONLY_COMPONENTS = {"contact_friction", "motion_damping"}
+SUITE_MANIFEST_SCHEMA = "contextworld.stablewm-evaluation-suite.v2"
 
 
 def _env(name: str, fallback: str | None = None) -> str | None:
@@ -81,6 +82,32 @@ def _file_sha256(path: Path) -> str:
         for chunk in iter(lambda: stream.read(8 * 1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def _json_sha256(payload: Any) -> str:
+    encoded = json.dumps(
+        payload,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _write_json_exclusive(path: Path, payload: dict[str, Any]) -> None:
+    """Create the initial suite reservation without an overwrite race."""
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        with path.open("x", encoding="utf-8") as stream:
+            json.dump(payload, stream, indent=2, sort_keys=True)
+            stream.write("\n")
+            stream.flush()
+            os.fsync(stream.fileno())
+    except FileExistsError as exc:
+        raise SystemExit(
+            f"Another evaluation already reserved this manifest: {path}"
+        ) from exc
 
 
 def load_contract() -> dict[str, Any]:
@@ -842,6 +869,148 @@ def _output_inventory(eval_root: Path, manifest_path: Path) -> list[dict[str, An
     return rows
 
 
+def _suite_request(
+    args: argparse.Namespace,
+    *,
+    checkpoint: ResolvedCheckpoint,
+    stablewm_repo: Path,
+    stablewm_ref: str,
+    environment_name: str,
+    components: tuple[str, ...],
+    suite_subdir: Path,
+    cem_commands: list[tuple[int, Path, Path, list[str]]],
+    cem_skip_reason: str | None,
+    icl_steps: list[ICLStep],
+) -> dict[str, Any]:
+    """Describe every input that can change a suite result.
+
+    The request is stored with a completed manifest.  A later invocation may
+    reuse that manifest only when this complete document and every recorded
+    output byte are unchanged.
+    """
+
+    return {
+        "schema_version": "contextworld.stablewm-evaluation-request.v1",
+        "target": {
+            "kind": "original_environment" if args.original_env else "component",
+            "name": args.original_env or args.component,
+            "original_environment": environment_name,
+            "components": list(components),
+        },
+        "model": {
+            "family": args.family,
+            "run_name": checkpoint.run_name,
+            "training_seed": args.training_seed,
+            "checkpoint": str(checkpoint.path),
+            "checkpoint_sha256": _file_sha256(checkpoint.path),
+            "stablewm_repo": str(stablewm_repo),
+            "stablewm_ref": stablewm_ref,
+        },
+        "evaluation": {
+            "dataset": (
+                str(_absolute(args.dataset, "--dataset")) if args.dataset else None
+            ),
+            "result_subdir": suite_subdir.as_posix(),
+            "training_recipe": args.training_recipe,
+            "num_eval": args.num_eval,
+            "eval_seeds": list(args.eval_seeds),
+            "history_size": args.history_size,
+            "action_block": args.action_block,
+            "eval_device": args.eval_device,
+            "eval_batch_size": args.eval_batch_size,
+            "mujoco_gl": args.mujoco_gl,
+            "keep_videos": args.keep_videos,
+            "corruption": {
+                "type": args.corruption_type,
+                "std": args.corruption_std,
+                "factor": args.corruption_factor,
+                "kernel_size": args.corruption_kernel_size,
+                "apply_to": args.corruption_apply_to,
+            },
+        },
+        "steps": {
+            "original_cem": {
+                "skip_reason": cem_skip_reason,
+                "commands": [command for *_, command in cem_commands],
+            },
+            "benchmark_icl": [
+                {
+                    "component": step.component,
+                    "skip_reason": step.skip_reason,
+                    "command": step.command,
+                    "output": str(step.output),
+                }
+                for step in icl_steps
+            ],
+        },
+    }
+
+
+def _reuse_completed_suite(
+    *,
+    eval_root: Path,
+    manifest_path: Path,
+    expected_request: dict[str, Any],
+) -> None:
+    """Accept an immutable completed suite, otherwise fail closed."""
+
+    if manifest_path.is_symlink():
+        raise SystemExit(
+            f"Refusing symlinked evaluation manifest: {manifest_path}"
+        )
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise SystemExit(
+            f"Could not validate existing evaluation manifest {manifest_path}: {exc}"
+        ) from exc
+    if not isinstance(manifest, dict):
+        raise SystemExit(
+            f"Existing evaluation manifest is not a JSON object: {manifest_path}"
+        )
+
+    expected_sha256 = _json_sha256(expected_request)
+    if (
+        manifest.get("schema_version") != SUITE_MANIFEST_SCHEMA
+        or manifest.get("status") != "completed"
+        or manifest.get("request") != expected_request
+        or manifest.get("request_sha256") != expected_sha256
+    ):
+        raise SystemExit(
+            "Refusing to overwrite or reuse an evaluation manifest whose "
+            f"request is incomplete, failed, or different: {manifest_path}"
+        )
+
+    steps = manifest.get("steps")
+    if not isinstance(steps, list) or any(
+        not isinstance(step, dict)
+        or step.get("status") not in {"completed", "not_compatible", "skipped"}
+        or (
+            step.get("status") == "completed"
+            and step.get("returncode") != 0
+        )
+        for step in steps
+    ):
+        raise SystemExit(
+            f"Completed evaluation manifest has unfinished steps: {manifest_path}"
+        )
+    for path in eval_root.rglob("*"):
+        if path.is_symlink():
+            raise SystemExit(
+                f"Completed evaluation output contains a symlink: {path}"
+            )
+    if manifest.get("outputs") != _output_inventory(eval_root, manifest_path):
+        raise SystemExit(
+            "Completed evaluation outputs no longer match their recorded "
+            f"size/SHA256 inventory: {manifest_path}"
+        )
+
+    print(
+        "[stablewm-eval] exact completed suite already exists; "
+        f"reusing immutable manifest={manifest_path}"
+    )
+
+
 def _run_suite(args: argparse.Namespace) -> int:
     contract = load_contract()
     environment_name = _suite_environment(args, contract)
@@ -913,10 +1082,25 @@ def _run_suite(args: argparse.Namespace) -> int:
         return 0
 
     manifest_path = eval_root / "manifest.json"
+    request = _suite_request(
+        args,
+        checkpoint=checkpoint,
+        stablewm_repo=stablewm_repo,
+        stablewm_ref=stablewm_ref,
+        environment_name=environment_name,
+        components=components,
+        suite_subdir=suite_subdir,
+        cem_commands=cem_commands,
+        cem_skip_reason=cem_skip_reason,
+        icl_steps=icl_steps,
+    )
     if manifest_path.exists():
-        raise SystemExit(
-            f"Refusing to overwrite existing evaluation manifest: {manifest_path}"
+        _reuse_completed_suite(
+            eval_root=eval_root,
+            manifest_path=manifest_path,
+            expected_request=request,
         )
+        return 0
     for step in icl_steps:
         if not step.skip_reason and step.output.exists():
             raise SystemExit(
@@ -924,8 +1108,10 @@ def _run_suite(args: argparse.Namespace) -> int:
             )
 
     manifest: dict[str, Any] = {
-        "schema_version": "contextworld.stablewm-evaluation-suite.v1",
+        "schema_version": SUITE_MANIFEST_SCHEMA,
         "status": "running",
+        "request": request,
+        "request_sha256": _json_sha256(request),
         "target": {
             "kind": "original_environment" if args.original_env else "component",
             "name": args.original_env or args.component,
@@ -964,7 +1150,7 @@ def _run_suite(args: argparse.Namespace) -> int:
                 "official_scoreboard_row": False,
             }
         )
-    write_json(manifest_path, manifest)
+    _write_json_exclusive(manifest_path, manifest)
 
     try:
         failure_code = 0
@@ -999,6 +1185,13 @@ def _run_suite(args: argparse.Namespace) -> int:
                 env=environment,
                 check=False,
             )
+            if completed.returncode == 0 and (
+                not step.output.is_file() or step.output.is_symlink()
+            ):
+                raise SystemExit(
+                    "ICL evaluator returned success without a regular result "
+                    f"file: {step.output}"
+                )
             record = next(
                 row
                 for row in manifest["steps"]
