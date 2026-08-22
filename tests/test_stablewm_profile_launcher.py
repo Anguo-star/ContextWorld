@@ -1099,6 +1099,63 @@ class TestRecoveryPaths:
             )
         ) == identity
 
+    def test_auto_retry_accepts_an_exact_identity_only_preflight(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.delenv("SLURM_JOB_ID", raising=False)
+        run_name = "tworoom_prejepa_original_s3073"
+        run_dir = tmp_path / "checkpoints" / run_name
+        run_dir.mkdir(parents=True)
+        (run_dir / launcher.TRAINING_IDENTITY_FILENAME).write_text(
+            json.dumps(
+                {
+                    "schema_version": launcher.TRAINING_IDENTITY_SCHEMA,
+                    "identity_sha256": "recipe",
+                    "identity": {"seed": 3073},
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        assert launcher.validate_resume(
+            tmp_path,
+            run_name,
+            "auto",
+            family="prejepa",
+            identity_sha256="recipe",
+        ) is None
+
+    def test_auto_retry_rejects_a_different_identity_only_preflight(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.delenv("SLURM_JOB_ID", raising=False)
+        run_name = "tworoom_prejepa_original_s3073"
+        run_dir = tmp_path / "checkpoints" / run_name
+        run_dir.mkdir(parents=True)
+        (run_dir / launcher.TRAINING_IDENTITY_FILENAME).write_text(
+            json.dumps(
+                {
+                    "schema_version": launcher.TRAINING_IDENTITY_SCHEMA,
+                    "identity_sha256": "another-recipe",
+                    "identity": {"seed": 3073},
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        with pytest.raises(SystemExit, match="refusing to restart"):
+            launcher.validate_resume(
+                tmp_path,
+                run_name,
+                "auto",
+                family="prejepa",
+                identity_sha256="recipe",
+            )
+
     def test_completed_epoch_automatically_recovers_at_eval(
         self,
         stablewm_repo: Path,

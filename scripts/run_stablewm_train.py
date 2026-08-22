@@ -1153,6 +1153,28 @@ def _validate_scheduler_seed_isolation(training_runs: list[str]) -> None:
         )
 
 
+def _is_exact_preflight_reservation(
+    run_dir: Path,
+    *,
+    identity_sha256: str,
+) -> bool:
+    """Return true when the launcher wrote identity but training never began."""
+
+    if not run_dir.is_dir():
+        return False
+    entries = list(run_dir.iterdir())
+    identity_path = run_dir / TRAINING_IDENTITY_FILENAME
+    if entries != [identity_path]:
+        return False
+    if not identity_path.is_file() or identity_path.is_symlink():
+        raise SystemExit(f"Unsafe training identity reservation: {identity_path}")
+    payload = _read_training_identity(identity_path)
+    return (
+        payload.get("schema_version") == TRAINING_IDENTITY_SCHEMA
+        and payload.get("identity_sha256") == identity_sha256
+    )
+
+
 def _portable_resume_candidates(
     root: Path,
     run_name: str,
@@ -1224,6 +1246,10 @@ def validate_resume(
     native_requeue = _stablepretraining_native_requeue()
     candidates = _portable_resume_candidates(root, run_name, identity_sha256)
     run_nonempty = run_dir.exists() and any(run_dir.iterdir())
+    exact_preflight = _is_exact_preflight_reservation(
+        run_dir,
+        identity_sha256=identity_sha256,
+    )
 
     if policy == "never":
         if run_nonempty or candidates:
@@ -1249,6 +1275,11 @@ def validate_resume(
         )
 
     if run_nonempty:
+        if exact_preflight:
+            # The prior launcher exited after its immutable O_EXCL identity
+            # reservation but before StablePretraining created any state.
+            # Re-entering the unchanged recipe is still a fresh run.
+            return None
         raise SystemExit(
             "Resume=auto found an incomplete run but no matching full-state "
             f"StablePretraining checkpoint for {family} run {run_name!r}; "

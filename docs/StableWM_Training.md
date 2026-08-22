@@ -278,6 +278,9 @@ model, optimizer, scheduler and progress state. The ContextWorld family entry
 supplies this checkpoint to the unchanged upstream LeWM, PLDM or PreJEPA
 trainer. If `auto` sees an incomplete run without an identity-matched
 `last.ckpt`, it fails rather than silently starting again from epoch zero.
+The one safe pre-check exception is a directory containing only the exact
+immutable identity written by this launcher: no trainer state exists yet, so
+the unchanged request may retry from the beginning.
 
 ## Optional post-training evaluation
 
