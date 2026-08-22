@@ -38,6 +38,13 @@ that checkout. Optional ContextWorld research extensions such as VISReg are a
 separate capability: the launcher detects their YAML fields and rejects the
 request when the selected public checkout does not implement them.
 
+Portable full-state recovery requires `stable-pretraining>=0.1.8`. For an
+offline cloud installation, keep one compatible `stable_pretraining` wheel in
+the package directory; multiple versions allow pip to select a runtime that
+does not provide the required Manager interface. Version 0.1.8 also requires
+Kornia. On Python 3.10, the verified offline set is
+`stable-pretraining==0.1.8`, `kornia==0.8.2`, and `kornia_rs==0.1.14`.
+
 ## Cloud entry
 
 The cloud platform enters through `algorithm/lewm_ag/startup_cce.sh`. Set:

@@ -299,6 +299,31 @@ class TestFamilyDialects:
 
 
 class TestTargetAndStorageSafety:
+    def test_rejects_stablepretraining_without_full_state_manager_api(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.setattr(
+            launcher.importlib.metadata,
+            "version",
+            lambda _: "0.1.6",
+        )
+
+        with pytest.raises(SystemExit, match=r"requires stable-pretraining>=0\.1\.8"):
+            launcher.validate_stablepretraining_version()
+
+    def test_accepts_supported_stablepretraining_version(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.setattr(
+            launcher.importlib.metadata,
+            "version",
+            lambda _: "0.1.8",
+        )
+
+        assert launcher.validate_stablepretraining_version() == "0.1.8"
+
     def test_resume_defaults_to_auto(
         self,
         stablewm_repo: Path,
@@ -680,6 +705,7 @@ class TestTargetAndStorageSafety:
     ) -> None:
         import pickle
 
+        family_entry._prepare_optional_flash_attention()
         import stable_pretraining as spt
 
         monkeypatch.delenv("SLURM_JOB_ID", raising=False)
@@ -737,6 +763,7 @@ class TestTargetAndStorageSafety:
         tmp_path: Path,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
+        family_entry._prepare_optional_flash_attention()
         import stable_pretraining as spt
 
         legacy_run = tmp_path / "runs/20260822/001122/legacy"

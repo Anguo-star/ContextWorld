@@ -16,6 +16,7 @@ StablePretraining.
 from __future__ import annotations
 
 import argparse
+import importlib
 import inspect
 import json
 import os
@@ -27,6 +28,39 @@ from typing import Any
 
 RUN_MARKER_FILENAME = "contextworld_run_identity_v1.json"
 RUN_MARKER_SCHEMA = "contextworld.stablepretraining-run-identity.v1"
+
+
+def _prepare_optional_flash_attention() -> bool:
+    """Keep a broken optional FlashAttention install from blocking SPT.
+
+    Kornia can use PyTorch's scaled-dot-product attention when FlashAttention
+    is absent.  Some shared cloud images nevertheless contain an older
+    ``flash-attn`` extension compiled against a different PyTorch ABI.  Kornia
+    treats an absent package as optional, but that ABI failure is an
+    ``ImportError`` and otherwise aborts StablePretraining during import.
+
+    Return ``True`` only when an unusable installation was masked.  A working
+    FlashAttention installation is left untouched.
+    """
+
+    try:
+        importlib.import_module("flash_attn.modules.mha")
+    except ModuleNotFoundError:
+        return False
+    except (ImportError, OSError) as exc:
+        for module_name in tuple(sys.modules):
+            if module_name == "flash_attn" or module_name.startswith(
+                "flash_attn."
+            ):
+                sys.modules.pop(module_name, None)
+        # ``None`` makes Kornia's optional import raise ModuleNotFoundError,
+        # activating its supported PyTorch SDPA fallback.
+        sys.modules["flash_attn"] = None
+        sys.stderr.write(
+            "ContextWorld: optional flash-attn is not loadable "
+            f"({type(exc).__name__}); using PyTorch attention instead.\n"
+        )
+        return True
 
 
 def _write_run_marker(
@@ -88,6 +122,7 @@ def _install_manager_bridge(
 ) -> None:
     """Wrap ``spt.Manager`` without replacing the upstream training loop."""
 
+    _prepare_optional_flash_attention()
     import stable_pretraining as spt
 
     original_manager = spt.Manager

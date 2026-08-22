@@ -53,6 +53,7 @@ STABLEWM_BOOTSTRAP_DIR = REPO_ROOT / "scripts/stablewm_bootstrap"
 STABLEWM_SITECUSTOMIZE = STABLEWM_BOOTSTRAP_DIR / "sitecustomize.py"
 SPT_RUN_MARKER_FILENAME = "contextworld_run_identity_v1.json"
 SPT_RUN_MARKER_SCHEMA = "contextworld.stablepretraining-run-identity.v1"
+MINIMUM_STABLE_PRETRAINING_VERSION = (0, 1, 8)
 
 
 def _env(name: str, fallback: str | None = None) -> str | None:
@@ -944,6 +945,30 @@ def _training_dependency_identity() -> dict[str, Any]:
     return result
 
 
+def validate_stablepretraining_version() -> str:
+    """Require the upstream Manager API used for portable full-state resume."""
+
+    try:
+        installed = importlib.metadata.version("stable-pretraining")
+    except importlib.metadata.PackageNotFoundError as exc:
+        raise SystemExit(
+            "Stable-WorldModel training requires stable-pretraining>=0.1.8, "
+            "but stable-pretraining is not installed."
+        ) from exc
+    match = re.match(r"^(\d+)\.(\d+)\.(\d+)", installed)
+    if match is None or tuple(map(int, match.groups())) < (
+        MINIMUM_STABLE_PRETRAINING_VERSION
+    ):
+        raise SystemExit(
+            "Stable-WorldModel training requires stable-pretraining>=0.1.8 "
+            "for portable full-state resume; installed version is "
+            f"{installed}. Keep only a compatible stable_pretraining wheel "
+            "in the offline package directory and reinstall it before "
+            "starting the job."
+        )
+    return installed
+
+
 def _dataset_identity(path: Path) -> dict[str, Any]:
     """Record a cheap, fail-closed identity without hashing a multi-GB dataset."""
 
@@ -1740,6 +1765,7 @@ def main(argv: list[str] | None = None) -> int:
         raise SystemExit(f"Unknown family in profile contract: {args.family}")
     if _uses_release_recipe(args):
         return _run_release_reproduction(args)
+    validate_stablepretraining_version()
     target = resolve_target(args, contract)
     stablewm_repo = resolve_stablewm_repo(args)
     validate_training_dataset_schema(
