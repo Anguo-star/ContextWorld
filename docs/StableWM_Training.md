@@ -285,9 +285,12 @@ model, optimizer, scheduler and progress state. The ContextWorld family entry
 supplies this checkpoint to the unchanged upstream LeWM, PLDM or PreJEPA
 trainer. If `auto` sees an incomplete run without an identity-matched
 `last.ckpt`, it fails rather than silently starting again from epoch zero.
-The one safe pre-check exception is a directory containing only the exact
-immutable identity written by this launcher: no trainer state exists yet, so
-the unchanged request may retry from the beginning.
+The one safe pre-check exception is a launcher-only reservation created before
+the upstream trainer started. If the checkpoint directory contains only a
+valid identity, its recorded Hydra directory is empty, and no
+StablePretraining run marker exists, `auto` may atomically replace a stale
+identity after a dependency or source repair. Any trainer output or run marker
+keeps the request fail-closed.
 
 ## Optional post-training evaluation
 

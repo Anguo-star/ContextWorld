@@ -1135,12 +1135,16 @@ class TestRecoveryPaths:
         run_name = "tworoom_prejepa_original_s3073"
         run_dir = tmp_path / "checkpoints" / run_name
         run_dir.mkdir(parents=True)
+        hydra_run = tmp_path / "hydra" / run_name
         (run_dir / launcher.TRAINING_IDENTITY_FILENAME).write_text(
             json.dumps(
                 {
                     "schema_version": launcher.TRAINING_IDENTITY_SCHEMA,
                     "identity_sha256": "recipe",
-                    "identity": {"seed": 3073},
+                    "identity": {
+                        "seed": 3073,
+                        "hydra_overrides": [f"hydra.run.dir={hydra_run}"],
+                    },
                 }
             ),
             encoding="utf-8",
@@ -1154,7 +1158,7 @@ class TestRecoveryPaths:
             identity_sha256="recipe",
         ) is None
 
-    def test_auto_retry_rejects_a_different_identity_only_preflight(
+    def test_auto_retry_accepts_a_stale_identity_when_training_never_started(
         self,
         tmp_path: Path,
         monkeypatch: pytest.MonkeyPatch,
@@ -1163,12 +1167,60 @@ class TestRecoveryPaths:
         run_name = "tworoom_prejepa_original_s3073"
         run_dir = tmp_path / "checkpoints" / run_name
         run_dir.mkdir(parents=True)
+        hydra_run = tmp_path / "hydra" / run_name
         (run_dir / launcher.TRAINING_IDENTITY_FILENAME).write_text(
             json.dumps(
                 {
                     "schema_version": launcher.TRAINING_IDENTITY_SCHEMA,
                     "identity_sha256": "another-recipe",
-                    "identity": {"seed": 3073},
+                    "identity": {
+                        "seed": 3073,
+                        "hydra_overrides": [f"hydra.run.dir={hydra_run}"],
+                    },
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        assert launcher.validate_resume(
+            tmp_path,
+            run_name,
+            "auto",
+            family="prejepa",
+            identity_sha256="recipe",
+        ) is None
+
+    def test_auto_retry_rejects_a_stale_identity_after_spt_started(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.delenv("SLURM_JOB_ID", raising=False)
+        run_name = "tworoom_prejepa_original_s3073"
+        run_dir = tmp_path / "checkpoints" / run_name
+        run_dir.mkdir(parents=True)
+        hydra_run = tmp_path / "hydra" / run_name
+        (run_dir / launcher.TRAINING_IDENTITY_FILENAME).write_text(
+            json.dumps(
+                {
+                    "schema_version": launcher.TRAINING_IDENTITY_SCHEMA,
+                    "identity_sha256": "another-recipe",
+                    "identity": {
+                        "seed": 3073,
+                        "hydra_overrides": [f"hydra.run.dir={hydra_run}"],
+                    },
+                }
+            ),
+            encoding="utf-8",
+        )
+        spt_run = tmp_path / "runs/20260822/001122/uuid-started"
+        spt_run.mkdir(parents=True)
+        (spt_run / launcher.SPT_RUN_MARKER_FILENAME).write_text(
+            json.dumps(
+                {
+                    "schema_version": launcher.SPT_RUN_MARKER_SCHEMA,
+                    "run_name": run_name,
+                    "training_identity_sha256": "another-recipe",
                 }
             ),
             encoding="utf-8",
@@ -1182,6 +1234,44 @@ class TestRecoveryPaths:
                 family="prejepa",
                 identity_sha256="recipe",
             )
+
+    def test_training_identity_rebind_is_opt_in_and_preflight_only(
+        self,
+        tmp_path: Path,
+    ) -> None:
+        run_name = "tworoom_prejepa_original_s3073"
+        run_dir = tmp_path / "checkpoints" / run_name
+        run_dir.mkdir(parents=True)
+        hydra_run = tmp_path / "hydra" / run_name
+        path = run_dir / launcher.TRAINING_IDENTITY_FILENAME
+        path.write_text(
+            json.dumps(
+                {
+                    "schema_version": launcher.TRAINING_IDENTITY_SCHEMA,
+                    "identity_sha256": "old-recipe",
+                    "identity": {
+                        "hydra_overrides": [f"hydra.run.dir={hydra_run}"],
+                    },
+                }
+            ),
+            encoding="utf-8",
+        )
+        expected = {
+            "schema_version": launcher.TRAINING_IDENTITY_SCHEMA,
+            "identity_sha256": "new-recipe",
+            "identity": {
+                "hydra_overrides": [f"hydra.run.dir={hydra_run}"],
+            },
+        }
+
+        launcher._install_training_identity(
+            tmp_path,
+            run_name,
+            expected,
+            replace_preflight_reservation=True,
+        )
+
+        assert json.loads(path.read_text(encoding="utf-8")) == expected
 
     def test_completed_epoch_automatically_recovers_at_eval(
         self,

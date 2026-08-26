@@ -1095,14 +1095,40 @@ def _install_training_identity(
     checkpoint_root: Path,
     run_name: str,
     expected: dict[str, Any],
+    *,
+    replace_preflight_reservation: bool = False,
 ) -> None:
     """Write once for a new run; require an exact match on native requeue."""
 
     run_dir = checkpoint_root / "checkpoints" / run_name
     path = run_dir / TRAINING_IDENTITY_FILENAME
     if path.exists():
+        observed = _read_training_identity(path)
+        if observed == expected:
+            return
+        if (
+            replace_preflight_reservation
+            and _preflight_reservation_identity(checkpoint_root, run_name)
+            is not None
+        ):
+            temporary = path.with_name(f".{path.name}.{os.getpid()}.tmp")
+            try:
+                with temporary.open("x", encoding="utf-8") as stream:
+                    stream.write(
+                        json.dumps(expected, indent=2, sort_keys=True) + "\n"
+                    )
+                    stream.flush()
+                    os.fsync(stream.fileno())
+                os.replace(temporary, path)
+            finally:
+                temporary.unlink(missing_ok=True)
+            print(
+                "[stablewm-train] replaced stale preflight identity: "
+                f"saved={observed.get('identity_sha256')!r} "
+                f"requested={expected['identity_sha256']!r}"
+            )
+            return
         _assert_training_identity(path, expected, context=f"Run {run_name!r}")
-        return
     if run_dir.exists() and any(run_dir.iterdir()):
         raise SystemExit(
             f"Existing run {run_name!r} has no {TRAINING_IDENTITY_FILENAME}; "
@@ -1178,39 +1204,15 @@ def _validate_scheduler_seed_isolation(training_runs: list[str]) -> None:
         )
 
 
-def _is_exact_preflight_reservation(
-    run_dir: Path,
-    *,
-    identity_sha256: str,
-) -> bool:
-    """Return true when the launcher wrote identity but training never began."""
-
-    if not run_dir.is_dir():
-        return False
-    entries = list(run_dir.iterdir())
-    identity_path = run_dir / TRAINING_IDENTITY_FILENAME
-    if entries != [identity_path]:
-        return False
-    if not identity_path.is_file() or identity_path.is_symlink():
-        raise SystemExit(f"Unsafe training identity reservation: {identity_path}")
-    payload = _read_training_identity(identity_path)
-    return (
-        payload.get("schema_version") == TRAINING_IDENTITY_SCHEMA
-        and payload.get("identity_sha256") == identity_sha256
-    )
-
-
-def _portable_resume_candidates(
+def _stablepretraining_run_records(
     root: Path,
-    run_name: str,
-    identity_sha256: str,
-) -> list[Path]:
-    """Return full-state SPT checkpoints bound to this exact run recipe."""
+) -> list[tuple[Path, dict[str, Any]]]:
+    """Read every safe ContextWorld binding below the SPT run root."""
 
     runs_root = root / "runs"
     if not runs_root.is_dir():
         return []
-    candidates: list[Path] = []
+    records: list[tuple[Path, dict[str, Any]]] = []
     # StablePretraining currently uses runs/YYYYMMDD/HHMMSS/<uuid>/, but the
     # marker is the public binding contract and avoids coupling recovery to a
     # particular date-bucket layout.
@@ -1238,6 +1240,70 @@ def _portable_resume_candidates(
             raise SystemExit(f"StablePretraining run marker is not a mapping: {marker}")
         if payload.get("schema_version") != SPT_RUN_MARKER_SCHEMA:
             raise SystemExit(f"Unsupported StablePretraining run marker: {marker}")
+        records.append((run_dir, payload))
+    return records
+
+
+def _preflight_reservation_identity(
+    root: Path,
+    run_name: str,
+) -> dict[str, Any] | None:
+    """Return an identity only when the upstream trainer never started."""
+
+    run_dir = root / "checkpoints" / run_name
+    if not run_dir.is_dir() or run_dir.is_symlink():
+        return None
+    identity_path = run_dir / TRAINING_IDENTITY_FILENAME
+    entries = list(run_dir.iterdir())
+    if len(entries) != 1 or entries[0] != identity_path:
+        return None
+    if not identity_path.is_file() or identity_path.is_symlink():
+        raise SystemExit(f"Unsafe training identity reservation: {identity_path}")
+    payload = _read_training_identity(identity_path)
+    if payload.get("schema_version") != TRAINING_IDENTITY_SCHEMA:
+        raise SystemExit(f"Unsupported training identity reservation: {identity_path}")
+    if not isinstance(payload.get("identity_sha256"), str):
+        raise SystemExit(f"Incomplete training identity reservation: {identity_path}")
+
+    identity = payload.get("identity")
+    overrides = identity.get("hydra_overrides") if isinstance(identity, dict) else None
+    hydra_values = (
+        [
+            value.removeprefix("hydra.run.dir=")
+            for value in overrides
+            if isinstance(value, str) and value.startswith("hydra.run.dir=")
+        ]
+        if isinstance(overrides, list)
+        else []
+    )
+    if len(hydra_values) != 1:
+        return None
+    hydra_run_dir = Path(hydra_values[0])
+    if not hydra_run_dir.is_absolute():
+        return None
+    if hydra_run_dir.exists():
+        if hydra_run_dir.is_symlink() or not hydra_run_dir.is_dir():
+            raise SystemExit(f"Unsafe Hydra run directory: {hydra_run_dir}")
+        if any(hydra_run_dir.iterdir()):
+            return None
+
+    if any(
+        record.get("run_name") == run_name
+        for _, record in _stablepretraining_run_records(root)
+    ):
+        return None
+    return payload
+
+
+def _portable_resume_candidates(
+    root: Path,
+    run_name: str,
+    identity_sha256: str,
+) -> list[Path]:
+    """Return full-state SPT checkpoints bound to this exact run recipe."""
+
+    candidates: list[Path] = []
+    for run_dir, payload in _stablepretraining_run_records(root):
         if (
             payload.get("run_name") != run_name
             or payload.get("training_identity_sha256") != identity_sha256
@@ -1271,10 +1337,7 @@ def validate_resume(
     native_requeue = _stablepretraining_native_requeue()
     candidates = _portable_resume_candidates(root, run_name, identity_sha256)
     run_nonempty = run_dir.exists() and any(run_dir.iterdir())
-    exact_preflight = _is_exact_preflight_reservation(
-        run_dir,
-        identity_sha256=identity_sha256,
-    )
+    preflight_reservation = _preflight_reservation_identity(root, run_name)
 
     if policy == "never":
         if run_nonempty or candidates:
@@ -1300,10 +1363,11 @@ def validate_resume(
         )
 
     if run_nonempty:
-        if exact_preflight:
+        if preflight_reservation is not None:
             # The prior launcher exited after its immutable O_EXCL identity
             # reservation but before StablePretraining created any state.
-            # Re-entering the unchanged recipe is still a fresh run.
+            # With no Hydra/SPT output, auto may atomically bind the current
+            # recipe even when a dependency repair changed its identity.
             return None
         raise SystemExit(
             "Resume=auto found an incomplete run but no matching full-state "
@@ -1995,6 +2059,10 @@ def main(argv: list[str] | None = None) -> int:
                 checkpoint_root,
                 run_name,
                 training_identity,
+                replace_preflight_reservation=(
+                    args.resume == "auto"
+                    and not _stablepretraining_native_requeue()
+                ),
             )
             training_environment = dict(environment)
             training_environment["PYTHONPATH"] = os.pathsep.join([
