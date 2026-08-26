@@ -225,6 +225,13 @@ def main(argv: list[str] | None = None) -> int:
     environment["CONTEXTWORLD_SPT_BRIDGE"] = "1"
     environment["CONTEXTWORLD_SPT_RUN_NAME"] = args.run_name
     environment["CONTEXTWORLD_SPT_IDENTITY_SHA256"] = args.identity_sha256
+    if any("contextworld://v1/" in value for value in hydra_args):
+        # sitecustomize runs before the upstream trainer imports its data
+        # package, including in every Lightning DDP child interpreter.
+        environment["CONTEXTWORLD_STABLEWM_BUNDLE"] = "1"
+        # Lance/PyArrow is not fork-safe.  DataLoader workers for the public
+        # bundle therefore start as clean Python interpreters.
+        environment["CONTEXTWORLD_DATALOADER_START_METHOD"] = "spawn"
     if resume_checkpoint is not None:
         environment["CONTEXTWORLD_SPT_RESUME_CHECKPOINT"] = str(resume_checkpoint)
     environment["PYTHONPATH"] = os.pathsep.join([

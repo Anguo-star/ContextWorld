@@ -97,8 +97,9 @@ training, or run evaluation.
 
 | variable | meaning |
 |---|---|
-| `CW_DATASET` | exact source H5/HDF5 file or `.lance` table |
-| `CONTEXTWORLD_DATASET_ROOT` | root used only to resolve the four built-in original datasets |
+| `CW_DATASET` | optional exact source H5/HDF5 file or `.lance` table; bypasses the automatic benchmark view |
+| `CONTEXTWORLD_DATASET_ROOT` | root containing the four original datasets below `quentinll/` |
+| `CONTEXTWORLD_BENCHMARK_ROOT` | clean `ContextWorld-v1` export; defaults to `<CONTEXTWORLD_DATASET_ROOT>/ContextWorld-v1` |
 | `CW_DATASET_CACHE_ROOT` | Stable-WorldModel download/data cache (`LOCAL_DATASET_DIR`) |
 | `CW_CHECKPOINT_ROOT` | Stable-WorldModel storage root; models are written below `<root>/checkpoints/` |
 | `SPT_CACHE_DIR` | StablePretraining full-state/requeue storage; the launcher sets it equal to `CW_CHECKPOINT_ROOT` |
@@ -107,7 +108,9 @@ training, or run evaluation.
 
 For `.lance`, “exact table” means that the path is physically addressable;
 it does not guarantee training compatibility. The launcher preflight and the
-export registry's `direct_stable_worldmodel_load` field are authoritative.
+export registry's adapter fields remain authoritative. For standard benchmark
+component training with any built-in family, omit `CW_DATASET`: the launcher reads `task_registry.json` and
+constructs the registered multi-table or projected view automatically.
 
 `CW_OUTPUT` is not a checkpoint directory. Changing it does not move or hide
 model weights. Stable-WorldModel currently uses `STABLEWM_HOME` as a common
@@ -131,14 +134,14 @@ task's YAML selection, history length, action width, or encoding convention.
 `CW_DATA_GROUP` remains available as an explicit override for a compatible
 custom checkout.
 
-The launcher accepts a single H5/HDF5 file or a single `.lance` table. A
-directory containing several tables is a dataset collection, not one training
-table, and is rejected with the discovered members listed. This matters for
-the clean Hugging Face package: some components contain several split- or
-condition-specific tables and require the training recipe to select them
-explicitly.
+An explicit `CW_DATASET` still accepts one H5/HDF5 file or one `.lance` table.
+A collection directory is not treated as one table. The automatic component
+path is different: a `contextworld://` runtime identifier binds the clean
+export's manifest, registry, component, payload and mixture recipe. StableWM
+then opens the registry's exact member list lazily; no images are converted or
+copied.
 
-The launcher opens both H5 and Lance schemas before allocating a trainer. For
+The launcher opens explicit H5 and Lance schemas before allocating a trainer. For
 H5 it checks the selected model columns plus raw action and auxiliary-input
 widths. For Lance it also checks episode/step indices. A `.lance` suffix
 therefore does not by itself imply trainer compatibility. If the selected
@@ -147,7 +150,9 @@ the preflight detects that implementation and rejects affected tables with the
 required projection named. The distributed Cube gripper-carry projection is
 rejected for a separate reason: it stores blocked actions and model steps
 rather than a native raw-step sequence, and requires the audited
-`cube_block_projection_to_sequence_v1` adapter.
+`cube_block_projection_to_sequence_v1` adapter. The automatic component path
+provides both adapters at runtime and validates the component geometry before
+the trainer starts.
 
 ## Common training options
 
@@ -157,6 +162,7 @@ keys. Equivalent command-line flags are shown by `--help`.
 | variable | purpose |
 |---|---|
 | `CW_SEEDS` | one seed, or a comma-separated sequence of seeds |
+| `CW_TRAINING_TRACK` | `joint_scratch_v1` (default) or explicit `historical_release` for old LeWM/PLDM protocol evidence |
 | `CW_RUN_NAME` | model name and checkpoint subdirectory |
 | `CW_MAX_EPOCHS` | training epochs |
 | `CW_BATCH_SIZE`, `CW_NUM_WORKERS` | input throughput |
@@ -166,6 +172,9 @@ keys. Equivalent command-line flags are shown by `--help`.
 | `CW_PRECISION`, `CW_ACCUMULATE` | numerical precision and gradient accumulation |
 | `CW_GRADIENT_CLIP_VAL` | gradient clipping |
 | `CW_LEARNING_RATE`, `CW_WEIGHT_DECAY` | optimizer overrides |
+| `CW_COMPONENT_PAYLOAD` | benchmark payload override; Action Delay supports `coarse` or `full` |
+| `CW_MIX_ORIGINAL_WEIGHT`, `CW_MIX_SYNTHETIC_WEIGHT` | benchmark mixture overrides |
+| `CW_COMPONENT_EPOCH_SIZE` | optional virtual samples per epoch; otherwise derived from balanced full coverage |
 | `CW_FAST_DEV_RUN` | Lightning fast-development run |
 | `CW_LIMIT_TRAIN_BATCHES`, `CW_LIMIT_VAL_BATCHES` | bounded smoke runs |
 | `CW_RESUME` | `auto` (default), `never`, or `required` |
@@ -177,6 +186,12 @@ them instead of accepting an option that has no effect.
 All three supported trainers require `CW_NUM_WORKERS` to be positive: their
 active persistent-worker or prefetch settings are incompatible with zero
 workers in PyTorch.
+
+The public `ContextWorld-v1` reader opens Lance data lazily inside
+each worker and uses Python's `spawn` start method; Lance handles must not be
+inherited through Linux `fork`. Its default is two workers per DDP process.
+Because `CW_NUM_WORKERS` is a per-process value, setting it to 16 on eight
+GPUs can create 128 workers and should be done only after profiling the host.
 
 `CW_EMBED_DIM` maps to `embed_dim` for LeWM and `wm.embed_dim` for PLDM. It is
 rejected for PreJEPA, whose representation width is determined by the selected
@@ -204,21 +219,46 @@ selected checkout actually declares those fields. The pinned public upstream
 supports native SIGReg but does not contain the full ContextWorld VISReg and
 conditional-regularizer extension; unsupported requests fail before GPU work.
 
-Frozen ContextWorld reference recipes remain authoritative for released LeWM
-and PLDM component checkpoints. The generic entry is suitable for original
-baselines, new model families and reproducible public experiments; it does not
-replace a component's registered objective and data-mixture launcher.
+Frozen historical LeWM/PLDM recipes remain available as protocol evidence, but
+they are not the current cross-family comparison. The current component route
+uses the same public bundle view and task-level from-scratch rule for LeWM,
+PLDM and PreJEPA while retaining each family's native objective and optimizer.
 
-In the clean staging package, five components each have a single table with
-native temporal columns, but they are not direct inputs to the pinned public
-reader: PushT action strength, contact friction and motion damping; Reacher arm
-mass; and TwoRoom portal exit. They require
-`stablewm_step_metadata_to_episode_table_v1` for the pinned public reader,
-because their string metadata is stored per step. Speed, door and action delay
-are multi-table collections whose split roots require an explicit composition
-recipe. Cube is a single table physically, but requires the raw-sequence
-adapter described above. These distribution constraints do not affect the
-four original H5 datasets used by the cloud baseline command.
+## Benchmark joint-scratch data view
+
+For the nine benchmark components, LeWM, PLDM and PreJEPA can train directly
+from the clean export without producing an intermediate dataset:
+
+```text
+CW_TASK=action_strength
+CW_FAMILY=lewm
+CW_TRAINING_TRACK=joint_scratch_v1
+CONTEXTWORLD_DATASET_ROOT=/absolute/path/data/world_model
+CONTEXTWORLD_BENCHMARK_ROOT=/absolute/path/data/world_model/ContextWorld-v1
+CW_CHECKPOINT_ROOT=/absolute/path/checkpoints/lewm-contextworld
+```
+
+`CONTEXTWORLD_BENCHMARK_ROOT` may be omitted when the bundle has the default
+location shown above. The task profile supplies the history length, action
+dimension, payload and mixture, so `CW_DATASET` is normally omitted.
+
+The default comparison view uses 50% original data and 50% synthetic component
+data for all nine components. No original-environment task checkpoint is
+loaded: a run starts from that family's native initialization, or resumes only
+an identity-matched interrupted run of the same recipe. Action Delay selects its `full`
+payload and balances the physical groups `0`, `1`, `2`, `3`, `4`, and `5–10`
+equally. This current single-stage recipe is intentionally different from the
+historical two-stage LeWM/PLDM curriculum. Advanced experiments can override the payload
+or weights with `CW_COMPONENT_PAYLOAD`, `CW_MIX_ORIGINAL_WEIGHT`, and
+`CW_MIX_SYNTHETIC_WEIGHT`. Such overrides define a new recipe and are recorded
+in the checkpoint identity.
+
+At runtime, Speed, Door and Action Delay compose the exact Lance members named
+by `task_registry.json`. The five tables with per-step string metadata expose
+only `pixels` and `action` to the model while retaining the metadata in the
+distributed files. Cube remains four model steps with five raw actions per
+step: its 25-value action block is normalized as `5 × 5` and then flattened
+for the predictor. No missing raw image frames are synthesized.
 
 ## Experiment tracking and credentials
 
@@ -305,6 +345,11 @@ terminal state and prints a per-seed summary. The same evaluation script can
 be invoked later against an existing checkpoint; training does not contain a
 second copy of the evaluation logic.
 
+The suite needs `CONTEXTWORLD_BENCHMARK_ROOT`, the clean `ContextWorld-v1`
+export. Its ICL commands read only the registered Development payloads from
+that bundle. They never read Public Test or the private `context_world` tree.
+The matching original H5 dataset remains the input for CEM.
+
 The standard default original-task CEM protocol uses evaluation seeds 42, 43,
 44, 45, 46, and 47 with 50 episodes per seed: 300 episodes per checkpoint.
 Both automatic post-training evaluation and a direct `run_stablewm_eval.py`
@@ -312,10 +357,14 @@ call use this default. `CW_EVAL_NUM` and `CW_EVAL_SEEDS` remain available for
 explicitly labelled diagnostics or repairs; results using another geometry are
 not standard post-evaluation results.
 
+This `50 × 6` geometry applies only to CEM. ICL reads each component's
+manifest-bound Development selection (288 Speed diagnostic cases, 288 Door
+pairs, 300 Action Delay pairs, or 256 pairs for each remaining component).
+
 This automatic hand-off applies to current family-profile runs: every
-original-environment run and any component run supplied with an explicit
-dataset. A historical LeWM/PLDM component reproduction selected by omitting
-`CW_DATASET` keeps its frozen evaluator and does not accept
+original-environment run and every `joint_scratch_v1` component run. A
+historical LeWM/PLDM component reproduction selected explicitly with
+`CW_TRAINING_TRACK=historical_release` keeps its frozen evaluator and does not accept
 `CW_POST_TRAIN_EVAL`; that evaluator is part of the historical release
 protocol.
 
@@ -351,12 +400,11 @@ is available, so `CW_POST_TRAIN_EVAL=1` cannot report success with a silently
 skipped CEM cell. For an intentional ICL-only repair, invoke the common
 evaluator directly with `--suite --icl-only`.
 
-Contact Friction and Motion Damping can currently be evaluated only on their
-Development splits; Public Test remains closed. Other ICL
-steps use the component's registered external-evaluation path and are marked
-as unofficial results; this command never adds or changes a scoreboard row.
-Run it only after the training recipe and checkpoint rule are fixed, not as a
-Public-Test model-selection loop.
+All nine ICL steps use their registered Development payloads; Public Test
+remains closed. Development results are useful comparative evidence, but they
+do not add or change a scoreboard row and are not a release decision. Run the
+suite only after the training recipe and checkpoint rule are fixed, not as a
+model-selection loop against a hidden test set.
 
 For PreJEPA, the original-environment CEM path has been execution-validated on
 TwoRoom, PushT, Reacher, and Cube, but remains checkpoint-level evidence rather
@@ -369,21 +417,24 @@ length and action block to match the planner request. This makes the planner
 inputs and objective agree with the trained checkpoint; it does not turn the
 smoke check into a published benchmark score.
 
-The frozen v1 external ICL adapter has a narrower contract: pixel history and
-actions only. Current original-dataset PreJEPA checkpoints additionally
-require `proprio` or `observation`, so their strict rows remain
+The Development ICL adapter has a narrower contract: pixel history and actions
+only. Current original-dataset PreJEPA checkpoints additionally require
+`proprio` or `observation`, so their Development rows remain
 `not_compatible`. The suite also runs a separate, clearly labelled diagnostic
 in which every missing state stream is set to zero in the model's normalized
 input space. That diagnostic supplies a useful numerical baseline, but it is
-not a frozen-v1 result and cannot enter the scoreboard. It never reads
+not a Development-protocol result and cannot enter the scoreboard. It never reads
 privileged simulator state. For Action Delay, an original History=3 checkpoint
 uses the documented tail-H3 projection inside this diagnostic rather than
 changing its weights or positional embeddings.
 
-Benchmark-component PreJEPA training is different: the launcher removes the
-upstream default state encoder and fixes model-visible inputs to RGB and
-actions. Its post-evaluation therefore requires the exact strict ICL component
-to complete. This prevents a newly trained component checkpoint from appearing
+Benchmark-component training fixes model-visible inputs to RGB and actions for
+all three built-in families. For PreJEPA the launcher removes the upstream
+default state encoder; for LeWM/PLDM it overrides environment data groups that
+would otherwise request privileged state columns. Post-evaluation therefore
+requires the matching Development ICL component to complete. This means only that its Development step produced a
+result; it does not turn that result into a Public-Test score or a release
+decision. It prevents a newly trained component checkpoint from appearing
 successful when the suite contains only a compatibility marker or a diagnostic
 score.
 
@@ -402,6 +453,7 @@ python scripts/run_stablewm_eval.py --suite \
   --family prejepa \
   --original-env tworoom \
   --dataset /absolute/path/to/tworoom.h5 \
+  --benchmark-root /absolute/path/to/ContextWorld-v1 \
   --checkpoint /absolute/path/to/checkpoints/run/weights_epoch_10.pt \
   --stablewm-repo /absolute/path/to/stable-worldmodel \
   --training-seed 3072
@@ -427,7 +479,7 @@ checkpoint:
 <checkpoint run>/eval_results/
 ├── original_cem/                 # original-environment CEM
 ├── benchmark_cem/<component>/    # component-training retention
-├── benchmark_icl/<component>/result.json
+├── benchmark_icl/<component>/result.json             # Development ICL
 ├── benchmark_icl_diagnostic/<component>/result.json  # when explicitly needed
 └── manifest.json
 ```

@@ -23,6 +23,33 @@ components:
       sequence_schema: native_episode_sequence_v1
       required_columns: [episode_idx, step_idx, pixels, action, proprio]
       adapter_required: null
+    development_evaluation:
+      schema_version: contextworld.development_evaluation.v1
+      status: public_development_only
+      split: development
+      payload_id: data
+      normalizer_path: normalizers/tworoom_original_train_s3072.json
+      reader_id: tworoom_speed_history_utility_collection_v1
+      comparison: context_history_vs_current_frame_only_ablation
+      matched_counterfactual: false
+      formal_public_score: false
+      selection:
+        unit: history_utility_case
+        member_count: 96
+        complete_windows_per_member: 3
+        selected_case_count: 288
+        method: lexicographic_first_complete_20_step_windows_v1
+      input_contract:
+        context_streams: [pixels, actions]
+        history_length: 3
+        action_block_raw_steps: 5
+        prediction_horizon_action_blocks: 1
+      action_normalization:
+        transform: zscore
+        source: original_tworoom_training_split
+        mean: [0.0031402341986976924, -0.051594576296864605]
+        std: [0.867571689163936, 0.8688840167517821]
+        std_estimator: unbiased
     release_config: configs/benchmark/tworoom_speed_icl_release_v1.yaml
     sources:
       - split: training
@@ -45,6 +72,29 @@ components:
       sequence_schema: native_episode_sequence_v1
       required_columns: [episode_idx, step_idx, pixels, action, proprio]
       adapter_required: null
+    development_evaluation:
+      schema_version: contextworld.development_evaluation.v1
+      status: public_development_only
+      split: development
+      payload_id: data
+      normalizer_path: normalizers/tworoom_original_train_s3072.json
+      reader_id: tworoom_door_paired_rule_collection_v1
+      selection:
+        door_positions: 16
+        complete_episodes_per_position: 18
+        selected_pair_count: 288
+        method: lexicographic_first_episode_ids_v1
+      input_contract:
+        context_streams: [pixels, actions]
+        history_length: 3
+        action_block_raw_steps: 5
+        prediction_horizon_action_blocks: 1
+      action_normalization:
+        transform: zscore
+        source: original_tworoom_training_split
+        mean: [0.0031402341986976924, -0.051594576296864605]
+        std: [0.867571689163936, 0.8688840167517821]
+        std_estimator: unbiased
     release_config: configs/benchmark/tworoom_door_icl_release_v1.yaml
     sources:
       - split: training
@@ -67,6 +117,31 @@ components:
       sequence_schema: native_episode_sequence_v1
       required_columns: [episode_idx, step_idx, pixels, action, proprio]
       adapter_required: null
+    development_evaluation:
+      schema_version: contextworld.development_evaluation.v1
+      status: public_development_only
+      split: development
+      payload_id: full
+      normalizer_path: normalizers/tworoom_original_train_s3072.json
+      reader_id: tworoom_action_delay_paired_collection_v1
+      selection:
+        reference_condition: 0
+        contrasts: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+        profiles: 6
+        pairs_per_contrast_per_profile: 5
+        selected_pair_count: 300
+        method: lexicographic_first_episode_ids_v1
+      input_contract:
+        context_streams: [pixels, actions]
+        history_length: 7
+        action_block_raw_steps: 5
+        prediction_horizon_action_blocks: 1
+      action_normalization:
+        transform: zscore
+        source: original_tworoom_training_split
+        mean: [0.0031402341986976924, -0.051594576296864605]
+        std: [0.867571689163936, 0.8688840167517821]
+        std_estimator: unbiased
     release_config: configs/benchmark/tworoom_action_delay_icl_release_v1.yaml
     sources:
       - split: training
@@ -95,6 +170,27 @@ components:
       sequence_schema: native_episode_sequence_with_step_metadata_v1
       required_columns: [episode_idx, step_idx, pixels, action, proprio]
       adapter_required: stablewm_step_metadata_to_episode_table_v1
+    development_evaluation:
+      schema_version: contextworld.development_evaluation.v1
+      status: public_development_only
+      split: development
+      payload_id: data
+      reader_id: paired_condition_lance_v1
+      selection:
+        expected_pair_count: 256
+        selected_pair_count: 256
+        method: all_pairs_v1
+      input_contract:
+        context_streams: [pixels, actions]
+        history_length: 3
+        action_block_raw_steps: 5
+        prediction_horizon_action_blocks: 1
+      action_normalization:
+        transform: zscore
+        source: original_pusht_h5_population_zscore
+        mean: [-0.007812564261257648, 0.006860687397420406]
+        std: [0.20846743881702423, 0.2067486196756363]
+        std_estimator: population
     release_config: configs/benchmark/pusht_action_strength_icl_release_v1.yaml
     sources:
       - split: training
@@ -117,6 +213,27 @@ components:
       sequence_schema: native_episode_sequence_with_step_metadata_v1
       required_columns: [episode_idx, step_idx, pixels, action, proprio]
       adapter_required: stablewm_step_metadata_to_episode_table_v1
+    development_evaluation:
+      schema_version: contextworld.development_evaluation.v1
+      status: public_development_only
+      split: development
+      payload_id: data
+      reader_id: paired_condition_lance_v1
+      selection:
+        expected_pair_count: 256
+        selected_pair_count: 256
+        method: all_pairs_v1
+      input_contract:
+        context_streams: [pixels, actions]
+        history_length: 3
+        action_block_raw_steps: 5
+        prediction_horizon_action_blocks: 1
+      action_normalization:
+        transform: zscore
+        source: original_pusht_h5_population_zscore
+        mean: [-0.007812564261257648, 0.006860687397420406]
+        std: [0.20846743881702423, 0.2067486196756363]
+        std_estimator: population
     release_config: configs/benchmark/pusht_contact_friction_icl_release_v1.yaml
     sources:
       - split: training
@@ -139,6 +256,27 @@ components:
       sequence_schema: native_episode_sequence_with_step_metadata_v1
       required_columns: [episode_idx, step_idx, pixels, action, proprio]
       adapter_required: stablewm_step_metadata_to_episode_table_v1
+    development_evaluation:
+      schema_version: contextworld.development_evaluation.v1
+      status: public_development_only
+      split: development
+      payload_id: data
+      reader_id: paired_condition_lance_v1
+      selection:
+        expected_pair_count: 256
+        selected_pair_count: 256
+        method: all_pairs_v1
+      input_contract:
+        context_streams: [pixels, actions]
+        history_length: 3
+        action_block_raw_steps: 5
+        prediction_horizon_action_blocks: 1
+      action_normalization:
+        transform: zscore
+        source: original_pusht_h5_population_zscore
+        mean: [-0.007812564261257648, 0.006860687397420406]
+        std: [0.20846743881702423, 0.2067486196756363]
+        std_estimator: population
     release_config: configs/benchmark/pusht_motion_damping_icl_release_v1.yaml
     sources:
       - split: training
@@ -161,6 +299,27 @@ components:
       sequence_schema: native_episode_sequence_with_step_metadata_v1
       required_columns: [episode_idx, step_idx, pixels, action, proprio]
       adapter_required: stablewm_step_metadata_to_episode_table_v1
+    development_evaluation:
+      schema_version: contextworld.development_evaluation.v1
+      status: public_development_only
+      split: development
+      payload_id: data
+      reader_id: paired_condition_lance_v1
+      selection:
+        expected_pair_count: 256
+        selected_pair_count: 256
+        method: all_pairs_v1
+      input_contract:
+        context_streams: [pixels, actions]
+        history_length: 3
+        action_block_raw_steps: 5
+        prediction_horizon_action_blocks: 1
+      action_normalization:
+        transform: zscore
+        source: original_reacher_h5_finite_actions_population_zscore
+        mean: [0.000035727661713243504, -0.0005056222437278677]
+        std: [0.5774140806845414, 0.577182679325366]
+        std_estimator: population
     release_config: configs/benchmark/reacher_arm_mass_icl_release_v1.yaml
     sources:
       - split: training
@@ -183,6 +342,27 @@ components:
       sequence_schema: native_episode_sequence_with_step_metadata_v1
       required_columns: [episode_idx, step_idx, pixels, action, proprio]
       adapter_required: stablewm_step_metadata_to_episode_table_v1
+    development_evaluation:
+      schema_version: contextworld.development_evaluation.v1
+      status: public_development_only
+      split: development
+      payload_id: data
+      reader_id: paired_condition_lance_v1
+      selection:
+        expected_pair_count: 256
+        selected_pair_count: 256
+        method: all_pairs_v1
+      input_contract:
+        context_streams: [pixels, actions]
+        history_length: 3
+        action_block_raw_steps: 5
+        prediction_horizon_action_blocks: 1
+      action_normalization:
+        transform: zscore
+        source: original_tworoom_training_split
+        mean: [0.0031402341986976924, -0.051594576296864605]
+        std: [0.867571689163936, 0.8688840167517821]
+        std_estimator: unbiased
     release_config: configs/benchmark/tworoom_portal_exit_icl_release_v1.yaml
     sources:
       - split: training
@@ -205,6 +385,27 @@ components:
       sequence_schema: blocked_transition_projection_v1
       required_columns: [episode_idx, step_idx, pixels, action, proprio]
       adapter_required: cube_block_projection_to_sequence_v1
+    development_evaluation:
+      schema_version: contextworld.development_evaluation.v1
+      status: public_development_only
+      split: development
+      payload_id: data
+      reader_id: cube_blocked_projection_paired_condition_v1
+      selection:
+        expected_pair_count: 256
+        selected_pair_count: 256
+        method: all_pairs_v1
+      input_contract:
+        context_streams: [pixels, actions]
+        history_length: 3
+        action_block_raw_steps: 5
+        prediction_horizon_action_blocks: 1
+      action_normalization:
+        transform: zscore
+        source: upstream_cube_h5_finite_action_values_excluding_last_10000_rows
+        mean: [0.010884696617722511, -0.003141433000564575, 0.002646582666784525, 0.00042392866453155875, 0.1592525690793991]
+        std: [0.28941982984542847, 0.393716961145401, 0.6431365013122559, 0.3928016126155853, 0.2503073513507843]
+        std_estimator: population
     release_config: configs/benchmark/cube_gripper_carry_h3_v4r1_icl_release_v1.yaml
     sources:
       - split: training

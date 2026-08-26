@@ -105,6 +105,7 @@ def test_build_metadata_lists_only_default_info_contracts() -> None:
         "configs/benchmark/contextworld_icl_suite_v2_recovery_v2.yaml",
         "configs/benchmark/contextworld_icl_suite_v2_integrity_reseal_v1.yaml",
         "configs/benchmark/contextworld_icl_suite_v2_public_document_amendment_v1.yaml",
+        "configs/benchmark/contextworld_historical_package_pin_correction_v1.yaml",
         "configs/benchmark/tworoom_speed_icl_release_v1.yaml",
         "configs/benchmark/tworoom_door_icl_release_v1.yaml",
         "configs/benchmark/tworoom_action_delay_icl_release_v1.yaml",

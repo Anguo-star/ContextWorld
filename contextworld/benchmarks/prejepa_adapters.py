@@ -18,6 +18,7 @@ same visual DINO feature space; action slots are never scored as state.
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from typing import Any
 
@@ -43,12 +44,29 @@ from contextworld.evaluation.protocol import (
     ColumnStandardizer,
     frozen_normalizer_process,
 )
-from contextworld.paths import artifact_path
 from contextworld.synthesis.stablewm import load_stable_worldmodel
 
 
 class PreJEPAInputContractError(ValueError):
     """A checkpoint requires inputs the frozen v1 scorer does not expose."""
+
+
+def _checkpoint_cache_root(checkpoint: Path) -> Path:
+    """Return a StableWM cache root without consulting the private archive.
+
+    ``load_pretrained`` accepts absolute checkpoint paths, but still creates
+    its ``<cache_dir>/checkpoints`` directory before resolving them.  Public
+    Development evaluation must therefore use the configured StableWM root or
+    a path beside the supplied checkpoint, never ``CONTEXTWORLD_ARTIFACT_ROOT``.
+    """
+
+    configured = os.environ.get("STABLEWM_HOME")
+    if configured:
+        return Path(configured).expanduser().resolve()
+    checkpoint = checkpoint.expanduser().resolve()
+    if checkpoint.parent.parent.name == "checkpoints":
+        return checkpoint.parent.parent.parent
+    return checkpoint.parent
 
 
 def _action_standardizer(request: Any) -> ColumnStandardizer:
@@ -215,12 +233,7 @@ class _PreJEPAAdapterMixin:
         )
         model = swm.wm.utils.load_pretrained(
             str(checkpoint),
-            cache_dir=str(
-                artifact_path(
-                    "evaluation/model_cache",
-                    repo_root=request.repo_root,
-                ).resolve()
-            ),
+            cache_dir=str(_checkpoint_cache_root(checkpoint)),
         )
         return cls(
             model=model,

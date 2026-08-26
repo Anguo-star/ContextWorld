@@ -38,10 +38,11 @@ from contextworld.synthesis.stablewm import _git_commit  # noqa: E402
 
 
 PROFILE_CONFIG = REPO_ROOT / "configs/training/stablewm_family_profiles_v1.yaml"
-DEVELOPMENT_ONLY_COMPONENTS = {"contact_friction", "motion_damping"}
-SUITE_MANIFEST_SCHEMA = "contextworld.stablewm-evaluation-suite.v3"
-STRICT_ICL_PROTOCOL_TRACK = "strict_frozen_v1"
-DIAGNOSTIC_ICL_PROTOCOL_TRACK = "diagnostic_normalized_zero_v1"
+SUITE_MANIFEST_SCHEMA = "contextworld.stablewm-evaluation-suite.v4"
+DEVELOPMENT_ICL_PROTOCOL_TRACK = "development_only_v1"
+DEVELOPMENT_DIAGNOSTIC_ICL_PROTOCOL_TRACK = (
+    "development_diagnostic_normalized_zero_v1"
+)
 ORIGINAL_CEM_PROTOCOL_TRACK = "original_cem_v1"
 
 
@@ -161,6 +162,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--dataset",
         default=_env("CW_EVAL_ORIGINAL_DATASET"),
         help="Exact original-environment dataset used by MPC/CEM.",
+    )
+    parser.add_argument(
+        "--benchmark-root",
+        default=_env("CONTEXTWORLD_BENCHMARK_ROOT"),
+        help=(
+            "Clean ContextWorld-v1 export used for Development ICL. "
+            "Required with --suite; Public Test is never selected here."
+        ),
     )
     parser.add_argument(
         "--checkpoint",
@@ -792,13 +801,14 @@ def _prejepa_icl_skip_reason(
     component: str,
     contract: dict[str, Any],
 ) -> str | None:
-    """Return why a native PreJEPA checkpoint cannot enter the v1 scorer.
+    """Return why a native PreJEPA checkpoint cannot enter Development ICL.
 
-    ContextWorld v1 deliberately exposes only RGB history and actions to a
+    The Development evaluator deliberately exposes only RGB history and actions to a
     model adapter.  A PreJEPA checkpoint trained with an additional state
     stream cannot be evaluated faithfully without that stream: zero filling
     changes the trained input, while passing simulator state would silently
-    widen the frozen public protocol.  State-free checkpoints remain runnable.
+    widen the registered Development interface. State-free checkpoints remain
+    runnable.
     """
 
     model_config = _prejepa_model_config(checkpoint.path)
@@ -814,7 +824,7 @@ def _prejepa_icl_skip_reason(
     if state_keys:
         reasons.append(
             "checkpoint requires context stream(s) "
-            f"{list(state_keys)}, but the frozen v1 ICL adapter contract "
+            f"{list(state_keys)}, but the Development ICL adapter contract "
             "provides only pixels and actions"
         )
 
@@ -825,7 +835,7 @@ def _prejepa_icl_skip_reason(
     if trained_history is not None and int(trained_history) != required_history:
         reasons.append(
             f"checkpoint history_size={int(trained_history)} does not match "
-            f"the component's frozen History={required_history} protocol"
+            f"the component's registered History={required_history} protocol"
         )
     return "; ".join(reasons) if reasons else None
 
@@ -883,6 +893,7 @@ def _build_icl_steps(
     checkpoint: ResolvedCheckpoint,
     stablewm_repo: Path,
     stablewm_ref: str,
+    benchmark_root: Path,
     components: tuple[str, ...],
     eval_root: Path,
     contract: dict[str, Any],
@@ -892,11 +903,11 @@ def _build_icl_steps(
         if args.original_env
         else f"contextworld_{args.component}"
     )
-    strict_root = eval_root / "benchmark_icl"
+    development_root = eval_root / "benchmark_icl"
     diagnostic_root = eval_root / "benchmark_icl_diagnostic"
     steps = []
     for component in components:
-        output = strict_root / component / "result.json"
+        output = development_root / component / "result.json"
         skip_reason = (
             _prejepa_icl_skip_reason(
                 checkpoint=checkpoint,
@@ -939,18 +950,20 @@ def _build_icl_steps(
             str(stablewm_repo),
             "--stablewm-ref",
             stablewm_ref,
+            "--benchmark-root",
+            str(benchmark_root),
+            "--evaluation-split",
+            "development",
             "--output",
             str(output),
         ]
-        if component in DEVELOPMENT_ONLY_COMPONENTS:
-            command.extend(("--evaluation-split", "development"))
         if args.training_seed is not None:
             command.extend(("--training-seed", str(args.training_seed)))
         steps.append(
             ICLStep(
                 identifier=f"benchmark_icl/{component}",
                 kind="benchmark_icl",
-                protocol_track=STRICT_ICL_PROTOCOL_TRACK,
+                protocol_track=DEVELOPMENT_ICL_PROTOCOL_TRACK,
                 component=component,
                 output=output,
                 command=command,
@@ -958,12 +971,11 @@ def _build_icl_steps(
             )
         )
 
-        # State-conditioned PreJEPA checkpoints cannot enter the frozen ICL
-        # interface.  Preserve that strict result, but also schedule a
-        # separately labelled diagnostic track that makes its zero-context
-        # imputation explicit.  The diagnostic output can never be confused
-        # with the strict frozen-protocol score because its id, path and
-        # protocol track are all disjoint.
+        # State-conditioned PreJEPA checkpoints cannot enter the Development
+        # RGB/action interface. Preserve that incompatible result, but also
+        # schedule a separately labelled diagnostic track that makes its
+        # zero-context imputation explicit. Its id, path and protocol track
+        # cannot be confused with the Development result.
         if args.family != "prejepa" or not skip_reason or not state_conditioned:
             continue
         diagnostic_output = diagnostic_root / component / "result.json"
@@ -985,7 +997,7 @@ def _build_icl_steps(
             ICLStep(
                 identifier=f"benchmark_icl_diagnostic/{component}",
                 kind="benchmark_icl_diagnostic",
-                protocol_track=DIAGNOSTIC_ICL_PROTOCOL_TRACK,
+                protocol_track=DEVELOPMENT_DIAGNOSTIC_ICL_PROTOCOL_TRACK,
                 component=component,
                 output=diagnostic_output,
                 command=diagnostic_command,
@@ -1052,6 +1064,12 @@ def _suite_request(
             "dataset": (
                 str(_absolute(args.dataset, "--dataset")) if args.dataset else None
             ),
+            "benchmark_root": (
+                str(_absolute(args.benchmark_root, "--benchmark-root"))
+                if args.benchmark_root
+                else None
+            ),
+            "icl_evaluation_split": "development",
             "icl_only": args.icl_only,
             "result_subdir": suite_subdir.as_posix(),
             "training_recipe": args.training_recipe,
@@ -1170,6 +1188,13 @@ def _run_suite(args: argparse.Namespace) -> int:
     contract = load_contract()
     environment_name = _suite_environment(args, contract)
     components = _suite_components(args, contract, environment_name)
+    if not args.benchmark_root:
+        raise SystemExit(
+            "ContextWorld ICL evaluation needs --benchmark-root or "
+            "CONTEXTWORLD_BENCHMARK_ROOT pointing to the clean "
+            "ContextWorld-v1 export."
+        )
+    benchmark_root = _absolute(args.benchmark_root, "--benchmark-root")
     checkpoint = _resolve_checkpoint(args)
     stablewm_repo = _stablewm_repo(args)
     stablewm_ref = _stablewm_ref(stablewm_repo, args.stablewm_ref)
@@ -1180,6 +1205,7 @@ def _run_suite(args: argparse.Namespace) -> int:
         checkpoint=checkpoint,
         stablewm_repo=stablewm_repo,
         stablewm_ref=stablewm_ref,
+        benchmark_root=benchmark_root,
         components=components,
         eval_root=eval_root,
         contract=contract,
@@ -1323,6 +1349,8 @@ def _run_suite(args: argparse.Namespace) -> int:
             "kind": step.kind,
             "protocol_track": step.protocol_track,
             "component": step.component,
+            "evaluation_split": "development",
+            "benchmark_root": str(benchmark_root),
             "status": "not_compatible" if step.skip_reason else "planned",
             "reason": step.skip_reason,
             "command": step.command,

@@ -264,6 +264,7 @@ def test_request_constructor_uses_native_loader_not_get_cost(
 
     assert isinstance(adapter, LatentWorldModelAdapter)
     assert calls and calls[0][0] == str(checkpoint)
+    assert calls[0][1] == str(tmp_path)
 
 
 @pytest.mark.parametrize(

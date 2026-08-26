@@ -2,33 +2,44 @@
 
 ContextWorld 用于评测 latent 世界模型能否从最近几步交互中识别隐藏的环境规律，并据此预测下一状态。模型在测试时不更新参数，也不能读取模拟器中的速度、门规则、动作延迟或物体质量等隐藏变量。
 
-本项目主要面向 JEPA、LeWM 和 PLDM 等 latent 世界模型。评测不要求图像解码器，也不使用像素重建质量作为分数。协议定义训练、开发和冻结测试划分，并提供评分程序、参考基线和数据完整性审计；测试数据的公共下载和部分参考运行仍受发布门限制。
+本项目主要面向 JEPA、LeWM 和 PLDM 等 latent 世界模型。评测不要求图像解码器，也不使用像素重建质量作为分数。协议定义训练、开发和冻结测试划分，并提供评分程序、参考基线和数据完整性审计。
 
-当前状态：九项任务的源码、配置、评分器和本地审计接口已具备技术运行条件；Public Test
-是协议中的冻结测试划分，当前不可公开下载。完整评测只面向已获授权并持有冻结工件的
-使用者；Public v1 的许可证、可下载工件和正式发布决定尚未完成。
+面向外部使用和后续发布的 `ContextWorld-v1` 是唯一的 ContextWorld-specific 数据根，提供
+九项任务的 Training 和 Development 数据；当前生成物仍处于本地 staging 状态。协议中的
+Public Test 是用于最终报告的冻结测试划分，当前不公开分发。Development 结果可用于模型
+开发和诊断，但不进入正式 scoreboard，也不构成 Public Test 结果。原始环境数据
+`quentinll` 仅用于原始模型训练与 CEM；私有
+`context_world` archive 仅用于显式的历史冻结复现，不是公开工作流的运行依赖。
 
 ## 1. 快速开始
 
-以下命令安装软件并检查本地已有工件；它们不会下载 Benchmark 数据或正式 checkpoint。
-完整评测需要使用者自备或获授权取得冻结工件，公共下载将在 Public v1 正式发布后另行提供。
-
-读取冻结数据并运行完整审计时安装 eval 依赖：
+以下命令安装软件，并对本地 `ContextWorld-v1` 运行公开 Development 评测；它们不会下载
+数据或模型检查点。
 
 ```bash
 pip install -e ".[eval]"
 
+export CONTEXTWORLD_BENCHMARK_ROOT=/path/to/ContextWorld-v1
 contextworld-benchmark info
-contextworld-benchmark results
-contextworld-benchmark audit --full
+
+python -m contextworld.benchmarks.external_model_cli \
+  --task action_strength \
+  --adapter prejepa \
+  --checkpoint /path/to/model.ckpt \
+  --model-name my-model \
+  --benchmark-root "$CONTEXTWORLD_BENCHMARK_ROOT" \
+  --evaluation-split development \
+  --output /path/to/development-result.json
 ```
 
 若只需要读取 YAML 配置并使用通用 adapter 接口，可安装核心包：`pip install -e .`。
 组件级 `load_*_release`、冻结数据读取、重评分和审计需要下述 eval 依赖。
 
-使用仓库内置的 LeWM 或 PLDM adapter 还需要安装 `pip install -e ".[stablewm]"`；该 extra
-已经包含 eval 依赖。评测时选择对应任务，并提供模型适配器和检查点。下面以 PushT
-推手移动幅度为例：
+使用仓库内置的 LeWM、PLDM 或 PreJEPA adapter 还需要安装 `pip install -e ".[stablewm]"`；
+该 extra 已经包含 eval 依赖。`external_model_cli` 的默认边界就是 Development；即使显式
+传入 `--evaluation-split public` 也会被拒绝，因为 Public Test 不包含在 `ContextWorld-v1` 中。
+
+以下任务专用命令仅用于获授权的历史 release 复现；它不是公开数据包的快速开始：
 
 ```bash
 contextworld-action-strength eval \
@@ -37,6 +48,10 @@ contextworld-action-strength eval \
   --model-name my-model \
   --output /path/to/result.json
 ```
+
+任务专用历史命令和本节的公开 CLI 服务于不同用途：前者可在获授权的历史冻结环境中复现
+既有证据，后者是当前对外开放的 Development 入口。不得把前者产生的历史 Public 数值与
+后者产生的 Development 结果合并为同一张正式榜单。
 
 内置 adapter 默认使用该任务 release 中登记的 Stable-WorldModel checkout 和 commit。如果
 源码位于其他目录，可用 `--stablewm-repo /path/to/stable-worldmodel` 指定位置；加载时仍会
@@ -124,11 +139,17 @@ x0 --u0--> x1 --u1--> x2（当前状态）--u2--> x3（真实下一状态）
   部分参考运行授权仍受 [Public v1 发布准备清单](ContextWorld_Public_v1_Release_Readiness.md)
   所列发布门限制。
 
-三个划分的场景、生成模板和查询哈希互不重叠。冻结测试集不应参与模型选择或反复调参。
+公开 `ContextWorld-v1` 包含 Training 和 Development。三个划分的场景、生成模板和查询
+哈希互不重叠；冻结测试集不应参与模型选择或反复调参，且当前不作为公开输入提供。
 
-TwoRoom 任务常用六个数据生成种子，每个种子生成 50 个场景，共 300 个不同的查询。这里的种子用于生成不同的位置、方向和房间结构，不是对同一个查询重复加噪声。
+Development 的公开选择由每个组件的 `task_registry.json` 固定，不按“50 × 6”统一抽样：
+Door 为 288 对，ActionDelay 为 300 对，Speed 为 288 个 history-utility cases，其余六项
+各为 256 对。Speed 的 Development 诊断比较 H3 完整历史与 current-frame-only 消融；它
+不是匹配反事实（matched counterfactual）评测，不能给出正式通过判定。
 
-PushT、Reacher 和传送门出口位置任务通常包含 256 对查询。每对查询各有两种隐藏条件，因此每个模型检查点需要完成 512 次条件预测。
+原始环境 CEM 使用单独的固定预算：6 个评测 seed × 每个 seed 50 次。这里的 seed 用于
+生成不同的位置、方向和环境结构，不是对同一个 query 重复加噪声；该预算不适用于上述
+Development ICL selection。
 
 ## 4. 评分方法
 
@@ -152,7 +173,11 @@ PushT、Reacher 和传送门出口位置任务通常包含 256 对查询。每�
 - 两种隐藏规律的配对任务：预测是否更接近当前规律对应的真实未来；
 - 门通行规则：预测是否更接近真实的“通过”或“被阻挡”结果；
 - 动作延迟：预测是否属于真实下一步对应的物理响应组；
-- 速度：由真实速度生成的历史是否同时优于另外两档速度历史。
+- 速度的历史冻结测试：由真实速度生成的历史是否同时优于另外两档速度历史。
+
+公开 Speed Development 不复用上述匹配测试指标，而是报告完整 H3 历史相对
+current-frame-only 消融的 prediction-error 改善。这是 history-utility diagnostic，不产生
+正式正确率或通过结论。
 
 本文中的 H1 指一步预测（one-step forecast）；例如速度任务的 H1 指对查询动作后的下一状态作出判断。
 
@@ -184,6 +209,11 @@ PushT、Reacher 和传送门出口位置任务通常包含 256 对查询。每�
 表中的“保持”表示结果没有超过该任务预注册的允许下降，不表示成功率完全没有下降。
 
 ## 5. 参考结果
+
+本节保留的是在获授权的历史冻结工件上得到的证据与数值，用于说明协议和已有工作，
+不是公开 `ContextWorld-v1` Development 运行的输出。除非结果明确标注为 Public Test，
+不得把表中的历史数值重新标记为公开结果；即使标注为 Public Test，它也不意味着 Public
+Test 已开放下载或可以由公开用户重跑。
 
 参考结果分为三类，回答三个不同问题：原始模型的 ICL 起点、原始环境的规划起点，以及训练
 后方法是否稳定学会目标规律。三类证据不能互相补足，也不能合并为总分：
@@ -750,12 +780,16 @@ adapter。接口提供：
 latent 维度、图像解码器、网络结构或深度学习框架。旧的按任务 adapter 类名只为兼容已有
 代码保留，不是新的集成要求。
 
-该接口目前是 Python scorer API 的公共边界。九个任务专用命令仍内置 `lewm` 和 `pldm`；
-通用评测模块 `python -m contextworld.benchmarks.external_model_cli` 还内置 `prejepa`，并要求
-调用者明确选择严格轨或诊断轨。其他外部模型应在 Python 中构造 adapter 并调用相应
-scorer；当前不提供任意自定义 adapter 的 CLI 插件加载。
+该接口目前是 Python scorer API 的公共边界。通用评测模块
+`python -m contextworld.benchmarks.external_model_cli` 内置 `prejepa`，也可加载符合接口的
+adapter；它只执行 `ContextWorld-v1` Development，不会回退到
+`CONTEXTWORLD_ARTIFACT_ROOT`。其他外部模型可把 `package.module:ClassName` 直接传给
+`--adapter`，或注册 `contextworld.adapters` entry point；也可以在 Python 中构造 adapter
+并直接调用相应 scorer。
 
-跨模型比较必须使用相同冻结测试集和相同查询 ID 的任务正确率。请勿直接比较不同模型的原始 latent MSE。
+跨模型比较必须使用同一组件、同一 Development selection 和同一 query ID 的任务正确率。
+Development 比较用于开发诊断，不得作为 Public Test 排名。请勿直接比较不同模型的原始
+latent MSE。
 
 ### 7.2 安装范围
 
@@ -777,11 +811,22 @@ pip install -e ".[dev]"
 运行时；正式 checkpoint 审计仍需要各任务 release 指定的 Stable-WorldModel 源码 checkout
 和 commit，以便按对应训练配置严格加载历史权重。
 
-## 8. 技术复现（需自备或获授权的冻结工件）
+## 8. 公开使用与历史复现
 
-### 8.1 结果文件
+### 8.1 公开 Training 与 Development
 
-完整结果应记录任务 release ID、冻结测试集 manifest SHA、代码版本、训练配方、三个训练种子、模型检查点 SHA、逐种子 ICL 正确率和原任务 CEM 状态。
+对外工作流只需要 `ContextWorld-v1`：它是唯一的 ContextWorld-specific 数据根。设置
+`CONTEXTWORLD_BENCHMARK_ROOT` 后，训练入口读取其 Training payload，
+`external_model_cli` 读取其登记的 Development payload。该工作流不读取
+`context_world`，也不会访问 Public Test。
+
+原始模型训练和 CEM 是另一个环境级工作流，需要独立的 `quentinll` 原始数据。CEM 的标准
+预算为 6 个 eval seed × 50 episodes；不要把这个预算误写为 Development ICL 的采样数。
+
+### 8.2 历史冻结复现（仅获授权使用者）
+
+历史冻结结果应记录任务 release ID、冻结测试集 manifest SHA、代码版本、训练配方、三个
+训练种子、模型检查点 SHA、逐种子 ICL 正确率和原任务 CEM 状态。
 
 统一结果文件可由机器可读规范生成：
 
@@ -791,10 +836,11 @@ contextworld-scoreboard \
   --output /path/to/scoreboard.json
 ```
 
-### 8.2 数据路径
+#### 历史数据路径
 
-以下路径是已获授权工件的本地配置示例，不是公共下载地址。从源码运行时，可通过环境变量
-指定 ContextWorld 产物和 Stable-WorldModel 上游数据：
+以下路径是已获授权的历史工件的本地配置示例，不是公共下载地址。只有明确复现第 5 节
+历史冻结证据时，才通过环境变量指定私有 `context_world` archive 和 Stable-WorldModel
+上游数据：
 
 ```bash
 export CONTEXTWORLD_ARTIFACT_ROOT=/path/to/contextworld-artifacts
@@ -809,7 +855,7 @@ export CONTEXTWORLD_REACHER_LEWM_INIT_CHECKPOINT=/path/to/reacher_lewm_weights.c
 export CONTEXTWORLD_REACHER_PLDM_INIT_CHECKPOINT=/path/to/reacher_pldm_weights.ckpt
 ```
 
-### 8.3 导出完整 Benchmark
+#### 历史导出格式
 
 ```bash
 contextworld-benchmark export \

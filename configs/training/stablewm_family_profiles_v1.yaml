@@ -14,6 +14,7 @@ defaults:
   frameskip: 5
   history_size: 3
   num_preds: 1
+  contextworld_num_workers_per_rank: 2
   logger: none
   resume: auto
 
@@ -30,6 +31,17 @@ comparison_recipe:
       so the ContextWorld cloud router raises it to 128 unless explicitly
       overridden. On fewer devices, increase gradient accumulation to retain
       the effective global batch.
+  benchmark_component_joint_scratch_v1:
+    task_checkpoint_initialization: none
+    original_weight: 0.5
+    synthetic_weight: 0.5
+    note: >-
+      All three built-in StableWM families train each component from their
+      native model initialization, never from an original-environment task
+      checkpoint. They share the registered ContextWorld-v1 payload,
+      original/synthetic mixture, task geometry, training seeds, epoch count,
+      batch size and post-training evaluation budget. Family-native backbones,
+      objectives and optimizers remain different by design.
 
 families:
   lewm:
@@ -144,55 +156,91 @@ benchmark_components:
     data_group: tworoom
     history_size: 3
     action_dim: 2
-    prejepa_model_inputs: [pixels, action]
+    model_inputs: [pixels, action]
+    joint_scratch_training:
+      payload_id: data
+      original_weight: 0.5
+      synthetic_weight: 0.5
   door:
     environment: tworoom
     data_group: tworoom
     history_size: 3
     action_dim: 2
-    prejepa_model_inputs: [pixels, action]
+    model_inputs: [pixels, action]
+    joint_scratch_training:
+      payload_id: data
+      original_weight: 0.5
+      synthetic_weight: 0.5
   action_delay:
     environment: tworoom
     data_group: tworoom
     history_size: 7
     action_dim: 2
-    prejepa_model_inputs: [pixels, action]
+    model_inputs: [pixels, action]
+    joint_scratch_training:
+      payload_id: full
+      original_weight: 0.5
+      synthetic_weight: 0.5
   portal_exit:
     environment: tworoom
     data_group: tworoom
     history_size: 3
     action_dim: 2
-    prejepa_model_inputs: [pixels, action]
+    model_inputs: [pixels, action]
+    joint_scratch_training:
+      payload_id: data
+      original_weight: 0.5
+      synthetic_weight: 0.5
   action_strength:
     environment: pusht
     data_group: pusht
     history_size: 3
     action_dim: 2
-    prejepa_model_inputs: [pixels, action]
+    model_inputs: [pixels, action]
+    joint_scratch_training:
+      payload_id: data
+      original_weight: 0.5
+      synthetic_weight: 0.5
   contact_friction:
     environment: pusht
     data_group: pusht
     history_size: 3
     action_dim: 2
-    prejepa_model_inputs: [pixels, action]
+    model_inputs: [pixels, action]
+    joint_scratch_training:
+      payload_id: data
+      original_weight: 0.5
+      synthetic_weight: 0.5
   motion_damping:
     environment: pusht
     data_group: pusht
     history_size: 3
     action_dim: 2
-    prejepa_model_inputs: [pixels, action]
+    model_inputs: [pixels, action]
+    joint_scratch_training:
+      payload_id: data
+      original_weight: 0.5
+      synthetic_weight: 0.5
   robot_arm_mass:
     environment: reacher
     data_group: dmc
     history_size: 3
     action_dim: 2
-    prejepa_model_inputs: [pixels, action]
+    model_inputs: [pixels, action]
+    joint_scratch_training:
+      payload_id: data
+      original_weight: 0.5
+      synthetic_weight: 0.5
   cube_gripper_carry:
     environment: cube
     data_group: ogb
     history_size: 3
     action_dim: 5
-    prejepa_model_inputs: [pixels, action]
+    model_inputs: [pixels, action]
+    joint_scratch_training:
+      payload_id: data
+      original_weight: 0.5
+      synthetic_weight: 0.5
 
 evaluation:
   entrypoint: scripts/plan/eval_wm.py

@@ -8,8 +8,10 @@ Development sources into a new directory.
 
 from __future__ import annotations
 
+import copy
 import hashlib
 import json
+import math
 import os
 import re
 import shutil
@@ -64,10 +66,196 @@ ALLOWED_SEQUENCE_SCHEMAS = {
     "native_episode_sequence_with_step_metadata_v1",
     "blocked_transition_projection_v1",
 }
+DEVELOPMENT_EVALUATION_SCHEMA_VERSION = "contextworld.development_evaluation.v1"
+DEVELOPMENT_EVALUATION_STATUS = "public_development_only"
+DEVELOPMENT_NORMALIZATION_TRANSFORM = "zscore"
+DEVELOPMENT_NORMALIZATION_ESTIMATORS = {"population", "unbiased"}
+TWOROOM_NORMALIZER_RELATIVE_PATH = "normalizers/tworoom_original_train_s3072.json"
+TWOROOM_NORMALIZER = {
+    "schema_version": 1,
+    "protocol": "tworoom_original_train_s3072_unbiased_zscore_v1",
+    "statistics_scope": "original_9000_train_episodes_only",
+    # Keep the public source label portable.  In particular, do not preserve
+    # the developer-machine absolute path from the historical artifact.
+    "source": "quentinll/tworoom.h5",
+    "source_sha256": "129a36aa93ea0de488d2bcc876e396de9e3907bf66c6aae6394e542ef6a6d623",
+    "rows": 828678,
+    "train_episode_ids_sha256": (
+        "0250d70f46d9fcaa61b3d6627b9048f498669fe69e261f8440e80f1879458325"
+    ),
+    "columns": {
+        "action": {
+            "mean": [0.0031402341986976924, -0.051594576296864605],
+            "std_unbiased": [0.867571689163936, 0.8688840167517821],
+            "valid_rows": 819678,
+        },
+        "proprio": {
+            "mean": [111.7950199284305, 85.03849594298646],
+            "std_unbiased": [36.85458874773545, 38.17356572449523],
+            "valid_rows": 828678,
+        },
+    },
+}
+TWOROOM_NORMALIZER_COMPONENTS = {"speed", "door", "action_delay"}
 
 
 class CleanExportError(RuntimeError):
     """The requested export is unsafe, incomplete, or ambiguous."""
+
+
+def _payload_id_for_target(target: str) -> str:
+    """Return the stable public payload id for one registered target."""
+
+    return Path(target).name.removesuffix(".lance")
+
+
+def _validate_development_evaluation(
+    component_id: str, component: dict[str, Any]
+) -> None:
+    """Validate the portable Development-only evaluator input contract.
+
+    The clean bundle intentionally withholds Public Test.  This small contract
+    tells a public evaluator exactly which already-distributed Development
+    payload and action normalization it may use, without requiring an internal
+    artifact tree or a release-config-relative file lookup.
+    """
+
+    evaluation = component.get("development_evaluation")
+    if not isinstance(evaluation, dict):
+        raise CleanExportError(
+            f"Missing development_evaluation contract: {component_id}"
+        )
+    if evaluation.get("schema_version") != DEVELOPMENT_EVALUATION_SCHEMA_VERSION:
+        raise CleanExportError(
+            f"Invalid development_evaluation schema: {component_id}"
+        )
+    if evaluation.get("status") != DEVELOPMENT_EVALUATION_STATUS:
+        raise CleanExportError(
+            f"Development evaluation must be public-development-only: {component_id}"
+        )
+    if evaluation.get("split") != "development":
+        raise CleanExportError(
+            f"Development evaluation must select the development split: {component_id}"
+        )
+    payload_id = evaluation.get("payload_id")
+    if not isinstance(payload_id, str) or not payload_id:
+        raise CleanExportError(
+            f"Development evaluation has no payload_id: {component_id}"
+        )
+    development_payload_ids = {
+        _payload_id_for_target(str(row["target"]))
+        for row in component["sources"]
+        if row["split"] == "development"
+    }
+    if payload_id not in development_payload_ids:
+        raise CleanExportError(
+            f"Development evaluation payload is not a registered development "
+            f"payload for {component_id}: {payload_id!r}"
+        )
+    normalizer_path = evaluation.get("normalizer_path")
+    if component_id in TWOROOM_NORMALIZER_COMPONENTS:
+        if normalizer_path != TWOROOM_NORMALIZER_RELATIVE_PATH:
+            raise CleanExportError(
+                f"TwoRoom Development evaluator has no portable normalizer: "
+                f"{component_id}"
+            )
+    elif normalizer_path is not None:
+        raise CleanExportError(
+            f"Only the frozen TwoRoom adapters may name a normalizer file: "
+            f"{component_id}"
+        )
+    if normalizer_path is not None:
+        _relative_path(str(normalizer_path), field="normalizer_path")
+    reader_id = evaluation.get("reader_id")
+    if not isinstance(reader_id, str) or not reader_id:
+        raise CleanExportError(
+            f"Development evaluation has no reader_id: {component_id}"
+        )
+    selection = evaluation.get("selection")
+    if not isinstance(selection, dict):
+        raise CleanExportError(
+            f"Development evaluation has no selection contract: {component_id}"
+        )
+    if not isinstance(selection.get("method"), str) or not selection["method"]:
+        raise CleanExportError(
+            f"Development selection has no method: {component_id}"
+        )
+    for field in ("selected_pair_count", "selected_case_count"):
+        if field not in selection:
+            continue
+        value = selection[field]
+        if not isinstance(value, int) or value < 1:
+            raise CleanExportError(
+                f"Invalid Development selection {field}: {component_id}"
+            )
+    expected = selection.get("expected_pair_count")
+    selected = selection.get("selected_pair_count")
+    if expected is not None and (
+        not isinstance(expected, int)
+        or expected < 1
+        or not isinstance(selected, int)
+        or selected > expected
+    ):
+        raise CleanExportError(
+            f"Invalid Development expected/selected pair counts: {component_id}"
+        )
+
+    input_contract = evaluation.get("input_contract")
+    if not isinstance(input_contract, dict):
+        raise CleanExportError(
+            f"Development evaluation has no input_contract: {component_id}"
+        )
+    if input_contract.get("context_streams") != ["pixels", "actions"]:
+        raise CleanExportError(
+            f"Development evaluator must receive pixels and actions: {component_id}"
+        )
+    if input_contract.get("history_length") != component["history_length"]:
+        raise CleanExportError(
+            f"Development history length disagrees with component: {component_id}"
+        )
+    if input_contract.get("action_block_raw_steps") != component["frameskip"]:
+        raise CleanExportError(
+            f"Development action block disagrees with component: {component_id}"
+        )
+    horizon = input_contract.get("prediction_horizon_action_blocks")
+    if horizon not in component["prediction_horizons_action_blocks"]:
+        raise CleanExportError(
+            f"Development prediction horizon is not registered: {component_id}"
+        )
+
+    normalization = evaluation.get("action_normalization")
+    if not isinstance(normalization, dict):
+        raise CleanExportError(
+            f"Development evaluation has no action_normalization: {component_id}"
+        )
+    if normalization.get("transform") != DEVELOPMENT_NORMALIZATION_TRANSFORM:
+        raise CleanExportError(
+            f"Unsupported Development action normalization: {component_id}"
+        )
+    if not isinstance(normalization.get("source"), str) or not normalization["source"]:
+        raise CleanExportError(
+            f"Development normalization has no source label: {component_id}"
+        )
+    if normalization.get("std_estimator") not in DEVELOPMENT_NORMALIZATION_ESTIMATORS:
+        raise CleanExportError(
+            f"Invalid Development normalization estimator: {component_id}"
+        )
+    for field, predicate in (
+        ("mean", lambda value: math.isfinite(value)),
+        ("std", lambda value: math.isfinite(value) and value > 0.0),
+    ):
+        values = normalization.get(field)
+        if (
+            not isinstance(values, list)
+            or len(values) != component["action_dimension"]
+            or any(
+                not isinstance(value, (int, float)) or not predicate(float(value))
+                for value in values
+            )
+        ):
+            raise CleanExportError(
+                f"Invalid Development normalization {field}: {component_id}"
+            )
 
 
 def _sha256(path: Path) -> str:
@@ -214,6 +402,7 @@ def load_export_contract(path: Path) -> dict[str, Any]:
             if target in targets:
                 raise CleanExportError(f"Duplicate export target: {target}")
             targets.add(target)
+        _validate_development_evaluation(component_id, component)
     return payload
 
 
@@ -477,6 +666,13 @@ The component directories use only `training/` and `development/`; internal
 names such as `history3`, `loader_validation`, and `recovery_v2` are retained
 only in provenance fields in `task_registry.json` and `manifest.jsonl`.
 
+The data contract is model-agnostic. LeWM, PLDM and PreJEPA are the reference
+Stable-WorldModel integrations shipped by ContextWorld, not an allow-list.
+Other models may consume the registered Training payloads through their own
+loader and implement `LatentWorldModelAdapter` for Development evaluation.
+Fields prefixed `stable_worldmodel_` describe only the bundled reference
+loader's physical-data requirements.
+
 `single_dataset_entrypoint` describes physical layout only. A payload is an
 exact `CW_DATASET` training input only when
 `direct_stable_worldmodel_load` is also true. Collection payloads need an
@@ -486,6 +682,36 @@ an episode side table for the pinned public loader. The Cube
 blocked-transition projection needs a separate raw-sequence adapter. Read the
 component card and registry before launching a model.
 """
+
+
+def _development_evaluation_record(
+    component: dict[str, Any], payloads: list[dict[str, Any]]
+) -> dict[str, Any]:
+    """Attach public payload paths to the portable Development contract."""
+
+    evaluation = copy.deepcopy(component["development_evaluation"])
+    matches = [
+        payload
+        for payload in payloads
+        if payload["split"] == evaluation["split"]
+        and payload["payload_id"] == evaluation["payload_id"]
+    ]
+    if len(matches) != 1:
+        raise CleanExportError(
+            "Development evaluation did not resolve to exactly one payload: "
+            f"{component['dataset_id']}"
+        )
+    payload = matches[0]
+    # The registry remains self-contained: an evaluator can resolve its
+    # Development input only from this release, without interpreting internal
+    # source paths or consulting a private artifact root.
+    evaluation["payload"] = {
+        "public_path": payload["public_path"],
+        "payload_kind": payload["payload_kind"],
+        "lance_table_count": payload["lance_table_count"],
+        "members": list(payload["members"]),
+    }
+    return evaluation
 
 
 def _build_export_plan_from_registered_paths(
@@ -543,7 +769,7 @@ def _build_export_plan_from_registered_paths(
             source_rows.append(
                 {
                     "split": row["split"],
-                    "payload_id": target.name.removesuffix(".lance"),
+                    "payload_id": _payload_id_for_target(target.as_posix()),
                     "public_path": target.as_posix(),
                     **inventory,
                     "single_dataset_path": single_dataset_path,
@@ -580,6 +806,9 @@ def _build_export_plan_from_registered_paths(
                 "release_config": component["release_config"],
                 "release_config_sha256": _sha256(release_path),
                 "payloads": source_rows,
+                "development_evaluation": _development_evaluation_record(
+                    component, source_rows
+                ),
             }
         )
     return {
@@ -633,6 +862,7 @@ def _generated_release_metadata(
     return {
         "README.md": _root_readme(plan["components"]).encode("utf-8"),
         "task_registry.json": _json_bytes(registry),
+        TWOROOM_NORMALIZER_RELATIVE_PATH: _json_bytes(TWOROOM_NORMALIZER),
         "VERSION.json": _json_bytes(
             {
                 "schema_version": 1,

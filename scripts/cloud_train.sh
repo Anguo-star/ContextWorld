@@ -69,18 +69,21 @@ if [ -z "${CW_DATA_ROOT:-}" ]; then
 fi
 
 # --- Data roots ------------------------------------------------------------
-# Three distinct trees live under the data root, and conflating them is the
+# Three distinct data trees live under the data root, and conflating them is the
 # failure this section exists to prevent:
 #
 #   <root>/data/world_model/quentinll/          original LeWM open data
+#   <root>/data/world_model/ContextWorld-v1/    public benchmark bundle
 #   <root>/data/world_model/context_world/      ContextWorld's own outputs
 #                             synthesis/          synthesized benchmark data
 #                             training/           checkpoints and run logs
 #                             upstream/           the SWM source checkout
 #
-# Original-task training reads the first. Benchmark training reads the second.
-# A single variable covering both would silently train on the wrong data, so
-# they are exported separately.
+# Original-task training reads the first. Current LeWM, PLDM and PreJEPA
+# component training plus every public post-training ICL suite read the clean
+# bundle; CEM continues to read the first tree. The internal tree is retained
+# only for an explicitly selected historical LeWM/PLDM release reproduction.
+# A single variable covering these roles would silently select the wrong data.
 #
 # CONTEXTWORLD_DATASET_ROOT is the directory a dataset name is resolved
 # against: `quentinll/tworoom.h5` hangs off data/world_model, so that is the
@@ -108,14 +111,79 @@ if [ "${CW_TASK:-}" = "original" ] && [ -z "${CW_DATASET:-}" ] && \
   esac
 fi
 
-# CONTEXTWORLD_ARTIFACT_ROOT is where ContextWorld reads synthesized data and
-# writes runs. Without it, contextworld.paths guesses from the checkout's
-# location (repo.parents[1]/data/world_model/context_world), which is wrong
-# whenever work_dir is not two levels below the data root -- exactly the
-# cloud's situation.
+# Current component runs default to the common ContextWorld-v1 joint-scratch
+# recipe. Historical LeWM/PLDM reproduction must be selected explicitly; it
+# is the only cloud route that still needs the private artifact tree.
+CW_TARGET="${CW_TASK:-${CW_COMPONENT:-}}"
+CW_TRAINING_TRACK="${CW_TRAINING_TRACK:-joint_scratch_v1}"
+case "$CW_TRAINING_TRACK" in
+  joint_scratch_v1|historical_release) ;;
+  *)
+    echo "[cloud-train] CW_TRAINING_TRACK must be joint_scratch_v1 or historical_release" >&2
+    exit 2
+    ;;
+esac
+export CW_TRAINING_TRACK
+HISTORICAL_RELEASE=0
+if [ "$CW_TRAINING_TRACK" = "historical_release" ]; then
+  HISTORICAL_RELEASE=1
+  if [ -z "$CW_TARGET" ] || [ "$CW_TARGET" = "original" ]; then
+    echo "[cloud-train] historical_release is valid only for a benchmark component" >&2
+    exit 2
+  fi
+  if [ "${CW_FAMILY:-lewm}" != "lewm" ] && \
+     [ "${CW_FAMILY:-lewm}" != "pldm" ]; then
+    echo "[cloud-train] historical_release exists only for LeWM and PLDM" >&2
+    exit 2
+  fi
+  if [ -n "${CW_DATASET:-}" ]; then
+    echo "[cloud-train] historical_release owns its dataset; omit CW_DATASET" >&2
+    exit 2
+  fi
+fi
+
+# The clean Hugging Face export is a multi-table benchmark bundle, not one
+# raw StableWM table. run_stablewm_train.py turns it into a lazy registered
+# dataset view for current component training and passes the same root to all
+# public Development ICL post-evaluation. Public Test remains closed.
+NEEDS_BENCHMARK_ROOT=0
+if [ "$HISTORICAL_RELEASE" = "0" ] && \
+   { [ "$POST_TRAIN_EVAL" = "1" ] || [ "$EVAL_ONLY" = "1" ] || \
+     { [ -n "$CW_TARGET" ] && [ "$CW_TARGET" != "original" ] && \
+       [ -z "${CW_DATASET:-}" ]; }; }; then
+  NEEDS_BENCHMARK_ROOT=1
+fi
+if [ -z "${CONTEXTWORLD_BENCHMARK_ROOT:-}" ] && \
+   [ "$NEEDS_BENCHMARK_ROOT" = "1" ] && \
+   [ -n "${CONTEXTWORLD_DATASET_ROOT:-}" ]; then
+  CONTEXTWORLD_BENCHMARK_ROOT="$CONTEXTWORLD_DATASET_ROOT/ContextWorld-v1"
+fi
+if [ -n "${CONTEXTWORLD_BENCHMARK_ROOT:-}" ]; then
+  case "$CONTEXTWORLD_BENCHMARK_ROOT" in
+    /*) ;;
+    *)
+      echo "[cloud-train] CONTEXTWORLD_BENCHMARK_ROOT must be absolute: $CONTEXTWORLD_BENCHMARK_ROOT" >&2
+      exit 2
+      ;;
+  esac
+  export CONTEXTWORLD_BENCHMARK_ROOT
+fi
+if [ "$NEEDS_BENCHMARK_ROOT" = "1" ]; then
+  if [ ! -f "${CONTEXTWORLD_BENCHMARK_ROOT:-}/task_registry.json" ] || \
+     [ ! -f "${CONTEXTWORLD_BENCHMARK_ROOT:-}/manifest.jsonl" ] || \
+     [ ! -f "${CONTEXTWORLD_BENCHMARK_ROOT:-}/manifest.sha256" ]; then
+    echo "[cloud-train] ContextWorld-v1 bundle is incomplete: ${CONTEXTWORLD_BENCHMARK_ROOT:-<unset>}" >&2
+    echo "[cloud-train] set CONTEXTWORLD_BENCHMARK_ROOT to the clean export root" >&2
+    exit 2
+  fi
+fi
+
+# CONTEXTWORLD_ARTIFACT_ROOT names the private historical archive. It is not
+# an input to current training or public Development evaluation. Keep its
+# path explicit for the frozen release launchers rather than letting
+# contextworld.paths infer a cloud-incorrect location from the checkout.
 if [ -z "${CONTEXTWORLD_ARTIFACT_ROOT:-}" ] && \
-   { [ "${CW_TASK:-}" != "original" ] || [ "$POST_TRAIN_EVAL" = "1" ] || \
-     [ "$EVAL_ONLY" = "1" ]; } && \
+   [ "$HISTORICAL_RELEASE" = "1" ] && \
    [ -n "${CW_DATA_ROOT:-}" ]; then
   CONTEXTWORLD_ARTIFACT_ROOT="$CW_DATA_ROOT/data/world_model/context_world"
 fi
@@ -123,11 +191,8 @@ if [ -n "${CONTEXTWORLD_ARTIFACT_ROOT:-}" ]; then
   export CONTEXTWORLD_ARTIFACT_ROOT
 fi
 
-# An original-data run does not read the ContextWorld artifact tree when its
-# dataset is supplied explicitly. Benchmark capability runs do.
-if { { [ "${CW_TASK:-}" != "original" ] && \
-       [ "${CW_FAMILY:-lewm}" != "prejepa" ]; } || \
-     [ "$POST_TRAIN_EVAL" = "1" ] || [ "$EVAL_ONLY" = "1" ]; } && \
+# Frozen release reproductions still read the private release artifact tree.
+if [ "$HISTORICAL_RELEASE" = "1" ] && \
    [ ! -d "${CONTEXTWORLD_ARTIFACT_ROOT:-}" ]; then
   echo "[cloud-train] benchmark artifact root does not exist: ${CONTEXTWORLD_ARTIFACT_ROOT:-<unset>}" >&2
   echo "[cloud-train] set CONTEXTWORLD_ARTIFACT_ROOT to the context_world directory" >&2
@@ -139,8 +204,6 @@ fi
 # source checkout -- the pip-installed package does not ship it.
 if [ -z "${CONTEXTWORLD_STABLE_WORLDMODEL_REPO:-}" ]; then
   for candidate in \
-    "${CONTEXTWORLD_ARTIFACT_ROOT:-}/upstream/stable-worldmodel-875e607fc08aa72e" \
-    "${CW_DATA_ROOT:-}/data/world_model/context_world/upstream/stable-worldmodel-875e607fc08aa72e" \
     "${CW_DATA_ROOT:-}/pkg_x86/stable-worldmodel" \
     "${CW_DATA_ROOT:-}/code/stable-worldmodel"
   do
@@ -151,19 +214,33 @@ if [ -z "${CONTEXTWORLD_STABLE_WORLDMODEL_REPO:-}" ]; then
     fi
   done
 fi
+if [ -z "${CONTEXTWORLD_STABLE_WORLDMODEL_REPO:-}" ] && \
+   [ "$HISTORICAL_RELEASE" = "1" ]; then
+  for candidate in \
+    "${CONTEXTWORLD_ARTIFACT_ROOT:-}/upstream/stable-worldmodel-875e607fc08aa72e" \
+    "${CW_DATA_ROOT:-}/data/world_model/context_world/upstream/stable-worldmodel-875e607fc08aa72e"
+  do
+    if [ -d "$candidate/scripts/train" ]; then
+      CONTEXTWORLD_STABLE_WORLDMODEL_REPO="$candidate"
+      export CONTEXTWORLD_STABLE_WORLDMODEL_REPO
+      break
+    fi
+  done
+fi
 
 # --- Explicit dataset and checkpoint paths ---------------------------------
-# CW_DATASET names the exact dataset for an original-task run.  It is routed
-# all the way to Stable-WorldModel; it is not merely printed in the banner.
+# CW_DATASET names an exact custom dataset. It is routed all the way to
+# Stable-WorldModel; standard current component runs should omit it so the
+# manifest-bound ContextWorld-v1 view is selected.
 if [ -n "${CW_DATASET:-}" ]; then
   case "$CW_DATASET" in
-    /*) ;;
+    /*|contextworld://v1/*) ;;
     *)
       echo "[cloud-train] CW_DATASET must be an absolute path: $CW_DATASET" >&2
       exit 2
       ;;
   esac
-  if [ ! -e "$CW_DATASET" ]; then
+  if [[ "$CW_DATASET" != contextworld://v1/* ]] && [ ! -e "$CW_DATASET" ]; then
     echo "[cloud-train] dataset does not exist: $CW_DATASET" >&2
     exit 2
   fi
@@ -215,13 +292,11 @@ if [ "${CW_TASK:-}" = "original" ]; then
   fi
 fi
 
-# The public family-profile entry handles original runs for all three
-# families and benchmark PreJEPA runs. Both write real Stable-WorldModel
-# checkpoints and therefore require an explicit storage root. Frozen LeWM /
-# PLDM component launchers retain their own registered output contracts.
-if { [ "${CW_TASK:-}" = "original" ] || \
-     [ "${CW_FAMILY:-lewm}" = "prejepa" ]; } && \
-   [ -z "${STABLEWM_HOME:-}" ]; then
+# The current family-profile entry handles original and component runs for all
+# three built-in families. They write real Stable-WorldModel checkpoints and
+# therefore require an explicit storage root. Frozen historical launchers
+# retain their own registered output contracts.
+if [ "$HISTORICAL_RELEASE" = "0" ] && [ -z "${STABLEWM_HOME:-}" ]; then
   echo "[cloud-train] StableWM profile training needs CW_CHECKPOINT_ROOT or STABLEWM_HOME" >&2
   exit 2
 fi
@@ -245,12 +320,14 @@ echo "[cloud-train] checkout=$ROOT"
 echo "[cloud-train] umbrella data root=${CW_DATA_ROOT:-<not needed>}"
 echo "[cloud-train] stablewm=${CONTEXTWORLD_STABLE_WORLDMODEL_REPO:-<unset>}"
 echo "[cloud-train] original dataset=${CW_DATASET:-<selected from ${CONTEXTWORLD_DATASET_ROOT:-upstream defaults}>}"
-echo "[cloud-train] contextworld data=${CONTEXTWORLD_ARTIFACT_ROOT:-<not needed>}"
+echo "[cloud-train] benchmark bundle=${CONTEXTWORLD_BENCHMARK_ROOT:-<not needed>}"
+echo "[cloud-train] historical artifact archive=${CONTEXTWORLD_ARTIFACT_ROOT:-<not needed>}"
 echo "[cloud-train] checkpoint root=${STABLEWM_HOME:-<upstream default>}"
 echo "[cloud-train] spt cache=${SPT_CACHE_DIR:-<upstream default>}"
 echo "[cloud-train] run output=${CW_OUTPUT:-<launcher default>}"
 echo "[cloud-train] hf_cache=${HF_HUB_CACHE:-<default>} offline=${HF_HUB_OFFLINE:-0}"
 echo "[cloud-train] logger=${CW_LOGGER:-none}"
+echo "[cloud-train] training_track=$CW_TRAINING_TRACK"
 echo "[cloud-train] post_train_eval=$POST_TRAIN_EVAL"
 echo "[cloud-train] eval_only=$EVAL_ONLY"
 echo "[cloud-train] eval_result_subdir=${CW_EVAL_RESULT_SUBDIR:-<default>}"
@@ -261,7 +338,7 @@ if [ "${CW_LOGGER:-none}" = "swanlab" ]; then
   echo "[cloud-train] swanlab auth=python-sdk-before-training mode=${CW_SWANLAB_MODE:-cloud}"
 fi
 
-# Every cloud training request has one public Python entry. For a historical
+# Every cloud training request has one public Python entry. For an explicit historical
 # release reproduction, run_stablewm_train.py selects the frozen task recipe
 # internally; it does not start a second router process.
 if [ "${CW_TASK:-}" != "original" ]; then

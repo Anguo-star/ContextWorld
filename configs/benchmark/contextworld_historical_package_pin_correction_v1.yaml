@@ -1,0 +1,53 @@
+schema_version: 1
+correction_id: contextworld_historical_package_pin_correction_v1
+status: accepted_metadata_correction
+decision_date: "2026-08-24"
+
+scope:
+  classification_only: true
+  historical_files_rewritten: false
+  model_results_changed: false
+  public_test_access_changed: false
+  training_or_evaluation_reexecuted: false
+
+finding:
+  invalid_sha256: 6230a42991756cf4d740e6c9f5263f7687a3b6af67b8ca9ba5c02b9cbe85311a
+  path: pyproject.toml
+  classification: historical_package_pin_unrecoverable
+  explanation: >-
+    The invalid value was first committed in dc09c27 even though that commit's
+    pyproject.toml has SHA-256 a71d469b. The invalid value is not the SHA-256 of
+    pyproject.toml in any reachable repository commit. It must not be replaced
+    with the current checkout hash, because doing so would falsely rewrite the
+    historical execution identity.
+  introduction_commit: dc09c275336b03102b022614f3911150577a278d
+  actual_sha256_at_introduction_commit: a71d469b9ff90bd52f0971907a0d46e3614937208b2bec87cd7cbb548eb599de
+  current_checkout_equality_required: false
+  role_after_correction: historical_packaging_metadata_not_runtime_source
+
+affected_records:
+  - component: door
+    config:
+      path: configs/benchmark/tworoom_door_icl_release_v1.yaml
+      sha256: 392186f5a11dd39eccc719251b60a2e8baf2c00451ee05ce6d7a7e831ce6cf20
+      size_bytes: 13694
+    field: runtime.contextworld.source_sha256.pyproject.toml
+  - component: action_delay
+    config:
+      path: configs/benchmark/tworoom_action_delay_icl_release_v1.yaml
+      sha256: 6ca831dca5c976e1408e5df4d972d92c5ae1d08e2a2ed49adcdeb13d44b39ba7
+      size_bytes: 15815
+    field: identity.package.sha256
+
+predecessor_binding:
+  integrity_reseal_v2_decision:
+    path: configs/benchmark/contextworld_icl_suite_v2_integrity_reseal_decision_v2.json
+    sha256: 086c86724b1e47710d12e0901157442e43848f5f746dce8629edc5b2e9ec8262
+    size_bytes: 22330
+
+current_public_boundary:
+  data_root: ContextWorld-v1
+  old_context_world_required: false
+  historical_component_configs_used_as_runtime_inputs: false
+  public_test_included: false
+  development_results_are_formal_public_scores: false

@@ -463,13 +463,14 @@ class TestTheCloudContract:
         for exported in (
             "CONTEXTWORLD_STABLE_WORLDMODEL_REPO",
             "CONTEXTWORLD_DATASET_ROOT",
+            "CONTEXTWORLD_BENCHMARK_ROOT",
             "HF_HUB_CACHE",
         ):
             assert f"export {exported}" in text or (
                 f": \"${{{exported}" in text
             ), exported
 
-    def test_it_separates_the_original_and_contextworld_data_roots(
+    def test_it_separates_original_bundle_and_internal_data_roots(
         self,
     ) -> None:
         """Original LeWM data and ContextWorld's own outputs are different
@@ -479,7 +480,9 @@ class TestTheCloudContract:
         text = (SCRIPTS / "cloud_train.sh").read_text(encoding="utf-8")
 
         assert "CONTEXTWORLD_DATASET_ROOT" in text
+        assert "CONTEXTWORLD_BENCHMARK_ROOT" in text
         assert "CONTEXTWORLD_ARTIFACT_ROOT" in text
+        assert "export CONTEXTWORLD_BENCHMARK_ROOT" in text
         assert "export CONTEXTWORLD_ARTIFACT_ROOT" in text
 
     def test_the_artifact_root_is_not_left_to_inference(self) -> None:
@@ -491,13 +494,14 @@ class TestTheCloudContract:
 
         assert "benchmark artifact root does not exist" in text
 
-    def test_the_two_roots_are_reported_distinctly(self) -> None:
+    def test_the_three_roots_are_reported_distinctly(self) -> None:
         """An operator reading the log should see which is which."""
 
         text = (SCRIPTS / "cloud_train.sh").read_text(encoding="utf-8")
 
         assert "original data" in text
-        assert "contextworld data" in text
+        assert "benchmark bundle" in text
+        assert "historical artifact archive" in text
 
     def test_an_explicit_data_root_is_honoured(self) -> None:
         """A user who sets CW_DATA_ROOT is trusted; detection is skipped."""
@@ -545,6 +549,10 @@ class TestTheCloudContract:
         (stablewm / "scripts/train/config/prejepa.yaml").write_text(
             "trainer:\n  max_epochs: 10\n", encoding="utf-8"
         )
+        benchmark_root = tmp_path / "ContextWorld-v1"
+        benchmark_root.mkdir()
+        for filename in ("task_registry.json", "manifest.jsonl", "manifest.sha256"):
+            (benchmark_root / filename).write_text("{}\n", encoding="utf-8")
         checkpoint_root = tmp_path / "checkpoints"
         environment = dict(os.environ)
         for name in (
@@ -561,7 +569,9 @@ class TestTheCloudContract:
                 "CW_ENV": "tworoom",
                 "CW_FAMILY": "prejepa",
                 "CW_PRINT_ONLY": "1",
+                "CW_POST_TRAIN_EVAL": "1",
                 "CW_DATASET": str(dataset),
+                "CONTEXTWORLD_BENCHMARK_ROOT": str(benchmark_root),
                 "CW_CHECKPOINT_ROOT": f"{checkpoint_root}/",
                 "STABLEWM_HOME": f"{checkpoint_root}/.",
                 "SPT_CACHE_DIR": f"{checkpoint_root}//",
@@ -583,8 +593,10 @@ class TestTheCloudContract:
         assert f"original dataset={dataset}" in completed.stdout
         assert f"checkpoint root={checkpoint_root}" in completed.stdout
         assert f"spt cache={checkpoint_root}" in completed.stdout
-        assert "contextworld data=<not needed>" in completed.stdout
+        assert f"benchmark bundle={benchmark_root}" in completed.stdout
+        assert "historical artifact archive=<not needed>" in completed.stdout
         assert f"dataset_name={dataset}" in completed.stdout
+        assert f"--benchmark-root {benchmark_root}" in completed.stdout
 
     def test_one_dataset_root_selects_the_original_file_by_environment(
         self, tmp_path: Path
@@ -728,6 +740,7 @@ class TestTheCloudContract:
             {
                 "CW_TASK": "door",
                 "CW_FAMILY": "pldm",
+                "CW_TRAINING_TRACK": "historical_release",
                 "CW_SEEDS": "3072",
                 "CW_PRINT_ONLY": "1",
                 "CONTEXTWORLD_ARTIFACT_ROOT": str(artifact_root),

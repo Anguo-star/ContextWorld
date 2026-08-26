@@ -1,9 +1,9 @@
-"""External models must reach the frozen protocol without disturbing it.
+"""The external evaluator must stay on the public Development boundary.
 
 Two things are being pinned here, and the second matters more than the first.
 
 The first is that the external entry point works: every task is reachable, the
-adapter comes from the registry, and the result is labelled unofficial.
+adapter comes from the registry, and the result is explicitly Development-only.
 
 The second is that the frozen task CLIs stay frozen.  Each release
 configuration records the ``sha256`` of the sources that produced its numbers,
@@ -17,6 +17,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 from pathlib import Path
 from typing import Any
 
@@ -27,7 +28,6 @@ from contextworld.benchmarks import external_model_cli
 from contextworld.benchmarks.adapter_registry import AdapterRequest
 from contextworld.benchmarks.adapters import LatentWorldModelAdapter
 from contextworld.benchmarks.external_model_cli import (
-    DIAGNOSTIC_RESULT_KIND,
     RESULT_KIND,
     TASKS,
     _BUILTIN_FAMILIES,
@@ -38,6 +38,9 @@ from contextworld.benchmarks.external_model_cli import (
 
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG_DIR = ROOT / "configs/benchmark"
+PACKAGE_PIN_CORRECTION = (
+    CONFIG_DIR / "contextworld_historical_package_pin_correction_v1.yaml"
+)
 
 
 class TestTaskBindings:
@@ -234,14 +237,10 @@ class TestRequestConstruction:
 
 
 class TestResultLabelling:
-    def test_result_is_stamped_unofficial(
+    def test_result_is_stamped_development_only(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         binding = TASKS["speed"]
-        monkeypatch.setattr(
-            type(binding), "load_release",
-            lambda self: {"release_id": "frozen-speed-v1"},
-        )
         monkeypatch.setattr(
             type(binding), "load_builtins", lambda self: {}
         )
@@ -249,12 +248,12 @@ class TestResultLabelling:
             external_model_cli, "build_adapter", lambda *a, **k: object()
         )
         monkeypatch.setattr(
-            external_model_cli, "build_request", lambda *a, **k: None
+            external_model_cli, "build_development_request", lambda *a, **k: None
         )
         monkeypatch.setattr(
-            type(binding),
-            "load_scorer",
-            lambda self: (lambda **kwargs: {"icl_score": 0.5}),
+            external_model_cli,
+            "evaluate_bundle_development_model",
+            lambda **kwargs: {"metrics": {"icl_score": 0.5}},
         )
 
         payload = external_model_cli.run(
@@ -269,34 +268,33 @@ class TestResultLabelling:
                 device="cpu",
                 stablewm_repo=None,
                 stablewm_ref=None,
+                benchmark_root="/tmp/ContextWorld-v1",
+                evaluation_split="development",
             )
         )
-        assert payload["result_kind"] == RESULT_KIND == "external_unofficial"
+        assert payload["result_kind"] == RESULT_KIND == "development_only_not_public_test"
         assert payload["official_scoreboard_row"] is False
-        assert payload["release_id"] == "frozen-speed-v1"
-        # The scorer's payload is nested, never spread into the envelope, so
-        # an external result cannot be replayed as a frozen submission.
-        assert payload["result"] == {"icl_score": 0.5}
+        # The evaluator payload is nested, never spread into the envelope, so
+        # a Development result cannot be replayed as a held-out result.
+        assert payload["result"] == {"metrics": {"icl_score": 0.5}}
         assert "icl_score" not in payload
+        assert "not a held-out Public Test score" in payload["note"]
 
-    def test_normalized_zero_result_is_stamped_diagnostic(
+    def test_normalized_zero_result_stays_development_only(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         binding = TASKS["speed"]
-        monkeypatch.setattr(
-            type(binding), "load_release", lambda self: {"release_id": "speed-v1"}
-        )
         monkeypatch.setattr(type(binding), "load_builtins", lambda self: {})
         monkeypatch.setattr(
             external_model_cli, "build_adapter", lambda *a, **k: object()
         )
         monkeypatch.setattr(
-            external_model_cli, "build_request", lambda *a, **k: None
+            external_model_cli, "build_development_request", lambda *a, **k: None
         )
         monkeypatch.setattr(
-            type(binding),
-            "load_scorer",
-            lambda self: (lambda **kwargs: {"icl_score": 0.5}),
+            external_model_cli,
+            "evaluate_bundle_development_model",
+            lambda **kwargs: {"metrics": {"icl_score": 0.5}},
         )
 
         payload = external_model_cli.run(
@@ -311,12 +309,14 @@ class TestResultLabelling:
                 device="cpu",
                 stablewm_repo=None,
                 stablewm_ref=None,
+                benchmark_root="/tmp/ContextWorld-v1",
+                evaluation_split="development",
                 prejepa_missing_context_policy="normalized_zero",
                 history_adapter="native",
             )
         )
 
-        assert payload["result_kind"] == DIAGNOSTIC_RESULT_KIND
+        assert payload["result_kind"] == RESULT_KIND
         assert payload["official_scoreboard_row"] is False
         assert payload["diagnostic"] == {
             "classification": "diagnostic",
@@ -325,51 +325,33 @@ class TestResultLabelling:
             "history_adapter": "native",
         }
 
-    def test_development_split_uses_only_the_development_scorer(
+    def test_public_split_is_rejected_before_model_or_data_access(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        binding = TASKS["contact_friction"]
         monkeypatch.setattr(
-            type(binding), "load_release", lambda self: {"release_id": "friction-v1"}
-        )
-        monkeypatch.setattr(type(binding), "load_builtins", lambda self: {})
-        monkeypatch.setattr(
-            external_model_cli, "build_adapter", lambda *a, **k: object()
-        )
-        monkeypatch.setattr(
-            external_model_cli, "build_request", lambda *a, **k: None
-        )
-        monkeypatch.setattr(
-            type(binding),
-            "load_scorer",
-            lambda self: (_ for _ in ()).throw(
-                AssertionError("Public scorer must remain closed")
+            external_model_cli,
+            "build_adapter",
+            lambda *a, **k: (_ for _ in ()).throw(
+                AssertionError("Public Test must be rejected before adapter build")
             ),
         )
-        monkeypatch.setattr(
-            type(binding),
-            "load_development_scorer",
-            lambda self: (lambda **kwargs: {"split": "development"}),
-        )
-
-        payload = external_model_cli.run(
-            argparse.Namespace(
-                task="contact_friction",
-                adapter="pkg:Cls",
-                model_name="my-model",
-                training_recipe="external_method",
-                training_seed=None,
-                batch_size=8,
-                checkpoint=Path("/tmp/x.pt"),
-                device="cpu",
-                stablewm_repo=None,
-                stablewm_ref=None,
-                evaluation_split="development",
+        with pytest.raises(ValueError, match="Public Test is not available"):
+            external_model_cli.run(
+                argparse.Namespace(
+                    task="contact_friction",
+                    adapter="pkg:Cls",
+                    model_name="my-model",
+                    training_recipe="external_method",
+                    training_seed=None,
+                    batch_size=8,
+                    checkpoint=Path("/tmp/x.pt"),
+                    device="cpu",
+                    stablewm_repo=None,
+                    stablewm_ref=None,
+                    benchmark_root="/tmp/ContextWorld-v1",
+                    evaluation_split="public",
+                )
             )
-        )
-
-        assert payload["evaluation_split"] == "development"
-        assert payload["result"] == {"split": "development"}
 
     def test_speed_receives_its_three_batch_sizes(self) -> None:
         keywords = external_model_cli._scorer_keywords(
@@ -401,6 +383,35 @@ class TestResultLabelling:
         assert keywords["batch_size"] == 16
         assert keywords["training_recipe"] == "r"
         assert "encode_batch_size" not in keywords
+
+    def test_public_adapter_cache_never_falls_back_to_private_artifacts(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        checkpoint = tmp_path / "checkpoints" / "run" / "weights.pt"
+        checkpoint.parent.mkdir(parents=True)
+        checkpoint.write_bytes(b"checkpoint")
+        monkeypatch.setenv(
+            "CONTEXTWORLD_ARTIFACT_ROOT", "/private/context_world"
+        )
+        monkeypatch.delenv("CONTEXTWORLD_MODEL_CACHE_ROOT", raising=False)
+        monkeypatch.delenv("STABLEWM_HOME", raising=False)
+        args = argparse.Namespace(checkpoint=checkpoint)
+
+        expected = tmp_path / ".contextworld-eval-cache"
+        with external_model_cli._public_model_cache_scope(args) as cache_root:
+            assert cache_root == expected
+            assert Path(os.environ["CONTEXTWORLD_ARTIFACT_ROOT"]) == expected
+
+        assert os.environ["CONTEXTWORLD_ARTIFACT_ROOT"] == "/private/context_world"
+
+    def test_public_adapter_cache_override_must_be_absolute(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("CONTEXTWORLD_MODEL_CACHE_ROOT", "relative/cache")
+        with pytest.raises(ValueError, match="must be absolute"):
+            external_model_cli._public_model_cache_root(
+                argparse.Namespace(checkpoint=tmp_path / "weights.pt")
+            )
 
 
 class TestArgumentParsing:
@@ -481,6 +492,27 @@ def _release_configs_with_source_pins() -> list[tuple[Path, dict[str, str]]]:
     return found
 
 
+def _corrected_non_runtime_package_pins() -> dict[str, str]:
+    payload = yaml.safe_load(PACKAGE_PIN_CORRECTION.read_text(encoding="utf-8"))
+    assert payload["status"] == "accepted_metadata_correction"
+    assert payload["scope"] == {
+        "classification_only": True,
+        "historical_files_rewritten": False,
+        "model_results_changed": False,
+        "public_test_access_changed": False,
+        "training_or_evaluation_reexecuted": False,
+    }
+    invalid = payload["finding"]["invalid_sha256"]
+    assert payload["finding"]["role_after_correction"] == (
+        "historical_packaging_metadata_not_runtime_source"
+    )
+    return {
+        row["config"]["path"]: invalid
+        for row in payload["affected_records"]
+        if row["field"] == "runtime.contextworld.source_sha256.pyproject.toml"
+    }
+
+
 def test_release_configs_with_source_pins_are_discoverable() -> None:
     """Guards the guard: an empty sweep would make the next test vacuous."""
 
@@ -488,6 +520,21 @@ def test_release_configs_with_source_pins_are_discoverable() -> None:
         "no release configuration exposed runtime.contextworld.source_sha256; "
         "the frozen-source check below would silently verify nothing"
     )
+
+
+def test_historical_package_pin_correction_binds_unchanged_predecessors() -> None:
+    payload = yaml.safe_load(PACKAGE_PIN_CORRECTION.read_text(encoding="utf-8"))
+    records = [
+        row["config"] for row in payload["affected_records"]
+    ] + [payload["predecessor_binding"]["integrity_reseal_v2_decision"]]
+    for record in records:
+        path = ROOT / record["path"]
+        assert path.is_file()
+        assert path.stat().st_size == record["size_bytes"]
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == record["sha256"]
+    assert payload["finding"]["invalid_sha256"] != payload["finding"][
+        "actual_sha256_at_introduction_commit"
+    ]
 
 
 @pytest.mark.parametrize(
@@ -505,8 +552,18 @@ def test_frozen_release_source_pins_still_match(config_path: Path) -> None:
     """
 
     pins = dict(_release_configs_with_source_pins())[config_path]
+    corrected_package_pins = _corrected_non_runtime_package_pins()
+    config_relative = config_path.relative_to(ROOT).as_posix()
     drifted = []
     for relative, expected in pins.items():
+        if (
+            relative == "pyproject.toml"
+            and corrected_package_pins.get(config_relative) == expected
+        ):
+            # This exact impossible historical packaging pin is preserved in
+            # the predecessor YAML but no longer misclassified as executable
+            # runtime source. The correction record is hash-bound above.
+            continue
         source = ROOT / relative
         if not source.is_file():
             drifted.append(f"{relative}: missing from the checkout")

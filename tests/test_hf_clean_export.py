@@ -12,6 +12,7 @@ import yaml
 from contextworld.benchmarks.hf_clean_export import (
     CleanExportError,
     EXPECTED_COMPONENTS,
+    TWOROOM_NORMALIZER_RELATIVE_PATH,
     build_export_plan,
     export_hf_clean,
     refresh_hf_clean_metadata,
@@ -143,6 +144,46 @@ def test_clean_export_contains_only_registered_training_and_development(
             assert "stable_worldmodel_sequence_schema" in payload
             assert "source" not in payload
             assert "source_logical_path" in payload["provenance"]
+        development = component["development_evaluation"]
+        assert development["status"] == "public_development_only"
+        assert development["split"] == "development"
+        assert development["payload"]["public_path"].startswith(
+            f"components/{component['dataset_id']}/v1/development/"
+        )
+        assert development["payload"]["members"]
+        normalization = development["action_normalization"]
+        assert normalization["transform"] == "zscore"
+        assert len(normalization["mean"]) == component["action_dimension"]
+        assert len(normalization["std"]) == component["action_dimension"]
+        assert all(value > 0.0 for value in normalization["std"])
+
+    by_id = {component["component_id"]: component for component in registry["components"]}
+    action_delay = by_id["action_delay"]["development_evaluation"]
+    assert action_delay["payload_id"] == "full"
+    assert action_delay["selection"] == {
+        "reference_condition": 0,
+        "contrasts": list(range(1, 11)),
+        "profiles": 6,
+        "pairs_per_contrast_per_profile": 5,
+        "selected_pair_count": 300,
+        "method": "lexicographic_first_episode_ids_v1",
+    }
+    for component_id in ("speed", "door", "action_delay"):
+        assert (
+            by_id[component_id]["development_evaluation"]["normalizer_path"]
+            == TWOROOM_NORMALIZER_RELATIVE_PATH
+        )
+    normalizer = json.loads(
+        (output / TWOROOM_NORMALIZER_RELATIVE_PATH).read_text(encoding="utf-8")
+    )
+    assert normalizer["protocol"] == "tworoom_original_train_s3072_unbiased_zscore_v1"
+    assert normalizer["statistics_scope"] == "original_9000_train_episodes_only"
+    assert normalizer["columns"]["action"]["std_unbiased"] == pytest.approx(
+        [0.867571689163936, 0.8688840167517821]
+    )
+    assert normalizer["columns"]["proprio"]["std_unbiased"] == pytest.approx(
+        [36.85458874773545, 38.17356572449523]
+    )
 
     speed_card = (
         output / "components/tworoom-speed/v1/component_card.md"

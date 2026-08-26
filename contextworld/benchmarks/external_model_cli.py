@@ -1,29 +1,18 @@
-"""Evaluate a model ContextWorld has never seen.
+"""Evaluate a model ContextWorld has never seen on public Development data.
 
-Why this is a separate entry point
-----------------------------------
+The command reads only the clean ``ContextWorld-v1`` bundle: its Training and
+Development payloads are public, while Public Test remains intentionally
+withheld.  This is therefore a reproducible Development evaluator for outside
+model families, not a way to reproduce or mint a frozen Public Test result.
 
-Every task CLI is hash-pinned.  Its ``sha256`` is recorded in the frozen
-release configuration that governs the task, and each of those configurations
-also declares ``runtime.supported_adapters`` -- the exact model families whose
-published numbers that CLI produced.  Editing a task CLI to accept a third
-model would invalidate the pin and contradict the frozen declaration, which is
-the governance working correctly: the published numbers were produced by those
-bytes and should keep meaning that.
+Historical task CLIs remain hash-pinned because they are part of published
+provenance. This entry point is deliberately separate and unpinned. It can
+reuse their model-independent metric kernels, but reconstructs inputs from the
+public bundle and never falls back to ``CONTEXTWORLD_ARTIFACT_ROOT``.
 
-So external models get their own door rather than a wider one cut into the
-frozen path.  Nothing here is on a published result's provenance chain: the
-task CLIs, scorers and release configurations are untouched and unpinned by
-this module.  What it reuses is the frozen source of truth -- it reads each
-task's release configuration for geometry and action normalization, and calls
-that task's existing scorer -- so an external model is evaluated under exactly
-the same protocol as the baselines, without being able to alter it.
-
-Ordinary results are labelled ``external_unofficial``.  An explicitly selected
-missing-context diagnostic is labelled ``external_diagnostic_non_frozen_v1``.
-Neither form can mint an official scoreboard row: that requires the
-preregistration and freeze path, and a convenience CLI must not be able to
-shortcut it.
+Every result is labelled ``development_only_not_public_test`` and has no
+formal pass or official-scoreboard status. An explicit missing-context PreJEPA
+run is an additional diagnostic within that same Development boundary.
 
 Usage
 -----
@@ -34,6 +23,7 @@ Usage
         --adapter my_package.adapter:MyWorldModel \\
         --checkpoint /path/to/weights.pt \\
         --model-name my-world-model \\
+        --benchmark-root /absolute/path/to/ContextWorld-v1 \\
         --output result.json
 
 ``--adapter`` accepts an import path, an installed ``contextworld.adapters``
@@ -47,14 +37,23 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
+from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any, Callable, Iterator
 
 from contextworld.benchmarks.adapter_registry import (
     AdapterRequest,
     add_adapter_argument,
     build_adapter,
+)
+from contextworld.benchmarks.bundle_development import (
+    DEVELOPMENT_RESULT_KIND,
+    development_action_normalization,
+    development_action_normalizer_path,
+    evaluate_bundle_development_model,
+    resolve_development_payload,
 )
 from contextworld.paths import repository_root, resolve_contextworld_path
 from contextworld.synthesis.manifest import write_json
@@ -62,8 +61,10 @@ from contextworld.synthesis.manifest import write_json
 
 ROOT = repository_root()
 
-RESULT_KIND = "external_unofficial"
+RESULT_KIND = DEVELOPMENT_RESULT_KIND
 DIAGNOSTIC_RESULT_KIND = "external_diagnostic_non_frozen_v1"
+_ARTIFACT_ROOT_ENV = "CONTEXTWORLD_ARTIFACT_ROOT"
+_MODEL_CACHE_ROOT_ENV = "CONTEXTWORLD_MODEL_CACHE_ROOT"
 
 
 @dataclass(frozen=True)
@@ -401,46 +402,166 @@ def _scorer_keywords(
     return keywords
 
 
-def run(args: argparse.Namespace) -> dict[str, Any]:
-    _validate_diagnostic_options(args)
-    binding = TASKS[args.task]
-    release = binding.load_release()
-    adapter = build_adapter(
-        args.adapter,
-        builtins=_builtins_for_run(binding, args),
-        request=build_request(binding, release, args),
+def _benchmark_root(args: argparse.Namespace) -> Path:
+    value = getattr(args, "benchmark_root", None) or os.environ.get(
+        "CONTEXTWORLD_BENCHMARK_ROOT"
     )
-    evaluation_split = getattr(args, "evaluation_split", "public")
-    scorer = (
-        binding.load_development_scorer()
-        if evaluation_split == "development"
-        else binding.load_scorer()
+    if not value:
+        raise ValueError(
+            "ContextWorld Development evaluation needs --benchmark-root or "
+            "CONTEXTWORLD_BENCHMARK_ROOT. Point it at the absolute "
+            "ContextWorld-v1 clean-export root."
+        )
+    path = Path(value).expanduser()
+    if not path.is_absolute():
+        raise ValueError(
+            "--benchmark-root must be absolute; received " f"{path}"
+        )
+    return Path(str(path))
+
+
+def _public_model_cache_root(args: argparse.Namespace) -> Path:
+    """Choose a writable model-cache base without consulting the old archive.
+
+    The sealed LeWM/PLDM ``.pt`` loader predates ``ContextWorld-v1`` and asks
+    :func:`contextworld.paths.artifact_path` for a model cache.  Public
+    Development evaluation redirects that compatibility call beside the
+    checkpoint (or below ``STABLEWM_HOME``) so it never falls back to the
+    private ``context_world`` research tree.
+    """
+
+    configured = os.environ.get(_MODEL_CACHE_ROOT_ENV)
+    if configured:
+        root = Path(configured).expanduser()
+        if not root.is_absolute():
+            raise ValueError(f"{_MODEL_CACHE_ROOT_ENV} must be absolute: {root}")
+        return Path(str(root))
+
+    stablewm_home = os.environ.get("STABLEWM_HOME")
+    if stablewm_home:
+        home = Path(stablewm_home).expanduser()
+        if not home.is_absolute():
+            raise ValueError(f"STABLEWM_HOME must be absolute: {home}")
+        return Path(str(home / ".contextworld-eval-cache"))
+
+    checkpoint = Path(args.checkpoint).expanduser().resolve()
+    if checkpoint.parent.parent.name == "checkpoints":
+        checkpoint_root = checkpoint.parent.parent.parent
+    else:
+        checkpoint_root = checkpoint.parent
+    return checkpoint_root / ".contextworld-eval-cache"
+
+
+@contextmanager
+def _public_model_cache_scope(args: argparse.Namespace) -> Iterator[Path]:
+    """Redirect the sealed adapter's cache lookup for one construction call."""
+
+    cache_root = _public_model_cache_root(args)
+    previous = os.environ.get(_ARTIFACT_ROOT_ENV)
+    os.environ[_ARTIFACT_ROOT_ENV] = str(cache_root)
+    try:
+        yield cache_root
+    finally:
+        if previous is None:
+            os.environ.pop(_ARTIFACT_ROOT_ENV, None)
+        else:
+            os.environ[_ARTIFACT_ROOT_ENV] = previous
+
+
+def build_development_request(
+    binding: TaskBinding,
+    *,
+    bundle_root: Path,
+    args: argparse.Namespace,
+) -> AdapterRequest:
+    """Build an adapter request from public bundle metadata only.
+
+    This is deliberately separate from :func:`build_request`, which remains a
+    small compatibility helper for historical frozen-release tooling.  The
+    public command path below never calls it or reads a release config.
+    """
+
+    development = resolve_development_payload(bundle_root, task=binding.task)
+    common: dict[str, Any] = {
+        "task": binding.task,
+        "checkpoint": args.checkpoint,
+        "device": args.device,
+        "repo_root": ROOT,
+        "runtime": {
+            "stablewm_repo": getattr(args, "stablewm_repo", None),
+            "stablewm_ref": getattr(args, "stablewm_ref", None) or "",
+        },
+    }
+    if binding.action_source == "normalizer":
+        return AdapterRequest(
+            action_normalizer=development_action_normalizer_path(development),
+            **common,
+        )
+    action_mean, action_std = development_action_normalization(
+        development,
+        preferred_std_key=binding.std_key,
     )
-    payload = scorer(
-        adapter=adapter, **_scorer_keywords(binding, args)
+    return AdapterRequest(
+        action_mean=action_mean,
+        action_std=action_std,
+        **common,
     )
 
-    # Stamped, not merged into the scorer's own payload keys, so an external
-    # run can never be mistaken for -- or replayed as -- a frozen submission.
+
+def run(args: argparse.Namespace) -> dict[str, Any]:
+    _validate_diagnostic_options(args)
+    evaluation_split = getattr(args, "evaluation_split", "development")
+    if evaluation_split != "development":
+        raise ValueError(
+            "Public Test is not available through contextworld-external-eval. "
+            "This public entry point evaluates only ContextWorld-v1 "
+            "Development data."
+        )
+    binding = TASKS[args.task]
+    bundle_root = _benchmark_root(args)
+    # The frozen LeWM/PLDM adapter still names its cache through the historical
+    # artifact helper.  Scope that compatibility detail to a public,
+    # checkpoint-adjacent cache; data resolution remains exclusively bound to
+    # ContextWorld-v1.
+    with _public_model_cache_scope(args):
+        adapter = build_adapter(
+            args.adapter,
+            builtins=_builtins_for_run(binding, args),
+            request=build_development_request(
+                binding,
+                bundle_root=bundle_root,
+                args=args,
+            ),
+        )
+    payload = evaluate_bundle_development_model(
+        task=binding.task,
+        adapter=adapter,
+        model_name=args.model_name,
+        training_recipe=args.training_recipe,
+        training_seed=args.training_seed,
+        benchmark_root=bundle_root,
+        batch_size=int(args.batch_size),
+        include_records=bool(getattr(args, "include_records", False)),
+    )
+
+    # Stamped, not merged into the evaluator payload keys, so a public
+    # Development run cannot be replayed as a held-out Public-Test result.
     policy = _prejepa_missing_context_policy(args)
     history_adapter = _history_adapter(args)
     diagnostic = policy == "normalized_zero"
     payload_envelope: dict[str, Any] = {
         "schema_version": 1,
-        "result_kind": (
-            DIAGNOSTIC_RESULT_KIND if diagnostic else RESULT_KIND
-        ),
+        "result_kind": RESULT_KIND,
         "task": binding.task,
-        "evaluation_split": evaluation_split,
+        "evaluation_split": "development",
         "adapter_spec": args.adapter,
         "model_name": args.model_name,
-        "release_id": release.get("release_id"),
         "official_scoreboard_row": False,
         "note": (
-            "Produced by contextworld-external-eval. This is an unofficial "
-            "result: it uses the frozen task protocol but is not a "
-            "preregistered submission and does not enter the public "
-            "scoreboard."
+            "Produced by contextworld-external-eval from the public "
+            "ContextWorld-v1 Development split. It is not a held-out Public "
+            "Test score, has no formal pass decision, and does not enter the "
+            "official scoreboard."
         ),
         "result": payload,
     }
@@ -452,10 +573,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "history_adapter": history_adapter,
         }
         payload_envelope["note"] = (
-            "Produced by contextworld-external-eval using normalized-zero "
-            "missing context. This is a diagnostic, non-frozen-v1 result; "
-            "it is not a preregistered submission and does not enter the "
-            "public scoreboard."
+            "Produced by contextworld-external-eval from the public "
+            "ContextWorld-v1 Development split using normalized-zero missing "
+            "context. This diagnostic is not a held-out Public Test score, "
+            "has no formal pass decision, and does not enter the official "
+            "scoreboard."
         )
     return payload_envelope
 
@@ -464,9 +586,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         prog="contextworld-external-eval",
         description=(
-            "Evaluate an external latent world model against a frozen "
-            "ContextWorld task. Produces an unofficial result, or an "
-            "explicitly labelled diagnostic result."
+            "Evaluate an external latent world model on the public "
+            "ContextWorld-v1 Development split. Results are explicitly "
+            "Development-only and never Public-Test scoreboard rows."
         ),
     )
     parser.add_argument("--task", choices=sorted(TASKS), required=True)
@@ -486,14 +608,30 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--device", default="cuda")
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument(
+        "--benchmark-root",
+        help=(
+            "Absolute ContextWorld-v1 clean-export root. Defaults to "
+            "CONTEXTWORLD_BENCHMARK_ROOT. The evaluator never falls back "
+            "to CONTEXTWORLD_ARTIFACT_ROOT."
+        ),
+    )
+    parser.add_argument(
+        "--include-records",
+        action="store_true",
+        help=(
+            "Retain per-pair Development diagnostics in the JSON result. "
+            "Off by default to keep training post-evaluation artifacts compact."
+        ),
+    )
+    parser.add_argument(
         "--prejepa-missing-context-policy",
         choices=("reject", "normalized_zero"),
         default="reject",
         help=(
-            "Keep the frozen-v1 rejection for state-conditioned PreJEPA "
-            "checkpoints (default), or explicitly run the non-frozen-v1 "
-            "diagnostic with model-normalized zero state. The latter is "
-            "available only for --adapter prejepa."
+            "Reject missing state-conditioned PreJEPA context (default), or "
+            "explicitly run the Development-only diagnostic with "
+            "model-normalized zero state. The latter is available only for "
+            "--adapter prejepa."
         ),
     )
     parser.add_argument(
@@ -503,17 +641,18 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help=(
             "Use native task history (default). h3_tail_projection exposes "
             "a native H3 PreJEPA checkpoint through the Action Delay H7 "
-            "boundary and is available only for --task action_delay with "
-            "--adapter prejepa."
+            "Development boundary and is available only for --task "
+            "action_delay with --adapter prejepa."
         ),
     )
     parser.add_argument(
         "--evaluation-split",
-        choices=("public", "development"),
-        default="public",
+        choices=("development", "public"),
+        default="development",
         help=(
-            "Use Development only when the component's Public Test remains "
-            "closed. Components without a separate Development scorer reject it."
+            "Development is the only executable public option. Passing "
+            "public is rejected because Public Test is not shipped in "
+            "ContextWorld-v1."
         ),
     )
     parser.add_argument("--stablewm-repo")

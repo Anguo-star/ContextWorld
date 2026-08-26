@@ -7,9 +7,11 @@ The command line is stable; the Hydra keys are not.  LeWM and PLDM use a
 launcher reads the checked-in family profile and translates only parameters
 that the selected trainer actually accepts.
 
-For a benchmark component, omitting ``--dataset`` with LeWM or PLDM selects
-the component's frozen release recipe.  This keeps one public entry without
-rewriting the byte-pinned launchers that define historical reproduction.
+For a benchmark component, the default ``joint_scratch_v1`` track trains any
+of the three built-in families from its native initialization on the same
+registered ``ContextWorld-v1`` mixture.  The old byte-pinned LeWM/PLDM
+launchers remain available only through an explicit ``historical_release``
+track, so a current comparison cannot silently become a fine-tuning run.
 
 The selected Stable-WorldModel checkout still owns the model, objective,
 forward pass, optimizer and training loop.  ContextWorld owns path validation,
@@ -43,6 +45,11 @@ from contextworld.training.seeds import (  # noqa: E402
     parse_training_seeds,
     reject_legacy_seed_environment,
 )
+from contextworld.training.stablewm_bundle import (  # noqa: E402
+    URI_PREFIX as CONTEXTWORLD_DATASET_URI_PREFIX,
+    build_contextworld_dataset_uri,
+    describe_contextworld_dataset,
+)
 
 DEFAULT_PROFILE_CONFIG = (REPO_ROOT /
                           "configs/training/stablewm_family_profiles_v1.yaml")
@@ -51,6 +58,9 @@ TRAINING_IDENTITY_SCHEMA = "contextworld.stablewm-training-identity.v1"
 FAMILY_ENTRY_SCRIPT = REPO_ROOT / "scripts/run_stablewm_family_entry.py"
 STABLEWM_BOOTSTRAP_DIR = REPO_ROOT / "scripts/stablewm_bootstrap"
 STABLEWM_SITECUSTOMIZE = STABLEWM_BOOTSTRAP_DIR / "sitecustomize.py"
+STABLEWM_BUNDLE_ADAPTER = (
+    REPO_ROOT / "contextworld/training/stablewm_bundle.py"
+)
 SPT_RUN_MARKER_FILENAME = "contextworld_run_identity_v1.json"
 SPT_RUN_MARKER_SCHEMA = "contextworld.stablepretraining-run-identity.v1"
 MINIMUM_STABLE_PRETRAINING_VERSION = (0, 1, 8)
@@ -106,7 +116,7 @@ class Target:
     """One dataset/geometry selection independent of model family."""
 
     label: str
-    dataset: Path
+    dataset: Path | str
     data_group: str | None
     history_size: int
     action_dim: int
@@ -155,6 +165,10 @@ def _validate_dataset_payload(path: Path) -> None:
     raise SystemExit(f"Dataset does not exist: {path}")
 
 
+def _is_contextworld_dataset_uri(value: str | Path) -> bool:
+    return str(value).startswith(CONTEXTWORLD_DATASET_URI_PREFIX)
+
+
 def _family_model_columns(
     *,
     family: str,
@@ -164,12 +178,13 @@ def _family_model_columns(
     """Return the literal model-input columns selected by the family profile."""
 
     required = ["pixels", "action"]
+    # Every current benchmark-component training view follows the same public
+    # RGB/action contract, independent of StableWM family. Keep original-
+    # environment checkpoints on their native family data profile, but never
+    # request privileged simulator state from a component bundle.
+    if target.original_env is None:
+        return tuple(required)
     if family == "prejepa":
-        # Benchmark components are frozen RGB/action ICL protocols.  Keep
-        # original-environment checkpoints state-conditioned, but never make
-        # component schema preflight depend on privileged simulator state.
-        if target.original_env is None:
-            return tuple(required)
         encoding_key = target.encoding_key
         if encoding_key and encoding_key not in required:
             required.append(encoding_key)
@@ -291,6 +306,40 @@ def _selected_loader_rejects_step_strings(stablewm_repo: Path) -> bool:
     return "legacy_strings" in text and "Per-step strings" in text
 
 
+def _validate_contextworld_format_registry(stablewm_repo: Path) -> None:
+    """Fail before GPU allocation when the selected checkout lacks URI formats."""
+
+    format_source = stablewm_repo / "stable_worldmodel/data/format.py"
+    utils_source = stablewm_repo / "stable_worldmodel/data/utils.py"
+    if not format_source.is_file() or not utils_source.is_file():
+        raise SystemExit(
+            "ContextWorld-v1 StableWM training needs a checkout "
+            "with the public data-format registry. Required files are "
+            f"missing below {stablewm_repo}."
+        )
+    format_text = format_source.read_text(encoding="utf-8", errors="ignore")
+    utils_text = utils_source.read_text(encoding="utf-8", errors="ignore")
+    if (
+        "def register_format" not in format_text
+        or "FORMATS" not in format_text
+        or "if '://' in name" not in utils_text
+    ):
+        raise SystemExit(
+            "The selected Stable-WorldModel checkout does not expose the "
+            "scheme-based data-format registry required by the "
+            "ContextWorld-v1 runtime reader."
+        )
+    try:
+        import lance  # noqa: F401
+        import pyarrow  # noqa: F401
+        from PIL import Image  # noqa: F401
+    except ImportError as exc:
+        raise SystemExit(
+            "ContextWorld-v1 runtime training requires pylance, pyarrow, "
+            "and Pillow. Install contextworld[stablewm]."
+        ) from exc
+
+
 def validate_training_dataset_schema(
     *,
     target: "Target",
@@ -299,7 +348,30 @@ def validate_training_dataset_schema(
 ) -> None:
     """Validate model columns and action width before allocating a trainer."""
 
-    if target.dataset.is_file():
+    if _is_contextworld_dataset_uri(target.dataset):
+        _validate_contextworld_format_registry(stablewm_repo)
+        try:
+            identity = describe_contextworld_dataset(str(target.dataset))
+        except (OSError, ValueError, KeyError, TypeError) as exc:
+            raise SystemExit(
+                f"Invalid ContextWorld-v1 runtime dataset: {exc}"
+            ) from exc
+        expected = {
+            "component": target.label,
+            "history_length": target.history_size,
+            "action_dimension": target.action_dim,
+        }
+        observed = {name: identity[name] for name in expected}
+        if observed != expected:
+            raise SystemExit(
+                "ContextWorld-v1 runtime dataset geometry differs from the "
+                f"selected component: expected={expected}, observed={observed}"
+            )
+        return
+
+    dataset = Path(target.dataset)
+
+    if dataset.is_file():
         try:
             import h5py
         except ImportError as exc:
@@ -308,7 +380,7 @@ def validate_training_dataset_schema(
                 "contextworld[stablewm] in the training environment."
             ) from exc
         try:
-            with h5py.File(target.dataset, "r") as handle:
+            with h5py.File(dataset, "r") as handle:
                 columns = set(handle.keys())
                 required = _family_model_columns(
                     family=family,
@@ -323,7 +395,7 @@ def validate_training_dataset_schema(
                             int(action_shape[-1]) if len(action_shape) > 1 else 1
                         )
                 _validate_lance_column_contract(
-                    path=target.dataset,
+                    path=dataset,
                     columns=columns,
                     required=required,
                     action_width=action_width,
@@ -339,7 +411,7 @@ def validate_training_dataset_schema(
                             if len(encoding_shape) > 1 else 1
                         )
                 _validate_feature_width(
-                    path=target.dataset,
+                    path=dataset,
                     feature=target.encoding_key or "auxiliary input",
                     observed=encoding_width,
                     expected=target.encoding_dim,
@@ -350,11 +422,11 @@ def validate_training_dataset_schema(
         except Exception as exc:
             raise SystemExit(
                 f"Could not open H5 dataset for schema preflight: "
-                f"{target.dataset}: {exc}"
+                f"{dataset}: {exc}"
             ) from exc
         return
 
-    if not (target.dataset.is_dir() and target.dataset.name.endswith(".lance")):
+    if not (dataset.is_dir() and dataset.name.endswith(".lance")):
         return
     try:
         import lance
@@ -364,11 +436,11 @@ def validate_training_dataset_schema(
             "contextworld[stablewm] in the training environment."
         ) from exc
     try:
-        schema = lance.dataset(str(target.dataset)).schema
+        schema = lance.dataset(str(dataset)).schema
     except Exception as exc:
         raise SystemExit(
             f"Could not open Lance dataset for schema preflight: "
-            f"{target.dataset}: {exc}"
+            f"{dataset}: {exc}"
         ) from exc
 
     columns = set(schema.names)
@@ -392,7 +464,7 @@ def validate_training_dataset_schema(
         stablewm_repo=stablewm_repo,
     )
     _validate_lance_column_contract(
-        path=target.dataset,
+        path=dataset,
         columns=columns,
         required=required,
         action_width=action_width,
@@ -407,7 +479,7 @@ def validate_training_dataset_schema(
         if isinstance(size, int):
             encoding_width = size
     _validate_feature_width(
-        path=target.dataset,
+        path=dataset,
         feature=target.encoding_key or "auxiliary input",
         observed=encoding_width,
         expected=target.encoding_dim,
@@ -451,26 +523,140 @@ def resolve_target(args: argparse.Namespace, contract: dict[str, Any]) -> Target
     components = contract["benchmark_components"]
     if args.component not in components:
         raise SystemExit(f"Unknown benchmark component: {args.component}")
-    if not explicit:
-        raise SystemExit(
-            "Benchmark component training needs an exact --dataset path. "
-            "Use task_registry.json from the clean export to select a payload.")
-    dataset = _absolute_path(explicit, label="--dataset")
-    _validate_dataset_payload(dataset)
     spec = components[args.component]
-    if args.family == "prejepa" and spec.get("prejepa_model_inputs") != [
+    if spec.get("model_inputs") != [
         "pixels",
         "action",
     ]:
         raise SystemExit(
             f"Benchmark component {args.component!r} must declare "
-            "prejepa_model_inputs: [pixels, action]."
+            "model_inputs: [pixels, action]."
         )
+
+    runtime_identity: dict[str, Any] | None = None
+    if explicit:
+        if any(
+            value is not None
+            for value in (
+                args.component_payload,
+                args.mix_original_weight,
+                args.mix_synthetic_weight,
+                args.component_epoch_size,
+            )
+        ):
+            raise SystemExit(
+                "Component payload, mixture, and epoch-size options build "
+                "the automatic ContextWorld-v1 view and cannot be combined "
+                "with an explicit --dataset/CW_DATASET."
+            )
+        if _is_contextworld_dataset_uri(explicit):
+            dataset: Path | str = str(explicit)
+            try:
+                runtime_identity = describe_contextworld_dataset(dataset)
+            except (OSError, ValueError, KeyError, TypeError) as exc:
+                raise SystemExit(
+                    f"Invalid ContextWorld-v1 runtime dataset: {exc}"
+                ) from exc
+            if runtime_identity["component"] != args.component:
+                raise SystemExit(
+                    "The contextworld:// dataset component does not match "
+                    f"--component: {runtime_identity['component']!r} != "
+                    f"{args.component!r}"
+                )
+        else:
+            dataset = _absolute_path(explicit, label="--dataset")
+            _validate_dataset_payload(dataset)
+    else:
+        recipe = spec.get("joint_scratch_training")
+        if not isinstance(recipe, dict):
+            raise SystemExit(
+                f"Benchmark component {args.component!r} has no registered "
+                "joint-scratch runtime training recipe."
+            )
+        root_value = args.benchmark_root
+        if not root_value and args.dataset_root:
+            root_value = str(
+                _absolute_path(args.dataset_root, label="--dataset-root")
+                / "ContextWorld-v1"
+            )
+        if not root_value:
+            raise SystemExit(
+                "Benchmark component training needs --benchmark-root/"
+                "CONTEXTWORLD_BENCHMARK_ROOT, or a --dataset-root containing "
+                "ContextWorld-v1."
+            )
+        benchmark_root = _absolute_path(root_value, label="--benchmark-root")
+        original_weight = (
+            args.mix_original_weight
+            if args.mix_original_weight is not None
+            else float(recipe["original_weight"])
+        )
+        synthetic_weight = (
+            args.mix_synthetic_weight
+            if args.mix_synthetic_weight is not None
+            else float(recipe["synthetic_weight"])
+        )
+        if original_weight < 0 or synthetic_weight <= 0:
+            raise SystemExit(
+                "Component mixture weights require original >= 0 and "
+                "synthetic > 0."
+            )
+        original_dataset = None
+        if original_weight:
+            if not args.dataset_root:
+                raise SystemExit(
+                    "This component recipe mixes original data. Set "
+                    "CONTEXTWORLD_DATASET_ROOT/--dataset-root."
+                )
+            original_root = _absolute_path(
+                args.dataset_root, label="--dataset-root"
+            )
+            original_relative = contract["original_environments"][
+                spec["environment"]
+            ]["dataset"]
+            original_dataset = original_root / original_relative
+        try:
+            dataset = build_contextworld_dataset_uri(
+                benchmark_root,
+                component=args.component,
+                split="training",
+                payload_id=(
+                    args.component_payload
+                    or str(recipe.get("payload_id") or "data")
+                ),
+                original_dataset=original_dataset,
+                original_weight=original_weight,
+                synthetic_weight=synthetic_weight,
+                epoch_size=args.component_epoch_size,
+            )
+            runtime_identity = describe_contextworld_dataset(dataset)
+        except (OSError, ValueError, KeyError, TypeError) as exc:
+            raise SystemExit(
+                f"Could not construct ContextWorld-v1 training view: {exc}"
+            ) from exc
+    if runtime_identity is not None:
+        required_history = int(runtime_identity["history_length"])
+        required_frameskip = int(runtime_identity["frameskip"])
+        if args.history_size is not None and args.history_size != required_history:
+            raise SystemExit(
+                f"Component {args.component!r} requires history "
+                f"{required_history}, not {args.history_size}."
+            )
+        if args.frameskip is not None and args.frameskip != required_frameskip:
+            raise SystemExit(
+                f"Component {args.component!r} requires frameskip "
+                f"{required_frameskip}, not {args.frameskip}."
+            )
+
     return Target(
         label=args.component,
         dataset=dataset,
         data_group=args.data_group or spec.get("data_group"),
-        history_size=args.history_size or int(spec["history_size"]),
+        history_size=(
+            int(runtime_identity["history_length"])
+            if runtime_identity is not None
+            else args.history_size or int(spec["history_size"])
+        ),
         action_dim=int(spec["action_dim"]),
         environment=str(spec["environment"]),
         encoding_key=None,
@@ -545,6 +731,7 @@ def _validate_args(
             "accumulate",
             "prefetch_factor",
             "embed_dim",
+            "component_epoch_size",
             "eval_batch_size",
             "eval_num",
     ):
@@ -644,6 +831,31 @@ def _validate_args(
             raise SystemExit(
                 "Benchmark PreJEPA fixes model inputs to pixels and action; "
                 "--override cannot add or replace wm.encoding streams."
+            )
+        if (
+            target is not None
+            and _is_contextworld_dataset_uri(target.dataset)
+            and normalized
+            in {
+                "data.dataset.keys_to_load",
+                "data.dataset.keys_to_cache",
+                "data.dataset.keys_to_merge",
+            }
+        ):
+            raise SystemExit(
+                "ContextWorld-v1 fixes model-visible columns to pixels and "
+                "action; raw overrides cannot replace its dataset key contract."
+            )
+    if target is not None and _is_contextworld_dataset_uri(target.dataset):
+        if args.dataset_sampling is not None or args.balance_val is not None:
+            raise SystemExit(
+                "ContextWorld-v1 owns scenario and mixture balancing; "
+                "--dataset-sampling and --balance-val are unavailable."
+            )
+        if args.dataset_item:
+            raise SystemExit(
+                "ContextWorld-v1 resolves its manifest-bound members; "
+                "--dataset-item cannot replace them."
             )
     if args.post_eval and args.eval_epoch is None and any(
             item.lstrip("+").startswith("trainer.max_epochs=")
@@ -771,15 +983,52 @@ def build_overrides(
     if profile["data_group"]:
         entries.append(f"data={target.data_group}")
     _add(entries, keys["dataset"], target.dataset)
+    if profile["data_group"] and _is_contextworld_dataset_uri(target.dataset):
+        # LeWM/PLDM's environment YAMLs normally request privileged simulator
+        # state. The public component bundle deliberately exposes only RGB and
+        # actions, which are also the only inputs their native model forward
+        # methods consume. Own these Hydra keys here so all three families see
+        # the same model-visible training data.
+        entries.extend(
+            [
+                "data.dataset.keys_to_load=[pixels,action]",
+                "data.dataset.keys_to_cache=[action]",
+            ]
+        )
+        data_config = (
+            stablewm_repo
+            / "scripts/train/config/data"
+            / f"{target.data_group}.yaml"
+        )
+        data_payload = yaml.safe_load(data_config.read_text(encoding="utf-8")) or {}
+        data_dataset = (
+            data_payload.get("dataset", {})
+            if isinstance(data_payload, dict)
+            else {}
+        )
+        if isinstance(data_dataset, dict) and "keys_to_merge" in data_dataset:
+            entries.append("~data.dataset.keys_to_merge")
     _add(entries, common["seed"], seed)
     _add(entries, common["run_name"], run_name)
     _add(entries, common["run_subdir"], run_name)
 
     frameskip = args.frameskip or contract["defaults"]["frameskip"]
     num_preds = args.num_preds or contract["defaults"]["num_preds"]
+    num_workers = args.num_workers
+    if num_workers is None and _is_contextworld_dataset_uri(target.dataset):
+        # Family defaults range from 6 to 16 workers *per DDP rank*. Keep the
+        # public Lance/PyArrow bundle's safe tested default bounded per rank,
+        # while preserving CW_NUM_WORKERS as an operator override and leaving
+        # original-H5 training unchanged.
+        num_workers = int(
+            contract["defaults"].get(
+                "contextworld_num_workers_per_rank", 2
+            )
+        )
+
     for name, value in (
         ("batch_size", args.batch_size),
-        ("num_workers", args.num_workers),
+        ("num_workers", num_workers),
         ("persistent_workers", args.persistent_workers),
         ("prefetch_factor", args.prefetch_factor),
         ("pin_memory", args.pin_memory),
@@ -886,8 +1135,11 @@ def build_overrides(
 
 def _run_name(args: argparse.Namespace, target: Target, seed: int,
               seeds: tuple[int, ...]) -> str:
-    default_base = (f"{target.original_env}_{args.family}_original"
-                    if target.original_env else f"{target.label}_{args.family}")
+    default_base = (
+        f"{target.original_env}_{args.family}_original"
+        if target.original_env
+        else f"{target.label}_{args.family}_{args.training_track}"
+    )
     base = args.run_name or default_base
     name = f"{base}_s{seed}" if len(seeds) > 1 or args.run_name is None else base
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,127}", name):
@@ -1009,8 +1261,18 @@ def validate_stablepretraining_version() -> str:
     return installed
 
 
-def _dataset_identity(path: Path) -> dict[str, Any]:
+def _dataset_identity(path: Path | str) -> dict[str, Any]:
     """Record a cheap, fail-closed identity without hashing a multi-GB dataset."""
+
+    if _is_contextworld_dataset_uri(path):
+        return {
+            "kind": "contextworld_bundle_uri",
+            "uri": str(path),
+            "contract": describe_contextworld_dataset(str(path)),
+            "adapter_source_sha256": _sha256_file(STABLEWM_BUNDLE_ADAPTER),
+        }
+
+    path = Path(path)
 
     if path.is_file():
         stat = path.stat()
@@ -1057,6 +1319,7 @@ def _training_identity_document(
 
     identity = {
         "family": args.family,
+        "training_track": args.training_track,
         "run_name": run_name,
         "seed": seed,
         "target": {
@@ -1148,8 +1411,15 @@ def _install_training_identity(
             return
         if (
             replace_preflight_reservation
-            and _preflight_reservation_identity(checkpoint_root, run_name)
-            is not None
+            and (
+                _preflight_reservation_identity(checkpoint_root, run_name)
+                is not None
+                or _zero_step_failed_training_identity(
+                    checkpoint_root,
+                    run_name,
+                )
+                is not None
+            )
         ):
             temporary = path.with_name(f".{path.name}.{os.getpid()}.tmp")
             try:
@@ -1163,7 +1433,7 @@ def _install_training_identity(
             finally:
                 temporary.unlink(missing_ok=True)
             print(
-                "[stablewm-train] replaced stale preflight identity: "
+                "[stablewm-train] replaced stale zero-progress identity: "
                 f"saved={observed.get('identity_sha256')!r} "
                 f"requested={expected['identity_sha256']!r}"
             )
@@ -1335,6 +1605,122 @@ def _preflight_reservation_identity(
     return payload
 
 
+def _zero_step_failed_training_identity(
+    root: Path,
+    run_name: str,
+) -> dict[str, Any] | None:
+    """Return the saved recipe only for a proven zero-step trainer failure.
+
+    A newly submitted cloud job cannot resume when the trainer failed before
+    StablePretraining wrote ``last.ckpt``.  Restarting every incomplete run
+    would be unsafe, though: an inference checkpoint may contain useful work
+    even when no full trainer state exists.  This predicate therefore accepts
+    only the narrow state emitted when setup or Lightning's sanity check
+    failed before the first optimizer step:
+
+    * the public checkpoint directory contains only the resolved config and
+      immutable ContextWorld identity;
+    * every StablePretraining UUID bound to this run has an empty checkpoint
+      directory; and
+    * at least one rank-zero summary explicitly reports step 0, epoch 0 and no
+      metrics.  Worker-rank UUIDs may contain only their binding metadata.
+
+    The old records and logs remain intact.  ``resume=auto`` starts a new SPT
+    UUID using the same public run name instead of deleting failed evidence.
+    """
+
+    run_dir = root / "checkpoints" / run_name
+    if not run_dir.is_dir() or run_dir.is_symlink():
+        return None
+    identity_path = run_dir / TRAINING_IDENTITY_FILENAME
+    allowed_checkpoint_entries = {
+        TRAINING_IDENTITY_FILENAME,
+        "config.yaml",
+    }
+    entries = list(run_dir.iterdir())
+    if not entries or any(
+        entry.name not in allowed_checkpoint_entries for entry in entries
+    ):
+        return None
+    if not identity_path.is_file() or identity_path.is_symlink():
+        return None
+    for entry in entries:
+        if entry.is_symlink() or not entry.is_file():
+            return None
+
+    payload = _read_training_identity(identity_path)
+    if payload.get("schema_version") != TRAINING_IDENTITY_SCHEMA:
+        return None
+    if not isinstance(payload.get("identity_sha256"), str):
+        return None
+
+    records = [
+        (run_path, record)
+        for run_path, record in _stablepretraining_run_records(root)
+        if record.get("run_name") == run_name
+    ]
+    if not records:
+        return None
+
+    summary_count = 0
+    rank_worker_files = {
+        SPT_RUN_MARKER_FILENAME,
+        "run_meta.json",
+    }
+    rank_zero_files = rank_worker_files | {
+        "hparams.yaml",
+        "sidecar.json",
+        "summary.json",
+    }
+    for spt_run, record in records:
+        if not isinstance(record.get("training_identity_sha256"), str):
+            return None
+        checkpoint_dir = spt_run / "checkpoints"
+        if checkpoint_dir.exists():
+            if checkpoint_dir.is_symlink() or not checkpoint_dir.is_dir():
+                return None
+            if any(checkpoint_dir.iterdir()):
+                return None
+
+        summary_path = spt_run / "summary.json"
+        allowed_files = (
+            rank_zero_files if summary_path.exists() else rank_worker_files
+        )
+        for entry in spt_run.iterdir():
+            if entry.name == "checkpoints":
+                continue
+            if (
+                entry.name not in allowed_files
+                or entry.is_symlink()
+                or not entry.is_file()
+            ):
+                return None
+
+        if not summary_path.exists():
+            continue
+        if summary_path.is_symlink() or not summary_path.is_file():
+            return None
+        try:
+            summary = json.loads(summary_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            return None
+        step = summary.get("step") if isinstance(summary, dict) else None
+        epoch = summary.get("epoch") if isinstance(summary, dict) else None
+        if (
+            isinstance(step, bool)
+            or not isinstance(step, (int, float))
+            or step != 0
+            or isinstance(epoch, bool)
+            or not isinstance(epoch, (int, float))
+            or epoch != 0
+            or summary.get("metrics") != {}
+        ):
+            return None
+        summary_count += 1
+
+    return payload if summary_count >= 1 else None
+
+
 def _portable_resume_candidates(
     root: Path,
     run_name: str,
@@ -1378,6 +1764,7 @@ def validate_resume(
     candidates = _portable_resume_candidates(root, run_name, identity_sha256)
     run_nonempty = run_dir.exists() and any(run_dir.iterdir())
     preflight_reservation = _preflight_reservation_identity(root, run_name)
+    zero_step_failure = _zero_step_failed_training_identity(root, run_name)
 
     if policy == "never":
         if run_nonempty or candidates:
@@ -1408,6 +1795,13 @@ def validate_resume(
             # reservation but before StablePretraining created any state.
             # With no Hydra/SPT output, auto may atomically bind the current
             # recipe even when a dependency repair changed its identity.
+            return None
+        if zero_step_failure is not None:
+            print(
+                "[stablewm-train] resume=auto found a proven zero-step "
+                f"failed attempt for {run_name}; starting a new "
+                "StablePretraining run without deleting the failed logs"
+            )
             return None
         raise SystemExit(
             "Resume=auto found an incomplete run but no matching full-state "
@@ -1454,6 +1848,29 @@ def _effective_eval_epoch(
     return value
 
 
+def _benchmark_root_for_post_eval(args: argparse.Namespace) -> Path:
+    """Resolve the clean bundle used by the public Development ICL suite.
+
+    The original H5 files remain the source for CEM.  ICL must instead name
+    the exported ContextWorld-v1 bundle explicitly, so a cloud job cannot
+    quietly fall back to the private ``context_world`` research tree.
+    """
+
+    root_value = args.benchmark_root
+    if not root_value and args.dataset_root:
+        root_value = str(
+            _absolute_path(args.dataset_root, label="--dataset-root")
+            / "ContextWorld-v1"
+        )
+    if not root_value:
+        raise SystemExit(
+            "Post-training ContextWorld ICL evaluation needs "
+            "--benchmark-root/CONTEXTWORLD_BENCHMARK_ROOT, or a "
+            "--dataset-root containing ContextWorld-v1."
+        )
+    return _absolute_path(root_value, label="--benchmark-root")
+
+
 def _post_eval_command(
     args: argparse.Namespace,
     *,
@@ -1467,6 +1884,7 @@ def _post_eval_command(
     original_dataset: Path | None,
 ) -> list[str]:
     epoch = _effective_eval_epoch(args, stablewm_repo, profile)
+    benchmark_root = _benchmark_root_for_post_eval(args)
     command = [
         sys.executable,
         str(REPO_ROOT / "scripts/run_stablewm_eval.py"),
@@ -1481,6 +1899,8 @@ def _post_eval_command(
         str(checkpoint_root),
         "--stablewm-repo",
         str(stablewm_repo),
+        "--benchmark-root",
+        str(benchmark_root),
         "--training-seed",
         str(training_seed),
         "--num-eval",
@@ -1507,10 +1927,11 @@ def _post_eval_command(
     if target.original_env:
         command.extend(("--original-env", target.original_env))
     else:
-        # A component suite always attempts its strict ICL cell. When the
-        # matching original dataset is available it also runs CEM retention;
-        # the evaluator records CEM as skipped only when no such dataset was
-        # supplied. ``--icl-only`` is reserved for explicit repair jobs.
+        # A component suite always attempts its Development ICL cell. When
+        # the matching original dataset is available it also runs CEM
+        # retention; the evaluator records CEM as skipped only when no such
+        # dataset was supplied. ``--icl-only`` is reserved for explicit
+        # repair jobs.
         command.extend(("--component", target.label))
     if original_dataset is not None:
         command.extend(("--dataset", str(original_dataset)))
@@ -1538,7 +1959,7 @@ def _safe_eval_result_subdir(value: str) -> Path:
     return path
 
 
-def _strict_component_icl_failure(
+def _development_component_icl_failure(
     *,
     args: argparse.Namespace,
     target: Target,
@@ -1546,13 +1967,15 @@ def _strict_component_icl_failure(
     run_name: str,
     epoch: int,
 ) -> str | None:
-    """Return an error when a component suite did not finish its exact ICL.
+    """Return an error when a component suite did not finish Development ICL.
 
     ``run_stablewm_eval.py`` intentionally records incompatible ICL as a
     non-fatal suite row so original state-conditioned checkpoints can retain
     their CEM evidence.  A benchmark-component post-eval is different: its
-    RGB/action training contract must yield a completed score for that exact
-    component, not a successful process containing a skipped ICL row.
+    RGB/action training contract must yield a completed Development result for
+    that exact component, not a successful process containing a skipped ICL
+    row. Completion here means only that the Development step ran; it is not
+    a Public-Test result or a release decision.
     """
 
     if target.original_env is not None:
@@ -1565,21 +1988,21 @@ def _strict_component_icl_failure(
         / "manifest.json"
     )
     if not manifest.is_file() or manifest.is_symlink():
-        return f"strict ICL manifest is missing or unsafe: {manifest}"
+        return f"Development ICL manifest is missing or unsafe: {manifest}"
     try:
         payload = json.loads(manifest.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
-        return f"could not read strict ICL manifest {manifest}: {exc}"
+        return f"could not read Development ICL manifest {manifest}: {exc}"
     if not isinstance(payload, dict):
-        return f"strict ICL manifest is not an object: {manifest}"
+        return f"Development ICL manifest is not an object: {manifest}"
     if payload.get("status") != "completed":
         return (
-            "strict ICL suite did not complete for "
+            "Development ICL suite did not complete for "
             f"{target.label}: manifest status={payload.get('status')!r}"
         )
     steps = payload.get("steps")
     if not isinstance(steps, list):
-        return f"strict ICL manifest has no step list: {manifest}"
+        return f"Development ICL manifest has no step list: {manifest}"
     step_id = f"benchmark_icl/{target.label}"
     matching = [
         step
@@ -1587,19 +2010,22 @@ def _strict_component_icl_failure(
         if isinstance(step, dict) and step.get("id") == step_id
     ]
     if len(matching) != 1:
-        return f"strict ICL manifest is missing exactly one {step_id} step"
+        return f"Development ICL manifest is missing exactly one {step_id} step"
     step = matching[0]
     if step.get("status") != "completed":
         return (
-            f"strict ICL component={target.label} did not complete: "
+            f"Development ICL component={target.label} did not complete: "
             f"status={step.get('status')!r}, reason={step.get('reason')!r}"
         )
     output = step.get("output")
     if not isinstance(output, str):
-        return f"strict ICL component={target.label} has no result path"
+        return f"Development ICL component={target.label} has no result path"
     output_path = Path(output)
     if not output_path.is_file() or output_path.is_symlink():
-        return f"strict ICL component={target.label} result is missing or unsafe: {output}"
+        return (
+            "Development ICL component="
+            f"{target.label} result is missing or unsafe: {output}"
+        )
     return None
 
 
@@ -1671,6 +2097,17 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument("--original-env", default=_env("CW_ENV"))
     parser.add_argument("--component", default=_env("CW_COMPONENT"))
+    parser.add_argument(
+        "--training-track",
+        choices=("joint_scratch_v1", "historical_release"),
+        default=_env("CW_TRAINING_TRACK", "joint_scratch_v1"),
+        help=(
+            "Component-training route (env: CW_TRAINING_TRACK). The default "
+            "uses the public ContextWorld-v1 mixture and no task checkpoint; "
+            "historical_release explicitly selects the old frozen LeWM/PLDM "
+            "reproduction recipe."
+        ),
+    )
     parser.add_argument("--dataset", default=_env("CW_DATASET"))
     parser.add_argument(
         "--mode",
@@ -1689,6 +2126,41 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Frozen release recipe variant override (env: CW_VARIANT).",
     )
     parser.add_argument("--dataset-root", default=_env("CONTEXTWORLD_DATASET_ROOT"))
+    parser.add_argument(
+        "--benchmark-root",
+        default=_env("CONTEXTWORLD_BENCHMARK_ROOT"),
+        help=(
+            "ContextWorld-v1 clean-export root. For benchmark component runs, "
+            "defaults to <dataset-root>/ContextWorld-v1."
+        ),
+    )
+    parser.add_argument(
+        "--component-payload",
+        default=_env("CW_COMPONENT_PAYLOAD"),
+        help=(
+            "Registered training payload override. ActionDelay accepts "
+            "coarse or full; component defaults are normally sufficient."
+        ),
+    )
+    parser.add_argument(
+        "--mix-original-weight",
+        type=float,
+        default=_env_float("CW_MIX_ORIGINAL_WEIGHT"),
+    )
+    parser.add_argument(
+        "--mix-synthetic-weight",
+        type=float,
+        default=_env_float("CW_MIX_SYNTHETIC_WEIGHT"),
+    )
+    parser.add_argument(
+        "--component-epoch-size",
+        type=int,
+        default=_env_int("CW_COMPONENT_EPOCH_SIZE"),
+        help=(
+            "Optional number of virtual samples per epoch. The runtime "
+            "reader otherwise derives a full-coverage balanced epoch."
+        ),
+    )
     parser.add_argument("--data-group", default=_env("CW_DATA_GROUP"))
     parser.add_argument(
         "--stablewm-repo",
@@ -1888,12 +2360,43 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 def _uses_release_recipe(args: argparse.Namespace) -> bool:
     """Return whether this is a frozen LeWM/PLDM component reproduction."""
 
-    return bool(
-        args.component
-        and not args.original_env
-        and not args.dataset
-        and args.family in {"lewm", "pldm"}
-    )
+    return args.training_track == "historical_release"
+
+
+def _validate_training_track(args: argparse.Namespace) -> None:
+    """Keep current joint training and historical release evidence disjoint."""
+
+    if args.training_track != "historical_release":
+        return
+    if args.original_env or not args.component:
+        raise SystemExit(
+            "CW_TRAINING_TRACK=historical_release is valid only for a "
+            "benchmark component. Original-environment training always uses "
+            "the current family profile."
+        )
+    if args.family not in {"lewm", "pldm"}:
+        raise SystemExit(
+            "The historical release track exists only for LeWM and PLDM; "
+            "PreJEPA has no frozen historical component recipe."
+        )
+    if args.dataset:
+        raise SystemExit(
+            "The historical release track owns its frozen dataset mapping; "
+            "CW_DATASET/--dataset cannot be supplied."
+        )
+    if any(
+        value is not None
+        for value in (
+            args.component_payload,
+            args.mix_original_weight,
+            args.mix_synthetic_weight,
+            args.component_epoch_size,
+        )
+    ):
+        raise SystemExit(
+            "ContextWorld-v1 payload and mixture options are unavailable on "
+            "the historical release track."
+        )
 
 
 def _run_release_reproduction(args: argparse.Namespace) -> int:
@@ -1971,6 +2474,7 @@ def main(argv: list[str] | None = None) -> int:
     contract = load_profile_contract(args.profile_config.resolve())
     if args.family not in contract["families"]:
         raise SystemExit(f"Unknown family in profile contract: {args.family}")
+    _validate_training_track(args)
     if _uses_release_recipe(args):
         return _run_release_reproduction(args)
     validate_stablepretraining_version()
@@ -2002,6 +2506,8 @@ def main(argv: list[str] | None = None) -> int:
         "CONTEXTWORLD_SPT_RUN_NAME",
         "CONTEXTWORLD_SPT_IDENTITY_SHA256",
         "CONTEXTWORLD_SPT_RESUME_CHECKPOINT",
+        "CONTEXTWORLD_STABLEWM_BUNDLE",
+        "CONTEXTWORLD_DATALOADER_START_METHOD",
     ):
         environment.pop(internal_name, None)
     environment["STABLEWM_HOME"] = str(checkpoint_root)
@@ -2144,13 +2650,25 @@ def main(argv: list[str] | None = None) -> int:
 
     print(f"[stablewm-train] target={target.label} family={args.family} "
           f"dataset={target.dataset}")
+    if _is_contextworld_dataset_uri(target.dataset):
+        runtime = describe_contextworld_dataset(str(target.dataset))
+        print(
+            "[stablewm-train] bundle-view="
+            f"payload:{runtime['payload_id']} members:{runtime['member_count']} "
+            f"original_weight:{runtime['weights']['original']} "
+            f"synthetic_weight:{runtime['weights']['synthetic']} "
+            f"epoch_size:{runtime['epoch_size'] or '<balanced-full-coverage>'}"
+        )
     print(f"[stablewm-train] stablewm={stablewm_repo}")
     print(f"[stablewm-train] checkpoint_root={checkpoint_root}")
     print(f"[stablewm-train] spt_cache={environment['SPT_CACHE_DIR']}")
     print("[stablewm-train] dataset_cache="
           f"{environment.get('LOCAL_DATASET_DIR', '<upstream default>')}")
     print(f"[stablewm-train] logger={args.logger} resume={args.resume}")
-    print(f"[stablewm-train] mode={'eval-only' if args.eval_only else 'train'}")
+    print(
+        f"[stablewm-train] mode={'eval-only' if args.eval_only else 'train'} "
+        f"training_track={args.training_track}"
+    )
     for (
         run_name,
         train_command,
@@ -2238,6 +2756,20 @@ def main(argv: list[str] | None = None) -> int:
             training_environment["CONTEXTWORLD_SPT_IDENTITY_SHA256"] = (
                 training_identity["identity_sha256"]
             )
+            if _is_contextworld_dataset_uri(target.dataset):
+                training_environment["CONTEXTWORLD_STABLEWM_BUNDLE"] = "1"
+                training_environment[
+                    "CONTEXTWORLD_DATALOADER_START_METHOD"
+                ] = "spawn"
+            else:
+                training_environment.pop(
+                    "CONTEXTWORLD_STABLEWM_BUNDLE",
+                    None,
+                )
+                training_environment.pop(
+                    "CONTEXTWORLD_DATALOADER_START_METHOD",
+                    None,
+                )
             if resume_checkpoint is not None:
                 training_environment["CONTEXTWORLD_SPT_RESUME_CHECKPOINT"] = str(
                     resume_checkpoint
@@ -2294,15 +2826,18 @@ def main(argv: list[str] | None = None) -> int:
         returncode = evaluated.returncode
         if returncode == 0 and target.original_env is None:
             assert eval_epoch is not None
-            strict_failure = _strict_component_icl_failure(
+            development_failure = _development_component_icl_failure(
                 args=args,
                 target=target,
                 checkpoint_root=checkpoint_root,
                 run_name=run_name,
                 epoch=eval_epoch,
             )
-            if strict_failure is not None:
-                print(f"[stablewm-train] strict ICL failed for {run_name}: {strict_failure}")
+            if development_failure is not None:
+                print(
+                    "[stablewm-train] Development ICL failed for "
+                    f"{run_name}: {development_failure}"
+                )
                 returncode = 1
         outcome.evaluation_returncode = returncode
         if returncode != 0:

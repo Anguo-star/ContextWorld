@@ -3,6 +3,13 @@
 Everything below was read out of the code, not from documentation. It is what
 `contextworld-external-eval` will actually check at runtime.
 
+The `ContextWorld-v1` bundle does not restrict evaluation to LeWM, PLDM or
+PreJEPA. Those names identify built-in reference integrations. An external
+model may train with its own code and data loader; to use the public
+Development scorers it supplies the adapter below. The adapter translates the
+model interface, not the benchmark definition, and it never receives Public
+Test examples.
+
 ## The five members
 
 Subclass `contextworld.benchmarks.adapters.LatentWorldModelAdapter` and

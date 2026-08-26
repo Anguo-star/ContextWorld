@@ -236,6 +236,8 @@ class TestFamilyDialects:
             "door",
             "--family",
             "pldm",
+            "--training-track",
+            "historical_release",
             "--seeds",
             "3072",
             "--print-command",
@@ -371,6 +373,16 @@ class TestTargetAndStorageSafety:
         monkeypatch.delenv("CW_RESUME", raising=False)
 
         assert _args(stablewm_repo, dataset).resume == "auto"
+
+    def test_component_training_defaults_to_joint_scratch_not_historical(
+        self,
+        stablewm_repo: Path,
+        dataset: Path,
+    ) -> None:
+        args = _args(stablewm_repo, dataset, "--family", "pldm")
+
+        assert args.training_track == "joint_scratch_v1"
+        assert launcher._uses_release_recipe(args) is False
 
     def test_post_eval_defaults_to_fifty_by_six(
         self,
@@ -587,7 +599,7 @@ class TestTargetAndStorageSafety:
         )
         args = argparse.Namespace(eval_result_subdir="")
 
-        assert launcher._strict_component_icl_failure(
+        assert launcher._development_component_icl_failure(
             args=args,
             target=target,
             checkpoint_root=checkpoint_root,
@@ -611,7 +623,7 @@ class TestTargetAndStorageSafety:
             ),
             encoding="utf-8",
         )
-        assert "did not complete" in launcher._strict_component_icl_failure(
+        assert "did not complete" in launcher._development_component_icl_failure(
             args=args,
             target=target,
             checkpoint_root=checkpoint_root,
@@ -629,6 +641,7 @@ class TestTargetAndStorageSafety:
             dataset,
             "--family", "prejepa",
             "--post-eval", "--eval-epoch", "10",
+            "--benchmark-root", str(dataset.parent / "ContextWorld-v1"),
         )
         contract = launcher.load_profile_contract()
         target = launcher.resolve_target(args, contract)
@@ -648,6 +661,9 @@ class TestTargetAndStorageSafety:
         assert "--component" in command
         assert "--icl-only" not in command
         assert command[command.index("--dataset") + 1] == str(dataset)
+        assert command[command.index("--benchmark-root") + 1] == str(
+            dataset.parent / "ContextWorld-v1"
+        )
         assert command[command.index("--num-eval") + 1] == "50"
         assert command[command.index("--eval-seeds") + 1] == (
             "42,43,44,45,46,47"
@@ -1186,6 +1202,7 @@ class TestRecoveryPaths:
             environment["STABLEWM_HOME"] == str(checkpoint_root)
             and environment["SPT_CACHE_DIR"] == str(checkpoint_root)
             and environment["CONTEXTWORLD_SPT_BRIDGE"] == "1"
+            and "CONTEXTWORLD_STABLEWM_BUNDLE" not in environment
             and environment["PYTHONPATH"].split(":")[0]
             == str(launcher.STABLEWM_BOOTSTRAP_DIR)
             for _, environment in calls
@@ -1249,6 +1266,8 @@ class TestRecoveryPaths:
             str(dataset),
             "--stablewm-repo",
             str(stablewm_repo),
+            "--benchmark-root",
+            str(tmp_path / "ContextWorld-v1"),
             "--checkpoint-root",
             str(tmp_path / "persistent-checkpoints"),
             "--seeds",
@@ -1303,6 +1322,7 @@ class TestRecoveryPaths:
             "--original-env", "tworoom",
             "--dataset", str(dataset),
             "--stablewm-repo", str(stablewm_repo),
+            "--benchmark-root", str(tmp_path / "ContextWorld-v1"),
             "--checkpoint-root", str(tmp_path / "persistent-checkpoints"),
             "--seeds", "3072,3073",
             "--post-eval", "--eval-epoch", "10",
@@ -1350,6 +1370,7 @@ class TestRecoveryPaths:
             "--original-env", "tworoom",
             "--dataset", str(dataset),
             "--stablewm-repo", str(stablewm_repo),
+            "--benchmark-root", str(tmp_path / "ContextWorld-v1"),
             "--checkpoint-root", str(tmp_path / "persistent-checkpoints"),
             "--seeds", "3072,3073",
             "--post-eval", "--eval-epoch", "10",
@@ -1415,6 +1436,8 @@ class TestRecoveryPaths:
             str(dataset),
             "--stablewm-repo",
             str(stablewm_repo),
+            "--benchmark-root",
+            str(tmp_path / "ContextWorld-v1"),
             "--checkpoint-root",
             str(checkpoint_root),
             "--seeds",
@@ -1592,6 +1615,123 @@ class TestRecoveryPaths:
                 identity_sha256="recipe",
             )
 
+    def test_auto_retry_rebinds_a_proven_zero_step_sanity_failure(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.delenv("SLURM_JOB_ID", raising=False)
+        run_name = "speed_prejepa_s3072"
+        old_identity = {
+            "schema_version": launcher.TRAINING_IDENTITY_SCHEMA,
+            "identity_sha256": "old-recipe",
+            "identity": {"seed": 3072},
+        }
+        run_dir = tmp_path / "checkpoints" / run_name
+        run_dir.mkdir(parents=True)
+        (run_dir / launcher.TRAINING_IDENTITY_FILENAME).write_text(
+            json.dumps(old_identity),
+            encoding="utf-8",
+        )
+        (run_dir / "config.yaml").write_text("seed: 3072\n", encoding="utf-8")
+
+        rank_zero = tmp_path / "runs/20260824/151050/rank-zero"
+        (rank_zero / "checkpoints").mkdir(parents=True)
+        marker = {
+            "schema_version": launcher.SPT_RUN_MARKER_SCHEMA,
+            "run_name": run_name,
+            "training_identity_sha256": "old-recipe",
+        }
+        (rank_zero / launcher.SPT_RUN_MARKER_FILENAME).write_text(
+            json.dumps(marker), encoding="utf-8"
+        )
+        (rank_zero / "run_meta.json").write_text("{}", encoding="utf-8")
+        (rank_zero / "hparams.yaml").write_text("{}\n", encoding="utf-8")
+        (rank_zero / "sidecar.json").write_text("{}", encoding="utf-8")
+        (rank_zero / "summary.json").write_text(
+            json.dumps({"step": 0, "epoch": 0, "metrics": {}}),
+            encoding="utf-8",
+        )
+
+        worker = tmp_path / "runs/20260824/151208/worker-rank"
+        worker.mkdir(parents=True)
+        (worker / launcher.SPT_RUN_MARKER_FILENAME).write_text(
+            json.dumps(marker), encoding="utf-8"
+        )
+        (worker / "run_meta.json").write_text("{}", encoding="utf-8")
+
+        assert launcher.validate_resume(
+            tmp_path,
+            run_name,
+            "auto",
+            family="prejepa",
+            identity_sha256="new-recipe",
+        ) is None
+
+        new_identity = {
+            "schema_version": launcher.TRAINING_IDENTITY_SCHEMA,
+            "identity_sha256": "new-recipe",
+            "identity": {"seed": 3072},
+        }
+        launcher._install_training_identity(
+            tmp_path,
+            run_name,
+            new_identity,
+            replace_preflight_reservation=True,
+        )
+        assert json.loads(
+            (run_dir / launcher.TRAINING_IDENTITY_FILENAME).read_text(
+                encoding="utf-8"
+            )
+        ) == new_identity
+
+    def test_auto_retry_rejects_a_run_that_reached_an_optimizer_step(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.delenv("SLURM_JOB_ID", raising=False)
+        run_name = "speed_prejepa_s3072"
+        run_dir = tmp_path / "checkpoints" / run_name
+        run_dir.mkdir(parents=True)
+        (run_dir / launcher.TRAINING_IDENTITY_FILENAME).write_text(
+            json.dumps(
+                {
+                    "schema_version": launcher.TRAINING_IDENTITY_SCHEMA,
+                    "identity_sha256": "old-recipe",
+                    "identity": {"seed": 3072},
+                }
+            ),
+            encoding="utf-8",
+        )
+        (run_dir / "config.yaml").write_text("seed: 3072\n", encoding="utf-8")
+        spt_run = tmp_path / "runs/20260824/151050/rank-zero"
+        spt_run.mkdir(parents=True)
+        (spt_run / launcher.SPT_RUN_MARKER_FILENAME).write_text(
+            json.dumps(
+                {
+                    "schema_version": launcher.SPT_RUN_MARKER_SCHEMA,
+                    "run_name": run_name,
+                    "training_identity_sha256": "old-recipe",
+                }
+            ),
+            encoding="utf-8",
+        )
+        (spt_run / "run_meta.json").write_text("{}", encoding="utf-8")
+        (spt_run / "summary.json").write_text(
+            json.dumps({"step": 1, "epoch": 0, "metrics": {"loss": 1.0}}),
+            encoding="utf-8",
+        )
+
+        with pytest.raises(SystemExit, match="refusing to restart"):
+            launcher.validate_resume(
+                tmp_path,
+                run_name,
+                "auto",
+                family="prejepa",
+                identity_sha256="new-recipe",
+            )
+
     def test_training_identity_rebind_is_opt_in_and_preflight_only(
         self,
         tmp_path: Path,
@@ -1698,6 +1838,8 @@ class TestRecoveryPaths:
             str(dataset),
             "--stablewm-repo",
             str(stablewm_repo),
+            "--benchmark-root",
+            str(tmp_path / "ContextWorld-v1"),
             "--checkpoint-root",
             str(checkpoint_root),
             "--seeds",
@@ -1749,6 +1891,8 @@ class TestRecoveryPaths:
                 str(dataset),
                 "--stablewm-repo",
                 str(stablewm_repo),
+                "--benchmark-root",
+                str(tmp_path / "ContextWorld-v1"),
                 "--checkpoint-root",
                 str(checkpoint_root),
                 "--seeds",
@@ -1809,6 +1953,8 @@ class TestRecoveryPaths:
                 str(dataset),
                 "--stablewm-repo",
                 str(stablewm_repo),
+                "--benchmark-root",
+                str(tmp_path / "ContextWorld-v1"),
                 "--checkpoint-root",
                 str(checkpoint_root),
                 "--seeds",
@@ -1866,6 +2012,8 @@ class TestRecoveryPaths:
             str(dataset),
             "--stablewm-repo",
             str(stablewm_repo),
+            "--benchmark-root",
+            str(tmp_path / "ContextWorld-v1"),
             "--checkpoint-root",
             str(checkpoint_root),
             "--seeds",
@@ -2027,6 +2175,18 @@ class TestLoggingAndLossBoundaries:
 
 class TestExplicitEvaluation:
 
+    @pytest.fixture(autouse=True)
+    def _development_bundle_root(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Suites must name the public Development bundle explicitly."""
+
+        root = tmp_path / "ContextWorld-v1"
+        root.mkdir()
+        monkeypatch.setenv("CONTEXTWORLD_BENCHMARK_ROOT", str(root))
+
     def test_original_metric_receipt_parser_returns_typed_values(
         self,
         tmp_path: Path,
@@ -2139,6 +2299,73 @@ class TestExplicitEvaluation:
         assert "benchmark_icl/contact_friction/result.json" in output
         assert "--evaluation-split development" in output
 
+    @pytest.mark.parametrize(
+        "environment,components",
+        [
+            ("tworoom", ("speed", "door", "action_delay", "portal_exit")),
+            ("pusht", ("action_strength", "contact_friction", "motion_damping")),
+            ("reacher", ("robot_arm_mass",)),
+            ("cube", ("cube_gripper_carry",)),
+        ],
+    )
+    def test_every_public_suite_icl_command_uses_development_bundle(
+        self,
+        stablewm_repo: Path,
+        tmp_path: Path,
+        capsys: pytest.CaptureFixture[str],
+        environment: str,
+        components: tuple[str, ...],
+    ) -> None:
+        """All nine ICL commands are Development-only and bundle-rooted."""
+
+        status = evaluator.main([
+            "--suite",
+            "--icl-only",
+            "--family",
+            "lewm",
+            "--original-env",
+            environment,
+            "--checkpoint",
+            str(tmp_path / "run" / "weights_epoch_10.pt"),
+            "--stablewm-repo",
+            str(stablewm_repo),
+            "--stablewm-ref",
+            "c" * 40,
+            "--print-command",
+        ])
+
+        output = capsys.readouterr().out
+        root = tmp_path / "ContextWorld-v1"
+        assert status == 0
+        assert output.count("--evaluation-split development") == len(components)
+        assert output.count(f"--benchmark-root {root}") == len(components)
+        for component in components:
+            assert f"component={component}" in output
+
+    def test_suite_rejects_an_unconfigured_development_bundle(
+        self,
+        stablewm_repo: Path,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.delenv("CONTEXTWORLD_BENCHMARK_ROOT")
+
+        with pytest.raises(SystemExit, match="CONTEXTWORLD_BENCHMARK_ROOT"):
+            evaluator.main([
+                "--suite",
+                "--icl-only",
+                "--family",
+                "lewm",
+                "--component",
+                "speed",
+                "--checkpoint",
+                str(tmp_path / "run" / "weights_epoch_10.pt"),
+                "--stablewm-repo",
+                str(stablewm_repo),
+                "--stablewm-ref",
+                "c" * 40,
+            ])
+
     def test_original_suite_never_silently_skips_its_primary_cem(
         self,
         stablewm_repo: Path,
@@ -2206,6 +2433,13 @@ class TestExplicitEvaluation:
         assert manifest["status"] == "completed"
         assert manifest["steps"][0]["status"] == "skipped"
         assert manifest["steps"][1]["status"] == "completed"
+        assert manifest["steps"][1]["evaluation_split"] == "development"
+        assert manifest["steps"][1]["benchmark_root"] == str(
+            tmp_path / "ContextWorld-v1"
+        )
+        assert manifest["request"]["evaluation"]["icl_evaluation_split"] == (
+            "development"
+        )
         assert (eval_root / "benchmark_icl/speed/result.json").is_file()
         assert manifest["outputs"][0]["path"] == (
             "benchmark_icl/speed/result.json"
@@ -2621,11 +2855,12 @@ class TestExplicitEvaluation:
         assert all("only pixels and actions" in row["reason"] for row in strict)
         assert all(row["status"] == "completed" for row in diagnostic)
         assert all(
-            row["protocol_track"] == evaluator.STRICT_ICL_PROTOCOL_TRACK
+            row["protocol_track"] == evaluator.DEVELOPMENT_ICL_PROTOCOL_TRACK
             for row in strict
         )
         assert all(
-            row["protocol_track"] == evaluator.DIAGNOSTIC_ICL_PROTOCOL_TRACK
+            row["protocol_track"]
+            == evaluator.DEVELOPMENT_DIAGNOSTIC_ICL_PROTOCOL_TRACK
             for row in diagnostic
         )
         assert len({row["id"] for row in manifest["steps"]}) == len(

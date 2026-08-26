@@ -20,19 +20,19 @@ repository. It changes into `work_dir` before invoking the relative
 
 `cloud_train.sh` performs path normalization and then always enters
 `run_stablewm_train.py`, independent of model family. For modern training, the
-entry composes the family profile and explicit dataset. For historical
-LeWM/PLDM release reproduction, the same entry selects the frozen task recipe
-internally. The original task-specific launchers remain unchanged as protocol
-evidence, but `cloud_train.py` is no longer an extra process in the cloud path.
-
-The selection is intentional and requires no additional switch:
+entry composes the family profile with an explicit dataset or registered
+runtime bundle view. Benchmark components default to the current
+`joint_scratch_v1` comparison: LeWM, PLDM and PreJEPA all train on the same
+registered 50/50 original/synthetic view without loading an original-task
+checkpoint. The old LeWM/PLDM launchers remain available only when
+`CW_TRAINING_TRACK=historical_release` is set explicitly.
 
 | request | execution selected by `run_stablewm_train.py` |
 |---|---|
 | original environment, any family | current family profile |
 | benchmark component with an explicit `CW_DATASET` | current family profile |
-| benchmark component, LeWM/PLDM, no `CW_DATASET` | frozen release recipe |
-| benchmark component, PreJEPA, no `CW_DATASET` | rejected because training data is missing |
+| benchmark component, any built-in family, no `CW_DATASET` | `joint_scratch_v1` runtime view over `ContextWorld-v1` |
+| benchmark component, LeWM/PLDM, `CW_TRAINING_TRACK=historical_release` | frozen historical recipe |
 
 Huawei's `startup_cce.sh` may both export GUI custom parameters and repeat
 them as command-line pairs such as `--CW_FAMILY prejepa`. `cloud_train.sh`
@@ -127,7 +127,7 @@ of a portable job configuration. The backbone cache may also be explicit:
 auto-detection. It is not required when concrete paths are supplied and never
 overrides them.
 
-### Two data trees, deliberately separate
+### Data roles (the historical archive is optional)
 
 ```
 <data root>/data/world_model/
@@ -136,20 +136,26 @@ overrides them.
 │   ├── pusht_expert_train.h5
 │   ├── reacher.h5
 │   └── ogbench/cube_single_expert.h5
-└── context_world/             ContextWorld's own data   <- CONTEXTWORLD_ARTIFACT_ROOT
+├── ContextWorld-v1/           clean benchmark bundle    <- CONTEXTWORLD_BENCHMARK_ROOT
+│   ├── task_registry.json
+│   └── components/
+└── context_world/             optional historical archive <- CONTEXTWORLD_ARTIFACT_ROOT
     ├── synthesis/                 synthesized benchmark data
     ├── training/                  checkpoints and run logs
     └── upstream/                  the Stable-WorldModel source checkout
 ```
 
-`CW_TASK=original` reads the first tree. The nine benchmark capabilities read
-the second through `CONTEXTWORLD_ARTIFACT_ROOT`. Original-data training does
-not need the ContextWorld artifact tree at all.
+`CW_TASK=original` reads the first tree. Current benchmark runs for all three
+built-in families compose a runtime view from the first two trees. Post-training ICL evaluation
+also reads the clean bundle's Development payloads, while CEM keeps using the
+original data. The internal artifact tree is only for frozen LeWM/PLDM release
+reproduction. Original-data training without post-evaluation needs neither
+ContextWorld tree.
 
-`CONTEXTWORLD_ARTIFACT_ROOT` matters especially in the cloud: without it,
-`contextworld.paths.artifact_root` infers the location from the checkout
-(`repo.parents[1]/data/world_model/context_world`), which is only correct
-when `work_dir` happens to sit two levels below the data root.
+`CONTEXTWORLD_ARTIFACT_ROOT` is therefore only needed for a frozen historical
+release recipe. When it is needed, keep it explicit: inferring it from the
+checkout (`repo.parents[1]/data/world_model/context_world`) is unreliable in a
+cloud mount.
 
 The cloud commonly mounts the data root as `/opt/huawei/dataset/ag_data`; the
 development box has an extra `explorer-env` segment. Those locations are only
@@ -162,16 +168,21 @@ Then per run:
 | `CW_TASK` | *(required)* | one of the nine benchmark tasks, or `original` |
 | `CW_ENV` | — | with `CW_TASK=original`: `tworoom`, `pusht`, `reacher`, `cube` |
 | `CW_FAMILY` | `lewm` | `lewm`, `pldm` or `prejepa` |
+| `CW_TRAINING_TRACK` | `joint_scratch_v1` | current component comparison; use `historical_release` only to reproduce an old frozen LeWM/PLDM release |
 | `CW_SEEDS` | `3072` | one seed, or a comma-separated sequence such as `3072,3073,3074` |
 | `CW_MODE` | `preflight` | mode for the shell-backed tasks |
 | `CW_STAGE` | `paired` | `action_delay` only: `paired` or `curriculum` |
 | `CW_VARIANT` | recipe of record | override the launcher's variant |
-| `CW_DATASET` | — | optional exact-file override for original training; required for benchmark PreJEPA |
+| `CW_DATASET` | — | optional exact-file override; omit it for the standard registered component view |
+| `CONTEXTWORLD_BENCHMARK_ROOT` | `<CONTEXTWORLD_DATASET_ROOT>/ContextWorld-v1` | clean export root used by current component training and every Development ICL suite |
+| `CW_COMPONENT_PAYLOAD` | task profile | optional registered payload override; Action Delay supports `coarse` or `full` |
+| `CW_MIX_ORIGINAL_WEIGHT`, `CW_MIX_SYNTHETIC_WEIGHT` | task profile | optional benchmark mixture override |
+| `CW_COMPONENT_EPOCH_SIZE` | balanced full coverage | optional virtual samples per training epoch |
 | `CW_OUTPUT` | launcher default | optional per-run/Hydra output directory; not the Stable-WorldModel checkpoint root |
 | `CW_CHECKPOINT_ROOT` | — | Stable-WorldModel cache/checkpoint root (`STABLEWM_HOME`) |
 | `CW_BATCH_SIZE` | 128 for cloud PreJEPA; family YAML otherwise | see below |
 | `CW_MAX_EPOCHS` | family YAML | training epochs |
-| `CW_NUM_WORKERS` | family YAML | data loader workers |
+| `CW_NUM_WORKERS` | `2` per DDP process for any ContextWorld-v1 view; family YAML otherwise | data loader workers |
 | `CW_DEVICES` | family YAML | Lightning devices (`auto`, integer, or Hydra value) |
 | `CW_LOGGER` | `none` | `wandb` or `swanlab` when the selected family trainer uses the common logger factory |
 | `CW_RESUME` | `auto` | `never`, `auto`, or `required`; full state can resume through a same-job requeue or an identity-matched `last.ckpt` in persistent storage |
@@ -187,11 +198,22 @@ Arguments given to `cloud_train.sh` are parsed by the same public
 variables; an uncommon upstream Hydra setting can be passed with a repeated
 `--override KEY=VALUE` option.
 
-Post-training evaluation also needs the ContextWorld artifact root because
-the benchmark scorers read their frozen evaluation assets. Its results are
-written beside each checkpoint under `eval_results/`; see
+For a `ContextWorld-v1` training view, the launcher uses the multiprocessing
+`spawn` method and defaults to two workers in each DDP process. Worker counts
+are per process, not per job: on eight GPUs, `CW_NUM_WORKERS=16` would create
+up to 128 data-loading workers. Override the default only after measuring the
+host's CPU, memory and file-handle capacity.
+
+Post-training evaluation needs `CONTEXTWORLD_BENCHMARK_ROOT` because every ICL
+step reads the clean export's Development payload. It does not read Public Test
+or `CONTEXTWORLD_ARTIFACT_ROOT`; CEM continues to read the matching original
+dataset. Results are written beside each checkpoint under `eval_results/`; see
 [Stable-WorldModel training](StableWM_Training.md#optional-post-training-evaluation)
 for the exact layout and execution matrix.
+
+The `50 × 6` budget applies to CEM only. ICL consumes the deterministic
+Development selection registered for each component; it is not resampled to a
+common seed/episode geometry.
 
 `CW_CHECKPOINT_ROOT` is a persistent run root: the cloud entry sets both
 `STABLEWM_HOME` and `SPT_CACHE_DIR` to it. Evaluation weights live in
@@ -214,36 +236,34 @@ idempotently only when its request digest matches and every output file still
 has its recorded size and SHA-256.
 
 For PreJEPA, the CEM smoke uses the upstream planner with the checkpoint's
-declared history stream. Its frozen v1 ICL eligibility is checked separately;
-a state-conditioned original checkpoint keeps a strict `not_compatible` row
-and receives a separate normalized-zero diagnostic score. Benchmark-component
-PreJEPA runs remove the state encoder and must complete the strict RGB/action
-ICL row. These two result tracks are never merged. See the training guide for
-the exact boundary.
+declared history stream. Its Development ICL eligibility is checked separately;
+a state-conditioned original checkpoint keeps a Development `not_compatible`
+row and receives a separate normalized-zero diagnostic score. Benchmark-
+component PreJEPA runs remove the state encoder and must complete the matching
+RGB/action Development ICL row. The two result tracks are never merged. See
+the training guide for the exact boundary.
 
-For benchmark data exported with the clean Hugging Face layout, pass the
-absolute training payload recorded in `task_registry.json` through
-`CW_DATASET` only when `direct_stable_worldmodel_load` is true, or pass the
-output of the adapter named by that registry entry. Do not assume every
-component has the same shape: for example, PushT action strength uses
-`training/data.lance`, while Action Delay has separate `training/coarse` and
-`training/full` payloads. Do not point `CONTEXTWORLD_ARTIFACT_ROOT` at the
-clean package; that variable continues to identify the internal
-research/artifact tree used by frozen reference launchers. See
+For current benchmark training with LeWM, PLDM or PreJEPA, point
+`CONTEXTWORLD_BENCHMARK_ROOT` at the clean export and omit `CW_DATASET`. The
+launcher verifies the manifest and registry, selects the component payload,
+and registers the same lazy reader in every DDP rank. Do not point
+`CONTEXTWORLD_ARTIFACT_ROOT` at the clean package; that variable identifies
+the internal research tree used only by explicit historical reproduction. See
 [Hugging Face dataset export](HF_Dataset_Export.md).
 
 ## Examples
 
 ```bash
-CW_TASK=speed CW_FAMILY=lewm CW_MODE=formal bash scripts/cloud_train.sh
-CW_TASK=door CW_FAMILY=pldm CW_MODE=formal bash scripts/cloud_train.sh
-CW_TASK=action_delay CW_FAMILY=lewm CW_STAGE=paired bash scripts/cloud_train.sh
-CW_TASK=action_delay CW_FAMILY=lewm CW_STAGE=curriculum bash scripts/cloud_train.sh
-CW_TASK=contact_friction CW_FAMILY=pldm bash scripts/cloud_train.sh
+# current joint-from-scratch component comparison; choose any built-in family
+CW_TASK=action_strength CW_FAMILY=lewm \
+    CONTEXTWORLD_DATASET_ROOT=/abs/data/world_model \
+    CONTEXTWORLD_BENCHMARK_ROOT=/abs/data/world_model/ContextWorld-v1 \
+    CW_CHECKPOINT_ROOT=/abs/checkpoints/lewm-contextworld-v1 \
+    bash scripts/cloud_train.sh
 
-# a benchmark capability after applying its registered data adapter
-CW_TASK=action_strength CW_FAMILY=prejepa \
-    CW_DATASET=/absolute/path/to/adapter-output.lance \
+# old protocol evidence only; this does not enter the current comparison
+CW_TASK=door CW_FAMILY=pldm CW_TRAINING_TRACK=historical_release \
+    CONTEXTWORLD_ARTIFACT_ROOT=/abs/data/world_model/context_world \
     bash scripts/cloud_train.sh
 ```
 
