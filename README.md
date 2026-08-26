@@ -32,6 +32,10 @@ JEPA、LeWM、PLDM、PreJEPA 以及其他 latent 世界模型都可以使用同�
 数据、任务注册表、组件说明和文件完整性清单。该数据包已在本地完成组装，但尚未公布
 稳定的公共下载版本。
 
+这些样本来自环境模拟器的连续真实轨迹：生成器改变待识别的隐藏规律，连续执行历史与
+查询动作，并保存模拟器产生的真实未来。图像不是由生成式模型合成或编辑的。配对规则、
+拆分隔离和九项任务的生成入口见[数据生成方法](docs/Data_Generation.md)。
+
 Public Test 用于最终结果报告，当前保持封存且不随数据包分发。Development 结果用于实现
 检查、模型开发和消融实验，不能作为 Public Test 成绩。
 
@@ -85,6 +89,7 @@ rollout 接口转换为统一输入格式。评分器不要求解码器，也不
 ## 文档
 
 - [Benchmark 规范](docs/ContextWorld_ICL_Benchmark.md)：任务、数据、指标、参考结果和报告规则；
+- [数据生成方法](docs/Data_Generation.md)：连续仿真、配对构造、拆分隔离和九项任务的生成来源；
 - [ContextWorld-v1 数据集指南](docs/HF_Dataset_Export.md)：分发目录、加载方式和维护者导出流程；
 - [Stable-WorldModel 训练](docs/StableWM_Training.md)：内置参考模型的可复现训练入口；
 - [文档导航](docs/README.md)：公开指南、结果复现附录和历史协议。

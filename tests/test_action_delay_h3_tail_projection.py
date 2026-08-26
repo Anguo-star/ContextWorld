@@ -237,5 +237,29 @@ def test_original_cli_stays_frozen_and_release_change_is_additively_scoped() -> 
         "configs/benchmark/tworoom_action_delay_icl_release_v1.yaml"
     )
     release = yaml.safe_load(release_path.read_text(encoding="utf-8"))
+    correction = yaml.safe_load(
+        (
+            root
+            / "configs/benchmark/contextworld_historical_package_pin_correction_v1.yaml"
+        ).read_text(encoding="utf-8")
+    )
+    package_row = next(
+        row
+        for row in correction["affected_records"]
+        if row["config"]["path"]
+        == "configs/benchmark/tworoom_action_delay_icl_release_v1.yaml"
+    )
+    assert package_row["field"] == "identity.package.sha256"
+    assert package_row["config"] == {
+        "path": "configs/benchmark/tworoom_action_delay_icl_release_v1.yaml",
+        "sha256": file_sha256(release_path),
+        "size_bytes": release_path.stat().st_size,
+    }
     for identity in release["identity"].values():
+        if identity["path"] == "pyproject.toml":
+            assert identity["sha256"] == correction["finding"]["invalid_sha256"]
+            assert correction["finding"]["role_after_correction"] == (
+                "historical_packaging_metadata_not_runtime_source"
+            )
+            continue
         assert file_sha256(root / identity["path"]) == identity["sha256"]

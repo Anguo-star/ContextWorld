@@ -7,9 +7,10 @@
 
 1. [项目首页](../README.md)：任务概览、安装和最短运行示例；
 2. [Benchmark 规范](ContextWorld_ICL_Benchmark.md)：数据、指标、九项任务、参考结果和报告规则；
-3. [ContextWorld-v1 数据集指南](HF_Dataset_Export.md)：分发目录、加载方式和字段入口；
-4. [外部模型 Adapter 规范](External_Model_Adapter_Contract.md)：接入新模型所需的统一接口；
-5. [Stable-WorldModel 训练](StableWM_Training.md)：内置 LeWM、PLDM 和 PreJEPA 的训练入口。
+3. [数据生成方法](Data_Generation.md)：连续仿真、配对构造、拆分隔离和九项任务的生成来源；
+4. [ContextWorld-v1 数据集指南](HF_Dataset_Export.md)：分发目录、加载方式和字段入口；
+5. [外部模型 Adapter 规范](External_Model_Adapter_Contract.md)：接入新模型所需的统一接口；
+6. [Stable-WorldModel 训练](StableWM_Training.md)：内置 LeWM、PLDM 和 PreJEPA 的训练入口。
 
 九项任务在 Benchmark 规范中按隐藏动力学类型组织，而不是按环境数量组织。每项任务均
 报告自己的 ICL 与原任务规划结果，不计算跨任务总分。

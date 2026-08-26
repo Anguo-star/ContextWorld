@@ -1,0 +1,77 @@
+schema_version: 1
+record_id: contextworld_icl_suite_v2_integrity_reseal_v2_prepublication_test_alignment_regeneration_v1
+status: preregistered_before_one_prepublication_regeneration
+created_utc: "2026-08-26"
+
+reason:
+  summary: >-
+    The first CLI-generated decision in the current uncommitted change set was
+    created before the exhaustive test run exposed one stale assertion in a
+    decision-bound Cube recovery test. The assertion required the current
+    pyproject.toml bytes to equal an impossible historical packaging hash,
+    despite the repository's explicit package-pin correction.
+  discovery: exhaustive_post_generation_regression
+  result_based_retry: false
+  test_relaxed_or_skipped: false
+  correction: >-
+    The test now requires an exact correction-record match for the immutable
+    Cube release config and preserves every other engineering-amendment
+    identity assertion.
+
+predecessor:
+  published: false
+  committed: false
+  pushed: false
+  decision:
+    path: configs/benchmark/contextworld_icl_suite_v2_integrity_reseal_decision_v2.json
+    sha256: 839afd426073eb48115db1673fb0b3dabd4cbdde0b1c49f7aa054b7a1134a65d
+    size_bytes: 22330
+  archived_copy:
+    path: configs/benchmark/contextworld_icl_suite_v2_integrity_reseal_decision_v2_superseded_20260826c.json
+    archive_is_byte_exact: true
+  prior_regeneration_receipt:
+    path: configs/benchmark/contextworld_icl_suite_v2_integrity_reseal_v2_unrecorded_edit_disclosure_and_regeneration_receipt_v1.json
+    sha256: dae4e260a2acfabc3af956034b728404f7d078dbde71477f2293a16fadffdb6f
+    size_bytes: 4458
+    one_use_authorization_spent: true
+
+changed_bound_material:
+  path: tests/test_cube_grasp_rule_h3_v4r1_public_recovery.py
+  previous_sha256: f275d20f332ccb4ccf537ffbae97990ad15299fd10b27a83eed1160ab0e85bc2
+  previous_size_bytes: 5554
+  current_sha256: 50687e7bbd155531ce64f6ecb3c497d186d76dccd6a6205ea51eaffacc0bb773
+  current_size_bytes: 6552
+  scope: test_semantics_only
+
+authorization:
+  regeneration_count_authorized: 1
+  decision_must_be_written_by_frozen_cli: true
+  decision_must_use_canonical_serialization: true
+  successor_reseal_identity_created: false
+  reason_no_v3: >-
+    No evaluated material changed. Data, checkpoints, scores, gates, verdicts,
+    scoreboard membership, and Public Test access are unchanged.
+  frozen_cli:
+    path: scripts/freeze_contextworld_icl_suite_v2_integrity_reseal_v2.py
+    invocation: >-
+      --write-decision --output
+      configs/benchmark/contextworld_icl_suite_v2_integrity_reseal_decision_v2.json
+
+scope_boundaries:
+  public_documents_changed_after_first_generation: false
+  production_code_changed: false
+  release_config_rewritten: false
+  raw_dataset_or_checkpoint_mutation: false
+  score_or_threshold_mutation: false
+  verdict_mutation: false
+  scoreboard_mutation: false
+  public_test_rerun: false
+  training_or_evaluation_execution: false
+
+outputs:
+  regenerated_decision:
+    path: configs/benchmark/contextworld_icl_suite_v2_integrity_reseal_decision_v2.json
+  receipt:
+    path: configs/benchmark/contextworld_icl_suite_v2_integrity_reseal_v2_prepublication_test_alignment_regeneration_receipt_v1.json
+    exclusive_creation_required: true
+  further_bound_material_edits_require_a_new_record: true

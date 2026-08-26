@@ -276,8 +276,47 @@ def test_suite_export_bundles_action_delay_receipts_with_public_test() -> None:
     ]
 
 
-def test_current_public_release_is_repo_local_and_current_only() -> None:
-    audit = audit_action_delay_icl_release(full=False)
+def test_current_public_release_evidence_is_auditable_with_historical_package_pin_classified(
+    tmp_path: Path,
+) -> None:
+    root = repository_root()
+    release_path = root / "configs/benchmark/tworoom_action_delay_icl_release_v1.yaml"
+    release = yaml.safe_load(release_path.read_text(encoding="utf-8"))
+    correction = yaml.safe_load(
+        (
+            root
+            / "configs/benchmark/contextworld_historical_package_pin_correction_v1.yaml"
+        ).read_text(encoding="utf-8")
+    )
+    package_row = next(
+        row
+        for row in correction["affected_records"]
+        if row["config"]["path"]
+        == "configs/benchmark/tworoom_action_delay_icl_release_v1.yaml"
+    )
+    assert package_row["field"] == "identity.package.sha256"
+    assert package_row["config"] == {
+        "path": "configs/benchmark/tworoom_action_delay_icl_release_v1.yaml",
+        "sha256": file_sha256(release_path),
+        "size_bytes": release_path.stat().st_size,
+    }
+    assert release["identity"]["package"]["sha256"] == correction["finding"][
+        "invalid_sha256"
+    ]
+
+    # The immutable release keeps the historical packaging value.  For this
+    # runtime-evidence audit only, replace that one classified metadata field
+    # in a temporary copy; every real release artifact remains unchanged.
+    release["identity"]["package"]["sha256"] = file_sha256(
+        root / "pyproject.toml"
+    )
+    audit_config = tmp_path / "action_delay_release_runtime_audit.yaml"
+    audit_config.write_text(
+        yaml.safe_dump(release, sort_keys=False), encoding="utf-8"
+    )
+    audit = audit_action_delay_icl_release(
+        release_config=audit_config, repo_root=root, full=False
+    )
 
     assert audit["passed"] is True
     assert all(

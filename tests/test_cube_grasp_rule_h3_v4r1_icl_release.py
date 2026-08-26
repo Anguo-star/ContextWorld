@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+import hashlib
 from pathlib import Path
 
 import pytest
@@ -74,8 +75,41 @@ def test_v4r1_full_bundle_audit_and_public_shape() -> None:
     audit = audit_cube_grasp_rule_v4r1_icl_release(
         layout="bundle", full=True
     )
-    assert audit["passed"] is True
+    failed_files = {
+        name for name, result in audit["files"].items() if not result["passed"]
+    }
+    assert failed_files == {"identity.package"}
+    package = audit["files"]["identity.package"]
+    root = Path(__file__).resolve().parents[1]
+    release_path = (
+        root
+        / "configs/benchmark/cube_gripper_carry_h3_v4r1_icl_release_v1.yaml"
+    )
+    correction = yaml.safe_load(
+        (
+            root
+            / "configs/benchmark/contextworld_historical_package_pin_correction_v1.yaml"
+        ).read_text(encoding="utf-8")
+    )
+    package_row = next(
+        row
+        for row in correction["affected_records"]
+        if row["config"]["path"]
+        == "configs/benchmark/cube_gripper_carry_h3_v4r1_icl_release_v1.yaml"
+    )
+    assert package_row["field"] == "identity.package.sha256"
+    assert package_row["config"] == {
+        "path": "configs/benchmark/cube_gripper_carry_h3_v4r1_icl_release_v1.yaml",
+        "sha256": hashlib.sha256(release_path.read_bytes()).hexdigest(),
+        "size_bytes": release_path.stat().st_size,
+    }
+    assert package["expected_sha256"] == correction["finding"]["invalid_sha256"]
+    assert package["observed_sha256"] != package["expected_sha256"]
     assert audit["source_historical_evidence_revalidated"] is False
+    assert audit["artifact_tree"]["passed"] is True
+    assert all(result["passed"] for result in audit["tables"].values())
+    assert audit["causal_data_contract"]["passed"] is True
+    assert audit["public_reference"]["passed"] is True
     assert audit["public_test"]["raw_action_dim"] == 5
     dataset = CubeGraspRuleV4R1ICLEvalDataset(layout="bundle")
     assert dataset.arrays.raw_action_blocks.shape == (256, 4, 5, 5)

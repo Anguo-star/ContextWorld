@@ -9,6 +9,20 @@ distribution. It contains the Training and Development splits for all nine
 components, together with task metadata and file-integrity manifests. Public
 Test examples are not included.
 
+## How the payloads were produced
+
+This guide describes the **distribution bundle**: its layout, loading contract,
+and clean export. It is not the data-generation specification. The component
+payloads are first produced from continuous environment-simulator trajectories,
+then checked for causal continuity, pair construction, and split isolation.
+They are not generated or edited by an image-generation model.
+
+See [Data generation methodology](Data_Generation.md) for the common causal
+contract and the task-specific builders and configurations. The clean exporter
+described below copies approved Training and Development artifacts into the
+public layout; it does not regenerate trajectories or change benchmark
+semantics.
+
 ## Bundle layout
 
 ```text
@@ -109,6 +123,11 @@ environment datasets. They are not part of `ContextWorld-v1`.
 
 This section is for repository maintainers. End users should download an
 already built bundle rather than run the exporter.
+
+The source root supplied here is the reviewed synthesis-artifact tree described
+in [Data generation methodology](Data_Generation.md). Running this exporter is
+therefore a packaging operation, not a substitute for synthesis or causal-data
+validation.
 
 First validate all registered source mappings without copying payloads:
 

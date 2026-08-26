@@ -304,6 +304,18 @@ def test_v2_preregistration_leaves_dynamic_public_documents_unfrozen() -> None:
     ) == {"passed": True, "reseal_id": reseal_v2.RESEAL_ID}
 
 
+def test_published_v2_decision_uses_the_frozen_writer_serialization() -> None:
+    """A semantically valid hand edit must not masquerade as CLI output."""
+
+    path = ROOT / reseal_v2.RESEAL_DECISION_PATH
+    raw = path.read_text(encoding="utf-8")
+    canonical = json.dumps(
+        json.loads(raw), ensure_ascii=False, indent=2, sort_keys=True
+    ) + "\n"
+
+    assert raw == canonical
+
+
 def test_check_only_reports_the_final_repository_ready_without_rewriting_decision() -> None:
     audit = reseal_v2.audit_integrity_reseal_v2_readiness(repo_root=ROOT)
 

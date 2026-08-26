@@ -1,0 +1,116 @@
+schema_version: 1
+record_id: contextworld_icl_suite_v2_integrity_reseal_v2_unrecorded_edit_disclosure_and_regeneration_v1
+status: recorded_after_unauthorized_edit_and_preregistered_for_one_regeneration
+created_utc: "2026-08-26"
+
+# This record has two deliberately separate parts. The first is retrospective:
+# commit bc39cb3 changed a published decision JSON directly, without a
+# pre-existing regeneration record and without using the frozen writer. That
+# event cannot be retroactively preregistered or authorized. The second part is
+# prospective: after this file exists, it authorizes exactly one CLI-generated
+# decision for the already-reviewed public-document correction.
+
+retrospective_disclosure:
+  event: published_decision_edited_without_prior_regeneration_authority
+  commit: bc39cb38f1403a2bc50b16e83a81d509fd6269e7
+  branch: main
+  remote: origin
+  published: true
+  preregistration_claimed: false
+  retroactive_authorization_claimed: false
+  decision_edited_by_hand: true
+  written_by_frozen_cli: false
+  authorizing_record_existed_at_edit_time: false
+  history_rewrite_planned: false
+  edit_scope:
+    - final public-document identities were replaced after a documentation rewrite
+    - two pyproject.toml identities were replaced after the historical package-pin correction
+    - one nested pyproject.toml object was left with noncanonical indentation
+  semantic_validation_passed_despite_noncanonical_serialization: true
+  material_effect:
+    score_changed: false
+    gate_or_threshold_changed: false
+    verdict_changed: false
+    scoreboard_row_changed: false
+    dataset_or_checkpoint_changed: false
+    public_test_access_changed: false
+    training_or_evaluation_executed: false
+  last_authorized_decision:
+    path: configs/benchmark/contextworld_icl_suite_v2_integrity_reseal_decision_v2.json
+    sha256: 086c86724b1e47710d12e0901157442e43848f5f746dce8629edc5b2e9ec8262
+    size_bytes: 22330
+    archived_copy: configs/benchmark/contextworld_icl_suite_v2_integrity_reseal_decision_v2_superseded_20260826.json
+    existing_regeneration_receipt: configs/benchmark/contextworld_icl_suite_v2_integrity_reseal_v2_correction_regeneration_receipt_v1.json
+    existing_one_use_authorization_spent: true
+  unrecorded_published_decision:
+    path: configs/benchmark/contextworld_icl_suite_v2_integrity_reseal_decision_v2.json
+    sha256: 7ee109e94dec7b187ffcbe5c68ee2a8a23d43e245824c944f03726d14fc9355d
+    size_bytes: 22326
+    archived_copy: configs/benchmark/contextworld_icl_suite_v2_integrity_reseal_decision_v2_superseded_20260826b.json
+
+prospective_regeneration:
+  authorization_recorded_before_regeneration: true
+  regeneration_count_authorized: 1
+  action: replace_the_noncanonical_published_decision_with_frozen_cli_output
+  reason: >-
+    Restore scientifically necessary public methodology and result provenance
+    that were over-compressed in bc39cb3, then bind the final reviewed document
+    bytes using the frozen v2 writer.
+  successor_reseal_identity_created: false
+  reason_no_v3: >-
+    The correction changes exposition and provenance clarity only. It does not
+    change evaluated data, checkpoints, scores, gates, verdicts, or scoreboard
+    membership, so the material identity remains integrity reseal v2.
+  final_bound_documents_before_regeneration:
+    repository_readme:
+      path: README.md
+      sha256: 63c5867684c0c2a21a4ccd8f67fb4af4d1afac5cc3a08ffd77a063a1968bab9f
+      size_bytes: 5397
+    docs_navigation:
+      path: docs/README.md
+      sha256: d077b5699c7c11328b929f57da6a8ba9a3976a9255fd399d6d1102c96ec62be6
+      size_bytes: 3948
+    public_benchmark:
+      path: docs/ContextWorld_ICL_Benchmark.md
+      sha256: fcdcb427eb2d7d2fad8f44018ad182e01102e12845dd95399e32c790cafe83ce
+      size_bytes: 33717
+    public_release_readiness:
+      path: docs/ContextWorld_Public_v1_Release_Readiness.md
+      sha256: e4c57e94b164666930c636a5262c17ab5da9189e72c6a29504559159fc44c2b6
+      size_bytes: 9257
+  supporting_public_documents_not_bound_by_v2_decision:
+    - docs/Data_Generation.md
+    - docs/HF_Dataset_Export.md
+    - docs/reference/Benchmark_Result_Provenance.md
+  required_sequence:
+    - finish all public-document edits and machine-bound documentation tests
+    - pass the frozen CLI readiness audit
+    - verify both superseded archives byte-for-byte
+    - remove the live noncanonical decision only after its archive exists
+    - invoke the frozen writer exactly once
+    - validate canonical serialization and semantic integrity
+    - update the historical package-pin correction to the generated decision identity
+    - write the regeneration receipt and run the relevant test suite
+  frozen_cli:
+    path: scripts/freeze_contextworld_icl_suite_v2_integrity_reseal_v2.py
+    invocation: >-
+      --write-decision --output
+      configs/benchmark/contextworld_icl_suite_v2_integrity_reseal_decision_v2.json
+
+scope_boundaries:
+  authority_module_changed: false
+  reseal_preregistration_modified: false
+  result_based_retry: false
+  score_or_threshold_mutation: false
+  verdict_mutation: false
+  scoreboard_mutation_authorized: false
+  public_test_rerun_authorized: false
+  training_or_checkpoint_selection_authorized: false
+
+outputs:
+  regenerated_decision:
+    path: configs/benchmark/contextworld_icl_suite_v2_integrity_reseal_decision_v2.json
+  regeneration_receipt:
+    path: configs/benchmark/contextworld_icl_suite_v2_integrity_reseal_v2_unrecorded_edit_disclosure_and_regeneration_receipt_v1.json
+    exclusive_creation_required: true
+  further_document_edits_require_a_new_regeneration_record: true

@@ -537,6 +537,22 @@ def test_historical_package_pin_correction_binds_unchanged_predecessors() -> Non
     ]
 
 
+def test_historical_package_pin_correction_covers_every_live_config_occurrence() -> None:
+    """The metadata exception must be exhaustive, exact, and non-wildcarded."""
+
+    payload = yaml.safe_load(PACKAGE_PIN_CORRECTION.read_text(encoding="utf-8"))
+    invalid = payload["finding"]["invalid_sha256"]
+    listed = {row["config"]["path"] for row in payload["affected_records"]}
+    observed = {
+        path.relative_to(ROOT).as_posix()
+        for path in CONFIG_DIR.glob("*.yaml")
+        if not path.name.startswith("contextworld_historical_package_pin_correction_")
+        and invalid in path.read_text(encoding="utf-8")
+    }
+
+    assert observed == listed
+
+
 @pytest.mark.parametrize(
     "config_path",
     [path for path, _ in _release_configs_with_source_pins()],

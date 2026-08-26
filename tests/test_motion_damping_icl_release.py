@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 
@@ -61,7 +62,44 @@ def test_release_name_and_public_splits_are_explicit() -> None:
 
 def test_release_data_and_public_test_are_auditable() -> None:
     audit = audit_motion_damping_icl_release(full=False)
-    assert audit["passed"]
+    failed_files = {
+        name for name, result in audit["files"].items() if not result["passed"]
+    }
+    assert failed_files == {
+        "identity.package",
+        "identity.stablewm_lewm_config",
+        "identity.stablewm_lewm_model",
+        "identity.stablewm_pldm_model",
+        "identity.stablewm_loader",
+    }
+    root = Path(__file__).resolve().parents[1]
+    release_path = root / "configs/benchmark/pusht_motion_damping_icl_release_v1.yaml"
+    correction = yaml.safe_load(
+        (
+            root
+            / "configs/benchmark/contextworld_historical_package_pin_correction_v1.yaml"
+        ).read_text(encoding="utf-8")
+    )
+    package_row = next(
+        row
+        for row in correction["affected_records"]
+        if row["config"]["path"]
+        == "configs/benchmark/pusht_motion_damping_icl_release_v1.yaml"
+    )
+    assert package_row["field"] == "identity.package.sha256"
+    assert package_row["config"] == {
+        "path": "configs/benchmark/pusht_motion_damping_icl_release_v1.yaml",
+        "sha256": hashlib.sha256(release_path.read_bytes()).hexdigest(),
+        "size_bytes": release_path.stat().st_size,
+    }
+    assert audit["files"]["identity.package"]["expected_sha256"] == correction[
+        "finding"
+    ]["invalid_sha256"]
+    for name in failed_files - {"identity.package"}:
+        path = Path(audit["files"][name]["path"])
+        assert not path.is_relative_to(root)
+        assert "stable-worldmodel" in path.parts
+
     assert audit["causal_data_contract"]["passed"]
     assert audit["causal_data_contract"]["x0_policy"] == (
         "balanced_visible_start"

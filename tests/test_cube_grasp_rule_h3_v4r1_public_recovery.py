@@ -113,6 +113,23 @@ def test_recovery_preregistration_identities_are_historical_or_amended() -> None
         expected["path"]: expected
         for expected in active_release["identity"].values()
     }
+    correction = _load(
+        ROOT
+        / "configs/benchmark/contextworld_historical_package_pin_correction_v1.yaml"
+    )
+    package_row = next(
+        row
+        for row in correction["affected_records"]
+        if row["config"]["path"]
+        == "configs/benchmark/cube_gripper_carry_h3_v4r1_icl_release_v1.yaml"
+    )
+    assert package_row["field"] == "identity.package.sha256"
+    assert package_row["config"] == file_identity(
+        CURRENT_RELEASE_CONFIG,
+        logical_path=(
+            "configs/benchmark/cube_gripper_carry_h3_v4r1_icl_release_v1.yaml"
+        ),
+    )
 
     amended = set()
     groups = (
@@ -130,6 +147,14 @@ def test_recovery_preregistration_identities_are_historical_or_amended() -> None
             assert expected["path"] in cube_update["source_paths"]
             active_identity = active_by_path.get(expected["path"])
             if active_identity is not None:
+                if expected["path"] == "pyproject.toml":
+                    assert active_identity["sha256"] == correction["finding"][
+                        "invalid_sha256"
+                    ]
+                    assert correction["finding"]["role_after_correction"] == (
+                        "historical_packaging_metadata_not_runtime_source"
+                    )
+                    continue
                 assert active_identity["sha256"] == observed["sha256"]
 
     # The four current identities are precisely the Cube-scoped changes
