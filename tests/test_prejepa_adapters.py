@@ -17,7 +17,10 @@ from contextworld.benchmarks.adapters import LatentWorldModelAdapter
 from contextworld.benchmarks.prejepa_adapters import (
     PreJEPAInputContractError,
     StableWorldModelPreJEPAAdapter,
+    StableWorldModelPreJEPAActionDelayH3TailAdapter,
     StableWorldModelPreJEPACubeGraspRuleAdapter,
+    StableWorldModelPreJEPADiagnosticActionDelayH3TailAdapter,
+    StableWorldModelPreJEPADiagnosticAdapter,
     StableWorldModelPreJEPAHistory7Adapter,
 )
 from contextworld.evaluation.protocol import ColumnStandardizer
@@ -64,7 +67,13 @@ class _FakeEmbedder:
         self.emb_dim = emb_dim
 
 
-def _fake_model(*, history: int = 3, action_width: int = 10, state=False):
+def _fake_model(
+    *,
+    history: int = 3,
+    action_width: int = 10,
+    state: bool = False,
+    state_streams: dict[str, int] | None = None,
+):
     torch = pytest.importorskip("torch")
 
     class FakePreJEPA(torch.nn.Module):
@@ -78,6 +87,14 @@ def _fake_model(*, history: int = 3, action_width: int = 10, state=False):
             if state:
                 self.extra_encoders = {
                     "proprio": _FakeEmbedder(2),
+                    **self.extra_encoders,
+                }
+            if state_streams is not None:
+                self.extra_encoders = {
+                    **{
+                        key: _FakeEmbedder(in_chans)
+                        for key, in_chans in state_streams.items()
+                    },
                     **self.extra_encoders,
                 }
             self.encode_calls: list[list[str] | None] = []
@@ -124,7 +141,7 @@ def test_native_visual_encode_excludes_action_encoder() -> None:
         np.zeros((2, 8, 8, 3), dtype=np.uint8), batch_size=2
     )
 
-    assert encoded.shape == (2, 2, 3)
+    assert encoded.shape == (2, 6)
     assert model.encode_calls == [[]]
 
 
@@ -142,13 +159,67 @@ def test_native_rollout_splits_past_and_strictly_future_actions() -> None:
     assert info["pixels"].shape == (2, 1, 3, 3, 8, 8)
     assert info["action_history"].shape == (2, 1, 2, 10)
     assert future.shape == (2, 1, 3, 10)
-    assert predicted.shape == (2, 3, 2, 3)
+    assert predicted.shape == (2, 3, 6)
     assert not hasattr(model, "_init_cached_info")
 
 
 def test_state_conditioned_checkpoint_is_rejected_without_fabricated_state() -> None:
     with pytest.raises(PreJEPAInputContractError, match="only pixels and actions"):
         _adapter(_fake_model(state=True))
+
+
+def test_diagnostic_adapter_supplies_model_normalized_zero_for_each_state_stream() -> None:
+    torch = pytest.importorskip("torch")
+    model = _fake_model(state_streams={"proprio": 2, "goal": 6})
+    adapter = _adapter(model, cls=StableWorldModelPreJEPADiagnosticAdapter)
+    pixels = np.zeros((2, 3, 8, 8, 3), dtype=np.uint8)
+    actions = np.zeros((2, 5, 5, 2), dtype=np.float32)
+
+    adapter.rollout_latents(pixels, actions, batch_size=2)
+
+    info, _ = model.rollout_calls[0]
+    assert info["proprio"].shape == (2, 1, 3, 2)
+    assert info["goal"].shape == (2, 1, 3, 6)
+    assert info["proprio"].dtype == model.anchor.dtype
+    assert torch.count_nonzero(info["proprio"]) == 0
+    assert torch.count_nonzero(info["goal"]) == 0
+    assert adapter.metadata["diagnostic"] is True
+    assert adapter.metadata["frozen_v1_compatible"] is False
+    assert adapter.metadata["prejepa_missing_context_policy"] == "normalized_zero"
+    assert adapter.metadata["missing_context_strategy"] == "normalized_zero"
+    assert adapter.metadata["normalized_zero_state_streams"] == [
+        {"key": "proprio", "in_chans": 2},
+        {"key": "goal", "in_chans": 6},
+    ]
+
+
+def test_action_delay_h3_tail_projects_before_diagnostic_zero_state() -> None:
+    model = _fake_model(history=3, state=True)
+    base = _adapter(model, cls=StableWorldModelPreJEPADiagnosticAdapter)
+    adapter = StableWorldModelPreJEPADiagnosticActionDelayH3TailAdapter(base)
+    pixels = np.zeros((2, 7, 8, 8, 3), dtype=np.uint8)
+    actions = np.zeros((2, 9, 5, 2), dtype=np.float32)
+
+    predicted = adapter.rollout_latents(pixels, actions, batch_size=2)
+
+    info, future = model.rollout_calls[0]
+    assert info["pixels"].shape == (2, 1, 3, 3, 8, 8)
+    assert info["proprio"].shape == (2, 1, 3, 2)
+    assert future.shape == (2, 1, 3, 10)
+    assert predicted.shape == (2, 3, 6)
+    assert adapter.protocol.history_tokens == 7
+    assert adapter.metadata["history_adapter"] == "h3_tail_projection"
+    assert adapter.metadata["diagnostic"] is True
+
+
+def test_action_delay_h3_tail_keeps_strict_rejection_by_default() -> None:
+    with pytest.raises(PreJEPAInputContractError, match="only pixels and actions"):
+        _adapter(_fake_model(history=3, state=True))
+
+    adapter = StableWorldModelPreJEPAActionDelayH3TailAdapter(
+        _adapter(_fake_model(history=3))
+    )
+    assert adapter.metadata.get("diagnostic") is None
 
 
 def test_checkpoint_history_must_match_the_frozen_task() -> None:

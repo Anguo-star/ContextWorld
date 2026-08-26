@@ -294,13 +294,23 @@ keeps the request fail-closed.
 
 ## Optional post-training evaluation
 
-`CW_POST_TRAIN_EVAL=1` calls `scripts/run_stablewm_eval.py --suite` only after
-all requested training seeds succeed. In a comma-separated seed sweep, the
-launcher finishes or resumes every training run before it starts the first
-evaluation, so an evaluation failure cannot prevent a later seed from reaching
-its requested checkpoint. The same evaluation script can be invoked later
-against an existing checkpoint; training does not contain a second copy of the
-evaluation logic.
+`CW_POST_TRAIN_EVAL=1` calls `scripts/run_stablewm_eval.py --suite` after the
+training phase. In a comma-separated seed sweep, the launcher first attempts
+every requested training seed, then evaluates every seed that produced or
+recovered the requested checkpoint. A failed training seed is not evaluated,
+but it does not suppress later seeds. Within each suite, one failed CEM seed or
+ICL component also does not suppress the remaining evaluations. The command
+returns the first non-zero status only after all runnable cells have reached a
+terminal state and prints a per-seed summary. The same evaluation script can
+be invoked later against an existing checkpoint; training does not contain a
+second copy of the evaluation logic.
+
+The standard default original-task CEM protocol uses evaluation seeds 42, 43,
+44, 45, 46, and 47 with 50 episodes per seed: 300 episodes per checkpoint.
+Both automatic post-training evaluation and a direct `run_stablewm_eval.py`
+call use this default. `CW_EVAL_NUM` and `CW_EVAL_SEEDS` remain available for
+explicitly labelled diagnostics or repairs; results using another geometry are
+not standard post-evaluation results.
 
 This automatic hand-off applies to current family-profile runs: every
 original-environment run and any component run supplied with an explicit
@@ -336,8 +346,10 @@ evaluation and its registered benchmark components:
 For a benchmark-component run, the suite runs that component's ICL evaluator
 and the matching original-environment CEM retention check. Component training
 therefore also needs either `CONTEXTWORLD_DATASET_ROOT` or an exact
-`CW_EVAL_ORIGINAL_DATASET`. If neither is available, only the CEM step is
-recorded as skipped; the ICL step still runs.
+`CW_EVAL_ORIGINAL_DATASET`. The training entry fails before launch if neither
+is available, so `CW_POST_TRAIN_EVAL=1` cannot report success with a silently
+skipped CEM cell. For an intentional ICL-only repair, invoke the common
+evaluator directly with `--suite --icl-only`.
 
 Contact Friction and Motion Damping can currently be evaluated only on their
 Development splits; Public Test remains closed. Other ICL
@@ -359,12 +371,21 @@ smoke check into a published benchmark score.
 
 The frozen v1 external ICL adapter has a narrower contract: pixel history and
 actions only. Current original-dataset PreJEPA checkpoints additionally
-require `proprio` or `observation`, so the suite records their ICL rows as
-`not_compatible` and emits no score. This is an input-protocol mismatch, not a
-model failure. Supplying zero state or widening the frozen ICL interface with
-simulator state would make the comparison invalid. The suite also records
-`not_compatible` when a checkpoint's trained history length differs from a
-component's frozen protocol.
+require `proprio` or `observation`, so their strict rows remain
+`not_compatible`. The suite also runs a separate, clearly labelled diagnostic
+in which every missing state stream is set to zero in the model's normalized
+input space. That diagnostic supplies a useful numerical baseline, but it is
+not a frozen-v1 result and cannot enter the scoreboard. It never reads
+privileged simulator state. For Action Delay, an original History=3 checkpoint
+uses the documented tail-H3 projection inside this diagnostic rather than
+changing its weights or positional embeddings.
+
+Benchmark-component PreJEPA training is different: the launcher removes the
+upstream default state encoder and fixes model-visible inputs to RGB and
+actions. Its post-evaluation therefore requires the exact strict ICL component
+to complete. This prevents a newly trained component checkpoint from appearing
+successful when the suite contains only a compatibility marker or a diagnostic
+score.
 
 Useful variables are `CW_EVAL_EPOCH`, `CW_EVAL_NUM`, `CW_EVAL_SEEDS`,
 `CW_EVAL_DEVICE`, `CW_EVAL_BATCH_SIZE`, `CW_EVAL_ORIGINAL_DATASET`,
@@ -386,6 +407,10 @@ python scripts/run_stablewm_eval.py --suite \
   --training-seed 3072
 ```
 
+Use `--icl-only` only for an explicit ICL repair or backfill. Normal
+post-training evaluation does not set it: it runs CEM whenever the matching
+original dataset is available and always attempts every registered ICL cell.
+
 Use `--component <id>` instead of `--original-env` for a component-trained
 checkpoint. `--result-subdir <name>` (or `CW_EVAL_RESULT_SUBDIR=<name>` through
 the training entry) creates a new immutable namespace below `eval_results/`
@@ -403,6 +428,7 @@ checkpoint:
 ├── original_cem/                 # original-environment CEM
 ├── benchmark_cem/<component>/    # component-training retention
 ├── benchmark_icl/<component>/result.json
+├── benchmark_icl_diagnostic/<component>/result.json  # when explicitly needed
 └── manifest.json
 ```
 

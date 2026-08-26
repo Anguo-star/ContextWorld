@@ -25,7 +25,7 @@ import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 import yaml
 
@@ -39,7 +39,10 @@ from contextworld.synthesis.stablewm import _git_commit  # noqa: E402
 
 PROFILE_CONFIG = REPO_ROOT / "configs/training/stablewm_family_profiles_v1.yaml"
 DEVELOPMENT_ONLY_COMPONENTS = {"contact_friction", "motion_damping"}
-SUITE_MANIFEST_SCHEMA = "contextworld.stablewm-evaluation-suite.v2"
+SUITE_MANIFEST_SCHEMA = "contextworld.stablewm-evaluation-suite.v3"
+STRICT_ICL_PROTOCOL_TRACK = "strict_frozen_v1"
+DIAGNOSTIC_ICL_PROTOCOL_TRACK = "diagnostic_normalized_zero_v1"
+ORIGINAL_CEM_PROTOCOL_TRACK = "original_cem_v1"
 
 
 def _env(name: str, fallback: str | None = None) -> str | None:
@@ -143,6 +146,15 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help=(
             "Run the applicable original-environment CEM and benchmark ICL "
             "set. Without this flag, only original CEM is run."
+        ),
+    )
+    parser.add_argument(
+        "--icl-only",
+        action="store_true",
+        help=(
+            "With --suite, skip original-environment CEM and run only the "
+            "registered ICL tracks. This permits an original-environment "
+            "checkpoint to be scored without an original CEM dataset."
         ),
     )
     parser.add_argument(
@@ -623,7 +635,28 @@ def _parse_original_metrics(path: Path, *, num_eval: int) -> dict[str, Any]:
     }
 
 
-def _run_original(args: argparse.Namespace) -> int:
+def _failure_returncode(exc: BaseException) -> int:
+    """Map a local evaluator exception to a subprocess-like failure code."""
+
+    code = getattr(exc, "code", None)
+    if isinstance(code, int) and code != 0:
+        return code
+    return 1
+
+
+def _run_original(
+    args: argparse.Namespace,
+    *,
+    on_seed_result: Callable[[dict[str, Any]], None] | None = None,
+) -> int:
+    """Run every requested original CEM seed and aggregate failures.
+
+    A CEM seed is an independent evaluation cell.  One infrastructure or
+    metric-parsing failure must not hide the evidence from subsequent seeds,
+    nor must it prevent the suite from reaching its ICL tracks.  ``on_seed``
+    persists each terminal cell state in the enclosing suite manifest.
+    """
+
     stablewm_repo, commands = build_commands(args)
     _print_original_commands(commands)
     if args.print_command:
@@ -641,76 +674,112 @@ def _run_original(args: argparse.Namespace) -> int:
         ]
     ).strip(os.pathsep)
 
-    for _, log_path, metrics_path, _ in commands:
-        receipt_path = metrics_path.with_suffix(".json")
-        for output in (log_path, metrics_path, receipt_path):
-            if output.exists():
-                raise SystemExit(
-                    f"Refusing to overwrite existing evaluation output: {output}"
-                )
-
+    failure_code = 0
     for seed, log_path, metrics_path, command in commands:
-        log_path.parent.mkdir(parents=True, exist_ok=True)
-        run_dir = checkpoint.path.parent
-        before_videos = set(run_dir.glob("*.mp4"))
-        with log_path.open("x", encoding="utf-8") as log:
-            completed = subprocess.run(
-                command,
-                cwd=str(stablewm_repo),
-                env=environment,
-                stdout=log,
-                stderr=subprocess.STDOUT,
-                check=False,
+        receipt_path = metrics_path.with_suffix(".json")
+        result: dict[str, Any] = {
+            "eval_seed": seed,
+            "log_file": str(log_path),
+            "metrics_file": str(metrics_path),
+            "receipt_file": str(receipt_path),
+        }
+        returncode = 0
+        try:
+            for output in (log_path, metrics_path, receipt_path):
+                if output.exists() or output.is_symlink():
+                    raise FileExistsError(
+                        "Refusing to overwrite existing evaluation output: "
+                        f"{output}"
+                    )
+            log_path.parent.mkdir(parents=True, exist_ok=True)
+            run_dir = checkpoint.path.parent
+            before_videos = set(run_dir.glob("*.mp4"))
+            with log_path.open("x", encoding="utf-8") as log:
+                completed = subprocess.run(
+                    command,
+                    cwd=str(stablewm_repo),
+                    env=environment,
+                    stdout=log,
+                    stderr=subprocess.STDOUT,
+                    check=False,
+                )
+            returncode = int(completed.returncode)
+            if returncode != 0:
+                print(
+                    f"[stablewm-eval] seed {seed} failed with status "
+                    f"{returncode}; see {log_path}",
+                    file=sys.stderr,
+                )
+                result.update(status="failed", returncode=returncode)
+            else:
+                if not metrics_path.is_file() or metrics_path.is_symlink():
+                    raise RuntimeError(
+                        "Upstream eval returned success without a regular metrics "
+                        f"file: {metrics_path}"
+                    )
+                if not args.keep_videos:
+                    for video in set(run_dir.glob("*.mp4")) - before_videos:
+                        video.unlink()
+                parsed_metrics = _parse_original_metrics(
+                    metrics_path,
+                    num_eval=args.num_eval,
+                )
+                receipt = {
+                    "schema_version": "contextworld.stablewm-original-eval.v3",
+                    "family": args.family,
+                    "original_environment": args.original_env,
+                    "run_name": checkpoint.run_name,
+                    "checkpoint": str(checkpoint.path),
+                    "checkpoint_epoch": checkpoint.epoch,
+                    "eval_seed": seed,
+                    "num_eval": args.num_eval,
+                    "history_size": args.history_size,
+                    "action_block": args.action_block,
+                    "corruption": {
+                        "type": args.corruption_type,
+                        "std": args.corruption_std,
+                        "factor": args.corruption_factor,
+                        "kernel_size": args.corruption_kernel_size,
+                        "apply_to": args.corruption_apply_to,
+                    },
+                    "dataset": str(_absolute(args.dataset, "--dataset")),
+                    "metrics_file": str(metrics_path),
+                    "log_file": str(log_path),
+                    "metrics": parsed_metrics,
+                }
+                write_json(receipt_path, receipt)
+                print(f"[stablewm-eval] wrote {metrics_path} and {receipt_path}")
+                result.update(status="completed", returncode=0)
+        except (KeyboardInterrupt, GeneratorExit):
+            raise
+        except BaseException as exc:
+            returncode = _failure_returncode(exc)
+            result.update(
+                status="failed",
+                returncode=returncode,
+                error={
+                    "type": type(exc).__name__,
+                    "message": str(exc),
+                },
             )
-        if completed.returncode != 0:
             print(
-                f"[stablewm-eval] seed {seed} failed with status "
-                f"{completed.returncode}; see {log_path}",
+                f"[stablewm-eval] seed {seed} failed before a valid receipt: "
+                f"{type(exc).__name__}: {exc}",
                 file=sys.stderr,
             )
-            return completed.returncode
-        if not metrics_path.is_file():
-            raise SystemExit(
-                f"Upstream eval returned success but wrote no metrics: {metrics_path}"
-            )
-        if not args.keep_videos:
-            for video in set(run_dir.glob("*.mp4")) - before_videos:
-                video.unlink()
-        parsed_metrics = _parse_original_metrics(
-            metrics_path,
-            num_eval=args.num_eval,
-        )
-        receipt = {
-            "schema_version": "contextworld.stablewm-original-eval.v3",
-            "family": args.family,
-            "original_environment": args.original_env,
-            "run_name": checkpoint.run_name,
-            "checkpoint": str(checkpoint.path),
-            "checkpoint_epoch": checkpoint.epoch,
-            "eval_seed": seed,
-            "num_eval": args.num_eval,
-            "history_size": args.history_size,
-            "action_block": args.action_block,
-            "corruption": {
-                "type": args.corruption_type,
-                "std": args.corruption_std,
-                "factor": args.corruption_factor,
-                "kernel_size": args.corruption_kernel_size,
-                "apply_to": args.corruption_apply_to,
-            },
-            "dataset": str(_absolute(args.dataset, "--dataset")),
-            "metrics_file": str(metrics_path),
-            "log_file": str(log_path),
-            "metrics": parsed_metrics,
-        }
-        receipt_path = metrics_path.with_suffix(".json")
-        write_json(receipt_path, receipt)
-        print(f"[stablewm-eval] wrote {metrics_path} and {receipt_path}")
-    return 0
+        finally:
+            if on_seed_result is not None:
+                on_seed_result(result)
+        if returncode != 0 and failure_code == 0:
+            failure_code = returncode
+    return failure_code
 
 
 @dataclass(frozen=True)
 class ICLStep:
+    identifier: str
+    kind: str
+    protocol_track: str
     component: str
     output: Path
     command: list[str]
@@ -761,6 +830,30 @@ def _prejepa_icl_skip_reason(
     return "; ".join(reasons) if reasons else None
 
 
+def _prejepa_checkpoint_history_size(
+    checkpoint: ResolvedCheckpoint,
+) -> int | None:
+    """Return the native history geometry when the checkpoint records it."""
+
+    model_config = _prejepa_model_config(checkpoint.path)
+    if model_config is None:
+        return None
+    value = model_config.get("history_size")
+    if value is None:
+        return None
+    try:
+        history_size = int(value)
+    except (TypeError, ValueError) as exc:
+        raise SystemExit(
+            f"Invalid PreJEPA checkpoint history_size: {value!r}"
+        ) from exc
+    if history_size <= 0:
+        raise SystemExit(
+            f"Invalid PreJEPA checkpoint history_size: {value!r}"
+        )
+    return history_size
+
+
 def _suite_environment(args: argparse.Namespace, contract: dict[str, Any]) -> str:
     if bool(args.original_env) == bool(args.component):
         raise SystemExit(
@@ -799,10 +892,11 @@ def _build_icl_steps(
         if args.original_env
         else f"contextworld_{args.component}"
     )
-    root = eval_root / "benchmark_icl"
+    strict_root = eval_root / "benchmark_icl"
+    diagnostic_root = eval_root / "benchmark_icl_diagnostic"
     steps = []
     for component in components:
-        output = root / component / "result.json"
+        output = strict_root / component / "result.json"
         skip_reason = (
             _prejepa_icl_skip_reason(
                 checkpoint=checkpoint,
@@ -811,6 +905,17 @@ def _build_icl_steps(
             )
             if args.family == "prejepa"
             else None
+        )
+        model_config = (
+            _prejepa_model_config(checkpoint.path)
+            if args.family == "prejepa"
+            else None
+        )
+        state_conditioned = bool(
+            model_config
+            and any(
+                key != "action" for key in _prejepa_extra_encoder_keys(model_config)
+            )
         )
         command = [
             sys.executable,
@@ -843,10 +948,47 @@ def _build_icl_steps(
             command.extend(("--training-seed", str(args.training_seed)))
         steps.append(
             ICLStep(
+                identifier=f"benchmark_icl/{component}",
+                kind="benchmark_icl",
+                protocol_track=STRICT_ICL_PROTOCOL_TRACK,
                 component=component,
                 output=output,
                 command=command,
                 skip_reason=skip_reason,
+            )
+        )
+
+        # State-conditioned PreJEPA checkpoints cannot enter the frozen ICL
+        # interface.  Preserve that strict result, but also schedule a
+        # separately labelled diagnostic track that makes its zero-context
+        # imputation explicit.  The diagnostic output can never be confused
+        # with the strict frozen-protocol score because its id, path and
+        # protocol track are all disjoint.
+        if args.family != "prejepa" or not skip_reason or not state_conditioned:
+            continue
+        diagnostic_output = diagnostic_root / component / "result.json"
+        diagnostic_command = list(command)
+        diagnostic_command[diagnostic_command.index("--output") + 1] = str(
+            diagnostic_output
+        )
+        diagnostic_command.extend(
+            ("--prejepa-missing-context-policy", "normalized_zero")
+        )
+        if (
+            component == "action_delay"
+            and _prejepa_checkpoint_history_size(checkpoint) == 3
+        ):
+            diagnostic_command.extend(
+                ("--history-adapter", "h3_tail_projection")
+            )
+        steps.append(
+            ICLStep(
+                identifier=f"benchmark_icl_diagnostic/{component}",
+                kind="benchmark_icl_diagnostic",
+                protocol_track=DIAGNOSTIC_ICL_PROTOCOL_TRACK,
+                component=component,
+                output=diagnostic_output,
+                command=diagnostic_command,
             )
         )
     return steps
@@ -910,6 +1052,7 @@ def _suite_request(
             "dataset": (
                 str(_absolute(args.dataset, "--dataset")) if args.dataset else None
             ),
+            "icl_only": args.icl_only,
             "result_subdir": suite_subdir.as_posix(),
             "training_recipe": args.training_recipe,
             "num_eval": args.num_eval,
@@ -935,6 +1078,9 @@ def _suite_request(
             },
             "benchmark_icl": [
                 {
+                    "id": step.identifier,
+                    "kind": step.kind,
+                    "protocol_track": step.protocol_track,
                     "component": step.component,
                     "skip_reason": step.skip_reason,
                     "command": step.command,
@@ -985,6 +1131,10 @@ def _reuse_completed_suite(
     if not isinstance(steps, list) or any(
         not isinstance(step, dict)
         or step.get("status") not in {"completed", "not_compatible", "skipped"}
+        or not isinstance(step.get("id"), str)
+        or not step["id"]
+        or not isinstance(step.get("protocol_track"), str)
+        or not step["protocol_track"]
         or (
             step.get("status") == "completed"
             and step.get("returncode") != 0
@@ -993,6 +1143,11 @@ def _reuse_completed_suite(
     ):
         raise SystemExit(
             f"Completed evaluation manifest has unfinished steps: {manifest_path}"
+        )
+    step_ids = [step["id"] for step in steps]
+    if len(step_ids) != len(set(step_ids)):
+        raise SystemExit(
+            f"Completed evaluation manifest has duplicate step ids: {manifest_path}"
         )
     for path in eval_root.rglob("*"):
         if path.is_symlink():
@@ -1043,7 +1198,9 @@ def _run_suite(args: argparse.Namespace) -> int:
     )
     cem_commands: list[tuple[int, Path, Path, list[str]]] = []
     cem_skip_reason = None
-    if args.dataset:
+    if args.icl_only:
+        cem_skip_reason = "ICL-only requested"
+    elif args.dataset:
         _, cem_commands = build_commands(cem_args)
     elif args.original_env:
         raise SystemExit(
@@ -1069,12 +1226,14 @@ def _run_suite(args: argparse.Namespace) -> int:
     for step in icl_steps:
         if step.skip_reason:
             print(
-                f"[stablewm-eval] benchmark-icl component={step.component} "
+                f"[stablewm-eval] {step.kind} "
+                f"component={step.component} track={step.protocol_track} "
                 f"not compatible: {step.skip_reason}"
             )
         else:
             print(
-                f"[stablewm-eval] benchmark-icl component={step.component}: "
+                f"[stablewm-eval] {step.kind} "
+                f"component={step.component} track={step.protocol_track}: "
                 f"{shlex.join(step.command)}"
             )
             print(f"[stablewm-eval] output={step.output}")
@@ -1129,37 +1288,107 @@ def _run_suite(args: argparse.Namespace) -> int:
         "steps": [],
         "outputs": [],
     }
-    cem_record: dict[str, Any] = {
-        "id": "original_cem",
-        "kind": "original_environment_cem",
-        "status": "skipped" if cem_skip_reason else "planned",
-        "reason": cem_skip_reason,
-        "commands": [command for *_, command in cem_commands],
-    }
-    manifest["steps"].append(cem_record)
-    for step in icl_steps:
+    cem_records: dict[int, dict[str, Any]] = {}
+    if cem_skip_reason:
         manifest["steps"].append(
             {
-                "id": f"benchmark_icl/{step.component}",
-                "kind": "benchmark_icl",
-                "component": step.component,
-                "status": "not_compatible" if step.skip_reason else "planned",
-                "reason": step.skip_reason,
-                "command": step.command,
-                "output": str(step.output),
-                "official_scoreboard_row": False,
+                "id": "original_cem",
+                "kind": "original_environment_cem",
+                "protocol_track": ORIGINAL_CEM_PROTOCOL_TRACK,
+                "status": "skipped",
+                "reason": cem_skip_reason,
+                "commands": [],
             }
         )
+    else:
+        for seed, log_path, metrics_path, command in cem_commands:
+            record = {
+                "id": f"original_cem/seed{seed}",
+                "kind": "original_environment_cem",
+                "protocol_track": ORIGINAL_CEM_PROTOCOL_TRACK,
+                "eval_seed": seed,
+                "status": "planned",
+                "command": command,
+                "log_file": str(log_path),
+                "metrics_file": str(metrics_path),
+                "receipt_file": str(metrics_path.with_suffix(".json")),
+            }
+            cem_records[seed] = record
+            manifest["steps"].append(record)
+
+    icl_records: dict[str, dict[str, Any]] = {}
+    for step in icl_steps:
+        record = {
+            "id": step.identifier,
+            "kind": step.kind,
+            "protocol_track": step.protocol_track,
+            "component": step.component,
+            "status": "not_compatible" if step.skip_reason else "planned",
+            "reason": step.skip_reason,
+            "command": step.command,
+            "output": str(step.output),
+            "official_scoreboard_row": False,
+        }
+        icl_records[step.identifier] = record
+        manifest["steps"].append(record)
+
+    step_ids = [str(row["id"]) for row in manifest["steps"]]
+    if len(step_ids) != len(set(step_ids)):
+        raise SystemExit(
+            "Evaluation suite produced duplicate manifest step ids: "
+            + ", ".join(step_ids)
+        )
+    if any("protocol_track" not in row for row in manifest["steps"]):
+        raise SystemExit("Every evaluation manifest step needs a protocol_track")
     _write_json_exclusive(manifest_path, manifest)
+
+    def persist_manifest() -> None:
+        write_json(manifest_path, manifest)
 
     try:
         failure_code = 0
         if not cem_skip_reason:
-            status = _run_original(cem_args)
-            cem_record["status"] = "completed" if status == 0 else "failed"
-            cem_record["returncode"] = status
-            manifest["outputs"] = _output_inventory(eval_root, manifest_path)
-            write_json(manifest_path, manifest)
+            reported_cem_seeds: set[int] = set()
+
+            def record_cem_result(result: dict[str, Any]) -> None:
+                seed = int(result["eval_seed"])
+                record = cem_records[seed]
+                record.update(result)
+                reported_cem_seeds.add(seed)
+                persist_manifest()
+
+            try:
+                status = _run_original(
+                    cem_args,
+                    on_seed_result=record_cem_result,
+                )
+            except (KeyboardInterrupt, GeneratorExit):
+                raise
+            except BaseException as exc:
+                status = _failure_returncode(exc)
+                for seed, record in cem_records.items():
+                    if seed not in reported_cem_seeds:
+                        record.update(
+                            status="failed",
+                            returncode=status,
+                            error={
+                                "type": type(exc).__name__,
+                                "message": str(exc),
+                            },
+                        )
+                persist_manifest()
+
+            # Keep the private helper easy to monkeypatch in focused tests and
+            # still leave every manifest step terminal if an older shim does
+            # not invoke ``on_seed_result``.
+            for seed, record in cem_records.items():
+                if seed in reported_cem_seeds:
+                    continue
+                record.update(
+                    status="completed" if status == 0 else "failed",
+                    returncode=status,
+                )
+            persist_manifest()
             if status != 0:
                 failure_code = status
 
@@ -1175,36 +1404,49 @@ def _run_suite(args: argparse.Namespace) -> int:
             if step.skip_reason:
                 continue
             print(
-                f"[stablewm-eval] ICL {index}/{len(icl_steps)}: "
-                f"{step.component}",
+                f"[stablewm-eval] ICL {index}/{len(icl_steps)} "
+                f"track={step.protocol_track}: {step.component}",
                 flush=True,
             )
-            completed = subprocess.run(
-                step.command,
-                cwd=str(REPO_ROOT),
-                env=environment,
-                check=False,
-            )
-            if completed.returncode == 0 and (
-                not step.output.is_file() or step.output.is_symlink()
-            ):
-                raise SystemExit(
-                    "ICL evaluator returned success without a regular result "
-                    f"file: {step.output}"
+            record = icl_records[step.identifier]
+            returncode = 0
+            try:
+                completed = subprocess.run(
+                    step.command,
+                    cwd=str(REPO_ROOT),
+                    env=environment,
+                    check=False,
                 )
-            record = next(
-                row
-                for row in manifest["steps"]
-                if row["id"] == f"benchmark_icl/{step.component}"
-            )
-            record["status"] = (
-                "completed" if completed.returncode == 0 else "failed"
-            )
-            record["returncode"] = completed.returncode
-            manifest["outputs"] = _output_inventory(eval_root, manifest_path)
-            write_json(manifest_path, manifest)
-            if completed.returncode != 0 and failure_code == 0:
-                failure_code = completed.returncode
+                returncode = int(completed.returncode)
+                if returncode == 0 and (
+                    not step.output.is_file() or step.output.is_symlink()
+                ):
+                    raise RuntimeError(
+                        "ICL evaluator returned success without a regular result "
+                        f"file: {step.output}"
+                    )
+                record["status"] = "completed" if returncode == 0 else "failed"
+                record["returncode"] = returncode
+            except (KeyboardInterrupt, GeneratorExit):
+                raise
+            except BaseException as exc:
+                returncode = _failure_returncode(exc)
+                record.update(
+                    status="failed",
+                    returncode=returncode,
+                    error={
+                        "type": type(exc).__name__,
+                        "message": str(exc),
+                    },
+                )
+                print(
+                    f"[stablewm-eval] ICL {step.identifier} failed before a "
+                    f"valid result: {type(exc).__name__}: {exc}",
+                    file=sys.stderr,
+                )
+            persist_manifest()
+            if returncode != 0 and failure_code == 0:
+                failure_code = returncode
     except BaseException as exc:
         manifest["status"] = "failed"
         manifest["error"] = {
@@ -1224,6 +1466,8 @@ def _run_suite(args: argparse.Namespace) -> int:
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
+    if args.icl_only and not args.suite:
+        raise SystemExit("--icl-only is only valid with --suite")
     if args.suite:
         return _run_suite(args)
     if args.component:

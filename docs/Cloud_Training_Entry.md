@@ -175,7 +175,9 @@ Then per run:
 | `CW_DEVICES` | family YAML | Lightning devices (`auto`, integer, or Hydra value) |
 | `CW_LOGGER` | `none` | `wandb` or `swanlab` when the selected family trainer uses the common logger factory |
 | `CW_RESUME` | `auto` | `never`, `auto`, or `required`; full state can resume through a same-job requeue or an identity-matched `last.ckpt` in persistent storage |
-| `CW_POST_TRAIN_EVAL` | unset | for current family-profile runs, run applicable original CEM and benchmark ICL through the common evaluator; frozen historical reproductions retain their component evaluator |
+| `CW_POST_TRAIN_EVAL` | unset | for current family-profile runs, run the complete applicable original CEM and benchmark ICL suite; the standard CEM default is 50 episodes × seeds 42–47 = 300 episodes per checkpoint; component runs fail early if the matching original dataset cannot be resolved; frozen historical reproductions retain their component evaluator |
+| `CW_EVAL_NUM` | `50` | CEM episodes per evaluation seed; changing it produces a non-standard diagnostic or repair run |
+| `CW_EVAL_SEEDS` | `42,43,44,45,46,47` | six standard CEM evaluation seeds; changing them produces a non-standard diagnostic or repair run |
 | `CW_EVAL_ONLY` | unset | skip training/resume and evaluate an existing family-profile checkpoint selected by `CW_ENV`, `CW_FAMILY`, `CW_SEEDS` and `CW_EVAL_EPOCH`/`CW_MAX_EPOCHS` |
 | `CW_EVAL_RESULT_SUBDIR` | unset | new immutable name below `eval_results/` for a later evaluation attempt |
 | `CW_PRINT_ONLY` | unset | resolve and print without running |
@@ -213,8 +215,11 @@ has its recorded size and SHA-256.
 
 For PreJEPA, the CEM smoke uses the upstream planner with the checkpoint's
 declared history stream. Its frozen v1 ICL eligibility is checked separately;
-a `not_compatible` row is a protocol mismatch, not a failed model. See the
-training guide for the exact boundary.
+a state-conditioned original checkpoint keeps a strict `not_compatible` row
+and receives a separate normalized-zero diagnostic score. Benchmark-component
+PreJEPA runs remove the state encoder and must complete the strict RGB/action
+ICL row. These two result tracks are never merged. See the training guide for
+the exact boundary.
 
 For benchmark data exported with the clean Hugging Face layout, pass the
 absolute training payload recorded in `task_registry.json` through

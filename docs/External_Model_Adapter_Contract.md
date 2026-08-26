@@ -148,11 +148,18 @@ and raw actions only. A checkpoint is eligible only when its predictor
 requires no additional context stream and its trained history length, action
 block, and action dimension match the selected task. In particular,
 original-data PreJEPA checkpoints that require `proprio` or `observation` are
-not eligible for frozen-v1 ICL: supplying zero state would change the trained
-model input, while supplying simulator state would widen the public protocol.
-The evaluation suite records this condition as `not_compatible`; it is a
-protocol mismatch, not a model failure or a benchmark score. A direct
-external-evaluation request for such a checkpoint is rejected before scoring.
+not eligible for frozen-v1 ICL. The evaluation suite keeps that strict row as
+`not_compatible`; it is a protocol mismatch, not a model failure or a benchmark
+score. A direct evaluation request rejects such a checkpoint by default.
+
+For diagnostic comparison only, callers may explicitly set
+`--prejepa-missing-context-policy normalized_zero`. The adapter then supplies
+zeros in each missing stream's normalized model-input space and stamps the
+result `external_diagnostic_non_frozen_v1`. This route does not expose
+simulator state, does not change model weights, and cannot create a scoreboard
+row. It should not be reported as a frozen-v1 ICL score. A History=3 PreJEPA
+checkpoint can be evaluated by the History=7 Action Delay scorer only with the
+additional explicit `--history-adapter h3_tail_projection` option.
 
 For an eligible native `.pt` checkpoint with its accompanying `config.json`,
 the built-in adapter loads Stable-WorldModel's public `encode` and `rollout`
@@ -169,8 +176,16 @@ upstream rollout cache is cleared for every independent benchmark bundle.
 For example, a compatible state-free checkpoint can be evaluated with:
 
 ```bash
-contextworld-external-eval --task speed --adapter prejepa \
+python -m contextworld.benchmarks.external_model_cli --task speed --adapter prejepa \
     --checkpoint /path/to/weights_epoch_10.pt --model-name dino-wm
+```
+
+An original state-conditioned checkpoint can be inspected diagnostically with:
+
+```bash
+python -m contextworld.benchmarks.external_model_cli --task speed --adapter prejepa \
+    --checkpoint /path/to/weights_epoch_10.pt --model-name dino-wm \
+    --prejepa-missing-context-policy normalized_zero
 ```
 
 Train the checkpoint with Stable-WorldModel's own
@@ -198,7 +213,7 @@ reaches all nine tasks. The CLI help text is derived from this table.
 ## Invocation
 
 ```bash
-contextworld-external-eval \
+python -m contextworld.benchmarks.external_model_cli \
     --task speed \
     --adapter your_package.module:YourAdapter \
     --checkpoint /path/to/weights.pt \

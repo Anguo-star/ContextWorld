@@ -27,9 +27,11 @@ from contextworld.benchmarks import external_model_cli
 from contextworld.benchmarks.adapter_registry import AdapterRequest
 from contextworld.benchmarks.adapters import LatentWorldModelAdapter
 from contextworld.benchmarks.external_model_cli import (
+    DIAGNOSTIC_RESULT_KIND,
     RESULT_KIND,
     TASKS,
     _BUILTIN_FAMILIES,
+    _builtins_for_run,
     build_request,
 )
 
@@ -113,6 +115,46 @@ class TestTaskBindings:
             else:
                 assert binding.std_key is None, task
         assert TASKS["portal_exit"].std_key == "std_unbiased"
+
+    @pytest.mark.parametrize("task", sorted(TASKS))
+    def test_explicit_normalized_zero_uses_task_matched_diagnostic_prejepa(
+        self, task: str
+    ) -> None:
+        binding = TASKS[task]
+        regular = binding.load_builtins()["prejepa"]
+        diagnostic = _builtins_for_run(
+            binding,
+            argparse.Namespace(
+                task=task,
+                adapter="prejepa",
+                prejepa_missing_context_policy="normalized_zero",
+                history_adapter="native",
+            ),
+        )["prejepa"]
+
+        assert diagnostic is not regular
+        assert diagnostic.required_history_tokens == regular.required_history_tokens
+        assert diagnostic.maximum_future_action_blocks == (
+            regular.maximum_future_action_blocks
+        )
+        assert diagnostic.raw_action_dim == regular.raw_action_dim
+        assert diagnostic.missing_context_strategy == "normalized_zero"
+
+    def test_action_delay_h3_tail_is_an_explicit_prejepa_override(self) -> None:
+        adapter = _builtins_for_run(
+            TASKS["action_delay"],
+            argparse.Namespace(
+                task="action_delay",
+                adapter="prejepa",
+                prejepa_missing_context_policy="normalized_zero",
+                history_adapter="h3_tail_projection",
+            ),
+        )["prejepa"]
+
+        assert adapter.__name__ == (
+            "StableWorldModelPreJEPADiagnosticActionDelayH3TailAdapter"
+        )
+        assert adapter.required_history_tokens == 7
 
 
 class TestRequestConstruction:
@@ -237,6 +279,52 @@ class TestResultLabelling:
         assert payload["result"] == {"icl_score": 0.5}
         assert "icl_score" not in payload
 
+    def test_normalized_zero_result_is_stamped_diagnostic(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        binding = TASKS["speed"]
+        monkeypatch.setattr(
+            type(binding), "load_release", lambda self: {"release_id": "speed-v1"}
+        )
+        monkeypatch.setattr(type(binding), "load_builtins", lambda self: {})
+        monkeypatch.setattr(
+            external_model_cli, "build_adapter", lambda *a, **k: object()
+        )
+        monkeypatch.setattr(
+            external_model_cli, "build_request", lambda *a, **k: None
+        )
+        monkeypatch.setattr(
+            type(binding),
+            "load_scorer",
+            lambda self: (lambda **kwargs: {"icl_score": 0.5}),
+        )
+
+        payload = external_model_cli.run(
+            argparse.Namespace(
+                task="speed",
+                adapter="prejepa",
+                model_name="dino-wm",
+                training_recipe="external_method",
+                training_seed=None,
+                batch_size=8,
+                checkpoint=Path("/tmp/x.pt"),
+                device="cpu",
+                stablewm_repo=None,
+                stablewm_ref=None,
+                prejepa_missing_context_policy="normalized_zero",
+                history_adapter="native",
+            )
+        )
+
+        assert payload["result_kind"] == DIAGNOSTIC_RESULT_KIND
+        assert payload["official_scoreboard_row"] is False
+        assert payload["diagnostic"] == {
+            "classification": "diagnostic",
+            "prejepa_missing_context_policy": "normalized_zero",
+            "frozen_v1_compatible": False,
+            "history_adapter": "native",
+        }
+
     def test_development_split_uses_only_the_development_scorer(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
@@ -337,6 +425,41 @@ class TestArgumentParsing:
             ]
         )
         assert parsed.adapter == "some_package.mod:Adapter"
+
+    def test_normalized_zero_requires_the_builtin_prejepa_adapter(self) -> None:
+        with pytest.raises(SystemExit):
+            external_model_cli.parse_args(
+                [
+                    "--task", "speed",
+                    "--adapter", "lewm",
+                    "--checkpoint", "/tmp/x.pt",
+                    "--model-name", "m",
+                    "--prejepa-missing-context-policy", "normalized_zero",
+                ]
+            )
+
+    def test_h3_tail_projection_is_limited_to_action_delay_prejepa(self) -> None:
+        with pytest.raises(SystemExit):
+            external_model_cli.parse_args(
+                [
+                    "--task", "speed",
+                    "--adapter", "prejepa",
+                    "--checkpoint", "/tmp/x.pt",
+                    "--model-name", "m",
+                    "--history-adapter", "h3_tail_projection",
+                ]
+            )
+
+        parsed = external_model_cli.parse_args(
+            [
+                "--task", "action_delay",
+                "--adapter", "prejepa",
+                "--checkpoint", "/tmp/x.pt",
+                "--model-name", "m",
+                "--history-adapter", "h3_tail_projection",
+            ]
+        )
+        assert parsed.history_adapter == "h3_tail_projection"
 
 
 def _release_configs_with_source_pins() -> list[tuple[Path, dict[str, str]]]:

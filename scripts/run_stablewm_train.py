@@ -116,6 +116,17 @@ class Target:
     original_env: str | None = None
 
 
+@dataclass
+class SeedOutcome:
+    """Execution status for one requested training seed."""
+
+    run_name: str
+    training_status: str
+    training_returncode: int | None = None
+    evaluation_status: str = "not_requested"
+    evaluation_returncode: int | None = None
+
+
 def _absolute_path(value: str | Path, *, label: str) -> Path:
     path = Path(value).expanduser()
     if not path.is_absolute():
@@ -154,8 +165,13 @@ def _family_model_columns(
 
     required = ["pixels", "action"]
     if family == "prejepa":
-        encoding_key = target.encoding_key or "proprio"
-        if encoding_key not in required:
+        # Benchmark components are frozen RGB/action ICL protocols.  Keep
+        # original-environment checkpoints state-conditioned, but never make
+        # component schema preflight depend on privileged simulator state.
+        if target.original_env is None:
+            return tuple(required)
+        encoding_key = target.encoding_key
+        if encoding_key and encoding_key not in required:
             required.append(encoding_key)
         return tuple(required)
 
@@ -442,6 +458,14 @@ def resolve_target(args: argparse.Namespace, contract: dict[str, Any]) -> Target
     dataset = _absolute_path(explicit, label="--dataset")
     _validate_dataset_payload(dataset)
     spec = components[args.component]
+    if args.family == "prejepa" and spec.get("prejepa_model_inputs") != [
+        "pixels",
+        "action",
+    ]:
+        raise SystemExit(
+            f"Benchmark component {args.component!r} must declare "
+            "prejepa_model_inputs: [pixels, action]."
+        )
     return Target(
         label=args.component,
         dataset=dataset,
@@ -449,8 +473,8 @@ def resolve_target(args: argparse.Namespace, contract: dict[str, Any]) -> Target
         history_size=args.history_size or int(spec["history_size"]),
         action_dim=int(spec["action_dim"]),
         environment=str(spec["environment"]),
-        encoding_key=str(spec["encoding_key"]),
-        encoding_dim=int(spec["encoding_dim"]),
+        encoding_key=None,
+        encoding_dim=None,
     )
 
 
@@ -507,7 +531,11 @@ def _validate_positive(name: str, value: int | float | None) -> None:
         raise SystemExit(f"{name} must be positive; got {value}")
 
 
-def _validate_args(args: argparse.Namespace, family: str) -> None:
+def _validate_args(
+    args: argparse.Namespace,
+    family: str,
+    target: Target | None = None,
+) -> None:
     for name in (
             "batch_size",
             "frameskip",
@@ -607,6 +635,16 @@ def _validate_args(args: argparse.Namespace, family: str) -> None:
         if any(word in lowered for word in ("api_key", "password", "secret", "token")):
             raise SystemExit("Secrets must be injected through standard environment "
                              f"variables, not --override {normalized}.")
+        if (
+            family == "prejepa"
+            and target is not None
+            and target.original_env is None
+            and (normalized == "wm.encoding" or normalized.startswith("wm.encoding."))
+        ):
+            raise SystemExit(
+                "Benchmark PreJEPA fixes model inputs to pixels and action; "
+                "--override cannot add or replace wm.encoding streams."
+            )
     if args.post_eval and args.eval_epoch is None and any(
             item.lstrip("+").startswith("trainer.max_epochs=")
             for item in args.override):
@@ -723,7 +761,7 @@ def build_overrides(
         raise SystemExit(f"Upstream trainer not found: {trainer_script}")
     _, upstream_config = _load_upstream_config(stablewm_repo, profile)
 
-    _validate_args(args, family)
+    _validate_args(args, family, target)
     if profile["data_group"] and not target.data_group:
         raise SystemExit(f"{family} requires --data-group for a non-original dataset")
     if not profile["data_group"] and args.data_group:
@@ -776,12 +814,14 @@ def build_overrides(
         _add(entries, common["hydra_run_dir"], output)
 
     if family == "prejepa":
-        # The upstream default names `proprio`. Reacher and Cube datasets name
-        # that column `observation`; this applies to both original datasets and
-        # benchmark-component projections. Upstream derives its true width at
-        # load, so the profile selects the column but never hard-codes its raw
-        # dimension into the action encoder.
-        if target.encoding_key != "proprio":
+        if target.original_env is None:
+            # Benchmark components are evaluated with the frozen RGB/action
+            # ICL contract.  Remove the upstream default rather than mapping
+            # a component's privileged observation/proprio column into it.
+            entries.append("~wm.encoding.proprio")
+        # Original-environment DINO-WM keeps its upstream state-conditioned
+        # recipe.  Reacher and Cube name that state column ``observation``.
+        elif target.encoding_key != "proprio":
             entries.extend([
                 "~wm.encoding.proprio",
                 f"+wm.encoding.{target.encoding_key}=10",
@@ -1467,6 +1507,10 @@ def _post_eval_command(
     if target.original_env:
         command.extend(("--original-env", target.original_env))
     else:
+        # A component suite always attempts its strict ICL cell. When the
+        # matching original dataset is available it also runs CEM retention;
+        # the evaluator records CEM as skipped only when no such dataset was
+        # supplied. ``--icl-only`` is reserved for explicit repair jobs.
         command.extend(("--component", target.label))
     if original_dataset is not None:
         command.extend(("--dataset", str(original_dataset)))
@@ -1481,6 +1525,99 @@ def _post_eval_command(
     if args.print_command:
         command.append("--print-command")
     return command
+
+
+def _safe_eval_result_subdir(value: str) -> Path:
+    """Mirror the evaluator's safe result namespace before reading it."""
+
+    if not value:
+        return Path()
+    path = Path(value)
+    if path.is_absolute() or any(part in {"", ".", ".."} for part in path.parts):
+        raise SystemExit(f"--eval-result-subdir must be a safe relative path: {value}")
+    return path
+
+
+def _strict_component_icl_failure(
+    *,
+    args: argparse.Namespace,
+    target: Target,
+    checkpoint_root: Path,
+    run_name: str,
+    epoch: int,
+) -> str | None:
+    """Return an error when a component suite did not finish its exact ICL.
+
+    ``run_stablewm_eval.py`` intentionally records incompatible ICL as a
+    non-fatal suite row so original state-conditioned checkpoints can retain
+    their CEM evidence.  A benchmark-component post-eval is different: its
+    RGB/action training contract must yield a completed score for that exact
+    component, not a successful process containing a skipped ICL row.
+    """
+
+    if target.original_env is not None:
+        return None
+    checkpoint = _evaluation_checkpoint(checkpoint_root, run_name, epoch)
+    manifest = (
+        checkpoint.parent
+        / "eval_results"
+        / _safe_eval_result_subdir(args.eval_result_subdir)
+        / "manifest.json"
+    )
+    if not manifest.is_file() or manifest.is_symlink():
+        return f"strict ICL manifest is missing or unsafe: {manifest}"
+    try:
+        payload = json.loads(manifest.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        return f"could not read strict ICL manifest {manifest}: {exc}"
+    if not isinstance(payload, dict):
+        return f"strict ICL manifest is not an object: {manifest}"
+    if payload.get("status") != "completed":
+        return (
+            "strict ICL suite did not complete for "
+            f"{target.label}: manifest status={payload.get('status')!r}"
+        )
+    steps = payload.get("steps")
+    if not isinstance(steps, list):
+        return f"strict ICL manifest has no step list: {manifest}"
+    step_id = f"benchmark_icl/{target.label}"
+    matching = [
+        step
+        for step in steps
+        if isinstance(step, dict) and step.get("id") == step_id
+    ]
+    if len(matching) != 1:
+        return f"strict ICL manifest is missing exactly one {step_id} step"
+    step = matching[0]
+    if step.get("status") != "completed":
+        return (
+            f"strict ICL component={target.label} did not complete: "
+            f"status={step.get('status')!r}, reason={step.get('reason')!r}"
+        )
+    output = step.get("output")
+    if not isinstance(output, str):
+        return f"strict ICL component={target.label} has no result path"
+    output_path = Path(output)
+    if not output_path.is_file() or output_path.is_symlink():
+        return f"strict ICL component={target.label} result is missing or unsafe: {output}"
+    return None
+
+
+def _print_seed_summary(outcomes: list[SeedOutcome]) -> None:
+    """Render a compact, machine-readable-enough result for every seed."""
+
+    print("[stablewm-train] seed-summary")
+    for outcome in outcomes:
+        train = outcome.training_status
+        if outcome.training_returncode is not None:
+            train += f"(returncode={outcome.training_returncode})"
+        evaluation = outcome.evaluation_status
+        if outcome.evaluation_returncode is not None:
+            evaluation += f"(returncode={outcome.evaluation_returncode})"
+        print(
+            f"[stablewm-train] seed={outcome.run_name} "
+            f"training={train} evaluation={evaluation}"
+        )
 
 
 def _original_dataset_for_post_eval(
@@ -1500,7 +1637,14 @@ def _original_dataset_for_post_eval(
         _validate_dataset_payload(dataset)
         return dataset
     if not args.dataset_root:
-        return None
+        raise SystemExit(
+            "Complete component post-eval needs the matching original-"
+            "environment dataset for CEM retention. Set "
+            "CONTEXTWORLD_DATASET_ROOT/--dataset-root or "
+            "CW_EVAL_ORIGINAL_DATASET/--eval-original-dataset. For an "
+            "explicit ICL-only repair, invoke scripts/run_stablewm_eval.py "
+            "--suite --icl-only directly."
+        )
     root = _absolute_path(args.dataset_root, label="--dataset-root")
     dataset = Path(
         os.path.abspath(
@@ -1841,7 +1985,12 @@ def main(argv: list[str] | None = None) -> int:
     profile = contract["families"][args.family]
     trainer_script = stablewm_repo / profile["entrypoint"]
     seeds = args.seeds
-    original_eval_dataset = (
+    # Both target kinds need the original-environment payload at post-eval:
+    # original runs use it for their primary CEM cell, while component runs
+    # use the matching environment payload for CEM retention.  Resolving this
+    # only for ``target.original_env`` silently reduced component post-eval to
+    # ICL-only even when CONTEXTWORLD_DATASET_ROOT was available.
+    original_eval_dataset: Path | None = (
         _original_dataset_for_post_eval(args, contract, target)
         if args.post_eval or args.eval_only
         else None
@@ -2042,9 +2191,23 @@ def main(argv: list[str] | None = None) -> int:
             and args.swanlab_mode != "offline"):
         _login_swanlab_without_exposing_key(environment)
 
+    outcomes = {
+        run_name: SeedOutcome(
+            run_name=run_name,
+            training_status=(
+                "not_requested"
+                if args.eval_only
+                else "recovered" if train_command is None else "pending"
+            ),
+            evaluation_status="pending" if eval_command else "not_requested",
+        )
+        for run_name, train_command, eval_command, _, _, _ in commands
+    }
+    first_nonzero = 0
+
     # Finish or recover every requested training seed before starting the
-    # post-training suite.  A CEM/ICL failure for an earlier seed must never
-    # prevent a later seed from reaching its requested training checkpoint.
+    # post-training suite. A failed trainer must not suppress later requested
+    # seeds; its own checkpoint is never handed to evaluation.
     for (
         run_name,
         train_command,
@@ -2053,6 +2216,7 @@ def main(argv: list[str] | None = None) -> int:
         training_identity,
         resume_checkpoint,
     ) in commands:
+        outcome = outcomes[run_name]
         if train_command:
             assert training_identity is not None
             _install_training_identity(
@@ -2090,27 +2254,71 @@ def main(argv: list[str] | None = None) -> int:
                 env=training_environment,
                 check=False,
             )
+            outcome.training_returncode = completed.returncode
             if completed.returncode != 0:
-                return completed.returncode
+                outcome.training_status = "failed"
+                print(
+                    f"[stablewm-train] training failed for {run_name}: "
+                    f"returncode={completed.returncode}; continuing remaining seeds"
+                )
+                if first_nonzero == 0:
+                    first_nonzero = completed.returncode
+            else:
+                outcome.training_status = "completed"
 
     for (
-        _,
-        _,
+        run_name,
+        train_command,
         eval_command,
         _,
         _,
         _,
     ) in commands:
-        if eval_command:
-            evaluated = subprocess.run(
-                eval_command,
-                cwd=str(REPO_ROOT),
-                env=environment,
-                check=False,
+        outcome = outcomes[run_name]
+        if eval_command is None:
+            continue
+        if train_command is not None and outcome.training_status == "failed":
+            outcome.evaluation_status = "skipped_training_failed"
+            print(
+                f"[stablewm-train] evaluation skipped for {run_name}: "
+                "training failed for this seed"
             )
-            if evaluated.returncode != 0:
-                return evaluated.returncode
-    return 0
+            continue
+
+        evaluated = subprocess.run(
+            eval_command,
+            cwd=str(REPO_ROOT),
+            env=environment,
+            check=False,
+        )
+        returncode = evaluated.returncode
+        if returncode == 0 and target.original_env is None:
+            assert eval_epoch is not None
+            strict_failure = _strict_component_icl_failure(
+                args=args,
+                target=target,
+                checkpoint_root=checkpoint_root,
+                run_name=run_name,
+                epoch=eval_epoch,
+            )
+            if strict_failure is not None:
+                print(f"[stablewm-train] strict ICL failed for {run_name}: {strict_failure}")
+                returncode = 1
+        outcome.evaluation_returncode = returncode
+        if returncode != 0:
+            outcome.evaluation_status = "failed"
+            print(
+                f"[stablewm-train] evaluation failed for {run_name}: "
+                f"returncode={returncode}; continuing remaining seeds"
+            )
+            if first_nonzero == 0:
+                first_nonzero = returncode
+        else:
+            outcome.evaluation_status = "completed"
+
+    _print_seed_summary(list(outcomes.values()))
+    print(f"[stablewm-train] first_nonzero={first_nonzero}")
+    return first_nonzero
 
 
 if __name__ == "__main__":

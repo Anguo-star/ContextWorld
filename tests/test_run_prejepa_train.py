@@ -103,6 +103,8 @@ class TestTaskGeometry:
 
         assert pairs["frameskip"] == "5"
         assert int(pairs["wm.history_size"]) > 0
+        assert "~wm.encoding.proprio" in pairs
+        assert not any("wm.encoding.observation" in key for key in pairs)
         assert pairs["++wandb.enabled"] == "false"
 
 
@@ -149,6 +151,12 @@ class TestItRemainsALauncher:
         )
 
         assert entries[-1] == "batch_size=99"
+
+    def test_state_encoder_override_is_rejected(self) -> None:
+        with pytest.raises(SystemExit, match="fixes model inputs"):
+            launcher.build_overrides(
+                _namespace(override=["+wm.encoding.observation=10"])
+            )
 
 
 class TestBaselineBatchSize:

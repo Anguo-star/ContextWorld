@@ -74,10 +74,15 @@ families:
     post_train_eval: validated
     post_train_eval_note: >-
       Original-environment CEM execution was validated for TwoRoom, PushT,
-      Reacher, and Cube with one epoch-10, training-seed-3072 checkpoint per
-      environment and evaluation seeds 42, 43, and 44. This validates the
-      execution path, not a formal benchmark score. Frozen-v1 ICL remains
-      incompatible with these state-conditioned original-data checkpoints.
+      Reacher, and Cube across epoch-10 checkpoints from training seeds 3072,
+      3073, and 3074. Each checkpoint completed six evaluation seeds with 50
+      episodes per seed (300 episodes per checkpoint). This validates the
+      execution path and supplies checkpoint-level evidence, not a formal
+      benchmark score.
+      State-conditioned original-data checkpoints retain a strict frozen-v1
+      not-compatible row and a separate normalized-zero diagnostic.
+      Benchmark-component PreJEPA fixes model inputs to pixels and actions and
+      requires strict ICL.
     keys:
       dataset: dataset_name
       batch_size: batch_size
@@ -139,64 +144,55 @@ benchmark_components:
     data_group: tworoom
     history_size: 3
     action_dim: 2
-    encoding_key: proprio
-    encoding_dim: 2
+    prejepa_model_inputs: [pixels, action]
   door:
     environment: tworoom
     data_group: tworoom
     history_size: 3
     action_dim: 2
-    encoding_key: proprio
-    encoding_dim: 2
+    prejepa_model_inputs: [pixels, action]
   action_delay:
     environment: tworoom
     data_group: tworoom
     history_size: 7
     action_dim: 2
-    encoding_key: proprio
-    encoding_dim: 2
+    prejepa_model_inputs: [pixels, action]
   portal_exit:
     environment: tworoom
     data_group: tworoom
     history_size: 3
     action_dim: 2
-    encoding_key: proprio
-    encoding_dim: 2
+    prejepa_model_inputs: [pixels, action]
   action_strength:
     environment: pusht
     data_group: pusht
     history_size: 3
     action_dim: 2
-    encoding_key: proprio
-    encoding_dim: 4
+    prejepa_model_inputs: [pixels, action]
   contact_friction:
     environment: pusht
     data_group: pusht
     history_size: 3
     action_dim: 2
-    encoding_key: proprio
-    encoding_dim: 4
+    prejepa_model_inputs: [pixels, action]
   motion_damping:
     environment: pusht
     data_group: pusht
     history_size: 3
     action_dim: 2
-    encoding_key: proprio
-    encoding_dim: 4
+    prejepa_model_inputs: [pixels, action]
   robot_arm_mass:
     environment: reacher
     data_group: dmc
     history_size: 3
     action_dim: 2
-    encoding_key: observation
-    encoding_dim: 6
+    prejepa_model_inputs: [pixels, action]
   cube_gripper_carry:
     environment: cube
     data_group: ogb
     history_size: 3
     action_dim: 5
-    encoding_key: observation
-    encoding_dim: 28
+    prejepa_model_inputs: [pixels, action]
 
 evaluation:
   entrypoint: scripts/plan/eval_wm.py
@@ -205,9 +201,11 @@ evaluation:
     pusht: pusht
     reacher: reacher
     cube: cube
-  default_seeds: [42, 43, 44]
+  default_seeds: [42, 43, 44, 45, 46, 47]
   default_num_eval: 50
   note: >-
-    The optional suite combines the upstream original-environment MPC/CEM
-    evaluator with existing ContextWorld component scorers. Outputs remain
-    per-checkpoint evidence and do not create formal scoreboard rows.
+    The standard post-training suite evaluates 50 episodes for each of six
+    seeds (42 through 47), for 300 original-environment MPC/CEM episodes per
+    checkpoint, and then attempts the applicable ContextWorld component
+    evaluators. Outputs remain per-checkpoint evidence and do not create formal
+    scoreboard rows.

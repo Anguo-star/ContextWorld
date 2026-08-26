@@ -19,16 +19,18 @@ task's release configuration for geometry and action normalization, and calls
 that task's existing scorer -- so an external model is evaluated under exactly
 the same protocol as the baselines, without being able to alter it.
 
-Results are labelled ``external_unofficial``.  Minting an official scoreboard
-row requires the preregistration and freeze path, and a convenience CLI must
-not be able to shortcut it.
+Ordinary results are labelled ``external_unofficial``.  An explicitly selected
+missing-context diagnostic is labelled ``external_diagnostic_non_frozen_v1``.
+Neither form can mint an official scoreboard row: that requires the
+preregistration and freeze path, and a convenience CLI must not be able to
+shortcut it.
 
 Usage
 -----
 
 ::
 
-    contextworld-external-eval --task speed \\
+    python -m contextworld.benchmarks.external_model_cli --task speed \\
         --adapter my_package.adapter:MyWorldModel \\
         --checkpoint /path/to/weights.pt \\
         --model-name my-world-model \\
@@ -61,6 +63,7 @@ from contextworld.synthesis.manifest import write_json
 ROOT = repository_root()
 
 RESULT_KIND = "external_unofficial"
+DIAGNOSTIC_RESULT_KIND = "external_diagnostic_non_frozen_v1"
 
 
 @dataclass(frozen=True)
@@ -243,6 +246,101 @@ TASKS: dict[str, TaskBinding] = {
 }
 
 
+# The regular family table must continue to resolve only the strict adapters.
+# These classes are selected only after an operator explicitly asks for the
+# diagnostic missing-context policy.
+_DIAGNOSTIC_PREJEPA_CLASSES = {
+    "speed": "StableWorldModelPreJEPADiagnosticAdapter",
+    "door": "StableWorldModelPreJEPADiagnosticAdapter",
+    "action_delay": "StableWorldModelPreJEPADiagnosticHistory7Adapter",
+    "action_strength": "StableWorldModelPreJEPADiagnosticActionStrengthAdapter",
+    "contact_friction": (
+        "StableWorldModelPreJEPADiagnosticContactFrictionAdapter"
+    ),
+    "motion_damping": "StableWorldModelPreJEPADiagnosticMotionDampingAdapter",
+    "portal_exit": "StableWorldModelPreJEPADiagnosticPortalExitAdapter",
+    "robot_arm_mass": "StableWorldModelPreJEPADiagnosticReacherArmMassAdapter",
+    "cube_gripper_carry": (
+        "StableWorldModelPreJEPADiagnosticCubeGraspRuleAdapter"
+    ),
+}
+
+
+def _prejepa_missing_context_policy(args: argparse.Namespace) -> str:
+    """Read a new option without breaking programmatic callers of ``run``."""
+
+    return str(getattr(args, "prejepa_missing_context_policy", "reject"))
+
+
+def _history_adapter(args: argparse.Namespace) -> str:
+    """Read the Action Delay projection option with its native default."""
+
+    return str(getattr(args, "history_adapter", "native"))
+
+
+def _validate_diagnostic_options(args: argparse.Namespace) -> None:
+    policy = _prejepa_missing_context_policy(args)
+    history_adapter = _history_adapter(args)
+    if policy not in {"reject", "normalized_zero"}:
+        raise ValueError(
+            "Unknown --prejepa-missing-context-policy "
+            f"{policy!r}; expected 'reject' or 'normalized_zero'"
+        )
+    if history_adapter not in {"native", "h3_tail_projection"}:
+        raise ValueError(
+            "Unknown --history-adapter "
+            f"{history_adapter!r}; expected 'native' or "
+            "'h3_tail_projection'"
+        )
+    if policy == "normalized_zero" and args.adapter != "prejepa":
+        raise ValueError(
+            "--prejepa-missing-context-policy normalized_zero is only "
+            "available for --adapter prejepa"
+        )
+    if history_adapter == "h3_tail_projection":
+        if args.task != "action_delay":
+            raise ValueError(
+                "--history-adapter h3_tail_projection is only available "
+                "for --task action_delay"
+            )
+        if args.adapter != "prejepa":
+            raise ValueError(
+                "--history-adapter h3_tail_projection is only available "
+                "for --adapter prejepa in contextworld-external-eval"
+            )
+
+
+def _prejepa_adapter_class_name(
+    binding: TaskBinding, args: argparse.Namespace
+) -> str | None:
+    """Return an explicit PreJEPA override, or ``None`` for strict default."""
+
+    history_adapter = _history_adapter(args)
+    if history_adapter == "h3_tail_projection":
+        if _prejepa_missing_context_policy(args) == "normalized_zero":
+            return "StableWorldModelPreJEPADiagnosticActionDelayH3TailAdapter"
+        return "StableWorldModelPreJEPAActionDelayH3TailAdapter"
+    if _prejepa_missing_context_policy(args) == "normalized_zero":
+        return _DIAGNOSTIC_PREJEPA_CLASSES[binding.task]
+    return None
+
+
+def _builtins_for_run(
+    binding: TaskBinding, args: argparse.Namespace
+) -> dict[str, type]:
+    """Resolve ordinary built-ins, replacing PreJEPA only on explicit opt-in."""
+
+    builtins = binding.load_builtins()
+    if args.adapter != "prejepa":
+        return builtins
+    class_name = _prejepa_adapter_class_name(binding, args)
+    if class_name is None:
+        return builtins
+    module_name = f"{_SCORE}.prejepa_adapters"
+    module = __import__(module_name, fromlist=[class_name])
+    return {**builtins, "prejepa": getattr(module, class_name)}
+
+
 def build_request(
     binding: TaskBinding, release: dict[str, Any], args: argparse.Namespace
 ) -> AdapterRequest:
@@ -304,11 +402,12 @@ def _scorer_keywords(
 
 
 def run(args: argparse.Namespace) -> dict[str, Any]:
+    _validate_diagnostic_options(args)
     binding = TASKS[args.task]
     release = binding.load_release()
     adapter = build_adapter(
         args.adapter,
-        builtins=binding.load_builtins(),
+        builtins=_builtins_for_run(binding, args),
         request=build_request(binding, release, args),
     )
     evaluation_split = getattr(args, "evaluation_split", "public")
@@ -323,9 +422,14 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
 
     # Stamped, not merged into the scorer's own payload keys, so an external
     # run can never be mistaken for -- or replayed as -- a frozen submission.
-    return {
+    policy = _prejepa_missing_context_policy(args)
+    history_adapter = _history_adapter(args)
+    diagnostic = policy == "normalized_zero"
+    payload_envelope: dict[str, Any] = {
         "schema_version": 1,
-        "result_kind": RESULT_KIND,
+        "result_kind": (
+            DIAGNOSTIC_RESULT_KIND if diagnostic else RESULT_KIND
+        ),
         "task": binding.task,
         "evaluation_split": evaluation_split,
         "adapter_spec": args.adapter,
@@ -340,6 +444,20 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         ),
         "result": payload,
     }
+    if diagnostic:
+        payload_envelope["diagnostic"] = {
+            "classification": "diagnostic",
+            "prejepa_missing_context_policy": policy,
+            "frozen_v1_compatible": False,
+            "history_adapter": history_adapter,
+        }
+        payload_envelope["note"] = (
+            "Produced by contextworld-external-eval using normalized-zero "
+            "missing context. This is a diagnostic, non-frozen-v1 result; "
+            "it is not a preregistered submission and does not enter the "
+            "public scoreboard."
+        )
+    return payload_envelope
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -347,7 +465,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         prog="contextworld-external-eval",
         description=(
             "Evaluate an external latent world model against a frozen "
-            "ContextWorld task. Produces an unofficial result."
+            "ContextWorld task. Produces an unofficial result, or an "
+            "explicitly labelled diagnostic result."
         ),
     )
     parser.add_argument("--task", choices=sorted(TASKS), required=True)
@@ -367,6 +486,28 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--device", default="cuda")
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument(
+        "--prejepa-missing-context-policy",
+        choices=("reject", "normalized_zero"),
+        default="reject",
+        help=(
+            "Keep the frozen-v1 rejection for state-conditioned PreJEPA "
+            "checkpoints (default), or explicitly run the non-frozen-v1 "
+            "diagnostic with model-normalized zero state. The latter is "
+            "available only for --adapter prejepa."
+        ),
+    )
+    parser.add_argument(
+        "--history-adapter",
+        choices=("native", "h3_tail_projection"),
+        default="native",
+        help=(
+            "Use native task history (default). h3_tail_projection exposes "
+            "a native H3 PreJEPA checkpoint through the Action Delay H7 "
+            "boundary and is available only for --task action_delay with "
+            "--adapter prejepa."
+        ),
+    )
+    parser.add_argument(
         "--evaluation-split",
         choices=("public", "development"),
         default="public",
@@ -378,7 +519,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--stablewm-repo")
     parser.add_argument("--stablewm-ref")
     parser.add_argument("--output", type=Path)
-    return parser.parse_args(argv)
+    args = parser.parse_args(argv)
+    try:
+        _validate_diagnostic_options(args)
+    except ValueError as exc:
+        parser.error(str(exc))
+    return args
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -389,7 +535,7 @@ def main(argv: list[str] | None = None) -> int:
         write_json(target, payload)
         print(
             json.dumps(
-                {"result_kind": RESULT_KIND, "output": str(target)},
+                {"result_kind": payload["result_kind"], "output": str(target)},
                 sort_keys=True,
             )
         )

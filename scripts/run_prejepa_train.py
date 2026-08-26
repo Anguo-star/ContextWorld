@@ -76,6 +76,7 @@ TASK_GEOMETRY: dict[str, dict[str, int]] = {
 }
 
 FRAMESKIP = 5
+BENCHMARK_MODEL_INPUTS = ("pixels", "action")
 
 # ``lewm.yaml`` and ``pldm.yaml`` both ship ``batch_size: 128`` with no
 # gradient accumulation, so the baselines are aligned by upstream default.
@@ -147,6 +148,12 @@ def build_overrides(args: argparse.Namespace) -> list[str]:
         # resume from the wrong checkpoint.
         f"subdir={args.run_name}",
     ]
+    # The public ICL components are RGB/action protocols.  PreJEPA's upstream
+    # config enables ``wm.encoding.proprio`` by default, so remove it rather
+    # than silently training a state-conditioned checkpoint that the strict
+    # component scorer cannot consume.  In particular, never remap Reacher or
+    # Cube observations into a replacement state stream here.
+    overrides.append("~wm.encoding.proprio")
     # Upstream prejepa.py reads cfg.wandb even though the public YAML does not
     # declare a wandb block. Add the disabled flag explicitly so a logger-free
     # public run reaches training. The canonical profile launcher owns actual
@@ -166,6 +173,15 @@ def build_overrides(args: argparse.Namespace) -> list[str]:
             overrides.append(f"{key}={flag}")
     if args.output is not None:
         overrides.append(f"hydra.run.dir={Path(args.output).resolve()}")
+    for override in args.override:
+        key, _, _ = override.partition("=")
+        normalized = key.lstrip("+~")
+        if normalized == "wm.encoding" or normalized.startswith("wm.encoding."):
+            raise SystemExit(
+                "Benchmark PreJEPA fixes model inputs to "
+                f"{list(BENCHMARK_MODEL_INPUTS)}; --override cannot add or "
+                "replace wm.encoding streams."
+            )
     overrides.extend(args.override)
     return overrides
 

@@ -54,7 +54,7 @@ pip install -e .
 # 读取冻结 Lance/H5 数据、重评分并运行审计
 pip install -e ".[eval]"
 
-# 使用随仓库提供的 Stable-WorldModel LeWM / PLDM adapter（包含 eval 依赖）
+# 使用随仓库提供的 Stable-WorldModel LeWM / PLDM / PreJEPA adapter（包含 eval 依赖）
 pip install -e ".[stablewm]"
 
 # 开发与运行测试
@@ -94,10 +94,11 @@ contextworld-door
 contextworld-portal-exit
 ```
 
-当前命令行内置 Stable-WorldModel LeWM / PLDM。命令行入口存在，表示该任务的数据与评分
-接口可以运行，不表示参考模型已经通过该任务。其他模型可以实现通用 Python adapter 并
-直接调用 scorer API，复用同一份冻结数据和评分规则；自定义 adapter 的 CLI 插件加载尚未
-提供。
+九个任务专用命令内置 Stable-WorldModel LeWM / PLDM；通用评测模块
+`python -m contextworld.benchmarks.external_model_cli` 还内置 PreJEPA。命令行入口存在，表示
+该任务的数据与评分接口可以运行，不表示参考模型已经通过该任务。其他模型可以实现通用
+Python adapter 并直接调用 scorer API，复用同一份冻结数据和评分规则；任意自定义 adapter
+的 CLI 插件加载尚未提供。
 
 ## 文档
 

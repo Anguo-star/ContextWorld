@@ -1,0 +1,339 @@
+{
+  "schema_version": "contextworld.dinowm-original-diagnostic-summary.v1",
+  "status": "completed_non_frozen_v1_supplementary_evidence",
+  "created_utc": "2026-08-23",
+  "model_family": "Stable-WorldModel PreJEPA (DINO-WM)",
+  "stablewm_ref": "649a122ea228dd71da66b560e9d0845c151cf9f6",
+  "claim_boundary": {
+    "official_scoreboard_row": false,
+    "frozen_v1_compatible": false,
+    "public_reference_result": false,
+    "cem_standard_post_eval_complete": true,
+    "cem_official_frozen_matrix": false,
+    "description": "Original-environment checkpoints require proprio or observation inputs that are absent from the frozen ContextWorld v1 ICL adapter contract. Strict rows remain not_compatible. Numerical ICL values below come from a separate diagnostic that supplies normalized-space zero values for missing state streams and never reads privileged simulator state."
+  },
+  "training": {
+    "data_scope": "original_environment_only",
+    "epochs": 10,
+    "training_seeds": [
+      3072,
+      3073,
+      3074
+    ],
+    "history_size": 3
+  },
+  "protocol_tracks": {
+    "strict_frozen_v1": {
+      "task_seed_cells": 27,
+      "completed_scores": 0,
+      "not_compatible": 27,
+      "reasons": {
+        "state_conditioned_checkpoint": 27,
+        "action_delay_history_3_vs_frozen_history_7": 3
+      }
+    },
+    "diagnostic_normalized_zero_v1": {
+      "result_kind": "external_diagnostic_non_frozen_v1",
+      "task_seed_cells": 27,
+      "completed_scores": 27,
+      "missing_context_policy": "normalized_zero",
+      "privileged_state_read": false,
+      "action_delay_history_adapter": "h3_tail_projection"
+    }
+  },
+  "checkpoints": {
+    "tworoom_prejepa_original_s3072": "d72ae7c0004b8f9157d72dba92b0594a3d5f25a59cb4941149ecb5aaaf9f2e6a",
+    "tworoom_prejepa_original_s3073": "5772ce7ff013fdd19655831cc003ea5f1c8fda10651b5164ac344b3673f8e897",
+    "tworoom_prejepa_original_s3074": "59362582231e64d7e8124c7e8b71a9ddcb1dec74c88b01398843efc417767358",
+    "pusht_prejepa_original_s3072": "043fb6aee9cb728307973016468802c772d1bfff5cebc7affe05c7e5780fc329",
+    "pusht_prejepa_original_s3073": "32e05c0d0b9f65b2b3029a31ad6405e5e20bf30a9a1a078754b0a81a4d7ff00e",
+    "pusht_prejepa_original_s3074": "7752b940bb0d6d564bade4ef2911e728dcc3cecbed6ae1b816828cb3d38522fe",
+    "reacher_prejepa_original_s3072": "7d40d7d9c752776a88e00d83492a1ab279cd6bbabc05c90c95e35c5639c3f3b1",
+    "reacher_prejepa_original_s3073": "b2d8adf179012393c3e3bab8ecfde9846412054456dbb8d4f447eba297a9643c",
+    "reacher_prejepa_original_s3074": "04561e5dabe2ad9e32de5190e0fcf748c1e316252e7d0729f0db76782badfb05",
+    "cube_prejepa_original_s3072": "a27f91de5619b925751296bd4f8a2097335cc45c6b86fa05440483ab2e5b3638",
+    "cube_prejepa_original_s3073": "91d49754969bfdea5126ca0a0f776773de5ae36b35a299af72a211105bee7212",
+    "cube_prejepa_original_s3074": "a6b0ce5d637011cbebc8c03178d46a02f9f56f3c43a46511cc913e5ef29f3772"
+  },
+  "icl": {
+    "units": "fraction",
+    "sample_standard_deviation_ddof": 1,
+    "components": {
+      "speed": {
+        "environment": "tworoom",
+        "evaluation_split": "public",
+        "primary_metric": "unseen_interpolation_h1_strict_query_win_rate_vs_every_other",
+        "json_path": "$.result.tracks.unseen_interpolation.horizons['1'].reference_speed_balanced_strict_query_win_rate_vs_every_other",
+        "values_by_training_seed": {
+          "3072": 0.33111111111111113,
+          "3073": 0.3333333333333333,
+          "3074": 0.3333333333333333
+        },
+        "mean": 0.3325925925925926,
+        "sample_standard_deviation": 0.0012830005981991683,
+        "checkpoint_pass_by_training_seed": {
+          "3072": false,
+          "3073": false,
+          "3074": false
+        }
+      },
+      "action_strength": {
+        "environment": "pusht",
+        "evaluation_split": "public",
+        "primary_metric": "correct_future_rate",
+        "json_path": "$.result.metrics.correct_future_rate",
+        "values_by_training_seed": {
+          "3072": 0.490234375,
+          "3073": 0.4921875,
+          "3074": 0.49609375
+        },
+        "mean": 0.4928385416666667,
+        "sample_standard_deviation": 0.002983447718070208,
+        "checkpoint_pass_by_training_seed": {
+          "3072": false,
+          "3073": false,
+          "3074": false
+        }
+      },
+      "robot_arm_mass": {
+        "environment": "reacher",
+        "evaluation_split": "public",
+        "primary_metric": "correct_future_rate",
+        "json_path": "$.result.metrics.correct_future_rate",
+        "values_by_training_seed": {
+          "3072": 0.50390625,
+          "3073": 0.50390625,
+          "3074": 0.501953125
+        },
+        "mean": 0.5032552083333334,
+        "sample_standard_deviation": 0.0011276372445109878,
+        "checkpoint_pass_by_training_seed": {
+          "3072": false,
+          "3073": false,
+          "3074": false
+        }
+      },
+      "action_delay": {
+        "environment": "tworoom",
+        "evaluation_split": "public",
+        "primary_metric": "physical_group_macro_accuracy",
+        "json_path": "$.result.core_h1.physical_group_macro_accuracy",
+        "values_by_training_seed": {
+          "3072": 0.16574074074074072,
+          "3073": 0.16694444444444442,
+          "3074": 0.1660185185185185
+        },
+        "mean": 0.16623456790123454,
+        "sample_standard_deviation": 0.0006302647486624108,
+        "checkpoint_pass_by_training_seed": {
+          "3072": false,
+          "3073": false,
+          "3074": false
+        }
+      },
+      "contact_friction": {
+        "environment": "pusht",
+        "evaluation_split": "development",
+        "primary_metric": "correct_future_rate",
+        "json_path": "$.result.metrics.correct_future_rate",
+        "values_by_training_seed": {
+          "3072": 0.490234375,
+          "3073": 0.49609375,
+          "3074": 0.49609375
+        },
+        "mean": 0.494140625,
+        "sample_standard_deviation": 0.0033829117335329633,
+        "checkpoint_pass_by_training_seed": {
+          "3072": false,
+          "3073": false,
+          "3074": false
+        }
+      },
+      "motion_damping": {
+        "environment": "pusht",
+        "evaluation_split": "development",
+        "primary_metric": "correct_future_rate",
+        "json_path": "$.result.metrics.correct_future_rate",
+        "values_by_training_seed": {
+          "3072": 0.50390625,
+          "3073": 0.498046875,
+          "3074": 0.498046875
+        },
+        "mean": 0.5,
+        "sample_standard_deviation": 0.0033829117335329633,
+        "checkpoint_pass_by_training_seed": {
+          "3072": false,
+          "3073": false,
+          "3074": false
+        }
+      },
+      "cube_gripper_carry": {
+        "environment": "cube",
+        "evaluation_split": "public",
+        "primary_metric": "correct_future_rate",
+        "json_path": "$.result.metrics.correct_future_rate",
+        "values_by_training_seed": {
+          "3072": 0.501953125,
+          "3073": 0.505859375,
+          "3074": 0.498046875
+        },
+        "mean": 0.501953125,
+        "sample_standard_deviation": 0.00390625,
+        "checkpoint_pass_by_training_seed": {
+          "3072": false,
+          "3073": false,
+          "3074": false
+        }
+      },
+      "door": {
+        "environment": "tworoom",
+        "evaluation_split": "public",
+        "primary_metric": "same_history_two_target_accuracy",
+        "json_path": "$.result.summary.overall.same_history_two_target_accuracy",
+        "values_by_training_seed": {
+          "3072": 0.5,
+          "3073": 0.505,
+          "3074": 0.525
+        },
+        "mean": 0.51,
+        "sample_standard_deviation": 0.01322875655532296,
+        "checkpoint_pass_by_training_seed": {
+          "3072": false,
+          "3073": false,
+          "3074": false
+        }
+      },
+      "portal_exit": {
+        "environment": "tworoom",
+        "evaluation_split": "public",
+        "primary_metric": "correct_future_rate",
+        "json_path": "$.result.metrics.correct_future_rate",
+        "values_by_training_seed": {
+          "3072": 0.49609375,
+          "3073": 0.484375,
+          "3074": 0.490234375
+        },
+        "mean": 0.490234375,
+        "sample_standard_deviation": 0.005859375,
+        "checkpoint_pass_by_training_seed": {
+          "3072": false,
+          "3073": false,
+          "3074": false
+        }
+      }
+    }
+  },
+    "original_environment_cem": {
+        "classification": "complete_standard_post_eval_checkpoint_level_evidence",
+        "official_frozen_matrix": false,
+        "eval_seeds": [
+            42,
+            43,
+            44,
+            45,
+            46,
+            47
+        ],
+        "episodes_per_eval_seed": 50,
+        "episodes_per_checkpoint": 300,
+        "sample_standard_deviation_ddof": 1,
+        "environments": {
+            "tworoom": {
+                "successful_episodes_by_eval_seed_by_training_seed": {
+                    "3072": [49, 49, 48, 49, 49, 48],
+                    "3073": [50, 50, 48, 49, 50, 49],
+                    "3074": [49, 50, 49, 50, 50, 50]
+                },
+                "successful_episodes_by_training_seed": {
+                    "3072": 292,
+                    "3073": 296,
+                    "3074": 298
+                },
+                "success_rate_by_training_seed": {
+                    "3072": 0.9733333333333334,
+                    "3073": 0.9866666666666667,
+                    "3074": 0.9933333333333333
+                },
+                "mean": 0.9844444444444445,
+                "sample_standard_deviation": 0.010183501544346312
+            },
+            "pusht": {
+                "successful_episodes_by_eval_seed_by_training_seed": {
+                    "3072": [20, 26, 23, 27, 26, 17],
+                    "3073": [22, 26, 19, 30, 24, 19],
+                    "3074": [19, 21, 17, 24, 18, 19]
+                },
+                "successful_episodes_by_training_seed": {
+                    "3072": 139,
+                    "3073": 140,
+                    "3074": 118
+                },
+                "success_rate_by_training_seed": {
+                    "3072": 0.4633333333333333,
+                    "3073": 0.4666666666666667,
+                    "3074": 0.3933333333333333
+                },
+                "mean": 0.4411111111111111,
+                "sample_standard_deviation": 0.04141032256352051
+            },
+            "reacher": {
+                "successful_episodes_by_eval_seed_by_training_seed": {
+                    "3072": [29, 26, 30, 27, 27, 24],
+                    "3073": [25, 29, 28, 30, 27, 23],
+                    "3074": [27, 31, 26, 34, 33, 31]
+                },
+                "successful_episodes_by_training_seed": {
+                    "3072": 163,
+                    "3073": 162,
+                    "3074": 182
+                },
+                "success_rate_by_training_seed": {
+                    "3072": 0.5433333333333333,
+                    "3073": 0.54,
+                    "3074": 0.6066666666666667
+                },
+                "mean": 0.5633333333333334,
+                "sample_standard_deviation": 0.037564758898615484
+            },
+            "cube": {
+                "successful_episodes_by_eval_seed_by_training_seed": {
+                    "3072": [35, 41, 34, 37, 35, 37],
+                    "3073": [40, 40, 33, 31, 35, 38],
+                    "3074": [38, 39, 34, 36, 40, 37]
+                },
+                "successful_episodes_by_training_seed": {
+                    "3072": 219,
+                    "3073": 217,
+                    "3074": 224
+                },
+                "success_rate_by_training_seed": {
+                    "3072": 0.73,
+                    "3073": 0.7233333333333334,
+                    "3074": 0.7466666666666667
+                },
+                "mean": 0.7333333333333334,
+                "sample_standard_deviation": 0.012018504251546645
+            }
+        },
+        "source_namespaces": {
+            "eval_seeds_42_44": {
+                "3072": "eval_results/recovery-split-cem-v1/original_cem",
+                "3073": "eval_results/original_cem",
+                "3074": "eval_results/original_cem"
+            },
+            "eval_seeds_45_47": {
+                "tworoom": "eval_results/dinowm-original-cem-300-completion-v2",
+                "pusht": "eval_results/dinowm-original-cem-300-completion-v3",
+                "reacher": "eval_results/dinowm-original-cem-300-completion-v3",
+                "cube": "eval_results/dinowm-original-cem-300-completion-v3"
+            }
+        },
+        "provenance_note": "All 12 checkpoints have six evaluation seeds and 50 episodes per seed. Seed-3072 eval seeds 42-44 use the independent recovery namespace; seeds 3073 and 3074 use the original post-eval namespace. Eval seeds 45-47 were added without rerunning valid earlier cells. Failed preflight namespaces are excluded."
+    },
+  "source_layout": {
+    "icl_manifest": "<checkpoint-run>/eval_results/dinowm-original-icl-diagnostic-v1/manifest.json",
+        "diagnostic_result": "<checkpoint-run>/eval_results/dinowm-original-icl-diagnostic-v1/benchmark_icl_diagnostic/<component>/result.json",
+        "cem_eval_seeds_42_44": "<checkpoint-run>/eval_results/{recovery-split-cem-v1/original_cem|original_cem}/<metrics>.json",
+        "cem_eval_seeds_45_47": "<checkpoint-run>/eval_results/dinowm-original-cem-300-completion-v{2|3}/<metrics>.json"
+  }
+}

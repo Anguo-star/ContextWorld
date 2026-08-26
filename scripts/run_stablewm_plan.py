@@ -22,6 +22,8 @@ import runpy
 import sys
 from pathlib import Path
 
+from run_stablewm_family_entry import _prepare_optional_flash_attention
+
 
 def _parse_bridge_args(argv: list[str]) -> tuple[Path, tuple[str, ...], list[str]]:
     parser = argparse.ArgumentParser(add_help=False)
@@ -46,6 +48,9 @@ def main(argv: list[str] | None = None) -> int:
         list(sys.argv[1:] if argv is None else argv)
     )
 
+    # Match the training entry: a stale optional flash-attn wheel must not
+    # prevent StableWM from using PyTorch's supported attention fallback.
+    _prepare_optional_flash_attention()
     import stable_worldmodel as swm
 
     policy_class = swm.policy.WorldModelPolicy

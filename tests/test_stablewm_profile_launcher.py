@@ -18,6 +18,7 @@ if str(SCRIPTS) not in sys.path:
 
 import run_stablewm_eval as evaluator  # noqa: E402
 import run_stablewm_family_entry as family_entry  # noqa: E402
+import run_stablewm_plan as planner  # noqa: E402
 import run_stablewm_train as launcher  # noqa: E402
 
 
@@ -177,6 +178,43 @@ def _build(
 
 class TestFamilyDialects:
 
+    def test_planner_masks_broken_optional_flash_attention_before_swm_import(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        entry = tmp_path / "eval_wm.py"
+        entry.write_text("", encoding="utf-8")
+        events: list[str] = []
+
+        class FakePolicy:
+            def __init__(self, *args: object, **kwargs: object) -> None:
+                pass
+
+        fake_swm = type(
+            "FakeStableWorldModel",
+            (),
+            {"policy": type("FakePolicyModule", (), {"WorldModelPolicy": FakePolicy})},
+        )()
+        monkeypatch.setattr(sys, "argv", ["run_stablewm_plan.py"])
+        monkeypatch.setitem(sys.modules, "stable_worldmodel", fake_swm)
+        monkeypatch.setattr(
+            planner,
+            "_prepare_optional_flash_attention",
+            lambda: events.append("flash_checked") or True,
+        )
+        monkeypatch.setattr(
+            planner.runpy,
+            "run_path",
+            lambda *args, **kwargs: events.append("upstream_ran"),
+        )
+
+        assert planner.main([
+            "--upstream-entry", str(entry),
+            "--history-keys", "pixels,proprio",
+        ]) == 0
+        assert events == ["flash_checked", "upstream_ran"]
+
     def test_seed_list_accepts_one_or_multiple_runs(
             self, stablewm_repo: Path, dataset: Path) -> None:
         one = _args(stablewm_repo, dataset, "--seeds", "3072")
@@ -334,6 +372,29 @@ class TestTargetAndStorageSafety:
 
         assert _args(stablewm_repo, dataset).resume == "auto"
 
+    def test_post_eval_defaults_to_fifty_by_six(
+        self,
+        stablewm_repo: Path,
+        dataset: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.delenv("CW_EVAL_NUM", raising=False)
+        monkeypatch.delenv("CW_EVAL_SEEDS", raising=False)
+
+        training = _args(stablewm_repo, dataset)
+        evaluation = evaluator.parse_args([
+            "--family", "prejepa",
+            "--original-env", "tworoom",
+            "--dataset", str(dataset),
+            "--checkpoint", str(dataset),
+            "--stablewm-repo", str(stablewm_repo),
+        ])
+
+        assert training.eval_num == 50
+        assert training.eval_seeds == "42,43,44,45,46,47"
+        assert evaluation.num_eval == 50
+        assert evaluation.eval_seeds == (42, 43, 44, 45, 46, 47)
+
     def test_h5_action_width_is_checked_before_training(
             self, stablewm_repo: Path, tmp_path: Path) -> None:
         path = tmp_path / "cube.h5"
@@ -381,20 +442,24 @@ class TestTargetAndStorageSafety:
             )
 
     @pytest.mark.parametrize(
-        "component,expected_key,expected_dim",
+        "component",
         [
-            ("robot_arm_mass", "observation", 6),
-            ("cube_gripper_carry", "observation", 28),
-            ("action_strength", "proprio", 4),
+            "speed",
+            "door",
+            "action_delay",
+            "portal_exit",
+            "action_strength",
+            "contact_friction",
+            "motion_damping",
+            "robot_arm_mass",
+            "cube_gripper_carry",
         ],
     )
-    def test_component_profile_inherits_the_environment_encoding(
+    def test_prejepa_component_profile_is_pixels_and_action_only(
         self,
         stablewm_repo: Path,
         dataset: Path,
         component: str,
-        expected_key: str,
-        expected_dim: int,
     ) -> None:
         args = launcher.parse_args([
             "--family", "prejepa",
@@ -406,11 +471,16 @@ class TestTargetAndStorageSafety:
 
         target = launcher.resolve_target(args, launcher.load_profile_contract())
 
-        assert target.encoding_key == expected_key
-        assert target.encoding_dim == expected_dim
+        assert target.encoding_key is None
+        assert target.encoding_dim is None
+        assert launcher._family_model_columns(
+            family="prejepa",
+            target=target,
+            stablewm_repo=stablewm_repo,
+        ) == ("pixels", "action")
 
     @pytest.mark.parametrize("component", ["robot_arm_mass", "cube_gripper_carry"])
-    def test_prejepa_component_observation_is_remapped(
+    def test_prejepa_component_never_remaps_observation(
         self,
         stablewm_repo: Path,
         dataset: Path,
@@ -434,7 +504,199 @@ class TestTargetAndStorageSafety:
         )
 
         assert "~wm.encoding.proprio" in entries
-        assert "+wm.encoding.observation=10" in entries
+        assert not any("wm.encoding.observation" in item for item in entries)
+
+    def test_prejepa_component_schema_does_not_require_privileged_state(
+        self,
+        stablewm_repo: Path,
+        tmp_path: Path,
+    ) -> None:
+        path = tmp_path / "cube-component.h5"
+        with h5py.File(path, "w") as handle:
+            handle.create_dataset("pixels", shape=(2, 8, 8, 3), dtype="uint8")
+            handle.create_dataset("action", shape=(2, 5), dtype="float32")
+        args = launcher.parse_args([
+            "--family", "prejepa",
+            "--component", "cube_gripper_carry",
+            "--dataset", str(path),
+            "--stablewm-repo", str(stablewm_repo),
+            "--checkpoint-root", str(tmp_path / "ckpt"),
+        ])
+        target = launcher.resolve_target(args, launcher.load_profile_contract())
+
+        launcher.validate_training_dataset_schema(
+            target=target,
+            family="prejepa",
+            stablewm_repo=stablewm_repo,
+        )
+
+    def test_prejepa_component_cannot_reintroduce_a_state_encoder(
+        self,
+        stablewm_repo: Path,
+        dataset: Path,
+    ) -> None:
+        args = _args(
+            stablewm_repo,
+            dataset,
+            "--family", "prejepa",
+            "--override", "+wm.encoding.observation=10",
+        )
+
+        with pytest.raises(SystemExit, match="fixes model inputs"):
+            _build(args, stablewm_repo)
+
+    def test_component_post_eval_requires_a_completed_icl_result(
+        self,
+        stablewm_repo: Path,
+        dataset: Path,
+        tmp_path: Path,
+    ) -> None:
+        target = launcher.Target(
+            label="speed",
+            dataset=dataset,
+            data_group="tworoom",
+            history_size=3,
+            action_dim=2,
+            environment="tworoom",
+        )
+        checkpoint_root = tmp_path / "checkpoints-root"
+        run_name = "speed_prejepa_s3072"
+        checkpoint = (
+            checkpoint_root / "checkpoints" / run_name / "weights_epoch_10.pt"
+        )
+        checkpoint.parent.mkdir(parents=True)
+        checkpoint.write_bytes(b"checkpoint")
+        output = checkpoint.parent / "eval_results/benchmark_icl/speed/result.json"
+        output.parent.mkdir(parents=True)
+        output.write_text("{}\n", encoding="utf-8")
+        manifest = checkpoint.parent / "eval_results/manifest.json"
+        manifest.write_text(
+            json.dumps(
+                {
+                    "status": "completed",
+                    "steps": [
+                        {
+                            "id": "benchmark_icl/speed",
+                            "status": "completed",
+                            "output": str(output),
+                        }
+                    ],
+                }
+            ),
+            encoding="utf-8",
+        )
+        args = argparse.Namespace(eval_result_subdir="")
+
+        assert launcher._strict_component_icl_failure(
+            args=args,
+            target=target,
+            checkpoint_root=checkpoint_root,
+            run_name=run_name,
+            epoch=10,
+        ) is None
+
+        manifest.write_text(
+            json.dumps(
+                {
+                    "status": "completed",
+                    "steps": [
+                        {
+                            "id": "benchmark_icl/speed",
+                            "status": "not_compatible",
+                            "reason": "state input",
+                            "output": str(output),
+                        }
+                    ],
+                }
+            ),
+            encoding="utf-8",
+        )
+        assert "did not complete" in launcher._strict_component_icl_failure(
+            args=args,
+            target=target,
+            checkpoint_root=checkpoint_root,
+            run_name=run_name,
+            epoch=10,
+        )
+
+    def test_component_post_eval_keeps_cem_when_dataset_is_available(
+        self,
+        stablewm_repo: Path,
+        dataset: Path,
+    ) -> None:
+        args = _args(
+            stablewm_repo,
+            dataset,
+            "--family", "prejepa",
+            "--post-eval", "--eval-epoch", "10",
+        )
+        contract = launcher.load_profile_contract()
+        target = launcher.resolve_target(args, contract)
+
+        command = launcher._post_eval_command(
+            args,
+            target=target,
+            run_name="speed_prejepa_s3072",
+            checkpoint_root=dataset.parent / "checkpoints-root",
+            stablewm_repo=stablewm_repo,
+            profile=contract["families"]["prejepa"],
+            frameskip=5,
+            training_seed=3072,
+            original_dataset=dataset,
+        )
+
+        assert "--component" in command
+        assert "--icl-only" not in command
+        assert command[command.index("--dataset") + 1] == str(dataset)
+        assert command[command.index("--num-eval") + 1] == "50"
+        assert command[command.index("--eval-seeds") + 1] == (
+            "42,43,44,45,46,47"
+        )
+
+    def test_component_post_eval_resolves_matching_original_dataset(
+        self,
+        stablewm_repo: Path,
+        dataset: Path,
+        tmp_path: Path,
+    ) -> None:
+        original_root = tmp_path / "original-data"
+        original_dataset = original_root / "quentinll/tworoom.h5"
+        original_dataset.parent.mkdir(parents=True)
+        original_dataset.write_bytes(dataset.read_bytes())
+        args = _args(
+            stablewm_repo,
+            dataset,
+            "--family", "prejepa",
+            "--post-eval", "--eval-epoch", "10",
+            "--dataset-root", str(original_root),
+        )
+        contract = launcher.load_profile_contract()
+        target = launcher.resolve_target(args, contract)
+
+        resolved = launcher._original_dataset_for_post_eval(
+            args,
+            contract,
+            target,
+        )
+
+        assert resolved == original_dataset
+
+    def test_component_post_eval_fails_closed_without_original_dataset(
+        self,
+        stablewm_repo: Path,
+        dataset: Path,
+    ) -> None:
+        args = _args(
+            stablewm_repo,
+            dataset,
+            "--family", "prejepa",
+            "--post-eval", "--eval-epoch", "10",
+        )
+        contract = launcher.load_profile_contract()
+        target = launcher.resolve_target(args, contract)
+
+        with pytest.raises(SystemExit, match="Complete component post-eval"):
+            launcher._original_dataset_for_post_eval(args, contract, target)
 
     def test_native_lance_contract_accepts_the_declared_action_width(
             self, tmp_path: Path) -> None:
@@ -1004,6 +1266,101 @@ class TestRecoveryPaths:
             ("train", "tworoom_prejepa_original_s3074"),
             ("eval", "tworoom_prejepa_original_s3073"),
             ("eval", "tworoom_prejepa_original_s3074"),
+        ]
+
+    def test_failed_training_seed_does_not_block_later_training_or_eval(
+        self,
+        stablewm_repo: Path,
+        dataset: Path,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.delenv("SPT_CACHE_DIR", raising=False)
+        monkeypatch.delenv("SLURM_JOB_ID", raising=False)
+        calls: list[tuple[str, str]] = []
+
+        class Completed:
+            def __init__(self, returncode: int) -> None:
+                self.returncode = returncode
+
+        def run(command: list[str], **_: object) -> Completed:
+            if command[1].endswith("run_stablewm_eval.py"):
+                run_name = command[command.index("--run-name") + 1]
+                calls.append(("eval", run_name))
+                return Completed(0)
+            run_name = next(
+                value.removeprefix("subdir=")
+                for value in command
+                if value.startswith("subdir=")
+            )
+            calls.append(("train", run_name))
+            return Completed(7 if run_name.endswith("s3072") else 0)
+
+        monkeypatch.setattr(launcher.subprocess, "run", run)
+
+        status = launcher.main([
+            "--family", "prejepa",
+            "--original-env", "tworoom",
+            "--dataset", str(dataset),
+            "--stablewm-repo", str(stablewm_repo),
+            "--checkpoint-root", str(tmp_path / "persistent-checkpoints"),
+            "--seeds", "3072,3073",
+            "--post-eval", "--eval-epoch", "10",
+        ])
+
+        assert status == 7
+        assert calls == [
+            ("train", "tworoom_prejepa_original_s3072"),
+            ("train", "tworoom_prejepa_original_s3073"),
+            ("eval", "tworoom_prejepa_original_s3073"),
+        ]
+
+    def test_failed_eval_seed_does_not_block_later_eval_seed(
+        self,
+        stablewm_repo: Path,
+        dataset: Path,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.delenv("SPT_CACHE_DIR", raising=False)
+        monkeypatch.delenv("SLURM_JOB_ID", raising=False)
+        calls: list[tuple[str, str]] = []
+
+        class Completed:
+            def __init__(self, returncode: int) -> None:
+                self.returncode = returncode
+
+        def run(command: list[str], **_: object) -> Completed:
+            if command[1].endswith("run_stablewm_eval.py"):
+                run_name = command[command.index("--run-name") + 1]
+                calls.append(("eval", run_name))
+                return Completed(9 if run_name.endswith("s3072") else 8)
+            run_name = next(
+                value.removeprefix("subdir=")
+                for value in command
+                if value.startswith("subdir=")
+            )
+            calls.append(("train", run_name))
+            return Completed(0)
+
+        monkeypatch.setattr(launcher.subprocess, "run", run)
+
+        status = launcher.main([
+            "--family", "prejepa",
+            "--original-env", "tworoom",
+            "--dataset", str(dataset),
+            "--stablewm-repo", str(stablewm_repo),
+            "--checkpoint-root", str(tmp_path / "persistent-checkpoints"),
+            "--seeds", "3072,3073",
+            "--post-eval", "--eval-epoch", "10",
+        ])
+
+        assert status == 9
+        assert calls == [
+            ("train", "tworoom_prejepa_original_s3072"),
+            ("train", "tworoom_prejepa_original_s3073"),
+            ("eval", "tworoom_prejepa_original_s3072"),
+            ("eval", "tworoom_prejepa_original_s3073"),
         ]
 
     def test_new_job_forwards_identity_matched_last_checkpoint_to_every_rank(
@@ -1874,7 +2231,7 @@ class TestExplicitEvaluation:
             evaluator.main(arguments)
         assert len(calls) == 1
 
-    def test_suite_exception_is_recorded_as_failed(
+    def test_suite_records_original_exception_and_runs_icl(
         self,
         stablewm_repo: Path,
         dataset: Path,
@@ -1885,37 +2242,54 @@ class TestExplicitEvaluation:
         checkpoint.parent.mkdir(parents=True)
         checkpoint.write_bytes(b"checkpoint")
 
-        def fail_original(_: argparse.Namespace) -> int:
+        def fail_original(*_: object, **__: object) -> int:
             raise SystemExit("upstream evaluator wrote no metrics")
 
         monkeypatch.setattr(evaluator, "_run_original", fail_original)
 
-        with pytest.raises(SystemExit, match="wrote no metrics"):
-            evaluator.main([
-                "--suite",
-                "--family",
-                "lewm",
-                "--component",
-                "speed",
-                "--dataset",
-                str(dataset),
-                "--checkpoint",
-                str(checkpoint),
-                "--stablewm-repo",
-                str(stablewm_repo),
-                "--stablewm-ref",
-                "d" * 40,
-            ])
+        def fake_run(command: list[str], **_: object) -> argparse.Namespace:
+            output = Path(command[command.index("--output") + 1])
+            output.parent.mkdir(parents=True, exist_ok=True)
+            output.write_text('{"status":"completed"}\n', encoding="utf-8")
+            return argparse.Namespace(returncode=0)
+
+        monkeypatch.setattr(evaluator.subprocess, "run", fake_run)
+
+        status = evaluator.main([
+            "--suite",
+            "--family",
+            "lewm",
+            "--component",
+            "speed",
+            "--dataset",
+            str(dataset),
+            "--checkpoint",
+            str(checkpoint),
+            "--stablewm-repo",
+            str(stablewm_repo),
+            "--stablewm-ref",
+            "d" * 40,
+        ])
 
         manifest = json.loads(
             (checkpoint.parent / "eval_results/manifest.json").read_text(
                 encoding="utf-8"
             )
         )
+        assert status == 1
         assert manifest["status"] == "failed"
-        assert manifest["error"]["type"] == "SystemExit"
+        assert all(
+            row["status"] == "failed"
+            for row in manifest["steps"]
+            if row["kind"] == "original_environment_cem"
+        )
+        assert all(
+            row["status"] == "completed"
+            for row in manifest["steps"]
+            if row["kind"] == "benchmark_icl"
+        )
 
-    def test_suite_runs_remaining_icl_steps_after_cem_failure(
+    def test_suite_runs_every_cem_seed_and_remaining_icl_steps_after_failure(
         self,
         stablewm_repo: Path,
         dataset: Path,
@@ -1926,10 +2300,33 @@ class TestExplicitEvaluation:
         checkpoint.parent.mkdir(parents=True)
         checkpoint.write_bytes(b"checkpoint")
         executed: list[str] = []
-
-        monkeypatch.setattr(evaluator, "_run_original", lambda _: 7)
+        cem_seeds: list[int] = []
 
         def fake_run(command: list[str], **_: object) -> argparse.Namespace:
+            seed_arg = next(
+                (argument for argument in command if argument.startswith("seed=")),
+                None,
+            )
+            if seed_arg is not None:
+                seed = int(seed_arg.split("=", 1)[1])
+                cem_seeds.append(seed)
+                if seed == 42:
+                    return argparse.Namespace(returncode=7)
+                if seed == 43:
+                    return argparse.Namespace(returncode=0)
+                metrics_relative = next(
+                    argument.split("=", 1)[1]
+                    for argument in command
+                    if argument.startswith("output.filename=")
+                )
+                metrics = checkpoint.parent / metrics_relative
+                metrics.parent.mkdir(parents=True, exist_ok=True)
+                metrics.write_text(
+                    "metrics: {'success_rate': 50.0}\n"
+                    "evaluation_time: 1 seconds\n",
+                    encoding="utf-8",
+                )
+                return argparse.Namespace(returncode=0)
             component = command[command.index("--task") + 1]
             executed.append(component)
             output = Path(command[command.index("--output") + 1])
@@ -1953,6 +2350,8 @@ class TestExplicitEvaluation:
             str(stablewm_repo),
             "--stablewm-ref",
             "e" * 40,
+            "--eval-seeds",
+            "42,43,44",
         ])
 
         manifest = json.loads(
@@ -1961,11 +2360,20 @@ class TestExplicitEvaluation:
             )
         )
         assert status == 7
+        assert cem_seeds == [42, 43, 44]
         assert executed == ["speed", "door", "action_delay", "portal_exit"]
         assert manifest["status"] == "failed"
-        assert manifest["steps"][0]["status"] == "failed"
+        cem = [
+            row
+            for row in manifest["steps"]
+            if row["kind"] == "original_environment_cem"
+        ]
+        assert [row["status"] for row in cem] == ["failed", "failed", "completed"]
+        assert [row["eval_seed"] for row in cem] == [42, 43, 44]
         assert all(
-            row["status"] == "completed" for row in manifest["steps"][1:]
+            row["status"] == "completed"
+            for row in manifest["steps"]
+            if row["kind"] == "benchmark_icl"
         )
 
     def test_eval_uses_the_exact_checkpoint_and_never_overwrites_by_default(
@@ -2142,10 +2550,9 @@ class TestExplicitEvaluation:
         with pytest.raises(SystemExit, match=error):
             evaluator.build_commands(args)
 
-    def test_state_conditioned_prejepa_icl_is_recorded_as_not_compatible(
+    def test_state_conditioned_prejepa_keeps_strict_row_and_runs_diagnostic(
         self,
         stablewm_repo: Path,
-        dataset: Path,
         tmp_path: Path,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
@@ -2163,22 +2570,25 @@ class TestExplicitEvaluation:
             ),
             encoding="utf-8",
         )
-        monkeypatch.setattr(evaluator, "_run_original", lambda _: 0)
+        calls: list[list[str]] = []
 
-        def forbidden(*_: object, **__: object) -> None:
-            raise AssertionError("incompatible ICL step must not run")
+        def fake_run(command: list[str], **_: object) -> argparse.Namespace:
+            calls.append(command)
+            output = Path(command[command.index("--output") + 1])
+            output.parent.mkdir(parents=True, exist_ok=True)
+            output.write_text('{"status":"completed"}\n', encoding="utf-8")
+            return argparse.Namespace(returncode=0)
 
-        monkeypatch.setattr(evaluator.subprocess, "run", forbidden)
+        monkeypatch.setattr(evaluator.subprocess, "run", fake_run)
 
         status = evaluator.main(
             [
                 "--suite",
+                "--icl-only",
                 "--family",
                 "prejepa",
                 "--original-env",
                 "tworoom",
-                "--dataset",
-                str(dataset),
                 "--checkpoint",
                 str(checkpoint),
                 "--stablewm-repo",
@@ -2198,7 +2608,164 @@ class TestExplicitEvaluation:
         )
         assert status == 0
         assert manifest["status"] == "completed"
-        icl = manifest["steps"][1:]
-        assert icl
-        assert all(row["status"] == "not_compatible" for row in icl)
-        assert all("only pixels and actions" in row["reason"] for row in icl)
+        strict = [
+            row for row in manifest["steps"] if row["kind"] == "benchmark_icl"
+        ]
+        diagnostic = [
+            row
+            for row in manifest["steps"]
+            if row["kind"] == "benchmark_icl_diagnostic"
+        ]
+        assert len(strict) == len(diagnostic) == 4
+        assert all(row["status"] == "not_compatible" for row in strict)
+        assert all("only pixels and actions" in row["reason"] for row in strict)
+        assert all(row["status"] == "completed" for row in diagnostic)
+        assert all(
+            row["protocol_track"] == evaluator.STRICT_ICL_PROTOCOL_TRACK
+            for row in strict
+        )
+        assert all(
+            row["protocol_track"] == evaluator.DIAGNOSTIC_ICL_PROTOCOL_TRACK
+            for row in diagnostic
+        )
+        assert len({row["id"] for row in manifest["steps"]}) == len(
+            manifest["steps"]
+        )
+        assert all("protocol_track" in row for row in manifest["steps"])
+
+        diagnostic_by_component = {
+            command[command.index("--task") + 1]: command for command in calls
+        }
+        assert set(diagnostic_by_component) == {
+            "speed", "door", "action_delay", "portal_exit"
+        }
+        for command in diagnostic_by_component.values():
+            assert command[
+                command.index("--prejepa-missing-context-policy") + 1
+            ] == "normalized_zero"
+        action_delay = diagnostic_by_component["action_delay"]
+        assert action_delay[action_delay.index("--history-adapter") + 1] == (
+            "h3_tail_projection"
+        )
+
+    def test_state_free_prejepa_runs_the_strict_icl_track(
+        self,
+        stablewm_repo: Path,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        checkpoint = tmp_path / "run/weights_epoch_10.pt"
+        checkpoint.parent.mkdir(parents=True)
+        checkpoint.write_bytes(b"checkpoint")
+        (checkpoint.parent / "config.json").write_text(
+            json.dumps(
+                {
+                    "history_size": 3,
+                    "extra_encoders": {"modules": {"action": {}}},
+                }
+            ),
+            encoding="utf-8",
+        )
+        calls: list[list[str]] = []
+
+        def fake_run(command: list[str], **_: object) -> argparse.Namespace:
+            calls.append(command)
+            output = Path(command[command.index("--output") + 1])
+            output.parent.mkdir(parents=True, exist_ok=True)
+            output.write_text('{"status":"completed"}\n', encoding="utf-8")
+            return argparse.Namespace(returncode=0)
+
+        monkeypatch.setattr(evaluator.subprocess, "run", fake_run)
+        status = evaluator.main(
+            [
+                "--suite",
+                "--icl-only",
+                "--family",
+                "prejepa",
+                "--component",
+                "speed",
+                "--checkpoint",
+                str(checkpoint),
+                "--stablewm-repo",
+                str(stablewm_repo),
+                "--stablewm-ref",
+                "f" * 40,
+            ]
+        )
+
+        manifest = json.loads(
+            (checkpoint.parent / "eval_results/manifest.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        strict = [
+            row for row in manifest["steps"] if row["kind"] == "benchmark_icl"
+        ]
+        assert status == 0
+        assert len(calls) == len(strict) == 1
+        assert strict[0]["status"] == "completed"
+        assert not any(
+            row["kind"] == "benchmark_icl_diagnostic"
+            for row in manifest["steps"]
+        )
+        assert "--prejepa-missing-context-policy" not in calls[0]
+
+    def test_suite_continues_after_icl_failure_and_missing_output(
+        self,
+        stablewm_repo: Path,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        checkpoint = tmp_path / "run/weights_epoch_10.pt"
+        checkpoint.parent.mkdir(parents=True)
+        checkpoint.write_bytes(b"checkpoint")
+        executed: list[str] = []
+
+        def fake_run(command: list[str], **_: object) -> argparse.Namespace:
+            component = command[command.index("--task") + 1]
+            executed.append(component)
+            if component == "speed":
+                return argparse.Namespace(returncode=7)
+            if component == "door":
+                return argparse.Namespace(returncode=0)
+            output = Path(command[command.index("--output") + 1])
+            output.parent.mkdir(parents=True, exist_ok=True)
+            output.write_text('{"status":"completed"}\n', encoding="utf-8")
+            return argparse.Namespace(returncode=0)
+
+        monkeypatch.setattr(evaluator.subprocess, "run", fake_run)
+        status = evaluator.main(
+            [
+                "--suite",
+                "--icl-only",
+                "--family",
+                "lewm",
+                "--original-env",
+                "tworoom",
+                "--checkpoint",
+                str(checkpoint),
+                "--stablewm-repo",
+                str(stablewm_repo),
+                "--stablewm-ref",
+                "a" * 40,
+            ]
+        )
+
+        manifest = json.loads(
+            (checkpoint.parent / "eval_results/manifest.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        rows = {
+            row["component"]: row
+            for row in manifest["steps"]
+            if row["kind"] == "benchmark_icl"
+        }
+        assert status == 7
+        assert executed == ["speed", "door", "action_delay", "portal_exit"]
+        assert manifest["status"] == "failed"
+        assert rows["speed"]["status"] == "failed"
+        assert rows["door"]["status"] == "failed"
+        assert rows["door"]["error"]["type"] == "RuntimeError"
+        assert rows["action_delay"]["status"] == "completed"
+        assert rows["portal_exit"]["status"] == "completed"
