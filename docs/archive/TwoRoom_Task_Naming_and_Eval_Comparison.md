@@ -1,7 +1,7 @@
 # TwoRoom 速度上下文学习阶段报告（已归档）
 
 > 本文保留 2026-07-20 文档合并前的阶段快照，不再更新。当前结论请以
-> [ContextWorld ICL Benchmark：速度](../ContextWorld_ICL_Benchmark.md#41-速度)
+> [ContextWorld ICL Benchmark：速度](../ContextWorld_ICL_Benchmark.md#611-速度)
 > 为准。
 
 **版本**：v5.1  

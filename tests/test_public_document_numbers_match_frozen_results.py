@@ -68,10 +68,10 @@ def _document() -> str:
 
 
 def _reference_rows() -> list[list[str]]:
-    """The 任务—模型 reference table of section 5.3."""
+    """The task-by-model reference table in the public result section."""
     document = _document()
-    start = document.index("### 5.3 训练后参考结果")
-    end = document.index("\n### 5.4 Cube 参考对照", start)
+    start = document.index("### 5.4 组件训练后的参考结果")
+    end = document.index("\n### 5.5 外部模型验证状态", start)
     rows: list[list[str]] = []
     inside = False
     for line in document[start:end].splitlines():

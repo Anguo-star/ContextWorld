@@ -9,8 +9,8 @@ PUBLIC_DOCUMENT = ROOT / "docs/ContextWorld_ICL_Benchmark.md"
 
 
 def _trained_reference_section(document: str) -> str:
-    start = document.index("### 5.3 训练后参考结果")
-    end = document.index("\n### 5.4 Cube 参考对照", start)
+    start = document.index("### 5.4 组件训练后的参考结果")
+    end = document.index("\n### 5.5 外部模型验证状态", start)
     return document[start:end]
 
 
@@ -80,22 +80,20 @@ def test_speed_pldm_public_writing_separates_evidence_scopes() -> None:
 
     assert "96.70%" in section
     assert "94.33%、94.33%、95.67%" in section
-    assert "平均 94.78%" in section
-    assert "该诊断没有性能通过门" in section
-    assert "不能把表现变化归因于多速度训练" in section
-    assert "共 13 行" in section
+    assert "未运行 CEM" in section
+    assert "原任务 CEM" in section
+    assert "共 13 行" not in section
 
     assert "97.22%、96.44% 和" in card
     assert "平均 69.56%" in card
-    assert "配对 retention CEM" in card
-    assert "这些观察结果不能归因于多速度训练" in card
+    assert "原任务 CEM 平均 94.78%" in card
+    assert "不能把观察到的变化归因于多速度数据本身" in card
 
 
 def test_formal_reference_is_not_presented_as_public_v1_distribution() -> None:
-    section = _trained_reference_section(
-        PUBLIC_DOCUMENT.read_text(encoding="utf-8")
-    )
-    normalized = " ".join(section.split())
+    document = PUBLIC_DOCUMENT.read_text(encoding="utf-8")
+    section = _trained_reference_section(document)
+    compact = "".join(document.split())
 
-    assert "不表示 Public v1 已经对外发布或可下载" in normalized
-    assert "进入 scoreboard 不表示通过能力门" in section
+    assert "测试数据本身仍保持封存" in compact
+    assert "结果表同时保留正结果和负结果" in section

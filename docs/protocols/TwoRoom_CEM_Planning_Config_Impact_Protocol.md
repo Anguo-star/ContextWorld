@@ -1,7 +1,7 @@
 # TwoRoom CEM 规划配置影响实验协议
 
 > **文档角色**：支持性实验，仅用于复现规划资源机制。当前数据比较和正式结论
-> 统一见[Benchmark 主文档中的速度章节](../ContextWorld_ICL_Benchmark.md#41-速度)。
+> 统一见[Benchmark 主文档中的速度章节](../ContextWorld_ICL_Benchmark.md#611-速度)。
 
 **版本**：v1.2
 **日期**：2026-07-20

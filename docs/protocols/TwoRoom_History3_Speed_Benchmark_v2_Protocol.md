@@ -7,7 +7,7 @@
 
 本文件回答“结果是怎样得到的”，适合复现者和审计者。只想了解训练配方、关键
 数字和能力边界的读者，请直接阅读
-[ContextWorld ICL Benchmark：速度](../ContextWorld_ICL_Benchmark.md#41-速度)。
+[ContextWorld ICL Benchmark：速度](../ContextWorld_ICL_Benchmark.md#611-速度)。
 
 ## 1. 研究问题
 

@@ -1,7 +1,7 @@
 # TwoRoom 原始能力重建对照协议
 
 > **文档角色**：支持性实验，仅用于复现基础能力对照。当前数据比较和正式结论
-> 统一见[Benchmark 主文档中的速度章节](../ContextWorld_ICL_Benchmark.md#41-速度)。
+> 统一见[Benchmark 主文档中的速度章节](../ContextWorld_ICL_Benchmark.md#611-速度)。
 
 **版本**：v1.6
 **日期**：2026-07-19  
@@ -11,7 +11,7 @@
 > **单速 5 同分布合成数据 v2**；四个模型依次简称为**原始单训**、
 > **单速 5 合成单训**、**原始+单速 5 混训**和**原始+多速度混训**。
 > 机器 ID 仅用于复现。阶段结论与后续路线图见
-> [ContextWorld ICL Benchmark：速度](../ContextWorld_ICL_Benchmark.md#41-速度)。
+> [ContextWorld ICL Benchmark：速度](../ContextWorld_ICL_Benchmark.md#611-速度)。
 > 旧结果字段 `correct` 和 `wrong` 分别按同速历史和另一档速度历史解释，不表示
 > 速度正确或错误。
 

@@ -2,7 +2,7 @@
 
 > 本文保留 2026-07-20 文档合并前的状态快照，不再更新。当前进度、结论和后续
 > 工作统一维护在
-> [ContextWorld ICL Benchmark：速度](../ContextWorld_ICL_Benchmark.md#41-速度)。
+> [ContextWorld ICL Benchmark：速度](../ContextWorld_ICL_Benchmark.md#611-速度)。
 
 **版本**：v5.1  
 **日期**：2026-07-20  

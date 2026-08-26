@@ -1,7 +1,7 @@
 # TwoRoom SpeedTask 数据与训练协议
 
 > **文档角色**：历史数据与训练协议，不维护当前结果。当前数据比较和正式结论
-> 统一见[Benchmark 主文档中的速度章节](../ContextWorld_ICL_Benchmark.md#41-速度)。
+> 统一见[Benchmark 主文档中的速度章节](../ContextWorld_ICL_Benchmark.md#611-速度)。
 
 **版本**：v1.2
 **日期**：2026-07-16  

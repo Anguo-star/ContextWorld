@@ -1,7 +1,8 @@
-# ContextWorld adapter contract — what an external model must satisfy
+# ContextWorld external model adapter contract
 
-Everything below was read out of the code, not from documentation. It is what
-`contextworld-external-eval` will actually check at runtime.
+This document defines the runtime interface that an external latent world
+model implements to use ContextWorld Development scorers. The checks described
+below are enforced by `contextworld-external-eval`.
 
 The `ContextWorld-v1` bundle does not restrict evaluation to LeWM, PLDM or
 PreJEPA. Those names identify built-in reference integrations. An external
@@ -10,7 +11,7 @@ Development scorers it supplies the adapter below. The adapter translates the
 model interface, not the benchmark definition, and it never receives Public
 Test examples.
 
-## The five members
+## Required interface
 
 Subclass `contextworld.benchmarks.adapters.LatentWorldModelAdapter` and
 implement:
@@ -66,10 +67,10 @@ So the practical shape is one class parameterised by
 
 ## What the benchmark never asks for
 
-* **No decoder.** `decoder_required=False`. Predictions are compared against
+- **No decoder.** `decoder_required=False`. Predictions are compared against
   targets encoded by *your own* frozen encoder, in your own latent space.
   Latent width and model family are deliberately unconstrained.
-* **No pixel reconstruction, no reward, no value head.**
+- **No pixel reconstruction, no reward, no value head.**
 
 This is what makes DINO-WM a clean fit: the frozen-DINO-encoder-plus-latent-
 predictor shape is exactly the shape the benchmark expects.
@@ -85,7 +86,7 @@ rollout_latents(
 ```
 
 `raw_action_blocks` arrives as **raw environment actions**. Normalisation is
-the adapter's job — this is deliberate, so the frozen dataset stays
+the adapter's job, so the distributed dataset remains
 model-agnostic.
 
 The future-length rule, from the reference implementation:
@@ -111,11 +112,11 @@ once.
 `portal_exit` alone uses `std_unbiased`; the other five statistics tasks use
 `std_population`.
 
-You never choose which shape you get. `build_request` reads the action
-geometry out of the task's **frozen release config**, not from the command
-line, "so an external model is normalized exactly as the baselines were and
-cannot quietly evaluate under a different contract". Your adapter must
-therefore accept both shapes and normalise accordingly.
+The task determines which shape is supplied. `build_request` reads the action
+geometry from the versioned task configuration rather than the command line.
+This ensures that external models and reference models use the same
+normalisation. An adapter intended to support all tasks must accept both
+shapes.
 
 ## Pixel preprocessing
 
@@ -132,9 +133,9 @@ mismatch is the integrator's to resolve, not the benchmark's.
 
 ## Two routes for a new model family
 
-**Route A — Stable-WorldModel family (preferred).** Reuse the family's native
+**Route A — Stable-WorldModel family.** Reuse the family's native
 checkpoint loader and its public `encode` / `rollout` interfaces where
-available. A thin ContextWorld adapter must still verify the frozen input
+available. A thin ContextWorld adapter must still verify the versioned input
 contract—preprocessing, history length, action-block geometry, required
 context streams, and prediction key—because these details differ across
 families. `model_config_name` alone is therefore not a compatibility
@@ -147,24 +148,27 @@ only when the model cannot be expressed as a Stable-WorldModel family.
 ### DINO-WM / PreJEPA
 
 Stable-WorldModel provides the DINOv2-based `prejepa` family. ContextWorld
-includes a native PreJEPA adapter for checkpoints that satisfy the frozen v1
-input contract.
+includes a native PreJEPA adapter for checkpoints that satisfy the official v1
+input interface.
 
 That contract is intentionally narrow: the ICL scorer supplies RGB history
 and raw actions only. A checkpoint is eligible only when its predictor
 requires no additional context stream and its trained history length, action
 block, and action dimension match the selected task. In particular,
-original-data PreJEPA checkpoints that require `proprio` or `observation` are
-not eligible for frozen-v1 ICL. The evaluation suite keeps that strict row as
-`not_compatible`; it is a protocol mismatch, not a model failure or a benchmark
-score. A direct evaluation request rejects such a checkpoint by default.
+original-data PreJEPA checkpoints that require `proprio` or `observation`
+cannot be scored through the official v1 interface. The result records the
+machine-readable status `not_compatible`, meaning that the checkpoint's input
+requirements do not match the benchmark interface. It is not a model failure
+or a benchmark score. A direct evaluation request rejects such a checkpoint by
+default.
 
 For diagnostic comparison only, callers may explicitly set
 `--prejepa-missing-context-policy normalized_zero`. The adapter then supplies
-zeros in each missing stream's normalized model-input space and stamps the
-result `external_diagnostic_non_frozen_v1`. This route does not expose
-simulator state, does not change model weights, and cannot create a scoreboard
-row. It should not be reported as a frozen-v1 ICL score. A History=3 PreJEPA
+zeros in each missing stream's normalized model-input space. The output is
+labelled `external_diagnostic_non_frozen_v1` so downstream tools cannot confuse
+it with an official result. This route does not expose simulator state or
+change model weights. It must be reported as an auxiliary analysis, not as an
+official v1 ICL score. A History=3 PreJEPA
 checkpoint can be evaluated by the History=7 Action Delay scorer only with the
 additional explicit `--history-adapter h3_tail_projection` option.
 
@@ -195,27 +199,18 @@ python -m contextworld.benchmarks.external_model_cli --task speed --adapter prej
     --prejepa-missing-context-policy normalized_zero
 ```
 
-Train the checkpoint with Stable-WorldModel's own
-`scripts/train/prejepa.py`; ContextWorld provides the adapter and evaluator,
-not a second training loop.
+ContextWorld's training launcher delegates to the selected model family's
+native trainer. The adapter and evaluator do not replace the model's training
+implementation.
 
-### Adding another family
+### Contributing a built-in integration
 
-Adapters for a new Stable-WorldModel family go in a **new module**, not in
-`adapters.py` — that file's bytes are pinned by the speed and door release
-configs, so editing it invalidates published provenance. Then add one entry
-to `_BUILTIN_FAMILIES` in `external_model_cli.py`:
-
-```python
-_BUILTIN_FAMILIES = {
-    "lewm":    (_ADAPTERS, "LeWM"),
-    "pldm":    (_ADAPTERS, "PLDM"),
-    "prejepa": (f"{_SCORE}.prejepa_adapters", "PreJEPA"),
-}
-```
-
-Class names follow `StableWorldModel{infix}{task}Adapter`, so one entry
-reaches all nine tasks. The CLI help text is derived from this table.
+External users do not need to modify ContextWorld: an import path or installed
+entry point is sufficient. A model family intended for inclusion as a built-in
+integration should be implemented in its own module, cover the three required
+geometries, and include protocol-validation and frozen-state tests. Repository
+maintainers then register the family with the CLI without changing the public
+adapter base class.
 
 ## Invocation
 
@@ -231,6 +226,7 @@ python -m contextworld.benchmarks.external_model_cli \
 `package.module:ClassName`, or an installed `contextworld.adapters` entry
 point. Built-in names cannot be overridden by an installed package.
 
-Results are stamped `external_unofficial` and nested under a `result` key so
-they cannot be replayed as a frozen submission. Running this touches no
-hash-pinned file.
+Development results from an external adapter carry the machine-readable status
+`external_unofficial`. This distinguishes user-run Development evaluations
+from sealed Public Test submissions; it does not imply that the scorer or task
+definition is unofficial.

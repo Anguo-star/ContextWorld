@@ -2,9 +2,9 @@
 
 > 本文记录早期 Step-1 数据族，不是当前 Speed ICL 发布包或下一阶段门 Benchmark 的
 > 正式数据清单。速度复现请以
-> [ContextWorld ICL Benchmark：速度](../ContextWorld_ICL_Benchmark.md#41-速度) 为准；
+> [ContextWorld ICL Benchmark：速度](../ContextWorld_ICL_Benchmark.md#611-速度) 为准；
 > 当前门规则能力请以
-> [ContextWorld ICL Benchmark：门通行规则](../ContextWorld_ICL_Benchmark.md#42-门通行规则)
+> [ContextWorld ICL Benchmark：门通行规则](../ContextWorld_ICL_Benchmark.md#641-门通行规则)
 > 为准。本文只用于理解早期可见门位置与组合数据的物理来源。
 
 **日期**：2026-07-14  

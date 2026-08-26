@@ -10,13 +10,13 @@
 |---|---|---|
 | TwoRoom Speed | [`tworoom_speed_icl_release_v1.yaml`](../../configs/benchmark/tworoom_speed_icl_release_v1.yaml) | [History-3 速度协议](TwoRoom_History3_Speed_Benchmark_v2_Protocol.md)、[范围外与多步协议](TwoRoom_History3_Speed_Extrapolation_Multistep_v1_Protocol.md) |
 | TwoRoom Door Rule | [`tworoom_door_icl_release_v1.yaml`](../../configs/benchmark/tworoom_door_icl_release_v1.yaml) | [History-3 门规则复现附录](TwoRoom_History3_Hidden_Passage_Feasibility_v1.md) |
-| TwoRoom Action Delay | [`tworoom_action_delay_icl_release_v1.yaml`](../../configs/benchmark/tworoom_action_delay_icl_release_v1.yaml) | [统一主文档中的动作延迟](../ContextWorld_ICL_Benchmark.md#63-动作延迟) |
-| PushT Action Strength | [`pusht_action_strength_icl_release_v1.yaml`](../../configs/benchmark/pusht_action_strength_icl_release_v1.yaml) | [统一主文档中的动作力度](../ContextWorld_ICL_Benchmark.md#64-动作力度) |
-| PushT Contact Friction | [`pusht_contact_friction_icl_release_v1.yaml`](../../configs/benchmark/pusht_contact_friction_icl_release_v1.yaml) | [统一主文档中的接触摩擦](../ContextWorld_ICL_Benchmark.md#65-接触摩擦) |
-| PushT Motion Damping | [`pusht_motion_damping_icl_release_v1.yaml`](../../configs/benchmark/pusht_motion_damping_icl_release_v1.yaml) | [统一主文档中的运动阻尼](../ContextWorld_ICL_Benchmark.md#66-运动阻尼) |
-| Reacher Arm Mass | [`reacher_arm_mass_icl_release_v1.yaml`](../../configs/benchmark/reacher_arm_mass_icl_release_v1.yaml) | [统一主文档中的机械臂质量](../ContextWorld_ICL_Benchmark.md#67-机械臂质量) |
-| TwoRoom Portal Exit | [`tworoom_portal_exit_icl_release_v1.yaml`](../../configs/benchmark/tworoom_portal_exit_icl_release_v1.yaml) | [统一主文档中的传送门出口位置](../ContextWorld_ICL_Benchmark.md#68-传送门出口位置) |
-| Cube Gripper-Carry | [`cube_gripper_carry_h3_v4r1_icl_release_v1.yaml`](../../configs/benchmark/cube_gripper_carry_h3_v4r1_icl_release_v1.yaml) | [统一主文档中的 Cube 夹爪携带规则](../ContextWorld_ICL_Benchmark.md#69-cube-夹爪携带规则)、[Public v1 失败与恢复边界](Cube_Gripper_Carry_History3_v4r1_Public_v1_Generation_Failure.md) |
+| TwoRoom Action Delay | [`tworoom_action_delay_icl_release_v1.yaml`](../../configs/benchmark/tworoom_action_delay_icl_release_v1.yaml) | [统一主文档中的动作延迟](../ContextWorld_ICL_Benchmark.md#621-动作延迟) |
+| PushT Action Strength | [`pusht_action_strength_icl_release_v1.yaml`](../../configs/benchmark/pusht_action_strength_icl_release_v1.yaml) | [统一主文档中的动作力度](../ContextWorld_ICL_Benchmark.md#612-推手移动幅度) |
+| PushT Contact Friction | [`pusht_contact_friction_icl_release_v1.yaml`](../../configs/benchmark/pusht_contact_friction_icl_release_v1.yaml) | [统一主文档中的接触摩擦](../ContextWorld_ICL_Benchmark.md#631-接触摩擦) |
+| PushT Motion Damping | [`pusht_motion_damping_icl_release_v1.yaml`](../../configs/benchmark/pusht_motion_damping_icl_release_v1.yaml) | [统一主文档中的运动阻尼](../ContextWorld_ICL_Benchmark.md#632-运动阻尼) |
+| Reacher Arm Mass | [`reacher_arm_mass_icl_release_v1.yaml`](../../configs/benchmark/reacher_arm_mass_icl_release_v1.yaml) | [统一主文档中的机械臂质量](../ContextWorld_ICL_Benchmark.md#613-机械臂质量) |
+| TwoRoom Portal Exit | [`tworoom_portal_exit_icl_release_v1.yaml`](../../configs/benchmark/tworoom_portal_exit_icl_release_v1.yaml) | [统一主文档中的传送门出口位置](../ContextWorld_ICL_Benchmark.md#642-传送门出口位置) |
+| Cube Gripper-Carry | [`cube_gripper_carry_h3_v4r1_icl_release_v1.yaml`](../../configs/benchmark/cube_gripper_carry_h3_v4r1_icl_release_v1.yaml) | [统一主文档中的 Cube 夹爪携带规则](../ContextWorld_ICL_Benchmark.md#633-cube-夹爪携带规则)、[Public v1 失败与恢复边界](Cube_Gripper_Carry_History3_v4r1_Public_v1_Generation_Failure.md) |
 
 当前统一 Suite 候选配置是
 [`contextworld_icl_suite_v2_recovery_v2.yaml`](../../configs/benchmark/contextworld_icl_suite_v2_recovery_v2.yaml)；
