@@ -215,6 +215,54 @@ class TestFamilyDialects:
         ]) == 0
         assert events == ["flash_checked", "upstream_ran"]
 
+    def test_planner_can_disable_unrequested_upstream_videos(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        entry = tmp_path / "eval_wm.py"
+        entry.write_text("", encoding="utf-8")
+
+        class FakePolicy:
+            def __init__(self, *args: object, **kwargs: object) -> None:
+                pass
+
+        class FakeWorld:
+            def evaluate(self, *args: object, **kwargs: object) -> object:
+                return kwargs.get("video")
+
+        fake_swm = type(
+            "FakeStableWorldModel",
+            (),
+            {
+                "World": FakeWorld,
+                "policy": type(
+                    "FakePolicyModule", (), {"WorldModelPolicy": FakePolicy}
+                ),
+            },
+        )()
+        observed: list[object] = []
+        monkeypatch.setitem(sys.modules, "stable_worldmodel", fake_swm)
+        monkeypatch.setattr(
+            planner,
+            "_prepare_optional_flash_attention",
+            lambda: False,
+        )
+        monkeypatch.setattr(
+            planner.runpy,
+            "run_path",
+            lambda *args, **kwargs: observed.append(
+                fake_swm.World().evaluate(video=tmp_path / "video")
+            ),
+        )
+
+        assert planner.main([
+            "--upstream-entry", str(entry),
+            "--history-keys", "pixels",
+            "--disable-videos",
+        ]) == 0
+        assert observed == [None]
+
     def test_seed_list_accepts_one_or_multiple_runs(
             self, stablewm_repo: Path, dataset: Path) -> None:
         one = _args(stablewm_repo, dataset, "--seeds", "3072")
@@ -3324,3 +3372,223 @@ class TestExplicitEvaluation:
         assert rows["door"]["error"]["type"] == "RuntimeError"
         assert rows["action_delay"]["status"] == "completed"
         assert rows["portal_exit"]["status"] == "completed"
+
+
+class TestTrainingMethodOverlay:
+    """CW_METHOD is orthogonal to CW_FAMILY and driven only by the profile."""
+
+    FAMILIES = ("lewm", "pldm", "prejepa")
+
+    @staticmethod
+    def _expose_conditional_joint(stablewm_repo: Path, family: str) -> None:
+        """Mirror the checkout's own disabled loss.conditional_joint block."""
+
+        contract = launcher.load_profile_contract()
+        config = (
+            stablewm_repo
+            / "scripts/train/config"
+            / f"{contract['families'][family]['config_name']}.yaml"
+        )
+        payload = yaml.safe_load(config.read_text(encoding="utf-8")) or {}
+        loss = payload.setdefault("loss", {})
+        loss["conditional_joint"] = {
+            "enabled": False,
+            "weight": 0.0,
+            "group_width": 2,
+        }
+        config.write_text(yaml.safe_dump(payload), encoding="utf-8")
+
+    @staticmethod
+    def _component_args(
+        stablewm_repo: Path,
+        tmp_path: Path,
+        family: str,
+        component: str = "contact_friction",
+        *extra: str,
+    ) -> argparse.Namespace:
+        return launcher.parse_args([
+            "--component",
+            component,
+            "--family",
+            family,
+            "--method",
+            "coja_v1",
+            "--stablewm-repo",
+            str(stablewm_repo),
+            "--checkpoint-root",
+            str(tmp_path / "checkpoints-root"),
+            *extra,
+        ])
+
+    @staticmethod
+    def _contact_friction_target() -> launcher.Target:
+        prefix = launcher.CONTEXTWORLD_DATASET_URI_PREFIX
+        return launcher.Target(
+            label="contact_friction",
+            dataset=f"{prefix}contact_friction",
+            data_group="pusht",
+            history_size=3,
+            action_dim=2,
+            environment="pusht",
+        )
+
+    @pytest.fixture
+    def registered_identity(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setattr(
+            launcher,
+            "describe_contextworld_dataset",
+            lambda uri: {
+                "component": "contact_friction",
+                "history_length": 3,
+                "frameskip": 5,
+                "action_dimension": 2,
+                "conditional_joint": {
+                    "method": "coja_v1",
+                    "group_width": 2,
+                    "relation_kind": "public_pair_identity_v1",
+                },
+            },
+        )
+
+    def test_coja_is_registered_for_every_base_family_without_new_names(
+        self,
+    ) -> None:
+        contract = launcher.load_profile_contract()
+        profile = launcher.method_profile(contract, "coja_v1")
+
+        assert sorted(profile["families"]) == sorted(self.FAMILIES)
+        assert set(profile["families"]) <= set(contract["families"])
+        assert sorted(profile["components"]) == ["contact_friction"]
+
+    @pytest.mark.parametrize("family", FAMILIES)
+    def test_every_base_family_renders_the_same_registered_coja_keys(
+        self,
+        stablewm_repo: Path,
+        tmp_path: Path,
+        registered_identity: None,
+        family: str,
+    ) -> None:
+        self._expose_conditional_joint(stablewm_repo, family)
+        contract = launcher.load_profile_contract()
+        args = self._component_args(stablewm_repo, tmp_path, family)
+
+        launcher._validate_method(args, contract)
+        entries = launcher.build_overrides(
+            args,
+            contract,
+            self._contact_friction_target(),
+            run_name="run",
+            seed=3072,
+            stablewm_repo=stablewm_repo,
+        )
+        pairs = _pairs(entries)
+
+        assert pairs["loss.conditional_joint.enabled"] == "true"
+        assert pairs["loss.conditional_joint.weight"] == "0.09"
+        assert pairs["loss.conditional_joint.group_width"] == "2"
+        assert pairs["trainer.use_distributed_sampler"] == "false"
+
+    @pytest.mark.parametrize("family", FAMILIES)
+    def test_coja_run_name_never_shares_the_native_run_directory(
+        self,
+        stablewm_repo: Path,
+        tmp_path: Path,
+        family: str,
+    ) -> None:
+        args = self._component_args(stablewm_repo, tmp_path, family)
+
+        name = launcher._run_name(
+            args, self._contact_friction_target(), 3072, (3072,)
+        )
+
+        assert name == (
+            f"contact_friction_{family}_joint_scratch_v1_coja_v1_s3072"
+        )
+
+    @pytest.mark.parametrize("family", FAMILIES)
+    def test_unsupported_component_fails_closed_for_every_family(
+        self,
+        stablewm_repo: Path,
+        tmp_path: Path,
+        family: str,
+    ) -> None:
+        contract = launcher.load_profile_contract()
+        args = self._component_args(
+            stablewm_repo, tmp_path, family, "motion_damping"
+        )
+
+        with pytest.raises(SystemExit) as failure:
+            launcher._validate_method(args, contract)
+
+        assert "motion_damping" in str(failure.value)
+
+    @pytest.mark.parametrize("family", FAMILIES)
+    def test_checkout_without_the_loss_interface_fails_closed(
+        self,
+        stablewm_repo: Path,
+        tmp_path: Path,
+        registered_identity: None,
+        family: str,
+    ) -> None:
+        contract = launcher.load_profile_contract()
+        args = self._component_args(stablewm_repo, tmp_path, family)
+
+        with pytest.raises(SystemExit) as failure:
+            launcher.build_overrides(
+                args,
+                contract,
+                self._contact_friction_target(),
+                run_name="run",
+                seed=3072,
+                stablewm_repo=stablewm_repo,
+            )
+
+        assert "loss.conditional_joint" in str(failure.value)
+
+    @pytest.mark.parametrize("family", FAMILIES)
+    def test_original_environment_training_never_accepts_coja(
+        self,
+        stablewm_repo: Path,
+        tmp_path: Path,
+        family: str,
+    ) -> None:
+        contract = launcher.load_profile_contract()
+        args = launcher.parse_args([
+            "--original-env",
+            "pusht",
+            "--family",
+            family,
+            "--method",
+            "coja_v1",
+            "--stablewm-repo",
+            str(stablewm_repo),
+            "--checkpoint-root",
+            str(tmp_path / "checkpoints-root"),
+        ])
+
+        with pytest.raises(SystemExit) as failure:
+            launcher._validate_method(args, contract)
+
+        assert "original-environment" in str(failure.value)
+
+    @pytest.mark.parametrize("family", FAMILIES)
+    def test_historical_release_track_never_accepts_coja(
+        self,
+        stablewm_repo: Path,
+        tmp_path: Path,
+        family: str,
+    ) -> None:
+        contract = launcher.load_profile_contract()
+        args = self._component_args(
+            stablewm_repo,
+            tmp_path,
+            family,
+            "contact_friction",
+            "--training-track",
+            "historical_release",
+        )
+
+        with pytest.raises(SystemExit) as failure:
+            launcher._validate_method(args, contract)
+
+        assert "training tracks" in str(failure.value)

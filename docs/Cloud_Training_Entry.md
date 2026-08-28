@@ -41,6 +41,53 @@ environment values remain authoritative, while ordinary lowercase options
 such as `--max-epochs 10` are still accepted for local use. Secret parameter
 values are never included in the filtering log.
 
+## Base family and training method are orthogonal
+
+Two independent public variables describe a run:
+
+* `CW_FAMILY` selects the **base model family** — the backbone, forward pass,
+  objective and optimizer supplied by the Stable-WorldModel checkout:
+  `lewm`, `pldm` or `prejepa`.
+* `CW_METHOD` selects the **training method overlay** applied on top of that
+  family: `native` (default) or `coja_v1`.
+
+A method is not a family. `coja_v1` adds no model parameter, encoder, adapter,
+head or inference change; it enables the checkout's own one-step
+conditional-joint loss keys and keeps publicly related Contact pairs together
+inside the family's native flat batch, over the same registered 50/50
+original/ContextWorld mixture. There is therefore no `lewm_coja` family value,
+and each family keeps its own run directory and immutable training identity —
+a non-native method appends its name to the default run name rather than
+sharing the native run.
+
+Current support matrix (`CW_TRAINING_TRACK=joint_scratch_v1`):
+
+| `CW_METHOD` | `lewm` | `pldm` | `prejepa` | components |
+|---|---|---|---|---|
+| `native` | yes | yes | yes | all nine benchmark components, and original tasks |
+| `coja_v1` | yes | yes | yes | `contact_friction` only |
+
+Everything outside that matrix fails closed before training: another
+component, `CW_TASK=original`, `CW_TRAINING_TRACK=historical_release`, an
+operator-supplied `CW_DATASET`, or a payload/mixture override. `coja_v1` also
+fails closed on a checkout whose family config does not expose
+`loss.conditional_joint`; ContextWorld does not add a loss family of its own.
+The support envelope lives in
+[`stablewm_family_profiles_v1.yaml`](../configs/training/stablewm_family_profiles_v1.yaml),
+not in launcher code.
+
+```bash
+# same base family choice, one extra orthogonal variable
+CW_TASK=contact_friction CW_FAMILY=pldm CW_METHOD=coja_v1 \
+    CONTEXTWORLD_DATASET_ROOT=/abs/data/world_model \
+    CONTEXTWORLD_BENCHMARK_ROOT=/abs/data/world_model/ContextWorld-v1 \
+    CW_CHECKPOINT_ROOT=/abs/checkpoints/pldm-contextworld-v1 \
+    bash scripts/cloud_train.sh
+```
+
+Swap `CW_FAMILY=pldm` for `lewm` or `prejepa` to run the same overlay on
+another base family; drop `CW_METHOD` to get the family's native objective.
+
 ## Original DINO-WM training: one shared data root
 
 Stable-WorldModel calls its DINO-WM training entry `prejepa`; that is why the
@@ -167,7 +214,8 @@ Then per run:
 |---|---|---|
 | `CW_TASK` | *(required)* | one of the nine benchmark tasks, or `original` |
 | `CW_ENV` | — | with `CW_TASK=original`: `tworoom`, `pusht`, `reacher`, `cube` |
-| `CW_FAMILY` | `lewm` | `lewm`, `pldm` or `prejepa` |
+| `CW_FAMILY` | `lewm` | base model family: `lewm`, `pldm` or `prejepa` |
+| `CW_METHOD` | `native` | training method overlay applied to that family: `native` or `coja_v1` (currently `contact_friction` on `joint_scratch_v1` only) |
 | `CW_TRAINING_TRACK` | `joint_scratch_v1` | current component comparison; use `historical_release` only to reproduce an old frozen LeWM/PLDM release |
 | `CW_SEEDS` | `3072` | one seed, or a comma-separated sequence such as `3072,3073,3074` |
 | `CW_MODE` | `preflight` | mode for the shell-backed tasks |

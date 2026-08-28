@@ -56,7 +56,10 @@ methods:
       public Contact pairs together inside the native flat batch while retaining
       the registered 50/50 original/ContextWorld mixture. It adds no model
       parameter, encoder, adapter, head or inference change.
-    families: [lewm]
+      This is a training/data-relation overlay, not a model family: every base
+      family listed below keeps its own backbone, objective and optimizer and
+      renders the same registered loss keys.
+    families: [lewm, pldm, prejepa]
     training_tracks: [joint_scratch_v1]
     weight: 0.09
     keys:
@@ -67,7 +70,9 @@ methods:
     note: >-
       This first unified-entry validation intentionally supports only Contact
       Friction. Other components fail closed until their own public relation
-      semantics are wired and tested.
+      semantics are wired and tested. A family whose checkout does not expose
+      loss.conditional_joint also fails closed; ContextWorld never adds the
+      loss family itself.
     components:
       contact_friction:
         group_width: 2
