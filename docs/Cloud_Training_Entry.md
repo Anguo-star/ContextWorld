@@ -22,7 +22,7 @@ repository. It changes into `work_dir` before invoking the relative
 `run_stablewm_train.py`, independent of model family. For modern training, the
 entry composes the family profile with an explicit dataset or registered
 runtime bundle view. Benchmark components default to the current
-`joint_scratch_v1` comparison: LeWM, PLDM and PreJEPA all train on the same
+`joint_scratch_v1` comparison: LeWM, VIS-WM, PLDM and PreJEPA all train on the same
 registered 50/50 original/synthetic view without loading an original-task
 checkpoint. The old LeWM/PLDM launchers remain available only when
 `CW_TRAINING_TRACK=historical_release` is set explicitly.
@@ -47,7 +47,7 @@ Two independent public variables describe a run:
 
 * `CW_FAMILY` selects the **base model family** — the backbone, forward pass,
   objective and optimizer supplied by the Stable-WorldModel checkout:
-  `lewm`, `pldm` or `prejepa`.
+  `lewm`, `viswm`, `pldm` or `prejepa`.
 * `CW_METHOD` selects the **training method overlay** applied on top of that
   family: `native` (default) or `coja_v1`.
 
@@ -62,10 +62,10 @@ sharing the native run.
 
 Current support matrix (`CW_TRAINING_TRACK=joint_scratch_v1`):
 
-| `CW_METHOD` | `lewm` | `pldm` | `prejepa` | components |
-|---|---|---|---|---|
-| `native` | yes | yes | yes | all nine benchmark components, and original tasks |
-| `coja_v1` | yes | yes | yes | `contact_friction` only |
+| `CW_METHOD` | `lewm` | `viswm` | `pldm` | `prejepa` | components |
+|---|---|---|---|---|---|
+| `native` | yes | yes | yes | yes | all nine benchmark components, and original tasks |
+| `coja_v1` | yes | yes | yes | yes | `contact_friction` only |
 
 Everything outside that matrix fails closed before training: another
 component, `CW_TASK=original`, `CW_TRAINING_TRACK=historical_release`, an
@@ -85,8 +85,14 @@ CW_TASK=contact_friction CW_FAMILY=pldm CW_METHOD=coja_v1 \
     bash scripts/cloud_train.sh
 ```
 
-Swap `CW_FAMILY=pldm` for `lewm` or `prejepa` to run the same overlay on
+Swap `CW_FAMILY=pldm` for `lewm`, `viswm` or `prejepa` to run the same overlay on
 another base family; drop `CW_METHOD` to get the family's native objective.
+
+`CW_FAMILY=viswm` selects the independent VIS-WM entry and its published
+VISReg defaults. LeWM remains prediction MSE + SIGReg and has no VISReg
+selector. Optional VIS-WM ablations use `CW_VISWM_WEIGHT`,
+`CW_VISWM_NUM_PROJECTIONS`, and `CW_VISWM_LAMBDA_{SCALE,SHAPE,CENTER}`; none is
+needed for the method-of-record recipe.
 
 ## Original DINO-WM training: one shared data root
 
@@ -214,7 +220,7 @@ Then per run:
 |---|---|---|
 | `CW_TASK` | *(required)* | one of the nine benchmark tasks, or `original` |
 | `CW_ENV` | — | with `CW_TASK=original`: `tworoom`, `pusht`, `reacher`, `cube` |
-| `CW_FAMILY` | `lewm` | base model family: `lewm`, `pldm` or `prejepa` |
+| `CW_FAMILY` | `lewm` | base method family: `lewm`, `viswm`, `pldm` or `prejepa` |
 | `CW_METHOD` | `native` | training method overlay applied to that family: `native` or `coja_v1` (currently `contact_friction` on `joint_scratch_v1` only) |
 | `CW_TRAINING_TRACK` | `joint_scratch_v1` | current component comparison; use `historical_release` only to reproduce an old frozen LeWM/PLDM release |
 | `CW_SEEDS` | `3072` | one seed, or a comma-separated sequence such as `3072,3073,3074` |
@@ -448,7 +454,7 @@ there fails a test rather than quietly training a different mixture.
 
 ## Batch size
 
-`lewm.yaml` and `pldm.yaml` both ship `batch_size: 128` with no gradient
+`lewm.yaml`, `viswm.yaml` and `pldm.yaml` all ship `batch_size: 128` with no gradient
 accumulation, so **the baselines are aligned by upstream default and need no
 override**. `prejepa.yaml` ships `32`, so the router passes `128` for prejepa
 runs, including original-environment runs, unless `CW_BATCH_SIZE` says

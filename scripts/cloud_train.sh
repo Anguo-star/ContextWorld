@@ -80,7 +80,7 @@ fi
 #                             training/           checkpoints and run logs
 #                             upstream/           the SWM source checkout
 #
-# Original-task training reads the first. Current LeWM, PLDM and PreJEPA
+# Original-task training reads the first. Current LeWM, VIS-WM, PLDM and PreJEPA
 # component training plus every public post-training ICL suite read the clean
 # bundle; CEM continues to read the first tree. The internal tree is retained
 # only for an explicitly selected historical LeWM/PLDM release reproduction.

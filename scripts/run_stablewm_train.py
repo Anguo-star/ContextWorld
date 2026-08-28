@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """Public Stable-WorldModel training entry for ContextWorld.
 
-The command line is stable; the Hydra keys are not.  LeWM and PLDM use a
+The command line is stable; the Hydra keys are not.  LeWM, VIS-WM and PLDM use a
 ``data`` defaults group and put loader settings below ``loader``.  PreJEPA
 (DINO-WM) uses a flat dataset name, batch size and worker count.  This
 launcher reads the checked-in family profile and translates only parameters
 that the selected trainer actually accepts.
 
 For a benchmark component, the default ``joint_scratch_v1`` track trains any
-of the three built-in families from its native initialization on the same
+of the four built-in families from its native initialization on the same
 registered ``ContextWorld-v1`` mixture.  The old byte-pinned LeWM/PLDM
 launchers remain available only through an explicit ``historical_release``
 track, so a current comparison cannot silently become a fine-tuning run.
@@ -827,7 +827,41 @@ def _load_upstream_config(stablewm_repo: Path,
     payload = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
     if not isinstance(payload, dict):
         raise SystemExit(f"Upstream training config is not a mapping: {path}")
+    # Hydra supports a thin method config inheriting a sibling config. Resolve
+    # that one local layer for static capability checks without importing the
+    # training environment's Hydra runtime. Config-group defaults remain owned
+    # by Hydra and are intentionally ignored here.
+    defaults = payload.get("defaults", [])
+    inherited = {}
+    if isinstance(defaults, list):
+        for item in defaults:
+            if not isinstance(item, str) or item == "_self_" or "/" in item:
+                continue
+            base_path = path.with_name(f"{item}.yaml")
+            if not base_path.is_file():
+                continue
+            base_payload = (
+                yaml.safe_load(base_path.read_text(encoding="utf-8")) or {}
+            )
+            if not isinstance(base_payload, dict):
+                raise SystemExit(
+                    f"Inherited upstream config is not a mapping: {base_path}"
+                )
+            inherited = _deep_merge(inherited, base_payload)
+    payload = _deep_merge(inherited, payload)
     return path, payload
+
+
+def _deep_merge(base: dict[str, Any], overlay: dict[str, Any]) -> dict[str, Any]:
+    """Return a recursive mapping merge matching Hydra's common map case."""
+
+    merged = dict(base)
+    for key, value in overlay.items():
+        if isinstance(value, dict) and isinstance(merged.get(key), dict):
+            merged[key] = _deep_merge(merged[key], value)
+        else:
+            merged[key] = value
+    return merged
 
 
 def _add(entries: list[str], key: str | None, value: Any) -> None:
@@ -892,30 +926,17 @@ def _validate_args(
         if requested:
             raise SystemExit("PreJEPA's trainer does not expose " +
                              ", ".join(requested))
-    lewm_requested = any(value is not None for value in (
-        args.lewm_regularizer,
-        args.lewm_sigreg_weight,
-        args.lewm_visreg_weight,
-        args.lewm_visreg_num_projections,
-        args.lewm_visreg_lambda_scale,
-        args.lewm_visreg_lambda_shape,
-        args.lewm_visreg_lambda_center,
+    if family != "lewm" and args.lewm_sigreg_weight is not None:
+        raise SystemExit("--lewm-sigreg-weight is only valid with --family lewm")
+    viswm_requested = any(value is not None for value in (
+        args.viswm_weight,
+        args.viswm_num_projections,
+        args.viswm_lambda_scale,
+        args.viswm_lambda_shape,
+        args.viswm_lambda_center,
     ))
-    if family != "lewm" and lewm_requested:
-        raise SystemExit("LeWM loss options are only valid with --family lewm")
-    visreg_requested = any(value is not None for value in (
-        args.lewm_visreg_weight,
-        args.lewm_visreg_num_projections,
-        args.lewm_visreg_lambda_scale,
-        args.lewm_visreg_lambda_shape,
-        args.lewm_visreg_lambda_center,
-    ))
-    if visreg_requested and args.lewm_regularizer != "visreg":
-        raise SystemExit("VISReg parameters require --lewm-regularizer visreg so they "
-                         "cannot be accepted by an inactive objective.")
-    if args.lewm_regularizer == "visreg" and args.lewm_sigreg_weight is not None:
-        raise SystemExit(
-            "--lewm-sigreg-weight is inactive with VISReg and must be omitted.")
+    if family != "viswm" and viswm_requested:
+        raise SystemExit("VIS-WM loss options are only valid with --family viswm")
     for override in args.override:
         key, separator, value = override.partition("=")
         normalized = key.lstrip("+~")
@@ -928,6 +949,7 @@ def _validate_args(
                 "data.dataset.name",
                 "dataset_name",
                 "hydra.run.dir",
+                "loss.regularizer",
         }:
             raise SystemExit(
                 f"--override cannot replace launcher-owned identity/path key "
@@ -1240,25 +1262,24 @@ def build_overrides(
             _add(entries, f"data.dataset.items.{int(index)}.name", item_path)
 
     if family == "lewm":
-        if args.lewm_regularizer is not None:
-            if _nested(upstream_config, "loss", "regularizer") is None:
-                raise SystemExit(
-                    "This LeWM checkout does not expose loss.regularizer; "
-                    "VISReg and alternate regularizers require the published "
-                    "ContextWorld extension or a compatible checkout.")
-            _add(entries, "loss.regularizer", args.lewm_regularizer)
         _add(entries, "loss.sigreg.weight", args.lewm_sigreg_weight)
+    if family == "viswm":
+        if _nested(upstream_config, "loss", "regularizer") != "visreg":
+            raise SystemExit(
+                "The selected VIS-WM config must fix loss.regularizer=visreg; "
+                "do not emulate VIS-WM through a LeWM objective override."
+            )
         for key, value in (
-            ("weight", args.lewm_visreg_weight),
-            ("kwargs.num_projections", args.lewm_visreg_num_projections),
-            ("kwargs.lambda_scale", args.lewm_visreg_lambda_scale),
-            ("kwargs.lambda_shape", args.lewm_visreg_lambda_shape),
-            ("kwargs.lambda_center", args.lewm_visreg_lambda_center),
+            ("weight", args.viswm_weight),
+            ("kwargs.num_projections", args.viswm_num_projections),
+            ("kwargs.lambda_scale", args.viswm_lambda_scale),
+            ("kwargs.lambda_shape", args.viswm_lambda_shape),
+            ("kwargs.lambda_center", args.viswm_lambda_center),
         ):
             if value is not None and _nested(upstream_config, "loss", "visreg") is None:
                 raise SystemExit(
-                    "This LeWM checkout has no VISReg config; use a compatible "
-                    "checkout/extension rather than adding ignored Hydra keys.")
+                    "This VIS-WM checkout has no VISReg config; use a compatible "
+                    "checkout rather than adding ignored Hydra keys.")
             _add(entries, f"loss.visreg.{key}", value)
 
     entries.extend(
@@ -2715,25 +2736,24 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--wandb-project", default=_env("CW_WANDB_PROJECT"))
     parser.add_argument("--wandb-entity", default=_env("CW_WANDB_ENTITY"))
 
-    parser.add_argument("--lewm-regularizer", default=_env("CW_LEWM_REGULARIZER"))
     parser.add_argument("--lewm-sigreg-weight",
                         type=float,
                         default=_env_float("CW_LEWM_SIGREG_WEIGHT"))
-    parser.add_argument("--lewm-visreg-weight",
+    parser.add_argument("--viswm-weight",
                         type=float,
-                        default=_env_float("CW_LEWM_VISREG_WEIGHT"))
-    parser.add_argument("--lewm-visreg-num-projections",
+                        default=_env_float("CW_VISWM_WEIGHT"))
+    parser.add_argument("--viswm-num-projections",
                         type=int,
-                        default=_env_int("CW_LEWM_VISREG_NUM_PROJECTIONS"))
-    parser.add_argument("--lewm-visreg-lambda-scale",
+                        default=_env_int("CW_VISWM_NUM_PROJECTIONS"))
+    parser.add_argument("--viswm-lambda-scale",
                         type=float,
-                        default=_env_float("CW_LEWM_VISREG_LAMBDA_SCALE"))
-    parser.add_argument("--lewm-visreg-lambda-shape",
+                        default=_env_float("CW_VISWM_LAMBDA_SCALE"))
+    parser.add_argument("--viswm-lambda-shape",
                         type=float,
-                        default=_env_float("CW_LEWM_VISREG_LAMBDA_SHAPE"))
-    parser.add_argument("--lewm-visreg-lambda-center",
+                        default=_env_float("CW_VISWM_LAMBDA_SHAPE"))
+    parser.add_argument("--viswm-lambda-center",
                         type=float,
-                        default=_env_float("CW_LEWM_VISREG_LAMBDA_CENTER"))
+                        default=_env_float("CW_VISWM_LAMBDA_CENTER"))
 
     parser.add_argument(
         "--post-eval",

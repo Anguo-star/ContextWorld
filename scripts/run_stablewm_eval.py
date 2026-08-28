@@ -935,7 +935,7 @@ def _build_icl_steps(
             "--task",
             component,
             "--adapter",
-            args.family,
+            "lewm" if args.family == "viswm" else args.family,
             "--checkpoint",
             str(checkpoint.path),
             "--model-name",

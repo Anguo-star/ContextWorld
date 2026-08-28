@@ -37,7 +37,7 @@ comparison_recipe:
     original_weight: 0.5
     synthetic_weight: 0.5
     note: >-
-      All three built-in StableWM families train each component from their
+      All four built-in StableWM families train each component from their
       native model initialization, never from an original-environment task
       checkpoint. They share the registered ContextWorld-v1 payload,
       original/synthetic mixture, task geometry, training seeds, epoch count,
@@ -59,7 +59,7 @@ methods:
       This is a training/data-relation overlay, not a model family: every base
       family listed below keeps its own backbone, objective and optimizer and
       renders the same registered loss keys.
-    families: [lewm, pldm, prejepa]
+    families: [lewm, viswm, pldm, prejepa]
     training_tracks: [joint_scratch_v1]
     weight: 0.09
     keys:
@@ -85,6 +85,23 @@ families:
   lewm:
     entrypoint: scripts/train/lewm.py
     config_name: lewm
+    data_group: true
+    logger_backends: [none, swanlab, wandb]
+    post_train_eval: validated
+    keys:
+      dataset: data.dataset.name
+      batch_size: loader.batch_size
+      num_workers: loader.num_workers
+      persistent_workers: loader.persistent_workers
+      prefetch_factor: loader.prefetch_factor
+      pin_memory: loader.pin_memory
+      frameskip: data.dataset.frameskip
+      history_size: wm.history_size
+      num_preds: wm.num_preds
+      embed_dim: embed_dim
+  viswm:
+    entrypoint: scripts/train/viswm.py
+    config_name: viswm
     data_group: true
     logger_backends: [none, swanlab, wandb]
     post_train_eval: validated

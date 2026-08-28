@@ -1,4 +1,4 @@
-"""The public StableWM entry maps one contract to three real YAML dialects."""
+"""The public StableWM entry maps one contract to four method families."""
 
 from __future__ import annotations
 
@@ -29,6 +29,8 @@ def stablewm_repo(tmp_path: Path) -> Path:
     train = config.parent
     (train / "lewm.py").write_text("from x import build_training_logger\n",
                                    encoding="utf-8")
+    (train / "viswm.py").write_text("from x import build_training_logger\n",
+                                    encoding="utf-8")
     (train / "pldm.py").write_text("from x import build_training_logger\n",
                                    encoding="utf-8")
     (train / "prejepa.py").write_text("enabled = cfg.wandb.enabled\n", encoding="utf-8")
@@ -58,6 +60,18 @@ def stablewm_repo(tmp_path: Path) -> Path:
                     "weight": 0.09,
                     "kwargs": {}
                 },
+            },
+        }),
+        encoding="utf-8",
+    )
+    (config / "viswm.yaml").write_text(
+        yaml.safe_dump({
+            "defaults": ["lewm", "_self_"],
+            "output_model_name": "viswm",
+            "optimizer": {"lr": 1e-4},
+            "loss": {
+                "regularizer": "visreg",
+                "visreg": {"weight": 4.5},
             },
         }),
         encoding="utf-8",
@@ -311,6 +325,7 @@ class TestFamilyDialects:
         "family,dataset_key,batch_key,embed_key",
         [
             ("lewm", "data.dataset.name", "loader.batch_size", "embed_dim"),
+            ("viswm", "data.dataset.name", "loader.batch_size", "embed_dim"),
             ("pldm", "data.dataset.name", "loader.batch_size", "wm.embed_dim"),
             ("prejepa", "dataset_name", "batch_size", None),
         ],
@@ -2520,25 +2535,37 @@ class TestLoggingAndLossBoundaries:
         assert status == 0
         assert events == ["login", "train"]
 
-    def test_visreg_is_only_emitted_when_the_checkout_declares_it(
+    def test_viswm_is_an_independent_family_with_method_owned_options(
             self, stablewm_repo: Path, dataset: Path) -> None:
         args = _args(
             stablewm_repo,
             dataset,
             "--family",
-            "lewm",
+            "viswm",
             "--data-group",
             "pusht",
-            "--lewm-regularizer",
-            "visreg",
-            "--lewm-visreg-weight",
-            "0.09",
+            "--viswm-weight",
+            "4.5",
         )
 
         _, pairs, _ = _build(args, stablewm_repo)
 
-        assert pairs["loss.regularizer"] == "visreg"
-        assert pairs["loss.visreg.weight"] == "0.09"
+        assert "loss.regularizer" not in pairs
+        assert pairs["loss.visreg.weight"] == "4.5"
+
+    def test_lewm_cli_has_no_visreg_method_switch(
+            self, stablewm_repo: Path, dataset: Path) -> None:
+        with pytest.raises(SystemExit):
+            _args(
+                stablewm_repo,
+                dataset,
+                "--family",
+                "lewm",
+                "--data-group",
+                "pusht",
+                "--lewm-regularizer",
+                "visreg",
+            )
 
 
 class TestExplicitEvaluation:
@@ -2573,6 +2600,47 @@ class TestExplicitEvaluation:
             "successful_episodes": 29,
             "evaluation_time_seconds": 2071.4979,
         }
+
+    def test_viswm_icl_uses_the_shared_lewm_checkpoint_adapter(
+        self,
+        stablewm_repo: Path,
+        tmp_path: Path,
+    ) -> None:
+        checkpoint_path = tmp_path / "weights_epoch_10.pt"
+        args = evaluator.parse_args(
+            [
+                "--family",
+                "viswm",
+                "--component",
+                "speed",
+                "--checkpoint",
+                str(checkpoint_path),
+                "--stablewm-repo",
+                str(stablewm_repo),
+                "--print-command",
+            ]
+        )
+        checkpoint = evaluator.ResolvedCheckpoint(
+            path=checkpoint_path,
+            run_name="speed_viswm_joint_scratch_v1_s3072",
+            epoch=10,
+            checkpoint_root=tmp_path,
+            policy="weights_epoch_10.pt",
+        )
+
+        steps = evaluator._build_icl_steps(
+            args,
+            checkpoint=checkpoint,
+            stablewm_repo=stablewm_repo,
+            stablewm_ref="a" * 40,
+            benchmark_root=tmp_path / "ContextWorld-v1",
+            components=("speed",),
+            eval_root=tmp_path / "eval",
+            contract=evaluator.load_contract(),
+        )
+
+        command = steps[0].command
+        assert command[command.index("--adapter") + 1] == "lewm"
 
     def test_eval_revision_reads_git_metadata_without_running_git(
         self,
@@ -3377,7 +3445,7 @@ class TestExplicitEvaluation:
 class TestTrainingMethodOverlay:
     """CW_METHOD is orthogonal to CW_FAMILY and driven only by the profile."""
 
-    FAMILIES = ("lewm", "pldm", "prejepa")
+    FAMILIES = ("lewm", "viswm", "pldm", "prejepa")
 
     @staticmethod
     def _expose_conditional_joint(stablewm_repo: Path, family: str) -> None:

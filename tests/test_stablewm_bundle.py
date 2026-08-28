@@ -530,7 +530,7 @@ def test_synthetic_only_normalizer_rejects_malformed_action_contract(
         )
 
 
-@pytest.mark.parametrize("family", ["lewm", "pldm", "prejepa"])
+@pytest.mark.parametrize("family", ["lewm", "viswm", "pldm", "prejepa"])
 def test_all_builtin_families_build_the_same_registered_mixture_without_cw_dataset(
     tmp_path: Path,
     family: str,
@@ -572,7 +572,7 @@ def test_all_builtin_families_build_the_same_registered_mixture_without_cw_datas
     assert identity["original_dataset"] == str(original)
 
 
-@pytest.mark.parametrize("family", ["lewm", "pldm", "prejepa"])
+@pytest.mark.parametrize("family", ["lewm", "viswm", "pldm", "prejepa"])
 def test_training_process_registers_the_bundle_in_every_child_environment(
     tmp_path: Path,
     monkeypatch,
@@ -597,13 +597,14 @@ def test_training_process_registers_the_bundle_in_every_child_environment(
     stablewm = tmp_path / "stable-worldmodel"
     config = stablewm / "scripts/train/config"
     config.mkdir(parents=True)
-    for family_name in ("lewm", "pldm", "prejepa"):
+    for family_name in ("lewm", "viswm", "pldm", "prejepa"):
         (config.parent / f"{family_name}.py").write_text(
             "pass\n", encoding="utf-8"
         )
-        (config / f"{family_name}.yaml").write_text(
-            "trainer:\n  max_epochs: 1\n", encoding="utf-8"
-        )
+        payload = "trainer:\n  max_epochs: 1\n"
+        if family_name == "viswm":
+            payload += "loss:\n  regularizer: visreg\n  visreg:\n    weight: 4.5\n"
+        (config / f"{family_name}.yaml").write_text(payload, encoding="utf-8")
     data_config = config / "data"
     data_config.mkdir()
     (data_config / "pusht.yaml").write_text(
@@ -659,7 +660,7 @@ def test_training_process_registers_the_bundle_in_every_child_environment(
     worker_key = "num_workers=2" if family == "prejepa" else "loader.num_workers=2"
     assert any(value.startswith(dataset_key + "contextworld://v1/") for value in command)
     assert worker_key in command
-    if family in {"lewm", "pldm"}:
+    if family in {"lewm", "viswm", "pldm"}:
         assert "data.dataset.keys_to_load=[pixels,action]" in command
         assert "data.dataset.keys_to_cache=[action]" in command
     assert environment["CONTEXTWORLD_STABLEWM_BUNDLE"] == "1"
