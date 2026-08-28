@@ -8,7 +8,7 @@ from contextworld.training.groups import LogicalGroupDataset, RelationBatchSampl
 from contextworld.training.stablewm_bundle import (
     CONDITIONAL_JOINT_GROUP_COLUMN,
     _RuntimeDataset,
-    _contact_pair_relations,
+    _paired_episode_relations,
 )
 
 
@@ -143,8 +143,8 @@ class _RelationLeaf:
         return (episode * 3, 3)
 
 
-def test_contact_relation_index_aligns_offsets_within_public_pairs():
-    assert _contact_pair_relations(_RelationLeaf()) == [
+def test_relation_index_aligns_offsets_within_public_pairs():
+    assert _paired_episode_relations(_RelationLeaf()) == [
         (0, 3),
         (1, 4),
         (2, 5),

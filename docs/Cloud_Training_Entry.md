@@ -65,7 +65,7 @@ Current support matrix (`CW_TRAINING_TRACK=joint_scratch_v1`):
 | `CW_METHOD` | `lewm` | `viswm` | `pldm` | `prejepa` | components |
 |---|---|---|---|---|---|
 | `native` | yes | yes | yes | yes | all nine benchmark components, and original tasks |
-| `coja_v1` | yes | yes | yes | yes | `contact_friction` only |
+| `coja_v1` | yes | yes | yes | yes | `contact_friction`, `robot_arm_mass` |
 
 Everything outside that matrix fails closed before training: another
 component, `CW_TASK=original`, `CW_TRAINING_TRACK=historical_release`, an
@@ -221,7 +221,7 @@ Then per run:
 | `CW_TASK` | *(required)* | one of the nine benchmark tasks, or `original` |
 | `CW_ENV` | — | with `CW_TASK=original`: `tworoom`, `pusht`, `reacher`, `cube` |
 | `CW_FAMILY` | `lewm` | base method family: `lewm`, `viswm`, `pldm` or `prejepa` |
-| `CW_METHOD` | `native` | training method overlay applied to that family: `native` or `coja_v1` (currently `contact_friction` on `joint_scratch_v1` only) |
+| `CW_METHOD` | `native` | training method overlay applied to that family: `native` or `coja_v1` (currently `contact_friction` and `robot_arm_mass` on `joint_scratch_v1`) |
 | `CW_TRAINING_TRACK` | `joint_scratch_v1` | current component comparison; use `historical_release` only to reproduce an old frozen LeWM/PLDM release |
 | `CW_SEEDS` | `3072` | one seed, or a comma-separated sequence such as `3072,3073,3074` |
 | `CW_MODE` | `preflight` | mode for the shell-backed tasks |

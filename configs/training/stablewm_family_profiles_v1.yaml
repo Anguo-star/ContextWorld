@@ -68,13 +68,19 @@ methods:
       group_width: loss.conditional_joint.group_width
     upstream_config_group: conditional_joint
     note: >-
-      This first unified-entry validation intentionally supports only Contact
-      Friction. Other components fail closed until their own public relation
-      semantics are wired and tested. A family whose checkout does not expose
-      loss.conditional_joint also fails closed; ContextWorld never adds the
-      loss family itself.
+      The unified entry supports only components whose public bundle declares
+      an audited same-query pair identity. Other components fail closed until
+      their own relation semantics are wired and tested. A family whose
+      checkout does not expose loss.conditional_joint also fails closed;
+      ContextWorld never adds the loss family itself.
     components:
       contact_friction:
+        group_width: 2
+        relation: public_pair_identity_v1
+        payload_id: data
+        original_weight: 0.5
+        synthetic_weight: 0.5
+      robot_arm_mass:
         group_width: 2
         relation: public_pair_identity_v1
         payload_id: data

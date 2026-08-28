@@ -42,7 +42,9 @@ FORMAT_NAME = "contextworld_bundle"
 MODEL_COLUMNS = ("pixels", "action")
 _DELAY_PATTERN = re.compile(r"(?:^|[-_])d(?P<delay>\d+)(?:[-_])")
 CONDITIONAL_JOINT_METHOD = "coja_v1"
-CONDITIONAL_JOINT_COMPONENT = "contact_friction"
+CONDITIONAL_JOINT_COMPONENTS = frozenset(
+    {"contact_friction", "robot_arm_mass"}
+)
 CONDITIONAL_JOINT_GROUP_WIDTH = 2
 CONDITIONAL_JOINT_GROUP_COLUMN = "conditional_joint_group"
 PUBLIC_RELATION_COLUMN = "pair_id"
@@ -156,15 +158,16 @@ def _conditional_joint_contract(
             f"Unsupported ContextWorld training method: {method!r}; "
             f"expected {CONDITIONAL_JOINT_METHOD!r}"
         )
-    if component_id != CONDITIONAL_JOINT_COMPONENT:
+    if component_id not in CONDITIONAL_JOINT_COMPONENTS:
+        supported = ", ".join(sorted(CONDITIONAL_JOINT_COMPONENTS))
         raise ValueError(
-            f"{CONDITIONAL_JOINT_METHOD} first-stage integration is "
-            f"registered only for {CONDITIONAL_JOINT_COMPONENT!r}, not "
+            f"{CONDITIONAL_JOINT_METHOD} is registered only for components "
+            f"with audited public pair identities ({supported}), not "
             f"{component_id!r}"
         )
     if payload_id != "data":
         raise ValueError(
-            "Contact Friction conditional-joint training requires the "
+            f"{component_id} conditional-joint training requires the "
             f"registered data payload, observed={payload_id!r}"
         )
     return {
@@ -1029,8 +1032,8 @@ def _episode_relation_keys(
     return keys
 
 
-def _contact_pair_relations(leaf: Any) -> list[tuple[int, int]]:
-    """Return aligned clip indices for every public Contact pair."""
+def _paired_episode_relations(leaf: Any) -> list[tuple[int, int]]:
+    """Return aligned clip indices for every public same-query pair."""
 
     episodes: dict[str, list[int]] = {}
     for episode, key in enumerate(
@@ -1055,7 +1058,7 @@ def _contact_pair_relations(leaf: Any) -> list[tuple[int, int]]:
                 tuple(start + offset for start, _ in ranges)
             )
     if not relations:
-        raise ValueError("Contact Friction training publishes no pair relations")
+        raise ValueError("Conditional-joint training publishes no pair relations")
     return relations
 
 def _integer_weight_counts(weights: Sequence[float]) -> list[int]:
@@ -1511,11 +1514,11 @@ def _open_runtime_dataset(uri: str, **kwargs: Any):
     if conditional_joint is not None:
         if len(leaves) != 1:
             raise ValueError(
-                "Contact Friction conditional-joint training expects its "
+                "Conditional-joint training expects its "
                 "single registered public Lance table"
             )
         synthetic = leaves[0]
-        conditional_relations = _contact_pair_relations(synthetic)
+        conditional_relations = _paired_episode_relations(synthetic)
     elif identity["component"] == "action_delay" and identity["payload_id"] == "full":
         delay_groups: dict[str, list[Any]] = {str(i): [] for i in range(5)}
         delay_groups["5_to_10"] = []

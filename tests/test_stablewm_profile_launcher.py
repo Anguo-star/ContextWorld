@@ -3526,7 +3526,26 @@ class TestTrainingMethodOverlay:
 
         assert sorted(profile["families"]) == sorted(self.FAMILIES)
         assert set(profile["families"]) <= set(contract["families"])
-        assert sorted(profile["components"]) == ["contact_friction"]
+        assert sorted(profile["components"]) == [
+            "contact_friction",
+            "robot_arm_mass",
+        ]
+
+    def test_robot_arm_mass_uses_the_same_public_pair_contract(self) -> None:
+        contract = launcher.load_profile_contract()
+        recipe = launcher.method_component_recipe(
+            contract,
+            "coja_v1",
+            "robot_arm_mass",
+        )
+
+        assert recipe == {
+            "group_width": 2,
+            "relation": "public_pair_identity_v1",
+            "payload_id": "data",
+            "original_weight": 0.5,
+            "synthetic_weight": 0.5,
+        }
 
     @pytest.mark.parametrize("family", FAMILIES)
     def test_every_base_family_renders_the_same_registered_coja_keys(
