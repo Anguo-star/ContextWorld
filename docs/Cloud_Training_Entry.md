@@ -185,7 +185,7 @@ Then per run:
 | `CW_NUM_WORKERS` | `2` per DDP process for any ContextWorld-v1 view; family YAML otherwise | data loader workers |
 | `CW_DEVICES` | family YAML | Lightning devices (`auto`, integer, or Hydra value) |
 | `CW_LOGGER` | `none` | `wandb` or `swanlab` when the selected family trainer uses the common logger factory |
-| `CW_RESUME` | `auto` | `never`, `auto`, or `required`; full state can resume through a same-job requeue or an identity-matched `last.ckpt` in persistent storage |
+| `CW_RESUME` | `auto` | `never`, `auto`, `required`, or `reset`; `reset` preserves the run name, archives its exact local state, and starts from epoch zero |
 | `CW_POST_TRAIN_EVAL` | unset | for current family-profile runs, run the complete applicable original CEM and benchmark ICL suite; the standard CEM default is 50 episodes × seeds 42–47 = 300 episodes per checkpoint; component runs fail early if the matching original dataset cannot be resolved; frozen historical reproductions retain their component evaluator |
 | `CW_EVAL_NUM` | `50` | CEM episodes per evaluation seed; changing it produces a non-standard diagnostic or repair run |
 | `CW_EVAL_SEEDS` | `42,43,44,45,46,47` | six standard CEM evaluation seeds; changing them produces a non-standard diagnostic or repair run |
@@ -234,6 +234,14 @@ preserve a failed, interrupted, or changed evaluation attempt and write new
 evidence separately. An exact repeat of a completed suite is accepted
 idempotently only when its request digest matches and every output file still
 has its recorded size and SHA-256.
+
+Use `CW_RESUME=reset` when a changed recipe must replace a failed attempt
+without changing its run name. Before training, the launcher moves that exact
+run's `checkpoints/<run>`, marker-bound StablePretraining UUID directories,
+and current `CW_OUTPUT/<run>` into timestamped, recoverable
+`.contextworld_reset_archive/` directories. Other runs and seeds are not
+changed. `CW_PRINT_ONLY=1` previews the reset without moving anything, and
+`reset` cannot be combined with `CW_EVAL_ONLY=1`.
 
 For PreJEPA, the CEM smoke uses the upstream planner with the checkpoint's
 declared history stream. Its Development ICL eligibility is checked separately;

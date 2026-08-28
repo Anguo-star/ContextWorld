@@ -429,19 +429,44 @@ class StableWorldModelLeWMAdapter(LatentWorldModelAdapter):
                     device=self.device,
                     dtype=next(self.model.parameters()).dtype,
                 )
+                rollout_code = getattr(self.model.rollout, "__code__", None)
+                explicit_action_history = bool(
+                    rollout_code is not None
+                    and "action_history" in rollout_code.co_consts
+                )
+                if explicit_action_history:
+                    history_actions = action_tensor[
+                        :, : self.protocol.history_tokens - 1
+                    ]
+                    future_actions = action_tensor[
+                        :, self.protocol.history_tokens - 1 :
+                    ]
+                    rollout_info = {
+                        "pixels": transformed[:, None],
+                        "action_history": history_actions[:, None],
+                    }
+                    rollout_actions = future_actions[:, None]
+                    expected_future = future_actions.shape[1]
+                else:
+                    # Historical StableWM checkouts encode the first H-1
+                    # executed blocks in the action sequence itself.  Keep
+                    # that frozen protocol reproducible while current models
+                    # use the explicit action_history field above.
+                    rollout_info = {"pixels": transformed[:, None]}
+                    rollout_actions = action_tensor[:, None]
+                    expected_future = (
+                        action_tensor.shape[1]
+                        - (self.protocol.history_tokens - 1)
+                    )
                 result = self.model.rollout(
-                    {"pixels": transformed[:, None]},
-                    action_tensor[:, None],
+                    rollout_info,
+                    rollout_actions,
                     history_size=self.protocol.history_tokens,
                 )["predicted_emb"][:, 0]
                 predicted = result[:, self.protocol.history_tokens :]
                 # ``action_tensor`` has one token per transition.  History H
                 # consumes H-1 context actions, so T action tokens request
                 # T-(H-1) future predictions.
-                expected_future = (
-                    action_tensor.shape[1]
-                    - (self.protocol.history_tokens - 1)
-                )
                 if not 1 <= expected_future <= self.protocol.future_action_blocks:
                     raise ValueError(
                         f"Requested unsupported future length {expected_future}"

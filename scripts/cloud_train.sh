@@ -12,6 +12,7 @@
 #   run_shell_script=scripts/cloud_train.sh
 #   CW_TASK=original   CW_ENV=tworoom   CW_FAMILY=prejepa
 #   CW_SEEDS=3072
+#   CW_METHOD=native|coja_v1   (optional; defaults to native)
 #
 # Submit one seed per requeueable SLURM job or array task. Comma-separated
 # seeds remain available for non-SLURM serial sweeps.
@@ -141,6 +142,10 @@ if [ "$CW_TRAINING_TRACK" = "historical_release" ]; then
     exit 2
   fi
 fi
+
+# The Python launcher owns method validation and fails closed from the profile.
+CW_METHOD="${CW_METHOD:-native}"
+export CW_METHOD
 
 # The clean Hugging Face export is a multi-table benchmark bundle, not one
 # raw StableWM table. run_stablewm_train.py turns it into a lazy registered
@@ -328,6 +333,7 @@ echo "[cloud-train] run output=${CW_OUTPUT:-<launcher default>}"
 echo "[cloud-train] hf_cache=${HF_HUB_CACHE:-<default>} offline=${HF_HUB_OFFLINE:-0}"
 echo "[cloud-train] logger=${CW_LOGGER:-none}"
 echo "[cloud-train] training_track=$CW_TRAINING_TRACK"
+echo "[cloud-train] method=$CW_METHOD"
 echo "[cloud-train] post_train_eval=$POST_TRAIN_EVAL"
 echo "[cloud-train] eval_only=$EVAL_ONLY"
 echo "[cloud-train] eval_result_subdir=${CW_EVAL_RESULT_SUBDIR:-<default>}"

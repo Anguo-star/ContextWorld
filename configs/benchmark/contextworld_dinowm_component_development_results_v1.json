@@ -1,0 +1,137 @@
+{
+  "schema_version": "contextworld.dinowm-component-development-results.v1",
+  "status": "partial_non_frozen_supplementary_evidence",
+  "recorded_on": "2026-08-27",
+  "claim_boundary": {
+    "evaluation_split": "development",
+    "public_test_accessed": false,
+    "formal_pass_available": false,
+    "official_scoreboard_row": false,
+    "note": "These values describe public ContextWorld-v1 Development evaluations and same-seed original-environment CEM retention. They are not frozen Public Test results."
+  },
+  "method": {
+    "display_name": "DINO-WM / PreJEPA",
+    "family": "prejepa",
+    "training_track": "joint_scratch_v1",
+    "contextworld_commit": "193d69f3a1b7b9f0f7a986b9989dc8586ef8fcde",
+    "stable_worldmodel_commit": "5396eb6677167eb3e6703d93e7521e9e7338a8fd",
+    "training_seeds": [3072, 3073, 3074],
+    "epochs": 10,
+    "batch_size_per_device": 128,
+    "reference_devices": 8,
+    "completed_runs_precision": "16-mixed",
+    "initialization": "from_scratch",
+    "original_weight": 0.5,
+    "synthetic_weight": 0.5
+  },
+  "evaluation": {
+    "icl_split": "development",
+    "cem_eval_seeds": [42, 43, 44, 45, 46, 47],
+    "cem_episodes_per_eval_seed": 50,
+    "cem_episodes_per_checkpoint": 300,
+    "original_environment_cem_by_training_seed": {
+      "tworoom": [292, 296, 298],
+      "pusht": [139, 140, 118],
+      "reacher": [163, 162, 182],
+      "cube": [219, 217, 224]
+    }
+  },
+  "components": {
+    "speed": {
+      "status": "complete_three_seed_development",
+      "primary_metric": "history_better_rate",
+      "metric_kind": "history_utility_diagnostic_not_matched_counterfactual",
+      "icl_primary_by_training_seed": [0.4166666666666667, 0.375, 0.3298611111111111],
+      "cem_successes_by_training_seed": [300, 299, 300],
+      "cem_delta_vs_original_by_training_seed": [8, 3, 2],
+      "eval_manifest_sha256_by_training_seed": [
+        "02b0d9cd62e14860228c5801b23d47242abf9b88b730bd2624a0cb4861301020",
+        "9a8165f1cf7c9142fb586f432f35e8f103e7b7a6ef82b571ca713db4975fb189",
+        "1df0a01035afba54db074e530651993713ec6ea65bd72649370978426453dbd5"
+      ]
+    },
+    "door": {
+      "status": "complete_three_seed_development",
+      "primary_metric": "correct_future_rate",
+      "icl_primary_by_training_seed": [1.0, 1.0, 1.0],
+      "cem_successes_by_training_seed": [293, 293, 292],
+      "cem_delta_vs_original_by_training_seed": [1, -3, -6],
+      "eval_manifest_sha256_by_training_seed": [
+        "a5d0698945ae73bd809888d7714c965e4dad120b152d1b0b78120bc4909baaae",
+        "235eb4ee162064480dfe9780d07ef514682945d8e3ec0d84138011a1b441c813",
+        "202e7351838df2b2be38d5f01fc86846c8b85232fdbb01dd78d8f87d8b0df892"
+      ]
+    },
+    "action_delay": {
+      "status": "training_incomplete_no_checkpoint",
+      "history_size": 7,
+      "failed_precision": "16-mixed",
+      "training_seed_failure_epoch": {"3072": 2, "3073": 2, "3074": 4},
+      "failure": "non_finite_loss",
+      "icl_primary_by_training_seed": null,
+      "cem_successes_by_training_seed": null
+    },
+    "portal_exit": {
+      "status": "complete_three_seed_development",
+      "primary_metric": "correct_future_rate",
+      "icl_primary_by_training_seed": [0.9921875, 0.994140625, 0.99609375],
+      "cem_successes_by_training_seed": [298, 296, 293],
+      "cem_delta_vs_original_by_training_seed": [6, 0, -5],
+      "eval_manifest_sha256_by_training_seed": [
+        "609851e3fa5d23126d583d310250e9107fbd50279fc8e7cf33a06b61b152816d",
+        "578c4d0868a2c9c4f38479823619977fd79dcac99d5738fb4f424278f626f7e9",
+        "7ff68b16debd212be0f6e179c75f192de9984a237a0852c37b84a0eedd6f161d"
+      ]
+    },
+    "action_strength": {
+      "status": "not_started",
+      "icl_primary_by_training_seed": null,
+      "cem_successes_by_training_seed": null
+    },
+    "contact_friction": {
+      "status": "complete_three_seed_development",
+      "primary_metric": "correct_future_rate",
+      "icl_primary_by_training_seed": [0.49609375, 0.494140625, 0.498046875],
+      "cem_successes_by_training_seed": [74, 82, 91],
+      "cem_delta_vs_original_by_training_seed": [-65, -58, -27],
+      "eval_manifest_sha256_by_training_seed": [
+        "bb37e14387866c6da8cec0ba11eaef7210f796620d5c376c27bda29828b4cac5",
+        "9aeffc51e4ff111cfda9bab9aaa74bacec3271b0f070ad7d8aef89881a0ce3b3",
+        "134c70addcdb73eed2081aba959ffc38edba3b9b9f5ceea9d919b8159682ee03"
+      ]
+    },
+    "motion_damping": {
+      "status": "complete_three_seed_development",
+      "primary_metric": "correct_future_rate",
+      "icl_primary_by_training_seed": [0.5, 0.501953125, 0.501953125],
+      "cem_successes_by_training_seed": [75, 66, 89],
+      "cem_delta_vs_original_by_training_seed": [-64, -74, -29],
+      "eval_manifest_sha256_by_training_seed": [
+        "858698567dbfa275ad5db2347370b31c86c899ecf09ec4b02edbb98dfec58b87",
+        "b2ceceb2ed3686e45cd8007fa0424f96fc57dd54c71700f04d960293686e0538",
+        "3cf1b6617b19b93185e0ec2ad8a2371c12b67ad3d45d68a800aaa61fe18f2a9a"
+      ]
+    },
+    "robot_arm_mass": {
+      "status": "complete_three_seed_development",
+      "primary_metric": "correct_future_rate",
+      "icl_primary_by_training_seed": [0.505859375, 0.517578125, 0.517578125],
+      "cem_successes_by_training_seed": [163, 155, 154],
+      "cem_delta_vs_original_by_training_seed": [0, -7, -28],
+      "eval_manifest_sha256_by_training_seed": [
+        "863c8109f4874e2ea20501486e84c0c0e86a60ee7b9500438533cdfd05e537ba",
+        "6a2d9eec6f2424d9734d47a56cedf2e636500caabdc90ddeb2e425c10e63540d",
+        "6a343555958bac9f81496b694fd837d26e29b475855f731c879539c3ae63a3ee"
+      ]
+    },
+    "cube_gripper_carry": {
+      "status": "evaluation_incomplete",
+      "completed_training_seeds": [3072, 3073, 3074],
+      "fully_evaluated_training_seeds": [3072],
+      "partially_evaluated_training_seeds": [3073],
+      "not_evaluated_training_seeds": [3074],
+      "icl_primary_by_training_seed": null,
+      "cem_successes_by_training_seed": null
+    }
+  }
+}

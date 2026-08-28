@@ -1,11 +1,14 @@
 from pathlib import Path
+from types import SimpleNamespace
 
 import numpy as np
+import pytest
 
 from contextworld.evaluation.protocol import (
     ColumnStandardizer,
     allocate_scenario_evaluations,
     load_catalog_regime,
+    load_pretrained_cost_model,
     select_episode_balanced_starts,
 )
 from contextworld.paths import artifact_path
@@ -85,3 +88,54 @@ def test_catalog_regime_paths_resolve_from_repo_root() -> None:
 
     assert len(paths) == 16
     assert all(path.is_absolute() and path.is_dir() for path in paths)
+
+
+def test_native_checkpoint_loader_accepts_current_dynamics_api(
+    tmp_path: Path,
+) -> None:
+    checkpoint = tmp_path / "weights.pt"
+    checkpoint.write_bytes(b"checkpoint")
+    (tmp_path / "config.json").write_text("{}\n", encoding="utf-8")
+
+    class Dynamics:
+        def encode(self):
+            pass
+
+        def rollout(self):
+            pass
+
+    model = Dynamics()
+    stable_worldmodel = SimpleNamespace(
+        wm=SimpleNamespace(
+            utils=SimpleNamespace(load_pretrained=lambda *args, **kwargs: model)
+        )
+    )
+
+    assert (
+        load_pretrained_cost_model(
+            checkpoint,
+            stable_worldmodel,
+            cache_dir=tmp_path / "cache",
+        )
+        is model
+    )
+
+
+def test_native_checkpoint_loader_rejects_non_model_surface(
+    tmp_path: Path,
+) -> None:
+    checkpoint = tmp_path / "weights.pt"
+    checkpoint.write_bytes(b"checkpoint")
+    (tmp_path / "config.json").write_text("{}\n", encoding="utf-8")
+    stable_worldmodel = SimpleNamespace(
+        wm=SimpleNamespace(
+            utils=SimpleNamespace(load_pretrained=lambda *args, **kwargs: object())
+        )
+    )
+
+    with pytest.raises(RuntimeError, match="neither the legacy get_cost API"):
+        load_pretrained_cost_model(
+            checkpoint,
+            stable_worldmodel,
+            cache_dir=tmp_path / "cache",
+        )

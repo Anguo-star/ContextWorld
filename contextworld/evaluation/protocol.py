@@ -246,8 +246,19 @@ def load_pretrained_cost_model(
     model = stable_worldmodel.wm.utils.load_pretrained(
         str(checkpoint), cache_dir=str(cache_dir.resolve())
     )
-    if not hasattr(model, "get_cost"):
-        raise RuntimeError(f"Loaded model does not expose get_cost: {checkpoint}")
+    # Stable-WorldModel's current LeWM/PLDM API deliberately separates the
+    # latent dynamics from planner objectives: the checkpoint exposes
+    # ``encode``/``rollout``, while ``ShootingCostEvaluator`` supplies
+    # ``get_cost`` only for MPC.  ContextWorld's ICL adapters exercise the raw
+    # dynamics and therefore must accept both the legacy monolithic surface
+    # and the current compositional one.
+    if not hasattr(model, "get_cost") and not (
+        hasattr(model, "encode") and hasattr(model, "rollout")
+    ):
+        raise RuntimeError(
+            "Loaded checkpoint exposes neither the legacy get_cost API nor "
+            f"the current encode/rollout dynamics API: {checkpoint}"
+        )
     return model
 
 

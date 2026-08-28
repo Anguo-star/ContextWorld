@@ -279,3 +279,93 @@ class LogicalGroupDataset:
                 "mean_draws_per_virtual_slot": draws[name] / available,
             }
         return output
+
+
+class RelationBatchSampler:
+    """DDP-safe flat batches with equal original and paired exposure.
+
+    Each batch contains 64 unrelated original rows and 32 complete binary
+    relations when ``batch_size=128``. Relations are sharded as units, so no
+    train shuffle or distributed rank can separate their arms.
+    """
+
+    def __init__(
+        self,
+        singles: Sequence[int],
+        relations: Sequence[Sequence[int]],
+        *,
+        batch_size: int,
+        epoch_row_count: int,
+        seed: int,
+        rank: int = 0,
+        world_size: int = 1,
+    ) -> None:
+        import torch
+
+        self.singles = torch.as_tensor(singles, dtype=torch.long).clone()
+        self.relations = torch.as_tensor(relations, dtype=torch.long).clone()
+        self.batch_size = int(batch_size)
+        self.epoch_row_count = int(epoch_row_count)
+        self.seed = int(seed)
+        self.rank = int(rank)
+        self.world_size = int(world_size)
+        self.epoch = 0
+        # Lightning advances ``batch_sampler.sampler`` at every epoch.
+        self.sampler = self
+        if self.batch_size <= 0 or self.batch_size % 4:
+            raise ValueError("relation batch size must be divisible by four")
+        if self.relations.ndim != 2 or self.relations.size(1) != 2:
+            raise ValueError("COJA relation batches require binary relations")
+        if self.singles.numel() < self.batch_size // 2:
+            raise ValueError("not enough original rows for one relation batch")
+        if self.relations.size(0) < self.batch_size // 4:
+            raise ValueError("not enough complete relations for one batch")
+        if not 0 <= self.rank < self.world_size or self.world_size <= 0:
+            raise ValueError("invalid distributed rank/world size")
+        samples_per_rank = math.ceil(self.epoch_row_count / self.world_size)
+        self._length = samples_per_rank // self.batch_size
+        if self._length <= 0:
+            raise ValueError("relation sampler has no complete batch")
+
+    def __len__(self) -> int:
+        return self._length
+
+    def set_epoch(self, epoch: int) -> None:
+        self.epoch = int(epoch)
+
+    @staticmethod
+    def _cyclic_take(order, start: int, count: int):
+        import torch
+
+        positions = torch.arange(start, start + count) % order.numel()
+        return order[positions]
+
+    def __iter__(self):
+        import torch
+
+        generator = torch.Generator().manual_seed(self.seed + self.epoch)
+        single_order = torch.randperm(
+            self.singles.numel(), generator=generator
+        )
+        relation_order = torch.randperm(
+            self.relations.size(0), generator=generator
+        )
+        singles_per_batch = self.batch_size // 2
+        relations_per_batch = self.batch_size // 4
+        for local_step in range(self._length):
+            global_step = local_step * self.world_size + self.rank
+            single_positions = self._cyclic_take(
+                single_order,
+                global_step * singles_per_batch,
+                singles_per_batch,
+            )
+            relation_positions = self._cyclic_take(
+                relation_order,
+                global_step * relations_per_batch,
+                relations_per_batch,
+            )
+            batch = self.singles[single_positions].tolist()
+            batch.extend(
+                self.relations[relation_positions].reshape(-1).tolist()
+            )
+            yield batch

@@ -15,6 +15,7 @@ defaults:
   history_size: 3
   num_preds: 1
   contextworld_num_workers_per_rank: 2
+  prejepa_action_delay_precision: bf16-mixed
   logger: none
   resume: auto
 
@@ -42,6 +43,38 @@ comparison_recipe:
       original/synthetic mixture, task geometry, training seeds, epoch count,
       batch size and post-training evaluation budget. Family-native backbones,
       objectives and optimizers remain different by design.
+
+methods:
+  native:
+    description: >-
+      The family's own objective, unchanged. No ContextWorld loss term is
+      rendered and the registered joint-scratch mixture is used as-is. This is
+      the default for every family, track and component.
+  coja_v1:
+    description: >-
+      One-step conditional-joint training. A relation-aware batch sampler keeps
+      public Contact pairs together inside the native flat batch while retaining
+      the registered 50/50 original/ContextWorld mixture. It adds no model
+      parameter, encoder, adapter, head or inference change.
+    families: [lewm]
+    training_tracks: [joint_scratch_v1]
+    weight: 0.09
+    keys:
+      enabled: loss.conditional_joint.enabled
+      weight: loss.conditional_joint.weight
+      group_width: loss.conditional_joint.group_width
+    upstream_config_group: conditional_joint
+    note: >-
+      This first unified-entry validation intentionally supports only Contact
+      Friction. Other components fail closed until their own public relation
+      semantics are wired and tested.
+    components:
+      contact_friction:
+        group_width: 2
+        relation: public_pair_identity_v1
+        payload_id: data
+        original_weight: 0.5
+        synthetic_weight: 0.5
 
 families:
   lewm:
@@ -181,6 +214,11 @@ benchmark_components:
       payload_id: full
       original_weight: 0.5
       synthetic_weight: 0.5
+      note: >-
+        PreJEPA defaults to bf16-mixed for this History=7 component. Three
+        independent 16-mixed runs reached a non-finite loss after otherwise
+        finite training, at different epochs and batches. An explicit
+        CW_PRECISION or --precision value still takes precedence.
   portal_exit:
     environment: tworoom
     data_group: tworoom

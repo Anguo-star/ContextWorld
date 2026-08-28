@@ -169,7 +169,7 @@ keys. Equivalent command-line flags are shown by `--help`.
 | `CW_TRAIN_SPLIT`, `CW_FRAMESKIP` | data sampling geometry |
 | `CW_HISTORY_SIZE`, `CW_NUM_PREDS` | context and prediction horizons |
 | `CW_DEVICES`, `CW_ACCELERATOR`, `CW_STRATEGY` | Lightning execution |
-| `CW_PRECISION`, `CW_ACCUMULATE` | numerical precision and gradient accumulation |
+| `CW_PRECISION`, `CW_ACCUMULATE` | numerical precision and gradient accumulation; when `CW_PRECISION` is omitted, PreJEPA Action Delay uses `bf16-mixed` and other runs keep their upstream default |
 | `CW_GRADIENT_CLIP_VAL` | gradient clipping |
 | `CW_LEARNING_RATE`, `CW_WEIGHT_DECAY` | optimizer overrides |
 | `CW_COMPONENT_PAYLOAD` | benchmark payload override; Action Delay supports `coarse` or `full` |
@@ -177,7 +177,7 @@ keys. Equivalent command-line flags are shown by `--help`.
 | `CW_COMPONENT_EPOCH_SIZE` | optional virtual samples per epoch; otherwise derived from balanced full coverage |
 | `CW_FAST_DEV_RUN` | Lightning fast-development run |
 | `CW_LIMIT_TRAIN_BATCHES`, `CW_LIMIT_VAL_BATCHES` | bounded smoke runs |
-| `CW_RESUME` | `auto` (default), `never`, or `required` |
+| `CW_RESUME` | `auto` (default), `never`, `required`, or `reset`; `reset` archives same-named local state and starts again from epoch zero |
 
 LeWM and PLDM additionally expose loader controls through
 `CW_PERSISTENT_WORKERS`, `CW_PREFETCH_FACTOR` and `CW_PIN_MEMORY`. PreJEPA's
@@ -186,6 +186,13 @@ them instead of accepting an option that has no effect.
 All three supported trainers require `CW_NUM_WORKERS` to be positive: their
 active persistent-worker or prefetch settings are incompatible with zero
 workers in PyTorch.
+
+PreJEPA Action Delay is the only History=7 component. Three independent
+`16-mixed` runs made finite progress and then produced a non-finite loss at
+different epochs and batches. The launcher therefore selects `bf16-mixed` for
+that one family/component pair when no precision is supplied. This is a
+numerical-stability safeguard, not a reported benchmark result; a completed
+rerun is still required. Set `CW_PRECISION` explicitly to override it.
 
 The public `ContextWorld-v1` reader opens Lance data lazily inside
 each worker and uses Python's `spawn` start method; Lance handles must not be
@@ -311,6 +318,28 @@ The default is `CW_RESUME=auto`.
   skips directly to post-training evaluation.
 - `required`: require one of those two full-state paths and fail if neither is
   available.
+- `reset`: keep the same run name, move its StableWM checkpoint directory,
+  Hydra output, and marker-bound StablePretraining run directories into a
+  timestamped `.contextworld_reset_archive/`, then start from epoch zero. The
+  move is a same-filesystem rename rather than deletion, and a receipt records
+  every archived path. `CW_PRINT_ONLY=1` only previews this scope.
+
+Changing precision, data, model settings or any other identity-bound option
+creates a new recipe; it must not resume an older run. Use `CW_RESUME=reset`
+to replace a failed attempt under the same run name, or give the retry a new
+`CW_RUN_NAME` and use `CW_RESUME=never`. For example, an Action Delay retry
+that changes from `16-mixed` to `bf16-mixed` can keep its existing run name
+when it uses `CW_RESUME=reset`.
+
+`reset` is a training operation and cannot be combined with
+`CW_EVAL_ONLY=1`. It archives only exact state bound to each requested run
+name; other seeds and runs in the same checkpoint root are left unchanged.
+Submit it as a fresh scheduler job rather than as a same-job requeue, because
+the latter is already owned by StablePretraining's native recovery mechanism.
+Stop the previous training process before submitting a reset; reset is not a
+mechanism for replacing files underneath a still-running trainer.
+If a distinct SwanLab record is also desired, set a new `CW_TRACKER_ID`;
+local reset does not delete or rename a remote tracker run.
 
 `SPT_CACHE_DIR` persists StablePretraining's native recovery state. Automatic
 same-job recovery still uses StablePretraining's SLURM index. For a newly
@@ -374,7 +403,7 @@ and ContextWorld's `contextworld_training_identity_v1.json`. The latter binds
 the complete Hydra override vector, dataset metadata, family profile, and the
 relevant StableWM source/configuration tree to one digest. An exact match is
 required; a same-named checkpoint from another recipe is rejected.
-`CW_RESUME=never` never takes this shortcut. Runs created before this identity
+`CW_RESUME=never` and `reset` never take this shortcut. Runs created before this identity
 record was introduced require the explicit `CW_EVAL_ONLY=1` path after manual
 review. Evaluation evidence is immutable. Repeating the exact request reuses a
 completed manifest only after its request digest and every output size/SHA-256

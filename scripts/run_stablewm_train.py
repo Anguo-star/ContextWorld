@@ -31,6 +31,7 @@ import shlex
 import subprocess
 import sys
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -63,6 +64,8 @@ STABLEWM_BUNDLE_ADAPTER = (
 )
 SPT_RUN_MARKER_FILENAME = "contextworld_run_identity_v1.json"
 SPT_RUN_MARKER_SCHEMA = "contextworld.stablepretraining-run-identity.v1"
+RESET_ARCHIVE_DIRNAME = ".contextworld_reset_archive"
+RESET_RECEIPT_SCHEMA = "contextworld.stablewm-run-reset.v1"
 MINIMUM_STABLE_PRETRAINING_VERSION = (0, 1, 8)
 
 
@@ -135,6 +138,24 @@ class SeedOutcome:
     training_returncode: int | None = None
     evaluation_status: str = "not_requested"
     evaluation_returncode: int | None = None
+
+
+@dataclass(frozen=True)
+class RunResetMove:
+    """One exact same-filesystem directory rename in a reset plan."""
+
+    kind: str
+    source: Path
+    archive_namespace: Path
+    archive_relative: Path
+
+
+@dataclass(frozen=True)
+class RunResetPlan:
+    """All state bound to one public run name."""
+
+    run_name: str
+    moves: tuple[RunResetMove, ...]
 
 
 def _absolute_path(value: str | Path, *, label: str) -> Path:
@@ -487,6 +508,84 @@ def validate_training_dataset_schema(
     )
 
 
+def method_profile(contract: dict[str, Any], method: str) -> dict[str, Any]:
+    """Return one registered training-method contract."""
+
+    methods = contract.get("methods")
+    if not isinstance(methods, dict) or not isinstance(methods.get(method), dict):
+        raise SystemExit(
+            f"Unknown training method in profile contract: {method!r}"
+        )
+    return methods[method]
+
+
+def method_component_recipe(
+    contract: dict[str, Any], method: str, component: str
+) -> dict[str, Any] | None:
+    """Return the method's registered recipe for one benchmark component."""
+
+    if method == "native":
+        return None
+    profile = method_profile(contract, method)
+    unsupported = profile.get("unsupported_components")
+    if isinstance(unsupported, dict) and component in unsupported:
+        raise SystemExit(
+            f"{method} is unavailable for component {component!r}: "
+            f"{unsupported[component]}"
+        )
+    components = profile.get("components")
+    recipe = components.get(component) if isinstance(components, dict) else None
+    if not isinstance(recipe, dict):
+        raise SystemExit(
+            f"Component {component!r} has no registered {method} training "
+            "relation contract."
+        )
+    return recipe
+
+
+def _validate_method(args: argparse.Namespace, contract: dict[str, Any]) -> None:
+    """Keep a non-native method inside its registered support envelope."""
+
+    profile = method_profile(contract, args.method)
+    if args.method == "native":
+        return
+    families = profile.get("families")
+    if not isinstance(families, list) or args.family not in families:
+        raise SystemExit(
+            f"{args.method} is registered only for families "
+            f"{families!r}; requested {args.family!r}."
+        )
+    tracks = profile.get("training_tracks")
+    if not isinstance(tracks, list) or args.training_track not in tracks:
+        raise SystemExit(
+            f"{args.method} is registered only for training tracks "
+            f"{tracks!r}; requested {args.training_track!r}."
+        )
+    if args.original_env or not args.component:
+        raise SystemExit(
+            f"{args.method} conditions on a public benchmark-component "
+            "training relation and is unavailable for original-environment "
+            "training."
+        )
+    method_component_recipe(contract, args.method, args.component)
+    if args.dataset:
+        raise SystemExit(
+            f"{args.method} owns its ContextWorld-v1 training view; "
+            "CW_DATASET/--dataset cannot be supplied."
+        )
+    supplied = {
+        "--component-payload": args.component_payload,
+        "--mix-original-weight": args.mix_original_weight,
+        "--mix-synthetic-weight": args.mix_synthetic_weight,
+    }
+    requested = sorted(name for name, value in supplied.items() if value is not None)
+    if requested:
+        raise SystemExit(
+            f"{args.method} owns its registered payload and mixture; remove "
+            + ", ".join(requested)
+        )
+
+
 def resolve_target(args: argparse.Namespace, contract: dict[str, Any]) -> Target:
     if bool(args.original_env) == bool(args.component):
         raise SystemExit("Select exactly one target: --original-env or --component")
@@ -573,6 +672,12 @@ def resolve_target(args: argparse.Namespace, contract: dict[str, Any]) -> Target
                 f"Benchmark component {args.component!r} has no registered "
                 "joint-scratch runtime training recipe."
             )
+        method = getattr(args, "method", "native")
+        method_recipe = method_component_recipe(contract, method, args.component)
+        if method_recipe is not None:
+            # The method owns the payload and mixture it was registered with;
+            # `_validate_method` has already rejected operator overrides.
+            recipe = {**recipe, **method_recipe}
         root_value = args.benchmark_root
         if not root_value and args.dataset_root:
             root_value = str(
@@ -628,12 +733,33 @@ def resolve_target(args: argparse.Namespace, contract: dict[str, Any]) -> Target
                 original_weight=original_weight,
                 synthetic_weight=synthetic_weight,
                 epoch_size=args.component_epoch_size,
+                conditional_joint_method=(
+                    None if method_recipe is None else method
+                ),
             )
             runtime_identity = describe_contextworld_dataset(dataset)
         except (OSError, ValueError, KeyError, TypeError) as exc:
             raise SystemExit(
                 f"Could not construct ContextWorld-v1 training view: {exc}"
             ) from exc
+        if method_recipe is not None:
+            observed = runtime_identity.get("conditional_joint") or {}
+            expected = int(method_recipe["group_width"])
+            if int(observed.get("group_width", -1)) != expected:
+                raise SystemExit(
+                    f"{method} group_width disagrees with the registered "
+                    f"contract for {args.component!r}: expected={expected}, "
+                    f"observed={observed.get('group_width')}"
+                )
+            if str(observed.get("relation_kind")) != str(
+                method_recipe["relation"]
+            ):
+                raise SystemExit(
+                    f"{method} relation kind disagrees with the registered "
+                    f"contract for {args.component!r}: "
+                    f"expected={method_recipe['relation']!r}, "
+                    f"observed={observed.get('relation_kind')!r}"
+                )
     if runtime_identity is not None:
         required_history = int(runtime_identity["history_length"])
         required_frameskip = int(runtime_identity["frameskip"])
@@ -1026,6 +1152,21 @@ def build_overrides(
             )
         )
 
+    precision = args.precision
+    if (
+        precision is None
+        and family == "prejepa"
+        and target.label == "action_delay"
+    ):
+        # History=7 increases the numerical range seen by PreJEPA's predictor.
+        # All three component runs made finite progress under 16-mixed and then
+        # failed at different epochs with a non-finite loss.  BF16 keeps mixed
+        # precision throughput while avoiding FP16's narrow exponent range.
+        # Operators can still select another mode explicitly with CW_PRECISION.
+        precision = contract["defaults"].get(
+            "prejepa_action_delay_precision", "bf16-mixed"
+        )
+
     for name, value in (
         ("batch_size", args.batch_size),
         ("num_workers", num_workers),
@@ -1045,7 +1186,7 @@ def build_overrides(
         ("devices", args.devices),
         ("accelerator", args.accelerator),
         ("strategy", args.strategy),
-        ("precision", args.precision),
+        ("precision", precision),
         ("accumulate_grad_batches", args.accumulate),
         ("gradient_clip_val", args.gradient_clip_val),
         ("fast_dev_run", args.fast_dev_run),
@@ -1121,6 +1262,15 @@ def build_overrides(
             _add(entries, f"loss.visreg.{key}", value)
 
     entries.extend(
+        _method_overrides(
+            args,
+            contract,
+            target,
+            upstream_config=upstream_config,
+        )
+    )
+
+    entries.extend(
         _logger_overrides(
             args,
             family=family,
@@ -1133,6 +1283,65 @@ def build_overrides(
     return entries
 
 
+def _method_overrides(
+    args: argparse.Namespace,
+    contract: dict[str, Any],
+    target: Target,
+    *,
+    upstream_config: dict[str, Any],
+) -> list[str]:
+    """Render the selected method's registered loss keys, or nothing.
+
+    ContextWorld does not implement the objective. It only enables the
+    checkout's own one-step conditional-joint interface and tells it how wide
+    a relation group is, so a checkout without that interface fails here
+    rather than accepting silently ignored Hydra keys.
+    """
+
+    method = getattr(args, "method", "native")
+    if method == "native":
+        return []
+    profile = method_profile(contract, method)
+    recipe = method_component_recipe(contract, method, target.label)
+    assert recipe is not None
+    if not _is_contextworld_dataset_uri(target.dataset):
+        raise SystemExit(
+            f"{method} requires the registered ContextWorld-v1 training view."
+        )
+    group = profile.get("upstream_config_group")
+    if group and _nested(upstream_config, "loss", str(group)) is None:
+        raise SystemExit(
+            f"This {args.family} checkout does not expose loss.{group}; "
+            f"{method} requires a checkout whose one-step conditional-joint "
+            "interface is present. ContextWorld does not add a loss family."
+        )
+    identity = describe_contextworld_dataset(str(target.dataset))
+    observed = identity.get("conditional_joint") or {}
+    group_width = int(observed.get("group_width", -1))
+    if group_width != int(recipe["group_width"]):
+        raise SystemExit(
+            f"{method} group_width disagrees with the registered contract for "
+            f"{target.label!r}: expected={recipe['group_width']}, "
+            f"observed={observed.get('group_width')}"
+        )
+    keys = profile.get("keys")
+    if not isinstance(keys, dict) or not {
+        "enabled",
+        "weight",
+        "group_width",
+    } <= set(keys):
+        raise SystemExit(
+            f"Training method {method!r} does not register its enabled/weight/"
+            "group_width Hydra keys."
+        )
+    entries: list[str] = []
+    _add(entries, keys["enabled"], True)
+    _add(entries, keys["weight"], float(profile["weight"]))
+    _add(entries, keys["group_width"], group_width)
+    _add(entries, "trainer.use_distributed_sampler", False)
+    return entries
+
+
 def _run_name(args: argparse.Namespace, target: Target, seed: int,
               seeds: tuple[int, ...]) -> str:
     default_base = (
@@ -1140,6 +1349,11 @@ def _run_name(args: argparse.Namespace, target: Target, seed: int,
         if target.original_env
         else f"{target.label}_{args.family}_{args.training_track}"
     )
+    method = getattr(args, "method", "native")
+    if method != "native":
+        # A different objective must not share a run directory (and therefore
+        # an immutable training identity) with its native counterpart.
+        default_base = f"{default_base}_{method}"
     base = args.run_name or default_base
     name = f"{base}_s{seed}" if len(seeds) > 1 or args.run_name is None else base
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,127}", name):
@@ -1320,6 +1534,7 @@ def _training_identity_document(
     identity = {
         "family": args.family,
         "training_track": args.training_track,
+        "method": getattr(args, "method", "native"),
         "run_name": run_name,
         "seed": seed,
         "target": {
@@ -1554,6 +1769,228 @@ def _stablepretraining_run_records(
     return records
 
 
+def _validate_reset_source(path: Path, *, kind: str) -> bool:
+    """Return whether an exact reset target exists, rejecting unsafe shapes."""
+
+    if path.is_symlink():
+        raise SystemExit(f"Refusing to reset symlinked {kind}: {path}")
+    if not path.exists():
+        return False
+    if not path.is_dir():
+        raise SystemExit(f"Reset target is not a directory ({kind}): {path}")
+    return True
+
+
+def _plan_run_reset(
+    checkpoint_root: Path,
+    run_name: str,
+    *,
+    output_root: Path | None,
+) -> RunResetPlan:
+    """Find only state that is explicitly bound to ``run_name``.
+
+    Planning is read-only so ``CW_PRINT_ONLY=1`` can show the exact scope
+    without changing persistent storage. StablePretraining directories are
+    selected by ContextWorld's marker rather than by their date/UUID layout.
+    """
+
+    checkpoint_namespace = (
+        checkpoint_root / RESET_ARCHIVE_DIRNAME / run_name
+    )
+    moves: list[RunResetMove] = []
+    checkpoint_dir = checkpoint_root / "checkpoints" / run_name
+    if _validate_reset_source(checkpoint_dir, kind="StableWM checkpoint directory"):
+        moves.append(
+            RunResetMove(
+                kind="stablewm_checkpoint",
+                source=checkpoint_dir,
+                archive_namespace=checkpoint_namespace,
+                archive_relative=Path("stablewm_checkpoint"),
+            )
+        )
+
+    runs_root = checkpoint_root / "runs"
+    if runs_root.is_symlink():
+        raise SystemExit(
+            f"Refusing to reset through a symlinked StablePretraining root: "
+            f"{runs_root}"
+        )
+    for run_dir, marker in _stablepretraining_run_records(checkpoint_root):
+        if marker.get("run_name") != run_name:
+            continue
+        # _stablepretraining_run_records already rejects symlinked marker
+        # paths and unsafe ancestors below runs_root. Keep a second exact
+        # shape check here so all targets are validated before any rename.
+        if not _validate_reset_source(
+            run_dir,
+            kind="StablePretraining run directory",
+        ):
+            continue
+        moves.append(
+            RunResetMove(
+                kind="stablepretraining_run",
+                source=run_dir,
+                archive_namespace=checkpoint_namespace,
+                archive_relative=(
+                    Path("stablepretraining") / run_dir.relative_to(runs_root)
+                ),
+            )
+        )
+
+    if output_root is not None:
+        hydra_dir = output_root / run_name
+        if _validate_reset_source(hydra_dir, kind="Hydra output directory"):
+            moves.append(
+                RunResetMove(
+                    kind="hydra_output",
+                    source=hydra_dir,
+                    archive_namespace=(
+                        output_root / RESET_ARCHIVE_DIRNAME / run_name
+                    ),
+                    archive_relative=Path("hydra_output"),
+                )
+            )
+
+    # A custom CW_OUTPUT can make two logical targets identical or nested.
+    # Deduplicate an identical directory, but reject nesting because moving an
+    # ancestor would make the remaining plan ambiguous and order-dependent.
+    unique: list[RunResetMove] = []
+    seen_sources: set[Path] = set()
+    for move in moves:
+        normalized = Path(os.path.abspath(move.source))
+        if normalized in seen_sources:
+            continue
+        seen_sources.add(normalized)
+        unique.append(move)
+    for index, left in enumerate(unique):
+        left_path = Path(os.path.abspath(left.source))
+        for right in unique[index + 1:]:
+            right_path = Path(os.path.abspath(right.source))
+            if left_path in right_path.parents or right_path in left_path.parents:
+                raise SystemExit(
+                    "Reset targets overlap; choose a CW_OUTPUT outside the "
+                    "checkpoint/SPT run directories: "
+                    f"{left.source} and {right.source}"
+                )
+
+    return RunResetPlan(run_name=run_name, moves=tuple(unique))
+
+
+def _validate_reset_archive_namespace(namespace: Path) -> None:
+    archive_root = namespace.parent
+    for path in (archive_root, namespace):
+        if path.is_symlink():
+            raise SystemExit(f"Refusing symlinked reset archive path: {path}")
+        if path.exists() and not path.is_dir():
+            raise SystemExit(f"Reset archive path is not a directory: {path}")
+
+
+def _execute_run_reset(
+    plan: RunResetPlan,
+    *,
+    identity_sha256: str,
+) -> tuple[Path, ...]:
+    """Archive a run's old state with recoverable same-filesystem renames."""
+
+    if not plan.moves:
+        print(
+            f"[stablewm-train] reset run={plan.run_name}: "
+            "no existing state; starting fresh"
+        )
+        return ()
+
+    # Validate the complete plan before changing any path.
+    for move in plan.moves:
+        if not _validate_reset_source(move.source, kind=move.kind):
+            raise SystemExit(
+                "Reset state changed after planning; refusing a partial reset: "
+                f"{move.source}"
+            )
+        _validate_reset_archive_namespace(move.archive_namespace)
+
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S.%fZ")
+    base_reset_id = f"{stamp}-p{os.getpid()}"
+    reset_id = base_reset_id
+    namespaces = sorted(
+        {move.archive_namespace for move in plan.moves},
+        key=str,
+    )
+    suffix = 0
+    while any((namespace / reset_id).exists() for namespace in namespaces):
+        suffix += 1
+        reset_id = f"{base_reset_id}-{suffix}"
+
+    bundles = tuple(namespace / reset_id for namespace in namespaces)
+    destinations = tuple(
+        move.archive_namespace / reset_id / move.archive_relative
+        for move in plan.moves
+    )
+    moved: list[tuple[RunResetMove, Path]] = []
+    receipts: list[Path] = []
+    try:
+        for bundle in bundles:
+            bundle.mkdir(parents=True, exist_ok=False)
+        for move, destination in zip(plan.moves, destinations, strict=True):
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            os.replace(move.source, destination)
+            moved.append((move, destination))
+
+        payload = {
+            "schema_version": RESET_RECEIPT_SCHEMA,
+            "reset_id": reset_id,
+            "run_name": plan.run_name,
+            "replacement_training_identity_sha256": identity_sha256,
+            "created_at_utc": datetime.now(timezone.utc).isoformat(),
+            "moves": [
+                {
+                    "kind": move.kind,
+                    "source": str(move.source),
+                    "archive": str(destination),
+                }
+                for move, destination in moved
+            ],
+        }
+        for bundle in bundles:
+            receipt = bundle / "reset_receipt.json"
+            with receipt.open("x", encoding="utf-8") as stream:
+                stream.write(json.dumps(payload, indent=2, sort_keys=True) + "\n")
+                stream.flush()
+                os.fsync(stream.fileno())
+            receipts.append(receipt)
+    except (OSError, ValueError) as exc:
+        cleanup_failures: list[str] = []
+        for receipt in receipts:
+            try:
+                receipt.unlink(missing_ok=True)
+            except OSError as cleanup_exc:
+                cleanup_failures.append(f"{receipt}: {cleanup_exc}")
+        rollback_failures: list[str] = []
+        for move, destination in reversed(moved):
+            try:
+                os.replace(destination, move.source)
+            except OSError as rollback_exc:
+                rollback_failures.append(
+                    f"{destination} -> {move.source}: {rollback_exc}"
+                )
+        details: list[str] = []
+        if rollback_failures:
+            details.append("rollback failed: " + "; ".join(rollback_failures))
+        else:
+            details.append("the already moved directories were restored")
+        if cleanup_failures:
+            details.append(
+                "stale reset receipt cleanup failed: "
+                + "; ".join(cleanup_failures)
+            )
+        raise SystemExit(
+            f"Could not archive reset state: {exc}. {'; '.join(details)}."
+        ) from exc
+
+    for move, destination in moved:
+        print(f"[stablewm-train] reset archived {move.kind}: {destination}")
+    return tuple(receipts)
+
+
 def _preflight_reservation_identity(
     root: Path,
     run_name: str,
@@ -1770,7 +2207,8 @@ def validate_resume(
         if run_nonempty or candidates:
             raise SystemExit(
                 f"Fresh training refuses existing state for run {run_name!r}. "
-                "Choose another run name or set --resume auto/required."
+                "Choose another run name, use --resume reset to archive the "
+                "same-named state, or set --resume auto/required."
             )
         return None
 
@@ -2108,6 +2546,16 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
             "reproduction recipe."
         ),
     )
+    parser.add_argument(
+        "--method",
+        choices=sorted(contract.get("methods") or {"native": {}}),
+        default=_env("CW_METHOD", "native"),
+        help=(
+            "Training method (env: CW_METHOD). 'native' renders the family's "
+            "own objective unchanged. 'coja_v1' adds the checkout's one-step "
+            "conditional-joint term over complete public training relations."
+        ),
+    )
     parser.add_argument("--dataset", default=_env("CW_DATASET"))
     parser.add_argument(
         "--mode",
@@ -2236,8 +2684,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--dataset-item", action="append", default=[])
     parser.add_argument(
         "--resume",
-        choices=("never", "auto", "required"),
+        choices=("never", "auto", "required", "reset"),
         default=_env("CW_RESUME", contract["defaults"]["resume"]),
+        help=(
+            "Recovery policy (env: CW_RESUME). 'reset' keeps the same run "
+            "name, archives its exact local state, and starts from epoch zero."
+        ),
     )
 
     parser.add_argument(
@@ -2368,6 +2820,11 @@ def _validate_training_track(args: argparse.Namespace) -> None:
 
     if args.training_track != "historical_release":
         return
+    if args.resume == "reset":
+        raise SystemExit(
+            "CW_RESUME=reset is available only on current family-profile "
+            "training, not the frozen historical_release launcher."
+        )
     if args.original_env or not args.component:
         raise SystemExit(
             "CW_TRAINING_TRACK=historical_release is valid only for a "
@@ -2475,6 +2932,18 @@ def main(argv: list[str] | None = None) -> int:
     if args.family not in contract["families"]:
         raise SystemExit(f"Unknown family in profile contract: {args.family}")
     _validate_training_track(args)
+    _validate_method(args, contract)
+    if args.resume == "reset" and args.eval_only:
+        raise SystemExit(
+            "CW_RESUME=reset cannot be combined with CW_EVAL_ONLY=1: reset "
+            "archives the checkpoint and starts a new same-named training run."
+        )
+    if args.resume == "reset" and _stablepretraining_native_requeue():
+        raise SystemExit(
+            "CW_RESUME=reset cannot run inside a StablePretraining same-job "
+            "scheduler requeue. Submit a fresh scheduler job so upstream "
+            "native recovery cannot restore the archived state."
+        )
     if _uses_release_recipe(args):
         return _run_release_reproduction(args)
     validate_stablepretraining_version()
@@ -2486,6 +2955,11 @@ def main(argv: list[str] | None = None) -> int:
         stablewm_repo=stablewm_repo,
     )
     checkpoint_root = resolve_checkpoint_root(args)
+    output_root = (
+        _absolute_path(args.output, label="--output")
+        if args.output
+        else None
+    )
     profile = contract["families"][args.family]
     trainer_script = stablewm_repo / profile["entrypoint"]
     seeds = args.seeds
@@ -2550,6 +3024,7 @@ def main(argv: list[str] | None = None) -> int:
             Path | None,
         ]
     ] = []
+    reset_plans: dict[str, RunResetPlan] = {}
     for seed in seeds:
         run_name = _run_name(args, target, seed, seeds)
         overrides = None
@@ -2581,7 +3056,7 @@ def main(argv: list[str] | None = None) -> int:
         auto_eval_recovery = bool(
             args.post_eval
             and not args.eval_only
-            and args.resume != "never"
+            and args.resume in {"auto", "required"}
             and completed_checkpoint is not None
             and completed_checkpoint.is_file()
             and completed_checkpoint.stat().st_size > 0
@@ -2603,13 +3078,20 @@ def main(argv: list[str] | None = None) -> int:
         else:
             assert overrides is not None
             assert training_identity is not None
-            resume_checkpoint = validate_resume(
-                checkpoint_root,
-                run_name,
-                args.resume,
-                family=args.family,
-                identity_sha256=training_identity["identity_sha256"],
-            )
+            if args.resume == "reset":
+                reset_plans[run_name] = _plan_run_reset(
+                    checkpoint_root,
+                    run_name,
+                    output_root=output_root,
+                )
+            else:
+                resume_checkpoint = validate_resume(
+                    checkpoint_root,
+                    run_name,
+                    args.resume,
+                    family=args.family,
+                    identity_sha256=training_identity["identity_sha256"],
+                )
             train_command = [
                 sys.executable,
                 str(trainer_script),
@@ -2659,6 +3141,13 @@ def main(argv: list[str] | None = None) -> int:
             f"synthetic_weight:{runtime['weights']['synthetic']} "
             f"epoch_size:{runtime['epoch_size'] or '<balanced-full-coverage>'}"
         )
+        joint = runtime.get("conditional_joint")
+        if joint:
+            print(
+                "[stablewm-train] conditional-joint="
+                f"method:{joint['method']} relation:{joint['relation_kind']} "
+                f"group_width:{joint['group_width']}"
+            )
     print(f"[stablewm-train] stablewm={stablewm_repo}")
     print(f"[stablewm-train] checkpoint_root={checkpoint_root}")
     print(f"[stablewm-train] spt_cache={environment['SPT_CACHE_DIR']}")
@@ -2667,7 +3156,7 @@ def main(argv: list[str] | None = None) -> int:
     print(f"[stablewm-train] logger={args.logger} resume={args.resume}")
     print(
         f"[stablewm-train] mode={'eval-only' if args.eval_only else 'train'} "
-        f"training_track={args.training_track}"
+        f"training_track={args.training_track} method={args.method}"
     )
     for (
         run_name,
@@ -2681,7 +3170,21 @@ def main(argv: list[str] | None = None) -> int:
         if skip_reason:
             print(f"[stablewm-train] training skipped: {skip_reason}")
         elif train_command:
-            if _stablepretraining_native_requeue():
+            if args.resume == "reset":
+                reset_plan = reset_plans[run_name]
+                reset_count = len(reset_plan.moves)
+                reset_noun = "directory" if reset_count == 1 else "directories"
+                print(
+                    "[stablewm-train] reset planned: "
+                    f"{reset_count} existing state {reset_noun}"
+                )
+                for move in reset_plan.moves:
+                    print(
+                        f"[stablewm-train] reset source {move.kind}: "
+                        f"{move.source}"
+                    )
+                print("[stablewm-train] full_state_resume=fresh-after-reset")
+            elif _stablepretraining_native_requeue():
                 print("[stablewm-train] full_state_resume=native-scheduler-requeue")
             elif resume_checkpoint is not None:
                 print(f"[stablewm-train] full_state_resume={resume_checkpoint}")
@@ -2694,6 +3197,26 @@ def main(argv: list[str] | None = None) -> int:
     if args.print_command:
         return 0
 
+    if args.resume == "reset":
+        identities = {
+            run_name: training_identity
+            for run_name, _, _, _, training_identity, _ in commands
+        }
+        for run_name in reset_plans:
+            training_identity = identities[run_name]
+            assert training_identity is not None
+            # Re-plan immediately before mutation so a path changed after the
+            # read-only command preview cannot be silently omitted.
+            current_plan = _plan_run_reset(
+                checkpoint_root,
+                run_name,
+                output_root=output_root,
+            )
+            _execute_run_reset(
+                current_plan,
+                identity_sha256=training_identity["identity_sha256"],
+            )
+
     if args.eval_only:
         if not checkpoint_root.is_dir():
             raise SystemExit(
@@ -2701,8 +3224,8 @@ def main(argv: list[str] | None = None) -> int:
             )
     else:
         checkpoint_root.mkdir(parents=True, exist_ok=True)
-    if args.output:
-        _absolute_path(args.output, label="--output").mkdir(parents=True, exist_ok=True)
+    if output_root is not None:
+        output_root.mkdir(parents=True, exist_ok=True)
     if args.dataset_cache_root:
         Path(environment["LOCAL_DATASET_DIR"]).mkdir(parents=True, exist_ok=True)
     if (not args.eval_only and args.logger == "swanlab"

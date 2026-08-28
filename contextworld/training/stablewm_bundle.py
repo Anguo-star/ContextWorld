@@ -30,13 +30,22 @@ from typing import Any, Callable, Mapping, Sequence
 
 import numpy as np
 
-from .groups import LogicalGroupDataset, ScenarioBalancedDataset
+from .groups import (
+    LogicalGroupDataset,
+    RelationBatchSampler,
+    ScenarioBalancedDataset,
+)
 
 
 URI_PREFIX = "contextworld://v1/"
 FORMAT_NAME = "contextworld_bundle"
 MODEL_COLUMNS = ("pixels", "action")
 _DELAY_PATTERN = re.compile(r"(?:^|[-_])d(?P<delay>\d+)(?:[-_])")
+CONDITIONAL_JOINT_METHOD = "coja_v1"
+CONDITIONAL_JOINT_COMPONENT = "contact_friction"
+CONDITIONAL_JOINT_GROUP_WIDTH = 2
+CONDITIONAL_JOINT_GROUP_COLUMN = "conditional_joint_group"
+PUBLIC_RELATION_COLUMN = "pair_id"
 DEVELOPMENT_EVALUATION_SCHEMA_VERSION = "contextworld.development_evaluation.v1"
 DEVELOPMENT_EVALUATION_STATUS = "public_development_only"
 TWOROOM_NORMALIZER_PROTOCOL = "tworoom_original_train_s3072_unbiased_zscore_v1"
@@ -137,6 +146,34 @@ def _decode_urlsafe_json(value: str) -> dict[str, Any]:
     return payload
 
 
+def _conditional_joint_contract(
+    component_id: str, *, payload_id: str | None, method: str | None
+) -> dict[str, Any] | None:
+    if method is None:
+        return None
+    if method != CONDITIONAL_JOINT_METHOD:
+        raise ValueError(
+            f"Unsupported ContextWorld training method: {method!r}; "
+            f"expected {CONDITIONAL_JOINT_METHOD!r}"
+        )
+    if component_id != CONDITIONAL_JOINT_COMPONENT:
+        raise ValueError(
+            f"{CONDITIONAL_JOINT_METHOD} first-stage integration is "
+            f"registered only for {CONDITIONAL_JOINT_COMPONENT!r}, not "
+            f"{component_id!r}"
+        )
+    if payload_id != "data":
+        raise ValueError(
+            "Contact Friction conditional-joint training requires the "
+            f"registered data payload, observed={payload_id!r}"
+        )
+    return {
+        "method": method,
+        "group_width": CONDITIONAL_JOINT_GROUP_WIDTH,
+        "relation_kind": "public_pair_identity_v1",
+    }
+
+
 def build_contextworld_dataset_uri(
     bundle_root: str | Path,
     *,
@@ -147,6 +184,7 @@ def build_contextworld_dataset_uri(
     original_weight: float = 0.0,
     synthetic_weight: float = 1.0,
     epoch_size: int | None = None,
+    conditional_joint_method: str | None = None,
 ) -> str:
     """Return a Hydra-safe, immutable runtime dataset identifier."""
 
@@ -182,6 +220,7 @@ def build_contextworld_dataset_uri(
             "synthetic": float(synthetic_weight),
         },
         "epoch_size": epoch_size,
+        "conditional_joint_method": conditional_joint_method,
     }
     # Validate before a GPU job is rendered.  The URI contains no query
     # ``=`` characters, which keeps it safe as a Hydra override value.
@@ -591,6 +630,15 @@ def _describe_spec(spec: Mapping[str, Any]) -> dict[str, Any]:
     member_list_sha256 = hashlib.sha256(
         ("\n".join(relative_members) + "\n").encode("utf-8")
     ).hexdigest()
+    conditional_joint = _conditional_joint_contract(
+        str(component["component_id"]),
+        payload_id=payload.get("payload_id"),
+        method=(
+            str(spec["conditional_joint_method"])
+            if spec.get("conditional_joint_method") is not None
+            else None
+        ),
+    )
     return {
         "schema_version": "contextworld.stablewm-runtime-dataset.v1",
         "root": str(root),
@@ -619,6 +667,7 @@ def _describe_spec(spec: Mapping[str, Any]) -> dict[str, Any]:
             "synthetic": synthetic_weight,
         },
         "epoch_size": spec.get("epoch_size"),
+        "conditional_joint": conditional_joint,
     }
 
 
@@ -689,6 +738,21 @@ class _ProjectedLanceSequence:
     @property
     def column_names(self) -> list[str]:
         return list(self._keys)
+
+    @property
+    def episode_count(self) -> int:
+        return len(self._offsets)
+
+    def episode_clip_range(self, episode: int) -> tuple[int, int]:
+        """Return ``(first_clip_index, clip_count)`` for one raw episode."""
+
+        previous = 0 if episode == 0 else int(self._clip_cumulative[episode - 1])
+        return previous, int(self._clip_counts[episode])
+
+    def episode_relation_keys(self, column: str) -> list[str]:
+        return _episode_relation_keys(
+            self.path, self._offsets, self._lengths, column
+        )
 
     @property
     def transform(self):
@@ -929,6 +993,71 @@ def _episode_structure(dataset, *, step_column: str) -> tuple[np.ndarray, np.nda
     return starts.astype(np.int64), (ends - starts).astype(np.int64)
 
 
+def _episode_relation_keys(
+    path: Path,
+    offsets: np.ndarray,
+    lengths: np.ndarray,
+    column: str,
+) -> list[str]:
+    """Read one public, constant-per-episode relation column.
+
+    This runs while the lightweight Python index is built, never inside the
+    model input path.  The value is used only to decide which episodes form a
+    relation; it is not added to the sample and cannot reach the model.
+    """
+
+    import lance
+
+    dataset = lance.dataset(str(path))
+    if column not in set(dataset.schema.names):
+        raise ValueError(
+            f"Conditional-joint training needs the public {column!r} relation "
+            f"column, which {path} does not publish"
+        )
+    values = dataset.to_table(columns=[column]).column(column).to_pylist()
+    keys: list[str] = []
+    for start, length in zip(offsets, lengths):
+        window = {
+            str(value) for value in values[int(start) : int(start) + int(length)]
+        }
+        if len(window) != 1:
+            raise ValueError(
+                f"Public relation column {column!r} is not constant within an "
+                f"episode of {path}; the relation identity is ambiguous"
+            )
+        keys.append(window.pop())
+    return keys
+
+
+def _contact_pair_relations(leaf: Any) -> list[tuple[int, int]]:
+    """Return aligned clip indices for every public Contact pair."""
+
+    episodes: dict[str, list[int]] = {}
+    for episode, key in enumerate(
+        leaf.episode_relation_keys(PUBLIC_RELATION_COLUMN)
+    ):
+        episodes.setdefault(key, []).append(episode)
+    relations: list[tuple[int, int]] = []
+    for key in sorted(episodes):
+        arms = episodes[key]
+        if len(arms) != CONDITIONAL_JOINT_GROUP_WIDTH:
+            raise ValueError(
+                f"Public relation {key!r} has {len(arms)} episodes; expected 2"
+            )
+        ranges = [leaf.episode_clip_range(episode) for episode in arms]
+        counts = {count for _, count in ranges}
+        if len(counts) != 1:
+            raise ValueError(
+                f"Public relation {key!r} has unequal arm clip counts"
+            )
+        for offset in range(counts.pop()):
+            relations.append(
+                tuple(start + offset for start, _ in ranges)
+            )
+    if not relations:
+        raise ValueError("Contact Friction training publishes no pair relations")
+    return relations
+
 def _integer_weight_counts(weights: Sequence[float]) -> list[int]:
     values = [Fraction(str(float(weight))).limit_denominator(10_000) for weight in weights]
     total = sum(values, start=Fraction(0, 1))
@@ -1067,13 +1196,130 @@ def _registered_action_normalizer_source(
     return _RegisteredActionNormalizerSource(action=samples)
 
 
+class _ConditionalJointSubset:
+    """Flat rows whose synthetic half is partitioned into complete pairs."""
+
+    def __init__(self, runtime: "_RuntimeDataset", singles: Any, relations: Any):
+        import torch
+
+        self.runtime = runtime
+        self.singles = torch.as_tensor(singles, dtype=torch.long).clone()
+        self.relations = torch.as_tensor(relations, dtype=torch.long).clone()
+        if self.singles.ndim != 1:
+            raise ValueError("Conditional-joint singles must be one-dimensional")
+        if self.relations.ndim != 2 or self.relations.size(1) != 2:
+            raise ValueError("Conditional-joint relations must have shape (P,2)")
+        self._global_indices = torch.cat(
+            (self.singles, self.relations.reshape(-1)), dim=0
+        )
+
+    @property
+    def column_names(self) -> list[str]:
+        return [*self.runtime.column_names, CONDITIONAL_JOINT_GROUP_COLUMN]
+
+    def __len__(self) -> int:
+        return int(self._global_indices.numel())
+
+    def _group_id(self, index: int) -> int:
+        if index < self.singles.numel():
+            return -1
+        return (index - int(self.singles.numel())) // 2
+
+    def __getitem__(self, index: int) -> dict[str, Any]:
+        if index < 0:
+            index += len(self)
+        if not 0 <= index < len(self):
+            raise IndexError(index)
+        sample = dict(self.runtime[int(self._global_indices[index])])
+        sample[CONDITIONAL_JOINT_GROUP_COLUMN] = self._group_id(index)
+        return sample
+
+    def __getitems__(self, indices: list[int]) -> list[dict[str, Any]]:
+        normalized = []
+        for value in indices:
+            index = int(value)
+            if index < 0:
+                index += len(self)
+            if not 0 <= index < len(self):
+                raise IndexError(value)
+            normalized.append(index)
+        global_indices = [int(self._global_indices[index]) for index in normalized]
+        samples = self.runtime.__getitems__(global_indices)
+        output = []
+        for index, sample in zip(normalized, samples):
+            value = dict(sample)
+            value[CONDITIONAL_JOINT_GROUP_COLUMN] = self._group_id(index)
+            output.append(value)
+        return output
+
+    def configure_train_loader(
+        self, train_cfg: Mapping[str, Any], *, seed: int
+    ) -> dict[str, Any]:
+        import torch
+
+        config = dict(train_cfg)
+        batch_size = int(config.pop("batch_size"))
+        config.pop("shuffle", None)
+        config.pop("drop_last", None)
+        config.pop("sampler", None)
+        config.pop("batch_sampler", None)
+        if torch.distributed.is_available() and torch.distributed.is_initialized():
+            rank = torch.distributed.get_rank()
+            world_size = torch.distributed.get_world_size()
+        else:
+            rank = int(
+                os.environ.get("RANK", os.environ.get("LOCAL_RANK", "0"))
+            )
+            # Lightning constructs rank zero's loader before it exports
+            # WORLD_SIZE, then re-executes the child ranks.  CUDA visibility
+            # is already final at that point, so it is the correct fallback
+            # for the unified ``devices=auto`` single-node contract.
+            world_size = int(
+                os.environ.get(
+                    "WORLD_SIZE", str(max(1, torch.cuda.device_count()))
+                )
+            )
+        relation_start = int(self.singles.numel())
+        relation_ids = torch.arange(self.relations.size(0), dtype=torch.long)
+        local_relations = torch.stack(
+            (
+                relation_start + 2 * relation_ids,
+                relation_start + 2 * relation_ids + 1,
+            ),
+            dim=1,
+        )
+        config["batch_sampler"] = RelationBatchSampler(
+            torch.arange(self.singles.numel(), dtype=torch.long),
+            local_relations,
+            batch_size=batch_size,
+            epoch_row_count=len(self),
+            seed=int(seed),
+            rank=rank,
+            world_size=world_size,
+        )
+        return config
+
+    def __getstate__(self) -> dict[str, Any]:
+        state = dict(self.__dict__)
+        state.pop("_trainer", None)
+        return state
+
+
 class _RuntimeDataset:
     """Protocol-complete facade over the virtual group schedule."""
 
-    def __init__(self, dataset: Any, leaves: Sequence[Any], *, normalizer_source=None):
+    def __init__(
+        self,
+        dataset: Any,
+        leaves: Sequence[Any],
+        *,
+        normalizer_source=None,
+        conditional_relations: Sequence[Sequence[int]] | None = None,
+    ):
         self.dataset = dataset
         self.leaves = list(leaves)
         self.normalizer_source = normalizer_source
+        self.conditional_relations = conditional_relations
         self._transform = None
 
     @property
@@ -1113,6 +1359,74 @@ class _RuntimeDataset:
         return np.concatenate(
             [np.asarray(leaf.get_col_data(column)) for leaf in self.leaves], axis=0
         )
+
+    def split_for_training(
+        self, *, train_fraction: float, generator: Any
+    ) -> tuple[Any, Any]:
+        """Split complete Contact relations and retain flat model inputs."""
+
+        import torch
+
+        if self.conditional_relations is None:
+            return torch.utils.data.random_split(
+                self,
+                lengths=[train_fraction, 1.0 - train_fraction],
+                generator=generator,
+            )
+        if not 0.0 < float(train_fraction) < 1.0:
+            raise ValueError("train_fraction must be strictly between zero and one")
+        if not isinstance(self.dataset, LogicalGroupDataset):
+            raise ValueError("Conditional-joint training requires the registered mixture")
+        if self.dataset.names != ["original", "synthetic"]:
+            raise ValueError("Conditional-joint mixture must be original then synthetic")
+        if self.dataset.counts != [1, 1] or len(self.dataset.schedule) != 2:
+            raise ValueError("Conditional-joint training requires an exact 50/50 mixture")
+
+        original_position = self.dataset.schedule.index(0)
+        synthetic_position = self.dataset.schedule.index(1)
+        draws = self.dataset.epoch_group_counts()
+        if draws["original"] != draws["synthetic"]:
+            raise ValueError("Conditional-joint epoch must expose equal mixture counts")
+        synthetic_length = len(self.dataset.groups[1])
+        local_relations = torch.as_tensor(
+            self.conditional_relations, dtype=torch.long
+        )
+        relation_occurrences = []
+        for offset in range(0, draws["synthetic"], synthetic_length):
+            shifted = local_relations + offset
+            active = shifted.max(dim=1).values < draws["synthetic"]
+            relation_occurrences.append(
+                shifted[active] * self.dataset.cycle_size + synthetic_position
+            )
+        relations = torch.cat(relation_occurrences, dim=0)
+        if relations.numel() == 0:
+            raise ValueError("Conditional-joint mixture exposes no complete relation")
+        relation_order = torch.randperm(relations.size(0), generator=generator)
+        train_relation_count = int(relations.size(0) * float(train_fraction))
+        if train_relation_count <= 0 or train_relation_count >= relations.size(0):
+            raise ValueError("Conditional-joint split leaves an empty partition")
+
+        usable_originals = 2 * relations.size(0)
+        if usable_originals > draws["original"]:
+            raise ValueError("Conditional-joint relations exceed original mixture rows")
+        original_occurrences = torch.randperm(
+            draws["original"], generator=generator
+        )[:usable_originals]
+        original_indices = (
+            original_occurrences * self.dataset.cycle_size + original_position
+        )
+        train_original_count = 2 * train_relation_count
+        train = _ConditionalJointSubset(
+            self,
+            original_indices[:train_original_count],
+            relations[relation_order[:train_relation_count]],
+        )
+        validation = _ConditionalJointSubset(
+            self,
+            original_indices[train_original_count:],
+            relations[relation_order[train_relation_count:]],
+        )
+        return train, validation
 
     def __getstate__(self) -> dict[str, Any]:
         state = dict(self.__dict__)
@@ -1193,7 +1507,16 @@ def _open_runtime_dataset(uri: str, **kwargs: Any):
             )
         leaves.append(leaf)
 
-    if identity["component"] == "action_delay" and identity["payload_id"] == "full":
+    conditional_joint = identity.get("conditional_joint")
+    if conditional_joint is not None:
+        if len(leaves) != 1:
+            raise ValueError(
+                "Contact Friction conditional-joint training expects its "
+                "single registered public Lance table"
+            )
+        synthetic = leaves[0]
+        conditional_relations = _contact_pair_relations(synthetic)
+    elif identity["component"] == "action_delay" and identity["payload_id"] == "full":
         delay_groups: dict[str, list[Any]] = {str(i): [] for i in range(5)}
         delay_groups["5_to_10"] = []
         for member, leaf in zip(members, leaves):
@@ -1219,6 +1542,8 @@ def _open_runtime_dataset(uri: str, **kwargs: Any):
         )
     else:
         synthetic = leaves[0] if len(leaves) == 1 else ScenarioBalancedDataset(leaves)
+    if conditional_joint is None:
+        conditional_relations = None
 
     weights = identity["weights"]
     original = None
@@ -1271,6 +1596,7 @@ def _open_runtime_dataset(uri: str, **kwargs: Any):
         # original-data statistics above; it never needs the original H5 file
         # merely to scale its actions.
         normalizer_source=normalizer_source,
+        conditional_relations=conditional_relations,
     )
     if kwargs.get("transform") is not None:
         runtime.transform = kwargs["transform"]
@@ -1300,6 +1626,7 @@ def register_stablewm_bundle_format() -> None:
 
 
 __all__ = [
+    "CONDITIONAL_JOINT_METHOD",
     "FORMAT_NAME",
     "URI_PREFIX",
     "build_contextworld_dataset_uri",

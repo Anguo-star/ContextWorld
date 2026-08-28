@@ -308,6 +308,52 @@ class TestFamilyDialects:
 
         assert pairs["++wandb.enabled"] == "false"
 
+    def test_prejepa_action_delay_defaults_to_bf16_mixed(
+        self, stablewm_repo: Path, dataset: Path
+    ) -> None:
+        args = launcher.parse_args(
+            [
+                "--component",
+                "action_delay",
+                "--dataset",
+                str(dataset),
+                "--family",
+                "prejepa",
+                "--stablewm-repo",
+                str(stablewm_repo),
+                "--checkpoint-root",
+                str(dataset.parent / "checkpoints-root"),
+            ]
+        )
+
+        _, pairs, _ = _build(args, stablewm_repo)
+
+        assert pairs["trainer.precision"] == "bf16-mixed"
+
+    def test_explicit_precision_overrides_action_delay_safety_default(
+        self, stablewm_repo: Path, dataset: Path
+    ) -> None:
+        args = launcher.parse_args(
+            [
+                "--component",
+                "action_delay",
+                "--dataset",
+                str(dataset),
+                "--family",
+                "prejepa",
+                "--precision",
+                "32-true",
+                "--stablewm-repo",
+                str(stablewm_repo),
+                "--checkpoint-root",
+                str(dataset.parent / "checkpoints-root"),
+            ]
+        )
+
+        _, pairs, _ = _build(args, stablewm_repo)
+
+        assert pairs["trainer.precision"] == "32-true"
+
     def test_prejepa_rejects_loader_knobs_it_does_not_read(self, stablewm_repo: Path,
                                                            dataset: Path) -> None:
         args = _args(
@@ -373,6 +419,16 @@ class TestTargetAndStorageSafety:
         monkeypatch.delenv("CW_RESUME", raising=False)
 
         assert _args(stablewm_repo, dataset).resume == "auto"
+
+    def test_resume_reset_is_available_from_the_environment(
+        self,
+        stablewm_repo: Path,
+        dataset: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.setenv("CW_RESUME", "reset")
+
+        assert _args(stablewm_repo, dataset).resume == "reset"
 
     def test_component_training_defaults_to_joint_scratch_not_historical(
         self,
@@ -840,6 +896,109 @@ class TestTargetAndStorageSafety:
                 identity_sha256="recipe",
             )
 
+    def test_resume_reset_archives_exact_run_state_and_starts_fresh(
+        self,
+        tmp_path: Path,
+    ) -> None:
+        checkpoint_root = tmp_path / "checkpoint-root"
+        output_root = tmp_path / "output-root"
+        run_name = "speed_prejepa_joint_scratch_v1_s3072"
+        checkpoint_dir = checkpoint_root / "checkpoints" / run_name
+        checkpoint_dir.mkdir(parents=True)
+        (checkpoint_dir / "weights_epoch_4.pt").write_bytes(b"old weights")
+        (checkpoint_dir / "eval_results").mkdir()
+        hydra_dir = output_root / run_name
+        hydra_dir.mkdir(parents=True)
+        (hydra_dir / "train.log").write_text("old log", encoding="utf-8")
+
+        matching_spt = []
+        for suffix in ("uuid-rank-zero", "uuid-worker"):
+            spt_run = checkpoint_root / "runs/20260828/120000" / suffix
+            spt_run.mkdir(parents=True)
+            (spt_run / launcher.SPT_RUN_MARKER_FILENAME).write_text(
+                json.dumps({
+                    "schema_version": launcher.SPT_RUN_MARKER_SCHEMA,
+                    "run_name": run_name,
+                    "training_identity_sha256": "old-recipe",
+                }),
+                encoding="utf-8",
+            )
+            matching_spt.append(spt_run)
+        (matching_spt[0] / "checkpoints").mkdir()
+        (matching_spt[0] / "checkpoints/last.ckpt").write_bytes(b"full state")
+
+        other_spt = checkpoint_root / "runs/20260828/130000/other-uuid"
+        other_spt.mkdir(parents=True)
+        (other_spt / launcher.SPT_RUN_MARKER_FILENAME).write_text(
+            json.dumps({
+                "schema_version": launcher.SPT_RUN_MARKER_SCHEMA,
+                "run_name": "another-run",
+                "training_identity_sha256": "other-recipe",
+            }),
+            encoding="utf-8",
+        )
+
+        plan = launcher._plan_run_reset(
+            checkpoint_root,
+            run_name,
+            output_root=output_root,
+        )
+        receipts = launcher._execute_run_reset(
+            plan,
+            identity_sha256="new-recipe",
+        )
+
+        assert len(plan.moves) == 4
+        assert not checkpoint_dir.exists()
+        assert not hydra_dir.exists()
+        assert all(not path.exists() for path in matching_spt)
+        assert other_spt.is_dir()
+        assert len(receipts) == 2
+        assert all(path.is_file() for path in receipts)
+        receipt = json.loads(receipts[0].read_text(encoding="utf-8"))
+        assert receipt["schema_version"] == launcher.RESET_RECEIPT_SCHEMA
+        assert receipt["run_name"] == run_name
+        assert receipt["replacement_training_identity_sha256"] == "new-recipe"
+        assert {entry["kind"] for entry in receipt["moves"]} == {
+            "stablewm_checkpoint",
+            "stablepretraining_run",
+            "hydra_output",
+        }
+        archived = [Path(entry["archive"]) for entry in receipt["moves"]]
+        assert all(path.exists() for path in archived)
+        assert launcher.validate_resume(
+            checkpoint_root,
+            run_name,
+            "never",
+            family="prejepa",
+            identity_sha256="new-recipe",
+        ) is None
+
+    def test_resume_reset_rejects_a_symlink_before_moving_other_state(
+        self,
+        tmp_path: Path,
+    ) -> None:
+        checkpoint_root = tmp_path / "checkpoint-root"
+        run_name = "run"
+        real = tmp_path / "real-checkpoint"
+        real.mkdir()
+        checkpoint_dir = checkpoint_root / "checkpoints" / run_name
+        checkpoint_dir.parent.mkdir(parents=True)
+        checkpoint_dir.symlink_to(real, target_is_directory=True)
+        hydra_dir = tmp_path / "output" / run_name
+        hydra_dir.mkdir(parents=True)
+        (hydra_dir / "keep.txt").write_text("keep", encoding="utf-8")
+
+        with pytest.raises(SystemExit, match="symlinked StableWM checkpoint"):
+            launcher._plan_run_reset(
+                checkpoint_root,
+                run_name,
+                output_root=hydra_dir.parent,
+            )
+
+        assert checkpoint_dir.is_symlink()
+        assert (hydra_dir / "keep.txt").is_file()
+
     @pytest.mark.parametrize("family", ["lewm", "pldm", "prejepa"])
     def test_new_job_required_resume_needs_a_matching_full_state_checkpoint(
         self,
@@ -1123,6 +1282,167 @@ class TestTargetAndStorageSafety:
 
 
 class TestRecoveryPaths:
+
+    def test_resume_reset_print_only_does_not_move_state(
+        self,
+        stablewm_repo: Path,
+        dataset: Path,
+        tmp_path: Path,
+        capsys: pytest.CaptureFixture[str],
+    ) -> None:
+        checkpoint_root = tmp_path / "persistent-checkpoints"
+        run_name = "tworoom_prejepa_original_s3072"
+        checkpoint_dir = checkpoint_root / "checkpoints" / run_name
+        checkpoint_dir.mkdir(parents=True)
+        (checkpoint_dir / "weights_epoch_10.pt").write_bytes(b"old")
+        spt_run = checkpoint_root / "runs/20260828/120000/uuid-old"
+        spt_run.mkdir(parents=True)
+        (spt_run / launcher.SPT_RUN_MARKER_FILENAME).write_text(
+            json.dumps({
+                "schema_version": launcher.SPT_RUN_MARKER_SCHEMA,
+                "run_name": run_name,
+                "training_identity_sha256": "old-recipe",
+            }),
+            encoding="utf-8",
+        )
+
+        status = launcher.main([
+            "--family",
+            "prejepa",
+            "--original-env",
+            "tworoom",
+            "--dataset",
+            str(dataset),
+            "--stablewm-repo",
+            str(stablewm_repo),
+            "--checkpoint-root",
+            str(checkpoint_root),
+            "--output",
+            str(checkpoint_root),
+            "--seeds",
+            "3072",
+            "--resume",
+            "reset",
+            "--print-command",
+        ])
+
+        assert status == 0
+        assert checkpoint_dir.is_dir()
+        assert spt_run.is_dir()
+        assert not (checkpoint_root / launcher.RESET_ARCHIVE_DIRNAME).exists()
+        output = capsys.readouterr().out
+        assert "reset planned: 2 existing state directories" in output
+        assert "full_state_resume=fresh-after-reset" in output
+
+    def test_resume_reset_archives_completed_epoch_and_runs_training(
+        self,
+        stablewm_repo: Path,
+        dataset: Path,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.delenv("SPT_CACHE_DIR", raising=False)
+        monkeypatch.delenv("SLURM_JOB_ID", raising=False)
+        checkpoint_root = tmp_path / "persistent-checkpoints"
+        run_name = "tworoom_prejepa_original_s3072"
+        checkpoint_dir = checkpoint_root / "checkpoints" / run_name
+        checkpoint_dir.mkdir(parents=True)
+        (checkpoint_dir / "weights_epoch_10.pt").write_bytes(b"completed old run")
+        hydra_dir = checkpoint_root / run_name
+        hydra_dir.mkdir(parents=True)
+        (hydra_dir / "old.log").write_text("old", encoding="utf-8")
+        calls: list[list[str]] = []
+
+        class Completed:
+            returncode = 0
+
+        def run(command: list[str], **_: object) -> Completed:
+            calls.append(command)
+            return Completed()
+
+        monkeypatch.setattr(launcher.subprocess, "run", run)
+
+        status = launcher.main([
+            "--family",
+            "prejepa",
+            "--original-env",
+            "tworoom",
+            "--dataset",
+            str(dataset),
+            "--stablewm-repo",
+            str(stablewm_repo),
+            "--checkpoint-root",
+            str(checkpoint_root),
+            "--output",
+            str(checkpoint_root),
+            "--benchmark-root",
+            str(tmp_path / "ContextWorld-v1"),
+            "--seeds",
+            "3072",
+            "--resume",
+            "reset",
+            "--post-eval",
+            "--eval-epoch",
+            "10",
+        ])
+
+        assert status == 0
+        assert len(calls) == 2
+        assert calls[0][1].endswith("scripts/train/prejepa.py")
+        assert calls[1][1].endswith("scripts/run_stablewm_eval.py")
+        assert (checkpoint_dir / launcher.TRAINING_IDENTITY_FILENAME).is_file()
+        archived_weights = list(
+            checkpoint_root.glob(
+                f"{launcher.RESET_ARCHIVE_DIRNAME}/{run_name}/*/"
+                "stablewm_checkpoint/weights_epoch_10.pt"
+            )
+        )
+        archived_hydra = list(
+            checkpoint_root.glob(
+                f"{launcher.RESET_ARCHIVE_DIRNAME}/{run_name}/*/"
+                "hydra_output/old.log"
+            )
+        )
+        assert len(archived_weights) == 1
+        assert len(archived_hydra) == 1
+
+    def test_resume_reset_is_incompatible_with_eval_only(
+        self,
+        stablewm_repo: Path,
+        dataset: Path,
+        tmp_path: Path,
+    ) -> None:
+        checkpoint_root = tmp_path / "persistent-checkpoints"
+        checkpoint = (
+            checkpoint_root
+            / "checkpoints/tworoom_prejepa_original_s3072/weights_epoch_10.pt"
+        )
+        checkpoint.parent.mkdir(parents=True)
+        checkpoint.write_bytes(b"keep")
+
+        with pytest.raises(SystemExit, match="cannot be combined with CW_EVAL_ONLY"):
+            launcher.main([
+                "--family",
+                "prejepa",
+                "--original-env",
+                "tworoom",
+                "--dataset",
+                str(dataset),
+                "--stablewm-repo",
+                str(stablewm_repo),
+                "--checkpoint-root",
+                str(checkpoint_root),
+                "--seeds",
+                "3072",
+                "--resume",
+                "reset",
+                "--eval-only",
+                "--eval-epoch",
+                "10",
+            ])
+
+        assert checkpoint.is_file()
+        assert not (checkpoint_root / launcher.RESET_ARCHIVE_DIRNAME).exists()
 
     def test_slurm_requeue_index_cannot_span_multiple_training_seeds(
         self,

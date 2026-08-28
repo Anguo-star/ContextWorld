@@ -240,6 +240,8 @@ Cube PLDM 在 v4r1 Development 上三个检查点为 50.20%、50.20% 和 50.00%�
 
 ## 6. DINO-WM / PreJEPA 非冻结补充证据
 
+### 6.1 仅用原环境数据训练的检查点
+
 四个原环境各训练三枚 DINO-WM / PreJEPA 检查点，训练种子 3072、3073、3074，只使用原
 环境数据，训练 10 epochs，History=3。汇总工件的状态为
 `completed_non_frozen_v1_supplementary_evidence`。
@@ -261,6 +263,34 @@ Cube 219/217/224，逐评测种子成功数同样保存在工件中。评测种�
 机器可读来源：
 
 - `artifacts/evaluation/dinowm_original_diagnostic_v1/summary.json`
+
+### 6.2 使用 ContextWorld-v1 组件数据训练的检查点
+
+当前有六个组件完成三训练种子的 10-epoch 从头训练、公开 Development ICL，以及每枚
+检查点 42–47 六个评测种子 × 50 次的原任务 CEM。18 份完成 manifest 均为 `completed`；
+每份包含一个 Development ICL 结果和六个 CEM 单元，记录的 19 个输出文件均通过大小与
+SHA-256 复核。
+
+| 组件 | Development 主指标（三个训练种子） | CEM 成功数（各 300 次） |
+|---|---|---|
+| 速度 | 41.67%、37.50%、32.99%（history utility） | 300、299、300 |
+| 门通行规则 | 100.00%、100.00%、100.00% | 293、293、292 |
+| 传送门出口位置 | 99.22%、99.41%、99.61% | 298、296、293 |
+| 接触摩擦 | 49.61%、49.41%、49.80% | 74、82、91 |
+| 运动阻尼 | 50.00%、50.20%、50.20% | 75、66、89 |
+| 机械臂质量 | 50.59%、51.76%、51.76% | 163、155、154 |
+
+动作延迟的三个 `16-mixed` History=7 训练分别在 epoch 2、2、4 出现 NaN 损失，均未
+生成可评分的 epoch-10 检查点。失败发生在不同批次，且失败前损失有限；合成数据中的动作
+字段经全量扫描也没有非有限值。因此当前证据支持“混合精度数值不稳定”而不是“固定坏样本”，
+但只有完成 `bf16-mixed` 重跑后才能确认修复。推手移动幅度尚未运行。Cube 的三个
+epoch-10 检查点已经生成，但只有种子 3072 完成 Development ICL 和全部六个 CEM 单元，
+所以未计算三种子汇总。
+
+这些结果只使用公开 Development，`public_test_accessed=false`、
+`formal_pass_available=false`、`official_scoreboard_row=false`。机器可读来源：
+
+- `configs/benchmark/contextworld_dinowm_component_development_results_v1.json`
 
 ## 7. 完整对照记录（非 scoreboard）
 
@@ -309,7 +339,8 @@ CEM 结论。
 - 速度 PLDM 的同训练种子单速度对照：未预注册、未运行，因此不能做训练归因；
 - 除速度已有的预设范围外诊断外，其余连续参数任务的范围外外推，以及九项任务的通用
   多步闭环适应：不在现有冻结结论内；
-- DINO-WM / PreJEPA 在正式 ICL 接口下的分数：原始检查点不满足输入合同，只有诊断值；
+- 仅用原环境数据训练的 DINO-WM / PreJEPA 在正式 ICL 接口下的分数：这些原始检查点不
+  满足输入合同，只有诊断值；组件数据训练后的公开 Development 结果见第 6.2 节；
 - 由独立实现、独立训练代码产生的第三方模型结果：仅 Cube 有试点，其余组件尚无。
 
 ## 9. 版本与完整性
