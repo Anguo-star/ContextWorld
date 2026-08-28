@@ -3528,6 +3528,7 @@ class TestTrainingMethodOverlay:
         assert set(profile["families"]) <= set(contract["families"])
         assert sorted(profile["components"]) == [
             "contact_friction",
+            "portal_exit",
             "robot_arm_mass",
         ]
 
@@ -3537,6 +3538,22 @@ class TestTrainingMethodOverlay:
             contract,
             "coja_v1",
             "robot_arm_mass",
+        )
+
+        assert recipe == {
+            "group_width": 2,
+            "relation": "public_pair_identity_v1",
+            "payload_id": "data",
+            "original_weight": 0.5,
+            "synthetic_weight": 0.5,
+        }
+
+    def test_portal_exit_uses_the_same_public_pair_contract(self) -> None:
+        contract = launcher.load_profile_contract()
+        recipe = launcher.method_component_recipe(
+            contract,
+            "coja_v1",
+            "portal_exit",
         )
 
         assert recipe == {

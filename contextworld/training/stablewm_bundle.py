@@ -43,7 +43,7 @@ MODEL_COLUMNS = ("pixels", "action")
 _DELAY_PATTERN = re.compile(r"(?:^|[-_])d(?P<delay>\d+)(?:[-_])")
 CONDITIONAL_JOINT_METHOD = "coja_v1"
 CONDITIONAL_JOINT_COMPONENTS = frozenset(
-    {"contact_friction", "robot_arm_mass"}
+    {"contact_friction", "portal_exit", "robot_arm_mass"}
 )
 CONDITIONAL_JOINT_GROUP_WIDTH = 2
 CONDITIONAL_JOINT_GROUP_COLUMN = "conditional_joint_group"
