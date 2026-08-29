@@ -51,6 +51,16 @@ case "${CW_EVAL_ONLY:-0}" in
     ;;
 esac
 
+PRINT_ONLY=0
+case "${CW_PRINT_ONLY:-0}" in
+  1|true|TRUE|yes|YES|on|ON) PRINT_ONLY=1 ;;
+  0|false|FALSE|no|NO|off|OFF) ;;
+  *)
+    echo "[cloud-train] CW_PRINT_ONLY must be a boolean" >&2
+    exit 2
+    ;;
+esac
+
 # --- Optional umbrella root ------------------------------------------------
 # The cloud mounts this as /opt/huawei/dataset/ag_data; the development box
 # has an extra `explorer-env` segment. Detect rather than hardcode, so the
@@ -306,6 +316,66 @@ if [ "$HISTORICAL_RELEASE" = "0" ] && [ -z "${STABLEWM_HOME:-}" ]; then
   exit 2
 fi
 
+# A shared Stable-WorldModel checkout may be updated while a long training job
+# is running. Freeze the selected committed revision in a detached worktree so
+# training and every post-training evaluator import exactly the same source.
+# Print-only planning remains read-only; historical release recipes retain
+# their own frozen source contract.
+STABLEWM_LIVE_REPO="${CONTEXTWORLD_STABLE_WORLDMODEL_REPO:-}"
+if [ "$HISTORICAL_RELEASE" = "0" ] && [ "$PRINT_ONLY" = "0" ]; then
+  if [ -z "$STABLEWM_LIVE_REPO" ]; then
+    echo "[cloud-train] Stable-WorldModel checkout is not configured" >&2
+    exit 2
+  fi
+  STABLEWM_LIVE_REPO="$(readlink -m -- "$STABLEWM_LIVE_REPO")"
+  if ! git -c safe.directory="$STABLEWM_LIVE_REPO" \
+      -C "$STABLEWM_LIVE_REPO" rev-parse --git-dir >/dev/null 2>&1; then
+    echo "[cloud-train] Stable-WorldModel checkout needs readable Git metadata: $STABLEWM_LIVE_REPO" >&2
+    exit 2
+  fi
+
+  STABLEWM_REF="${CW_STABLEWM_REF:-HEAD}"
+  STABLEWM_REF="$(git -c safe.directory="$STABLEWM_LIVE_REPO" \
+    -C "$STABLEWM_LIVE_REPO" rev-parse --verify "${STABLEWM_REF}^{commit}")"
+  if [[ ! "$STABLEWM_REF" =~ ^[0-9a-f]{40}$ ]]; then
+    echo "[cloud-train] could not resolve a 40-digit Stable-WorldModel revision" >&2
+    exit 2
+  fi
+
+  STABLEWM_SNAPSHOT_PARENT="$STABLEWM_HOME/.contextworld/stable-worldmodel"
+  STABLEWM_SNAPSHOT="$STABLEWM_SNAPSHOT_PARENT/$STABLEWM_REF"
+  mkdir -p "$STABLEWM_SNAPSHOT_PARENT"
+  if ! command -v flock >/dev/null 2>&1; then
+    echo "[cloud-train] flock is required to create the shared Stable-WorldModel snapshot safely" >&2
+    exit 2
+  fi
+  exec 9>"$STABLEWM_SNAPSHOT_PARENT/$STABLEWM_REF.lock"
+  if ! flock -w 120 9; then
+    echo "[cloud-train] timed out waiting for Stable-WorldModel snapshot $STABLEWM_REF" >&2
+    exit 2
+  fi
+  if [ ! -e "$STABLEWM_SNAPSHOT" ]; then
+    git -c safe.directory="$STABLEWM_LIVE_REPO" \
+      -C "$STABLEWM_LIVE_REPO" worktree add --detach \
+      "$STABLEWM_SNAPSHOT" "$STABLEWM_REF"
+  fi
+  SNAPSHOT_REF="$(git -c safe.directory="$STABLEWM_SNAPSHOT" \
+    -C "$STABLEWM_SNAPSHOT" rev-parse --verify HEAD 2>/dev/null || true)"
+  if [ "$SNAPSHOT_REF" != "$STABLEWM_REF" ] || \
+     [ ! -d "$STABLEWM_SNAPSHOT/stable_worldmodel" ] || \
+     [ ! -d "$STABLEWM_SNAPSHOT/scripts/train" ] || \
+     [ ! -d "$STABLEWM_SNAPSHOT/scripts/plan" ]; then
+    echo "[cloud-train] Stable-WorldModel snapshot is incomplete or has the wrong revision: $STABLEWM_SNAPSHOT" >&2
+    exit 2
+  fi
+  flock -u 9
+  exec 9>&-
+
+  CONTEXTWORLD_STABLE_WORLDMODEL_REPO="$STABLEWM_SNAPSHOT"
+  CW_STABLEWM_REF="$STABLEWM_REF"
+  export CONTEXTWORLD_STABLE_WORLDMODEL_REPO CW_STABLEWM_REF
+fi
+
 # --- Pretrained backbone ---------------------------------------------------
 # prejepa loads facebook/dinov2-small through transformers. Point the hub
 # cache at wherever the weights were placed, and prefer offline so a missing
@@ -323,6 +393,11 @@ PYTHON_BIN="${PYTHON_BIN:-python}"
 
 echo "[cloud-train] checkout=$ROOT"
 echo "[cloud-train] umbrella data root=${CW_DATA_ROOT:-<not needed>}"
+if [ -n "$STABLEWM_LIVE_REPO" ] && \
+   [ "$STABLEWM_LIVE_REPO" != "${CONTEXTWORLD_STABLE_WORLDMODEL_REPO:-}" ]; then
+  echo "[cloud-train] stablewm live=$STABLEWM_LIVE_REPO"
+  echo "[cloud-train] stablewm ref=$CW_STABLEWM_REF"
+fi
 echo "[cloud-train] stablewm=${CONTEXTWORLD_STABLE_WORLDMODEL_REPO:-<unset>}"
 echo "[cloud-train] original dataset=${CW_DATASET:-<selected from ${CONTEXTWORLD_DATASET_ROOT:-upstream defaults}>}"
 echo "[cloud-train] benchmark bundle=${CONTEXTWORLD_BENCHMARK_ROOT:-<not needed>}"
@@ -385,5 +460,13 @@ while [ "$#" -gt 0 ]; do
 done
 if [ "$IGNORED_PLATFORM_ARGS" -gt 0 ]; then
   echo "[cloud-train] ignored duplicate platform arguments=$IGNORED_PLATFORM_ARGS"
+fi
+if [ "$HISTORICAL_RELEASE" = "0" ] && \
+   [ -n "${CONTEXTWORLD_STABLE_WORLDMODEL_REPO:-}" ]; then
+  # Keep a forwarded lowercase --stablewm-repo from bypassing the frozen
+  # source. argparse uses the final occurrence for this scalar option.
+  FORWARD_ARGS+=(
+    --stablewm-repo "$CONTEXTWORLD_STABLE_WORLDMODEL_REPO"
+  )
 fi
 exec "$PYTHON_BIN" "$ROOT/scripts/run_stablewm_train.py" "${FORWARD_ARGS[@]}"

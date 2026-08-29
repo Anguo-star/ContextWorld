@@ -528,6 +528,117 @@ class TestTheCloudContract:
         assert 'SPT_CACHE_DIR="$STABLEWM_HOME"' in text
         assert "export SPT_CACHE_DIR" in text
 
+    def test_an_actual_run_freezes_the_stablewm_revision(
+        self, tmp_path: Path
+    ) -> None:
+        """A live checkout update cannot split training and post-evaluation."""
+
+        stablewm = tmp_path / "stable-worldmodel"
+        (stablewm / "stable_worldmodel").mkdir(parents=True)
+        (stablewm / "scripts/train").mkdir(parents=True)
+        (stablewm / "scripts/plan").mkdir(parents=True)
+        source = stablewm / "stable_worldmodel/__init__.py"
+        source.write_text("revision = 1\n", encoding="utf-8")
+        (stablewm / "scripts/train/prejepa.py").write_text(
+            "# trainer\n", encoding="utf-8"
+        )
+        (stablewm / "scripts/plan/eval_wm.py").write_text(
+            "# evaluator\n", encoding="utf-8"
+        )
+
+        def git(*arguments: str) -> str:
+            return subprocess.run(
+                ["git", "-C", str(stablewm), *arguments],
+                check=True,
+                capture_output=True,
+                text=True,
+            ).stdout.strip()
+
+        git("init", "-q")
+        git("config", "user.email", "contextworld@example.invalid")
+        git("config", "user.name", "ContextWorld test")
+        git("add", ".")
+        git("commit", "-q", "-m", "initial")
+        frozen_ref = git("rev-parse", "HEAD")
+
+        dataset = tmp_path / "training.lance"
+        dataset.touch()
+        checkpoint_root = tmp_path / "checkpoints"
+        probe = tmp_path / "python-probe"
+        probe.write_text(
+            "#!/usr/bin/env bash\n"
+            "printf 'EFFECTIVE=%s\\n' \"$CONTEXTWORLD_STABLE_WORLDMODEL_REPO\"\n"
+            "printf 'REF=%s\\n' \"$CW_STABLEWM_REF\"\n"
+            "for argument in \"$@\"; do printf 'ARG=%s\\n' \"$argument\"; done\n",
+            encoding="utf-8",
+        )
+        probe.chmod(0o755)
+        environment = {
+            "PATH": os.environ["PATH"],
+            "HOME": str(tmp_path),
+            "CW_TASK": "speed",
+            "CW_FAMILY": "prejepa",
+            "CW_DATASET": str(dataset),
+            "CW_CHECKPOINT_ROOT": str(checkpoint_root),
+            "CW_PRINT_ONLY": "0",
+            "CONTEXTWORLD_STABLE_WORLDMODEL_REPO": str(stablewm),
+            "PYTHON_BIN": str(probe),
+        }
+        bypass = tmp_path / "must-not-bypass-snapshot"
+
+        first = subprocess.run(
+            [
+                "bash",
+                str(SCRIPTS / "cloud_train.sh"),
+                "--stablewm-repo",
+                str(bypass),
+            ],
+            cwd=ROOT,
+            env=environment,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+
+        snapshot = (
+            checkpoint_root
+            / ".contextworld/stable-worldmodel"
+            / frozen_ref
+        )
+        assert first.returncode == 0, first.stdout + first.stderr
+        assert (snapshot / ".git").is_file()
+        assert subprocess.run(
+            ["git", "-C", str(snapshot), "rev-parse", "HEAD"],
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip() == frozen_ref
+        assert f"EFFECTIVE={snapshot}" in first.stdout
+        assert f"REF={frozen_ref}" in first.stdout
+        assert first.stdout.splitlines()[-2:] == [
+            "ARG=--stablewm-repo",
+            f"ARG={snapshot}",
+        ]
+
+        source.write_text("revision = 2\n", encoding="utf-8")
+        git("add", ".")
+        git("commit", "-q", "-m", "advance live checkout")
+        environment["CW_STABLEWM_REF"] = frozen_ref
+        second = subprocess.run(
+            ["bash", str(SCRIPTS / "cloud_train.sh")],
+            cwd=ROOT,
+            env=environment,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+
+        assert second.returncode == 0, second.stdout + second.stderr
+        assert f"EFFECTIVE={snapshot}" in second.stdout
+        assert (snapshot / "stable_worldmodel/__init__.py").read_text(
+            encoding="utf-8"
+        ) == "revision = 1\n"
+
     def test_original_data_does_not_require_contextworld_artifacts(self) -> None:
         text = (SCRIPTS / "cloud_train.sh").read_text(encoding="utf-8")
 
