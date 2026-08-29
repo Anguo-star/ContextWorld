@@ -573,8 +573,15 @@ class TestTheCloudContract:
             encoding="utf-8",
         )
         probe.chmod(0o755)
+        no_git_bin = tmp_path / "no-git-bin"
+        no_git_bin.mkdir()
+        (no_git_bin / "git").write_text(
+            "#!/usr/bin/env bash\necho 'git must not be called' >&2\nexit 99\n",
+            encoding="utf-8",
+        )
+        (no_git_bin / "git").chmod(0o755)
         environment = {
-            "PATH": os.environ["PATH"],
+            "PATH": f"{no_git_bin}:{os.environ['PATH']}",
             "HOME": str(tmp_path),
             "CW_TASK": "speed",
             "CW_FAMILY": "prejepa",
@@ -606,13 +613,9 @@ class TestTheCloudContract:
             / frozen_ref
         )
         assert first.returncode == 0, first.stdout + first.stderr
-        assert (snapshot / ".git").is_file()
-        assert subprocess.run(
-            ["git", "-C", str(snapshot), "rev-parse", "HEAD"],
-            check=True,
-            capture_output=True,
-            text=True,
-        ).stdout.strip() == frozen_ref
+        assert (snapshot / ".git/HEAD").read_text(
+            encoding="utf-8"
+        ).strip() == frozen_ref
         assert f"EFFECTIVE={snapshot}" in first.stdout
         assert f"REF={frozen_ref}" in first.stdout
         assert first.stdout.splitlines()[-2:] == [
@@ -638,6 +641,38 @@ class TestTheCloudContract:
         assert (snapshot / "stable_worldmodel/__init__.py").read_text(
             encoding="utf-8"
         ) == "revision = 1\n"
+
+        # A source-only cloud mount has no usable Git metadata at all. Its
+        # runtime content fingerprint becomes the stable 40-digit ref.
+        (stablewm / ".git").rename(stablewm / ".git-hidden")
+        environment.pop("CW_STABLEWM_REF")
+        source_only_root = tmp_path / "source-only-checkpoints"
+        environment["CW_CHECKPOINT_ROOT"] = str(source_only_root)
+        third = subprocess.run(
+            ["bash", str(SCRIPTS / "cloud_train.sh")],
+            cwd=ROOT,
+            env=environment,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+
+        assert third.returncode == 0, third.stdout + third.stderr
+        source_only_ref = next(
+            line.removeprefix("REF=")
+            for line in third.stdout.splitlines()
+            if line.startswith("REF=")
+        )
+        assert len(source_only_ref) == 40
+        assert all(
+            character in "0123456789abcdef" for character in source_only_ref
+        )
+        assert (
+            source_only_root
+            / ".contextworld/stable-worldmodel"
+            / source_only_ref
+            / ".git/HEAD"
+        ).read_text(encoding="utf-8").strip() == source_only_ref
 
     def test_original_data_does_not_require_contextworld_artifacts(self) -> None:
         text = (SCRIPTS / "cloud_train.sh").read_text(encoding="utf-8")

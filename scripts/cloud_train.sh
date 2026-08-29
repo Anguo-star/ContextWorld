@@ -317,10 +317,74 @@ if [ "$HISTORICAL_RELEASE" = "0" ] && [ -z "${STABLEWM_HOME:-}" ]; then
 fi
 
 # A shared Stable-WorldModel checkout may be updated while a long training job
-# is running. Freeze the selected committed revision in a detached worktree so
-# training and every post-training evaluator import exactly the same source.
+# is running. Copy only its runtime source into persistent checkpoint storage
+# so training and every post-training evaluator import exactly the same files.
+# This deliberately does not require the cloud image to provide the Git CLI.
 # Print-only planning remains read-only; historical release recipes retain
 # their own frozen source contract.
+_stablewm_head() {
+  local repo="$1"
+  local git_dir head ref common_dir candidate
+  if [ -d "$repo/.git" ]; then
+    git_dir="$repo/.git"
+  elif [ -f "$repo/.git" ]; then
+    git_dir="$(sed -n 's/^gitdir: //p' "$repo/.git")"
+    [ -n "$git_dir" ] || return 1
+    case "$git_dir" in
+      /*) ;;
+      *) git_dir="$(readlink -m -- "$repo/$git_dir")" ;;
+    esac
+  else
+    return 1
+  fi
+  [ -r "$git_dir/HEAD" ] || return 1
+  head="$(tr -d '\r\n' < "$git_dir/HEAD")"
+  if [[ ! "$head" == "ref: "* ]]; then
+    [[ "$head" =~ ^[0-9a-f]{40}$ ]] || return 1
+    printf '%s\n' "$head"
+    return 0
+  fi
+
+  ref="${head#ref: }"
+  common_dir="$git_dir"
+  if [ -r "$git_dir/commondir" ]; then
+    candidate="$(tr -d '\r\n' < "$git_dir/commondir")"
+    case "$candidate" in
+      /*) common_dir="$candidate" ;;
+      *) common_dir="$(readlink -m -- "$git_dir/$candidate")" ;;
+    esac
+  fi
+  for candidate in "$git_dir/$ref" "$common_dir/$ref"; do
+    if [ -r "$candidate" ]; then
+      head="$(tr -d '\r\n' < "$candidate")"
+      [[ "$head" =~ ^[0-9a-f]{40}$ ]] || return 1
+      printf '%s\n' "$head"
+      return 0
+    fi
+  done
+  if [ -r "$common_dir/packed-refs" ]; then
+    head="$(awk -v ref="$ref" \
+      '$1 !~ /^[#^]/ && $2 == ref { print $1; exit }' \
+      "$common_dir/packed-refs")"
+    [[ "$head" =~ ^[0-9a-f]{40}$ ]] || return 1
+    printf '%s\n' "$head"
+    return 0
+  fi
+  return 1
+}
+
+_stablewm_source_sha256() {
+  local repo="$1"
+  (
+    cd "$repo"
+    {
+      find stable_worldmodel scripts -type f \
+        ! -path '*/__pycache__/*' ! -name '*.pyc' -print0
+      [ ! -f pyproject.toml ] || printf '%s\0' pyproject.toml
+    } | LC_ALL=C sort -z | xargs -0 sha256sum
+  ) | sha256sum | awk '{print $1}'
+}
+
 STABLEWM_LIVE_REPO="${CONTEXTWORLD_STABLE_WORLDMODEL_REPO:-}"
 if [ "$HISTORICAL_RELEASE" = "0" ] && [ "$PRINT_ONLY" = "0" ]; then
   if [ -z "$STABLEWM_LIVE_REPO" ]; then
@@ -328,17 +392,27 @@ if [ "$HISTORICAL_RELEASE" = "0" ] && [ "$PRINT_ONLY" = "0" ]; then
     exit 2
   fi
   STABLEWM_LIVE_REPO="$(readlink -m -- "$STABLEWM_LIVE_REPO")"
-  if ! git -c safe.directory="$STABLEWM_LIVE_REPO" \
-      -C "$STABLEWM_LIVE_REPO" rev-parse --git-dir >/dev/null 2>&1; then
-    echo "[cloud-train] Stable-WorldModel checkout needs readable Git metadata: $STABLEWM_LIVE_REPO" >&2
+  if [ ! -d "$STABLEWM_LIVE_REPO/stable_worldmodel" ] || \
+     [ ! -d "$STABLEWM_LIVE_REPO/scripts/train" ] || \
+     [ ! -d "$STABLEWM_LIVE_REPO/scripts/plan" ]; then
+    echo "[cloud-train] Stable-WorldModel source tree is incomplete: $STABLEWM_LIVE_REPO" >&2
     exit 2
   fi
 
-  STABLEWM_REF="${CW_STABLEWM_REF:-HEAD}"
-  STABLEWM_REF="$(git -c safe.directory="$STABLEWM_LIVE_REPO" \
-    -C "$STABLEWM_LIVE_REPO" rev-parse --verify "${STABLEWM_REF}^{commit}")"
+  STABLEWM_SOURCE_SHA256="$(_stablewm_source_sha256 "$STABLEWM_LIVE_REPO")"
+  OBSERVED_STABLEWM_HEAD="$(_stablewm_head "$STABLEWM_LIVE_REPO" || true)"
+  STABLEWM_REF_KIND="git-head"
+  if [ -n "${CW_STABLEWM_REF:-}" ]; then
+    STABLEWM_REF="$CW_STABLEWM_REF"
+    STABLEWM_REF_KIND="explicit"
+  elif [ -n "$OBSERVED_STABLEWM_HEAD" ]; then
+    STABLEWM_REF="$OBSERVED_STABLEWM_HEAD"
+  else
+    STABLEWM_REF="${STABLEWM_SOURCE_SHA256:0:40}"
+    STABLEWM_REF_KIND="content-sha256-prefix"
+  fi
   if [[ ! "$STABLEWM_REF" =~ ^[0-9a-f]{40}$ ]]; then
-    echo "[cloud-train] could not resolve a 40-digit Stable-WorldModel revision" >&2
+    echo "[cloud-train] CW_STABLEWM_REF must be a 40-digit lowercase SHA" >&2
     exit 2
   fi
 
@@ -354,13 +428,48 @@ if [ "$HISTORICAL_RELEASE" = "0" ] && [ "$PRINT_ONLY" = "0" ]; then
     echo "[cloud-train] timed out waiting for Stable-WorldModel snapshot $STABLEWM_REF" >&2
     exit 2
   fi
-  if [ ! -e "$STABLEWM_SNAPSHOT" ]; then
-    git -c safe.directory="$STABLEWM_LIVE_REPO" \
-      -C "$STABLEWM_LIVE_REPO" worktree add --detach \
-      "$STABLEWM_SNAPSHOT" "$STABLEWM_REF"
+  if [ -e "$STABLEWM_SNAPSHOT" ] && [ -z "${CW_STABLEWM_REF:-}" ]; then
+    EXISTING_SOURCE_SHA256="$(_stablewm_source_sha256 "$STABLEWM_SNAPSHOT")"
+    if [ "$EXISTING_SOURCE_SHA256" != "$STABLEWM_SOURCE_SHA256" ]; then
+      echo "[cloud-train] live SWM files differ from the existing snapshot at ref $STABLEWM_REF; commit the source update before restarting" >&2
+      exit 2
+    fi
   fi
-  SNAPSHOT_REF="$(git -c safe.directory="$STABLEWM_SNAPSHOT" \
-    -C "$STABLEWM_SNAPSHOT" rev-parse --verify HEAD 2>/dev/null || true)"
+  if [ ! -e "$STABLEWM_SNAPSHOT" ]; then
+    if [ -n "${CW_STABLEWM_REF:-}" ] && \
+       [ -n "$OBSERVED_STABLEWM_HEAD" ] && \
+       [ "$STABLEWM_REF" != "$OBSERVED_STABLEWM_HEAD" ]; then
+      echo "[cloud-train] requested SWM ref $STABLEWM_REF is not materialized; live source is $OBSERVED_STABLEWM_HEAD" >&2
+      exit 2
+    fi
+    STABLEWM_SNAPSHOT_TMP="$(mktemp -d \
+      "$STABLEWM_SNAPSHOT_PARENT/.${STABLEWM_REF}.XXXXXX")"
+    COPY_ITEMS=(stable_worldmodel scripts)
+    [ ! -f "$STABLEWM_LIVE_REPO/pyproject.toml" ] || \
+      COPY_ITEMS+=(pyproject.toml)
+    if ! tar -C "$STABLEWM_LIVE_REPO" \
+        --exclude='*/__pycache__' --exclude='*.pyc' \
+        -cf - "${COPY_ITEMS[@]}" \
+        | tar -C "$STABLEWM_SNAPSHOT_TMP" -xf -; then
+      rm -rf -- "$STABLEWM_SNAPSHOT_TMP"
+      echo "[cloud-train] failed to copy the Stable-WorldModel runtime snapshot" >&2
+      exit 2
+    fi
+    SNAPSHOT_SOURCE_SHA256="$(_stablewm_source_sha256 "$STABLEWM_SNAPSHOT_TMP")"
+    CURRENT_SOURCE_SHA256="$(_stablewm_source_sha256 "$STABLEWM_LIVE_REPO")"
+    if [ "$SNAPSHOT_SOURCE_SHA256" != "$STABLEWM_SOURCE_SHA256" ] || \
+       [ "$CURRENT_SOURCE_SHA256" != "$STABLEWM_SOURCE_SHA256" ]; then
+      rm -rf -- "$STABLEWM_SNAPSHOT_TMP"
+      echo "[cloud-train] Stable-WorldModel source changed while it was being snapshotted; restart the job" >&2
+      exit 2
+    fi
+    mkdir -p "$STABLEWM_SNAPSHOT_TMP/.git"
+    printf '%s\n' "$STABLEWM_REF" > "$STABLEWM_SNAPSHOT_TMP/.git/HEAD"
+    printf '%s\n' "$STABLEWM_SOURCE_SHA256" \
+      > "$STABLEWM_SNAPSHOT_TMP/.contextworld_source_sha256"
+    mv -- "$STABLEWM_SNAPSHOT_TMP" "$STABLEWM_SNAPSHOT"
+  fi
+  SNAPSHOT_REF="$(_stablewm_head "$STABLEWM_SNAPSHOT" || true)"
   if [ "$SNAPSHOT_REF" != "$STABLEWM_REF" ] || \
      [ ! -d "$STABLEWM_SNAPSHOT/stable_worldmodel" ] || \
      [ ! -d "$STABLEWM_SNAPSHOT/scripts/train" ] || \
@@ -396,7 +505,8 @@ echo "[cloud-train] umbrella data root=${CW_DATA_ROOT:-<not needed>}"
 if [ -n "$STABLEWM_LIVE_REPO" ] && \
    [ "$STABLEWM_LIVE_REPO" != "${CONTEXTWORLD_STABLE_WORLDMODEL_REPO:-}" ]; then
   echo "[cloud-train] stablewm live=$STABLEWM_LIVE_REPO"
-  echo "[cloud-train] stablewm ref=$CW_STABLEWM_REF"
+  echo "[cloud-train] stablewm ref=$CW_STABLEWM_REF kind=$STABLEWM_REF_KIND"
+  echo "[cloud-train] stablewm source_sha256=$STABLEWM_SOURCE_SHA256"
 fi
 echo "[cloud-train] stablewm=${CONTEXTWORLD_STABLE_WORLDMODEL_REPO:-<unset>}"
 echo "[cloud-train] original dataset=${CW_DATASET:-<selected from ${CONTEXTWORLD_DATASET_ROOT:-upstream defaults}>}"
