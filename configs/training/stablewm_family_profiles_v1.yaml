@@ -53,7 +53,7 @@ methods:
   coja_v1:
     description: >-
       One-step conditional-joint training. A relation-aware batch sampler keeps
-      public Contact pairs together inside the native flat batch while retaining
+      public same-query pairs together inside the native flat batch while retaining
       the registered 50/50 original/ContextWorld mixture. It adds no model
       parameter, encoder, adapter, head or inference change.
       This is a training/data-relation overlay, not a model family: every base
@@ -74,6 +74,12 @@ methods:
       checkout does not expose loss.conditional_joint also fails closed;
       ContextWorld never adds the loss family itself.
     components:
+      action_strength:
+        group_width: 2
+        relation: public_pair_identity_v1
+        payload_id: data
+        original_weight: 0.5
+        synthetic_weight: 0.5
       contact_friction:
         group_width: 2
         relation: public_pair_identity_v1
