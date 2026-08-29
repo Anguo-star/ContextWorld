@@ -11,8 +11,8 @@ Two of those claims decide how a reader reads the result tables:
 
 * appearing in the formal reference matrix or in the public scoreboard is not
   the same as passing a component;
-* the reference evidence collected here is not the Public v1 test
-  distribution -- the test data itself stays withheld.
+* reference-result rows are not a substitute for the public Test payload and
+  the availability of Test does not authorize model selection on it.
 
 Both were dropped in an earlier documentation compression and are asserted
 again below.
@@ -57,11 +57,10 @@ NOT_A_PASS = re.compile(
     r"(不(表示|代表|等于|等同|意味着)|并不(表示|代表|等于|意味着)|≠)"
     r"[^，。；]{0,24}(通过|达标|PASS)"
 )
-TEST_SPLIT = re.compile(r"(Public\s*Test|Public\s*v1|测试(数据|集|划分))")
-WITHHELD = re.compile(
-    r"(封存|withheld"
-    r"|不(随[^，。；]{0,12})?(分发|发布|公开|下载|提供)"
-    r"|未(对外)?(分发|发布|公开)|尚未(公布|发布|开放)|不可下载)"
+TEST_SPLIT = re.compile(r"((?:Public\s*)?Test|Public\s*v1|测试(数据|集|划分))")
+PUBLICLY_DISTRIBUTED = re.compile(r"(公开|随[^，。；]{0,12}分发|public)", re.IGNORECASE)
+NOT_FOR_SELECTION = re.compile(
+    r"(不能|不得|不应)[^，。；]{0,20}(选择|调参|开发)", re.IGNORECASE
 )
 UNEVALUATED = re.compile(r"(未运行|未评测|未执行)")
 EXPLAINS_UNEVALUATED = re.compile(r"(未满足|未通过|预先规定|预注册|未获授权|按预定规则)")
@@ -305,19 +304,25 @@ def test_scoreboard_membership_is_not_presented_as_a_capability_pass() -> None:
     )
 
 
-def test_reference_results_are_not_the_public_test_distribution() -> None:
+def test_public_test_distribution_keeps_the_selection_boundary() -> None:
     document = _document()
     table = _reference_table(document)
     assert len(table.path) >= 2, "the reference table is not inside a result section"
     results = _subtree(document, table.path[1])
 
     assert any(
-        TEST_SPLIT.search(statement) and WITHHELD.search(statement)
+        TEST_SPLIT.search(statement) and PUBLICLY_DISTRIBUTED.search(statement)
         for statement in _statements(results)
     ), (
-        "next to the numbers, the result section must say that the Public Test "
-        "distribution itself stays withheld: recorded reference evidence is "
-        "not a released test set"
+        "next to the numbers, the result section must say that Test is publicly "
+        "distributed rather than represented only by recorded reference rows"
+    )
+    assert any(
+        TEST_SPLIT.search(statement) and NOT_FOR_SELECTION.search(statement)
+        for statement in _statements(results)
+    ), (
+        "public Test availability must not be read as permission to select or "
+        "tune a model on Test"
     )
 
 

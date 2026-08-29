@@ -1,18 +1,18 @@
-"""Evaluate a model ContextWorld has never seen on public Development data.
+"""Evaluate an external model on public ContextWorld-v1 splits.
 
-The command reads only the clean ``ContextWorld-v1`` bundle: its Training and
-Development payloads are public, while Public Test remains intentionally
-withheld.  This is therefore a reproducible Development evaluator for outside
-model families, not a way to reproduce or mint a frozen Public Test result.
+The command reads only the clean ``ContextWorld-v1`` bundle. Development is
+for method and recipe selection; Test is an explicit offline final-reporting
+split. Test results are reproducible but are not centrally verified by a
+hosted submission service.
 
 Historical task CLIs remain hash-pinned because they are part of published
 provenance. This entry point is deliberately separate and unpinned. It can
 reuse their model-independent metric kernels, but reconstructs inputs from the
 public bundle and never falls back to ``CONTEXTWORLD_ARTIFACT_ROOT``.
 
-Every result is labelled ``development_only_not_public_test`` and has no
-formal pass or official-scoreboard status. An explicit missing-context PreJEPA
-run is an additional diagnostic within that same Development boundary.
+Development results remain labelled ``development_only_not_public_test``.
+Test results retain the frozen task metrics and gates, but are stamped as
+offline final reports rather than official hosted-scoreboard rows.
 
 Usage
 -----
@@ -57,12 +57,19 @@ from contextworld.benchmarks.bundle_development import (
 )
 from contextworld.paths import repository_root, resolve_contextworld_path
 from contextworld.synthesis.manifest import write_json
+from contextworld.training.stablewm_bundle import resolve_contextworld_bundle
 
 
 ROOT = repository_root()
 
 RESULT_KIND = DEVELOPMENT_RESULT_KIND
+PUBLIC_TEST_RESULT_KIND = "public_test_offline_final_report_v1"
 DIAGNOSTIC_RESULT_KIND = "external_diagnostic_non_frozen_v1"
+PUBLIC_TEST_POLICY = "public_offline_final_reporting"
+PUBLIC_TEST_EVALUATION_SCHEMA_VERSION = (
+    "contextworld.public_test_evaluation.v1"
+)
+PUBLIC_TEST_EVALUATION_STATUS = "public_final_reporting_only"
 _ARTIFACT_ROOT_ENV = "CONTEXTWORLD_ARTIFACT_ROOT"
 _MODEL_CACHE_ROOT_ENV = "CONTEXTWORLD_MODEL_CACHE_ROOT"
 
@@ -383,13 +390,17 @@ def build_request(
 
 
 def _scorer_keywords(
-    binding: TaskBinding, args: argparse.Namespace
+    binding: TaskBinding,
+    args: argparse.Namespace,
+    *,
+    repo_root: Path = ROOT,
 ) -> dict[str, Any]:
     keywords: dict[str, Any] = {
         "model_name": args.model_name,
         binding.recipe_keyword: args.training_recipe,
         "training_seed": args.training_seed,
-        "repo_root": ROOT,
+        "repo_root": repo_root,
+        "include_records": bool(getattr(args, "include_records", False)),
     }
     if binding.task == "speed":
         # The speed scorer predates the shared shape and takes three batch
@@ -418,6 +429,102 @@ def _benchmark_root(args: argparse.Namespace) -> Path:
             "--benchmark-root must be absolute; received " f"{path}"
         )
     return Path(str(path))
+
+
+def _public_test_bundle_binding(
+    bundle_root: Path, *, task: str
+) -> dict[str, Any]:
+    """Validate the manifest-bound public Test payload for one task."""
+
+    identity = resolve_contextworld_bundle(bundle_root)
+    registry_path = bundle_root / "task_registry.json"
+    registry = json.loads(registry_path.read_text(encoding="utf-8"))
+    public = registry.get("public_test")
+    if (
+        not isinstance(public, dict)
+        or public.get("included") is not True
+        or public.get("policy") != PUBLIC_TEST_POLICY
+    ):
+        raise ValueError(
+            "ContextWorld-v1 bundle does not publish the offline Test split"
+        )
+    matches = [
+        component
+        for component in registry.get("components", [])
+        if component.get("component_id") == task
+    ]
+    if len(matches) != 1:
+        raise ValueError(f"Unknown or duplicate ContextWorld component: {task}")
+    evaluation = matches[0].get("public_test_evaluation")
+    if (
+        not isinstance(evaluation, dict)
+        or evaluation.get("schema_version")
+        != PUBLIC_TEST_EVALUATION_SCHEMA_VERSION
+        or evaluation.get("status") != PUBLIC_TEST_EVALUATION_STATUS
+        or evaluation.get("split") != "test"
+    ):
+        raise ValueError(f"Invalid public Test contract for {task}")
+    relative_root = Path(str(evaluation.get("artifact_root", "")))
+    if (
+        relative_root.is_absolute()
+        or ".." in relative_root.parts
+        or not relative_root.parts
+        or relative_root.parts[0] != "artifacts"
+    ):
+        raise ValueError(f"Unsafe public Test artifact root for {task}")
+    artifact_root = bundle_root / relative_root
+    if not artifact_root.exists():
+        raise ValueError(f"Missing public Test payload for {task}: {artifact_root}")
+
+    payloads = evaluation.get("payloads")
+    if not isinstance(payloads, list) or not payloads:
+        raise ValueError(f"Public Test contract has no payload binding for {task}")
+    prefixes: list[str] = []
+    for payload in payloads:
+        if not isinstance(payload, dict):
+            raise ValueError(f"Invalid public Test payload binding for {task}")
+        public_path = Path(str(payload.get("public_path", "")))
+        if (
+            public_path.is_absolute()
+            or ".." in public_path.parts
+            or (public_path != relative_root and relative_root not in public_path.parents)
+        ):
+            raise ValueError(f"Public Test payload escapes artifact root for {task}")
+        if not (bundle_root / public_path).exists():
+            raise ValueError(f"Missing public Test payload binding for {task}")
+        prefixes.append(public_path.as_posix().rstrip("/") + "/")
+
+    covered = [False] * len(prefixes)
+    manifest_rows = 0
+    with (bundle_root / "manifest.jsonl").open("r", encoding="utf-8") as stream:
+        for line_number, line in enumerate(stream, 1):
+            try:
+                row = json.loads(line)
+            except json.JSONDecodeError as exc:
+                raise ValueError(
+                    f"Malformed manifest.jsonl record at line {line_number}"
+                ) from exc
+            if row.get("role") != "dataset_payload" or row.get("split") != "test":
+                continue
+            if row.get("component") != task:
+                continue
+            path = str(row.get("path", ""))
+            if "score_receipts/" in path:
+                raise ValueError("Internal score receipts entered the public Test bundle")
+            for index, prefix in enumerate(prefixes):
+                if path == prefix[:-1] or path.startswith(prefix):
+                    covered[index] = True
+                    manifest_rows += 1
+                    break
+    if not all(covered):
+        raise ValueError(f"Manifest does not bind every public Test payload for {task}")
+    return {
+        **identity,
+        "task": task,
+        "artifact_root": relative_root.as_posix(),
+        "manifest_payload_files": manifest_rows,
+        "selection_policy": evaluation.get("selection_policy"),
+    }
 
 
 def _public_model_cache_root(args: argparse.Namespace) -> Path:
@@ -511,14 +618,24 @@ def build_development_request(
 def run(args: argparse.Namespace) -> dict[str, Any]:
     _validate_diagnostic_options(args)
     evaluation_split = getattr(args, "evaluation_split", "development")
-    if evaluation_split != "development":
+    if evaluation_split == "public":
+        evaluation_split = "test"
+    if evaluation_split not in {"development", "test"}:
+        raise ValueError(f"Unsupported evaluation split: {evaluation_split}")
+    if (
+        evaluation_split == "test"
+        and _prejepa_missing_context_policy(args) == "normalized_zero"
+    ):
         raise ValueError(
-            "Public Test is not available through contextworld-external-eval. "
-            "This public entry point evaluates only ContextWorld-v1 "
-            "Development data."
+            "normalized-zero missing-context diagnostics are Development-only"
         )
     binding = TASKS[args.task]
     bundle_root = _benchmark_root(args)
+    public_test_binding = None
+    if evaluation_split == "test":
+        public_test_binding = _public_test_bundle_binding(
+            bundle_root, task=binding.task
+        )
     # The frozen LeWM/PLDM adapter still names its cache through the historical
     # artifact helper.  Scope that compatibility detail to a public,
     # checkpoint-adjacent cache; data resolution remains exclusively bound to
@@ -533,23 +650,59 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 args=args,
             ),
         )
-    payload = evaluate_bundle_development_model(
-        task=binding.task,
-        adapter=adapter,
-        model_name=args.model_name,
-        training_recipe=args.training_recipe,
-        training_seed=args.training_seed,
-        benchmark_root=bundle_root,
-        batch_size=int(args.batch_size),
-        include_records=bool(getattr(args, "include_records", False)),
-    )
+    if evaluation_split == "development":
+        payload = evaluate_bundle_development_model(
+            task=binding.task,
+            adapter=adapter,
+            model_name=args.model_name,
+            training_recipe=args.training_recipe,
+            training_seed=args.training_seed,
+            benchmark_root=bundle_root,
+            batch_size=int(args.batch_size),
+            include_records=bool(getattr(args, "include_records", False)),
+        )
+    else:
+        payload = binding.load_scorer()(
+            adapter=adapter,
+            **_scorer_keywords(binding, args, repo_root=bundle_root),
+        )
 
     # Stamped, not merged into the evaluator payload keys, so a public
     # Development run cannot be replayed as a held-out Public-Test result.
     policy = _prejepa_missing_context_policy(args)
     history_adapter = _history_adapter(args)
     diagnostic = policy == "normalized_zero"
-    payload_envelope: dict[str, Any] = {
+    if evaluation_split == "test":
+        payload_envelope: dict[str, Any] = {
+            "schema_version": 1,
+            "result_kind": PUBLIC_TEST_RESULT_KIND,
+            "task": binding.task,
+            "evaluation_split": "test",
+            "adapter_spec": args.adapter,
+            "model_name": args.model_name,
+            "official_scoreboard_row": False,
+            "selection_policy": (
+                "development_only_model_selection_test_final_reporting"
+            ),
+            "note": (
+                "Produced offline from the public ContextWorld-v1 Test split "
+                "after model and recipe selection. The frozen task metrics and "
+                "gate are retained, but this is not a centrally verified "
+                "hosted-scoreboard row and must not be fed back into tuning."
+            ),
+            "bundle": public_test_binding,
+            "result": payload,
+        }
+        if diagnostic:
+            payload_envelope["diagnostic"] = {
+                "classification": "diagnostic",
+                "prejepa_missing_context_policy": policy,
+                "frozen_v1_compatible": False,
+                "history_adapter": history_adapter,
+            }
+        return payload_envelope
+
+    payload_envelope = {
         "schema_version": 1,
         "result_kind": RESULT_KIND,
         "task": binding.task,
@@ -586,9 +739,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         prog="contextworld-external-eval",
         description=(
-            "Evaluate an external latent world model on the public "
-            "ContextWorld-v1 Development split. Results are explicitly "
-            "Development-only and never Public-Test scoreboard rows."
+            "Evaluate an external latent world model on ContextWorld-v1. "
+            "Development is for model development; Test is an explicit "
+            "offline final-reporting split."
         ),
     )
     parser.add_argument("--task", choices=sorted(TASKS), required=True)
@@ -647,12 +800,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument(
         "--evaluation-split",
-        choices=("development", "public"),
+        choices=("development", "test", "public"),
         default="development",
         help=(
-            "Development is the only executable public option. Passing "
-            "public is rejected because Public Test is not shipped in "
-            "ContextWorld-v1."
+            "Use Development for method/recipe selection. Use Test only for "
+            "final reporting after the choice is fixed. 'public' is accepted "
+            "as a compatibility alias for 'test'."
         ),
     )
     parser.add_argument("--stablewm-repo")

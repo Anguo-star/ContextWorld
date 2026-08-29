@@ -2,12 +2,14 @@
 
 **状态：尚未正式发布。** 本文记录 Public v1 的发布前条件与外部结果纳入规则；正式任务
 定义和现有参考结果见
-[`ContextWorld_ICL_Benchmark.md`](ContextWorld_ICL_Benchmark.md)。Public Test 仍是冻结、
-不可下载的协议划分，本文件不授予访问权限。机器可读状态见
+[`ContextWorld_ICL_Benchmark.md`](ContextWorld_ICL_Benchmark.md)。Test 已纳入公开离线
+分发合同；Development 用于选择，Test 只用于最终报告。当前机器可读发布合同见
+[`contextworld_hf_clean_export_v1.yaml`](../configs/benchmark/contextworld_hf_clean_export_v1.yaml)；
+早期发布准备草案保存在
 [`contextworld_public_v1_release_readiness_draft_v1.yaml`](../configs/benchmark/contextworld_public_v1_release_readiness_draft_v1.yaml)。
 
 正式发布时，本文将与版本号、下载清单和结果快照一并固定；在此之前，它不改变主文档的
-参考结果，也不授权训练、Public Test 读取或 scoreboard 条目。
+参考结果。当前不提供托管提交服务，离线 Test 结果不会自动成为官方 scoreboard 条目。
 
 ## 1. 当前可公开说明的证据边界
 
@@ -44,8 +46,8 @@ PLDM 之外，Public v1 首批为 Cube 增加三个开源模型槽位，并至�
 - 模型选择、配方选择和 checkpoint 选择只能使用 Training/Development；
 - 在运行前冻结共同训练预算口径，并报告总参数、可训练参数、optimizer steps、样本量、GPU
   和 wall time；模型专属 best-effort 配方必须与共同预算轨分开列出；
-- 首次读取 Public 前冻结上游 commit、许可证、适配器、训练配方和 checkpoint SHA；
-- Development 未通过的模型保留为负结果，不进入 Public；
+- 首次读取 Test 前冻结上游 commit、许可证、适配器、训练配方和 checkpoint SHA；
+- Development 未通过的模型保留为负结果；参考流程不必为其运行 Test，但 Test 数据本身公开；
 - 跨模型只比较相同 query 上的任务正确率，不比较不同 latent 空间的原始 MSE；
 - 支持规划的模型使用同一冻结 query 做训练前后 CEM；不支持规划的模型可以报告 ICL，
   但不能用于“保持规划能力”的结论；
@@ -69,9 +71,9 @@ Suite 的跨架构覆盖。
 
 | 外部模型槽位 | 能力类型 / 首批任务 | 模型与上游 commit | 开源许可证 | 架构/目标类别 | 参数量与训练预算 | 适配器 | 原始 Development | 训练后 Development（3 seeds） | Public（3 seeds） | CEM baseline → trained | 状态 |
 |---|---|---|---|---|---|---|---:|---:|---:|---|---|
-| External-01 | 接触或附着条件动力学 / Cube 夹爪携带规则 | 待选 | 待核验 | 待分类 | 待冻结 | 待实现 | 待运行 | 待运行 | 未授权 | 待运行 | 待补齐 |
-| External-02 | 接触或附着条件动力学 / Cube 夹爪携带规则 | 待选 | 待核验 | 待分类 | 待冻结 | 待实现 | 待运行 | 待运行 | 未授权 | 待运行 | 待补齐 |
-| External-03 | 接触或附着条件动力学 / Cube 夹爪携带规则 | 待选 | 待核验 | 待分类 | 待冻结 | 待实现 | 待运行 | 待运行 | 未授权 | 待运行 | 待补齐 |
+| External-01 | 接触或附着条件动力学 / Cube 夹爪携带规则 | 待选 | 待核验 | 待分类 | 待冻结 | 待实现 | 待运行 | 待运行 | 待最终报告 | 待运行 | 待补齐 |
+| External-02 | 接触或附着条件动力学 / Cube 夹爪携带规则 | 待选 | 待核验 | 待分类 | 待冻结 | 待实现 | 待运行 | 待运行 | 待最终报告 | 待运行 | 待补齐 |
+| External-03 | 接触或附着条件动力学 / Cube 夹爪携带规则 | 待选 | 待核验 | 待分类 | 待冻结 | 待实现 | 待运行 | 待运行 | 待最终报告 | 待运行 | 待补齐 |
 
 ## 3. Public v1 发布门槛
 
@@ -86,7 +88,7 @@ Suite 的跨架构覆盖。
 | 稳定公共下载 | **阻断：未配置** | 发布不可变 URL、字节数和 SHA256；禁止依赖本机绝对路径 |
 | 下载 manifest | **阻断：未发布** | 提供机器可读 manifest、分片恢复和全量校验命令 |
 | 干净环境复现 | **阻断：未记录** | 从全新 checkout/环境完成安装、下载、audit 和至少一个外部模型评测 |
-| 外部提交治理 | **阻断：未授权** | 定义提交 schema、身份校验、重复提交和 scoreboard 纳入规则 |
+| 离线结果治理 | **待补齐** | 定义结果 schema、身份校验和可选 scoreboard 纳入规则；Public v1 不依赖托管提交服务 |
 | 跨模型共同训练预算 | **阻断：未冻结** | 定义共同预算轨；best-effort 结果单独报告，禁止混表 |
 | 引用信息 | **阻断：缺失** | 增加 CITATION 元数据和版本 DOI/归档标识（如采用） |
 | 参考结果与发布版本对应关系 | 已有当前技术候选的参考结果 | 发布时明确版本、结果快照和变更边界，不改写既有结果 |
@@ -96,10 +98,10 @@ Suite 的跨架构覆盖。
 
 ## 4. 执行顺序
 
-1. 先确定外部模型选择准则、共同训练预算和三个候选，不读取 Public；
+1. 先确定外部模型选择准则、共同训练预算和三个候选，不读取 Test；
 2. 核验每个上游的 commit、许可证、checkpoint 来源和输入输出接口；
 3. 完成适配器 smoke、Training/Development 三种子训练和评分；
-4. 对通过 Development 的冻结方法另行预注册一次性 Public；
+4. 对通过 Development 的冻结方法记录 checkpoint SHA，再运行一次公开 Test 最终报告；
 5. 对支持规划的模型运行配对 CEM 留存；
 6. 并行补齐许可证、公开下载 manifest、干净环境复现和提交治理；
 7. 若要宣称全 Suite 跨架构有效性，再为其他三类能力各完成至少一项真实外部评测；

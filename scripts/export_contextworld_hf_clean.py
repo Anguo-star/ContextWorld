@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Plan or build the Public-Test-withheld ContextWorld HF staging tree."""
+"""Plan or build the public Train/Development/Test ContextWorld tree."""
 
 from __future__ import annotations
 
@@ -29,7 +29,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
             "Create a clean Hugging Face staging tree containing only the "
-            "nine components' Training and Development data."
+            "nine components' Training, Development and Test data."
         )
     )
     parser.add_argument(

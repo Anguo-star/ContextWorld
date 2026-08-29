@@ -28,16 +28,17 @@ JEPA、LeWM、PLDM、PreJEPA 以及其他 latent 世界模型都可以使用同�
 
 ## 数据与评测
 
-`ContextWorld-v1` 是 benchmark 数据的统一分发包，包含九项任务的 Training 和 Development
-数据、任务注册表、组件说明和文件完整性清单。该数据包已在本地完成组装，但尚未公布
-稳定的公共下载版本。
+`ContextWorld-v1` 是 benchmark 数据的统一分发包，包含九项任务的 Training、Development
+和 Test 数据、任务注册表、组件说明和文件完整性清单。该数据包已在本地完成组装，但尚未
+公布稳定的公共下载版本。
 
 这些样本来自环境模拟器的连续真实轨迹：生成器改变待识别的隐藏规律，连续执行历史与
 查询动作，并保存模拟器产生的真实未来。图像不是由生成式模型合成或编辑的。配对规则、
 拆分隔离和九项任务的生成入口见[数据生成方法](docs/Data_Generation.md)。
 
-Public Test 用于最终结果报告，当前保持封存且不随数据包分发。Development 结果用于实现
-检查、模型开发和消融实验，不能作为 Public Test 成绩。
+Development 用于实现检查、模型开发、训练配方选择和消融；Test 只用于选定方法后的最终
+报告，不应反馈到调参或模型选择。两者均随数据包公开，并可用冻结评分器离线复现。当前不
+提供托管提交服务，因此离线 Test 结果不是由服务器集中验证的排行榜条目。
 
 ContextWorld 分别报告两项互补指标：
 
@@ -73,6 +74,16 @@ python -m contextworld.benchmarks.external_model_cli \
   --checkpoint /path/to/model.ckpt \
   --model-name my-model \
   --output /path/to/development-result.json
+
+# 方法与训练配方固定后，才运行公开 Test：
+python -m contextworld.benchmarks.external_model_cli \
+  --benchmark-root "$CONTEXTWORLD_BENCHMARK_ROOT" \
+  --evaluation-split test \
+  --task action_strength \
+  --adapter prejepa \
+  --checkpoint /path/to/model.ckpt \
+  --model-name my-model \
+  --output /path/to/test-result.json
 ```
 
 这些 Python extras 只安装软件依赖；数据和模型检查点单独分发。
@@ -99,9 +110,9 @@ rollout 接口转换为统一输入格式。评分器不要求解码器，也不
 
 ## 发布状态
 
-软件接口和九项任务的 Training/Development 数据包已在本地完成。Public v1 正式发布仍需
-稳定的数据集修订、最终分发元数据和计划中的独立模型验证。Public Test 不包含在当前
-数据包中。
+软件接口和九项任务的 Training/Development/Test 数据包已在本地完成发布候选组装。Public
+v1 正式发布仍需稳定的数据集修订、最终分发元数据和干净环境验证；Test 已进入公开离线
+评测合同，不再依赖维护方代跑模型。
 
 剩余发布条件见
 [Public v1 发布清单](docs/ContextWorld_Public_v1_Release_Readiness.md)。

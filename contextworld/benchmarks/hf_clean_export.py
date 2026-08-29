@@ -1,9 +1,10 @@
 """Build a reader-facing Hugging Face staging tree from frozen suite data.
 
 This exporter is intentionally separate from the historical suite exporter.
-The historical export contains Public Test payloads and internal evaluation
-artifacts; this module only copies explicitly registered Training and
-Development sources into a new directory.
+The historical export mixes benchmark payloads with internal evaluation
+artifacts.  This module copies only explicitly registered Training,
+Development and Test sources into a clean directory.  Test is public for
+offline final reporting, but remains excluded from training dataset URIs.
 """
 
 from __future__ import annotations
@@ -34,7 +35,8 @@ EXPECTED_COMPONENTS = (
     "portal_exit",
     "cube_gripper_carry",
 )
-ALLOWED_SPLITS = {"training", "development"}
+ALLOWED_SPLITS = {"training", "development", "test"}
+PUBLIC_TEST_POLICY = "public_offline_final_reporting"
 TEXT_SUFFIXES = {
     ".cfg",
     ".json",
@@ -68,6 +70,10 @@ ALLOWED_SEQUENCE_SCHEMAS = {
 }
 DEVELOPMENT_EVALUATION_SCHEMA_VERSION = "contextworld.development_evaluation.v1"
 DEVELOPMENT_EVALUATION_STATUS = "public_development_only"
+PUBLIC_TEST_EVALUATION_SCHEMA_VERSION = (
+    "contextworld.public_test_evaluation.v1"
+)
+PUBLIC_TEST_EVALUATION_STATUS = "public_final_reporting_only"
 DEVELOPMENT_NORMALIZATION_TRANSFORM = "zscore"
 DEVELOPMENT_NORMALIZATION_ESTIMATORS = {"population", "unbiased"}
 TWOROOM_NORMALIZER_RELATIVE_PATH = "normalizers/tworoom_original_train_s3072.json"
@@ -310,12 +316,63 @@ def _relative_path(value: str, *, field: str) -> Path:
     return path
 
 
+def _validate_public_test_evaluation(
+    component_id: str, component: dict[str, Any]
+) -> None:
+    evaluation = component.get("public_test_evaluation")
+    if not isinstance(evaluation, dict):
+        raise CleanExportError(
+            f"Missing public_test_evaluation contract: {component_id}"
+        )
+    if (
+        evaluation.get("schema_version")
+        != PUBLIC_TEST_EVALUATION_SCHEMA_VERSION
+        or evaluation.get("status") != PUBLIC_TEST_EVALUATION_STATUS
+        or evaluation.get("split") != "test"
+    ):
+        raise CleanExportError(
+            f"Invalid public_test_evaluation contract: {component_id}"
+        )
+    artifact_root = _relative_path(
+        str(evaluation.get("artifact_root", "")), field="artifact_root"
+    )
+    if not artifact_root.parts or artifact_root.parts[0] != "artifacts":
+        raise CleanExportError(
+            f"Public Test artifact_root must use artifacts/: {component_id}"
+        )
+    test_rows = [
+        row for row in component["sources"] if row.get("split") == "test"
+    ]
+    if not test_rows:
+        raise CleanExportError(f"No Test source registered: {component_id}")
+    for row in test_rows:
+        target = Path(row["target"])
+        if target != artifact_root and artifact_root not in target.parents:
+            raise CleanExportError(
+                f"Test source is outside artifact_root: {component_id}"
+            )
+
+
+def _excluded_prefixes(row: dict[str, Any]) -> tuple[Path, ...]:
+    values = row.get("exclude", [])
+    if not isinstance(values, list) or any(
+        not isinstance(value, str) or not value for value in values
+    ):
+        raise CleanExportError("Source exclude must be a list of relative paths")
+    prefixes = tuple(_relative_path(value, field="exclude") for value in values)
+    if len(prefixes) != len(set(prefixes)):
+        raise CleanExportError("Source exclude paths must be unique")
+    return prefixes
+
+
 def load_export_contract(path: Path) -> dict[str, Any]:
     payload = yaml.safe_load(path.read_text(encoding="utf-8"))
     if not isinstance(payload, dict):
         raise CleanExportError("HF export contract must be a mapping")
-    if payload.get("public_test_policy") != "withheld":
-        raise CleanExportError("HF clean export must withhold Public Test")
+    if payload.get("public_test_policy") != PUBLIC_TEST_POLICY:
+        raise CleanExportError(
+            "HF clean export must publish Test for offline final reporting"
+        )
     components = payload.get("components")
     if not isinstance(components, dict):
         raise CleanExportError("HF export contract has no components mapping")
@@ -391,26 +448,58 @@ def load_export_contract(path: Path) -> dict[str, Any]:
                 raise CleanExportError(f"Invalid split mapping: {component_id}")
             source = _relative_path(str(row.get("source", "")), field="source")
             target = _relative_path(str(row.get("target", "")), field="target")
-            if source.parts[0] != "synthesis":
+            if row["split"] != "test" and source.parts[0] != "synthesis":
                 raise CleanExportError(
-                    f"Only synthesis sources may be exported: {source}"
+                    f"Training/Development sources must use synthesis/: {source}"
                 )
-            if target.parts[:2] != ("components", dataset_id):
+            if row["split"] == "test" and source.parts[0] not in {
+                "synthesis",
+                "evaluation",
+            }:
+                raise CleanExportError(
+                    f"Test source must use synthesis/ or evaluation/: {source}"
+                )
+            if row["split"] != "test" and target.parts[:2] != (
+                "components",
+                dataset_id,
+            ):
                 raise CleanExportError(
                     f"Target is outside component namespace: {target}"
+                )
+            if row["split"] == "test" and (
+                not target.parts or target.parts[0] != "artifacts"
+            ):
+                raise CleanExportError(
+                    f"Test target must preserve artifacts/ namespace: {target}"
+                )
+            excluded = _excluded_prefixes(row)
+            if excluded and row["split"] != "test":
+                raise CleanExportError(
+                    f"Only Test mappings may exclude internal paths: {component_id}"
                 )
             if target in targets:
                 raise CleanExportError(f"Duplicate export target: {target}")
             targets.add(target)
         _validate_development_evaluation(component_id, component)
+        _validate_public_test_evaluation(component_id, component)
     return payload
 
 
-def _source_files(source: Path) -> Iterable[tuple[Path, Path]]:
+def _is_excluded(relative: Path, prefixes: tuple[Path, ...]) -> bool:
+    return any(
+        relative == prefix or prefix in relative.parents for prefix in prefixes
+    )
+
+
+def _source_files(
+    source: Path, *, exclude: tuple[Path, ...] = ()
+) -> Iterable[tuple[Path, Path]]:
     if source.is_symlink():
         raise CleanExportError(f"Symlink source is forbidden: {source}")
     if source.is_file():
-        yield source, Path(source.name)
+        relative = Path(source.name)
+        if not _is_excluded(relative, exclude):
+            yield source, relative
         return
     if not source.is_dir():
         raise CleanExportError(f"Registered source does not exist: {source}")
@@ -419,10 +508,15 @@ def _source_files(source: Path) -> Iterable[tuple[Path, Path]]:
         directory_path = Path(directory)
         names.sort()
         files.sort()
+        retained_names = []
         for name in names:
             candidate = directory_path / name
             if candidate.is_symlink():
                 raise CleanExportError(f"Symlink directory is forbidden: {candidate}")
+            relative = candidate.relative_to(source)
+            if not _is_excluded(relative, exclude):
+                retained_names.append(name)
+        names[:] = retained_names
         for name in files:
             candidate = directory_path / name
             mode = candidate.lstat().st_mode
@@ -430,7 +524,9 @@ def _source_files(source: Path) -> Iterable[tuple[Path, Path]]:
                 raise CleanExportError(f"Symlink file is forbidden: {candidate}")
             if not stat.S_ISREG(mode):
                 raise CleanExportError(f"Non-regular file is forbidden: {candidate}")
-            yield candidate, candidate.relative_to(source)
+            relative = candidate.relative_to(source)
+            if not _is_excluded(relative, exclude):
+                yield candidate, relative
 
 
 def _scan_text(path: Path) -> None:
@@ -452,10 +548,12 @@ def _is_lance_table(path: Path) -> bool:
     )
 
 
-def _source_inventory(source: Path) -> dict[str, Any]:
+def _source_inventory(
+    source: Path, *, exclude: tuple[Path, ...] = ()
+) -> dict[str, Any]:
     """Enumerate and classify a registered payload without copying it."""
 
-    files = list(_source_files(source))
+    files = list(_source_files(source, exclude=exclude))
     for source_file, _ in files:
         _scan_text(source_file)
 
@@ -617,6 +715,7 @@ Available splits:
 
 - `training/`: model fitting.
 - `development/`: recipe selection and diagnostics.
+- `test`: final reporting only; never a training input.
 
 | Split | Payload | Public path | Layout | Lance tables | Native sequence | Direct `CW_DATASET` |
 |---|---|---|---|---:|---|---|
@@ -628,9 +727,10 @@ Direct Stable-WorldModel entry points:
 {collection_note}
 {adapter_note}
 
-Public Test examples are intentionally withheld. Do not treat Development as
-the final benchmark score. This component is part of a staging export, not a
-public benchmark release.
+Test examples are public for reproducible offline final reporting. Use
+Development for method and recipe selection, and evaluate Test only after the
+choice is fixed. Test payloads are deliberately not direct `CW_DATASET`
+entries. This component is part of a staging export, not a hosted leaderboard.
 """
 
 
@@ -646,15 +746,18 @@ def _root_readme(components: list[dict[str, Any]]) -> str:
 
 ContextWorld tests whether a latent world model can infer hidden dynamics from
 recent interaction history without updating its parameters at evaluation
-time. This package contains the Training and Development data for nine frozen
-benchmark components.
+time. This package contains the Training, Development and Test data for nine
+frozen benchmark components. Test is an offline final-reporting split.
 
 This is a staging export, not a public release. Creating it does not by itself
 authorize public distribution or benchmark submission.
 
-Public Test examples are withheld. This package does not contain model
-checkpoints, training logs, experiment trackers, third-party source checkouts,
-or the original LeWM datasets.
+Test examples and frozen scorers are public. This package does not contain
+model checkpoints, training logs, experiment trackers, third-party source
+checkouts, or the original LeWM datasets. Development is the only split for
+method and recipe selection; Test is for final reporting and must not be fed
+back into development. Because no hosted submission service is claimed,
+offline Test results are reproducible but not centrally tamper-resistant.
 
 | Component | Capability type | Environment | History | Action dimension |
 |---|---|---:|---:|---:|
@@ -662,9 +765,10 @@ or the original LeWM datasets.
 
 `task_registry.json` is the canonical machine-readable index.
 `manifest.jsonl` records every distributed file's size and SHA-256 digest.
-The component directories use only `training/` and `development/`; internal
-names such as `history3`, `loader_validation`, and `recovery_v2` are retained
-only in provenance fields in `task_registry.json` and `manifest.jsonl`.
+Training and Development live below the component directories. Test retains
+the frozen `artifacts/...` logical paths required by the existing task
+scorers. Internal names are recorded in `task_registry.json` and
+`manifest.jsonl`; internal model score receipts are not distributed.
 
 The data contract is model-agnostic. LeWM, PLDM and PreJEPA are the reference
 Stable-WorldModel integrations shipped by ContextWorld, not an allow-list.
@@ -714,6 +818,34 @@ def _development_evaluation_record(
     return evaluation
 
 
+def _public_test_evaluation_record(
+    component: dict[str, Any], payloads: list[dict[str, Any]]
+) -> dict[str, Any]:
+    """Attach public Test payload paths to the final-reporting contract."""
+
+    evaluation = copy.deepcopy(component["public_test_evaluation"])
+    matches = [payload for payload in payloads if payload["split"] == "test"]
+    if not matches:
+        raise CleanExportError(
+            "Public Test evaluation has no exported payload: "
+            f"{component['dataset_id']}"
+        )
+    evaluation["payloads"] = [
+        {
+            "public_path": payload["public_path"],
+            "payload_kind": payload["payload_kind"],
+            "lance_table_count": payload["lance_table_count"],
+            "members": list(payload["members"]),
+        }
+        for payload in matches
+    ]
+    evaluation["selection_policy"] = (
+        "development_only_model_selection_test_final_reporting"
+    )
+    evaluation["official_scoreboard_row"] = False
+    return evaluation
+
+
 def _build_export_plan_from_registered_paths(
     *,
     contract_path: Path,
@@ -744,7 +876,8 @@ def _build_export_plan_from_registered_paths(
                 raise CleanExportError(
                     f"Registered {path_field} not found: {row[path_field]}"
                 )
-            inventory = _source_inventory(source)
+            excluded = _excluded_prefixes(row)
+            inventory = _source_inventory(source, exclude=excluded)
             target = Path(row["target"])
             entrypoint_member = inventory.pop("dataset_entrypoint_member")
             public_members = [
@@ -757,7 +890,11 @@ def _build_export_plan_from_registered_paths(
             native_sequence = (
                 stablewm["sequence_schema"] == NATIVE_SEQUENCE_SCHEMA
             )
-            direct = inventory["single_dataset_entrypoint"] and native_sequence
+            direct = (
+                row["split"] != "test"
+                and inventory["single_dataset_entrypoint"]
+                and native_sequence
+            )
             if entrypoint_member is None:
                 single_dataset_path = None
             elif entrypoint_member == ".":
@@ -787,6 +924,9 @@ def _build_export_plan_from_registered_paths(
                     "members": public_members,
                     "provenance": {
                         "source_logical_path": row["source"],
+                        "excluded_paths": [
+                            path.as_posix() for path in excluded
+                        ],
                     },
                 }
             )
@@ -809,12 +949,15 @@ def _build_export_plan_from_registered_paths(
                 "development_evaluation": _development_evaluation_record(
                     component, source_rows
                 ),
+                "public_test_evaluation": _public_test_evaluation_record(
+                    component, source_rows
+                ),
             }
         )
     return {
         "export_id": contract["export_id"],
         "status": contract["status"],
-        "public_test_policy": "withheld",
+        "public_test_policy": contract["public_test_policy"],
         "inventory": {
             "file_count": total_files,
             "total_bytes": total_bytes,
@@ -853,9 +996,12 @@ def _generated_release_metadata(
         "export_id": plan["export_id"],
         "release_status": "staging_not_public_release",
         "public_test": {
-            "included": False,
-            "policy": "withheld",
-            "evaluation_interface": "not_included_in_this_staging",
+            "included": True,
+            "policy": PUBLIC_TEST_POLICY,
+            "evaluation_interface": "offline_final_reporting",
+            "selection_policy": (
+                "development_only_model_selection_test_final_reporting"
+            ),
         },
         "components": plan["components"],
     }
@@ -866,11 +1012,11 @@ def _generated_release_metadata(
         "VERSION.json": _json_bytes(
             {
                 "schema_version": 1,
-                "dataset_version": "1.0.0-rc1",
+                "dataset_version": "1.0.0-rc2",
                 "release_status": "staging_not_public_release",
                 "export_contract": contract_path.name,
                 "export_contract_sha256": _sha256(contract_path),
-                "public_test_included": False,
+                "public_test_included": True,
             }
         ),
     }
@@ -923,7 +1069,10 @@ def export_hf_clean(
                 source = suite_export_root / row["source"]
                 target = staging / row["target"]
                 target.mkdir(parents=True, exist_ok=False)
-                for source_file, relative in _source_files(source):
+                excluded = _excluded_prefixes(row)
+                for source_file, relative in _source_files(
+                    source, exclude=excluded
+                ):
                     destination = target / relative
                     destination.parent.mkdir(parents=True, exist_ok=True)
                     shutil.copy2(source_file, destination, follow_symlinks=False)
@@ -999,7 +1148,7 @@ def export_hf_clean(
         "manifest_sha256": manifest_digest,
         "payload_file_count": plan["inventory"]["file_count"],
         "payload_bytes": plan["inventory"]["total_bytes"],
-        "public_test_included": False,
+        "public_test_included": True,
     }
 
 
@@ -1169,7 +1318,7 @@ def refresh_hf_clean_metadata(
         "manifest_sha256": manifest_digest,
         "payload_file_count": plan["inventory"]["file_count"],
         "payload_bytes": plan["inventory"]["total_bytes"],
-        "public_test_included": False,
+        "public_test_included": True,
     }
 
 

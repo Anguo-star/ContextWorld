@@ -1,4 +1,4 @@
-"""The HF staging exporter must exclude internal and Public Test artifacts."""
+"""The HF exporter must publish only registered Train/Dev/Test artifacts."""
 
 from __future__ import annotations
 
@@ -16,6 +16,9 @@ from contextworld.benchmarks.hf_clean_export import (
     build_export_plan,
     export_hf_clean,
     refresh_hf_clean_metadata,
+)
+from contextworld.benchmarks.external_model_cli import (
+    _public_test_bundle_binding,
 )
 
 
@@ -36,6 +39,8 @@ def _source_fixture(tmp_path: Path) -> Path:
                 tables = [source / "regime" / "part.lance"]
             elif component_id in {"door", "action_delay"}:
                 tables = [source / "part-a.lance", source / "part-b.lance"]
+            elif row["split"] == "test":
+                tables = [source / "validation.lance"]
             else:
                 tables = []
             for table in tables:
@@ -44,6 +49,12 @@ def _source_fixture(tmp_path: Path) -> Path:
                 (table / "_versions" / "1.manifest").write_bytes(b"v1")
                 (table / "data" / "payload.bin").write_bytes(
                     f"{row['source']}\n".encode("utf-8")
+                )
+            if row.get("exclude"):
+                excluded = source / row["exclude"][0]
+                excluded.mkdir(parents=True, exist_ok=True)
+                (excluded / "must-not-copy.json").write_text(
+                    '{"internal":"score"}\n', encoding="utf-8"
                 )
 
     # These are deliberately present in the source tree but are not mapped.
@@ -73,7 +84,7 @@ def test_plan_has_exactly_nine_components_and_creates_nothing(
     assert tuple(row["component_id"] for row in plan["components"]) == (
         EXPECTED_COMPONENTS
     )
-    assert plan["public_test_policy"] == "withheld"
+    assert plan["public_test_policy"] == "public_offline_final_reporting"
     assert plan["inventory"]["file_count"] > 0
     assert plan["inventory"]["total_bytes"] > 0
     assert not output.exists()
@@ -114,7 +125,7 @@ def test_plan_has_exactly_nine_components_and_creates_nothing(
     } == {"cube_block_projection_to_sequence_v1"}
 
 
-def test_clean_export_contains_only_registered_training_and_development(
+def test_clean_export_contains_registered_train_dev_and_public_test(
     tmp_path: Path,
 ) -> None:
     source = _source_fixture(tmp_path)
@@ -128,13 +139,20 @@ def test_clean_export_contains_only_registered_training_and_development(
     )
 
     assert summary["component_count"] == 9
-    assert summary["public_test_included"] is False
+    assert summary["public_test_included"] is True
     assert not (output / "evaluation").exists()
     assert not (output / "training").exists()
     assert not any(path.is_symlink() for path in output.rglob("*"))
 
     registry = json.loads((output / "task_registry.json").read_text())
-    assert registry["public_test"]["included"] is False
+    assert registry["public_test"] == {
+        "included": True,
+        "policy": "public_offline_final_reporting",
+        "evaluation_interface": "offline_final_reporting",
+        "selection_policy": (
+            "development_only_model_selection_test_final_reporting"
+        ),
+    }
     assert len(registry["components"]) == 9
     for component in registry["components"]:
         for payload in component["payloads"]:
@@ -156,6 +174,24 @@ def test_clean_export_contains_only_registered_training_and_development(
         assert len(normalization["mean"]) == component["action_dimension"]
         assert len(normalization["std"]) == component["action_dimension"]
         assert all(value > 0.0 for value in normalization["std"])
+        public_test = component["public_test_evaluation"]
+        assert public_test["status"] == "public_final_reporting_only"
+        assert public_test["split"] == "test"
+        assert public_test["artifact_root"].startswith("artifacts/")
+        assert public_test["payloads"]
+        assert public_test["official_scoreboard_row"] is False
+
+    assert not any(
+        "score_receipts/" in str(row["path"])
+        for row in _manifest(output / "manifest.jsonl")
+    )
+    for component_id in EXPECTED_COMPONENTS:
+        binding = _public_test_bundle_binding(output, task=component_id)
+        assert binding["task"] == component_id
+        assert binding["manifest_payload_files"] > 0
+        assert binding["selection_policy"] == (
+            "development_only_model_selection_test_final_reporting"
+        )
 
     by_id = {component["component_id"]: component for component in registry["components"]}
     action_delay = by_id["action_delay"]["development_evaluation"]

@@ -32,7 +32,7 @@ TwoRoom 承载四项任务，但它们分别考察连续响应、时间延迟和
 
 ## 2. 数据与划分
 
-`ContextWorld-v1` 是统一的数据分发包，包含九项任务的 Training 和 Development 数据、
+`ContextWorld-v1` 是统一的数据分发包，包含九项任务的 Training、Development 和 Test 数据、
 任务注册表、组件说明及文件完整性清单。该数据包已在本地完成组装，但尚未公布稳定的
 公共下载版本。
 
@@ -40,12 +40,13 @@ TwoRoom 承载四项任务，但它们分别考察连续响应、时间延迟和
 
 - **Training**：用于训练或适配模型；
 - **Development**：用于实现检查、训练配方选择和消融实验；
-- **Public Test**：用于最终结果报告，当前保持封存且不随数据包分发。
+- **Test**：公开的离线最终报告划分；不参与配方或检查点选择。
 
-选择在 Development 上完成，结论在 Public Test 上报告。参考方法在读取任何分数之前
+选择在 Development 上完成，结论在 Test 上报告。参考方法在读取任何 Test 分数之前
 固定检查点步数：Development 只用于选择训练配方，不用于挑选检查点，Public Test 既不
 参与配方选择也不参与检查点选择。Development 结果必须明确标注划分，不能作为
-Public Test 成绩报告。
+Test 成绩报告。公开 Test 提高了可复现性，但由于当前没有托管提交服务，协议依赖作者遵守
+“Development-only selection, Test-only final reporting”的信息边界。
 
 Development 的公开抽取由每个组件的 `task_registry.json` 固定，不是统一采样：门通行
 规则 288 对，动作延迟 300 对，速度 288 个 history-utility case，其余六项各 256 对。
@@ -205,7 +206,8 @@ PLDM 使用配对非劣性判定而不是固定下降额度。
 模型通过了相应组件；正式判定以“ICL 结果”和“规划结果”两列为准。
 
 Development 与 Public Test 可以出现在同一张表中，但评测划分不会互相替代。表里已经完成
-并登记的 Public Test 结果可以公开报告，Public Test 数据本身仍保持封存且不随发布分发。
+并登记的 Public Test 结果可以公开报告；Test 数据现在也随 `ContextWorld-v1` 分发，以支持
+同一冻结评分器的离线复现。公开可得性不改变“不能用 Test 选择方法”的报告规则。
 “正式流程未运行”表示模型没有满足预先规定的 ICL 或 Development 准入条件，并不表示
 原始 CEM 起点缺失。为便于完整比较，最后一列同时报告按“全部报告”原则补跑的结果；这些
 补充结果不改写历史正式流程或 scoreboard。
@@ -562,8 +564,9 @@ python -m contextworld.benchmarks.external_model_cli \
 ```
 
 `CONTEXTWORLD_BENCHMARK_ROOT` 必须是 `ContextWorld-v1` clean export 的绝对路径。
-Development 是唯一可执行的公开划分；`--evaluation-split public` 会被拒绝，因为
-`ContextWorld-v1` 不包含 Public Test。
+Development 用于方法开发。方法、配方与终点固定后，用 `--evaluation-split test` 运行公开
+Test；兼容别名 `public` 等价于 `test`。Test 结果保留冻结任务门，但会明确标为离线最终报告，
+不是托管排行榜条目。
 
 完整接口、数组形状和模型加载方式见
 [外部模型 Adapter 规范](External_Model_Adapter_Contract.md)。
@@ -601,5 +604,6 @@ ContextWorld 的结论仅覆盖本文列出的环境、隐藏规律、历史长�
 - 一步预测能力必然转化为所有任务上的闭环规划能力；
 - 仓库内参考模型已经代表所有 latent 世界模型架构。
 
-Public Test 保持封存，不应用于模型选择。公开发布仍需提供稳定的数据集修订版本、最终
-分发元数据和计划中的独立模型验证。
+Test 已公开以支持完全离线复现，但仍不应用于模型选择。公开发布还需提供稳定的数据集修订
+版本与最终分发元数据；若未来需要抗 Test 过拟合的竞赛，可另设新的私有 challenge split，
+不改变本版公开 Test 的角色。

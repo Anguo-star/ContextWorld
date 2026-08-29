@@ -1,4 +1,4 @@
-"""The external evaluator must stay on the public Development boundary.
+"""The external evaluator must enforce public Development/Test roles.
 
 Two things are being pinned here, and the second matters more than the first.
 
@@ -325,33 +325,53 @@ class TestResultLabelling:
             "history_adapter": "native",
         }
 
-    def test_public_split_is_rejected_before_model_or_data_access(
+    def test_public_test_is_an_explicit_offline_final_report(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        binding = TASKS["contact_friction"]
+        monkeypatch.setattr(type(binding), "load_builtins", lambda self: {})
         monkeypatch.setattr(
             external_model_cli,
             "build_adapter",
-            lambda *a, **k: (_ for _ in ()).throw(
-                AssertionError("Public Test must be rejected before adapter build")
-            ),
+            lambda *a, **k: object(),
         )
-        with pytest.raises(ValueError, match="Public Test is not available"):
-            external_model_cli.run(
-                argparse.Namespace(
-                    task="contact_friction",
-                    adapter="pkg:Cls",
-                    model_name="my-model",
-                    training_recipe="external_method",
-                    training_seed=None,
-                    batch_size=8,
-                    checkpoint=Path("/tmp/x.pt"),
-                    device="cpu",
-                    stablewm_repo=None,
-                    stablewm_ref=None,
-                    benchmark_root="/tmp/ContextWorld-v1",
-                    evaluation_split="public",
-                )
+        monkeypatch.setattr(
+            external_model_cli, "build_development_request", lambda *a, **k: None
+        )
+        monkeypatch.setattr(
+            external_model_cli,
+            "_public_test_bundle_binding",
+            lambda *a, **k: {"task": "contact_friction", "manifest_payload_files": 3},
+        )
+        monkeypatch.setattr(
+            type(binding),
+            "load_scorer",
+            lambda self: lambda **kwargs: {
+                "metrics": {"correct_future_rate": 0.9},
+                "gate": {"passed": False},
+            },
+        )
+        payload = external_model_cli.run(
+            argparse.Namespace(
+                task="contact_friction",
+                adapter="pkg:Cls",
+                model_name="my-model",
+                training_recipe="external_method",
+                training_seed=None,
+                batch_size=8,
+                checkpoint=Path("/tmp/x.pt"),
+                device="cpu",
+                stablewm_repo=None,
+                stablewm_ref=None,
+                benchmark_root="/tmp/ContextWorld-v1",
+                evaluation_split="public",
             )
+        )
+        assert payload["result_kind"] == "public_test_offline_final_report_v1"
+        assert payload["evaluation_split"] == "test"
+        assert payload["official_scoreboard_row"] is False
+        assert payload["result"]["gate"]["passed"] is False
+        assert "must not be fed back into tuning" in payload["note"]
 
     def test_speed_receives_its_three_batch_sizes(self) -> None:
         keywords = external_model_cli._scorer_keywords(

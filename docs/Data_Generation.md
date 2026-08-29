@@ -1,13 +1,13 @@
 # ContextWorld 数据生成方法
 
-本文说明 `ContextWorld-v1` 中九项能力任务的 Training 和 Development 数据如何产生，以及
+本文说明 `ContextWorld-v1` 中九项能力任务的 Training、Development 和 Test 数据如何产生，以及
 这些数据如何进入公开分发包。目标是让读者能够判断样本是否真正来自连续物理过程、隐藏
 规律是否可能由无关线索泄漏，并找到每项任务对应的实现入口。任务定义、评分与参考结果见
 [Benchmark 规范](ContextWorld_ICL_Benchmark.md)，目录和加载方式见
 [ContextWorld-v1 数据集指南](HF_Dataset_Export.md)。
 
-本文不是 Public Test 的生成说明。Public Test 保持封存；阅读本文不授权访问、生成、重新
-生成或重跑 Public Test。
+Test 使用已经冻结且与 Training/Development 隔离的模拟器轨迹，现在随数据包公开用于离线
+最终报告。本文解释共同生成原则；冻结配置和 manifest 给出每项 Test 的精确数据身份。
 
 ## 从隐藏规律到公开数据包
 
@@ -20,7 +20,7 @@
         ↓
 匹配反事实或任务专用样本构造
         ↓
-互不重叠的 Training / Development
+互不重叠的 Training / Development / Test
         ↓
 因果连续性、可辨识性与完整性审计
         ↓
@@ -57,7 +57,7 @@ query 画面、query 动作和允许比较的可观测状态一致，只让历�
 发布数据。
 
 有些环境不能让两种规律自然共享完全相同的 `x0`。这时构造器在两种标签之间交换起点，
-并验证起点图像或几何本身不能预测标签。Training 与 Development 使用不同的源 episode、
+并验证起点图像或几何本身不能预测标签。Training、Development 与 Test 使用不同的源 episode、
 生成 seed、场景或动作 profile；各任务还检查 query 图像、pair 内容和任务相关模板的交集
 为零。具体隔离键因环境而异，但不会只依赖目录名来声明拆分独立。
 
@@ -67,7 +67,7 @@ scoring 构造，不产生正式通过判定。速度的正式能力判定来自
 
 ## 模型可见字段与审计字段
 
-在 Development ICL 评分中，模型可见字段是图像 `pixels` 和动作 `action`；真实未来图像
+在 Development/Test ICL 评分中，模型可见字段是图像 `pixels` 和动作 `action`；真实未来图像
 只交给同一检查点的冻结目标编码器。分发的 Training 表可以保留任务注册表声明的标准模型
 输入列，但隐藏因子、模拟器完整状态、生成 seed、pair 身份和完整性收据只用于审计或数据
 选择，不进入模型输入，也不向参评 Adapter 提供。原始表的物理状态因此可以用于证明两个
@@ -119,11 +119,11 @@ profile 不跨 split 复用。对长度为 5 的 probe `p`，每个扰动必须�
 5. **文件完整性**：发布配置与 manifest 固定文件路径、大小和 SHA-256。
 
 通过组件级检查后，`configs/benchmark/contextworld_hf_clean_export_v1.yaml` 把明确登记的
-Training 和 Development 工件映射到公共目录。`scripts/export_contextworld_hf_clean.py`
+Training、Development 和 Test 工件映射到公共目录。`scripts/export_contextworld_hf_clean.py`
 拒绝符号链接、凭据样文本、未登记目录和已有目标，复制后重新校验每个文件，并生成
 `task_registry.json`、`manifest.jsonl` 与 `manifest.sha256`。原始环境数据、模型检查点、
-训练日志、上游源码和 Public Test 均不进入 clean export。
+训练日志、上游源码、历史模型输出和内部 Test `score_receipts` 均不进入 clean export。
 
 因此，数据生成与数据分发是两件事：前者决定物理轨迹和因果对照，后者只发布已冻结的
-Training/Development 字节。重新运行 exporter 不能替代生成审计，也不会授权生成新的
+Training/Development/Test 字节。重新运行 exporter 不能替代生成审计，也不会生成新的
 测试数据。

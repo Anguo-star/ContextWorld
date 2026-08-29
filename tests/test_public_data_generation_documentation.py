@@ -17,8 +17,9 @@ semantically, paragraph by paragraph:
   formal scoring construction used by most components;
 * the Cube action-template constraints ``sum(p)=0`` and ``p[-1]=0``;
 * which fields a model sees and which stay audit-only;
-* the guide covers Training/Development generation and does not authorize
-  access to, generation of, or a rerun of the Public Test.
+* the guide covers Training/Development/Test generation, states that Test is
+  public for final reporting, and makes clear that packaging does not generate
+  a new Test split.
 """
 
 from __future__ import annotations
@@ -79,15 +80,11 @@ AUDIT_ONLY = re.compile(
 )
 HIDDEN_STATE = re.compile(r"(隐藏|hidden|模拟器状态|完整状态|privileged)", re.IGNORECASE)
 
-PUBLIC_TEST = re.compile(r"(Public\s*Test|测试(集|数据|划分))", re.IGNORECASE)
-NOT_AUTHORIZED = re.compile(
-    r"(不(授权|允许|提供|支持|包含|开放)|未(获|经)?授权|不得|禁止"
-    r"|not\s+authoriz|no\s+authoriz)",
-    re.IGNORECASE,
-)
-TEST_ACTIONS = re.compile(
-    r"(访问|获取|打开|生成|重跑|重新生成|重新运行|重新执行"
-    r"|rerun|re-?generat|generat|access)",
+PUBLIC_TEST = re.compile(r"((?:Public\s*)?Test|测试(集|数据|划分))", re.IGNORECASE)
+PUBLIC_DISTRIBUTION = re.compile(r"(公开|随数据包|public|distribut)", re.IGNORECASE)
+FINAL_REPORTING = re.compile(r"(最终报告|final[ -]?report)", re.IGNORECASE)
+NO_NEW_TEST_GENERATION = re.compile(
+    r"(不会|不)[^。；]{0,16}(生成|重新生成)[^。；]{0,12}(测试|Test)",
     re.IGNORECASE,
 )
 
@@ -392,16 +389,18 @@ def test_separates_model_visible_fields_from_audit_only_metadata() -> None:
     ), "the audit-only channel must be described in terms of the hidden state it holds"
 
 
-def test_does_not_authorize_public_test_access_generation_or_rerun() -> None:
+def test_public_test_is_final_reporting_and_export_does_not_regenerate_it() -> None:
     paragraphs = _paragraphs(_document())
 
     assert any(
         PUBLIC_TEST.search(paragraph)
-        and NOT_AUTHORIZED.search(paragraph)
-        and TEST_ACTIONS.search(paragraph)
+        and PUBLIC_DISTRIBUTION.search(paragraph)
+        and FINAL_REPORTING.search(paragraph)
         for paragraph in paragraphs
     ), (
-        "the guide documents public Training/Development generation only; it "
-        "must say that it does not authorize access to, generation of, or a "
-        "rerun of the Public Test"
+        "the guide must say that Test is public and reserved for final reporting"
+    )
+    assert NO_NEW_TEST_GENERATION.search(_flatten(_document())), (
+        "the guide must say that clean export packages frozen Test bytes and "
+        "does not generate a new Test split"
     )

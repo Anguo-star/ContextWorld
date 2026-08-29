@@ -5,9 +5,9 @@ and **Loading the data**. Repository maintainers who prepare a Hugging Face
 revision should also read **Building a distribution bundle**.
 
 `ContextWorld-v1` is the only ContextWorld-specific directory intended for
-distribution. It contains the Training and Development splits for all nine
-components, together with task metadata and file-integrity manifests. Public
-Test examples are not included.
+distribution. It contains the Training, Development and Test splits for all
+nine components, together with task metadata and file-integrity manifests.
+Development is for model/recipe selection; Test is for final reporting only.
 
 ## How the payloads were produced
 
@@ -19,7 +19,7 @@ They are not generated or edited by an image-generation model.
 
 See [Data generation methodology](Data_Generation.md) for the common causal
 contract and the task-specific builders and configurations. The clean exporter
-described below copies approved Training and Development artifacts into the
+described below copies approved Training, Development and Test artifacts into the
 public layout; it does not regenerate trajectories or change benchmark
 semantics.
 
@@ -37,7 +37,7 @@ ContextWorld-v1/
 ├── manifest.sha256
 ├── normalizers/
 │   └── tworoom_original_train_s3072.json
-└── components/
+├── components/
     ├── tworoom-speed/v1/{training,development}/
     ├── tworoom-door/v1/{training,development}/
     ├── tworoom-action-delay/v1/{training,development}/
@@ -47,6 +47,9 @@ ContextWorld-v1/
     ├── pusht-motion-damping/v1/{training,development}/
     ├── reacher-arm-mass/v1/{training,development}/
     └── cube-gripper-carry/v1/{training,development}/
+└── artifacts/
+    ├── evaluation/...        frozen Test collections
+    └── synthesis/...         frozen Test Lance tables
 ```
 
 `task_registry.json` is the entry point for software. For each component it
@@ -88,6 +91,23 @@ loader. Development scoring is model-independent once the model implements
 `LatentWorldModelAdapter`; see the
 [external model adapter contract](External_Model_Adapter_Contract.md).
 
+After all method and recipe choices are fixed, the same adapter can run the
+public offline Test split:
+
+```bash
+python -m contextworld.benchmarks.external_model_cli \
+  --benchmark-root "$CONTEXTWORLD_BENCHMARK_ROOT" \
+  --evaluation-split test \
+  --task contact_friction \
+  --adapter your_package.module:YourAdapter \
+  --checkpoint /path/to/checkpoint \
+  --model-name your-model \
+  --output /path/to/test-result.json
+```
+
+The output retains each task's frozen metrics and gates, and is labelled as an
+offline final report rather than a centrally verified hosted-scoreboard row.
+
 ### Why some payloads use runtime views
 
 The nine components do not all share one physical table layout:
@@ -110,8 +130,8 @@ frames, alter actions, or expose hidden simulator state.
 
 The distribution intentionally excludes:
 
-- Public Test examples and evaluation payloads;
 - model checkpoints, training logs, and experiment-tracker metadata;
+- historical Test model outputs and internal `score_receipts`;
 - third-party source checkouts;
 - original LeWM training datasets;
 - repository-maintenance records and failed-run artifacts.
@@ -140,7 +160,7 @@ python scripts/export_contextworld_hf_clean.py \
 After reviewing the plan, add `--execute`. The destination must not already
 exist. The exporter:
 
-1. copies only registered Training and Development files;
+1. copies only registered Training, Development and Test files;
 2. rejects symbolic links and credential-like text;
 3. verifies every copied file against its source;
 4. writes the registry, component cards, and manifests;
@@ -163,7 +183,7 @@ Refresh mode verifies the existing manifest and confirms that every payload
 still has the same path, size, component, split, and provenance mapping before
 updating generated metadata.
 
-The current plan selects 4,352 files and 18,121,449,288 bytes (about 17 GiB).
+The current plan selects 9,187 files and 18,928,271,721 bytes (about 17.6 GiB).
 Use `--full-plan` only when the complete Lance member list is needed.
 
 ## Publication status
@@ -172,4 +192,5 @@ The distribution bundle has been assembled and validated locally. Publishing
 it as Public v1 still requires a stable Hugging Face revision, final citation
 and license metadata, a clean-environment loading check, and synchronization
 with the public reference-results package. Building the directory alone does
-not publish the dataset or unseal Public Test.
+not upload a dataset revision. Test is already part of the public offline
+contract; publication no longer assumes a hosted submission service.

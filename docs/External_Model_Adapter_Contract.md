@@ -1,15 +1,15 @@
 # ContextWorld external model adapter contract
 
 This document defines the runtime interface that an external latent world
-model implements to use ContextWorld Development scorers. The checks described
+model implements to use ContextWorld Development and Test scorers. The checks described
 below are enforced by `contextworld-external-eval`.
 
 The `ContextWorld-v1` bundle does not restrict evaluation to LeWM, PLDM or
 PreJEPA. Those names identify built-in reference integrations. An external
 model may train with its own code and data loader; to use the public
-Development scorers it supplies the adapter below. The adapter translates the
-model interface, not the benchmark definition, and it never receives Public
-Test examples.
+Development/Test scorers it supplies the adapter below. The adapter translates
+the model interface, not the benchmark definition. Development is used for
+method selection; Test is exposed only through an explicit final-reporting run.
 
 ## Required interface
 
@@ -216,6 +216,7 @@ adapter base class.
 
 ```bash
 python -m contextworld.benchmarks.external_model_cli \
+    --evaluation-split development \
     --task speed \
     --adapter your_package.module:YourAdapter \
     --checkpoint /path/to/weights.pt \
@@ -226,7 +227,8 @@ python -m contextworld.benchmarks.external_model_cli \
 `package.module:ClassName`, or an installed `contextworld.adapters` entry
 point. Built-in names cannot be overridden by an installed package.
 
-Development results from an external adapter carry the machine-readable status
-`external_unofficial`. This distinguishes user-run Development evaluations
-from sealed Public Test submissions; it does not imply that the scorer or task
-definition is unofficial.
+Development results remain machine-labelled as Development-only. After the
+method and recipe are fixed, replace the split with `--evaluation-split test`.
+That result retains the frozen task metrics and gate, but is labelled
+`public_test_offline_final_report_v1`: it is reproducible final-reporting
+evidence, not a centrally verified hosted-scoreboard row.

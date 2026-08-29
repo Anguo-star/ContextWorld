@@ -2,7 +2,7 @@ schema_version: 1
 export_id: contextworld_hf_clean_export_v1
 status: staging_contract_not_release_authority
 source_kind: suite_v2_copy_export_v2_benchmark_root
-public_test_policy: withheld
+public_test_policy: public_offline_final_reporting
 copy_policy:
   regular_files_only: true
   symlinks_allowed: false
@@ -50,6 +50,11 @@ components:
         mean: [0.0031402341986976924, -0.051594576296864605]
         std: [0.867571689163936, 0.8688840167517821]
         std_estimator: unbiased
+    public_test_evaluation:
+      schema_version: contextworld.public_test_evaluation.v1
+      status: public_final_reporting_only
+      split: test
+      artifact_root: artifacts/evaluation/history3/speed_multistep_extrap_v5
     release_config: configs/benchmark/tworoom_speed_icl_release_v1.yaml
     sources:
       - split: training
@@ -58,6 +63,9 @@ components:
       - split: development
         source: synthesis/data/tworoom_speed_full_v1/val
         target: components/tworoom-speed/v1/development/data
+      - split: test
+        source: evaluation/history3/speed_multistep_extrap_v5
+        target: artifacts/evaluation/history3/speed_multistep_extrap_v5
 
   door:
     dataset_id: tworoom-door
@@ -95,6 +103,11 @@ components:
         mean: [0.0031402341986976924, -0.051594576296864605]
         std: [0.867571689163936, 0.8688840167517821]
         std_estimator: unbiased
+    public_test_evaluation:
+      schema_version: contextworld.public_test_evaluation.v1
+      status: public_final_reporting_only
+      split: test
+      artifact_root: artifacts/evaluation/history3/hidden_passage_validation_v2
     release_config: configs/benchmark/tworoom_door_icl_release_v1.yaml
     sources:
       - split: training
@@ -103,6 +116,9 @@ components:
       - split: development
         source: synthesis/hidden_passage_h3_v1/formal/tables/val
         target: components/tworoom-door/v1/development/data
+      - split: test
+        source: evaluation/history3/hidden_passage_validation_v2
+        target: artifacts/evaluation/history3/hidden_passage_validation_v2
 
   action_delay:
     dataset_id: tworoom-action-delay
@@ -142,6 +158,11 @@ components:
         mean: [0.0031402341986976924, -0.051594576296864605]
         std: [0.867571689163936, 0.8688840167517821]
         std_estimator: unbiased
+    public_test_evaluation:
+      schema_version: contextworld.public_test_evaluation.v1
+      status: public_final_reporting_only
+      split: test
+      artifact_root: artifacts/evaluation/history7/action_delay_validation_v1
     release_config: configs/benchmark/tworoom_action_delay_icl_release_v1.yaml
     sources:
       - split: training
@@ -156,6 +177,10 @@ components:
       - split: development
         source: synthesis/action_delay_h7_core_training_v3/tables/val
         target: components/tworoom-action-delay/v1/development/full
+      - split: test
+        source: evaluation/history7/action_delay_validation_v1
+        target: artifacts/evaluation/history7/action_delay_validation_v1
+        exclude: [score_receipts]
 
   action_strength:
     dataset_id: pusht-action-strength
@@ -191,6 +216,11 @@ components:
         mean: [-0.007812564261257648, 0.006860687397420406]
         std: [0.20846743881702423, 0.2067486196756363]
         std_estimator: population
+    public_test_evaluation:
+      schema_version: contextworld.public_test_evaluation.v1
+      status: public_final_reporting_only
+      split: test
+      artifact_root: artifacts/evaluation/history3/pusht_action_strength_h3_public_test_v1
     release_config: configs/benchmark/pusht_action_strength_icl_release_v1.yaml
     sources:
       - split: training
@@ -199,6 +229,9 @@ components:
       - split: development
         source: synthesis/pusht_action_strength_h3_release_v1/validation.lance
         target: components/pusht-action-strength/v1/development/data.lance
+      - split: test
+        source: evaluation/history3/pusht_action_strength_h3_public_test_v1
+        target: artifacts/evaluation/history3/pusht_action_strength_h3_public_test_v1
 
   contact_friction:
     dataset_id: pusht-contact-friction
@@ -234,6 +267,11 @@ components:
         mean: [-0.007812564261257648, 0.006860687397420406]
         std: [0.20846743881702423, 0.2067486196756363]
         std_estimator: population
+    public_test_evaluation:
+      schema_version: contextworld.public_test_evaluation.v1
+      status: public_final_reporting_only
+      split: test
+      artifact_root: artifacts/synthesis/pusht_contact_friction_h3_release_v3
     release_config: configs/benchmark/pusht_contact_friction_icl_release_v1.yaml
     sources:
       - split: training
@@ -242,6 +280,9 @@ components:
       - split: development
         source: synthesis/pusht_contact_friction_h3_release_v3/loader_validation.lance
         target: components/pusht-contact-friction/v1/development/data.lance
+      - split: test
+        source: synthesis/pusht_contact_friction_h3_release_v3/validation.lance
+        target: artifacts/synthesis/pusht_contact_friction_h3_release_v3/validation.lance
 
   motion_damping:
     dataset_id: pusht-motion-damping
@@ -277,6 +318,11 @@ components:
         mean: [-0.007812564261257648, 0.006860687397420406]
         std: [0.20846743881702423, 0.2067486196756363]
         std_estimator: population
+    public_test_evaluation:
+      schema_version: contextworld.public_test_evaluation.v1
+      status: public_final_reporting_only
+      split: test
+      artifact_root: artifacts/synthesis/pusht_motion_damping_h3_release_v4
     release_config: configs/benchmark/pusht_motion_damping_icl_release_v1.yaml
     sources:
       - split: training
@@ -285,6 +331,9 @@ components:
       - split: development
         source: synthesis/pusht_motion_damping_h3_release_v4/loader_validation.lance
         target: components/pusht-motion-damping/v1/development/data.lance
+      - split: test
+        source: synthesis/pusht_motion_damping_h3_release_v4/validation.lance
+        target: artifacts/synthesis/pusht_motion_damping_h3_release_v4/validation.lance
 
   robot_arm_mass:
     dataset_id: reacher-arm-mass
@@ -320,6 +369,11 @@ components:
         mean: [0.000035727661713243504, -0.0005056222437278677]
         std: [0.5774140806845414, 0.577182679325366]
         std_estimator: population
+    public_test_evaluation:
+      schema_version: contextworld.public_test_evaluation.v1
+      status: public_final_reporting_only
+      split: test
+      artifact_root: artifacts/synthesis/reacher_robot_arm_mass_h3_release_v1
     release_config: configs/benchmark/reacher_arm_mass_icl_release_v1.yaml
     sources:
       - split: training
@@ -328,6 +382,9 @@ components:
       - split: development
         source: synthesis/reacher_robot_arm_mass_h3_release_v1/loader_validation.lance
         target: components/reacher-arm-mass/v1/development/data.lance
+      - split: test
+        source: synthesis/reacher_robot_arm_mass_h3_release_v1/validation.lance
+        target: artifacts/synthesis/reacher_robot_arm_mass_h3_release_v1/validation.lance
 
   portal_exit:
     dataset_id: tworoom-portal-exit
@@ -363,6 +420,11 @@ components:
         mean: [0.0031402341986976924, -0.051594576296864605]
         std: [0.867571689163936, 0.8688840167517821]
         std_estimator: unbiased
+    public_test_evaluation:
+      schema_version: contextworld.public_test_evaluation.v1
+      status: public_final_reporting_only
+      split: test
+      artifact_root: artifacts/synthesis/tworoom_portal_exit_h3_release_v1
     release_config: configs/benchmark/tworoom_portal_exit_icl_release_v1.yaml
     sources:
       - split: training
@@ -371,6 +433,9 @@ components:
       - split: development
         source: synthesis/tworoom_portal_exit_h3_release_v1/loader_validation.lance
         target: components/tworoom-portal-exit/v1/development/data.lance
+      - split: test
+        source: synthesis/tworoom_portal_exit_h3_release_v1/validation.lance
+        target: artifacts/synthesis/tworoom_portal_exit_h3_release_v1/validation.lance
 
   cube_gripper_carry:
     dataset_id: cube-gripper-carry
@@ -406,6 +471,11 @@ components:
         mean: [0.010884696617722511, -0.003141433000564575, 0.002646582666784525, 0.00042392866453155875, 0.1592525690793991]
         std: [0.28941982984542847, 0.393716961145401, 0.6431365013122559, 0.3928016126155853, 0.2503073513507843]
         std_estimator: population
+    public_test_evaluation:
+      schema_version: contextworld.public_test_evaluation.v1
+      status: public_final_reporting_only
+      split: test
+      artifact_root: artifacts/synthesis/cube_gripper_carry_rule_h3_v4r1_release_projection_v1
     release_config: configs/benchmark/cube_gripper_carry_h3_v4r1_icl_release_v1.yaml
     sources:
       - split: training
@@ -414,3 +484,6 @@ components:
       - split: development
         source: synthesis/cube_gripper_carry_rule_h3_v4r1_release_projection_v1/loader_validation.lance
         target: components/cube-gripper-carry/v1/development/data.lance
+      - split: test
+        source: synthesis/cube_gripper_carry_rule_h3_v4r1_release_projection_v1/validation.lance
+        target: artifacts/synthesis/cube_gripper_carry_rule_h3_v4r1_release_projection_v1/validation.lance
