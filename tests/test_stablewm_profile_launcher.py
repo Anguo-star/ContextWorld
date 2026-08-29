@@ -3607,7 +3607,7 @@ class TestTrainingMethodOverlay:
         assert pairs["loss.conditional_joint.enabled"] == "true"
         assert pairs["loss.conditional_joint.weight"] == "0.09"
         assert pairs["loss.conditional_joint.group_width"] == "2"
-        assert pairs["trainer.use_distributed_sampler"] == "false"
+        assert pairs["++trainer.use_distributed_sampler"] == "false"
 
     @pytest.mark.parametrize("family", FAMILIES)
     def test_coja_run_name_never_shares_the_native_run_directory(

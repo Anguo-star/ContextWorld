@@ -1359,7 +1359,10 @@ def _method_overrides(
     _add(entries, keys["enabled"], True)
     _add(entries, keys["weight"], float(profile["weight"]))
     _add(entries, keys["group_width"], group_width)
-    _add(entries, "trainer.use_distributed_sampler", False)
+    # The relation-aware sampler owns DDP sharding. Some upstream family
+    # configs do not predeclare this optional Lightning key, so use Hydra's
+    # add-or-override form across every supported family.
+    _add(entries, "++trainer.use_distributed_sampler", False)
     return entries
 
 

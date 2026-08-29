@@ -184,7 +184,9 @@ common_keys:
   max_epochs: trainer.max_epochs
   devices: trainer.devices
   accelerator: trainer.accelerator
-  strategy: trainer.strategy
+  # PLDM does not predeclare this optional Lightning key. ``++`` preserves
+  # ordinary overrides for families that do and safely adds it for PLDM.
+  strategy: ++trainer.strategy
   precision: trainer.precision
   accumulate_grad_batches: ++trainer.accumulate_grad_batches
   gradient_clip_val: trainer.gradient_clip_val
