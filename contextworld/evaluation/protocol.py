@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import importlib
 import json
 import sys
 from dataclasses import dataclass
@@ -41,6 +42,35 @@ class ColumnStandardizer:
 
     def inverse_transform(self, value: np.ndarray) -> np.ndarray:
         return np.asarray(value) * self.std + self.mean
+
+
+def _prepare_optional_flash_attention() -> bool:
+    """Mask an ABI-broken optional FlashAttention installation.
+
+    StablePretraining reaches Kornia while reconstructing some StableWM
+    checkpoints.  Kornia supports PyTorch's scaled-dot-product-attention
+    fallback when FlashAttention is absent, but a wheel compiled against a
+    different PyTorch ABI raises ``ImportError`` instead of looking absent.
+    Treat only that optional-package failure as absence; a working install is
+    left untouched and unrelated import failures still propagate.
+    """
+
+    try:
+        importlib.import_module("flash_attn.modules.mha")
+    except ModuleNotFoundError:
+        return False
+    except (ImportError, OSError) as exc:
+        for module_name in tuple(sys.modules):
+            if module_name == "flash_attn" or module_name.startswith(
+                "flash_attn."
+            ):
+                sys.modules.pop(module_name, None)
+        sys.modules["flash_attn"] = None
+        sys.stderr.write(
+            "ContextWorld: optional flash-attn is not loadable "
+            f"({type(exc).__name__}); using PyTorch attention instead.\n"
+        )
+        return True
 
 
 def original_h5_process(path: Path) -> dict[str, ColumnStandardizer]:
@@ -243,6 +273,7 @@ def load_pretrained_cost_model(
         raise ValueError(f"Expected a StableWM .pt checkpoint, got {checkpoint}")
     if not (checkpoint.parent / "config.json").is_file():
         raise FileNotFoundError(checkpoint.parent / "config.json")
+    _prepare_optional_flash_attention()
     model = stable_worldmodel.wm.utils.load_pretrained(
         str(checkpoint), cache_dir=str(cache_dir.resolve())
     )

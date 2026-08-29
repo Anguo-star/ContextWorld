@@ -552,17 +552,20 @@ def build_commands(
             original_env=args.original_env,
             contract=contract,
         )
-        history_keys = ",".join(("pixels", *prejepa_state_keys))
-        command_prefix = [
-            sys.executable,
-            str(REPO_ROOT / "scripts/run_stablewm_plan.py"),
-            "--upstream-entry",
-            str(entry),
-            "--history-keys",
-            history_keys,
-        ]
-    else:
-        command_prefix = [sys.executable, str(entry)]
+    history_keys = ",".join(("pixels", *prejepa_state_keys))
+    command_prefix = [
+        sys.executable,
+        str(REPO_ROOT / "scripts/run_stablewm_plan.py"),
+        "--upstream-entry",
+        str(entry),
+        "--history-keys",
+        history_keys,
+    ]
+    if not args.keep_videos:
+        # The upstream evaluator always renders videos and deletes them only
+        # after returning.  Disabling that unrequested side output avoids
+        # collisions when independent CEM seeds run on separate GPUs.
+        command_prefix.append("--disable-videos")
     commands = []
     for seed in args.eval_seeds:
         label = (

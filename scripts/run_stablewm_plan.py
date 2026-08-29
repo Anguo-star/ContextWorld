@@ -25,10 +25,13 @@ from pathlib import Path
 from run_stablewm_family_entry import _prepare_optional_flash_attention
 
 
-def _parse_bridge_args(argv: list[str]) -> tuple[Path, tuple[str, ...], list[str]]:
+def _parse_bridge_args(
+    argv: list[str],
+) -> tuple[Path, tuple[str, ...], bool, list[str]]:
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument("--upstream-entry", type=Path, required=True)
     parser.add_argument("--history-keys", required=True)
+    parser.add_argument("--disable-videos", action="store_true")
     args, remaining = parser.parse_known_args(argv)
 
     entry = args.upstream_entry.expanduser().resolve()
@@ -40,11 +43,11 @@ def _parse_bridge_args(argv: list[str]) -> tuple[Path, tuple[str, ...], list[str
             "--history-keys must be a unique comma-separated list beginning "
             "with pixels"
         )
-    return entry, keys, remaining
+    return entry, keys, bool(args.disable_videos), remaining
 
 
 def main(argv: list[str] | None = None) -> int:
-    entry, history_keys, upstream_argv = _parse_bridge_args(
+    entry, history_keys, disable_videos, upstream_argv = _parse_bridge_args(
         list(sys.argv[1:] if argv is None else argv)
     )
 
@@ -62,6 +65,16 @@ def main(argv: list[str] | None = None) -> int:
         return original_init(self, *args, **kwargs)
 
     policy_class.__init__ = init_with_history_keys
+    if disable_videos:
+        world_class = swm.World
+        original_evaluate = world_class.evaluate
+
+        @functools.wraps(original_evaluate)
+        def evaluate_without_video(self, *args, **kwargs):
+            kwargs["video"] = None
+            return original_evaluate(self, *args, **kwargs)
+
+        world_class.evaluate = evaluate_without_video
     sys.argv = [str(entry), *upstream_argv]
     try:
         runpy.run_path(str(entry), run_name="__main__")

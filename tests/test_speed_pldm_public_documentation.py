@@ -218,14 +218,15 @@ def test_reference_table_covers_every_registered_component_and_both_models() -> 
     model = table.column("模型")
 
     tasks = [row[task] for row in table.rows]
-    assert Counter(tasks) == {name: 2 for name in names.values()}, (
-        "the reference table must carry one row per registered component per "
-        f"reference model; it has {sorted(Counter(tasks).items())}"
+    assert Counter(tasks) == {name: 3 for name in names.values()}, (
+        "the reference table must carry one row per registered component for "
+        f"each displayed model family; it has {sorted(Counter(tasks).items())}"
     )
     for name in names.values():
         assert {row[model] for row in table.rows if row[task] == name} == {
             "LeWM",
             "PLDM",
+            "DINO-WM",
         }
 
 
@@ -322,7 +323,7 @@ def test_reference_results_are_not_the_public_test_distribution() -> None:
 
 def test_unevaluated_retention_cells_are_explained() -> None:
     table = _reference_table(_document())
-    cem = table.column("CEM")
+    cem = table.column("训练后", "CEM")
     unevaluated = [row for row in table.rows if UNEVALUATED.search(row[cem])]
     if not unevaluated:
         return

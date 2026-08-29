@@ -1,7 +1,7 @@
 {
   "schema_version": "contextworld.dinowm-component-development-results.v1",
   "status": "partial_non_frozen_supplementary_evidence",
-  "recorded_on": "2026-08-27",
+  "recorded_on": "2026-08-28",
   "claim_boundary": {
     "evaluation_split": "development",
     "public_test_accessed": false,
@@ -125,13 +125,22 @@
       ]
     },
     "cube_gripper_carry": {
-      "status": "evaluation_incomplete",
-      "completed_training_seeds": [3072, 3073, 3074],
-      "fully_evaluated_training_seeds": [3072],
-      "partially_evaluated_training_seeds": [3073],
-      "not_evaluated_training_seeds": [3074],
-      "icl_primary_by_training_seed": null,
-      "cem_successes_by_training_seed": null
+      "status": "complete_three_seed_development",
+      "primary_metric": "correct_future_rate",
+      "icl_primary_by_training_seed": [0.501953125, 0.50390625, 0.50390625],
+      "cem_successes_by_training_seed": [216, 207, 227],
+      "cem_delta_vs_original_by_training_seed": [-3, -10, 3],
+      "eval_manifest_sha256_by_training_seed": [
+        "7c736781f723a2b89688adf2306eedcb38a5bc61b2cf7e684ab2119e10a3cf1e",
+        "7f0c0c44ba10617d715783d424a77d437b12fe50cabcb1626f3279493c91ad8f",
+        "a2b205d088e579113d75535090ca52ea35ad8d22c5a25b5fa9d48f8b9d0655f6"
+      ],
+      "icl_recovery_manifest_sha256_by_training_seed": [
+        null,
+        "89854c4c55975361842822398e27f04193922f9fa85608104c1610f878e18d8b",
+        "e09fd2014303ab7eed464bb00da0e105f1d2191bbd349a23e000ac5ca41a6b9e"
+      ],
+      "evidence_note": "Seeds 3073 and 3074 combine the six completed CEM cells in the original immutable manifest with a completed Development ICL recovery manifest."
     }
   }
 }

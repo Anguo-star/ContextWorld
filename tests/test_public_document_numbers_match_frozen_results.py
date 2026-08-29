@@ -45,6 +45,11 @@ SCOREBOARD = (
 DINO_DIAGNOSTIC = (
     ROOT / "artifacts/evaluation/dinowm_original_diagnostic_v1/summary.json"
 )
+COMPLETE_COMPARISON = (
+    ROOT
+    / "artifacts/evaluation/complete_reference_comparison_v1"
+    / "complete_comparison_v2.json"
+)
 
 # Rounding to two decimals moves a documented percentage by at most half of the
 # last digit; anything beyond that is a transcription error, not formatting.
@@ -377,7 +382,7 @@ def test_documented_retention_matches_frozen_retention(
     """
     entry = _scoreboard_entry(row_key)
     table, row = _reference_row(*row_key)
-    cell = row[table.column("CEM")]
+    cell = row[table.column("训练后", "CEM")]
     values = _percentages(cell)
     retention = entry["original_task_retention"]
 
@@ -441,130 +446,56 @@ def test_dino_diagnostic_summary_is_available() -> None:
     assert summary["original_environment_cem"]["environments"]
 
 
-def _is_dino(table: Table) -> bool:
-    """Whether the heading path or header attributes a table to DINO/PreJEPA."""
-    return bool(DINO_LABEL.search(" ".join((*table.path, *table.header))))
-
-
-def _dino_tables(document: str) -> list[Table]:
-    return [table for table in _tables(document) if _is_dino(table)]
-
-
-def _environment_rows(table: Table, environments: dict) -> list[tuple[str, ...]]:
-    return [row for row in table.rows if row[0].strip().lower() in environments]
-
-
-def _cells(table: Table) -> tuple[str, ...]:
-    return (*table.header, *(cell for row in table.rows for cell in row))
-
-
-def _component_of(label: str) -> str | None:
-    matches = [
-        component_id
-        for component_id, name in DISPLAY_NAMES.items()
-        if name in label
-    ]
-    if not matches:
-        return None
-    assert len(matches) == 1, f"row label {label!r} matches {matches}"
-    return matches[0]
+def _dino_rows(table: Table) -> dict[str, tuple[str, ...]]:
+    """Component id -> DINO-WM row in the unified task-by-model table."""
+    task = table.column("任务")
+    model = table.column("模型")
+    rows = {
+        component_id: next(
+            (
+                row
+                for row in table.rows
+                if row[task] == display_name and row[model] == "DINO-WM"
+            ),
+            None,
+        )
+        for component_id, display_name in DISPLAY_NAMES.items()
+    }
+    missing = [component_id for component_id, row in rows.items() if row is None]
+    assert not missing, f"unified comparison table lacks DINO-WM rows for {missing}"
+    return {component_id: row for component_id, row in rows.items() if row is not None}
 
 
 def test_documented_dino_numbers_come_from_the_diagnostic_summary() -> None:
-    """Every published DINO/PreJEPA number is bound to the diagnostic run."""
+    """Every DINO original-data ICL/CEM value is bound to its diagnostic."""
     summary = _dino_summary()
     icl = summary["icl"]["components"]
     environments = summary["original_environment_cem"]["environments"]
+    table = _reference_table(_document())
+    rows = _dino_rows(table)
+    original_icl = table.column("原始", "ICL")
+    original_cem = table.column("原始", "CEM")
 
-    expected: dict[str, dict] = {}
-    for component_id, entry in icl.items():
-        expected[DISPLAY_NAMES[component_id]] = {
-            "mean": entry["mean"],
-            "spread": entry["sample_standard_deviation"],
-            "per_seed": list(entry["values_by_training_seed"].values()),
-            "episodes": None,
-            "key": component_id,
-        }
-    for environment, entry in environments.items():
-        expected[environment] = {
-            "mean": entry["mean"],
-            "spread": entry["sample_standard_deviation"],
-            "per_seed": list(entry["success_rate_by_training_seed"].values()),
-            "episodes": list(entry["successful_episodes_by_training_seed"].values()),
-            "key": environment,
-        }
-
-    document = _document()
-    bound: set[str] = set()
-    checks = 0
-
-    for table in _dino_tables(document):
-        dino_columns = [
-            index
-            for index, cell in enumerate(table.header)
-            if DINO_LABEL.search(cell)
-        ]
-        for row in table.rows:
-            label = row[0].strip()
-            source = expected.get(label.lower()) or expected.get(
-                DISPLAY_NAMES.get(_component_of(label) or "", "")
-            )
-            if source is None:
-                continue
-            cells = [row[index] for index in dino_columns] if dino_columns else row[1:]
-            for cell in cells:
-                values = _percentages(cell)
-                if values:
-                    bound.add(source["key"])
-                    checks += 1
-                    if len(values) == 1:
-                        assert values[0] == pytest.approx(
-                            source["mean"] * 100, abs=ROUNDING
-                        ), (
-                            f"{label}: document says {values[0]:.2f}% but the "
-                            f"diagnostic mean is {source['mean'] * 100:.4f}%"
-                        )
-                    else:
-                        assert sorted(values) == pytest.approx(
-                            sorted(value * 100 for value in source["per_seed"]),
-                            abs=ROUNDING,
-                        )
-                spread = _spread(cell)
-                if spread is not None:
-                    bound.add(source["key"])
-                    checks += 1
-                    assert spread == pytest.approx(
-                        source["spread"] * 100, abs=ROUNDING
-                    ), (
-                        f"{label}: document says ±{spread}pp but the diagnostic "
-                        f"sample standard deviation is "
-                        f"{source['spread'] * 100:.4f}pp"
-                    )
-                if "%" not in cell and source["episodes"]:
-                    counts = [int(value) for value in re.findall(r"\d+", cell)]
-                    if len(counts) == len(source["episodes"]):
-                        bound.add(source["key"])
-                        checks += 1
-                        assert sorted(counts) == sorted(source["episodes"])
-
-    assert checks, (
-        "no DINO-WM / PreJEPA number in the public document could be traced to "
-        f"{DINO_DIAGNOSTIC.relative_to(ROOT)}; if the document no longer "
-        "publishes those numbers, remove this binding deliberately"
-    )
-
-    documented_components = {key for key in bound if key in DISPLAY_NAMES}
-    if documented_components:
-        assert documented_components == set(icl), (
-            "the DINO ICL diagnostic is published for a subset of components: "
-            f"{sorted(set(icl) - documented_components)} are missing"
+    assert set(rows) == set(icl)
+    for component_id, row in rows.items():
+        icl_source = icl[component_id]
+        icl_values = _percentages(row[original_icl])
+        assert len(icl_values) == 1
+        assert icl_values[0] == pytest.approx(
+            icl_source["mean"] * 100, abs=ROUNDING
         )
-    documented_environments = bound & set(environments)
-    if documented_environments:
-        assert documented_environments == set(environments), (
-            "the DINO original-environment CEM evidence is published for a "
-            f"subset of environments: "
-            f"{sorted(set(environments) - documented_environments)} are missing"
+        assert _spread(row[original_icl]) == pytest.approx(
+            icl_source["sample_standard_deviation"] * 100, abs=ROUNDING
+        )
+
+        cem_source = environments[icl_source["environment"]]
+        cem_values = _percentages(row[original_cem])
+        assert len(cem_values) == 1
+        assert cem_values[0] == pytest.approx(
+            cem_source["mean"] * 100, abs=ROUNDING
+        )
+        assert _spread(row[original_cem]) == pytest.approx(
+            cem_source["sample_standard_deviation"] * 100, abs=ROUNDING
         )
 
 
@@ -576,49 +507,86 @@ def test_dino_cem_is_labelled_non_frozen_supplemental_evidence() -> None:
     assert summary["claim_boundary"]["cem_official_frozen_matrix"] is False
     assert summary["claim_boundary"]["public_reference_result"] is False
 
-    environments = cem["environments"]
-    tables = [
-        table
-        for table in _dino_tables(_document())
-        if len(_environment_rows(table, environments)) >= 2
-    ]
-    assert tables, (
-        "the DINO-WM / PreJEPA original-environment CEM evidence is not in the "
-        "public document, or is no longer attributed to that model family"
-    )
-
-    for table in tables:
-        label = _flatten(" ".join((*table.path, table.context)))
-        assert NON_FROZEN.search(label), (
-            f"the DINO CEM table under {table.path[-1]!r} must be labelled "
-            "non-frozen; the diagnostic records official_frozen_matrix=false"
+    table = _reference_table(_document())
+    original_cem = table.column("原始", "CEM")
+    for component_id, row in _dino_rows(table).items():
+        cell = row[original_cem]
+        assert NON_FROZEN.search(cell), (
+            f"{component_id}: DINO CEM must say it is non-frozen"
         )
-        assert SUPPLEMENTAL.search(label), (
-            f"the DINO CEM table under {table.path[-1]!r} must be labelled "
-            "supplemental evidence, not a reference result "
+        assert SUPPLEMENTAL.search(cell), (
+            f"{component_id}: DINO CEM must say it is supplementary evidence "
             f"({summary['status']})"
         )
 
 
-def test_frozen_original_environment_matrix_excludes_dino() -> None:
-    """The frozen LeWM/PLDM CEM matrix must not absorb the diagnostic numbers."""
-    environments = _dino_summary()["original_environment_cem"]["environments"]
+def test_unified_matrix_keeps_frozen_and_diagnostic_evidence_distinct() -> None:
+    """One display table must not erase the formal/non-frozen boundary."""
+    table = _reference_table(_document())
+    model = table.column("模型")
+    original_cem = table.column("原始", "CEM")
 
-    frozen = [
-        table
-        for table in _tables(_document())
-        if len(_environment_rows(table, environments)) >= 2
-        and not _is_dino(table)
-        and any(family in cell for family in FAMILIES for cell in _cells(table))
-    ]
-    assert frozen, "the frozen LeWM/PLDM original-environment CEM matrix is missing"
+    dino = [row for row in table.rows if row[model] == "DINO-WM"]
+    frozen = [row for row in table.rows if row[model] in FAMILIES]
+    assert len(dino) == len(DISPLAY_NAMES)
+    assert len(frozen) == len(DISPLAY_NAMES) * len(FAMILIES)
+    assert all(
+        NON_FROZEN.search(row[original_cem])
+        and SUPPLEMENTAL.search(row[original_cem])
+        for row in dino
+    )
+    assert all(not NON_FROZEN.search(row[original_cem]) for row in frozen)
 
-    for table in frozen:
-        offenders = [cell for cell in _cells(table) if DINO_LABEL.search(cell)]
-        assert not offenders, (
-            f"the frozen CEM matrix under {table.path[-1]!r} carries non-frozen "
-            f"DINO/PreJEPA evidence: {offenders}"
+
+def test_supplemental_column_matches_complete_comparison_record() -> None:
+    """Non-scoreboard ICL/CEM values remain bound to the complete record."""
+    if not COMPLETE_COMPARISON.is_file():
+        pytest.skip(
+            f"no complete comparison at {COMPLETE_COMPARISON.relative_to(ROOT)}"
         )
+
+    payload = json.loads(COMPLETE_COMPARISON.read_text(encoding="utf-8"))
+    entries = {
+        (entry["component_id"], entry["family"]): entry
+        for entry in payload["rows"]
+    }
+    checked: set[tuple[str, str]] = set()
+
+    for row_key, entry in entries.items():
+        table, row = _reference_row(*row_key)
+        cell = row[table.column("补充证据")]
+        if cell == "—":
+            continue
+
+        values = _percentages(cell)
+        if "ICL" in cell:
+            assert values[0] == pytest.approx(
+                entry["icl"]["mean"] * 100, abs=ROUNDING
+            )
+            assert _spread(cell) == pytest.approx(
+                entry["icl"]["sample_std"] * 100, abs=ROUNDING
+            )
+            values = values[1:]
+
+        expected_cem = [
+            seed["success_rate"] * 100
+            for seed in entry["original_task_cem"]["per_seed"]
+        ]
+        assert sorted(values) == pytest.approx(sorted(expected_cem), abs=ROUNDING)
+        documented_kept = "未保持" not in cell
+        assert documented_kept == (entry["original_task_cem"]["result"] == "PASS")
+        checked.add(row_key)
+
+    assert checked == {
+        ("action_strength", "PLDM"),
+        ("robot_arm_mass", "PLDM"),
+        ("portal_exit", "PLDM"),
+        ("contact_friction", "LeWM"),
+        ("contact_friction", "PLDM"),
+        ("motion_damping", "LeWM"),
+        ("motion_damping", "PLDM"),
+        ("cube_gripper_carry", "PLDM"),
+    }
 
 
 def test_documented_cem_budget_matches_the_recorded_budget() -> None:

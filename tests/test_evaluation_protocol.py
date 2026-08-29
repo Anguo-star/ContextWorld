@@ -4,6 +4,8 @@ from types import SimpleNamespace
 import numpy as np
 import pytest
 
+import contextworld.evaluation.protocol as protocol
+
 from contextworld.evaluation.protocol import (
     ColumnStandardizer,
     allocate_scenario_evaluations,
@@ -92,6 +94,7 @@ def test_catalog_regime_paths_resolve_from_repo_root() -> None:
 
 def test_native_checkpoint_loader_accepts_current_dynamics_api(
     tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     checkpoint = tmp_path / "weights.pt"
     checkpoint.write_bytes(b"checkpoint")
@@ -105,9 +108,19 @@ def test_native_checkpoint_loader_accepts_current_dynamics_api(
             pass
 
     model = Dynamics()
+    calls: list[str] = []
+    monkeypatch.setattr(
+        protocol,
+        "_prepare_optional_flash_attention",
+        lambda: calls.append("flash-fallback") or False,
+    )
     stable_worldmodel = SimpleNamespace(
         wm=SimpleNamespace(
-            utils=SimpleNamespace(load_pretrained=lambda *args, **kwargs: model)
+            utils=SimpleNamespace(
+                load_pretrained=lambda *args, **kwargs: (
+                    calls.append("load-pretrained") or model
+                )
+            )
         )
     )
 
@@ -119,6 +132,7 @@ def test_native_checkpoint_loader_accepts_current_dynamics_api(
         )
         is model
     )
+    assert calls == ["flash-fallback", "load-pretrained"]
 
 
 def test_native_checkpoint_loader_rejects_non_model_surface(

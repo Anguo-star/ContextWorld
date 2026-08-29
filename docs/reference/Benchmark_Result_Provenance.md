@@ -10,7 +10,8 @@
 
 ## 1. 证据分级
 
-主文档的数值分为三类，彼此不可替代、不可合并：
+主文档的数值分为三类。它们可以在同一张综合表中并列展示，但不得互相替代，也不能在
+缺少划分、协议和证据状态标记时当作同口径结果：
 
 1. **冻结的 LeWM / PLDM 协议结果**：正式参考矩阵。包括原始检查点的 ICL 起点、原始
    环境 CEM，以及组件训练后的 scoreboard 行。
@@ -207,9 +208,10 @@ action-planning 记录的语义是 `EXECUTED_VALID_DESCRIPTIVE`，`model_perform
 
 ## 5. 仅在 Development 上评测的结果与门限失败说明
 
-接触摩擦、运动阻尼与 Cube PLDM 停在 Development，Public Test 未打开、未读取、未评分，
-因此没有 Public Test 成绩，也没有训练后 CEM。接触摩擦与运动阻尼的参考矩阵各自只完成
-一个训练种子（分别是 13313 和 14321），其余种子未运行。
+接触摩擦、运动阻尼与 Cube PLDM 的正式参考流程停在 Development，Public Test 未打开、
+未读取、未评分，因此正式 scoreboard 没有对应 Public Test 成绩或训练后 CEM。接触摩擦
+与运动阻尼的当前参考矩阵各自只完成一个训练种子（分别是 13313 和 14321），其余种子未
+运行。另行登记的旧配方对照与 Cube PLDM 外部补充结果见第 7 节，不改写这里的正式流程。
 
 | 组件 | 方法 | 主分数 | 正确历史 | 上下文切换 | 最弱条件 | 未通过的门 |
 |---|---|---:|---:|---:|---:|---|
@@ -251,8 +253,8 @@ Cube PLDM 在 v4r1 Development 上三个检查点为 50.20%、50.20% 和 50.00%�
 不兼容而未按正式接口计分（工件状态为 `not_compatible`）。诊断轨道把缺失输入固定为
 模型归一化空间中的零
 （`missing_context_policy: normalized_zero`，`privileged_state_read: false`），完成 27 个
-单元，全部未通过对应门限。主文档 5.3 的均值即来自该诊断，逐训练种子数值保存在同一
-工件中。
+单元，全部未通过对应门限。主文档综合表中带 † 的均值即来自该诊断，逐训练种子数值保存
+在同一工件中。
 
 原始环境 CEM 使用六个评测种子（42–47）× 50 次，每枚检查点 300 次，标记为
 `complete_standard_post_eval_checkpoint_level_evidence` 且 `official_frozen_matrix: false`。
@@ -266,10 +268,10 @@ Cube 219/217/224，逐评测种子成功数同样保存在工件中。评测种�
 
 ### 6.2 使用 ContextWorld-v1 组件数据训练的检查点
 
-当前有六个组件完成三训练种子的 10-epoch 从头训练、公开 Development ICL，以及每枚
-检查点 42–47 六个评测种子 × 50 次的原任务 CEM。18 份完成 manifest 均为 `completed`；
-每份包含一个 Development ICL 结果和六个 CEM 单元，记录的 19 个输出文件均通过大小与
-SHA-256 复核。
+当前有七个组件完成三训练种子的 10-epoch 从头训练、公开 Development ICL，以及每枚
+检查点 42–47 六个评测种子 × 50 次的原任务 CEM，共 21 个完整评测单元。其中 19 份原
+manifest 为 `completed`；Cube 的种子 3073 和 3074 保留原 manifest 中六个完成的 CEM
+单元，并分别由新的 `completed` ICL recovery manifest 补齐。恢复过程没有改写失败记录。
 
 | 组件 | Development 主指标（三个训练种子） | CEM 成功数（各 300 次） |
 |---|---|---|
@@ -279,13 +281,14 @@ SHA-256 复核。
 | 接触摩擦 | 49.61%、49.41%、49.80% | 74、82、91 |
 | 运动阻尼 | 50.00%、50.20%、50.20% | 75、66、89 |
 | 机械臂质量 | 50.59%、51.76%、51.76% | 163、155、154 |
+| Cube 夹爪携带规则 | 50.20%、50.39%、50.39% | 216、207、227 |
 
 动作延迟的三个 `16-mixed` History=7 训练分别在 epoch 2、2、4 出现 NaN 损失，均未
 生成可评分的 epoch-10 检查点。失败发生在不同批次，且失败前损失有限；合成数据中的动作
 字段经全量扫描也没有非有限值。因此当前证据支持“混合精度数值不稳定”而不是“固定坏样本”，
 但只有完成 `bf16-mixed` 重跑后才能确认修复。推手移动幅度尚未运行。Cube 的三个
-epoch-10 检查点已经生成，但只有种子 3072 完成 Development ICL 和全部六个 CEM 单元，
-所以未计算三种子汇总。
+epoch-10 检查点均已完成 Development ICL 和全部六个 CEM 单元；种子 3073、3074 通过
+独立 recovery manifest 补齐先前失败的 ICL 执行。
 
 这些结果只使用公开 Development，`public_test_accessed=false`、
 `formal_pass_available=false`、`official_scoreboard_row=false`。机器可读来源：
@@ -308,7 +311,7 @@ epoch-10 检查点已经生成，但只有种子 3072 完成 Development ICL 和
 | 机械臂质量 | PLDM | 230、226、231 | 233 | 0/3 |
 
 这些结果不改变 ICL 判定：三个方法的 ICL 都未通过，因此在正式流程中仍然没有训练后
-CEM 结论。
+CEM 判定；主文档只将它们标作“补充”结果。
 
 记录中还有两类对照，不能与当前配方的参考结果混读：
 
@@ -316,11 +319,12 @@ CEM 结论。
   配方训练，在当前冻结 Public Test 上重打分，ICL 分别为 49.35%、50.00%、50.07% 和
   50.26%，均为 0/3；对应 PushT CEM 分别通过 2/3、1/3、1/3 和 0/3。工件明确声明它们
   “不是关于当前 8,192 对训练配方的证据”。
-- **Cube PLDM 外部提交**：参考流程中该方法的 Public Test 仍记为
+- **Cube PLDM 外部提交**：正式参考流程中该方法的 Public Test 仍记为
   `not_authorized_not_run`；同一批 v4r1 PLDM 检查点另以独立外部结果身份
   （`external_three_seed_method`、`formal_scoreboard_eligible: false`）在 Cube Public Test
   上得到 50.98%、50.78%、51.17%，0/3；其原 Cube CEM 为 168、164、164/300，相对基线
-  159/300 通过非劣性。该提交不改写参考结果，也不改变第 5 节的 Development 结论。
+  159/300 通过非劣性。该提交不改写正式 scoreboard；主文档综合表以 ¶ 明确标出其补充
+  身份。
 
 机器可读来源：
 
@@ -333,9 +337,13 @@ CEM 结论。
 
 以下内容在仓库中没有测量结果，不应从现有数字外推：
 
-- 接触摩擦与运动阻尼的 Public Test 模型分数：Public Test 未打开、未读取、未评分；
+- 接触摩擦与运动阻尼当前 8,192 对配方的 Public Test 模型分数：Public Test 未打开、
+  未读取、未评分；第 7 节的旧配方 Public Test 对照不能替代它；
 - 接触摩擦与运动阻尼的第二、第三个训练种子：未运行；
-- 接触摩擦、运动阻尼与 Cube PLDM 的训练后原任务 CEM（当前配方）：未运行；
+- 接触摩擦与运动阻尼的训练后原任务 CEM（当前配方）：未运行；Cube PLDM 已有独立补充
+  CEM，但不属于正式 scoreboard；
+- DINO-WM / PreJEPA 的推手移动幅度组件训练尚未启动；动作延迟尚未产生可评分的 epoch-10
+  检查点，因此两者都没有组件 ICL 或训练后 CEM；
 - 速度 PLDM 的同训练种子单速度对照：未预注册、未运行，因此不能做训练归因；
 - 除速度已有的预设范围外诊断外，其余连续参数任务的范围外外推，以及九项任务的通用
   多步闭环适应：不在现有冻结结论内；
