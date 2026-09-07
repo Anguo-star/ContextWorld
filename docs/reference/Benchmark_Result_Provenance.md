@@ -253,7 +253,26 @@ Cube PLDM 在 v4r1 Development 上三个检查点为 50.20%、50.20% 和 50.00%�
 动作延迟此前的“组件训练后”数值来自另一批检查点——分别是 `coja_v1` 方法（接触摩擦、
 运动阻尼单种子）或 `v4r1` 协议（Cube）——不是标准 `native` 配方的第二、第三个训练种子）。
 
-**动作延迟单独说明：评测问题不同，数值不可直接比较。** 本批自动 Development 评测
+**动作延迟：正式六组口径已于 2026-09-07 补跑完成。** 用
+`python -m contextworld.benchmarks.action_delay_icl_cli eval|score`（release
+`contextworld_tworoom_action_delay_icl_history7_v1`，冻结 300 查询 Public Test 资产，
+6 评测种子 × 50 查询，6 个物理响应组，`online_environment_calls: 0`，
+`data.full_protocol: true`）对本批 6 枚检查点评分：
+
+| 方法 | 种子 3072 | 种子 3073 | 种子 3074 | 主分数均值 ± 样本标准差 | 最弱组均值 | bootstrap 下界均值 | 判定 |
+|---|---:|---:|---:|---:|---:|---:|---|
+| 动作延迟 LeWM | 97.23% | 98.31% | 97.71% | 97.75% ± 0.54pp | 95.85% ± 0.95pp | 96.83% ± 0.64pp | 3/3 通过 |
+| 动作延迟 PLDM | 100.00% | 100.00% | 100.00% | 100.00% ± 0.00pp | 100.00% ± 0.00pp | 100.00% ± 0.00pp | 3/3 通过 |
+
+方法级回执 `decision.passed: true`、`passed_checkpoints: 3`、
+`submission_kind: three_seed_method`，输出保存在
+`ckpt/{lewm,pldm}-contextworld-v1/action_delay_h7full_method_score.json`，逐检查点结果在
+各 `checkpoints/<run>/eval_results/action_delay_h7full/result.json`。与第 4.1 节
+32.43% / 93.36% 同 benchmark id、同 `aggregation`、同冻结资产集，可直接比较；历史 LeWM
+回执的六组逐组准确率为 0%/13%/95.33%/84%/5.67%/0%（宏平均 33.00%，`gate.passed: false`），
+与本次 LeWM 各组 ≥95.22% 形成同口径对照。
+
+**自动管线的二元诊断（次要口径）。** 本批自动 Development 评测
 管线为动作延迟构造的候选对是逐个“delay=0 对比某个非零延迟值”的配对
 （`selection.rule: "d0 vs each listed contrast"`，delay_values 0–10 逐一配对，而不是
 一次性的多分类）；但报告的 `correct_future_rate` 及其细分（`delay_0_correct_future_rate`、
@@ -451,11 +470,15 @@ CEM 判定；主文档只将它们标作“补充”结果。
 - LeWM/PLDM 全部九项组件在 2026-09-03 完整三训练种子（`native`，见 5.1 节）检查点上的
   **Public Test** 分数：自动 post-train 管线只跑 Development，尚未针对这批检查点重新
   运行 Public Test；主文档 5.1 节表中标注“待补跑”的行都属于这一类；
-- 动作延迟这批检查点在**六组宏平均、完整延迟识别**口径下的分数：自动 Development
-  管线只产出“delay=0 对比 delay≠0”的二元诊断分数（见 5.1 节说明），完整延迟识别
-  评测尚未针对这批检查点重跑；因此无法判断 LeWM 是否已修复 32.43% 的原始未通过、
-  PLDM 是否仍维持 93.36% 的原始通过——这项评测可以直接用现有检查点补跑，不需要
-  重新训练；
+- ~~动作延迟这批检查点在六组宏平均口径下的分数~~：**已于 2026-09-07 补跑完成**，
+  见 5.1 节（LeWM 97.75% ± 0.54pp、PLDM 100.00% ± 0.00pp，均 3/3 通过）；
+- 只用原环境数据训练的 **LeWM/PLDM 三训练种子原始基线 ICL**：`ckpt/` 下没有这类
+  检查点，现有原始 ICL 起点只有 4 环境 × 2 家族各一枚单检查点；要得到与组件训练后
+  同口径的三种子原始基线，需要新的原始数据训练（4 × 2 × 3 = 24 次训练），不是补跑
+  评测可得。DINO-WM 的原始三种子检查点存在
+  （`ckpt/dino-wm/checkpoints/{cube,pusht,reacher,tworoom}_prejepa_original_s307{2,3,4}`）
+  且原始任务 CEM 完整，但其原始 ICL 只有零填充诊断轨道（输入合同不兼容，
+  `not_compatible`）；
 - 接触摩擦、运动阻尼、Cube、推手移动幅度、传送门出口位置这几项在 `native` 配方下
   Development 主分数为何与此前 `coja_v1`/`v4r1`/同一 `native` 配方旧批次相差 30–70pp
   的根本原因：已确认不是训练种子随机性（同批三个种子彼此高度一致，见 5.1 节“种子间
