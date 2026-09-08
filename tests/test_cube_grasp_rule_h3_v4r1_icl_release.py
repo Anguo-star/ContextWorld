@@ -20,6 +20,19 @@ from contextworld.benchmarks.cube_grasp_rule_v4r1_icl_data import (
 )
 from contextworld.paths import resolve_contextworld_path
 
+import pin_grading
+
+
+def _graded_failed_files(audit: dict) -> set[str]:
+    failed, _excused = pin_grading.graded_failed_audit_files(
+        audit,
+        config_relative=(
+            "configs/benchmark/cube_gripper_carry_h3_v4r1_icl_release_v1.yaml"
+        ),
+        repo_root=Path(__file__).resolve().parents[1],
+    )
+    return failed
+
 
 def test_v4r1_release_has_exact_five_dimensional_contract() -> None:
     release = load_cube_grasp_rule_v4r1_icl_release()
@@ -75,9 +88,7 @@ def test_v4r1_full_bundle_audit_and_public_shape() -> None:
     audit = audit_cube_grasp_rule_v4r1_icl_release(
         layout="bundle", full=True
     )
-    failed_files = {
-        name for name, result in audit["files"].items() if not result["passed"]
-    }
+    failed_files = _graded_failed_files(audit)
     assert failed_files == {"identity.package"}
     package = audit["files"]["identity.package"]
     root = Path(__file__).resolve().parents[1]

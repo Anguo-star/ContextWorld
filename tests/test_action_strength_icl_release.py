@@ -21,6 +21,8 @@ from contextworld.benchmarks.action_strength_icl_score import (
     score_action_strength_retention_report,
 )
 
+import pin_grading
+
 
 def test_prediction_contract_is_stable_when_reference_results_are_added() -> None:
     release = load_action_strength_icl_release()
@@ -252,8 +254,25 @@ def test_reference_package_binds_portable_training_and_public_test() -> None:
         )
 
 
-def test_release_audit_checks_all_three_current_reference_seeds() -> None:
-    audit = audit_action_strength_icl_release(full=False)
+def test_release_audit_checks_all_three_current_reference_seeds(
+    tmp_path: Path,
+) -> None:
+    # The identity pins are graded on the three-level scale before the audit:
+    # the immutable release keeps its historical bytes, and the temporary
+    # audit copy rewrites only pins whose drift is excused by the correction
+    # registry (bound to the live bytes/semantic fingerprint there).
+    root = Path(__file__).resolve().parents[1]
+    audit_config = pin_grading.release_copy_with_graded_pins(
+        root / "configs/benchmark/pusht_action_strength_icl_release_v1.yaml",
+        config_relative=(
+            "configs/benchmark/pusht_action_strength_icl_release_v1.yaml"
+        ),
+        repo_root=root,
+        destination=tmp_path / "action_strength_release_runtime_audit.yaml",
+    )
+    audit = audit_action_strength_icl_release(
+        release_config=audit_config, full=False
+    )
     assert audit["passed"] is True
     assert audit["reference_method"]["passed"] is True
     assert audit["reference_method"]["checks"][

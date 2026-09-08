@@ -11,6 +11,13 @@ import yaml
 
 from contextworld.benchmarks import speed_pldm_infrastructure_development as contract
 
+import pin_grading
+
+
+DEVELOPMENT_CONFIG = (
+    "configs/benchmark/tworoom_speed_pldm_infrastructure_development_v1.yaml"
+)
+
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -118,7 +125,18 @@ def test_raw_h3_sample_identity_detects_tampering() -> None:
         contract.verify_record_arrays(mutated, record)
 
 
-def test_actual_development_yaml_is_preregistered_and_source_pinned() -> None:
+def test_actual_development_yaml_is_preregistered_and_source_pinned(
+    monkeypatch,
+) -> None:
+    pin_grading.install_graded_contract_require_identity(
+        monkeypatch, freezer, config_relative=DEVELOPMENT_CONFIG
+    )
+    runtime = yaml.safe_load(
+        (ROOT / DEVELOPMENT_CONFIG).read_text(encoding="utf-8")
+    )["stable_worldmodel"]
+    ready, reason = pin_grading.stablewm_runtime_readiness(runtime)
+    if not ready:
+        pytest.skip(reason)
     config, identities = freezer._validate_config(freezer.DEFAULT_CONFIG)
     assert config["status"] == "preregistered_during_fixed_training_before_development_manifest_or_inference"
     assert config["sampling"]["index_rule"] == contract.CLIP_INDEX_RULE
@@ -130,9 +148,14 @@ def test_actual_development_yaml_is_preregistered_and_source_pinned() -> None:
     }
 
 
-def test_post_interruption_amendment_preserves_base_config_and_registers_active_evaluator() -> None:
+def test_post_interruption_amendment_preserves_base_config_and_registers_active_evaluator(
+    monkeypatch,
+) -> None:
     """The evaluator must not silently reinterpret the earlier preregistration."""
 
+    pin_grading.install_graded_contract_require_identity(
+        monkeypatch, development_evaluator, config_relative=DEVELOPMENT_CONFIG
+    )
     config, implementation, amendment = development_evaluator._config(
         development_evaluator.DEFAULT_CONFIG
     )
@@ -152,6 +175,9 @@ def test_post_interruption_amendment_preserves_base_config_and_registers_active_
 def test_evaluator_audits_disclosure_before_opening_development_manifest(monkeypatch) -> None:
     """Even manifest sample records remain behind the recovery-disclosure gate."""
 
+    pin_grading.install_graded_contract_require_identity(
+        monkeypatch, development_evaluator, config_relative=DEVELOPMENT_CONFIG
+    )
     import scripts.freeze_tworoom_speed_pldm_execution_disclosure_v1 as disclosure_gate
 
     config, implementation, amendment = development_evaluator._config(

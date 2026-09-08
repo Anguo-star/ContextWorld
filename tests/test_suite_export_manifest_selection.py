@@ -32,11 +32,17 @@ from contextworld.benchmarks.suite_data import (
     resolve_suite_v2_cli_default_config,
 )
 from contextworld.paths import repository_root
+from scripts import freeze_tworoom_speed_pldm_cem_binding_v1 as cem_binding
+from scripts import run_tworoom_speed_pldm_cem_v1 as cem_runner
+
+import pin_grading
 
 
 OVERLAY_PATH = (
     "configs/benchmark/contextworld_icl_suite_v2_current_results_overlay_v1.yaml"
 )
+
+CEM_PREREG_CONFIG = "configs/benchmark/tworoom_speed_pldm_cem_prereg_v1.yaml"
 
 
 @pytest.fixture(scope="module")
@@ -44,8 +50,50 @@ def repo_root() -> Path:
     return repository_root().resolve()
 
 
+def _install_graded_cem_static_identity(monkeypatch, repo_root: Path) -> None:
+    """Grade the Speed CEM pins the v2 decision validation walks through."""
+
+    monkeypatch.setattr(
+        cem_binding,
+        "_require_static_identity",
+        pin_grading.graded_require_static_identity(
+            config_relative=CEM_PREREG_CONFIG,
+            repo_root=repo_root,
+            observe=lambda path: cem_binding._source(path),
+        ),
+    )
+    monkeypatch.setattr(
+        cem_runner,
+        "_source_identity",
+        pin_grading.graded_bound_input_identity(
+            config_relative=CEM_PREREG_CONFIG,
+            repo_root=repo_root,
+            observe=lambda path: cem_runner.identity(
+                cem_runner.resolve_source(path, repo_root=cem_runner.ROOT),
+                repo_root=cem_runner.ROOT,
+            ),
+            same_identity=cem_runner._same_identity,
+        ),
+    )
+
+
+def _skip_without_pinned_speed_runtime(repo_root: Path) -> None:
+    completion = yaml.safe_load(
+        (
+            repo_root
+            / "configs/benchmark/tworoom_speed_pldm_reference_completion_v1.yaml"
+        ).read_text(encoding="utf-8")
+    )
+    ready, reason = pin_grading.stablewm_runtime_readiness(
+        completion["runtime"]["stable_worldmodel"]
+    )
+    if not ready:
+        pytest.skip(reason)
+
+
 def test_the_resolved_current_view_passes_the_frozen_export_gate(
     repo_root: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """The live manifest must accept the live tree.
 
@@ -54,15 +102,22 @@ def test_the_resolved_current_view_passes_the_frozen_export_gate(
     without its manifest, or the resolver is pointing at a historical file.
     """
 
+    _install_graded_cem_static_identity(monkeypatch, repo_root)
+    _skip_without_pinned_speed_runtime(repo_root)
     config = resolve_suite_v2_cli_default_config(repo_root=repo_root)
     suite = load_icl_suite_release(config)
 
     _assert_frozen_export_inputs(suite, repo_root=repo_root)
 
 
-def test_the_resolver_points_at_the_successor_overlay(repo_root: Path) -> None:
+def test_the_resolver_points_at_the_successor_overlay(
+    repo_root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Pin the identity of the live view so a silent repoint is visible."""
 
+    _install_graded_cem_static_identity(monkeypatch, repo_root)
+    _skip_without_pinned_speed_runtime(repo_root)
     config = resolve_suite_v2_cli_default_config(repo_root=repo_root)
 
     assert config == repo_root / OVERLAY_PATH

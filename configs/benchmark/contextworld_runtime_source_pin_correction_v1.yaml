@@ -1,0 +1,233 @@
+schema_version: 1
+correction_id: contextworld_runtime_source_pin_correction_v1
+status: accepted_metadata_correction
+decision_date: "2026-09-08"
+
+scope:
+  classification_only: false
+  historical_files_rewritten: false
+  model_results_changed: false
+  public_test_access_changed: false
+  training_or_evaluation_reexecuted: false
+
+finding:
+  classification: runtime_source_fingerprint_updated_behavior_unchanged
+  drifted_paths:
+    - contextworld/benchmarks/adapters.py
+    - contextworld/evaluation/protocol.py
+  drift_commits:
+    - f97b7f9c91743fa06770c5f47d31eed6b213d80a
+    - b0c0049d00520bd16e8112a67f31a21ed46dc528
+  explanation: >-
+    Code fingerprints updated in commits f97b7f9 / b0c0049.  Behaviour under
+    the runtime pinned by the release contracts is unchanged: the only
+    branch added to contextworld/benchmarks/adapters.py that alters control
+    flow (the rollout_latents branch) consumes an action_history runtime
+    constant that does not exist in the pinned stable-worldmodel ref, so the
+    branch cannot activate and evaluation proceeds through the legacy path,
+    which is expression-for-expression equivalent to the pinned version.
+    The published results sealed against these pins remain valid; the pins
+    themselves stay in the release configurations unchanged, because the
+    historical result payloads embed the release yaml's own file hash.
+  explanation_zh: >-
+    代码指纹更新（commit f97b7f9 / b0c0049），对发布合同钉死的运行时
+    swm@5864b749 行为未变（rollout_latents 的新分支在该 ref 下不激活，
+    已验证 action_history 常量计数为 0），旧结果仍有效。
+  inertness_verification:
+    pinned_runtime_repo: ../stable-worldmodel
+    # Every swm ref pinned by any contract covered by this correction:
+    pinned_runtime_refs:
+      - 5864b74980f6ed328fd0045e777b3865962eff43
+      - 875e607fc08aa72eacb94d5d178127804134cc06
+      - ad2bc44579f2b5b65c004fd2c9d8edc8ebaa43ce
+    probes:
+      stable_worldmodel/wm/lewm/lewm.py:
+        action_history_occurrences: 0
+      stable_worldmodel/wm/pldm/pldm.py:
+        action_history_occurrences: 0
+    probe_command: >-
+      git -C ../stable-worldmodel show <ref>:stable_worldmodel/wm/
+      {lewm,pldm}/{lewm,pldm}.py | grep -c action_history
+
+accepted_transitions:
+  - component: door
+    config: configs/benchmark/tworoom_door_icl_release_v1.yaml
+    field: runtime.contextworld.source_sha256.contextworld/benchmarks/adapters.py
+    path: contextworld/benchmarks/adapters.py
+    pinned_sha256: cc9e758b7081a57251e8cd026e9ac9ff8a17e3f300d52f464bdad871edcf26b2
+    pinned_semantic_sha256: 2d72517e3be73f487d6897788db4e84565180d56ed355a2b917756b2edaf6aa2
+    accepted_current_sha256: cbbcbfc0d558158ea57632bd613b136cad5439c309271d9ecdfda59a8a29d390
+    accepted_current_semantic_sha256: 1896a2a9d9f4c7be994850577922f0c8a543c3f8357e42be8506753da1f51e44
+  - component: speed
+    config: configs/benchmark/tworoom_speed_icl_release_v1.yaml
+    field: runtime.contextworld.source_sha256.contextworld/benchmarks/adapters.py
+    path: contextworld/benchmarks/adapters.py
+    pinned_sha256: cc9e758b7081a57251e8cd026e9ac9ff8a17e3f300d52f464bdad871edcf26b2
+    pinned_semantic_sha256: 2d72517e3be73f487d6897788db4e84565180d56ed355a2b917756b2edaf6aa2
+    accepted_current_sha256: cbbcbfc0d558158ea57632bd613b136cad5439c309271d9ecdfda59a8a29d390
+    accepted_current_semantic_sha256: 1896a2a9d9f4c7be994850577922f0c8a543c3f8357e42be8506753da1f51e44
+  - component: speed
+    config: configs/benchmark/tworoom_speed_icl_release_v1.yaml
+    field: runtime.contextworld.source_sha256.contextworld/evaluation/protocol.py
+    path: contextworld/evaluation/protocol.py
+    pinned_sha256: a80ca5d5f67f39ea5d82a14d7960d8f30ff64c85dc81268631e242092ec7cf05
+    pinned_semantic_sha256: 71f6ef1a01e4164088cd0fab9e2c67e77a15da906291e94a0f8ea40d65d4684d
+    accepted_current_sha256: 1fc86e25215e97990e125df70730211380e68c19b0392784df544ec303dea322
+    accepted_current_semantic_sha256: b4d48c8be4397d5a4cd3ab95c15c2727d0eccce77827b88faa83af548ad341cf
+  - component: action_delay
+    config: configs/benchmark/tworoom_action_delay_icl_release_v1.yaml
+    field: identity.adapters
+    path: contextworld/benchmarks/adapters.py
+    pinned_sha256: cc9e758b7081a57251e8cd026e9ac9ff8a17e3f300d52f464bdad871edcf26b2
+    pinned_semantic_sha256: 2d72517e3be73f487d6897788db4e84565180d56ed355a2b917756b2edaf6aa2
+    accepted_current_sha256: cbbcbfc0d558158ea57632bd613b136cad5439c309271d9ecdfda59a8a29d390
+    accepted_current_semantic_sha256: 1896a2a9d9f4c7be994850577922f0c8a543c3f8357e42be8506753da1f51e44
+  - component: portal_exit
+    config: configs/benchmark/tworoom_portal_exit_icl_release_v1.yaml
+    field: identity.adapters
+    path: contextworld/benchmarks/adapters.py
+    pinned_sha256: cc9e758b7081a57251e8cd026e9ac9ff8a17e3f300d52f464bdad871edcf26b2
+    pinned_semantic_sha256: 2d72517e3be73f487d6897788db4e84565180d56ed355a2b917756b2edaf6aa2
+    accepted_current_sha256: cbbcbfc0d558158ea57632bd613b136cad5439c309271d9ecdfda59a8a29d390
+    accepted_current_semantic_sha256: 1896a2a9d9f4c7be994850577922f0c8a543c3f8357e42be8506753da1f51e44
+  - component: motion_damping
+    config: configs/benchmark/pusht_motion_damping_icl_release_v1.yaml
+    field: identity.adapters
+    path: contextworld/benchmarks/adapters.py
+    pinned_sha256: cc9e758b7081a57251e8cd026e9ac9ff8a17e3f300d52f464bdad871edcf26b2
+    pinned_semantic_sha256: 2d72517e3be73f487d6897788db4e84565180d56ed355a2b917756b2edaf6aa2
+    accepted_current_sha256: cbbcbfc0d558158ea57632bd613b136cad5439c309271d9ecdfda59a8a29d390
+    accepted_current_semantic_sha256: 1896a2a9d9f4c7be994850577922f0c8a543c3f8357e42be8506753da1f51e44
+  - component: action_strength
+    config: configs/benchmark/pusht_action_strength_icl_release_v1.yaml
+    field: identity.adapters
+    path: contextworld/benchmarks/adapters.py
+    pinned_sha256: cc9e758b7081a57251e8cd026e9ac9ff8a17e3f300d52f464bdad871edcf26b2
+    pinned_semantic_sha256: 2d72517e3be73f487d6897788db4e84565180d56ed355a2b917756b2edaf6aa2
+    accepted_current_sha256: cbbcbfc0d558158ea57632bd613b136cad5439c309271d9ecdfda59a8a29d390
+    accepted_current_semantic_sha256: 1896a2a9d9f4c7be994850577922f0c8a543c3f8357e42be8506753da1f51e44
+  - component: contact_friction
+    config: configs/benchmark/pusht_contact_friction_icl_release_v1.yaml
+    field: identity.adapters
+    path: contextworld/benchmarks/adapters.py
+    pinned_sha256: cc9e758b7081a57251e8cd026e9ac9ff8a17e3f300d52f464bdad871edcf26b2
+    pinned_semantic_sha256: 2d72517e3be73f487d6897788db4e84565180d56ed355a2b917756b2edaf6aa2
+    accepted_current_sha256: cbbcbfc0d558158ea57632bd613b136cad5439c309271d9ecdfda59a8a29d390
+    accepted_current_semantic_sha256: 1896a2a9d9f4c7be994850577922f0c8a543c3f8357e42be8506753da1f51e44
+  - component: robot_arm_mass
+    config: configs/benchmark/reacher_arm_mass_icl_release_v1.yaml
+    field: identity.adapters
+    path: contextworld/benchmarks/adapters.py
+    pinned_sha256: cc9e758b7081a57251e8cd026e9ac9ff8a17e3f300d52f464bdad871edcf26b2
+    pinned_semantic_sha256: 2d72517e3be73f487d6897788db4e84565180d56ed355a2b917756b2edaf6aa2
+    accepted_current_sha256: cbbcbfc0d558158ea57632bd613b136cad5439c309271d9ecdfda59a8a29d390
+    accepted_current_semantic_sha256: 1896a2a9d9f4c7be994850577922f0c8a543c3f8357e42be8506753da1f51e44
+  - component: cube_gripper_carry
+    config: configs/benchmark/cube_gripper_carry_h3_v4r1_icl_release_v1.yaml
+    field: identity.adapters
+    path: contextworld/benchmarks/adapters.py
+    pinned_sha256: cc9e758b7081a57251e8cd026e9ac9ff8a17e3f300d52f464bdad871edcf26b2
+    pinned_semantic_sha256: 2d72517e3be73f487d6897788db4e84565180d56ed355a2b917756b2edaf6aa2
+    accepted_current_sha256: cbbcbfc0d558158ea57632bd613b136cad5439c309271d9ecdfda59a8a29d390
+    accepted_current_semantic_sha256: 1896a2a9d9f4c7be994850577922f0c8a543c3f8357e42be8506753da1f51e44
+  # The same adapters.py cc9e758b -> cbbcbfc0 transition is also pinned by the
+  # Speed PLDM development/CEM chain and by the cross-component preregistrations.
+  # Registered 2026-09-08 alongside the release-config rows above.
+  - component: speed
+    config: configs/benchmark/tworoom_speed_pldm_infrastructure_development_v1.yaml
+    field: implementation.adapter_boundary
+    path: contextworld/benchmarks/adapters.py
+    pinned_sha256: cc9e758b7081a57251e8cd026e9ac9ff8a17e3f300d52f464bdad871edcf26b2
+    pinned_semantic_sha256: 2d72517e3be73f487d6897788db4e84565180d56ed355a2b917756b2edaf6aa2
+    accepted_current_sha256: cbbcbfc0d558158ea57632bd613b136cad5439c309271d9ecdfda59a8a29d390
+    accepted_current_semantic_sha256: 1896a2a9d9f4c7be994850577922f0c8a543c3f8357e42be8506753da1f51e44
+  - component: speed
+    config: configs/benchmark/tworoom_speed_pldm_cem_prereg_v1.yaml
+    field: runtime_and_implementation.adapter_boundary
+    path: contextworld/benchmarks/adapters.py
+    pinned_sha256: cc9e758b7081a57251e8cd026e9ac9ff8a17e3f300d52f464bdad871edcf26b2
+    pinned_semantic_sha256: 2d72517e3be73f487d6897788db4e84565180d56ed355a2b917756b2edaf6aa2
+    accepted_current_sha256: cbbcbfc0d558158ea57632bd613b136cad5439c309271d9ecdfda59a8a29d390
+    accepted_current_semantic_sha256: 1896a2a9d9f4c7be994850577922f0c8a543c3f8357e42be8506753da1f51e44
+  - component: speed
+    config: configs/benchmark/tworoom_speed_pldm_evaluation_binding_v1.yaml
+    field: evaluator_sources.adapter_boundary
+    path: contextworld/benchmarks/adapters.py
+    pinned_sha256: cc9e758b7081a57251e8cd026e9ac9ff8a17e3f300d52f464bdad871edcf26b2
+    pinned_semantic_sha256: 2d72517e3be73f487d6897788db4e84565180d56ed355a2b917756b2edaf6aa2
+    accepted_current_sha256: cbbcbfc0d558158ea57632bd613b136cad5439c309271d9ecdfda59a8a29d390
+    accepted_current_semantic_sha256: 1896a2a9d9f4c7be994850577922f0c8a543c3f8357e42be8506753da1f51e44
+  - component: complete_reference_comparison
+    config: configs/benchmark/contextworld_complete_reference_comparison_prereg_v1.yaml
+    field: implementation.adapters
+    path: contextworld/benchmarks/adapters.py
+    pinned_sha256: cc9e758b7081a57251e8cd026e9ac9ff8a17e3f300d52f464bdad871edcf26b2
+    pinned_semantic_sha256: 2d72517e3be73f487d6897788db4e84565180d56ed355a2b917756b2edaf6aa2
+    accepted_current_sha256: cbbcbfc0d558158ea57632bd613b136cad5439c309271d9ecdfda59a8a29d390
+    accepted_current_semantic_sha256: 1896a2a9d9f4c7be994850577922f0c8a543c3f8357e42be8506753da1f51e44
+  - component: action_strength
+    config: configs/benchmark/pusht_action_strength_pldm_evaluation_binding_v1.yaml
+    field: evaluator_sources.adapters
+    path: contextworld/benchmarks/adapters.py
+    pinned_sha256: cc9e758b7081a57251e8cd026e9ac9ff8a17e3f300d52f464bdad871edcf26b2
+    pinned_semantic_sha256: 2d72517e3be73f487d6897788db4e84565180d56ed355a2b917756b2edaf6aa2
+    accepted_current_sha256: cbbcbfc0d558158ea57632bd613b136cad5439c309271d9ecdfda59a8a29d390
+    accepted_current_semantic_sha256: 1896a2a9d9f4c7be994850577922f0c8a543c3f8357e42be8506753da1f51e44
+
+superseded_release_lineage:
+  release_config: configs/benchmark/cube_gripper_carry_icl_release_v1.yaml
+  release_status_at_decision: data_ready_reference_failed_development
+  superseded_by: configs/benchmark/cube_gripper_carry_h3_v4r1_icl_release_v1.yaml
+  explanation: >-
+    The v1 Cube contract failed its development gate and was superseded by
+    the v4r1 release, which byte-pins the current sources.  No published
+    result depends on the v1 pins, and the v1 pins are preserved unchanged
+    as historical lineage.  Several pinned blobs predate the shallow clone
+    boundary (first reachable commit dc09c275336b03102b022614f3911150577a278d),
+    so semantic equality with those pins cannot be established from
+    repository history; the accepted states below are recorded byte-exactly
+    instead.
+  affected_records:
+    - field: identity.adapters
+      path: contextworld/benchmarks/adapters.py
+      pinned_sha256: a1bf037ea4da49842163142563323a26a3eb11fca9a81f6dc4070d5688805c67
+      accepted_current_sha256: cbbcbfc0d558158ea57632bd613b136cad5439c309271d9ecdfda59a8a29d390
+      accepted_current_semantic_sha256: 1896a2a9d9f4c7be994850577922f0c8a543c3f8357e42be8506753da1f51e44
+    - field: identity.score_api
+      path: contextworld/benchmarks/cube_grasp_rule_icl_score.py
+      pinned_sha256: f9618596ca92d8030d5915979ac0805c314329e8aea2abfc57c5facde770a1fd
+      accepted_current_sha256: af14e5bb1aae306fa0f9b18c7c59c79484427fda535ee27dd085899ff6176617
+      accepted_current_semantic_sha256: bd4fddb9c4b58b910305a064c7cc1b410a390f88c54e593cef896ace4baf5264
+    - field: identity.reference_trainer
+      path: scripts/run_cube_grasp_rule_h3_train.py
+      pinned_sha256: 51519e307b75b7057ccaaab5a41c1c866d298e0929442522cd4789d7a53457f6
+      accepted_current_sha256: 77b58d66207ea6c0a520b1194fdf604dbe8a27a37cf9285069e55fbba4b37673
+      accepted_current_semantic_sha256: 38ab089876b5a81370b3f2fdac026a404710f890d01b3a39ff6007cad04c25d2
+    - field: identity.shared_training_engine
+      path: scripts/run_pusht_hidden_actuation_mixed.py
+      pinned_sha256: 322980de4c5ea7cccd2eca0b0cacc2bc669f3805d264bd12d4952cc0bed89495
+      accepted_current_sha256: ed3f912b716c4090245d2388c11fabcda7962ac8e6c4aa8614d10ea69bcb17b0
+      accepted_current_semantic_sha256: a0428d45db6c5b14c15447fe0e9f14e8d4e06a10a132aeb522438b481c928064
+    - field: identity.reference_matrix_runner
+      path: scripts/run_cube_grasp_rule_h3_matrix.py
+      pinned_sha256: b6f7e59a3d42b3a9aa3afb54ce0cb23f7284bff6a88f3b29ee2c299d722890b2
+      accepted_current_sha256: c05c8fa1456442f98f6f093c96af8aaf6e46bdc11b9e2970a750534148032857
+      accepted_current_semantic_sha256: 5d67eec071d84853454e07a2e49da49d362204b80110b567f3a31b8229d04bf4
+    - field: identity.reference_evaluation_runner
+      path: scripts/eval_cube_grasp_rule_h3_matrix.py
+      pinned_sha256: 9385da3e64b25b75a131dd8789cb9eaba3f24eaa2a61ddecbecd62e6a3d8ca07
+      accepted_current_sha256: e96e28cb7ac9eddce0d9fb2bf4e47c8889660bde107748e20717fb04c784eacc
+      accepted_current_semantic_sha256: e645541f7c0a9f35e01489300cd6189cf030bcf673e0ad55dd463b57a6d463c9
+    - field: identity.contract_tests
+      path: tests/test_cube_grasp_rule_h3.py
+      pinned_sha256: 4370ede1c74fc5a7e060249aa381d6788fe417a3677e3c141f63579fc837e1f0
+      accepted_current_sha256: 092c2cda0985bf912d9f218222986611e3959cc9e8976abb6396b47ef7459be9
+      accepted_current_semantic_sha256: a994386d1094959d50323a5d8c6679c8a381b50a5b18f3a37e50902854c0ff34
+
+historical_execution_receipts:
+  - config: configs/benchmark/cube_gripper_carry_h3_v4r1_icl_release_v1.yaml
+    field: identity.registration_freeze_receipt
+    path: artifacts/evaluation/history3/cube_gripper_carry_h3_v4r1_suite_registration_v1/registration_freeze_receipt_v1.json
+    pinned_sha256: f5416fe60761a6ecabc1471776a460862e036ad9aa472e6e979a9acdb4422af9
+    role: historical_execution_receipt_not_runtime_source
+    accepted_state: absent_from_checkout

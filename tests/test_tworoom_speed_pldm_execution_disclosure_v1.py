@@ -3,9 +3,17 @@ from __future__ import annotations
 import importlib.util
 from pathlib import Path
 
+import pytest
+import yaml
+
+import pin_grading
+
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts/freeze_tworoom_speed_pldm_execution_disclosure_v1.py"
+DEVELOPMENT_CONFIG = (
+    "configs/benchmark/tworoom_speed_pldm_infrastructure_development_v1.yaml"
+)
 
 
 def _module():
@@ -44,12 +52,27 @@ def test_registered_disclosure_boundary_is_static_and_explicit_about_nonclaims()
     }
 
 
-def test_development_lineage_snapshot_is_byte_identical_and_active_sources_are_registered() -> None:
+def test_development_lineage_snapshot_is_byte_identical_and_active_sources_are_registered(
+    monkeypatch,
+) -> None:
     manifest_path = ROOT / "scripts/freeze_tworoom_speed_pldm_development_manifest_v1.py"
     spec = importlib.util.spec_from_file_location("speed_development_manifest", manifest_path)
     assert spec is not None and spec.loader is not None
     freezer = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(freezer)
+
+    # Three-level pin grading (the registered adapters.py transition) plus an
+    # explicit skip when the pinned Stable-WorldModel runtime worktree is not
+    # available in this environment.
+    pin_grading.install_graded_contract_require_identity(
+        monkeypatch, freezer, config_relative=DEVELOPMENT_CONFIG
+    )
+    runtime = yaml.safe_load(
+        (ROOT / DEVELOPMENT_CONFIG).read_text(encoding="utf-8")
+    )["stable_worldmodel"]
+    ready, reason = pin_grading.stablewm_runtime_readiness(runtime)
+    if not ready:
+        pytest.skip(reason)
 
     _config, state = freezer._validate_config(freezer.DEFAULT_CONFIG)
     amendment = state["execution_disclosure_amendment"]

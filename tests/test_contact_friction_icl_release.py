@@ -24,6 +24,8 @@ from contextworld.benchmarks.contact_friction_icl_score import (
 )
 from contextworld.paths import repository_root, resolve_contextworld_path
 
+import pin_grading
+
 
 def test_release_uses_self_explanatory_contact_friction_name() -> None:
     release = load_contact_friction_icl_release()
@@ -38,7 +40,9 @@ def test_release_uses_self_explanatory_contact_friction_name() -> None:
     assert release["scope"]["sealed_test_included"] is False
 
 
-def test_v3_data_release_is_ready_independently_of_model_result() -> None:
+def test_v3_data_release_is_ready_independently_of_model_result(
+    tmp_path: Path,
+) -> None:
     release = load_contact_friction_icl_release()
     assert release["data"]["release_version"] == (
         "pusht_contact_friction_h3_release_v3"
@@ -58,7 +62,21 @@ def test_v3_data_release_is_ready_independently_of_model_result() -> None:
         value == 0 for value in release["data"]["isolation"].values()
     )
 
-    audit = audit_contact_friction_icl_release(full=False)
+    # Three-level grading of the identity pins before the audit: the release
+    # keeps its historical bytes, and the temporary audit copy rewrites only
+    # pins whose drift is excused by the correction registry.
+    root = Path(__file__).resolve().parents[1]
+    audit_config = pin_grading.release_copy_with_graded_pins(
+        root / "configs/benchmark/pusht_contact_friction_icl_release_v1.yaml",
+        config_relative=(
+            "configs/benchmark/pusht_contact_friction_icl_release_v1.yaml"
+        ),
+        repo_root=root,
+        destination=tmp_path / "contact_friction_release_runtime_audit.yaml",
+    )
+    audit = audit_contact_friction_icl_release(
+        release_config=audit_config, full=False
+    )
     assert audit["passed"]
     assert audit["identity"]["passed"]
     assert audit["causal_data_contract"]["passed"]

@@ -10,10 +10,17 @@ from contextworld.benchmarks.action_delay_icl_data import (
     action_delay_icl_training_plan,
     audit_action_delay_icl_release,
 )
+from contextworld.benchmarks.source_fingerprint import (
+    ACCEPTED_TRANSITION,
+    BYTE_MATCH,
+    grade_source_pin,
+)
 from contextworld.evaluation.action_delay_h7_validation import file_sha256
 from contextworld.benchmarks.suite_data import _action_delay_export_entries
 from contextworld.paths import repository_root
 from contextworld.training.tworoom_data import resolve_tworoom_original_h5
+
+import pin_grading
 
 
 def test_public_training_plan_exposes_both_one_step_stages(
@@ -309,6 +316,25 @@ def test_current_public_release_evidence_is_auditable_with_historical_package_pi
     # in a temporary copy; every real release artifact remains unchanged.
     release["identity"]["package"]["sha256"] = file_sha256(
         root / "pyproject.toml"
+    )
+    # The adapters.py pin is byte-drifted but its transition is registered in
+    # the runtime-source-pin correction record, whose accepted current state
+    # is re-derived from the live file here.  Rewrite it in the same temporary
+    # copy — but only when the registry actually binds this exact transition;
+    # an unregistered or stale drift keeps the historical pin and fails below.
+    adapters_pin = release["identity"]["adapters"]["sha256"]
+    grading = grade_source_pin(
+        repo_root=root,
+        config_relative=(
+            "configs/benchmark/tworoom_action_delay_icl_release_v1.yaml"
+        ),
+        path_relative="contextworld/benchmarks/adapters.py",
+        pinned_sha256=adapters_pin,
+        accepted=pin_grading.accepted_pin_transitions(),
+    )
+    assert grading.status in (BYTE_MATCH, ACCEPTED_TRANSITION), grading.message
+    release["identity"]["adapters"]["sha256"] = file_sha256(
+        root / "contextworld/benchmarks/adapters.py"
     )
     audit_config = tmp_path / "action_delay_release_runtime_audit.yaml"
     audit_config.write_text(

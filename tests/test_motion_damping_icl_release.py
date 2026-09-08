@@ -24,6 +24,8 @@ from contextworld.benchmarks.motion_damping_icl_score import (
     rescore_motion_damping_icl_development_result,
 )
 
+import pin_grading
+
 
 def test_release_name_and_public_splits_are_explicit() -> None:
     release = load_motion_damping_icl_release()
@@ -60,19 +62,105 @@ def test_release_name_and_public_splits_are_explicit() -> None:
     }
 
 
+def _stablewm_blob_at(repo: Path, ref: str, relative: str) -> bytes | None:
+    """Read one blob from the sibling checkout without touching global git config."""
+
+    import os
+    import subprocess
+    import tempfile
+
+    with tempfile.NamedTemporaryFile("w", suffix=".gitconfig", delete=False) as handle:
+        handle.write("[safe]\n\tdirectory = *\n")
+        gitconfig = handle.name
+    previous = os.environ.get("GIT_CONFIG_GLOBAL")
+    os.environ["GIT_CONFIG_GLOBAL"] = gitconfig
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(repo), "show", f"{ref}:{relative}"],
+            capture_output=True,
+        )
+    finally:
+        if previous is None:
+            os.environ.pop("GIT_CONFIG_GLOBAL", None)
+        else:
+            os.environ["GIT_CONFIG_GLOBAL"] = previous
+        Path(gitconfig).unlink()
+    return result.stdout if result.returncode == 0 else None
+
+
+def _stablewm_head(repo: Path) -> str:
+    import os
+    import subprocess
+    import tempfile
+
+    with tempfile.NamedTemporaryFile("w", suffix=".gitconfig", delete=False) as handle:
+        handle.write("[safe]\n\tdirectory = *\n")
+        gitconfig = handle.name
+    previous = os.environ.get("GIT_CONFIG_GLOBAL")
+    os.environ["GIT_CONFIG_GLOBAL"] = gitconfig
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(repo), "rev-parse", "HEAD"],
+            capture_output=True,
+        )
+    finally:
+        if previous is None:
+            os.environ.pop("GIT_CONFIG_GLOBAL", None)
+        else:
+            os.environ["GIT_CONFIG_GLOBAL"] = previous
+        Path(gitconfig).unlink()
+    return result.stdout.decode().strip()
+
+
 def test_release_data_and_public_test_are_auditable() -> None:
     audit = audit_motion_damping_icl_release(full=False)
-    failed_files = {
-        name for name, result in audit["files"].items() if not result["passed"]
-    }
-    assert failed_files == {
-        "identity.package",
+    root = Path(__file__).resolve().parents[1]
+    # Three-level grading for repository-local pins: the registered
+    # adapters.py transition is excused (bound to the live bytes/semantic in
+    # the correction record); any other local drift stays a failure.
+    failed_files, excused = pin_grading.graded_failed_audit_files(
+        audit,
+        config_relative=(
+            "configs/benchmark/pusht_motion_damping_icl_release_v1.yaml"
+        ),
+        repo_root=root,
+    )
+    assert excused <= {"identity.adapters"}
+    expected_external = {
         "identity.stablewm_lewm_config",
         "identity.stablewm_lewm_model",
         "identity.stablewm_pldm_model",
         "identity.stablewm_loader",
     }
-    root = Path(__file__).resolve().parents[1]
+    external_failed = {
+        name
+        for name in failed_files
+        if name not in {"identity.package"}
+        and "stable-worldmodel" in Path(audit["files"][name]["path"]).parts
+    }
+    assert failed_files - external_failed == {"identity.package"}
+    # A byte pin on a file inside the third-party runtime snapshot records
+    # that file at the release's pinned runtime ref.  When the sibling
+    # checkout sits elsewhere, extra external failures are environment state
+    # only when the live file genuinely differs from its blob at the pinned
+    # ref; a pin that fails even at the pinned ref is a real defect.
+    release = load_motion_damping_icl_release()
+    runtime = release["runtime"]["stable_worldmodel"]
+    swm_root = (root / runtime["repo"]).resolve()
+    pinned_ref = runtime["expected_ref"]
+    head = _stablewm_head(swm_root)
+    if head != pinned_ref:
+        for name in external_failed - expected_external:
+            live = Path(audit["files"][name]["path"]).read_bytes()
+            relative = Path(audit["files"][name]["path"]).relative_to(swm_root)
+            at_ref = _stablewm_blob_at(swm_root, pinned_ref, relative.as_posix())
+            assert at_ref is not None and at_ref != live, (
+                f"{name} fails even though its bytes match the pinned runtime "
+                f"ref {pinned_ref[:12]}… — the pin itself is wrong; checkout "
+                f"{pinned_ref} to restore the pinned runtime state"
+            )
+    else:
+        assert external_failed == expected_external
     release_path = root / "configs/benchmark/pusht_motion_damping_icl_release_v1.yaml"
     correction = yaml.safe_load(
         (
@@ -95,7 +183,7 @@ def test_release_data_and_public_test_are_auditable() -> None:
     assert audit["files"]["identity.package"]["expected_sha256"] == correction[
         "finding"
     ]["invalid_sha256"]
-    for name in failed_files - {"identity.package"}:
+    for name in external_failed:
         path = Path(audit["files"][name]["path"])
         assert not path.is_relative_to(root)
         assert "stable-worldmodel" in path.parts

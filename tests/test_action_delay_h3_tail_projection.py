@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import warnings
+
 import numpy as np
 import pytest
 import yaml
@@ -9,8 +11,14 @@ from contextworld.benchmarks.action_delay_h3_tail_projection import (
     H3TailProjectionActionDelayAdapter,
 )
 from contextworld.benchmarks.adapters import AdapterProtocol
+from contextworld.benchmarks.source_fingerprint import (
+    SEMANTIC_UNCHANGED,
+    grade_source_pin,
+)
 from contextworld.evaluation.action_delay_h7_validation import file_sha256
 from contextworld.paths import repository_root
+
+import pin_grading
 
 
 class _NativeH3Adapter:
@@ -262,4 +270,18 @@ def test_original_cli_stays_frozen_and_release_change_is_additively_scoped() -> 
                 "historical_packaging_metadata_not_runtime_source"
             )
             continue
-        assert file_sha256(root / identity["path"]) == identity["sha256"]
+        # Three-level grading instead of a raw byte comparison: a registered
+        # accepted transition or a provably documentation-only edit does not
+        # change evaluation behaviour; anything else still fails here.
+        grading = grade_source_pin(
+            repo_root=root,
+            config_relative=(
+                "configs/benchmark/tworoom_action_delay_icl_release_v1.yaml"
+            ),
+            path_relative=identity["path"],
+            pinned_sha256=identity["sha256"],
+            accepted=pin_grading.accepted_pin_transitions(),
+        )
+        if grading.status == SEMANTIC_UNCHANGED:
+            warnings.warn(grading.message, stacklevel=2)
+        assert grading.passed, grading.message

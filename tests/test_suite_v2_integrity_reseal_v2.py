@@ -13,9 +13,66 @@ import yaml
 import contextworld.benchmarks.suite_v2_integrity_reseal_v2 as reseal_v2
 from contextworld.benchmarks.public_score import make_public_scoreboard_from_spec
 from contextworld.paths import resolve_contextworld_path
+from scripts import freeze_tworoom_speed_pldm_cem_binding_v1 as cem_binding
+from scripts import run_tworoom_speed_pldm_cem_v1 as cem_runner
+
+import pin_grading
 
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def _install_graded_cem_static_identity(monkeypatch) -> None:
+    """Grade the Speed CEM preregistration pins on the three-level scale.
+
+    The reseal/aggregate chain revalidates the CEM preregistration and the
+    runner's bound-input snapshot, both of which hold the historical
+    adapters.py bytes.  That drift is a registered accepted transition;
+    everything else still raises.
+    """
+
+    monkeypatch.setattr(
+        cem_binding,
+        "_require_static_identity",
+        pin_grading.graded_require_static_identity(
+            config_relative=(
+                "configs/benchmark/tworoom_speed_pldm_cem_prereg_v1.yaml"
+            ),
+            repo_root=ROOT,
+            observe=lambda path: cem_binding._source(path),
+        ),
+    )
+    monkeypatch.setattr(
+        cem_runner,
+        "_source_identity",
+        pin_grading.graded_bound_input_identity(
+            config_relative=(
+                "configs/benchmark/tworoom_speed_pldm_cem_prereg_v1.yaml"
+            ),
+            repo_root=ROOT,
+            observe=lambda path: cem_runner.identity(
+                cem_runner.resolve_source(path, repo_root=cem_runner.ROOT),
+                repo_root=cem_runner.ROOT,
+            ),
+            same_identity=cem_runner._same_identity,
+        ),
+    )
+
+
+def _skip_without_pinned_speed_runtime() -> None:
+    """The Speed completion chain executes against a pinned runtime worktree."""
+
+    completion = yaml.safe_load(
+        (
+            ROOT
+            / "configs/benchmark/tworoom_speed_pldm_reference_completion_v1.yaml"
+        ).read_text(encoding="utf-8")
+    )
+    ready, reason = pin_grading.stablewm_runtime_readiness(
+        completion["runtime"]["stable_worldmodel"]
+    )
+    if not ready:
+        pytest.skip(reason)
 
 
 def _identity(path: Path, logical_path: str) -> dict[str, Any]:
@@ -282,7 +339,11 @@ def _build(root: Path, config_path: Path) -> dict[str, Any]:
     )
 
 
-def test_v2_preregistration_leaves_dynamic_public_documents_unfrozen() -> None:
+def test_v2_preregistration_leaves_dynamic_public_documents_unfrozen(
+    monkeypatch,
+) -> None:
+    _install_graded_cem_static_identity(monkeypatch)
+    _skip_without_pinned_speed_runtime()
     payload = yaml.safe_load(reseal_v2.RESEAL_CONFIG.read_text(encoding="utf-8"))
     documents = payload["integrity_reseal"]["required_evidence"][
         "final_public_documents"
@@ -316,7 +377,11 @@ def test_published_v2_decision_uses_the_frozen_writer_serialization() -> None:
     assert raw == canonical
 
 
-def test_check_only_reports_the_final_repository_ready_without_rewriting_decision() -> None:
+def test_check_only_reports_the_final_repository_ready_without_rewriting_decision(
+    monkeypatch,
+) -> None:
+    _install_graded_cem_static_identity(monkeypatch)
+    _skip_without_pinned_speed_runtime()
     audit = reseal_v2.audit_integrity_reseal_v2_readiness(repo_root=ROOT)
 
     assert audit["ready"] is True

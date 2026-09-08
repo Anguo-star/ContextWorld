@@ -10,6 +10,14 @@ configuration records the ``sha256`` of the sources that produced its numbers,
 so a well-meaning edit to a task CLI silently invalidates the provenance of a
 published result.  ``test_frozen_release_source_pins_still_match`` turns that
 into a direct, named failure instead of a confusing audit error much later.
+
+That check reads pins from both schemas the release contracts use —
+``runtime.contextworld.source_sha256`` and the top-level ``identity:`` section
+— and grades each pin in three tiers: byte-equal pins pass, byte drift with an
+unchanged semantic fingerprint (see ``contextworld.benchmarks.source_fingerprint``)
+passes with a warning, and semantic drift fails unless a correction record
+registers the accepted new fingerprints.  Pins pointing outside this repository
+pin the third-party runtime and are governed by ``expected_ref`` instead.
 """
 
 from __future__ import annotations
@@ -18,8 +26,9 @@ import argparse
 import hashlib
 import json
 import os
+import warnings
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable, Iterable, Mapping
 
 import pytest
 import yaml
@@ -34,6 +43,11 @@ from contextworld.benchmarks.external_model_cli import (
     _builtins_for_run,
     build_request,
 )
+from contextworld.benchmarks.source_fingerprint import (
+    fingerprint_file,
+    pinned_source_from_history,
+    semantic_fingerprint,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -41,6 +55,11 @@ CONFIG_DIR = ROOT / "configs/benchmark"
 PACKAGE_PIN_CORRECTION = (
     CONFIG_DIR / "contextworld_historical_package_pin_correction_v1.yaml"
 )
+RUNTIME_SOURCE_PIN_CORRECTION = (
+    CONFIG_DIR / "contextworld_runtime_source_pin_correction_v1.yaml"
+)
+RELEASE_CONFIG_GLOB = "*_icl_release_v1.yaml"
+EXPECTED_RELEASE_CONFIG_COUNT = 10
 
 
 class TestTaskBindings:
@@ -493,21 +512,53 @@ class TestArgumentParsing:
         assert parsed.history_adapter == "h3_tail_projection"
 
 
+def _pins_from_release_payload(payload: dict[str, Any]) -> dict[str, str]:
+    """Collect every source pin a release contract carries, in either schema.
+
+    The contracts pin sources in two shapes: ``runtime.contextworld.
+    source_sha256`` as a path-to-hash mapping, and a top-level ``identity:``
+    section whose entries each name one ``path``/``sha256`` pair (written
+    either as a list or as a mapping of role names to pairs).  A scanner that
+    recognises only one shape silently stops auditing the other, which is
+    exactly how eight of the ten contracts went unverified.
+    """
+
+    pins: dict[str, str] = {}
+    runtime_pins = (
+        payload.get("runtime", {}).get("contextworld", {}).get("source_sha256")
+    )
+    if isinstance(runtime_pins, dict):
+        pins.update(
+            {str(path): str(sha) for path, sha in runtime_pins.items()}
+        )
+    identity = payload.get("identity")
+    if isinstance(identity, list):
+        entries: Iterable[Any] = identity
+    elif isinstance(identity, dict):
+        entries = identity.values()
+    else:
+        entries = []
+    for entry in entries:
+        if (
+            isinstance(entry, dict)
+            and isinstance(entry.get("path"), str)
+            and isinstance(entry.get("sha256"), str)
+        ):
+            pins[entry["path"]] = entry["sha256"]
+    return pins
+
+
 def _release_configs_with_source_pins() -> list[tuple[Path, dict[str, str]]]:
     found: list[tuple[Path, dict[str, str]]] = []
-    for path in sorted(CONFIG_DIR.glob("*.yaml")):
+    for path in sorted(CONFIG_DIR.glob(RELEASE_CONFIG_GLOB)):
         try:
             payload = yaml.safe_load(path.read_text(encoding="utf-8"))
         except yaml.YAMLError:
             continue
         if not isinstance(payload, dict):
             continue
-        pins = (
-            payload.get("runtime", {})
-            .get("contextworld", {})
-            .get("source_sha256")
-        )
-        if isinstance(pins, dict) and pins:
+        pins = _pins_from_release_payload(payload)
+        if pins:
             found.append((path, pins))
     return found
 
@@ -529,16 +580,166 @@ def _corrected_non_runtime_package_pins() -> dict[str, str]:
     return {
         row["config"]["path"]: invalid
         for row in payload["affected_records"]
-        if row["field"] == "runtime.contextworld.source_sha256.pyproject.toml"
+        if row["field"]
+        in (
+            "runtime.contextworld.source_sha256.pyproject.toml",
+            "identity.package.sha256",
+        )
     }
 
 
-def test_release_configs_with_source_pins_are_discoverable() -> None:
-    """Guards the guard: an empty sweep would make the next test vacuous."""
+def _accepted_runtime_source_pin_corrections() -> dict[
+    tuple[str, str, str], dict[str, Any]
+]:
+    """Load registered (config, path, pinned sha) acceptances, with teeth.
 
-    assert _release_configs_with_source_pins(), (
-        "no release configuration exposed runtime.contextworld.source_sha256; "
-        "the frozen-source check below would silently verify nothing"
+    The same ``accepted_metadata_correction`` pattern as the package-pin
+    record above, generalized beyond pyproject.toml: each row accepts one
+    pinned byte sha whose current file state is hash-bound here.  If the
+    file moves again, the registered state stops matching and the rule
+    fails, so a correction can never silently rot into a blanket exemption.
+    """
+
+    payload = yaml.safe_load(
+        RUNTIME_SOURCE_PIN_CORRECTION.read_text(encoding="utf-8")
+    )
+    assert payload["status"] == "accepted_metadata_correction"
+    assert payload["scope"] == {
+        "classification_only": False,
+        "historical_files_rewritten": False,
+        "model_results_changed": False,
+        "public_test_access_changed": False,
+        "training_or_evaluation_reexecuted": False,
+    }
+    finding = payload["finding"]
+    assert finding["classification"] == (
+        "runtime_source_fingerprint_updated_behavior_unchanged"
+    )
+    assert finding["drift_commits"], "correction must name its drift commits"
+    inertness = finding["inertness_verification"]
+    assert inertness["pinned_runtime_refs"], (
+        "correction must name the runtime refs it was verified against"
+    )
+    for probe in inertness["probes"].values():
+        assert probe == {"action_history_occurrences": 0}
+    accepted: dict[tuple[str, str, str], dict[str, Any]] = {}
+    for row in payload["accepted_transitions"]:
+        accepted[(row["config"], row["path"], row["pinned_sha256"])] = row
+    superseded = payload["superseded_release_lineage"]
+    for row in superseded["affected_records"]:
+        accepted[(superseded["release_config"], row["path"], row["pinned_sha256"])] = row
+    for row in payload["historical_execution_receipts"]:
+        accepted[(row["config"], row["path"], row["pinned_sha256"])] = row
+    return accepted
+
+
+def _audit_release_source_pins(
+    *,
+    root: Path,
+    pins: Mapping[str, str],
+    config_relative: str,
+    corrected_package_pins: Mapping[str, str],
+    accepted_corrections: Mapping[tuple[str, str, str], dict[str, Any]],
+    pinned_source_resolver: Callable[[str, str], str | None],
+) -> tuple[list[str], list[str], list[str]]:
+    """Grade every pin: (failures, semantic-only warnings, external pins).
+
+    A pin fails only when evaluation behaviour could plausibly have changed:
+    the byte sha drifted, no accepted correction registers the new state, and
+    the semantic fingerprint either moved or cannot be compared.  Pure
+    documentation and layout drift downgrades to a warning, and pins on the
+    third-party runtime snapshot are reported separately because their live
+    contract is ``expected_ref``, not the local checkout state.
+    """
+
+    failures: list[str] = []
+    semantic_warnings: list[str] = []
+    external: list[str] = []
+    for relative, expected in pins.items():
+        if not (root / relative).resolve().is_relative_to(root.resolve()):
+            external.append(relative)
+            continue
+        acceptance = accepted_corrections.get(
+            (config_relative, relative, expected)
+        )
+        source = root / relative
+        if not source.is_file():
+            if acceptance and acceptance.get("accepted_state") == (
+                "absent_from_checkout"
+            ):
+                continue
+            failures.append(f"{relative}: missing from the checkout")
+            continue
+        observed = fingerprint_file(source)
+        if observed.byte_sha256 == expected:
+            continue
+        if (
+            relative == "pyproject.toml"
+            and corrected_package_pins.get(config_relative) == expected
+        ):
+            # This exact impossible historical packaging pin is preserved in
+            # the predecessor YAML but no longer misclassified as executable
+            # runtime source. The correction record is hash-bound above.
+            continue
+        if acceptance is not None:
+            if (
+                acceptance.get("accepted_current_sha256")
+                == observed.byte_sha256
+                and acceptance.get("accepted_current_semantic_sha256")
+                == observed.semantic_sha256
+            ):
+                continue
+            failures.append(
+                f"{relative}: pinned {expected[:12]}… but file is "
+                f"{observed.byte_sha256[:12]}…, and the registered state in "
+                f"{RUNTIME_SOURCE_PIN_CORRECTION.name} "
+                f"({acceptance.get('accepted_current_sha256', '?')[:12]}…) no "
+                "longer matches either — the source moved after the "
+                "correction was accepted; re-assess before trusting results"
+            )
+            continue
+        if observed.semantic_sha256 is not None:
+            pinned_source = pinned_source_resolver(relative, expected)
+            if pinned_source is not None and semantic_fingerprint(
+                pinned_source
+            ) == observed.semantic_sha256:
+                semantic_warnings.append(
+                    f"{relative}: byte sha256 drifted "
+                    f"({expected[:12]}… -> {observed.byte_sha256[:12]}…) but "
+                    "the semantic fingerprint is unchanged — documentation or "
+                    "layout-only drift; update the pin record when convenient"
+                )
+                continue
+        semantic = (
+            observed.semantic_sha256[:12] + "…"
+            if observed.semantic_sha256
+            else "n/a for non-Python source"
+        )
+        failures.append(
+            f"{relative}: pinned {expected[:12]}… but file is "
+            f"{observed.byte_sha256[:12]}… (semantic {semantic}); evaluation "
+            "behaviour may have changed — assess whether the results sealed "
+            "against this pin need re-running"
+        )
+    return failures, semantic_warnings, external
+
+
+def test_release_configs_with_source_pins_are_discoverable() -> None:
+    """Guards the guard: an empty sweep would make the next test vacuous.
+
+    The count is pinned to ten because that is how many release contracts
+    exist; when an eleventh is added this assertion forces it to be wired
+    into the sweep consciously instead of appearing as a silent gap.  When
+    it fails *low*, a contract stopped matching the scanner — the exact
+    regression that left eight of these ten unaudited.
+    """
+
+    found = _release_configs_with_source_pins()
+
+    assert len(found) == EXPECTED_RELEASE_CONFIG_COUNT, (
+        f"expected {EXPECTED_RELEASE_CONFIG_COUNT} release contracts with "
+        f"source pins, found {len(found)}: "
+        + ", ".join(path.name for path, _ in found)
     )
 
 
@@ -585,34 +786,31 @@ def test_frozen_release_source_pins_still_match(config_path: Path) -> None:
     obvious way to support a third model family is to widen ``--adapter`` on
     each task CLI, and that silently breaks every pin recorded here.  The
     external path exists precisely so these stay untouched.
+
+    A pin now fails only when it could change evaluation behaviour.  Byte
+    drift alone — a comment, a docstring, a reformat — downgrades to a
+    warning that the pin record should be refreshed, because the semantic
+    fingerprint proves the parsed program is unchanged.  Semantic drift
+    fails unless a correction record registers the accepted new state.
     """
 
     pins = dict(_release_configs_with_source_pins())[config_path]
-    corrected_package_pins = _corrected_non_runtime_package_pins()
     config_relative = config_path.relative_to(ROOT).as_posix()
-    drifted = []
-    for relative, expected in pins.items():
-        if (
-            relative == "pyproject.toml"
-            and corrected_package_pins.get(config_relative) == expected
-        ):
-            # This exact impossible historical packaging pin is preserved in
-            # the predecessor YAML but no longer misclassified as executable
-            # runtime source. The correction record is hash-bound above.
-            continue
-        source = ROOT / relative
-        if not source.is_file():
-            drifted.append(f"{relative}: missing from the checkout")
-            continue
-        observed = hashlib.sha256(source.read_bytes()).hexdigest()
-        if observed != expected:
-            drifted.append(
-                f"{relative}: pinned {expected[:12]}… but file is "
-                f"{observed[:12]}…"
-            )
-    assert not drifted, (
-        f"{config_path.name} pins sources that have changed:\n  "
-        + "\n  ".join(drifted)
+    failures, semantic_warnings, _external = _audit_release_source_pins(
+        root=ROOT,
+        pins=pins,
+        config_relative=config_relative,
+        corrected_package_pins=_corrected_non_runtime_package_pins(),
+        accepted_corrections=_accepted_runtime_source_pin_corrections(),
+        pinned_source_resolver=lambda relative, pinned: (
+            pinned_source_from_history(ROOT, relative, pinned)
+        ),
+    )
+    for message in semantic_warnings:
+        warnings.warn(message, stacklevel=2)
+    assert not failures, (
+        f"{config_path.name} pins sources whose evaluation behaviour may "
+        "have changed:\n  " + "\n  ".join(failures)
     )
 
 
@@ -629,3 +827,296 @@ def test_the_external_entry_point_is_not_itself_pinned() -> None:
         f"{module} became hash-pinned by {pinning}; external-model support "
         "would then be frozen against the very configs it must not disturb"
     )
+
+
+def test_both_pin_schemas_are_collected_from_a_release_payload() -> None:
+    """One contract shape must never hide the other again."""
+
+    runtime_schema = {
+        "runtime": {
+            "contextworld": {
+                "source_sha256": {"contextworld/paths.py": "a" * 64}
+            }
+        }
+    }
+    identity_list_schema = {
+        "identity": [
+            {"path": "contextworld/paths.py", "sha256": "b" * 64},
+            {"path": "pyproject.toml", "sha256": "c" * 64},
+        ]
+    }
+    identity_mapping_schema = {
+        "identity": {
+            "public_api": {"path": "contextworld/paths.py", "sha256": "d" * 64},
+            "package": {"path": "pyproject.toml", "sha256": "e" * 64},
+        }
+    }
+
+    assert _pins_from_release_payload(runtime_schema) == {
+        "contextworld/paths.py": "a" * 64
+    }
+    assert _pins_from_release_payload(identity_list_schema) == {
+        "contextworld/paths.py": "b" * 64,
+        "pyproject.toml": "c" * 64,
+    }
+    assert _pins_from_release_payload(identity_mapping_schema) == {
+        "contextworld/paths.py": "d" * 64,
+        "pyproject.toml": "e" * 64,
+    }
+
+
+class TestPinDriftTiers:
+    """Every grading branch, driven on a synthetic contract.
+
+    These are the properties the audit rule is worthless without: byte drift
+    with unchanged semantics must not fail, and semantic drift must.
+    """
+
+    SOURCE = "contextworld/frozen.py"
+    ORIGINAL = '"""Frozen scorer."""\n\nLIMIT = 3\n'
+
+    def _audit(
+        self,
+        tmp_path: Path,
+        content: str,
+        *,
+        pinned: str | None = None,
+        accepted: Mapping[tuple[str, str, str], dict[str, Any]] | None = None,
+        resolver: Callable[[str, str], str | None] | None = None,
+        suffix: str = ".py",
+    ) -> tuple[list[str], list[str], list[str]]:
+        source = tmp_path / f"contextworld/frozen{suffix}"
+        source.parent.mkdir(exist_ok=True)
+        source.write_text(content, encoding="utf-8")
+        relative = f"contextworld/frozen{suffix}"
+        return _audit_release_source_pins(
+            root=tmp_path,
+            pins={relative: pinned or hashlib.sha256(content.encode()).hexdigest()},
+            config_relative="configs/benchmark/synthetic_icl_release_v1.yaml",
+            corrected_package_pins={},
+            accepted_corrections=accepted or {},
+            pinned_source_resolver=resolver or (lambda rel, sha: None),
+        )
+
+    def test_byte_sha_match_passes_silently(self, tmp_path: Path) -> None:
+        assert self._audit(tmp_path, self.ORIGINAL) == ([], [], [])
+
+    def test_documentation_drift_passes_with_a_warning(
+        self, tmp_path: Path
+    ) -> None:
+        pinned = hashlib.sha256(self.ORIGINAL.encode()).hexdigest()
+        drifted = self.ORIGINAL + "# rationale note\n"
+
+        failures, warned, _ = self._audit(
+            tmp_path,
+            drifted,
+            pinned=pinned,
+            resolver=lambda rel, sha: self.ORIGINAL,
+        )
+
+        assert failures == []
+        assert len(warned) == 1
+        assert "semantic fingerprint is unchanged" in warned[0]
+        assert pinned[:12] in warned[0]
+
+    def test_semantic_drift_fails_even_when_bytes_almost_match(
+        self, tmp_path: Path
+    ) -> None:
+        pinned = hashlib.sha256(self.ORIGINAL.encode()).hexdigest()
+        retuned = self.ORIGINAL.replace("LIMIT = 3", "LIMIT = 4")
+
+        failures, warned, _ = self._audit(
+            tmp_path,
+            retuned,
+            pinned=pinned,
+            resolver=lambda rel, sha: self.ORIGINAL,
+        )
+
+        assert warned == []
+        assert len(failures) == 1
+        assert "evaluation behaviour may have changed" in failures[0]
+
+    def test_unprovable_drift_fails_conservatively(self, tmp_path: Path) -> None:
+        """No recoverable pinned blob means semantic equality cannot be shown."""
+
+        pinned = hashlib.sha256(self.ORIGINAL.encode()).hexdigest()
+        redocumented = self.ORIGINAL.replace(
+            "Frozen scorer.", "Frozen scorer, revised."
+        )
+
+        failures, _, _ = self._audit(
+            tmp_path, redocumented, pinned=pinned, resolver=lambda rel, sha: None
+        )
+
+        assert len(failures) == 1
+
+    def test_non_python_drift_has_no_semantic_pardon(
+        self, tmp_path: Path
+    ) -> None:
+        launcher = "#!/bin/sh\nexec python -m frozen\n"
+        pinned = hashlib.sha256(launcher.encode()).hexdigest()
+
+        failures, warned, _ = self._audit(
+            tmp_path,
+            launcher + "# edited\n",
+            pinned=pinned,
+            suffix=".sh",
+        )
+
+        assert warned == []
+        assert len(failures) == 1
+
+    def test_registered_acceptance_passes_only_in_the_registered_state(
+        self, tmp_path: Path
+    ) -> None:
+        pinned = hashlib.sha256(self.ORIGINAL.encode()).hexdigest()
+        drifted = self.ORIGINAL + "# rationale note\n"
+        drifted_file = tmp_path / "contextworld/frozen.py"
+        drifted_file.parent.mkdir(exist_ok=True)
+        drifted_file.write_text(drifted, encoding="utf-8")
+        accepted_state = fingerprint_file(drifted_file)
+        acceptance = {
+            (
+                "configs/benchmark/synthetic_icl_release_v1.yaml",
+                self.SOURCE,
+                pinned,
+            ): {
+                "accepted_current_sha256": accepted_state.byte_sha256,
+                "accepted_current_semantic_sha256": (
+                    accepted_state.semantic_sha256
+                ),
+            }
+        }
+
+        assert self._audit(
+            tmp_path, drifted, pinned=pinned, accepted=acceptance
+        ) == ([], [], [])
+
+        moved_again = drifted.replace("LIMIT = 3", "LIMIT = 4")
+        failures, _, _ = self._audit(
+            tmp_path, moved_again, pinned=pinned, accepted=acceptance
+        )
+        assert len(failures) == 1
+        assert RUNTIME_SOURCE_PIN_CORRECTION.name in failures[0]
+
+    def test_missing_sources_fail_unless_registered_absent(
+        self, tmp_path: Path
+    ) -> None:
+        pinned = "f" * 64
+        config = "configs/benchmark/synthetic_icl_release_v1.yaml"
+        relative = "contextworld/gone.py"
+        (tmp_path / "contextworld").mkdir(exist_ok=True)
+
+        def audit(
+            accepted: Mapping[tuple[str, str, str], dict[str, Any]]
+        ) -> list[str]:
+            failures, _, _ = _audit_release_source_pins(
+                root=tmp_path,
+                pins={relative: pinned},
+                config_relative=config,
+                corrected_package_pins={},
+                accepted_corrections=accepted,
+                pinned_source_resolver=lambda rel, sha: None,
+            )
+            return failures
+
+        assert audit({}) == [f"{relative}: missing from the checkout"]
+
+        assert audit(
+            {
+                (config, relative, pinned): {
+                    "accepted_state": "absent_from_checkout"
+                }
+            }
+        ) == []
+
+    def test_pins_outside_the_repository_are_reported_not_byte_checked(
+        self, tmp_path: Path
+    ) -> None:
+        result = _audit_release_source_pins(
+            root=tmp_path,
+            pins={"../stable-worldmodel/stable_worldmodel/wm/lewm.py": "0" * 64},
+            config_relative="configs/benchmark/synthetic_icl_release_v1.yaml",
+            corrected_package_pins={},
+            accepted_corrections={},
+            pinned_source_resolver=lambda rel, sha: None,
+        )
+
+        assert result == (
+            [],
+            [],
+            ["../stable-worldmodel/stable_worldmodel/wm/lewm.py"],
+        )
+
+
+def test_external_runtime_lineage_pins_stay_ref_governed() -> None:
+    """Pins outside this repository pin the stable-worldmodel snapshot.
+
+    The sibling checkout legitimately moves between refs during development,
+    so byte-checking it here would fail on every switch; the live contract
+    for that runtime is ``runtime.stable_worldmodel.expected_ref``, which
+    the scorer enforces when it loads frozen checkpoints.  What this rule
+    does enforce is that such pins are recognized and enumerated rather
+    than silently skipped.
+    """
+
+    expected = {
+        "../stable-worldmodel/scripts/train/config/lewm.yaml",
+        "../stable-worldmodel/scripts/train/config/pldm.yaml",
+        "../stable-worldmodel/stable_worldmodel/wm/lewm/lewm.py",
+        "../stable-worldmodel/stable_worldmodel/wm/pldm/pldm.py",
+        "../stable-worldmodel/stable_worldmodel/wm/loss.py",
+        "../stable-worldmodel/stable_worldmodel/wm/utils.py",
+    }
+    observed: dict[str, set[str]] = {}
+    for path, pins in _release_configs_with_source_pins():
+        external = {
+            relative
+            for relative in pins
+            if not (ROOT / relative).resolve().is_relative_to(ROOT.resolve())
+        }
+        if external:
+            observed[path.name] = external
+
+    assert observed == {
+        "pusht_motion_damping_icl_release_v1.yaml": expected
+    }
+    motion_damping = yaml.safe_load(
+        (CONFIG_DIR / "pusht_motion_damping_icl_release_v1.yaml").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert motion_damping["runtime"]["stable_worldmodel"]["expected_ref"], (
+        "a contract pinning the third-party runtime by file hash must also "
+        "pin the ref that governs it"
+    )
+
+
+def test_runtime_source_pin_correction_binds_accepted_states() -> None:
+    """Every registered acceptance must describe the checkout as it is now.
+
+    This keeps the correction honest: because the accepted byte and semantic
+    fingerprints are re-derived from the live sources on every run, the
+    record can never rot into a blanket exemption for a file that has since
+    moved on.
+    """
+
+    accepted = _accepted_runtime_source_pin_corrections()
+    assert accepted, "correction record exposed no accepted transitions"
+
+    for (config_relative, relative, pinned_sha), row in accepted.items():
+        assert (ROOT / config_relative).is_file(), config_relative
+        if row.get("accepted_state") == "absent_from_checkout":
+            assert not (ROOT / relative).exists(), relative
+            continue
+        source = ROOT / relative
+        assert source.is_file(), relative
+        observed = fingerprint_file(source)
+        assert observed.byte_sha256 == row["accepted_current_sha256"], relative
+        assert observed.semantic_sha256 == (
+            row["accepted_current_semantic_sha256"]
+        ), relative
+        assert pinned_sha != row["accepted_current_sha256"], (
+            f"{relative}: registered a no-op transition; either the pin or "
+            "the record is wrong"
+        )

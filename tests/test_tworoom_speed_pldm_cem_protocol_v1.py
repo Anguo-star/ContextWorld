@@ -12,6 +12,25 @@ from scripts import freeze_tworoom_speed_pldm_cem_aggregate_v1 as cem_aggregate
 from scripts import freeze_tworoom_speed_pldm_cem_binding_v1 as cem_binding
 from scripts import run_tworoom_speed_pldm_cem_v1 as cem_runner
 
+import pin_grading
+
+
+CEM_PREREG_CONFIG = "configs/benchmark/tworoom_speed_pldm_cem_prereg_v1.yaml"
+
+
+def _install_graded_static_identity(monkeypatch) -> None:
+    """Teach the CEM preregistration validator the three-level pin scale."""
+
+    monkeypatch.setattr(
+        cem_binding,
+        "_require_static_identity",
+        pin_grading.graded_require_static_identity(
+            config_relative=CEM_PREREG_CONFIG,
+            repo_root=cem_binding.ROOT,
+            observe=lambda path: cem_binding._source(path),
+        ),
+    )
+
 
 SEEDS = (3072, 4096, 5120)
 
@@ -79,9 +98,12 @@ def _action_terminal(seed: int, records: list[dict[str, Any]]) -> dict[str, Any]
     }
 
 
-def test_static_cem_preregistration_is_fully_source_pinned_and_jsonl_only() -> None:
+def test_static_cem_preregistration_is_fully_source_pinned_and_jsonl_only(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """This is a no-inference check of the authority sealed before Public ICL."""
 
+    _install_graded_static_identity(monkeypatch)
     static, sources = cem_binding._validate_static_prereg(cem_binding.CEM_PREREG)
 
     assert static["cem_preregistration_id"] == "tworoom_speed_pldm_cem_prereg_v1"

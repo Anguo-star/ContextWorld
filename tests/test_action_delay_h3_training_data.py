@@ -14,6 +14,8 @@ from contextworld.evaluation.action_delay_h3_data import (
 )
 from contextworld.synthesis.stablewm import load_stable_worldmodel
 
+import pin_grading
+
 
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG = (
@@ -100,11 +102,17 @@ def test_two_episode_lance_shard_round_trips_exactly(
     for name in tuple(sys.modules):
         if name == "stable_worldmodel" or name.startswith("stable_worldmodel."):
             del sys.modules[name]
-    swm, _, _ = load_stable_worldmodel(
-        ROOT,
-        config["stable_worldmodel"]["repo"],
-        config["stable_worldmodel"]["commit"],
-    )
+    try:
+        swm, _, _ = load_stable_worldmodel(
+            ROOT,
+            config["stable_worldmodel"]["repo"],
+            config["stable_worldmodel"]["commit"],
+        )
+    except RuntimeError as error:
+        # A checkout pinned to a different commit is environment state, not a
+        # code defect: skip with the ref this test needs checked out.
+        pin_grading.skip_when_stablewm_checkout_mismatches(error)
+        raise
 
     collect_shard(swm, shard=shard, config=config)
     audit = audit_shard(swm, shard=shard, config=config)

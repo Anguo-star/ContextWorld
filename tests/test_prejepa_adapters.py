@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import warnings
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
@@ -23,7 +24,13 @@ from contextworld.benchmarks.prejepa_adapters import (
     StableWorldModelPreJEPADiagnosticAdapter,
     StableWorldModelPreJEPAHistory7Adapter,
 )
+from contextworld.benchmarks.source_fingerprint import (
+    SEMANTIC_UNCHANGED,
+    grade_source_pin,
+)
 from contextworld.evaluation.protocol import ColumnStandardizer
+
+import pin_grading
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -31,6 +38,14 @@ ADAPTERS = ROOT / "contextworld/benchmarks/adapters.py"
 
 
 def test_adapters_module_still_matches_its_frozen_pins() -> None:
+    """Every live config pinning adapters.py is graded on the three levels.
+
+    A byte match still passes outright; a registered accepted transition or a
+    provably documentation-only edit passes (the latter with a warning); any
+    other drift — including a source that moved again after a correction was
+    accepted — fails, because evaluation behaviour may have changed.
+    """
+
     live = hashlib.sha256(ADAPTERS.read_bytes()).hexdigest()
     historical = {
         "contextworld_icl_suite_v1.yaml",
@@ -58,7 +73,24 @@ def test_adapters_module_still_matches_its_frozen_pins() -> None:
         walk(payload)
 
     assert pinned, "no live config pins adapters.py; this guard would be vacuous"
-    assert {name: live for name in pinned} == pinned
+    accepted = pin_grading.accepted_pin_transitions()
+    drifted: dict[str, str] = {}
+    for name, pinned_sha in pinned.items():
+        grading = grade_source_pin(
+            repo_root=ROOT,
+            config_relative=f"configs/benchmark/{name}",
+            path_relative="contextworld/benchmarks/adapters.py",
+            pinned_sha256=pinned_sha,
+            accepted=accepted,
+        )
+        if grading.status == SEMANTIC_UNCHANGED:
+            warnings.warn(grading.message, stacklevel=2)
+        elif not grading.passed:
+            drifted[name] = f"{pinned_sha[:12]}…: {grading.message}"
+    assert not drifted, (
+        "configs pin an adapters.py whose evaluation behaviour may have "
+        "changed:\n  " + "\n  ".join(f"{k}: {v}" for k, v in drifted.items())
+    )
 
 
 class _FakeEmbedder:

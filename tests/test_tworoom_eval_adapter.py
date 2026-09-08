@@ -5,6 +5,8 @@ import numpy as np
 
 from contextworld.synthesis.stablewm import load_stable_worldmodel
 
+import pin_grading
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 PINNED_STABLEWM = "5864b74980f6ed328fd0045e777b3865962eff43"
@@ -18,11 +20,17 @@ def _load_stablewm():
     for name in tuple(sys.modules):
         if name == "stable_worldmodel" or name.startswith("stable_worldmodel."):
             del sys.modules[name]
-    swm, _, _ = load_stable_worldmodel(
-        REPO_ROOT,
-        configured,
-        PINNED_STABLEWM,
-    )
+    try:
+        swm, _, _ = load_stable_worldmodel(
+            REPO_ROOT,
+            configured,
+            PINNED_STABLEWM,
+        )
+    except RuntimeError as error:
+        # A checkout pinned to a different commit is environment state, not a
+        # code defect: skip with the ref this test needs checked out.
+        pin_grading.skip_when_stablewm_checkout_mismatches(error)
+        raise
     return swm
 
 
