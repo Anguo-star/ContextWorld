@@ -196,9 +196,12 @@ def test_action_delay_selection_is_6_times_10_times_5(
     monkeypatch.setattr(development, "_read_tworoom_episodes", fake_read)
     arrays = development._action_delay_arrays(payload)
 
-    assert len(arrays.pair_ids) == 300
+    assert len(arrays.query_ids) == 30
+    assert arrays.delay_values == tuple(range(11))
+    assert arrays.member_pixels.shape[:3] == (30, 11, 8)
     assert arrays.selection["profiles"] == 6
-    assert arrays.selection["pairs_per_profile_delay_contrast"] == 5
+    assert arrays.selection["queries_per_profile"] == 5
+    assert arrays.selection["selected_contrast_pairs"] == 300
 
 
 def test_speed_selection_is_96_times_3_and_is_not_counterfactual(
@@ -284,4 +287,160 @@ def test_all_six_single_table_components_emit_256_development_pairs(
     assert result["metrics"]["pair_count"] == 256
     assert result["protocol"]["official_scoreboard_row"] is False
     assert result["protocol"]["formal_pass_available"] is False
+    assert "gate" not in result
+
+
+class _ConstantAdapter(_Adapter):
+    """A degenerate model whose futures ignore the history entirely."""
+
+    def rollout_latents(
+        self,
+        input_pixels: np.ndarray,
+        raw_action_blocks: np.ndarray,
+        *,
+        batch_size: int,
+    ) -> np.ndarray:
+        count = int(np.asarray(input_pixels).shape[0])
+        return np.zeros((count, 1, 3), dtype=np.float32)
+
+
+def _action_delay_payload() -> development.DevelopmentPayload:
+    root = Path("/tmp/contextworld-bundle")
+    members = tuple(
+        root / f"ad-h7-paired-val-p{profile:03d}-d{delay}-deadbeef.lance"
+        for profile in range(6)
+        for delay in range(11)
+    )
+    return _payload(
+        "action_delay",
+        history=7,
+        selection={
+            "reference_condition": 0,
+            "contrasts": list(range(1, 11)),
+            "profiles": 6,
+            "pairs_per_contrast_per_profile": 5,
+            "selected_pair_count": 300,
+        },
+        members=members,
+    )
+
+
+def _delay_family_pixels(delay: int) -> np.ndarray:
+    """Frames whose channel means identify the delay under mean pooling.
+
+    Frames 0 and 6 stay shared across the family (initial and query frames),
+    the interior history frames carry ``8 * delay``, and the future frame is
+    the reference-history mean rounded to uint8, so a mean-pooling adapter
+    maps every history to the encoded future of its own delay.
+    """
+
+    pixels = np.zeros((8, 2, 2, 3), dtype=np.uint8)
+    pixels[1:6] = 8 * delay
+    pixels[7] = int(round(40 * delay / 7))
+    return pixels
+
+
+def _fake_delay_family_read(path: Path, **kwargs: object):
+    delay = int(path.name.split("-d", 1)[1].split("-", 1)[0])
+    available = tuple(range(160))
+    selected = tuple(kwargs.get("selected_episode_ids") or available)
+    pixels = _delay_family_pixels(delay)
+    actions = np.zeros((10, 5, 2), dtype=np.float32)
+    return available, {episode: (pixels, actions, None) for episode in selected}
+
+
+def test_action_delay_physical_groups_follow_the_formal_six_group_scheme(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    payload = _action_delay_payload()
+    monkeypatch.setattr(
+        development, "resolve_development_payload", lambda *a, **k: payload
+    )
+    monkeypatch.setattr(
+        development, "_read_tworoom_episodes", _fake_delay_family_read
+    )
+
+    result = development.evaluate_bundle_development_model(
+        task="action_delay",
+        adapter=_Adapter(history=7, action_dim=2),
+        model_name="oracle",
+        training_recipe="test",
+        training_seed=1,
+        benchmark_root="/tmp/contextworld-bundle",
+    )
+
+    metrics = result["metrics"]
+    assert (
+        metrics["aggregation"]
+        == "equal physical-group mean within query, then query mean"
+    )
+    assert metrics["physical_group_macro_accuracy"] == 1.0
+    assert metrics["minimum_physical_group_accuracy"] == 1.0
+    assert metrics["queries"] == 30
+    assert metrics["history_conditions"] == 330
+    expected_delays = {
+        "0": [0],
+        "1": [1],
+        "2": [2],
+        "3": [3],
+        "4": [4],
+        "5": [5, 6, 7, 8, 9, 10],
+    }
+    assert set(metrics["by_physical_group"]) == set(expected_delays)
+    for group, delays in expected_delays.items():
+        row = metrics["by_physical_group"][group]
+        assert row["delays"] == delays
+        assert row["accuracy"] == 1.0
+        assert row["history_conditions"] == 30 * len(delays)
+    assert set(metrics["confusion_counts"]) == {
+        str(group) for group in range(6)
+    }
+    assert all(
+        set(row) == {str(group) for group in range(6)}
+        for row in metrics["confusion_counts"].values()
+    )
+    assert all(
+        metrics["confusion_counts"][str(group)][str(group)]
+        == 30 * len(delays)
+        for group, delays in expected_delays.items()
+    )
+    assert "delay_0_correct_future_rate" not in metrics
+    assert "delayed_correct_future_rate" not in metrics
+    assert "gate" not in result
+    assert result["record_count"] == 330
+    assert result["protocol"]["formal_pass_available"] is False
+
+
+def test_action_delay_constant_prediction_scores_chance_level_macro(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    payload = _action_delay_payload()
+    monkeypatch.setattr(
+        development, "resolve_development_payload", lambda *a, **k: payload
+    )
+    monkeypatch.setattr(
+        development, "_read_tworoom_episodes", _fake_delay_family_read
+    )
+
+    result = development.evaluate_bundle_development_model(
+        task="action_delay",
+        adapter=_ConstantAdapter(history=7, action_dim=2),
+        model_name="constant",
+        training_recipe="test",
+        training_seed=1,
+        benchmark_root="/tmp/contextworld-bundle",
+    )
+
+    metrics = result["metrics"]
+    # The constant zero future is always nearest delay 0's encoded future, so
+    # exactly one of the six groups is ever credited: the 1/6 chance level.
+    assert metrics["physical_group_macro_accuracy"] == pytest.approx(1 / 6)
+    assert metrics["minimum_physical_group_accuracy"] == 0.0
+    assert metrics["confusion_counts"]["0"]["0"] == 30
+    assert (
+        sum(metrics["confusion_counts"][str(group)]["0"] for group in range(6))
+        == 330
+    )
+    assert "delay_0_correct_future_rate" not in metrics
+    assert "delayed_correct_future_rate" not in metrics
     assert "gate" not in result

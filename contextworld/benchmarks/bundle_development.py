@@ -30,6 +30,10 @@ from contextworld.benchmarks.adapters import (
 from contextworld.benchmarks.paired_latent_response import (
     paired_latent_response_metrics,
 )
+from contextworld.evaluation.action_delay_h7_core import (
+    physical_group,
+    summarize_action_delay_h1_physical,
+)
 from contextworld.training import stablewm_bundle
 
 
@@ -50,6 +54,13 @@ _DOOR_MEMBER_PATTERN = re.compile(
 _ACTION_DELAY_MEMBER_PATTERN = re.compile(
     r"^ad-h7-paired-val-(?P<profile>p\d+)-d(?P<delay>\d+)-"
 )
+# The formal Public Test fixes its bootstrap uncertainty contract in
+# ``tworoom_action_delay_h7_core_icl_v2.yaml`` (scoring.uncertainty).  The
+# Development bundle ships no uncertainty section, so these fixed diagnostic
+# values reuse the formal resample count and seed when feeding the same
+# model-independent kernel.
+_ACTION_DELAY_BOOTSTRAP_RESAMPLES = 10_000
+_ACTION_DELAY_BOOTSTRAP_RANDOM_SEED = 2_026_073_002
 
 
 @dataclass(frozen=True)
@@ -87,6 +98,23 @@ class _PairedArrays:
     raw_action_blocks: np.ndarray
     first_label: str
     second_label: str
+    selection: Mapping[str, Any]
+
+
+@dataclass(frozen=True)
+class _DelayFamilyArrays:
+    """One matched query per profile/episode with every delay condition.
+
+    Action Delay is scored as six-group recognition, so the reader keeps the
+    full delay family together: ``member_pixels`` is indexed
+    ``(query, delay_condition, history_length + 1, ...)`` and the final frame
+    of every condition is that condition's one-step future target.
+    """
+
+    query_ids: tuple[str, ...]
+    delay_values: tuple[int, ...]
+    member_pixels: np.ndarray
+    raw_action_blocks: np.ndarray
     selection: Mapping[str, Any]
 
 
@@ -573,7 +601,15 @@ def _door_arrays(payload: DevelopmentPayload) -> _PairedArrays:
     )
 
 
-def _action_delay_arrays(payload: DevelopmentPayload) -> _PairedArrays:
+def _action_delay_arrays(payload: DevelopmentPayload) -> _DelayFamilyArrays:
+    """Read complete per-episode delay families for six-group scoring.
+
+    Every profile registers one member per delay value 0-10 that all share
+    their episode ids, so one matched query keeps all eleven conditions of
+    one episode together instead of collapsing them into d0-vs-delayed
+    pairs.
+    """
+
     grouped: dict[str, dict[int, Path]] = {}
     for path in payload.members:
         match = _ACTION_DELAY_MEMBER_PATTERN.match(path.name)
@@ -614,23 +650,25 @@ def _action_delay_arrays(payload: DevelopmentPayload) -> _PairedArrays:
         "selected_pair_count",
         expected_profiles * len(contrasts) * per_contrast,
     )
-    pair_ids: list[str] = []
-    first_pixels: list[np.ndarray] = []
-    second_pixels: list[np.ndarray] = []
+    query_ids: list[str] = []
+    member_pixels: list[np.ndarray] = []
     actions: list[np.ndarray] = []
     candidate_pairs = 0
     for profile in sorted(grouped):
-        baseline_ids, baseline = _read_tworoom_episodes(
+        reference_ids, reference = _read_tworoom_episodes(
             grouped[profile][reference_delay],
             expected_steps=50,
             frame_steps=(0, 5, 10, 15, 20, 25, 30, 35),
         )
-        if len(baseline_ids) < per_contrast:
+        if len(reference_ids) < per_contrast:
             raise RuntimeError(
                 f"Action Delay Development {profile} has fewer than "
                 f"{per_contrast} episodes"
             )
-        selected_ids = baseline_ids[:per_contrast]
+        selected_ids = reference_ids[:per_contrast]
+        conditions: dict[int, dict[int, tuple[np.ndarray, np.ndarray, float | None]]] = {
+            reference_delay: reference
+        }
         for delay in contrasts:
             delayed_ids, delayed = _read_tworoom_episodes(
                 grouped[profile][delay],
@@ -640,57 +678,58 @@ def _action_delay_arrays(payload: DevelopmentPayload) -> _PairedArrays:
             )
             # ``delayed_ids`` is the complete id set even when frame decoding
             # is limited to selected ids, so it also checks file pairing.
-            if delayed_ids != baseline_ids:
+            if delayed_ids != reference_ids:
                 raise RuntimeError(
                     f"Action Delay Development episode ids differ for "
                     f"{profile}/d{delay}"
                 )
-            candidate_pairs += len(baseline_ids)
-            for episode in selected_ids:
-                base_pixels, base_actions, _ = baseline[episode]
-                delayed_pixels, delayed_actions, _ = delayed[episode]
-                pair_id = (
-                    f"{profile}/d{reference_delay}_vs_d{delay}/"
-                    f"episode_{episode:04d}"
-                )
+            candidate_pairs += len(reference_ids)
+            conditions[delay] = delayed
+        for episode in selected_ids:
+            base_pixels, base_actions, _ = reference[episode]
+            for delay in contrasts:
+                delayed_pixels, delayed_actions, _ = conditions[delay][episode]
                 _ensure_paired_example(
-                    pair_id=pair_id,
+                    pair_id=(
+                        f"{profile}/d{reference_delay}_vs_d{delay}/"
+                        f"episode_{episode:04d}"
+                    ),
                     first_pixels=base_pixels,
                     second_pixels=delayed_pixels,
                     first_actions=base_actions,
                     second_actions=delayed_actions,
                     history_length=7,
                 )
-                pair_ids.append(pair_id)
-                first_pixels.append(base_pixels)
-                second_pixels.append(delayed_pixels)
-                actions.append(base_actions)
+            query_ids.append(f"{profile}/episode_{episode:04d}")
+            member_pixels.append(
+                np.stack([conditions[delay][episode][0] for delay in expected_delays])
+            )
+            actions.append(base_actions)
     if len(grouped) != expected_profiles:
         raise RuntimeError(
             "Action Delay Development profile count disagrees with public contract: "
             f"observed={len(grouped)} expected={expected_profiles}"
         )
-    if len(pair_ids) != expected_selected:
+    if len(query_ids) * len(contrasts) != expected_selected:
         raise RuntimeError(
             "Action Delay Development selected pair count disagrees with public contract: "
-            f"observed={len(pair_ids)} expected={expected_selected}"
+            f"observed={len(query_ids) * len(contrasts)} expected={expected_selected}"
         )
-    return _PairedArrays(
-        pair_ids=tuple(pair_ids),
-        first_pixels=np.stack(first_pixels),
-        second_pixels=np.stack(second_pixels),
+    return _DelayFamilyArrays(
+        query_ids=tuple(query_ids),
+        delay_values=tuple(expected_delays),
+        member_pixels=np.stack(member_pixels),
         raw_action_blocks=np.stack(actions),
-        first_label="delay_0",
-        second_label="delayed",
         selection={
-            "kind": "matched_filename_profile_delay_and_episode_id",
+            "kind": "matched_filename_profile_delay_family_and_episode_id",
             "profiles": len(grouped),
             "delay_values": list(expected_delays),
             "candidate_pairs": candidate_pairs,
-            "selected_pairs": len(pair_ids),
-            "pairs_per_profile_delay_contrast": per_contrast,
+            "selected_queries": len(query_ids),
+            "queries_per_profile": per_contrast,
+            "selected_contrast_pairs": len(query_ids) * len(contrasts),
             "rule": (
-                f"d{reference_delay} vs each listed contrast; first sorted "
+                "all registered delay members per profile; first sorted "
                 "shared episode ids"
             ),
         },
@@ -963,6 +1002,156 @@ def _evaluate_paired(
     return metrics, records, {"before": before, "after": after}
 
 
+def _action_delay_physical_group_metrics(
+    *,
+    payload: DevelopmentPayload,
+    arrays: _DelayFamilyArrays,
+    adapter: LatentWorldModelAdapter,
+    batch_size: int,
+) -> tuple[dict[str, Any], list[dict[str, Any]], dict[str, str]]:
+    """Score the six physical response groups (0/1/2/3/4/5-10) per query.
+
+    This mirrors the frozen Public-Test protocol behind ``core_h1``: for each
+    matched query the adapter predicts one future from every delay
+    condition's history, each prediction is compared against every
+    condition's encoded future (an 11x11 latent-MSE matrix per query, the
+    Development equivalent of the records built in
+    ``action_delay_h7_score.score_h7_validation_assets`` /
+    ``_summarize_query_matrices``), and a condition is credited when the
+    nearest target lands in its own physical group.  The aggregation reuses
+    the model-independent kernel ``action_delay_h7_core.
+    summarize_action_delay_h1_physical`` (the same function that produces
+    ``core_h1``); only the Development reader above is bundle-specific.
+    """
+
+    history_length = payload.history_length
+    validate_adapter_protocol(
+        adapter,
+        history_tokens=history_length,
+        action_block_raw_steps=payload.frameskip,
+        action_dim=payload.action_dimension,
+        minimum_future_action_blocks=1,
+        task_name="action_delay Development",
+    )
+    queries = len(arrays.query_ids)
+    delays = len(arrays.delay_values)
+    if (
+        not queries
+        or len(set(arrays.query_ids)) != queries
+        or arrays.member_pixels.ndim != 6
+        or arrays.member_pixels.shape[:2] != (queries, delays)
+        or arrays.member_pixels.shape[2] != history_length + 1
+        or arrays.raw_action_blocks.ndim != 4
+        or arrays.raw_action_blocks.shape[0] != queries
+        or arrays.raw_action_blocks.shape[1] < history_length
+        or arrays.raw_action_blocks.shape[-2:]
+        != (payload.frameskip, payload.action_dimension)
+    ):
+        raise RuntimeError("Malformed Action Delay Development arrays")
+    histories = arrays.member_pixels[:, :, :history_length].reshape(
+        queries * delays,
+        history_length,
+        *arrays.member_pixels.shape[3:],
+    )
+    # ``_ensure_paired_example`` verified every family member shares the
+    # episode's action blocks, so the reference member's blocks describe all
+    # eleven conditions.
+    actions = np.repeat(
+        arrays.raw_action_blocks[:, None, :history_length],
+        repeats=delays,
+        axis=1,
+    ).reshape(
+        queries * delays,
+        history_length,
+        payload.frameskip,
+        payload.action_dimension,
+    )
+    before = adapter.frozen_state_hash()
+    predicted = np.asarray(
+        adapter.rollout_latents(histories, actions, batch_size=int(batch_size))
+    )
+    if (
+        predicted.ndim != 3
+        or predicted.shape[:2] != (queries * delays, 1)
+        or not np.isfinite(predicted).all()
+    ):
+        raise RuntimeError(
+            "Action Delay Development adapter must return finite "
+            "(query_count * delay_count, 1, latent_dim) futures"
+        )
+    futures = arrays.member_pixels[:, :, history_length].reshape(
+        queries * delays,
+        *arrays.member_pixels.shape[3:],
+    )
+    encoded = np.asarray(adapter.encode_pixels(futures, batch_size=int(batch_size)))
+    if (
+        encoded.ndim != 2
+        or encoded.shape != (queries * delays, predicted.shape[-1])
+        or not np.isfinite(encoded).all()
+    ):
+        raise RuntimeError(
+            "Action Delay Development target encodings do not match predicted latents"
+        )
+    after = adapter.frozen_state_hash()
+    if before != after:
+        raise RuntimeError("Model state changed during action_delay Development scoring")
+    predictions = predicted[:, 0].reshape(queries, delays, -1)
+    targets = encoded.reshape(queries, delays, -1)
+    losses = np.square(
+        predictions[:, :, None, :] - targets[:, None, :, :]
+    ).mean(axis=-1)
+    query_rows: list[dict[str, Any]] = []
+    records: list[dict[str, Any]] = []
+    for query_index, query_id in enumerate(arrays.query_ids):
+        for condition_index, delay in enumerate(arrays.delay_values):
+            # Same nearest-target decision and lowest-delay tie-break as the
+            # frozen scorer's ``selected_target``
+            # (action_delay_h7_score._summarize_query_matrices).
+            selected_index = min(
+                range(delays),
+                key=lambda target_index: (
+                    losses[query_index, condition_index, target_index],
+                    arrays.delay_values[target_index],
+                ),
+            )
+            selected_delay = int(arrays.delay_values[selected_index])
+            query_rows.append(
+                {
+                    "query_id": query_id,
+                    # Development clips carry no eval seed; the frozen kernel
+                    # only requires one consistent value per query.
+                    "eval_seed": 0,
+                    "horizon": 1,
+                    "target_delay": int(delay),
+                    "selected_target": selected_delay,
+                }
+            )
+            true_group = physical_group(int(delay))
+            selected_group = physical_group(selected_delay)
+            records.append(
+                {
+                    "query_id": query_id,
+                    "target_delay": int(delay),
+                    "target_physical_group": true_group,
+                    "selected_target": selected_delay,
+                    "selected_physical_group": selected_group,
+                    "physical_group_correct": bool(selected_group == true_group),
+                    "matching_target_mse": float(
+                        losses[query_index, condition_index, condition_index]
+                    ),
+                    "selected_target_mse": float(
+                        losses[query_index, condition_index, selected_index]
+                    ),
+                }
+            )
+    metrics = summarize_action_delay_h1_physical(
+        query_rows,
+        bootstrap_resamples=_ACTION_DELAY_BOOTSTRAP_RESAMPLES,
+        bootstrap_seed=_ACTION_DELAY_BOOTSTRAP_RANDOM_SEED,
+    )
+    return metrics, records, {"before": before, "after": after}
+
+
 def _speed_cases(
     payload: DevelopmentPayload) -> tuple[np.ndarray, np.ndarray, np.ndarray, list[dict[str, Any]], dict[str, Any]]:
     per_member = _selection_value(payload, "complete_windows_per_member", 3)
@@ -1162,16 +1351,23 @@ def evaluate_bundle_development_model(
         protocol_kind = "history_utility_diagnostic"
         match_status = "not_matched_counterfactual"
     else:
-        arrays = (
-            _single_table_arrays(payload)
-            if task in _SINGLE_TABLE_TASKS
-            else _door_arrays(payload)
-            if task == "door"
-            else _action_delay_arrays(payload)
-        )
-        metrics, records, state = _evaluate_paired(
-            payload=payload, arrays=arrays, adapter=adapter, batch_size=int(batch_size)
-        )
+        if task == "action_delay":
+            arrays = _action_delay_arrays(payload)
+            metrics, records, state = _action_delay_physical_group_metrics(
+                payload=payload,
+                arrays=arrays,
+                adapter=adapter,
+                batch_size=int(batch_size),
+            )
+        else:
+            arrays = (
+                _single_table_arrays(payload)
+                if task in _SINGLE_TABLE_TASKS
+                else _door_arrays(payload)
+            )
+            metrics, records, state = _evaluate_paired(
+                payload=payload, arrays=arrays, adapter=adapter, batch_size=int(batch_size)
+            )
         selection = arrays.selection
         protocol_kind = "matched_development_counterfactual"
         match_status = "matched_development_only"
