@@ -88,6 +88,27 @@ python -m contextworld.benchmarks.external_model_cli \
 
 这些 Python extras 只安装软件依赖；数据和模型检查点单独分发。
 
+### Public Test 最终报告
+
+单个模型的临时评测用上面的 `external_model_cli`；成批、需要留下证据的最终报告用
+`contextworld-public-test-report`，输入一份冻结的检查点清单（JSON，逐单元声明组件、
+检查点、输出路径与 `admission.cleared_development`），按 `plan` → `run` → `verify`
+三步执行：
+
+```bash
+# 事前核对：列出将要执行的单元与跳过原因，不跑任何评测
+contextworld-public-test-report plan --manifest frozen_checkpoints.json
+
+# 执行全部单元的公开 Test 评测，并写出回执（含各文件 sha256）
+contextworld-public-test-report run --manifest frozen_checkpoints.json
+
+# 事后核对：按回执复核产出文件是否仍在且 sha256 一致
+contextworld-public-test-report verify --receipt public_test_report_<report_id>.json
+```
+
+准入闸门：未清过 Development 的单元会被拒绝执行（回执记为 `skipped_not_admitted`），
+公开 Test 只用于最终报告，不参与模型选择或调参。
+
 ## 接入其他模型
 
 数据包不限制模型必须属于内置模型族。外部模型只需实现
