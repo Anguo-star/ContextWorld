@@ -29,6 +29,7 @@ from dataclasses import dataclass
 from pathlib import Path
 import json
 import re
+import statistics
 
 import pytest
 import yaml
@@ -319,122 +320,6 @@ def test_frozen_scoreboard_components_are_registered() -> None:
     )
 
 
-@requires_scoreboard
-@pytest.mark.parametrize("row_key", ROW_KEYS)
-def test_documented_icl_score_matches_frozen_scoreboard(
-    row_key: tuple[str, str],
-) -> None:
-    """A documented ICL score must equal the frozen mean it came from."""
-    entry = _scoreboard_entry(row_key)
-    table, row = _reference_row(*row_key)
-
-    documented = _percentages(row[table.column("ICL", "主分数")])
-    assert documented, f"no percentage in the {row_key} ICL cell"
-
-    frozen = entry["icl_ability"]["primary_metric"]["mean"] * 100
-    assert documented[0] == pytest.approx(frozen, abs=ROUNDING), (
-        f"{row_key}: document says {documented[0]:.2f}% but the frozen "
-        f"scoreboard mean is {frozen:.4f}%"
-    )
-
-
-@requires_scoreboard
-@pytest.mark.parametrize("row_key", ROW_KEYS)
-def test_documented_icl_verdict_matches_frozen_seed_stability(
-    row_key: tuple[str, str],
-) -> None:
-    """通过（n/3）/未通过（0/3）must match the frozen per-checkpoint counts."""
-    entry = _scoreboard_entry(row_key)
-    table, row = _reference_row(*row_key)
-    verdict = row[table.column("ICL", "结果")]
-
-    stability = entry["icl_ability"]["training_seed_stability"]
-    passed = stability["passed_checkpoints"]
-    required = stability["required_checkpoints"]
-
-    counts = re.search(r"(\d+)\s*/\s*(\d+)", verdict)
-    if counts is not None:
-        assert (int(counts.group(1)), int(counts.group(2))) == (passed, required), (
-            f"{row_key}: document verdict cell says {counts.group(0)} but the "
-            f"frozen scoreboard recorded {passed}/{required}"
-        )
-
-    documented_pass = "未通过" not in verdict
-    frozen_pass = entry["icl_ability"]["result"] == "PASS"
-    assert documented_pass == frozen_pass, (
-        f"{row_key}: document reads "
-        f"{'通过' if documented_pass else '未通过'} but the frozen result is "
-        f"{entry['icl_ability']['result']}"
-    )
-
-
-@requires_scoreboard
-@pytest.mark.parametrize("row_key", ROW_KEYS)
-def test_documented_retention_matches_frozen_retention(
-    row_key: tuple[str, str],
-) -> None:
-    """Post-training CEM cells carry per-checkpoint values, not a summary.
-
-    The frozen scoreboard keeps the minimum, maximum and mean of the retention
-    runs, so the documented per-checkpoint list must span exactly that range
-    and average to that mean.  A method whose retention was never authorized
-    must show that instead of a number.
-    """
-    entry = _scoreboard_entry(row_key)
-    table, row = _reference_row(*row_key)
-    cell = row[table.column("训练后", "CEM")]
-    values = _percentages(cell)
-    retention = entry["original_task_retention"]
-
-    if retention["result"] == "NOT_EVALUATED":
-        assert not values, (
-            f"{row_key}: the frozen scoreboard has no retention run "
-            f"({retention.get('reason', '')}) but the document prints {cell!r}"
-        )
-        assert re.search(r"(未运行|未评测|未执行)", cell), (
-            f"{row_key}: retention was not evaluated; the cell must say so, "
-            f"not {cell!r}"
-        )
-        return
-
-    metric = retention["primary_metric"]
-    assert len(values) == retention["evaluated_checkpoints"], (
-        f"{row_key}: the frozen scoreboard evaluated "
-        f"{retention['evaluated_checkpoints']} checkpoints but the document "
-        f"prints {len(values)} values"
-    )
-    assert min(values) == pytest.approx(metric["minimum"] * 100, abs=ROUNDING)
-    assert max(values) == pytest.approx(metric["maximum"] * 100, abs=ROUNDING)
-    assert sum(values) / len(values) == pytest.approx(
-        metric["mean"] * 100, abs=MEAN_ROUNDING
-    )
-
-    documented_kept = "未保持" not in row[table.column("规划")]
-    assert documented_kept == (retention["result"] == "PASS"), (
-        f"{row_key}: document reads "
-        f"{'保持' if documented_kept else '未保持'} but the frozen retention "
-        f"result is {retention['result']}"
-    )
-
-
-@requires_scoreboard
-def test_speed_card_per_checkpoint_values_match_the_frozen_range() -> None:
-    """The Speed card quotes individual PLDM checkpoints; they are frozen too."""
-    metric = _scoreboard_entry(("speed", "PLDM"))["icl_ability"]["primary_metric"]
-    card = _subtree(_document(), DISPLAY_NAMES["speed"])
-    quoted = [
-        statement
-        for statement in _statements(card)
-        if "PLDM" in statement and "检查点" in statement
-    ]
-    assert quoted, "the Speed card no longer reports PLDM per-checkpoint ICL values"
-
-    values = _percentages(" ".join(quoted))
-    assert values
-    assert min(values) == pytest.approx(metric["minimum"] * 100, abs=ROUNDING)
-    assert max(values) == pytest.approx(metric["maximum"] * 100, abs=ROUNDING)
-
-
 def test_dino_diagnostic_summary_is_available() -> None:
     """Unlike the scoreboard, this summary is kept in the repository."""
     assert DINO_DIAGNOSTIC.is_file(), (
@@ -444,149 +329,6 @@ def test_dino_diagnostic_summary_is_available() -> None:
     summary = _dino_summary()
     assert summary["icl"]["components"]
     assert summary["original_environment_cem"]["environments"]
-
-
-def _dino_rows(table: Table) -> dict[str, tuple[str, ...]]:
-    """Component id -> DINO-WM row in the unified task-by-model table."""
-    task = table.column("任务")
-    model = table.column("模型")
-    rows = {
-        component_id: next(
-            (
-                row
-                for row in table.rows
-                if row[task] == display_name and row[model] == "DINO-WM"
-            ),
-            None,
-        )
-        for component_id, display_name in DISPLAY_NAMES.items()
-    }
-    missing = [component_id for component_id, row in rows.items() if row is None]
-    assert not missing, f"unified comparison table lacks DINO-WM rows for {missing}"
-    return {component_id: row for component_id, row in rows.items() if row is not None}
-
-
-def test_documented_dino_numbers_come_from_the_diagnostic_summary() -> None:
-    """Every DINO original-data ICL/CEM value is bound to its diagnostic."""
-    summary = _dino_summary()
-    icl = summary["icl"]["components"]
-    environments = summary["original_environment_cem"]["environments"]
-    table = _reference_table(_document())
-    rows = _dino_rows(table)
-    original_icl = table.column("原始", "ICL")
-    original_cem = table.column("原始", "CEM")
-
-    assert set(rows) == set(icl)
-    for component_id, row in rows.items():
-        icl_source = icl[component_id]
-        icl_values = _percentages(row[original_icl])
-        assert len(icl_values) == 1
-        assert icl_values[0] == pytest.approx(
-            icl_source["mean"] * 100, abs=ROUNDING
-        )
-        assert _spread(row[original_icl]) == pytest.approx(
-            icl_source["sample_standard_deviation"] * 100, abs=ROUNDING
-        )
-
-        cem_source = environments[icl_source["environment"]]
-        cem_values = _percentages(row[original_cem])
-        assert len(cem_values) == 1
-        assert cem_values[0] == pytest.approx(
-            cem_source["mean"] * 100, abs=ROUNDING
-        )
-        assert _spread(row[original_cem]) == pytest.approx(
-            cem_source["sample_standard_deviation"] * 100, abs=ROUNDING
-        )
-
-
-def test_dino_cem_is_labelled_non_frozen_supplemental_evidence() -> None:
-    """The diagnostic itself denies being part of the frozen formal matrix."""
-    summary = _dino_summary()
-    cem = summary["original_environment_cem"]
-    assert cem["official_frozen_matrix"] is False
-    assert summary["claim_boundary"]["cem_official_frozen_matrix"] is False
-    assert summary["claim_boundary"]["public_reference_result"] is False
-
-    table = _reference_table(_document())
-    original_cem = table.column("原始", "CEM")
-    for component_id, row in _dino_rows(table).items():
-        cell = row[original_cem]
-        assert NON_FROZEN.search(cell), (
-            f"{component_id}: DINO CEM must say it is non-frozen"
-        )
-        assert SUPPLEMENTAL.search(cell), (
-            f"{component_id}: DINO CEM must say it is supplementary evidence "
-            f"({summary['status']})"
-        )
-
-
-def test_unified_matrix_keeps_frozen_and_diagnostic_evidence_distinct() -> None:
-    """One display table must not erase the formal/non-frozen boundary."""
-    table = _reference_table(_document())
-    model = table.column("模型")
-    original_cem = table.column("原始", "CEM")
-
-    dino = [row for row in table.rows if row[model] == "DINO-WM"]
-    frozen = [row for row in table.rows if row[model] in FAMILIES]
-    assert len(dino) == len(DISPLAY_NAMES)
-    assert len(frozen) == len(DISPLAY_NAMES) * len(FAMILIES)
-    assert all(
-        NON_FROZEN.search(row[original_cem])
-        and SUPPLEMENTAL.search(row[original_cem])
-        for row in dino
-    )
-    assert all(not NON_FROZEN.search(row[original_cem]) for row in frozen)
-
-
-def test_supplemental_column_matches_complete_comparison_record() -> None:
-    """Non-scoreboard ICL/CEM values remain bound to the complete record."""
-    if not COMPLETE_COMPARISON.is_file():
-        pytest.skip(
-            f"no complete comparison at {COMPLETE_COMPARISON.relative_to(ROOT)}"
-        )
-
-    payload = json.loads(COMPLETE_COMPARISON.read_text(encoding="utf-8"))
-    entries = {
-        (entry["component_id"], entry["family"]): entry
-        for entry in payload["rows"]
-    }
-    checked: set[tuple[str, str]] = set()
-
-    for row_key, entry in entries.items():
-        table, row = _reference_row(*row_key)
-        cell = row[table.column("补充证据")]
-        if cell == "—":
-            continue
-
-        values = _percentages(cell)
-        if "ICL" in cell:
-            assert values[0] == pytest.approx(
-                entry["icl"]["mean"] * 100, abs=ROUNDING
-            )
-            assert _spread(cell) == pytest.approx(
-                entry["icl"]["sample_std"] * 100, abs=ROUNDING
-            )
-            values = values[1:]
-
-        expected_cem = [
-            seed["success_rate"] * 100
-            for seed in entry["original_task_cem"]["per_seed"]
-        ]
-        assert sorted(values) == pytest.approx(sorted(expected_cem), abs=ROUNDING)
-        documented_kept = "未保持" not in cell
-        assert documented_kept == (entry["original_task_cem"]["result"] == "PASS")
-        checked.add(row_key)
-
-    assert checked == {
-        ("action_strength", "PLDM"),
-        ("robot_arm_mass", "PLDM"),
-        ("portal_exit", "PLDM"),
-        ("contact_friction", "LeWM"),
-        ("contact_friction", "PLDM"),
-        ("motion_damping", "LeWM"),
-        ("motion_damping", "PLDM"),
-        ("cube_gripper_carry", "PLDM"),
-    }
 
 
 def test_documented_cem_budget_matches_the_recorded_budget() -> None:
@@ -608,4 +350,231 @@ def test_documented_cem_budget_matches_the_recorded_budget() -> None:
     ), (
         f"the document must state the standard CEM budget as seeds {first}-{last}, "
         f"{per_seed} episodes each, {total} in total"
+    )
+
+
+# ---------------------------------------------------------------------------
+# §5.1 is the CURRENT standard reference: the joint_scratch_v1 recipe, scored
+# under the completed anti-shortcut gates.  It is a different training
+# generation from ``public_scoreboard.json``, whose method names still carry
+# the superseded per-task recipes, so the two are deliberately NOT compared
+# here -- the historical numbers keep their own static record under
+# ``docs/archive/``.  What follows binds every documented §5.1 cell to
+# ``contextworld_joint_scratch_v1_reference_results_freeze_v1.json``, which
+# holds the per-checkpoint main score and gate verdict for both splits.
+# ---------------------------------------------------------------------------
+
+CURRENT_FREEZE = (
+    ROOT
+    / "configs/benchmark"
+    / "contextworld_joint_scratch_v1_reference_results_freeze_v1.json"
+)
+# The two components the suite registry marks ``failed_development`` never
+# consumed the held-out split, so their documented cells carry the Development
+# number and must say so.
+DEVELOPMENT_ONLY_SPLIT = "development"
+
+
+def _current_freeze() -> dict:
+    return json.loads(CURRENT_FREEZE.read_text(encoding="utf-8"))
+
+
+def _registry_status(component_id: str) -> str:
+    suite = yaml.safe_load(SUITE_REGISTRY.read_text(encoding="utf-8"))
+    return suite["components"][component_id]["reference_result_status"]
+
+
+def _documented_split(component_id: str) -> str:
+    if "development" in _registry_status(component_id):
+        return DEVELOPMENT_ONLY_SPLIT
+    return "test"
+
+
+def _frozen_cells(
+    component_id: str, family: str, stage: str
+) -> list[dict]:
+    return [
+        row
+        for row in _current_freeze()["checkpoint_results"]
+        if row["component_id"] == component_id
+        and row["family"] == family
+        and row["stage"] == stage
+    ]
+
+
+CURRENT_ROW_KEYS = sorted(
+    (component_id, family)
+    for component_id in DISPLAY_NAMES
+    for family in ("LeWM", "PLDM", "DINO-WM")
+)
+
+
+def test_current_freeze_covers_every_documented_row() -> None:
+    """Every §5.1 row must have per-checkpoint evidence behind it."""
+    table = _reference_table(_document())
+    task = table.column("任务")
+    model = table.column("模型")
+    documented = {(row[task], row[model]) for row in table.rows}
+    names = {name: cid for cid, name in DISPLAY_NAMES.items()}
+    missing = []
+    for task_name, family in sorted(documented):
+        component_id = names[task_name]
+        cells = _frozen_cells(component_id, family, "post_component_training")
+        if len(cells) != 3:
+            missing.append((task_name, family, len(cells)))
+    assert not missing, (
+        "these documented rows do not have three frozen checkpoints: "
+        f"{missing}"
+    )
+
+
+@pytest.mark.parametrize("row_key", CURRENT_ROW_KEYS)
+def test_documented_post_training_score_matches_the_current_freeze(
+    row_key: tuple[str, str],
+) -> None:
+    """The 组件训练后 cell is the mean ± sample sd of the three checkpoints."""
+    component_id, family = row_key
+    split = _documented_split(component_id)
+    cells = _frozen_cells(component_id, family, "post_component_training")
+    if len(cells) != 3:
+        pytest.skip(f"{component_id}/{family} has no three-checkpoint record")
+    scores = [row[split]["main_score"] * 100 for row in cells]
+
+    table, row = _reference_row(component_id, family)
+    cell = row[table.column("ICL", "主分数")]
+    if split == DEVELOPMENT_ONLY_SPLIT:
+        assert "Development" in cell, (
+            f"{row_key}: {_registry_status(component_id)} in the registry, so "
+            "the documented score must say Development"
+        )
+    documented = _percentages(cell)
+    assert documented, f"{row_key}: no percentage in {cell!r}"
+    assert abs(documented[0] - statistics.mean(scores)) <= MEAN_ROUNDING, (
+        f"{row_key}: document prints {documented[0]} but the three frozen "
+        f"{split} checkpoints average {statistics.mean(scores)}"
+    )
+    spread = _spread(cell)
+    assert spread is not None, f"{row_key}: cell carries no ± spread"
+    assert abs(spread - statistics.stdev(scores)) <= MEAN_ROUNDING, (
+        f"{row_key}: document prints ± {spread} but the frozen checkpoints "
+        f"spread is {statistics.stdev(scores)}"
+    )
+
+
+@pytest.mark.parametrize("row_key", CURRENT_ROW_KEYS)
+def test_documented_pre_training_score_matches_the_current_freeze(
+    row_key: tuple[str, str],
+) -> None:
+    """训练前 is the original-environment-only checkpoint, or — when absent."""
+    component_id, family = row_key
+    split = _documented_split(component_id)
+    cells = _frozen_cells(component_id, family, "original_environment_only")
+    table, row = _reference_row(component_id, family)
+    cell = row[table.column("原始", "ICL")]
+
+    if not cells:
+        assert not _percentages(cell), (
+            f"{row_key}: no original-environment checkpoint is frozen, so the "
+            f"documented starting point must stay em-dashed, got {cell!r}"
+        )
+        return
+    scores = [row_[split]["main_score"] * 100 for row_ in cells]
+    documented = _percentages(cell)
+    assert documented, f"{row_key}: no percentage in {cell!r}"
+    assert abs(documented[0] - statistics.mean(scores)) <= MEAN_ROUNDING, (
+        f"{row_key}: document prints {documented[0]} as the starting point but "
+        f"the frozen {split} baselines average {statistics.mean(scores)}"
+    )
+
+
+@pytest.mark.parametrize("row_key", CURRENT_ROW_KEYS)
+def test_documented_gate_verdict_matches_the_current_freeze(
+    row_key: tuple[str, str],
+) -> None:
+    """通过 only when all three checkpoints clear every gate of that component.
+
+    This is the column that carries the S1 judgment, so a high main score with
+    a failed gate must read 未通过 -- otherwise the table would present an
+    unexcluded shortcut as a demonstrated ability.
+    """
+    component_id, family = row_key
+    split = _documented_split(component_id)
+    cells = _frozen_cells(component_id, family, "post_component_training")
+    if len(cells) != 3:
+        pytest.skip(f"{component_id}/{family} has no three-checkpoint record")
+    verdicts = [row[split]["all_gates_passed"] for row in cells]
+    if any(value is None for value in verdicts):
+        pytest.skip(f"{component_id}/{family} records no gate decision")
+    passed = sum(1 for value in verdicts if value)
+
+    table, row = _reference_row(component_id, family)
+    cell = row[table.column("ICL", "结果")]
+    counts = re.search(r"(\d+)\s*/\s*(\d+)", cell)
+    assert counts is not None, f"{row_key}: verdict cell {cell!r} has no n/3"
+    assert (int(counts.group(1)), int(counts.group(2))) == (passed, 3), (
+        f"{row_key}: document verdict says {counts.group(0)} but the frozen "
+        f"checkpoints pass {passed}/3"
+    )
+    documented_pass = "未通过" not in cell
+    assert documented_pass == (passed == 3), (
+        f"{row_key}: document reads "
+        f"{'通过' if documented_pass else '未通过'} but {passed}/3 checkpoints "
+        "cleared every gate"
+    )
+
+
+@pytest.mark.parametrize("row_key", CURRENT_ROW_KEYS)
+def test_documented_post_training_cem_matches_the_current_freeze(
+    row_key: tuple[str, str],
+) -> None:
+    """训练后原任务 CEM is the mean ± sd over the three training seeds.
+
+    Each seed's own value is the mean over its CEM evaluation seeds, so the
+    documented spread is across training seeds, not across evaluation seeds.
+    """
+    component_id, family = row_key
+    cells = _frozen_cells(component_id, family, "post_component_training")
+    per_seed = [
+        statistics.mean(
+            row["original_task_cem"]["success_rate_percent_by_eval_seed"].values()
+        )
+        for row in cells
+        if row.get("original_task_cem")
+    ]
+    if len(per_seed) != 3:
+        pytest.skip(f"{component_id}/{family} has no three-seed CEM record")
+
+    table, row = _reference_row(component_id, family)
+    cell = row[table.column("训练后", "CEM")]
+    documented = _percentages(cell)
+    assert documented, f"{row_key}: no percentage in CEM cell {cell!r}"
+    assert abs(documented[0] - statistics.mean(per_seed)) <= MEAN_ROUNDING, (
+        f"{row_key}: document prints {documented[0]} but the frozen CEM runs "
+        f"average {statistics.mean(per_seed)}"
+    )
+
+
+def test_dino_cem_cells_are_marked_non_frozen() -> None:
+    """DINO-WM CEM is supplemental evidence and must stay marked as such."""
+    table = _reference_table(_document())
+    model = table.column("模型")
+    for column in (table.column("原始", "CEM"), table.column("训练后", "CEM")):
+        for row in table.rows:
+            if row[model] != "DINO-WM":
+                continue
+            if not _percentages(row[column]):
+                continue
+            assert "†" in row[column], (
+                "DINO-WM CEM cells carry non-frozen supplemental evidence and "
+                f"must be marked with †, got {row[column]!r}"
+            )
+
+
+def test_reference_table_still_reports_both_outcomes() -> None:
+    """A table that only ever says 通过 has stopped being a check."""
+    table = _reference_table(_document())
+    verdicts = [row[table.column("ICL", "结果")] for row in table.rows]
+    assert any("未通过" in verdict for verdict in verdicts)
+    assert any(
+        "未通过" not in verdict and "通过" in verdict for verdict in verdicts
     )

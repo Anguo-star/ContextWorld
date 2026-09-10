@@ -24,9 +24,7 @@ SPREAD = re.compile(r"±\s*(\d+(?:\.\d+)?)\s*pp")
 
 def _comparison_rows(document: str) -> dict[tuple[str, str], tuple[str, ...]]:
     header = (
-        "| 能力类型 | 任务 | 模型 | 原始 ICL 起点 | 原始 CEM 起点 "
-        "| 组件训练后 ICL 主分数 | ICL 结果 | 训练后原任务 CEM "
-        "| 规划结果 | 补充证据（非正式） |"
+        "| 能力类型 | 任务 | 模型 | 随机基线 | 原始 ICL 起点 | 组件训练后 ICL 主分数 | ICL 门槛结果 | 原始 CEM 起点 | 训练后原任务 CEM |"
     )
     lines = document.splitlines()
     start = lines.index(header)
@@ -122,60 +120,65 @@ def test_public_document_uses_one_split_aware_comparison_table() -> None:
     section = document[start:end]
 
     assert section.count(
-        "| 能力类型 | 任务 | 模型 | 原始 ICL 起点 | 原始 CEM 起点 "
-        "| 组件训练后 ICL 主分数 | ICL 结果 | 训练后原任务 CEM "
-        "| 规划结果 | 补充证据（非正式） |"
+        "| 能力类型 | 任务 | 模型 | 随机基线 | 原始 ICL 起点 | 组件训练后 ICL 主分数 | ICL 门槛结果 | 原始 CEM 起点 | 训练后原任务 CEM |"
     ) == 1
     assert "### 5.3 DINO-WM / PreJEPA" not in section
     assert "Development 与 Public Test 可以出现在同一张表中" in section
-    assert "尚未训练" in section
-    assert "无可评分的 epoch-10 检查点" in section
+    # The mid-training phrasing ("尚未训练" / "无可评分的 epoch-10 检查点") is
+    # deliberately gone: DINO-WM now has all nine components at three seeds, so
+    # a document still claiming otherwise would be stale.  What §5 must keep is
+    # the pointer to its machine-readable source, plus the superseded records
+    # kept for provenance.
+    assert (
+        "contextworld_joint_scratch_v1_reference_results_freeze_v1.json" in section
+    )
     assert "complete_comparison_v2.json" in section
     assert "contextworld_dinowm_component_development_results_v1.json" in section
+    assert "尚未训练" not in section
+    assert "无可评分的 epoch-10 检查点" not in section
 
 
-def test_documented_dinowm_component_values_match_the_three_seed_record() -> None:
+def test_dinowm_development_snapshot_is_marked_superseded() -> None:
+    """This record is a mid-training Development snapshot, not a table source.
+
+    It was written while DINO-WM component training was still running --
+    ``action_delay`` had no checkpoint and ``action_strength`` had not started --
+    and its speed entry reports ``history_better_rate``, which the record itself
+    labels ``history_utility_diagnostic_not_matched_counterfactual``: a
+    different metric from the speed main score used for LeWM and PLDM.  The
+    comparison table must therefore NOT be pinned to it, or the benchmark would
+    carry two speed standards at once.  The complete nine-component matrix in
+    the joint_scratch_v1 freeze supersedes it, and
+    ``test_public_document_numbers_match_frozen_results`` binds the documented
+    DINO-WM cells to that freeze instead.  What stays authoritative here is the
+    per-seed eval manifest identity and the CEM successes recorded at the time.
+    """
     record = json.loads(RESULTS.read_text(encoding="utf-8"))
-    rows = _comparison_rows(BENCHMARK.read_text(encoding="utf-8"))
-    labels = {
-        "speed": "速度",
-        "door": "门通行规则",
-        "action_delay": "动作延迟",
-        "portal_exit": "传送门出口位置",
-        "action_strength": "推手移动幅度",
-        "contact_friction": "接触摩擦",
-        "motion_damping": "运动阻尼",
-        "robot_arm_mass": "机械臂质量",
-        "cube_gripper_carry": "Cube 夹爪携带规则",
+    superseded = record["superseded_by"]
+    assert superseded["record"] == (
+        "configs/benchmark/"
+        "contextworld_joint_scratch_v1_reference_results_freeze_v1.json"
+    )
+    assert (ROOT / superseded["record"]).is_file(), (
+        "the superseding freeze is named but absent"
+    )
+    assert record["evaluation"]["icl_split"] == "development"
+
+    incomplete = {
+        component_id
+        for component_id, result in record["components"].items()
+        if result["status"] != "complete_three_seed_development"
     }
-
+    assert incomplete == {"action_delay", "action_strength"}, (
+        "the snapshot's incomplete set changed; re-check whether it is still "
+        f"the mid-training record this test describes: {sorted(incomplete)}"
+    )
+    assert record["components"]["speed"]["metric_kind"] == (
+        "history_utility_diagnostic_not_matched_counterfactual"
+    )
     for component_id, result in record["components"].items():
-        row = rows[(labels[component_id], "DINO-WM")]
-        icl_cell = row[5]
-        cem_cell = row[7]
         if result["status"] != "complete_three_seed_development":
-            assert not PERCENT.findall(icl_cell)
-            assert not PERCENT.findall(cem_cell)
             continue
-
-        icl_values = result["icl_primary_by_training_seed"]
-        documented_icl = [float(value) for value in PERCENT.findall(icl_cell)]
-        assert documented_icl == pytest.approx(
-            [mean(icl_values) * 100], abs=ROUNDING
-        )
-        icl_spread = SPREAD.search(icl_cell)
-        assert icl_spread is not None
-        assert float(icl_spread.group(1)) == pytest.approx(
-            stdev(icl_values) * 100, abs=ROUNDING
-        )
-
-        cem_rates = [value / 300 for value in result["cem_successes_by_training_seed"]]
-        documented_cem = [float(value) for value in PERCENT.findall(cem_cell)]
-        assert documented_cem == pytest.approx(
-            [mean(cem_rates) * 100], abs=ROUNDING
-        )
-        cem_spread = SPREAD.search(cem_cell)
-        assert cem_spread is not None
-        assert float(cem_spread.group(1)) == pytest.approx(
-            stdev(cem_rates) * 100, abs=ROUNDING
-        )
+        assert len(result["icl_primary_by_training_seed"]) == 3, component_id
+        assert len(result["eval_manifest_sha256_by_training_seed"]) == 3, component_id
+        assert len(result["cem_successes_by_training_seed"]) == 3, component_id
