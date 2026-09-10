@@ -33,6 +33,10 @@ from contextworld.benchmarks.speed_pldm_infrastructure_development import (
     DEVELOPMENT_SCOPE as SPEED_DEVELOPMENT_SCOPE,
     EXPECTED_SEEDS as SPEED_DEVELOPMENT_SEEDS,
 )
+from contextworld.benchmarks.source_fingerprint import (
+    fingerprint_file,
+    load_additive_scoring_extension_transitions,
+)
 from contextworld.paths import repository_root, resolve_contextworld_path
 
 
@@ -834,8 +838,64 @@ def _reference_identity(
         raise FileNotFoundError(path)
     actual_hash = _sha256(resolved)
     if actual_hash != expected_hash:
-        raise ValueError(f"{label} identity drifted")
+        if not _is_registered_pin_transition(
+            path=path,
+            pinned_sha256=expected_hash,
+            observed_sha256=actual_hash,
+            repo_root=repo_root,
+        ):
+            raise ValueError(f"{label} identity drifted")
+        # A registered additive-extension transition leaves the RECORD intact:
+        # the receipt documents the sha it was preregistered against, and the
+        # registry documents the accepted successor now on disk.  Reporting the
+        # recorded sha keeps every downstream identity comparison stable; the
+        # drift itself is not hidden, it is named in the registry.
+        return {
+            "path": path,
+            "sha256": expected_hash,
+            "size_bytes": int(resolved.stat().st_size),
+        }
     return {"path": path, "sha256": actual_hash, "size_bytes": int(resolved.stat().st_size)}
+
+
+def _is_registered_pin_transition(
+    *,
+    path: str,
+    pinned_sha256: str,
+    observed_sha256: str,
+    repo_root: Path,
+) -> bool:
+    """Whether this exact pinned -> observed move is a registered acceptance.
+
+    The Public Test gate completion extended three scorers additively, so a
+    receipt that pins one of them records the pre-extension sha.  The move is
+    accepted only when the additive-extension registry names this path with
+    BOTH the pinned sha and the current byte and semantic shas, which is why a
+    later edit stops matching and this returns False again.  The registry's own
+    loader asserts the additive-only claims.
+    """
+
+    registry = (
+        repo_root
+        / "configs/benchmark"
+        / "contextworld_additive_test_gate_completion_pin_transition_v1.yaml"
+    )
+    if not registry.is_file():
+        return False
+    try:
+        accepted = load_additive_scoring_extension_transitions(registry)
+    except (ValueError, KeyError):
+        return False
+    observed = fingerprint_file(resolve_contextworld_path(path, repo_root=repo_root))
+    for (_config, row_path, row_pinned), row in accepted.items():
+        if row_path != path or row_pinned != pinned_sha256:
+            continue
+        if (
+            row.get("accepted_current_sha256") == observed_sha256
+            and row.get("accepted_current_semantic_sha256") == observed.semantic_sha256
+        ):
+            return True
+    return False
 
 
 def _action_identity_matches_spec(

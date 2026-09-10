@@ -35,6 +35,7 @@ from contextworld.benchmarks.source_fingerprint import (
     SEMANTIC_UNCHANGED,
     grade_source_pin,
     load_accepted_pin_transitions,
+    load_additive_scoring_extension_transitions,
 )
 
 
@@ -42,12 +43,31 @@ ROOT = Path(__file__).resolve().parents[1]
 RUNTIME_SOURCE_PIN_CORRECTION = (
     ROOT / "configs/benchmark/contextworld_runtime_source_pin_correction_v1.yaml"
 )
+# Additive Public Test gate completion for speed / action delay / door.  Kept in
+# its own record with its own loader because its claim is different from a
+# behaviour-neutral metadata correction: new fields are emitted, every
+# pre-existing field is bit-identical, and every sealed result was re-executed.
+ADDITIVE_GATE_PIN_TRANSITION = (
+    ROOT
+    / "configs/benchmark/contextworld_additive_test_gate_completion_pin_transition_v1.yaml"
+)
 
 
 def accepted_pin_transitions() -> dict[tuple[str, str, str], dict[str, Any]]:
     """Load the correction registry shared by every pin-audit test."""
 
-    return load_accepted_pin_transitions(RUNTIME_SOURCE_PIN_CORRECTION)
+    accepted = dict(load_accepted_pin_transitions(RUNTIME_SOURCE_PIN_CORRECTION))
+    overlap = accepted.keys() & load_additive_scoring_extension_transitions(
+        ADDITIVE_GATE_PIN_TRANSITION
+    ).keys()
+    if overlap:
+        raise ValueError(
+            f"A pin is registered in both correction records: {sorted(overlap)}"
+        )
+    accepted.update(
+        load_additive_scoring_extension_transitions(ADDITIVE_GATE_PIN_TRANSITION)
+    )
+    return accepted
 
 
 def graded_failed_audit_files(

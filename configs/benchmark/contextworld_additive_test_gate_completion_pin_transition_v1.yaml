@@ -1,0 +1,127 @@
+schema_version: 1
+status: accepted_additive_scoring_extension
+extension_id: contextworld_additive_test_gate_completion_pin_transition_v1
+decision_date: '2026-09-10'
+scope:
+  existing_output_fields_changed: false
+  primary_scores_changed_by_this_source_edit: false
+  sealed_results_reexecuted: true
+  frozen_release_sha_values_edited: false
+  frozen_evaluation_artifacts_mutated: false
+  official_scoreboard_rows_produced: false
+finding:
+  classification: scoring_surface_extended_with_additive_gate_metrics
+  additive_only: true
+  new_thresholds_config: configs/benchmark/contextworld_test_gate_completion_v1.yaml
+  explanation: '速度、动作延迟、门通行三个组件的 Public Test 评分器被就地扩展，补齐六项反捷径门槛（历史使用、上下文/规律切换率、最弱条件、latent 响应增益、归一化响应误差、paired
+    bootstrap 95% 下界）。这些门槛此前只有其余六个组件具备。
+
+    additive_only 的事实依据（逐项实测，不是声明）：
+
+    1. 主分数：以 git archive 导出改动前源码树，在同一冻结环境 cwenv 中重跑受影响单元，改动前与改动后逐位相同（action_delay|lewm|3072 两者均为 0.9707407407407408；door|lewm|3073
+    两者均为 0.995）。
+
+    2. 既有门槛字段：只有 speed 在改动前已输出 gate_completion；其 4 条 track × 5 项指标共 20 个值改动前后逐位相同，零变化。
+
+    3. 新增字段：action_delay 与 door 改动前的载荷完全不含 gate_completion / correct_history_rate / response_gain / latent_response，故新增内容不覆盖任何旧值。
+
+    4. 冻结的 matching_history_strict_win_rate 诊断未被改动；动作延迟门槛所用的correct_history_rate 是新指标，按 physical_future_group
+    排除物理上不可区分的延迟（h1 下 delays 5..10 同为静止），与 context_switch_rate 的 delay_pairs 同一条排除规则。不做此排除时该指标对任何模型的上限为
+    6/11=0.5455，阈值 0.75 不可达。
+
+    5. 全部封存结果已重跑：45 枚 Public Test + 45 枚 Development，逐枚校验划分身份、冻结数据 sha 与六项门槛齐全性。'
+  separately_documented_finding: 重跑后 6 枚 Public Test 主分数相对 2026-09-07 旧文件发生位移（最大 0.167pp）。根因是评测运行时迁移到冻结环境
+    cwenv，与本次源码改动无关：改动前代码在 cwenv 中复现的是新值；且评分器零改动的 robot_arm_mass 出现同形态位移（比率指标按 1/512 整数倍翻转、有升有降）。详见 docs/WIP_eval_standard_alignment.md。
+accepted_transitions:
+- component: action_delay
+  config: configs/benchmark/tworoom_action_delay_icl_release_v1.yaml
+  path: contextworld/benchmarks/action_delay_icl_score.py
+  field: identity.score_api
+  pinned_sha256: 766f01552ba9b248dff06a20ebe2b01ed2b8b5100c773cdd5c2a5883f3dfa70b
+  accepted_current_sha256: 20db3cd411193495b297fb32988e64eac34490b99665a743418552454ccca90b
+  accepted_current_semantic_sha256: 402e626d7b3c9e8a5081f8ef87341403f4b7a02c02411687182260cae54e3cb6
+  reexecution_evidence: audit/test_primary_drift_v1.json + 15 Public Test 单元重跑（action_delay_h7full/ 与
+    benchmark_icl_publictest/）
+- component: action_delay
+  config: configs/benchmark/tworoom_action_delay_icl_release_v1.yaml
+  path: contextworld/evaluation/action_delay_h7_score.py
+  field: identity.evaluator
+  pinned_sha256: 112fb51c72f132bdc5cb2d052cbebf19593a6f69df854e5be52689f608f807d5
+  accepted_current_sha256: 0792c6a65bc42a69461ba362a4a10b6d5165c3082da8d17bc05592cdc7271941
+  accepted_current_semantic_sha256: 7e3c572b2f512307e483a39575d1214b3f116d638000ab820ae522a02db38d4e
+  reexecution_evidence: audit/test_primary_drift_v1.json + 15 Public Test 单元重跑（action_delay_h7full/ 与
+    benchmark_icl_publictest/）
+- component: action_delay
+  config: configs/benchmark/tworoom_action_delay_original_baseline_recovery_v1.yaml
+  path: contextworld/benchmarks/action_delay_icl_score.py
+  field: identity.score_api
+  pinned_sha256: 766f01552ba9b248dff06a20ebe2b01ed2b8b5100c773cdd5c2a5883f3dfa70b
+  accepted_current_sha256: 20db3cd411193495b297fb32988e64eac34490b99665a743418552454ccca90b
+  accepted_current_semantic_sha256: 402e626d7b3c9e8a5081f8ef87341403f4b7a02c02411687182260cae54e3cb6
+  reexecution_evidence: audit/test_primary_drift_v1.json + 15 Public Test 单元重跑（action_delay_h7full/ 与
+    benchmark_icl_publictest/）
+- component: action_delay
+  config: configs/benchmark/tworoom_action_delay_original_baseline_recovery_v1.yaml
+  path: contextworld/evaluation/action_delay_h7_score.py
+  field: identity.evaluator
+  pinned_sha256: 9b565e7caf0bb1196fe365506606b61d5d34ca76624cbaef8d748a82888a9661
+  accepted_current_sha256: 0792c6a65bc42a69461ba362a4a10b6d5165c3082da8d17bc05592cdc7271941
+  accepted_current_semantic_sha256: 7e3c572b2f512307e483a39575d1214b3f116d638000ab820ae522a02db38d4e
+  reexecution_evidence: audit/test_primary_drift_v1.json + 15 Public Test 单元重跑（action_delay_h7full/ 与
+    benchmark_icl_publictest/）
+- component: door
+  config: configs/benchmark/tworoom_door_icl_release_v1.yaml
+  path: contextworld/benchmarks/door_icl_score.py
+  field: runtime.contextworld.source_sha256.contextworld/benchmarks/door_icl_score.py
+  pinned_sha256: 9d729fd46934b57090d4fce4f536b9fcc9ac55770b41916b33bda543f5c3688f
+  accepted_current_sha256: e01aa5b5915dd24c15075797844af66028693546f36c82034d7217f861997b84
+  accepted_current_semantic_sha256: 87ade4ff4ddf74619720ec1ea2625b0fcec5217f8a5221b7f958b11d3ab193e5
+  reexecution_evidence: audit/test_primary_drift_v1.json + 15 Public Test 单元重跑（door_formal/ 与 benchmark_icl_publictest/）
+- component: door
+  config: configs/benchmark/tworoom_door_icl_release_v1.yaml
+  path: contextworld/evaluation/hidden_passage_validation.py
+  field: runtime.contextworld.source_sha256.contextworld/evaluation/hidden_passage_validation.py
+  pinned_sha256: 31fa2cdbd1befca770cfa201c1ce2f0320112d8ffc03349d4342a36d92c58321
+  accepted_current_sha256: dc1eebe28a48a8b4bb305b88e5c1ed82ad273611bca8b52f880e5648d69c8740
+  accepted_current_semantic_sha256: 8ca49ec8ff2a821396118ba36e92d763b979ecf5355723628741f18aa4b3e2af
+  reexecution_evidence: audit/test_primary_drift_v1.json + 15 Public Test 单元重跑（door_formal/ 与 benchmark_icl_publictest/）
+- component: speed
+  config: configs/benchmark/tworoom_speed_icl_release_v1.yaml
+  path: contextworld/benchmarks/speed_icl_score.py
+  field: runtime.contextworld.source_sha256.contextworld/benchmarks/speed_icl_score.py
+  pinned_sha256: 0d7d52667eea0a29badcac1cee1047f3a2d56d55f65a59a0fd7a086a77601a1e
+  accepted_current_sha256: af70e31572cec3c9dcb05e9d50a1e97247bcebad4fceee11b891d94bd4bbd988
+  accepted_current_semantic_sha256: e3e494c3bbea6cd3fc953a7307c6bfa855538e79f4d3b4b883bee35d0c4df13a
+  reexecution_evidence: audit/test_primary_drift_v1.json + 15 Public Test 单元重跑（speed_formal/ 与 benchmark_icl_publictest/）
+- component: speed
+  config: configs/benchmark/tworoom_speed_pldm_behavioral_claim_boundary_v1.yaml
+  path: contextworld/benchmarks/speed_icl_score.py
+  field: frozen_inputs.public_scorer
+  pinned_sha256: 0d7d52667eea0a29badcac1cee1047f3a2d56d55f65a59a0fd7a086a77601a1e
+  accepted_current_sha256: af70e31572cec3c9dcb05e9d50a1e97247bcebad4fceee11b891d94bd4bbd988
+  accepted_current_semantic_sha256: e3e494c3bbea6cd3fc953a7307c6bfa855538e79f4d3b4b883bee35d0c4df13a
+  reexecution_evidence: audit/test_primary_drift_v1.json + 15 Public Test 单元重跑（speed_formal/ 与 benchmark_icl_publictest/）
+- component: speed
+  config: configs/benchmark/tworoom_speed_pldm_cem_prereg_v1.yaml
+  path: contextworld/benchmarks/speed_icl_score.py
+  field: tracks.action_planning_cem.source.speed_score
+  pinned_sha256: 0d7d52667eea0a29badcac1cee1047f3a2d56d55f65a59a0fd7a086a77601a1e
+  accepted_current_sha256: af70e31572cec3c9dcb05e9d50a1e97247bcebad4fceee11b891d94bd4bbd988
+  accepted_current_semantic_sha256: e3e494c3bbea6cd3fc953a7307c6bfa855538e79f4d3b4b883bee35d0c4df13a
+  reexecution_evidence: audit/test_primary_drift_v1.json + 15 Public Test 单元重跑（speed_formal/ 与 benchmark_icl_publictest/）
+- component: speed
+  config: configs/benchmark/tworoom_speed_pldm_evaluation_binding_v1.yaml
+  path: contextworld/benchmarks/speed_icl_score.py
+  field: cem_protocol.source_identities.speed_score
+  pinned_sha256: 0d7d52667eea0a29badcac1cee1047f3a2d56d55f65a59a0fd7a086a77601a1e
+  accepted_current_sha256: af70e31572cec3c9dcb05e9d50a1e97247bcebad4fceee11b891d94bd4bbd988
+  accepted_current_semantic_sha256: e3e494c3bbea6cd3fc953a7307c6bfa855538e79f4d3b4b883bee35d0c4df13a
+  reexecution_evidence: audit/test_primary_drift_v1.json + 15 Public Test 单元重跑（speed_formal/ 与 benchmark_icl_publictest/）
+- component: speed
+  config: configs/benchmark/tworoom_speed_pldm_formal_icl_recovery_v1.yaml
+  path: contextworld/benchmarks/speed_icl_score.py
+  field: implementation.frozen_icl_scorer
+  pinned_sha256: 0d7d52667eea0a29badcac1cee1047f3a2d56d55f65a59a0fd7a086a77601a1e
+  accepted_current_sha256: af70e31572cec3c9dcb05e9d50a1e97247bcebad4fceee11b891d94bd4bbd988
+  accepted_current_semantic_sha256: e3e494c3bbea6cd3fc953a7307c6bfa855538e79f4d3b4b883bee35d0c4df13a
+  reexecution_evidence: audit/test_primary_drift_v1.json + 15 Public Test 单元重跑（speed_formal/ 与 benchmark_icl_publictest/）

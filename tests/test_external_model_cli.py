@@ -47,6 +47,7 @@ from contextworld.benchmarks.source_fingerprint import (
     fingerprint_file,
     pinned_source_from_history,
     semantic_fingerprint,
+    load_additive_scoring_extension_transitions,
 )
 
 
@@ -630,6 +631,19 @@ def _accepted_runtime_source_pin_corrections() -> dict[
         accepted[(superseded["release_config"], row["path"], row["pinned_sha256"])] = row
     for row in payload["historical_execution_receipts"]:
         accepted[(row["config"], row["path"], row["pinned_sha256"])] = row
+    # The additive Public Test gate completion is a different claim and lives in
+    # its own record with its own strict loader: new fields emitted, every
+    # pre-existing field bit-identical, every sealed result re-executed.  Its
+    # assertions run inside that loader, so a row edited into a blanket
+    # exemption fails there rather than silently widening this audit.
+    additive = load_additive_scoring_extension_transitions(
+        ROOT
+        / "configs/benchmark"
+        / "contextworld_additive_test_gate_completion_pin_transition_v1.yaml"
+    )
+    overlap = accepted.keys() & additive.keys()
+    assert not overlap, f"pin registered in both correction records: {sorted(overlap)}"
+    accepted.update(additive)
     return accepted
 
 

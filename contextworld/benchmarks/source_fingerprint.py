@@ -215,6 +215,69 @@ def load_accepted_pin_transitions(
     return accepted
 
 
+ADDITIVE_SCORING_EXTENSION_STATUS = "accepted_additive_scoring_extension"
+ADDITIVE_SCORING_EXTENSION_CLASSIFICATION = (
+    "scoring_surface_extended_with_additive_gate_metrics"
+)
+
+
+def load_additive_scoring_extension_transitions(
+    extension_yaml: Path,
+) -> dict[tuple[str, str, str], dict[str, Any]]:
+    """Load accepted transitions for an additive scoring-surface extension.
+
+    This is deliberately a separate loader from
+    :func:`load_accepted_pin_transitions`, whose contract is a
+    behaviour-neutral metadata correction that re-executed nothing.  An
+    additive extension is a different, narrower thing: the scorer emits new
+    fields that did not exist before, every field that DID exist stays
+    bit-identical, and every result sealed against the old pin was re-executed
+    and compared.  Recording that here keeps the honest claim available instead
+    of forcing it into the behaviour-unchanged classification, and it still
+    refuses anything that moves a pre-existing value: ``DRIFTED`` remains the
+    verdict for a real scoring change.
+
+    Every claim below is asserted, not trusted, so a record edited into a
+    blanket exemption fails loudly here.
+    """
+
+    payload = yaml.safe_load(extension_yaml.read_text(encoding="utf-8"))
+    if payload.get("status") != ADDITIVE_SCORING_EXTENSION_STATUS:
+        raise ValueError(f"Unexpected extension status: {extension_yaml}")
+    scope = payload["scope"]
+    if scope["existing_output_fields_changed"]:
+        raise ValueError(
+            "An additive scoring extension must not change a pre-existing "
+            "output field"
+        )
+    if scope["primary_scores_changed_by_this_source_edit"]:
+        raise ValueError(
+            "An additive scoring extension must not change any primary score"
+        )
+    if not scope["sealed_results_reexecuted"]:
+        raise ValueError(
+            "An additive scoring extension must re-execute every result "
+            "sealed against the superseded pin"
+        )
+    finding = payload["finding"]
+    if finding["classification"] != ADDITIVE_SCORING_EXTENSION_CLASSIFICATION:
+        raise ValueError(
+            "An additive scoring extension must classify an additive-only "
+            "scoring-surface change"
+        )
+    if not finding["additive_only"]:
+        raise ValueError("An additive scoring extension must be additive only")
+    accepted: dict[tuple[str, str, str], dict[str, Any]] = {}
+    for row in payload["accepted_transitions"]:
+        if not row.get("reexecution_evidence"):
+            raise ValueError(
+                f"Accepted transition for {row.get('path')!r} carries no "
+                "re-execution evidence"
+            )
+        accepted[(row["config"], row["path"], row["pinned_sha256"])] = row
+    return accepted
+
+
 def grade_source_pin(
     *,
     repo_root: Path,

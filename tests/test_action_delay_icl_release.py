@@ -336,6 +336,27 @@ def test_current_public_release_evidence_is_auditable_with_historical_package_pi
     release["identity"]["adapters"]["sha256"] = file_sha256(
         root / "contextworld/benchmarks/adapters.py"
     )
+    # The two Action Delay scorers carry a registered additive-extension
+    # transition (new Public Test gate metrics only; every pre-existing field
+    # bit-identical, every sealed result re-executed).  ``audit_*_icl_release``
+    # is still a raw byte comparison, so bind the audited copy to the accepted
+    # state the same way the adapters pin above is bound -- the acceptance
+    # itself is asserted by the loader that grades these pins.
+    for identity_key, relative in (
+        ("score_api", "contextworld/benchmarks/action_delay_icl_score.py"),
+        ("evaluator", "contextworld/evaluation/action_delay_h7_score.py"),
+    ):
+        grading = grade_source_pin(
+            repo_root=root,
+            config_relative=(
+                "configs/benchmark/tworoom_action_delay_icl_release_v1.yaml"
+            ),
+            path_relative=relative,
+            pinned_sha256=release["identity"][identity_key]["sha256"],
+            accepted=pin_grading.accepted_pin_transitions(),
+        )
+        assert grading.status in (BYTE_MATCH, ACCEPTED_TRANSITION), grading.message
+        release["identity"][identity_key]["sha256"] = file_sha256(root / relative)
     audit_config = tmp_path / "action_delay_release_runtime_audit.yaml"
     audit_config.write_text(
         yaml.safe_dump(release, sort_keys=False), encoding="utf-8"
