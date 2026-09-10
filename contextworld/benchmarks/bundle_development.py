@@ -11,6 +11,17 @@ Public-Test artifacts.  Reusing their small, model-independent metric kernels
 is useful; reusing their data readers is not.  A result from this module is a
 useful training/development diagnostic, never an official scoreboard row or a
 formal pass decision.
+
+Since dataset_version 1.0.1-rc1 the speed and door Development payloads are
+the ``development_structural_parity_v1`` Lance collections: replicas of the
+Public Test protocols whose only difference from Test is the data rows.  The
+two readers below therefore rebuild the Test comparison structure (speed:
+four tracks, one history condition per reference speed, 1..5-block true
+futures; door: three history conditions, two true futures, eval-seed x
+direction stratification) and score it with the same model-independent
+kernels the Public Test scorers use.  Every threshold-bearing decision field
+is stripped: this module emits the gate *inputs* only, and any pass judgment
+is computed outside it against the published thresholds.
 """
 
 from __future__ import annotations
@@ -48,8 +59,80 @@ _SINGLE_TABLE_TASKS = {
     "portal_exit",
     "cube_gripper_carry",
 }
-_DOOR_MEMBER_PATTERN = re.compile(
-    r"^hp-val-(?P<door>d\d+)-(?P<mode>blocked|passable)-"
+# Structural-parity Development payloads (dataset_version 1.0.1-rc1).  One
+# Lance table per (track, history condition) for speed and per (door
+# position, history condition) for door; the stratification keys ride as
+# per-episode constant ``dev_*`` columns because the pinned Lance schema has
+# no episode side table.
+_SPEED_STRUCTURAL_MEMBER_PATTERN = re.compile(
+    r"^twmsdev-(?P<track>[a-z_]+)-(?P<condition>history_[a-z_]+)-"
+    r"(?P<fingerprint>[0-9a-f]+)\.lance$"
+)
+_DOOR_STRUCTURAL_MEMBER_PATTERN = re.compile(
+    r"^hpdev-d(?P<door>\d+)-(?P<condition>[a-z_]+)-"
+    r"(?P<fingerprint>[0-9a-f]+)\.lance$"
+)
+_SPEED_DEV_EVAL_SEEDS = (42, 43, 44, 45, 46, 47)
+_SPEED_DEV_QUERIES_PER_REFERENCE_SPEED_PER_SEED = 50
+_SPEED_TOKEN_ROWS = (0, 5, 10, 15, 20, 25, 30, 35)
+_SPEED_EPISODE_ROWS = 40
+_DOOR_TOKEN_ROWS = (0, 5, 10, 15)
+_DOOR_EPISODE_ROWS = 20
+_DOOR_DEV_EVAL_SEEDS = (42, 43, 44, 45, 46, 47)
+_DOOR_DEV_QUERIES_PER_SEED = 50
+# The formal Public Test fixes its door decision contract in
+# ``tworoom_hidden_passage_h3_validation_v2.yaml`` (gates) and its additive
+# gate inputs in ``contextworld_test_gate_completion_v1.yaml``.  The
+# Development bundle ships neither, so the same numbers are restated here and
+# fed to the identical kernels; only the resulting decision fields are
+# stripped from the emitted metrics.
+_DOOR_DEV_GATES = {
+    "minimum_same_history_two_target_accuracy_exclusive": 0.5,
+    "minimum_strict_win_rate_exclusive": 0.5,
+    "minimum_target_pair_latent_mse_exclusive": 1.0e-12,
+    "paired_bootstrap": {
+        "unit": "static_query_within_eval_seed_direction",
+        "strata": "eval_seed_x_direction",
+        "method": "percentile",
+        "resamples": 10_000,
+        "confidence": 0.95,
+        "seed": 20_260_725,
+        "minimum_lower_bound_exclusive": 0.0,
+        "required_metrics": [
+            "passable/same_vs_other_rule_history",
+            "passable/same_vs_no_crossing_attempt",
+            "blocked/same_vs_other_rule_history",
+            "blocked/same_vs_no_crossing_attempt",
+            "passable/matching_history_two_target_margin",
+            "blocked/matching_history_two_target_margin",
+        ],
+    },
+}
+# Keys that carry pass judgments; a Development result must never contain
+# them, so everything the shared Test kernels return is filtered through
+# this set before it reaches the emitted metrics.
+_DECISION_FREE_KEYS = frozenset(
+    {
+        "gate",
+        "gates",
+        "decision",
+        "decision_contract",
+        "passed",
+        "checks",
+        "failed_checks",
+        "verdict",
+        "thresholds",
+        "count_audit",
+        "diagnostic_within_sample_pass",
+        "formal_protocol_eligible",
+        "formal_within_checkpoint_pass",
+        "gate_horizon",
+        "additive_only",
+        "full_protocol",
+        "full_protocol_track",
+        "threshold_source",
+        "threshold_provenance",
+    }
 )
 _ACTION_DELAY_MEMBER_PATTERN = re.compile(
     r"^ad-h7-paired-val-(?P<profile>p\d+)-d(?P<delay>\d+)-"
@@ -371,6 +454,109 @@ def _read_tworoom_episodes(
     return available, result
 
 
+def _scalar(value: Any) -> float:
+    """Normalize a per-row scalar column value (scalar or length-1 list)."""
+
+    if isinstance(value, (list, tuple, np.ndarray)):
+        items = list(value)
+        if len(items) != 1:
+            raise ValueError(
+                f"Development scalar column must hold one value, got {items}"
+            )
+        value = items[0]
+    return float(value)
+
+
+def _read_dev_episodes(
+    path: Path,
+    *,
+    expected_steps: int,
+    frame_steps: Sequence[int],
+    string_columns: Sequence[str] = (),
+    scalar_columns: Sequence[str] = (),
+) -> list[dict[str, Any]]:
+    """Read one structural-parity Development table with its ``dev_*`` keys.
+
+    Returns one row per episode with the decoded frames at ``frame_steps``,
+    the full raw-step action vector, and the episode-constant stratification
+    columns.  Every column must be constant within an episode; the exact-clip
+    contract is the same one the paired readers enforce.
+    """
+
+    columns = [
+        "episode_idx",
+        "step_idx",
+        "pixels",
+        "action",
+        *string_columns,
+        *scalar_columns,
+    ]
+    table = _lance_table(path, columns=columns)
+    episode_indices = np.asarray(table["episode_idx"].to_numpy(), dtype=np.int64)
+    step_indices = np.asarray(table["step_idx"].to_numpy(), dtype=np.int64)
+    string_values = {
+        name: table[name].to_pylist() for name in string_columns
+    }
+    scalar_values = {
+        name: table[name].to_pylist() for name in scalar_columns
+    }
+    pixels = table["pixels"].to_pylist()
+    actions = np.asarray(table["action"].to_pylist(), dtype=np.float32)
+    episodes: list[dict[str, Any]] = []
+    for episode in sorted(int(value) for value in np.unique(episode_indices)):
+        rows = np.flatnonzero(episode_indices == episode)
+        rows = rows[np.argsort(step_indices[rows])]
+        if not np.array_equal(step_indices[rows], np.arange(expected_steps)):
+            raise RuntimeError(
+                f"Development episode {episode} of {path.name} is not a valid "
+                f"{expected_steps}-step clip"
+            )
+        record: dict[str, Any] = {
+            "episode": episode,
+            "frames": np.stack(
+                [
+                    _decode_rgb(pixels[int(rows[step])])
+                    for step in frame_steps
+                ]
+            ),
+            "actions": actions[rows].reshape(expected_steps, -1),
+        }
+        for name in string_columns:
+            values = {str(string_values[name][int(row)]) for row in rows}
+            if len(values) != 1:
+                raise RuntimeError(
+                    f"Development column {name} is not constant in episode "
+                    f"{episode} of {path.name}"
+                )
+            record[name] = values.pop()
+        for name in scalar_columns:
+            values = {_scalar(scalar_values[name][int(row)]) for row in rows}
+            if len(values) != 1:
+                raise RuntimeError(
+                    f"Development column {name} is not constant in episode "
+                    f"{episode} of {path.name}"
+                )
+            record[name] = values.pop()
+        episodes.append(record)
+    if not episodes:
+        raise RuntimeError(f"Development table {path.name} has no episodes")
+    return episodes
+
+
+def _decision_free(value: Any) -> Any:
+    """Recursively drop every decision-bearing field from kernel output."""
+
+    if isinstance(value, dict):
+        return {
+            key: _decision_free(item)
+            for key, item in value.items()
+            if key not in _DECISION_FREE_KEYS
+        }
+    if isinstance(value, list):
+        return [_decision_free(item) for item in value]
+    return value
+
+
 def _ensure_paired_example(
     *,
     pair_id: str,
@@ -514,91 +700,265 @@ def _single_table_arrays(payload: DevelopmentPayload) -> _PairedArrays:
     )
 
 
-def _door_arrays(payload: DevelopmentPayload) -> _PairedArrays:
+def _door_structural_assets(
+    payload: DevelopmentPayload,
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """Build Public-Test-shaped scoring assets from the door payload.
+
+    Each static query contributes one asset with its three history
+    conditions, the shared history action blocks, and the two rule targets
+    (frame 15 of the ``observed_passable`` / ``observed_blocked`` episodes;
+    the no-attempt episode repeats the passable target, which is audited
+    here).  This is the asset shape ``score_validation_assets`` scores for
+    the Public Test, so the Development scoring chain is kernel-identical.
+    """
+
+    from contextworld.evaluation.hidden_passage_validation import (
+        HISTORY_CONDITIONS,
+    )
+
     grouped: dict[str, dict[str, Path]] = {}
     for path in payload.members:
-        match = _DOOR_MEMBER_PATTERN.match(path.name)
+        match = _DOOR_STRUCTURAL_MEMBER_PATTERN.match(path.name)
         if match is None:
             raise ValueError(f"Unexpected Door Development member: {path.name}")
-        group = grouped.setdefault(match["door"], {})
-        mode = match["mode"]
-        if mode in group:
-            raise ValueError(f"Duplicate Door Development member for {match['door']}/{mode}")
-        group[mode] = path
-    if not grouped or any(set(value) != {"blocked", "passable"} for value in grouped.values()):
-        raise ValueError("Door Development payload does not contain blocked/passable pairs")
-    per_group = _selection_value(
-        payload, "complete_episodes_per_position", 18
-    )
-    expected_groups = _selection_value(payload, "door_positions", 16)
-    expected_selected = _selection_value(
-        payload, "selected_pair_count", expected_groups * per_group
-    )
-    if per_group <= 0:
-        raise ValueError("Door Development pairs_per_group must be positive")
-    pair_ids: list[str] = []
-    first_pixels: list[np.ndarray] = []
-    second_pixels: list[np.ndarray] = []
-    actions: list[np.ndarray] = []
-    candidate_counts: list[int] = []
+        condition = str(match["condition"])
+        if condition not in HISTORY_CONDITIONS:
+            raise ValueError(f"Unknown Door Development condition: {condition}")
+        slot = grouped.setdefault(str(match["door"]), {})
+        if condition in slot:
+            raise ValueError(f"Duplicate Door Development member: {path.name}")
+        slot[condition] = path
+    if not grouped or any(
+        set(value) != set(HISTORY_CONDITIONS) for value in grouped.values()
+    ):
+        raise ValueError(
+            "Door Development payload does not cover all three history conditions"
+        )
+
+    episodes_by_query: dict[str, dict[str, dict[str, Any]]] = {}
+    table_episodes: list[int] = []
     for door in sorted(grouped):
-        blocked_ids, blocked = _read_tworoom_episodes(
-            grouped[door]["blocked"],
-            expected_steps=20,
-            frame_steps=(0, 5, 10, 15),
-        )
-        passable_ids, passable = _read_tworoom_episodes(
-            grouped[door]["passable"],
-            expected_steps=20,
-            frame_steps=(0, 5, 10, 15),
-        )
-        if blocked_ids != passable_ids:
-            raise RuntimeError(f"Door Development episode ids differ for {door}")
-        candidate_counts.append(len(blocked_ids))
-        if len(blocked_ids) < per_group:
-            raise RuntimeError(f"Door Development {door} has fewer than {per_group} episodes")
-        for episode in blocked_ids[:per_group]:
-            blocked_pixels, blocked_actions, _ = blocked[episode]
-            passable_pixels, passable_actions, _ = passable[episode]
-            pair_id = f"{door}/episode_{episode:04d}"
-            _ensure_paired_example(
-                pair_id=pair_id,
-                first_pixels=blocked_pixels,
-                second_pixels=passable_pixels,
-                first_actions=blocked_actions,
-                second_actions=passable_actions,
-                history_length=3,
+        for condition in HISTORY_CONDITIONS:
+            records = _read_dev_episodes(
+                grouped[door][condition],
+                expected_steps=_DOOR_EPISODE_ROWS,
+                frame_steps=_DOOR_TOKEN_ROWS,
+                string_columns=(
+                    "dev_query_id",
+                    "dev_static_query_id",
+                    "dev_direction",
+                    "dev_env_rule",
+                    "dev_template_id",
+                ),
+                scalar_columns=(
+                    "dev_eval_seed",
+                    "dev_evaluation_index",
+                    "dev_door_position",
+                ),
             )
-            pair_ids.append(pair_id)
-            first_pixels.append(blocked_pixels)
-            second_pixels.append(passable_pixels)
-            actions.append(blocked_actions)
-    if len(grouped) != expected_groups:
-        raise RuntimeError(
-            "Door Development filename groups disagree with public contract: "
-            f"observed={len(grouped)} expected={expected_groups}"
+            table_episodes.append(len(records))
+            for record in records:
+                static_id = record["dev_static_query_id"]
+                slot = episodes_by_query.setdefault(static_id, {})
+                if condition in slot:
+                    raise RuntimeError(
+                        f"Door Development query {static_id} repeats {condition}"
+                    )
+                slot[condition] = record
+
+    assets: list[dict[str, Any]] = []
+    for static_id in sorted(episodes_by_query):
+        conditions = episodes_by_query[static_id]
+        if set(conditions) != set(HISTORY_CONDITIONS):
+            raise RuntimeError(
+                f"Door Development query {static_id} lacks a history condition"
+            )
+        reference = conditions["observed_passable"]
+        targets = {
+            "passable": conditions["observed_passable"]["frames"][3],
+            "blocked": conditions["observed_blocked"]["frames"][3],
+        }
+        if not np.array_equal(
+            conditions["did_not_attempt_crossing"]["frames"][3],
+            targets["passable"],
+        ):
+            raise RuntimeError(
+                f"Door Development {static_id}: the no-attempt future is not "
+                "the passable target"
+            )
+        shared_actions = conditions["observed_passable"]["actions"][:15]
+        for condition in HISTORY_CONDITIONS:
+            if not np.array_equal(
+                conditions[condition]["actions"][:15], shared_actions
+            ):
+                raise RuntimeError(
+                    f"Door Development {static_id}: history actions differ "
+                    f"across conditions"
+                )
+        assets.append(
+            {
+                "query_id": reference["dev_query_id"],
+                "static_query_id": static_id,
+                "template_id": reference["dev_template_id"],
+                "eval_seed": int(reference["dev_eval_seed"]),
+                "evaluation_index": int(reference["dev_evaluation_index"]),
+                "direction": reference["dev_direction"],
+                "histories": {
+                    condition: conditions[condition]["frames"][:3]
+                    for condition in HISTORY_CONDITIONS
+                },
+                "actions": {
+                    condition: shared_actions.reshape(3, 5, shared_actions.shape[-1])
+                    for condition in HISTORY_CONDITIONS
+                },
+                "targets": targets,
+            }
         )
-    if len(pair_ids) != expected_selected:
-        raise RuntimeError(
-            "Door Development selected pair count disagrees with public contract: "
-            f"observed={len(pair_ids)} expected={expected_selected}"
+
+    by_seed: dict[int, int] = {}
+    by_seed_direction: dict[tuple[int, str], int] = {}
+    directions = set()
+    for asset in assets:
+        seed = int(asset["eval_seed"])
+        direction = str(asset["direction"])
+        by_seed[seed] = by_seed.get(seed, 0) + 1
+        by_seed_direction[(seed, direction)] = (
+            by_seed_direction.get((seed, direction), 0) + 1
         )
-    return _PairedArrays(
-        pair_ids=tuple(pair_ids),
-        first_pixels=np.stack(first_pixels),
-        second_pixels=np.stack(second_pixels),
-        raw_action_blocks=np.stack(actions),
+        directions.add(direction)
+    expected_strata = {
+        (seed, direction)
+        for seed in _DOOR_DEV_EVAL_SEEDS
+        for direction in sorted(directions)
+    }
+    if (
+        len(assets) != 300
+        or set(by_seed_direction) != expected_strata
+        or set(by_seed_direction.values()) != {25}
+        or set(by_seed.values()) != {_DOOR_DEV_QUERIES_PER_SEED}
+    ):
+        raise RuntimeError(
+            "Door Development stratification disagrees with the Public Test "
+            f"structure: queries={len(assets)} "
+            f"strata={sorted(by_seed_direction.items())[:4]}..."
+        )
+    selection = {
+        "kind": "structural_parity_static_queries",
+        "tables": len(payload.members),
+        "episodes_per_table": sorted(set(table_episodes)),
+        "unique_queries": len(assets),
+        "eval_seeds": list(_DOOR_DEV_EVAL_SEEDS),
+        "unique_queries_per_eval_seed": _DOOR_DEV_QUERIES_PER_SEED,
+        "per_direction_per_eval_seed": 25,
+        "history_conditions": list(HISTORY_CONDITIONS),
+        "rule": "one Lance table per (door position, history condition)",
+    }
+    return assets, selection
+
+
+def _door_structural_metrics(
+    *,
+    payload: DevelopmentPayload,
+    adapter: LatentWorldModelAdapter,
+    batch_size: int,
+) -> tuple[dict[str, Any], list[dict[str, Any]], dict[str, str], Mapping[str, Any]]:
+    """Score the door Development payload with the Public Test kernels."""
+
+    from contextworld.benchmarks.door_icl_score import door_gate_completion_metrics
+    from contextworld.benchmarks.test_gate_completion import (
+        load_test_gate_completion_config,
+    )
+    from contextworld.evaluation.hidden_passage_validation import (
+        HISTORY_CONDITIONS,
+        TRUE_RULES,
+        score_validation_assets,
+        summarize_validation_records,
+    )
+
+    validate_adapter_protocol(
+        adapter,
+        history_tokens=payload.history_length,
+        action_block_raw_steps=payload.frameskip,
+        action_dim=payload.action_dimension,
+        minimum_future_action_blocks=1,
+        task_name="door Development",
+    )
+    assets, selection = _door_structural_assets(payload)
+    scored = score_validation_assets(
+        adapter,
+        assets,
+        batch_size=int(batch_size),
+        return_latents=True,
+    )
+    summary = summarize_validation_records(
+        scored["records"],
+        eval_seeds=_DOOR_DEV_EVAL_SEEDS,
+        unique_queries_per_seed=_DOOR_DEV_QUERIES_PER_SEED,
+        gates=_DOOR_DEV_GATES,
+    )
+    latents = scored["latents"]
+    gate_inputs = door_gate_completion_metrics(
+        predicted=latents["predicted"],
+        encoded_targets=latents["encoded_targets"],
+        query_ids=list(latents["query_ids"]),
+        static_query_ids=list(latents["static_query_ids"]),
+        config=load_test_gate_completion_config(),
+        full_protocol=True,
+    )
+    by_rule = summary["by_true_rule"]
+    primary = float(
+        np.mean(
+            [
+                by_rule[rule]["overall"]["same_history_two_target_accuracy"]
+                for rule in TRUE_RULES
+            ]
+        )
+    )
+    # Legacy paired diagnostics keep the historical field names (the
+    # blocked/passable evidence pair against the two rule futures).
+    predicted = np.asarray(latents["predicted"], dtype=np.float64)
+    encoded_targets = np.asarray(latents["encoded_targets"], dtype=np.float64)
+    condition_index = {
+        condition: index for index, condition in enumerate(latents["history_conditions"])
+    }
+    legacy, _legacy_records = _paired_prediction_metrics(
+        pair_ids=tuple(str(value) for value in latents["query_ids"]),
+        predicted_first=predicted[:, condition_index["observed_blocked"]],
+        predicted_second=predicted[:, condition_index["observed_passable"]],
+        target_first=encoded_targets[:, list(TRUE_RULES).index("blocked")],
+        target_second=encoded_targets[:, list(TRUE_RULES).index("passable")],
         first_label="blocked",
         second_label="passable",
-        selection={
-            "kind": "matched_filename_group_and_episode_id",
-            "groups": len(grouped),
-            "candidate_pairs": int(sum(candidate_counts)),
-            "selected_pairs": len(pair_ids),
-            "pairs_per_group": per_group,
-            "rule": "sorted door id; first sorted shared episode ids",
-        },
     )
+    metrics = {
+        "diagnostic": "door_structural_parity_development_v1",
+        "primary_metric": "same_history_two_target_accuracy",
+        "same_history_two_target_accuracy": primary,
+        "history_conditions": list(HISTORY_CONDITIONS),
+        "true_future_rules": list(TRUE_RULES),
+        "queries": len(assets),
+        "loss_records": len(scored["records"]),
+        "by_true_rule": _decision_free(by_rule),
+        "two_target_discrimination": summary["two_target_discrimination"],
+        "target_latent_separation": summary["target_latent_separation"],
+        "two_target_ties": summary["two_target_ties"],
+        "paired_static_query_bootstrap": summary["paired_static_query_bootstrap"],
+        "gate_completion_inputs": _decision_free(
+            {
+                "metrics": gate_inputs["metrics"],
+                "uncertainty": gate_inputs["uncertainty"],
+            }
+        ),
+        "legacy_paired_diagnostics": _decision_free(legacy),
+    }
+    state = {
+        "before": str(
+            scored["score_audit"]["frozen_state_hash_before"]
+        ),
+        "after": str(scored["score_audit"]["frozen_state_hash_after"]),
+    }
+    return metrics, scored["records"], state, selection
 
 
 def _action_delay_arrays(payload: DevelopmentPayload) -> _DelayFamilyArrays:
@@ -1149,128 +1509,495 @@ def _action_delay_physical_group_metrics(
         bootstrap_resamples=_ACTION_DELAY_BOOTSTRAP_RESAMPLES,
         bootstrap_seed=_ACTION_DELAY_BOOTSTRAP_RANDOM_SEED,
     )
+    # Structural parity with Public Test: emit the same six anti-shortcut gate
+    # INPUT metrics through the Test kernel itself.  ``losses`` is indexed
+    # [query, history condition, target], so the matching-history entry for a
+    # target is the diagonal and the alternatives vary the history condition.
+    # Alternatives sharing the target's physical group are excluded -- at
+    # horizon 1 delays 5..10 are all stationary, so requiring the matching
+    # history to beat them would score a distinction the task does not contain
+    # (the same exclusion the Test kernel applies to its delay pairs).
+    from contextworld.benchmarks.action_delay_icl_score import (
+        action_delay_gate_completion_metrics,
+    )
+    from contextworld.benchmarks.test_gate_completion import (
+        load_test_gate_completion_config,
+    )
+
+    strict_wins = np.zeros((queries, delays), dtype=bool)
+    for query_index in range(queries):
+        for target_index, target_delay in enumerate(arrays.delay_values):
+            alternatives = [
+                losses[query_index, history_index, target_index]
+                for history_index, history_delay in enumerate(arrays.delay_values)
+                if physical_group(int(history_delay))
+                != physical_group(int(target_delay))
+            ]
+            if not alternatives:
+                raise RuntimeError(
+                    "No physically distinguishable alternative for delay"
+                    f" {target_delay}"
+                )
+            strict_wins[query_index, target_index] = bool(
+                losses[query_index, target_index, target_index] < min(alternatives)
+            )
+    gate_inputs = action_delay_gate_completion_metrics(
+        predicted_h1=predictions,
+        encoded_h1=targets,
+        query_ids=[str(value) for value in arrays.query_ids],
+        history_strict_wins=strict_wins,
+        config=load_test_gate_completion_config(),
+    )
+    metrics["gate_completion_inputs"] = _decision_free(
+        {
+            "metrics": gate_inputs["metrics"],
+            "uncertainty": gate_inputs["uncertainty"],
+        }
+    )
     return metrics, records, {"before": before, "after": after}
 
 
-def _speed_cases(
-    payload: DevelopmentPayload) -> tuple[np.ndarray, np.ndarray, np.ndarray, list[dict[str, Any]], dict[str, Any]]:
-    per_member = _selection_value(payload, "complete_windows_per_member", 3)
-    expected_members = _selection_value(payload, "member_count", 96)
-    expected_selected = _selection_value(
-        payload, "selected_case_count", expected_members * per_member
-    )
-    if per_member <= 0:
-        raise ValueError("Speed Development windows_per_member must be positive")
-    histories: list[np.ndarray] = []
-    actions: list[np.ndarray] = []
-    futures: list[np.ndarray] = []
-    metadata: list[dict[str, Any]] = []
-    candidate_cases = 0
+def _speed_structural_tracks(
+    payload: DevelopmentPayload,
+) -> tuple[dict[str, dict[tuple[str, float], dict[str, dict[str, Any]]]], dict[str, Any]]:
+    """Group the speed payload into per-track speed families.
+
+    Every track table holds one episode per (static query, reference speed,
+    history condition).  The returned mapping keeps one family entry per
+    ``(static_query_id, reference_speed)`` with all of the track's history
+    conditions, which is exactly the grouping the Public Test speed scorer
+    builds from its frozen catalogs.
+    """
+
+    grouped: dict[tuple[str, str], Path] = {}
     for path in payload.members:
-        available, episodes = _read_tworoom_episodes(
+        match = _SPEED_STRUCTURAL_MEMBER_PATTERN.match(path.name)
+        if match is None:
+            raise ValueError(f"Unexpected Speed Development member: {path.name}")
+        key = (str(match["track"]), str(match["condition"]))
+        if key in grouped:
+            raise ValueError(f"Duplicate Speed Development member: {path.name}")
+        grouped[key] = path
+
+    tracks: dict[str, dict[tuple[str, float], dict[str, dict[str, Any]]]] = {}
+    table_sizes: dict[str, int] = {}
+    for (track, condition), path in sorted(grouped.items()):
+        records = _read_dev_episodes(
             path,
-            expected_steps=20,
-            frame_steps=(0, 5, 10, 15),
-            include_speed=True,
-            allow_prefix_clip=True,
+            expected_steps=_SPEED_EPISODE_ROWS,
+            frame_steps=_SPEED_TOKEN_ROWS,
+            string_columns=(
+                "dev_query_id",
+                "dev_static_query_id",
+                "dev_track",
+                "dev_condition",
+                "dev_template_id",
+            ),
+            scalar_columns=(
+                "dev_eval_seed",
+                "dev_evaluation_index",
+                "dev_reference_speed",
+                "dev_condition_speed",
+            ),
         )
-        candidate_cases += len(available)
-        if len(available) < per_member:
+        table_sizes[f"{track}/{condition}"] = len(records)
+        for record in records:
+            if record["dev_track"] != track or record["dev_condition"] != condition:
+                raise RuntimeError(
+                    f"Speed Development episode columns disagree with its "
+                    f"table: {path.name}"
+                )
+            # The per-episode scalar columns are float32; the Public Test
+            # catalogs key speeds as float64.  Round to four decimals (well
+            # below the 0.05 speed spacing) so both sides produce identical
+            # reference-speed keys.
+            record["dev_reference_speed"] = round(
+                float(record["dev_reference_speed"]), 4
+            )
+            record["dev_condition_speed"] = round(
+                float(record["dev_condition_speed"]), 4
+            )
+            family = tracks.setdefault(track, {})
+            key = (
+                record["dev_static_query_id"],
+                record["dev_reference_speed"],
+            )
+            slot = family.setdefault(key, {})
+            if condition in slot:
+                raise RuntimeError(
+                    f"Speed Development query {key} repeats {condition}"
+                )
+            slot[condition] = record
+
+    selection_facts: dict[str, Any] = {"tracks": {}}
+    for track, families in sorted(tracks.items()):
+        conditions = sorted(
+            {condition for slot in families.values() for condition in slot}
+        )
+        speeds = sorted({key[1] for key in families})
+        seeds_by_static: dict[str, int] = {}
+        for (static_id, speed), slot in families.items():
+            if set(slot) != set(conditions):
+                raise RuntimeError(
+                    f"Speed Development {track}/{static_id}/{speed} lacks a "
+                    "history condition"
+                )
+            seeds = {record["dev_eval_seed"] for record in slot.values()}
+            if len(seeds) != 1:
+                raise RuntimeError(
+                    f"Speed Development {track}/{static_id} mixes eval seeds"
+                )
+            seed = int(seeds.pop())
+            previous = seeds_by_static.setdefault(static_id, seed)
+            if previous != seed:
+                raise RuntimeError(
+                    f"Speed Development {static_id} mixes eval seeds across "
+                    "reference speeds"
+                )
+        # One history condition per reference speed: the condition simulated
+        # at the reference speed is the matching history for that speed.
+        condition_speeds: dict[str, float] = {}
+        for condition in conditions:
+            values = {
+                record["dev_condition_speed"]
+                for slot in families.values()
+                for name, record in slot.items()
+                if name == condition
+            }
+            if len(values) != 1:
+                raise RuntimeError(
+                    f"Speed Development condition {track}/{condition} has "
+                    "inconsistent condition speeds"
+                )
+            condition_speeds[condition] = float(values.pop())
+        if sorted(condition_speeds.values()) != speeds:
             raise RuntimeError(
-                f"Speed Development member {path.name} has fewer than "
-                f"{per_member} complete 20-step windows"
+                f"Speed Development track {track} conditions do not cover its "
+                f"reference speeds one-to-one: {condition_speeds} vs {speeds}"
             )
-        for episode in available[:per_member]:
-            pixels, action_blocks, speed = episodes[episode]
-            if speed is None:
-                raise RuntimeError("Speed Development member lacks agent speed metadata")
-            histories.append(pixels[:3])
-            actions.append(action_blocks[:3])
-            futures.append(pixels[3])
-            metadata.append(
-                {
-                    "member": str(path.relative_to(payload.root)),
-                    "episode_id": int(episode),
-                    "agent_speed": float(speed),
-                }
+        by_seed: dict[int, int] = {}
+        for static_id, seed in seeds_by_static.items():
+            by_seed[seed] = by_seed.get(seed, 0) + 1
+        if (
+            len(families) != len(speeds) * 300
+            or set(by_seed.values())
+            != {_SPEED_DEV_QUERIES_PER_REFERENCE_SPEED_PER_SEED}
+            or sorted(by_seed) != list(_SPEED_DEV_EVAL_SEEDS)
+        ):
+            raise RuntimeError(
+                f"Speed Development track {track} disagrees with the Public "
+                f"Test stratification: families={len(families)} "
+                f"speeds={speeds} by_seed={by_seed}"
             )
-    if len(payload.members) != expected_members:
-        raise RuntimeError(
-            "Speed Development member count disagrees with public contract: "
-            f"observed={len(payload.members)} expected={expected_members}"
-        )
-    if len(metadata) != expected_selected:
-        raise RuntimeError(
-            "Speed Development selected case count disagrees with public contract: "
-            f"observed={len(metadata)} expected={expected_selected}"
-        )
-    return (
-        np.stack(histories),
-        np.stack(actions).astype(np.float32),
-        np.stack(futures),
-        metadata,
-        {
-            "kind": "per_member_history_utility_sample",
-            "members": len(payload.members),
-            "candidate_cases": candidate_cases,
-            "selected_cases": len(metadata),
-            "windows_per_member": per_member,
-            "rule": "first sorted complete 20-step prefix windows from each registered member",
-        },
-    )
+        selection_facts["tracks"][track] = {
+            "reference_speeds": [float(value) for value in speeds],
+            "history_conditions": conditions,
+            "condition_speeds": condition_speeds,
+            "static_queries": len(seeds_by_static),
+            "episodes": len(families) * len(conditions),
+        }
+    selection = {
+        "kind": "structural_parity_speed_families",
+        "tables": len(payload.members),
+        "episodes_per_table": sorted(set(table_sizes.values())),
+        "eval_seeds": list(_SPEED_DEV_EVAL_SEEDS),
+        "unique_queries_per_reference_speed_per_seed": (
+            _SPEED_DEV_QUERIES_PER_REFERENCE_SPEED_PER_SEED
+        ),
+        **selection_facts,
+    }
+    return tracks, selection
 
 
-def _speed_history_utility(
+def _speed_structural_metrics(
     *,
     payload: DevelopmentPayload,
     adapter: LatentWorldModelAdapter,
     batch_size: int,
 ) -> tuple[dict[str, Any], list[dict[str, Any]], dict[str, str], Mapping[str, Any]]:
+    """Score the speed Development payload with the Public Test kernels.
+
+    Mirrors ``speed_icl_score._score_track`` per track: one rollout per
+    (static query, reference speed, history condition) over the three
+    history tokens and the shared 3+5 action blocks, horizon losses against
+    the five encoded true futures, per-horizon summaries from the frozen
+    ``_loss_summary`` kernel, and additive gate inputs from
+    ``speed_gate_completion_metrics``.  Tracks and horizons are never pooled.
+    """
+
+    from contextworld.benchmarks.speed_icl_data import HORIZONS
+    from contextworld.benchmarks.speed_icl_score import (
+        _loss_summary,
+        speed_gate_completion_metrics,
+    )
+    from contextworld.benchmarks.test_gate_completion import (
+        load_test_gate_completion_config,
+    )
+
     validate_adapter_protocol(
         adapter,
-        history_tokens=3,
+        history_tokens=payload.history_length,
         action_block_raw_steps=payload.frameskip,
         action_dim=payload.action_dimension,
-        minimum_future_action_blocks=1,
-        task_name="Speed Development history utility",
+        minimum_future_action_blocks=max(HORIZONS),
+        task_name="speed Development",
     )
-    histories, actions, futures, cases, selection = _speed_cases(payload)
-    context_free_histories = np.repeat(histories[:, 2:3], repeats=3, axis=1)
-    context_free_actions = np.zeros_like(actions)
-    context_free_actions[:, 2] = actions[:, 2]
+    tracks, selection = _speed_structural_tracks(payload)
+    bundle_chunk = max(1, int(batch_size))
     before = adapter.frozen_state_hash()
+    track_outputs: dict[str, Any] = {}
+    all_records: list[dict[str, Any]] = []
+    for track in sorted(tracks):
+        families = tracks[track]
+        conditions = selection["tracks"][track]["history_conditions"]
+        condition_speeds = selection["tracks"][track]["condition_speeds"]
+        speeds = selection["tracks"][track]["reference_speeds"]
+        matching_by_speed = {
+            speed: condition for condition, speed in condition_speeds.items()
+        }
+        keys = sorted(families)
+        records: list[dict[str, Any]] = []
+        gate_members: dict[str, dict[float, dict[str, Any]]] = {}
+        for start in range(0, len(keys), bundle_chunk):
+            chunk = keys[start : start + bundle_chunk]
+            matching_condition = matching_by_speed[chunk[0][1]]
+            target_pixels = np.stack(
+                [
+                    families[key][matching_condition]["frames"][3:8]
+                    for key in chunk
+                ]
+            )
+            for key in chunk:
+                for condition in conditions:
+                    if condition == matching_by_speed[key[1]]:
+                        continue
+                    if not np.array_equal(
+                        families[key][condition]["frames"][3],
+                        families[key][matching_by_speed[key[1]]]["frames"][3],
+                    ):
+                        raise RuntimeError(
+                            f"Speed Development {key}: true futures differ "
+                            "across history conditions"
+                        )
+            encoded = np.asarray(
+                adapter.encode_pixels(
+                    target_pixels.reshape(-1, *target_pixels.shape[2:]),
+                    batch_size=int(batch_size),
+                )
+            ).reshape(len(chunk), target_pixels.shape[1], -1)
+            if not np.isfinite(encoded).all():
+                raise RuntimeError(
+                    "Speed Development target encodings are not finite"
+                )
+            samples = [
+                (index, families[key][condition], condition)
+                for index, key in enumerate(chunk)
+                for condition in conditions
+            ]
+            pixels = np.stack([record["frames"][:3] for _, record, _ in samples])
+            # The episode carries 3+5+1 blocks (the trailing zero block only
+            # gives the last future frame a row).  A rollout request is
+            # (history_tokens - 1) context blocks plus the 5 future blocks:
+            # 7 blocks = 5 predicted futures, the Public Test request shape.
+            actions = np.stack(
+                [
+                    record["actions"].reshape(
+                        _SPEED_EPISODE_ROWS // 5,
+                        5,
+                        record["actions"].shape[-1],
+                    )[: _SPEED_EPISODE_ROWS // 5 - 1]
+                    for _, record, _ in samples
+                ]
+            )
+            predictions = np.asarray(
+                adapter.rollout_latents(pixels, actions, batch_size=int(batch_size))
+            )
+            if (
+                predictions.ndim != 3
+                or predictions.shape[0] != len(samples)
+                or predictions.shape[1] < max(HORIZONS)
+                or not np.isfinite(predictions).all()
+            ):
+                raise RuntimeError(
+                    "Speed Development adapter must return finite "
+                    f"(sample, >= {max(HORIZONS)}, latent_dim) futures"
+                )
+            for (index, record, condition), prediction in zip(samples, predictions):
+                static_id, reference_speed = chunk[index]
+                losses = np.square(
+                    prediction.astype(np.float64) - encoded[index].astype(np.float64)
+                ).mean(axis=-1)
+                records.append(
+                    {
+                        "query_id": record["dev_query_id"],
+                        "static_query_id": static_id,
+                        "track": track,
+                        "reference_speed": float(reference_speed),
+                        "matching_condition": matching_by_speed[reference_speed],
+                        "eval_seed": int(record["dev_eval_seed"]),
+                        "evaluation_index": int(record["dev_evaluation_index"]),
+                        "condition": condition,
+                        "history_speed": float(record["dev_condition_speed"]),
+                        "latent_mse_by_horizon": {
+                            str(horizon): float(losses[horizon - 1])
+                            for horizon in HORIZONS
+                        },
+                    }
+                )
+                member = gate_members.setdefault(static_id, {}).get(reference_speed)
+                if member is None:
+                    member = {
+                        "query_id": record["dev_query_id"],
+                        "eval_seed": int(record["dev_eval_seed"]),
+                        "matching_condition": matching_by_speed[reference_speed],
+                        "condition_speeds": {},
+                        "condition_predictions": {},
+                        "target": encoded[index][0],
+                    }
+                    gate_members[static_id][reference_speed] = member
+                member["condition_speeds"][condition] = float(
+                    record["dev_condition_speed"]
+                )
+                member["condition_predictions"][condition] = np.asarray(
+                    prediction[0]
+                )
+        horizons = {
+            str(horizon): _decision_free(_loss_summary(records, horizon))
+            for horizon in HORIZONS
+        }
+        gate_inputs = speed_gate_completion_metrics(
+            groups={key: dict(value) for key, value in gate_members.items()},
+            records=records,
+            config=load_test_gate_completion_config(),
+            full_protocol=True,
+        )
+        if gate_inputs.get("metrics") is None:
+            raise RuntimeError(
+                f"Speed Development track {track} produced no complete speed "
+                "family for the paired gate inputs"
+            )
+        track_outputs[track] = {
+            "reference_speeds": speeds,
+            "history_conditions": conditions,
+            "condition_speeds": condition_speeds,
+            "episodes": len(records),
+            "horizons": horizons,
+            "gate_completion_inputs": _decision_free(
+                {
+                    "metrics": gate_inputs["metrics"],
+                    "uncertainty": gate_inputs["uncertainty"],
+                }
+            ),
+        }
+        all_records.extend(records)
+    legacy = _speed_legacy_history_utility(
+        payload=payload,
+        adapter=adapter,
+        tracks=tracks,
+        selection=selection,
+        batch_size=int(batch_size),
+    )
+    after = adapter.frozen_state_hash()
+    if before != after:
+        raise RuntimeError("Model state changed during speed Development scoring")
+    primary = {
+        track: track_outputs[track]["horizons"]["1"][
+            "reference_speed_balanced_strict_query_win_rate_vs_every_other"
+        ]
+        for track in sorted(track_outputs)
+    }
+    metrics = {
+        "diagnostic": "speed_structural_parity_development_v1",
+        "primary_metric": (
+            "reference_speed_balanced_strict_query_win_rate_vs_every_other"
+        ),
+        "primary_metric_horizon": 1,
+        "reference_speed_balanced_strict_query_win_rate_vs_every_other": primary,
+        "tracks_are_never_pooled": True,
+        "horizons_are_never_averaged": True,
+        "tracks": track_outputs,
+        "condition_trajectories": len(all_records),
+        "legacy_history_utility_diagnostics": legacy,
+    }
+    return metrics, all_records, {"before": before, "after": after}, selection
+
+
+def _speed_legacy_history_utility(
+    *,
+    payload: DevelopmentPayload,
+    adapter: LatentWorldModelAdapter,
+    tracks: dict[str, dict[tuple[str, float], dict[str, dict[str, Any]]]],
+    selection: Mapping[str, Any],
+    batch_size: int,
+) -> dict[str, Any]:
+    """The historical history-utility diagnostic, computed on the new data.
+
+    Keeps the pre-1.0.1 Development fields (``history_better_rate`` and the
+    per-speed context-free ablation) as additional diagnostics; they are not
+    the primary metric of this protocol.
+    """
+
+    histories: list[np.ndarray] = []
+    actions: list[np.ndarray] = []
+    futures: list[np.ndarray] = []
+    speeds: list[float] = []
+    for track in sorted(tracks):
+        matching_by_speed = {
+            speed: condition
+            for condition, speed in selection["tracks"][track][
+                "condition_speeds"
+            ].items()
+        }
+        for (static_id, reference_speed), slot in sorted(tracks[track].items()):
+            record = slot[matching_by_speed[reference_speed]]
+            histories.append(record["frames"][:3])
+            actions.append(
+                record["actions"]
+                .reshape(
+                    _SPEED_EPISODE_ROWS // 5, 5, record["actions"].shape[-1]
+                )[: _SPEED_EPISODE_ROWS // 5 - 1]
+            )
+            futures.append(record["frames"][3])
+            speeds.append(float(reference_speed))
+    history_pixels = np.stack(histories)
+    action_blocks = np.stack(actions).astype(np.float32)
+    context_free_histories = np.repeat(history_pixels[:, 2:3], repeats=3, axis=1)
+    context_free_actions = np.zeros_like(action_blocks)
+    context_free_actions[:, 2] = action_blocks[:, 2]
     predicted_history = np.asarray(
-        adapter.rollout_latents(histories, actions, batch_size=int(batch_size))
+        adapter.rollout_latents(
+            history_pixels, action_blocks, batch_size=int(batch_size)
+        )
     )
     predicted_context_free = np.asarray(
         adapter.rollout_latents(
-            context_free_histories, context_free_actions, batch_size=int(batch_size)
+            context_free_histories,
+            context_free_actions,
+            batch_size=int(batch_size),
         )
     )
-    count = len(cases)
+    target = np.asarray(
+        adapter.encode_pixels(np.stack(futures), batch_size=int(batch_size))
+    )
     if (
-        predicted_history.shape[:2] != (count, 1)
+        predicted_history.ndim != 3
+        or predicted_history.shape[0] != len(speeds)
         or predicted_context_free.shape != predicted_history.shape
+        or target.shape != (len(speeds), predicted_history.shape[-1])
         or not np.isfinite(predicted_history).all()
         or not np.isfinite(predicted_context_free).all()
+        or not np.isfinite(target).all()
     ):
         raise RuntimeError(
-            "Speed Development adapter must return finite one-step predictions "
-            "for both context conditions"
+            "Speed Development legacy diagnostic received malformed latents"
         )
-    target = np.asarray(adapter.encode_pixels(futures, batch_size=int(batch_size)))
-    if target.shape != (count, predicted_history.shape[-1]) or not np.isfinite(target).all():
-        raise RuntimeError("Speed Development target encodings do not match predicted latents")
-    after = adapter.frozen_state_hash()
-    if before != after:
-        raise RuntimeError("Model state changed during Speed Development scoring")
     history_mse = np.square(predicted_history[:, 0] - target).mean(axis=-1)
     context_free_mse = np.square(predicted_context_free[:, 0] - target).mean(axis=-1)
     improvement = context_free_mse - history_mse
     by_speed: dict[str, dict[str, Any]] = {}
-    for speed in sorted({float(row["agent_speed"]) for row in cases}):
+    for speed in sorted(set(speeds)):
         indices = np.asarray(
-            [index for index, row in enumerate(cases) if float(row["agent_speed"]) == speed],
+            [index for index, value in enumerate(speeds) if value == speed],
             dtype=np.int64,
         )
         by_speed[f"{speed:g}"] = {
@@ -1278,29 +2005,20 @@ def _speed_history_utility(
             "case_count": int(len(indices)),
             "history_mse_mean": float(history_mse[indices].mean()),
             "context_free_mse_mean": float(context_free_mse[indices].mean()),
-            "context_free_minus_history_mse_mean": float(improvement[indices].mean()),
+            "context_free_minus_history_mse_mean": float(
+                improvement[indices].mean()
+            ),
             "history_better_rate": float((improvement[indices] > 0).mean()),
         }
-    metrics = {
+    return {
         "diagnostic": "speed_history_utility_development_v1",
-        "case_count": count,
+        "case_count": len(speeds),
         "history_mse_mean": float(history_mse.mean()),
         "context_free_mse_mean": float(context_free_mse.mean()),
         "context_free_minus_history_mse_mean": float(improvement.mean()),
         "history_better_rate": float((improvement > 0).mean()),
         "by_agent_speed": by_speed,
     }
-    records = [
-        {
-            **row,
-            "history_mse": float(history_mse[index]),
-            "context_free_mse": float(context_free_mse[index]),
-            "context_free_minus_history_mse": float(improvement[index]),
-            "history_better": bool(improvement[index] > 0),
-        }
-        for index, row in enumerate(cases)
-    ]
-    return metrics, records, {"before": before, "after": after}, selection
 
 
 def _bundle_identity(payload: DevelopmentPayload) -> dict[str, Any]:
@@ -1345,11 +2063,17 @@ def evaluate_bundle_development_model(
         raise ValueError("batch_size must be positive")
     payload = resolve_development_payload(benchmark_root, task=task)
     if task == "speed":
-        metrics, records, state, selection = _speed_history_utility(
+        metrics, records, state, selection = _speed_structural_metrics(
             payload=payload, adapter=adapter, batch_size=int(batch_size)
         )
-        protocol_kind = "history_utility_diagnostic"
-        match_status = "not_matched_counterfactual"
+        protocol_kind = "matched_development_counterfactual"
+        match_status = "matched_development_only"
+    elif task == "door":
+        metrics, records, state, selection = _door_structural_metrics(
+            payload=payload, adapter=adapter, batch_size=int(batch_size)
+        )
+        protocol_kind = "matched_development_counterfactual"
+        match_status = "matched_development_only"
     else:
         if task == "action_delay":
             arrays = _action_delay_arrays(payload)
@@ -1360,11 +2084,7 @@ def evaluate_bundle_development_model(
                 batch_size=int(batch_size),
             )
         else:
-            arrays = (
-                _single_table_arrays(payload)
-                if task in _SINGLE_TABLE_TASKS
-                else _door_arrays(payload)
-            )
+            arrays = _single_table_arrays(payload)
             metrics, records, state = _evaluate_paired(
                 payload=payload, arrays=arrays, adapter=adapter, batch_size=int(batch_size)
             )

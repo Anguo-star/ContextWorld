@@ -13,7 +13,19 @@ from contextworld.benchmarks.door_icl_data import (
     DoorICLEvalDataset,
     load_door_icl_release,
 )
+from contextworld.benchmarks.paired_latent_response import (
+    paired_latent_response_gate_checks,
+    paired_latent_response_metrics,
+)
+from contextworld.benchmarks.test_gate_completion import (
+    load_test_gate_completion_config,
+    threshold_source_block,
+    unit_bootstrap_draws,
+)
 from contextworld.evaluation.hidden_passage_validation import (
+    HISTORY_CONDITIONS,
+    OTHER_HISTORY,
+    SAME_HISTORY,
     TRUE_RULES,
     canonical_sha256,
     file_sha256,
@@ -29,6 +41,193 @@ def _mean(values: Iterable[float]) -> float:
     if not rows:
         raise ValueError("Cannot average an empty collection")
     return float(np.mean(np.asarray(rows, dtype=np.float64)))
+
+
+def door_gate_completion_metrics(
+    *,
+    predicted: np.ndarray,
+    encoded_targets: np.ndarray,
+    query_ids: list[str],
+    static_query_ids: list[str],
+    config: dict[str, Any],
+    full_protocol: bool,
+) -> dict[str, Any]:
+    """Additive anti-shortcut gates for the Door Rule Public Test.
+
+    Every frozen payload holds the query's true future under both rules, and
+    the model rolls out one prediction per history condition.  Pairing the
+    passable-evidence history with the blocked-evidence history against the
+    two rule futures reproduces the paired hidden-dynamics probe of the six
+    fully gated components: swapping only the demonstrated rule evidence must
+    move the prediction along the true inter-rule future displacement.
+
+    All thresholds come from the additive gate-completion config; the frozen
+    decision gate (two-target accuracy, history win, stratified bootstrap)
+    stays untouched.
+    """
+
+    section = config["door"]
+    gates = section["gates"]
+    bootstrap = section["bootstrap"]
+    predicted_all = np.asarray(predicted, dtype=np.float64)
+    targets = np.asarray(encoded_targets, dtype=np.float64)
+    if predicted_all.ndim != 3 or targets.ndim != 3:
+        raise ValueError("Door gate latents must be (queries, member, dim)")
+    if len(predicted_all) != len(query_ids) or len(targets) != len(
+        query_ids
+    ):
+        raise ValueError("One latent row per query is required")
+    if len(predicted_all) != len(static_query_ids):
+        raise ValueError("One static query id per latent row is required")
+    if tuple(TRUE_RULES) != ("passable", "blocked"):
+        raise RuntimeError("Door true-rule order changed")
+    if tuple(HISTORY_CONDITIONS[:2]) != (
+        "observed_passable",
+        "observed_blocked",
+    ):
+        raise RuntimeError("Door evidence-history order changed")
+
+    pred_passable = predicted_all[:, 0]
+    pred_blocked = predicted_all[:, 1]
+    target_passable = targets[:, 0]
+    target_blocked = targets[:, 1]
+
+    latent_response, response_records = paired_latent_response_metrics(
+        pair_ids=[str(query_id) for query_id in query_ids],
+        predicted_first=pred_passable,
+        predicted_second=pred_blocked,
+        target_first=target_passable,
+        target_second=target_blocked,
+    )
+    switch = (
+        np.sum(
+            (pred_blocked - pred_passable)
+            * (target_blocked - target_passable),
+            axis=-1,
+        )
+        > 0.0
+    )
+
+    def _mse(left: np.ndarray, right: np.ndarray) -> np.ndarray:
+        return np.square(left - right).mean(axis=-1)
+
+    def _evidence_prediction(condition: str) -> np.ndarray:
+        if condition == "observed_passable":
+            return pred_passable
+        if condition == "observed_blocked":
+            return pred_blocked
+        raise RuntimeError(f"Unknown evidence history: {condition}")
+
+    correct_history_by_rule: dict[str, list[bool]] = {}
+    correct_target_by_rule: dict[str, list[bool]] = {}
+    for rule in TRUE_RULES:
+        same_prediction = _evidence_prediction(SAME_HISTORY[rule])
+        other_prediction = _evidence_prediction(OTHER_HISTORY[rule])
+        true_target = (
+            target_passable if rule == "passable" else target_blocked
+        )
+        other_target = (
+            target_blocked if rule == "passable" else target_passable
+        )
+        correct_history_by_rule[rule] = (
+            _mse(same_prediction, true_target)
+            < _mse(other_prediction, true_target)
+        ).tolist()
+        correct_target_by_rule[rule] = (
+            _mse(same_prediction, true_target)
+            < _mse(same_prediction, other_target)
+        ).tolist()
+
+    unit_rows = np.asarray(
+        [
+            [
+                float(switch[index]),
+                float(correct_target_by_rule["passable"][index]),
+                float(correct_target_by_rule["blocked"][index]),
+            ]
+            for index in range(len(query_ids))
+        ],
+        dtype=np.float64,
+    )
+    draws = unit_bootstrap_draws(
+        unit_rows,
+        resamples=int(bootstrap["resamples"]),
+        random_seed=int(bootstrap["random_seed"]),
+    )
+    tail = 0.5 * (1.0 - float(bootstrap["confidence_level"]))
+    lower_bounds = {
+        "context_switch_rate": float(np.quantile(draws[:, 0], tail)),
+        "worst_rule_correct_target_choice_rate": float(
+            np.quantile(np.min(draws[:, 1:], axis=1), tail)
+        ),
+    }
+    uncertainty = {
+        "method": "paired_static_query_bootstrap",
+        "unit": str(bootstrap["unit"]),
+        "resamples": int(bootstrap["resamples"]),
+        "confidence_level": float(bootstrap["confidence_level"]),
+        "random_seed": int(bootstrap["random_seed"]),
+        "lower_bounds": lower_bounds,
+    }
+
+    by_rule_target = {
+        rule: float(np.mean(correct_target_by_rule[rule]))
+        for rule in TRUE_RULES
+    }
+    metrics = {
+        "queries": len(query_ids),
+        "pair_count": len(query_ids),
+        "decision_count": 2 * len(query_ids),
+        "response_pair_count": len(response_records),
+        "context_switch_rate": float(switch.mean()),
+        "correct_history_rate": float(
+            np.mean(
+                [
+                    value
+                    for rule in TRUE_RULES
+                    for value in correct_history_by_rule[rule]
+                ]
+            )
+        ),
+        "correct_target_choice_rate_by_true_rule": by_rule_target,
+        "worst_rule_correct_target_choice_rate": float(
+            min(by_rule_target.values())
+        ),
+        "latent_response": latent_response,
+    }
+    checks = {
+        "context_switch_rate": bool(
+            metrics["context_switch_rate"]
+            >= float(gates["context_switch_rate_minimum"])
+        ),
+        "worst_rule_correct_target_choice_rate": bool(
+            metrics["worst_rule_correct_target_choice_rate"]
+            >= float(
+                gates["worst_rule_correct_target_choice_rate_minimum"]
+            )
+        ),
+    }
+    checks.update(
+        paired_latent_response_gate_checks(metrics, thresholds=gates)
+    )
+    uncertainty_checks = {
+        name: bool(
+            uncertainty["lower_bounds"][name] >= float(minimum)
+        )
+        for name, minimum in dict(bootstrap["lower_bound_minimum"]).items()
+    }
+    return {
+        "schema_version": 1,
+        "component": "door",
+        "threshold_source": threshold_source_block(config),
+        "threshold_provenance": str(section["threshold_provenance"]).strip(),
+        "additive_only": True,
+        "full_protocol": bool(full_protocol),
+        "metrics": metrics,
+        "uncertainty": uncertainty,
+        "checks": {**checks, **uncertainty_checks},
+        "passed": bool(all(checks.values()) and all(uncertainty_checks.values())),
+    }
 
 
 def _smoke_summary(records: list[dict[str, Any]]) -> dict[str, Any]:
@@ -91,6 +290,16 @@ def evaluate_door_icl_model(
         adapter,
         dataset.raw_assets,
         batch_size=int(batch_size),
+        return_latents=True,
+    )
+    latents = scored["latents"]
+    gate_completion = door_gate_completion_metrics(
+        predicted=latents["predicted"],
+        encoded_targets=latents["encoded_targets"],
+        query_ids=list(latents["query_ids"]),
+        static_query_ids=list(latents["static_query_ids"]),
+        config=load_test_gate_completion_config(),
+        full_protocol=dataset.is_full_protocol,
     )
     if dataset.is_full_protocol:
         summary = summarize_validation_records(
@@ -136,6 +345,7 @@ def evaluate_door_icl_model(
         "formal_checkpoint_passed": formal_pass,
         "score_audit": scored["score_audit"],
         "summary": summary,
+        "gate_completion": gate_completion,
     }
     if include_records:
         payload["records"] = scored["records"]

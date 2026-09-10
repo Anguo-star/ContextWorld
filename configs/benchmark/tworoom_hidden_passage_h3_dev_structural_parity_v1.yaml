@@ -1,0 +1,204 @@
+schema_version: 2
+benchmark: tworoom_hidden_passage_history3_dev_structural_parity_v1
+status: diagnostic_frozen_before_catalog_generation_and_scoring
+date: "2026-09-09"
+
+# Development-only replica of the frozen Public Test validation protocol
+# (tworoom_hidden_passage_history3_validation_v2) with identical structure:
+# the same three history conditions, the same eval_seed x direction
+# stratification (6 seeds x 2 directions x 25 static queries), the same
+# matrix (2 true futures x 3 histories), the same gates and aggregation.
+# Only the data rows differ: queries come from the 16 frozen loader_val
+# training-seen door positions instead of the 42 eval-only Test doors.
+
+source_protocol: configs/benchmark/tworoom_hidden_passage_h3_validation_v2.yaml
+
+stable_worldmodel:
+  # Absolute path to the pinned-commit extraction used by this build; the
+  # working checkout at ../stable-worldmodel is on another branch.
+  repo: /tmp/claude-0/-opt-huawei-explorer-env-dataset-ag-data-code-ContextWorld/e833990b-256b-4cc7-adbd-29b6d6a816f0/scratchpad/audit/I2_swm_pinned
+  commit: 5864b74980f6ed328fd0045e777b3865962eff43
+
+history3:
+  history_tokens: 3
+  raw_steps_per_action_block: 5
+  query_future_blocks: 1
+  true_future_rules: [passable, blocked]
+  history_conditions:
+    observed_passable: 看见智能体穿过门的历史
+    observed_blocked: 看见智能体被门挡住的历史
+    did_not_attempt_crossing: 没有尝试穿门的历史
+  all_three_histories_use_identical_actions: true
+  all_three_histories_end_at_identical_query: true
+  no_crossing_attempt_is_continuous_environment_history: true
+
+data:
+  split: development
+  generation:
+    # New seeds; the Test build used catalog_seed 20260723 and
+    # assignment_seed 20260724.
+    catalog_seed: 2026090204
+    assignment_seed: 2026090205
+    eval_only_door_positions: &eval_only_door_positions
+      - 30
+      - 34
+      - 38
+      - 42
+      - 46
+      - 50
+      - 54
+      - 58
+      - 62
+      - 66
+      - 70
+      - 74
+      - 78
+      - 82
+      - 86
+      - 90
+      - 94
+      - 98
+      - 102
+      - 106
+      - 110
+      - 114
+      - 118
+      - 122
+      - 126
+      - 130
+      - 134
+      - 138
+      - 142
+      - 146
+      - 150
+      - 154
+      - 158
+      - 162
+      - 166
+      - 170
+      - 174
+      - 178
+      - 182
+      - 186
+      - 190
+      - 194
+    template_source: frozen_training_geometry
+    query_domain: training_seen
+    training_data_config: configs/benchmark/tworoom_hidden_passage_h3_training_data_v1.yaml
+    training_data_config_sha256: c13d1778ccab068fcc20cd1f08593cce0accd97903b36a9da73f7b14f021da21
+    training_scale: formal
+    training_split: loader_val
+    # The complete frozen loader_val split (16 doors), disjoint from every
+    # eval-only Test door by construction.
+    candidate_door_positions: &loader_val_doors
+      - 65
+      - 77
+      - 79
+      - 87
+      - 112
+      - 115
+      - 131
+      - 152
+      - 167
+      - 169
+      - 171
+      - 172
+      - 175
+      - 180
+      - 183
+      - 185
+    # Keep only wall distance w00 (1.5 px): the geometry family whose probe
+    # middle-state gap (8.5 px) meets the Public Test gate of 8.0 px.  All ten
+    # frozen doorway offsets are kept, a superset of the Test's four offsets.
+    training_geometry_filter:
+      wall_distance_indices: [0]
+      doorway_offset_indices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+    candidate_templates: 320
+    selected_unique_queries: 300
+    deduplicate_query_pixels_before_selection: true
+    minimum_unique_candidate_queries: 300
+
+evaluation:
+  eval_seeds: [42, 43, 44, 45, 46, 47]
+  eval_seed_semantics: seeded_disjoint_without_replacement_query_sets
+  unique_queries_per_seed: 50
+  direction_counts_per_seed:
+    left_to_right: 25
+    right_to_left: 25
+  unique_queries: 300
+  matrix_cells: 6
+  model_predictions_per_checkpoint: 900
+  loss_records_per_checkpoint: 1800
+  batch_size: 64
+  environment_calls_during_scoring: 0
+
+adapter:
+  implementation: StableWorldModelLeWMAdapter
+  normalizer: normalizers/tworoom_original_train_s3072.json
+  model_input_keys: [pixels, action]
+  privileged_fields_forbidden:
+    - passage.open
+    - state
+    - goal_state
+    - door.position
+    - template_id
+    - true_future
+
+metrics:
+  primary: frozen_true_next_frame_native_latent_mse
+  paired_effects:
+    - other_rule_history_loss_minus_same_rule_history_loss
+    - no_crossing_attempt_history_loss_minus_same_rule_history_loss
+  direct_rule_readout:
+    - matching_history_two_target_accuracy
+    - matching_history_two_target_margin
+  additional:
+    - strict_win_rate
+    - paired_symmetric_contrast
+    - eval_seed_and_direction_sign_consistency
+    - target_latent_separation
+    - two_target_tie_rate
+  no_crossing_attempt_role: auxiliary_baseline_not_sufficient_for_attribution
+  unchanged_query_relative_loss:
+    enabled: false
+    reason: blocked_true_future_is_exactly_the_unchanged_query
+  raw_latent_mse_cross_checkpoint_comparison_allowed: false
+
+gates:
+  minimum_middle_state_gap_px: 8.0
+  minimum_future_state_gap_px: 20.0
+  query_pixels_unique: 300
+  each_eval_seed_has_unique_queries: 50
+  each_eval_seed_direction_has_unique_queries: 25
+  all_eval_seed_query_sets_mutually_disjoint: true
+  each_eval_seed_controls_its_own_without_replacement_selection: true
+  all_history_actions_identical: true
+  all_history_queries_identical: true
+  no_crossing_attempt_rule_invariant: true
+  offline_true_futures_frozen_before_scoring: true
+  loss_records_per_checkpoint: 1800
+  model_predictions_per_checkpoint: 900
+  minimum_same_history_two_target_accuracy_exclusive: 0.5
+  require_target_accuracy_above_threshold_in_every_eval_seed_direction: true
+  minimum_strict_win_rate_exclusive: 0.5
+  minimum_target_pair_latent_mse_exclusive: 1.0e-12
+  paired_bootstrap:
+    unit: static_query_within_eval_seed_direction
+    strata: eval_seed_x_direction
+    method: percentile
+    resamples: 10000
+    confidence: 0.95
+    seed: 20260725
+    minimum_lower_bound_exclusive: 0.0
+    required_metrics:
+      - passable/same_vs_other_rule_history
+      - passable/same_vs_no_crossing_attempt
+      - blocked/same_vs_other_rule_history
+      - blocked/same_vs_no_crossing_attempt
+      - passable/matching_history_two_target_margin
+      - blocked/matching_history_two_target_margin
+
+artifacts:
+  output_root: artifacts/evaluation/history3/hidden_passage_dev_structural_parity_v1
+  catalog: artifacts/evaluation/history3/hidden_passage_dev_structural_parity_v1/catalog.json
+  training_exclusion_manifest: artifacts/evaluation/history3/hidden_passage_dev_structural_parity_v1/training_exclusion_manifest.json

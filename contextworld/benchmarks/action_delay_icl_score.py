@@ -5,16 +5,31 @@ import statistics
 from pathlib import Path
 from typing import Any, Iterable
 
+import numpy as np
+
 from contextworld.benchmarks.action_delay_icl_data import (
     DEFAULT_ACTION_DELAY_RELEASE_CONFIG,
     ActionDelayICLEvalDataset,
     load_action_delay_icl_release,
 )
 from contextworld.benchmarks.adapters import ActionDelayICLModelAdapter
+from contextworld.benchmarks.paired_latent_response import (
+    paired_latent_response_gate_checks,
+    paired_latent_response_metrics,
+    summarize_paired_latent_response_records,
+)
+from contextworld.benchmarks.test_gate_completion import (
+    load_test_gate_completion_config,
+    percentile_lower_bound,
+    threshold_source_block,
+    unit_bootstrap_draws,
+)
 from contextworld.evaluation.action_delay_h7_core import (
+    DELAYS,
     summarize_action_delay_h1_physical,
 )
 from contextworld.evaluation.action_delay_h7_score import (
+    physical_future_group,
     score_h7_validation_assets,
     summarize_h7_validation_records,
 )
@@ -53,6 +68,166 @@ def _gate(
         ),
     }
     return {"checks": checks, "passed": all(checks.values())}
+
+
+def action_delay_gate_completion_metrics(
+    *,
+    predicted_h1: np.ndarray,
+    encoded_h1: np.ndarray,
+    query_ids: list[str],
+    history_strict_wins: np.ndarray,
+    config: dict[str, Any],
+) -> dict[str, Any]:
+    """Additive anti-shortcut gates for Action Delay at horizon 1.
+
+    The frozen assets hold the true future of every query under each of the
+    eleven counterfactual delays, and the model rolls out a prediction under
+    each of the eleven delay histories.  Pairing two delays whose one-step
+    physical futures are distinguishable (``physical_future_group`` at h1;
+    delays 5..10 share one stationary future and are never paired with each
+    other) reproduces the paired hidden-dynamics probe of the six fully gated
+    components: swapping only the demonstrated history must move the
+    prediction along the true inter-delay future displacement.
+
+    ``history_strict_wins`` is the per-(query, target delay) matching-history
+    strict-win matrix at h1, i.e. the correct-history decisions the existing
+    scorer already computes.  All thresholds come from the additive
+    gate-completion config; the frozen primary gate stays untouched.
+    """
+
+    section = config["action_delay"]
+    gates = section["gates"]
+    bootstrap = section["bootstrap"]
+    predicted = np.asarray(predicted_h1, dtype=np.float64)
+    encoded = np.asarray(encoded_h1, dtype=np.float64)
+    if predicted.shape != encoded.shape or predicted.ndim != 3:
+        raise ValueError(
+            "Action Delay gate latents must share a (queries, delays, dim) shape:"
+            f" {predicted.shape} vs {encoded.shape}"
+        )
+    if len(predicted) != len(query_ids) or len(set(query_ids)) != len(query_ids):
+        raise ValueError("One unique query id per latent row is required")
+    wins = np.asarray(history_strict_wins, dtype=bool)
+    if wins.shape != (len(predicted), len(DELAYS)):
+        raise ValueError(
+            "History strict wins must be (queries, delays):"
+            f" {wins.shape} vs {(len(predicted), len(DELAYS))}"
+        )
+
+    delay_pairs = [
+        (delay_a, delay_b)
+        for delay_a in DELAYS
+        for delay_b in DELAYS
+        if delay_a < delay_b
+        and physical_future_group(delay_a, 1)
+        != physical_future_group(delay_b, 1)
+    ]
+    response_records: list[dict[str, Any]] = []
+    switch_unit_rows = []
+    for query_index, query_id in enumerate(query_ids):
+        pair_rows = []
+        switch_values = []
+        for delay_a, delay_b in delay_pairs:
+            predicted_first = predicted[query_index, delay_a]
+            predicted_second = predicted[query_index, delay_b]
+            target_first = encoded[query_index, delay_a]
+            target_second = encoded[query_index, delay_b]
+            pair_rows.append(
+                (
+                    f"{query_id}:d{delay_a}>d{delay_b}",
+                    predicted_first,
+                    predicted_second,
+                    target_first,
+                    target_second,
+                )
+            )
+            switch_values.append(
+                bool(
+                    np.sum(
+                        (predicted_second - predicted_first)
+                        * (target_second - target_first)
+                    )
+                    > 0.0
+                )
+            )
+        _family_metrics, family_records = paired_latent_response_metrics(
+            pair_ids=[row[0] for row in pair_rows],
+            predicted_first=np.stack([row[1] for row in pair_rows]),
+            predicted_second=np.stack([row[2] for row in pair_rows]),
+            target_first=np.stack([row[3] for row in pair_rows]),
+            target_second=np.stack([row[4] for row in pair_rows]),
+        )
+        response_records.extend(family_records)
+        switch_unit_rows.append(
+            [float(np.mean(switch_values)), float(wins[query_index].mean())]
+        )
+    latent_response = summarize_paired_latent_response_records(response_records)
+    switch_rate = float(np.mean([row[0] for row in switch_unit_rows]))
+    correct_history_rate = float(np.mean(wins))
+
+    draws = unit_bootstrap_draws(
+        np.asarray(switch_unit_rows, dtype=np.float64),
+        resamples=int(bootstrap["resamples"]),
+        random_seed=int(bootstrap["random_seed"]),
+    )
+    lower_bounds = percentile_lower_bound(
+        draws,
+        confidence_level=float(bootstrap["confidence_level"]),
+    )
+    uncertainty = {
+        "method": "paired_query_bootstrap",
+        "unit": str(bootstrap["unit"]),
+        "resamples": int(bootstrap["resamples"]),
+        "confidence_level": float(bootstrap["confidence_level"]),
+        "random_seed": int(bootstrap["random_seed"]),
+        "lower_bounds": {
+            "context_switch_rate": float(lower_bounds[0]),
+            "correct_history_rate": float(lower_bounds[1]),
+        },
+    }
+
+    metrics = {
+        "gate_horizon": int(section.get("gate_horizon", 1)),
+        "queries": len(query_ids),
+        "pair_count": len(query_ids) * len(delay_pairs),
+        "delay_pairs": [f"{a}>{b}" for a, b in delay_pairs],
+        "correct_history_rate": correct_history_rate,
+        "correct_history_rate_definition": (
+            "matching-history latent loss strictly below every"
+            " physically distinguishable delay at the gate horizon"
+        ),
+        "context_switch_rate": switch_rate,
+        "latent_response": latent_response,
+    }
+    checks = {
+        "correct_history_rate": bool(
+            correct_history_rate
+            >= float(gates["correct_history_rate_minimum"])
+        ),
+        "context_switch_rate": bool(
+            switch_rate >= float(gates["context_switch_rate_minimum"])
+        ),
+    }
+    checks.update(
+        paired_latent_response_gate_checks(metrics, thresholds=gates)
+    )
+    uncertainty_checks = {
+        name: bool(
+            uncertainty["lower_bounds"][name] >= float(minimum)
+        )
+        for name, minimum in dict(bootstrap["lower_bound_minimum"]).items()
+    }
+    return {
+        "schema_version": 1,
+        "component": "action_delay",
+        "threshold_source": threshold_source_block(config),
+        "threshold_provenance": str(section["threshold_provenance"]).strip(),
+        "additive_only": True,
+        "metrics": metrics,
+        "uncertainty": uncertainty,
+        "checks": {**checks, **uncertainty_checks},
+        "passed": bool(all(checks.values()) and all(uncertainty_checks.values())),
+    }
 
 
 def _summaries(
@@ -98,6 +273,7 @@ def evaluate_action_delay_icl_model(
         adapter,
         dataset.raw_assets,
         batch_size=int(batch_size),
+        return_latents=True,
     )
     after = adapter.frozen_state_hash()
     if before != after:
@@ -105,6 +281,52 @@ def evaluate_action_delay_icl_model(
     summary, core, gate = _summaries(
         scored["records"],
         release=release,
+    )
+    # The gate's history-use input compares the matching history only against
+    # PHYSICALLY DISTINGUISHABLE alternatives.  At horizon 1
+    # ``physical_future_group`` collapses delays 5..10 into one stationary
+    # group, so the frozen ``matching_history_strict_win`` flag -- which
+    # requires beating all ten other delays, including the five identical
+    # twins -- is capped at (5 + 6 * 1/6) / 11 = 6/11 for a perfect model.
+    # Scoring against same-group delays would measure a distinction the task
+    # does not contain, so they are excluded here, exactly as ``delay_pairs``
+    # already excludes them for the context-switch metric.  The frozen
+    # summary's own ``matching_history_strict_win_rate`` is left untouched.
+    h1_losses: dict[tuple[str, int], dict[int, float]] = {}
+    for row in scored["records"]:
+        if int(row["horizon"]) != 1:
+            continue
+        key = (str(row["query_id"]), int(row["target_delay"]))
+        h1_losses.setdefault(key, {})[int(row["history_delay"])] = float(
+            row["latent_mse"]
+        )
+    wins_by_query: dict[str, list[bool | None]] = {}
+    for (query_id, target_delay), losses in h1_losses.items():
+        matching = losses[target_delay]
+        distinguishable = [
+            loss
+            for history_delay, loss in losses.items()
+            if physical_future_group(history_delay, 1)
+            != physical_future_group(target_delay, 1)
+        ]
+        if not distinguishable:
+            raise RuntimeError(
+                "No physically distinguishable alternative for delay"
+                f" {target_delay}"
+            )
+        slots = wins_by_query.setdefault(query_id, [None] * len(DELAYS))
+        slots[target_delay] = bool(matching < min(distinguishable))
+    query_ids = [str(asset["query_id"]) for asset in dataset.raw_assets]
+    history_strict_wins = np.asarray(
+        [wins_by_query[query_id] for query_id in query_ids], dtype=bool
+    )
+    latents = scored["latents"]
+    gate_completion = action_delay_gate_completion_metrics(
+        predicted_h1=latents["predicted"][:, :, 0],
+        encoded_h1=latents["encoded"][:, :, 0],
+        query_ids=query_ids,
+        history_strict_wins=history_strict_wins,
+        config=load_test_gate_completion_config(),
     )
     release_path = Path(release["_config_path"])
     payload = {
@@ -140,6 +362,7 @@ def evaluate_action_delay_icl_model(
         "score_audit": scored["score_audit"],
         "core_h1": core,
         "gate": gate,
+        "gate_completion": gate_completion,
     }
     if include_records:
         payload["records"] = scored["records"]

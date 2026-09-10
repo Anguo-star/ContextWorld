@@ -1398,8 +1398,15 @@ def score_validation_assets(
     assets: list[dict[str, Any]],
     *,
     batch_size: int,
+    return_latents: bool = False,
 ) -> dict[str, Any]:
-    """Score only frozen arrays; this function never constructs an environment."""
+    """Score only frozen arrays; this function never constructs an environment.
+
+    ``return_latents=True`` additionally returns the in-memory predicted and
+    target-encoded latent tensors so callers can compute additive
+    latent-response gates without re-running the model.  The default keeps the
+    historical return contract unchanged.
+    """
 
     protocol_audit = _adapter_protocol_audit(adapter)
     state_before = adapter.frozen_state_hash()
@@ -1522,7 +1529,7 @@ def score_validation_assets(
         )
     if state_before != state_after:
         raise RuntimeError("Adapter state changed during frozen scoring")
-    return {
+    scored: dict[str, Any] = {
         "records": rows,
         "score_audit": {
             "passed": True,
@@ -1556,6 +1563,22 @@ def score_validation_assets(
             "frozen_state_hash_after": state_after,
         },
     }
+    if return_latents:
+        scored["latents"] = {
+            "query_ids": [str(asset["query_id"]) for asset in assets],
+            "static_query_ids": [
+                str(asset["static_query_id"]) for asset in assets
+            ],
+            "history_conditions": list(HISTORY_CONDITIONS),
+            "true_rules": list(TRUE_RULES),
+            "predicted": np.asarray(predicted, dtype=np.float32).reshape(
+                len(assets), len(HISTORY_CONDITIONS), -1
+            ),
+            "encoded_targets": np.asarray(
+                encoded_targets, dtype=np.float32
+            ),
+        }
+    return scored
 
 
 def paired_effect_rows(records: list[dict[str, Any]]) -> list[dict[str, Any]]:

@@ -1,0 +1,81 @@
+schema_version: 1
+release_id: contextworld_test_gate_completion_v1
+status: additive_test_gate_completion
+purpose: >-
+  Anti-shortcut gate thresholds for the three Public Test components whose
+  frozen release yaml does not define them (speed, action delay, door rule).
+  These thresholds are strictly ADDITIVE: nothing here lowers, replaces, or
+  reinterprets any threshold in the ten frozen configs/benchmark/*_icl_release_v1.yaml
+  files, whose sha values stay untouched.  Every value below is carried over
+  from the same-capability-type component named in threshold_provenance.
+  All of them are NEW thresholds for their component and require confirmation
+  by the coordinating process before any formal claim uses them.
+speed:
+  capability_type: multi_valued_hidden_continuous_parameter
+  threshold_provenance: >-
+    configs/benchmark/reacher_arm_mass_icl_release_v1.yaml
+    (scoring.hidden_future_prediction.gates + uncertainty.lower_bound_minimum);
+    the only six-gate component family whose hidden parameter is a continuous
+    physical quantity, as speed is.  Flagged as a new threshold for speed.
+  gate_horizon: 1
+  gates:
+    correct_history_rate_minimum: 0.75
+    context_switch_rate_minimum: 0.90
+    worst_reference_speed_correct_history_rate_minimum: 0.70
+    target_latent_separation_required: true
+    response_gain_minimum: 0.50
+    normalized_response_error_strict_maximum: 1.00
+  bootstrap:
+    unit: static_query_speed_family
+    resamples: 10000
+    confidence_level: 0.95
+    random_seed: 2026080206
+    lower_bound_minimum:
+      correct_history_rate: 0.70
+      context_switch_rate: 0.85
+action_delay:
+  capability_type: multi_valued_hidden_discrete_parameter
+  threshold_provenance: >-
+    configs/benchmark/reacher_arm_mass_icl_release_v1.yaml
+    (scoring.hidden_future_prediction.gates + uncertainty.lower_bound_minimum);
+    the only six-gate component family with a multi-level hidden dynamics
+    parameter read from history, as delay is.  Flagged as a new threshold for
+    action delay.  The existing primary_gate in
+    tworoom_action_delay_icl_release_v1.yaml is untouched.
+  gate_horizon: 1
+  gates:
+    correct_history_rate_minimum: 0.75
+    context_switch_rate_minimum: 0.90
+    target_latent_separation_required: true
+    response_gain_minimum: 0.50
+    normalized_response_error_strict_maximum: 1.00
+  bootstrap:
+    unit: query
+    resamples: 10000
+    confidence_level: 0.95
+    random_seed: 2026073003
+    lower_bound_minimum:
+      correct_history_rate: 0.70
+      context_switch_rate: 0.85
+door:
+  capability_type: discrete_rule_switching
+  threshold_provenance: >-
+    configs/benchmark/cube_gripper_carry_icl_release_v1.yaml
+    (scoring.hidden_future_prediction.gates); the six-gate component with the
+    same capability type (two discrete rules revealed by history).  Flagged as
+    a new threshold for door.  The existing gates in
+    tworoom_door_icl_release_v1.yaml are untouched.
+  gates:
+    context_switch_rate_minimum: 0.90
+    worst_rule_correct_target_choice_rate_minimum: 0.70
+    target_latent_separation_required: true
+    response_gain_minimum: 0.50
+    normalized_response_error_strict_maximum: 1.00
+  bootstrap:
+    unit: static_query
+    resamples: 10000
+    confidence_level: 0.95
+    random_seed: 20260726
+    lower_bound_minimum:
+      context_switch_rate: 0.85
+      worst_rule_correct_target_choice_rate: 0.70

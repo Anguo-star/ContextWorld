@@ -155,7 +155,16 @@ def score_h7_validation_assets(
     assets: list[dict[str, Any]],
     *,
     batch_size: int,
+    return_latents: bool = False,
 ) -> dict[str, Any]:
+    """Score the frozen assets; this function never constructs an environment.
+
+    ``return_latents=True`` additionally returns the in-memory predicted and
+    target-encoded latent tensors so callers can compute additive
+    latent-response gates without re-running the model.  The default keeps the
+    historical return contract unchanged.
+    """
+
     _require(len(assets) == QUERY_COUNT, "Expected 300 History=7 assets")
     validate_adapter_protocol(
         adapter,
@@ -257,7 +266,7 @@ def score_h7_validation_assets(
         len(records) == HORIZON_LOSS_RECORDS_PER_CHECKPOINT,
         "History=7 horizon loss record count changed",
     )
-    return {
+    scored: dict[str, Any] = {
         "records": records,
         "score_audit": {
             "queries": len(assets),
@@ -272,6 +281,14 @@ def score_h7_validation_assets(
             "privileged_fields_passed_to_adapter": [],
         },
     }
+    if return_latents:
+        scored["latents"] = {
+            "predicted": np.asarray(predicted, dtype=np.float32),
+            "encoded": np.asarray(encoded, dtype=np.float32),
+            "delays": list(DELAYS),
+            "future_horizons": list(FUTURE_HORIZONS),
+        }
+    return scored
 
 
 def _aggregate_metrics(values: list[dict[str, Any]]) -> dict[str, Any]:

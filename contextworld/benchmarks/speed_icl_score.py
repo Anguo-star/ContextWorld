@@ -11,11 +11,22 @@ from contextworld.benchmarks.adapters import (
     SpeedICLModelAdapter,
     validate_adapter_protocol,
 )
+from contextworld.benchmarks.paired_latent_response import (
+    paired_latent_response_gate_checks,
+    paired_latent_response_metrics,
+    summarize_paired_latent_response_records,
+)
 from contextworld.benchmarks.speed_icl_data import (
     DEFAULT_RELEASE_CONFIG,
     HORIZONS,
     SpeedICLEvalDataset,
     load_speed_icl_release,
+)
+from contextworld.benchmarks.test_gate_completion import (
+    load_test_gate_completion_config,
+    percentile_lower_bound,
+    threshold_source_block,
+    unit_bootstrap_draws,
 )
 from contextworld.evaluation.icl_model import file_sha256
 from contextworld.paths import repository_root
@@ -161,6 +172,275 @@ def _loss_summary(records: list[dict[str, Any]], horizon: int) -> dict[str, Any]
     }
 
 
+def speed_gate_completion_metrics(
+    *,
+    groups: dict[str, dict[float, dict[str, Any]]],
+    records: list[dict[str, Any]],
+    config: dict[str, Any],
+    full_protocol: bool,
+) -> dict[str, Any]:
+    """Additive anti-shortcut gates for one Speed track at horizon 1.
+
+    ``groups`` maps ``static_query_id`` to the members of one speed family:
+    per reference speed the model's horizon-1 rollout under every history
+    condition plus the encoded true future of that reference speed.  A family
+    shares the query frame, future actions, and evaluation index across its
+    speeds (verified against the frozen catalogs), so pairing two reference
+    speeds inside one family reproduces the paired hidden-dynamics probe of
+    the six fully gated components: swapping only the demonstrated history
+    must move the prediction along the true inter-speed future displacement.
+
+    All thresholds come from the additive gate-completion config; the frozen
+    release yaml keeps its original, weaker diagnostic contract untouched.
+    """
+
+    section = config["speed"]
+    gates = section["gates"]
+    bootstrap = section["bootstrap"]
+
+    strict_wins: dict[float, dict[str, bool]] = defaultdict(dict)
+    grouped_rows: dict[tuple[float, str], list[dict[str, Any]]] = defaultdict(list)
+    for row in records:
+        grouped_rows[
+            (float(row["reference_speed"]), str(row["query_id"]))
+        ].append(row)
+    for (speed, query_id), rows in grouped_rows.items():
+        matching_condition = str(rows[0]["matching_condition"])
+        matching = [
+            row for row in rows if str(row["condition"]) == matching_condition
+        ]
+        others = [
+            row for row in rows if str(row["condition"]) != matching_condition
+        ]
+        if len(matching) != 1 or not others:
+            raise RuntimeError(
+                f"Incomplete history matrix for gate scoring: {speed} {query_id}"
+            )
+        matching_loss = float(matching[0]["latent_mse_by_horizon"]["1"])
+        strict_wins[speed][query_id] = all(
+            matching_loss < float(row["latent_mse_by_horizon"]["1"])
+            for row in others
+        )
+    by_speed = {
+        speed: {
+            "queries": len(query_wins),
+            "strict_correct_history_rate": float(
+                np.mean(list(query_wins.values()))
+            ),
+        }
+        for speed, query_wins in sorted(strict_wins.items())
+    }
+    speed_rates = [row["strict_correct_history_rate"] for row in by_speed.values()]
+    correct_history_rate = float(np.mean(speed_rates))
+    worst_speed_rate = float(min(speed_rates))
+
+    response_records: list[dict[str, Any]] = []
+    switch_rows: dict[str, float] = {}
+    pairwise_history: list[bool] = []
+    pairwise_future: list[bool] = []
+    family_pair_count = 0
+    incomplete_families = 0
+    for static_id in sorted(groups):
+        members = groups[static_id]
+        speeds = sorted(members)
+        if len(speeds) < 2:
+            incomplete_families += 1
+            continue
+        pair_rows = []
+        family_switch = []
+        for frame_speed in speeds:
+            frame = members[frame_speed]
+            condition_speeds = {
+                float(value): condition
+                for condition, value in frame["condition_speeds"].items()
+            }
+            for other_speed in speeds:
+                if other_speed == frame_speed:
+                    continue
+                other_condition = condition_speeds.get(float(other_speed))
+                if other_condition is None:
+                    raise RuntimeError(
+                        "Speed family lacks a history condition for reference "
+                        f"speed {other_speed}: {static_id}"
+                    )
+                predicted_first = np.asarray(
+                    frame["condition_predictions"][
+                        frame["matching_condition"]
+                    ],
+                    dtype=np.float64,
+                )
+                predicted_second = np.asarray(
+                    frame["condition_predictions"][other_condition],
+                    dtype=np.float64,
+                )
+                target_first = np.asarray(frame["target"], dtype=np.float64)
+                target_second = np.asarray(
+                    members[other_speed]["target"], dtype=np.float64
+                )
+                pair_rows.append(
+                    (
+                        f"{static_id}:{frame_speed}->{other_speed}",
+                        predicted_first,
+                        predicted_second,
+                        target_first,
+                        target_second,
+                    )
+                )
+                family_switch.append(
+                    bool(
+                        np.sum(
+                            (predicted_second - predicted_first)
+                            * (target_second - target_first)
+                        )
+                        > 0.0
+                    )
+                )
+                pairwise_history.append(
+                    bool(
+                        np.mean((predicted_first - target_first) ** 2)
+                        < np.mean((predicted_second - target_first) ** 2)
+                    )
+                )
+                pairwise_future.append(
+                    bool(
+                        np.mean((predicted_second - target_second) ** 2)
+                        < np.mean((predicted_second - target_first) ** 2)
+                    )
+                )
+        family_metrics, family_records = paired_latent_response_metrics(
+            pair_ids=[row[0] for row in pair_rows],
+            predicted_first=np.stack([row[1] for row in pair_rows]),
+            predicted_second=np.stack([row[2] for row in pair_rows]),
+            target_first=np.stack([row[3] for row in pair_rows]),
+            target_second=np.stack([row[4] for row in pair_rows]),
+        )
+        response_records.extend(family_records)
+        switch_rows[static_id] = float(np.mean(family_switch))
+        family_pair_count += len(pair_rows)
+    if not response_records:
+        if full_protocol and len(strict_wins) >= 2:
+            raise RuntimeError(
+                "No complete speed family is available for gating a full "
+                "multi-speed protocol run"
+            )
+        return {
+            "schema_version": 1,
+            "component": "speed",
+            "threshold_source": threshold_source_block(config),
+            "threshold_provenance": str(
+                section["threshold_provenance"]
+            ).strip(),
+            "additive_only": True,
+            "full_protocol_track": bool(full_protocol),
+            "status": (
+                "not_evaluable_incomplete_speed_families"
+            ),
+            "reason": (
+                "This selection produced no static query with two or more "
+                "reference speeds; paired gating needs at least one "
+                "complete speed family (single-reference-speed or reduced "
+                "smoke tracks are descriptive only)."
+            ),
+            "metrics": None,
+            "uncertainty": None,
+            "checks": {},
+            "passed": None,
+        }
+    latent_response = summarize_paired_latent_response_records(response_records)
+    context_switch_rate = float(np.mean(list(switch_rows.values())))
+
+    switch_draws = unit_bootstrap_draws(
+        np.asarray([[value] for value in switch_rows.values()]),
+        resamples=int(bootstrap["resamples"]),
+        random_seed=int(bootstrap["random_seed"]),
+    )
+    history_draws = None
+    for stratum_index, speed in enumerate(sorted(strict_wins)):
+        stratum = unit_bootstrap_draws(
+            np.asarray(
+                [[float(value)] for value in strict_wins[speed].values()]
+            ),
+            resamples=int(bootstrap["resamples"]),
+            random_seed=int(bootstrap["random_seed"]) + stratum_index,
+        )
+        history_draws = (
+            stratum if history_draws is None else history_draws + stratum
+        )
+    history_lower = percentile_lower_bound(
+        history_draws / len(strict_wins),
+        confidence_level=float(bootstrap["confidence_level"]),
+    )
+    switch_lower = percentile_lower_bound(
+        switch_draws,
+        confidence_level=float(bootstrap["confidence_level"]),
+    )
+    uncertainty = {
+        "method": "paired_static_query_family_bootstrap",
+        "unit": str(bootstrap["unit"]),
+        "resamples": int(bootstrap["resamples"]),
+        "confidence_level": float(bootstrap["confidence_level"]),
+        "random_seed": int(bootstrap["random_seed"]),
+        "lower_bounds": {
+            "correct_history_rate": float(history_lower),
+            "context_switch_rate": float(switch_lower),
+        },
+    }
+
+    metrics = {
+        "gate_horizon": int(section.get("gate_horizon", 1)),
+        "static_query_families": len(switch_rows),
+        "incomplete_static_query_families": incomplete_families,
+        "pair_count": family_pair_count,
+        "decision_count": 2 * family_pair_count,
+        "correct_history_rate": correct_history_rate,
+        "worst_reference_speed_correct_history_rate": worst_speed_rate,
+        "context_switch_rate": context_switch_rate,
+        "pairwise_correct_history_rate": float(np.mean(pairwise_history)),
+        "pairwise_correct_future_rate": float(np.mean(pairwise_future)),
+        "by_reference_speed": by_speed,
+        "latent_response": latent_response,
+    }
+    checks = {
+        "correct_history_rate": bool(
+            correct_history_rate
+            >= float(gates["correct_history_rate_minimum"])
+        ),
+        "worst_reference_speed_correct_history_rate": bool(
+            worst_speed_rate
+            >= float(
+                gates[
+                    "worst_reference_speed_correct_history_rate_minimum"
+                ]
+            )
+        ),
+        "context_switch_rate": bool(
+            context_switch_rate >= float(gates["context_switch_rate_minimum"])
+        ),
+    }
+    checks.update(
+        paired_latent_response_gate_checks(metrics, thresholds=gates)
+    )
+    lower_minimum = dict(bootstrap["lower_bound_minimum"])
+    uncertainty_checks = {
+        name: bool(
+            uncertainty["lower_bounds"][name] >= float(minimum)
+        )
+        for name, minimum in lower_minimum.items()
+    }
+    return {
+        "schema_version": 1,
+        "component": "speed",
+        "threshold_source": threshold_source_block(config),
+        "threshold_provenance": str(section["threshold_provenance"]).strip(),
+        "additive_only": True,
+        "full_protocol_track": bool(full_protocol),
+        "metrics": metrics,
+        "uncertainty": uncertainty,
+        "checks": {**checks, **uncertainty_checks},
+        "passed": bool(all(checks.values()) and all(uncertainty_checks.values())),
+    }
+
+
 def _longest_contiguous(passes: dict[str, bool]) -> int:
     longest = 0
     for horizon in HORIZONS:
@@ -177,8 +457,10 @@ def _score_track(
     encode_batch_size: int,
     rollout_batch_size: int,
     bundle_batch_size: int,
+    gate_config: dict[str, Any],
 ) -> dict[str, Any]:
     records: list[dict[str, Any]] = []
+    gate_members: dict[str, dict[float, dict[str, Any]]] = defaultdict(dict)
     prefix_max_difference = 0.0
     prefix_checked = False
     for bundle_start in range(0, len(dataset), int(bundle_batch_size)):
@@ -228,6 +510,27 @@ def _score_track(
             prefix_checked = True
         for prediction, sample in zip(predictions, samples):
             bundle_index, bundle, condition, history = sample
+            member = gate_members[bundle.static_query_id].get(
+                bundle.reference_speed
+            )
+            if member is None:
+                member = {
+                    "query_id": bundle.query_id,
+                    "eval_seed": int(bundle.eval_seed),
+                    "matching_condition": bundle.matching_condition,
+                    "condition_speeds": {},
+                    "condition_predictions": {},
+                    "target": np.asarray(
+                        target_latents[bundle_index, 0], dtype=np.float32
+                    ),
+                }
+                gate_members[bundle.static_query_id][bundle.reference_speed] = (
+                    member
+                )
+            member["condition_speeds"][condition] = float(history.history_speed)
+            member["condition_predictions"][condition] = np.asarray(
+                prediction[0], dtype=np.float32
+            )
             losses = np.mean(
                 np.square(
                     prediction.astype(np.float64)
@@ -276,6 +579,12 @@ def _score_track(
         horizons[str(horizon)]["formal_within_checkpoint_pass"] = (
             formal_passes[str(horizon)] if formal_eligible else None
         )
+    gate_completion = speed_gate_completion_metrics(
+        groups={key: dict(value) for key, value in gate_members.items()},
+        records=records,
+        config=gate_config,
+        full_protocol=formal_eligible,
+    )
     return {
         "data": dataset.describe(),
         "condition_trajectories": len(records),
@@ -288,6 +597,7 @@ def _score_track(
         "longest_contiguous_passing_horizon": (
             _longest_contiguous(formal_passes) if formal_eligible else None
         ),
+        "gate_completion": gate_completion,
         "records": records,
     }
 
@@ -335,6 +645,7 @@ def evaluate_speed_icl_model(
             f"{adapter.protocol}"
         ) from exc
     before = adapter.frozen_state_hash()
+    gate_config = load_test_gate_completion_config()
     track_results = {}
     for track in selected_tracks:
         dataset = SpeedICLEvalDataset(
@@ -352,6 +663,7 @@ def evaluate_speed_icl_model(
             encode_batch_size=encode_batch_size,
             rollout_batch_size=rollout_batch_size,
             bundle_batch_size=bundle_batch_size,
+            gate_config=gate_config,
         )
         if not include_records:
             del track_results[track]["records"]
