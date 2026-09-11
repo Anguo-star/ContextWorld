@@ -1,0 +1,612 @@
+{
+  "reference_date": "2026-09-10",
+  "validated_at_utc": "2026-09-11T03:24:56.752129+00:00",
+  "status": "accepted_for_fixed_internal_comparison_with_explicit_scope",
+  "reference_scope": "fixed_internal_comparison_of_history_conditioned_response_under_published_task_contracts",
+  "freeze": {
+    "path": "configs/benchmark/contextworld_joint_scratch_v1_reference_results_freeze_v3.json",
+    "sha256": "01298ca407c4a72bdd9a1238879ae7109b1141a7cfdd2b25065cb0bdec87fef0",
+    "id": "contextworld_joint_scratch_v1_reference_results_freeze_v3"
+  },
+  "decision_contract": "contextworld_reference_decision_v2",
+  "result_delta": {
+    "status": "passed",
+    "freeze_id": "contextworld_joint_scratch_v1_reference_results_freeze_v3",
+    "freeze_sha256": "01298ca407c4a72bdd9a1238879ae7109b1141a7cfdd2b25065cb0bdec87fef0",
+    "historical_freezes_unchanged": true,
+    "checkpoint_task_units": 135,
+    "result_snapshots_unchanged": 270,
+    "main_scores_changed": 0,
+    "gate_verdicts_changed": 0,
+    "admission_and_cem_unchanged": true,
+    "passed_by_split": {
+      "development": 18,
+      "test": 18
+    },
+    "door_passed_by_split": {
+      "development": 9,
+      "test": 9
+    }
+  },
+  "source_binding": {
+    "evaluation_sources": 48,
+    "bounded_scope": "current scoring/data readers, shared kernels and evaluation entry points; not arbitrary model training code"
+  },
+  "native_test_data": {
+    "bound_result_units": 90,
+    "distinct_tables": 6,
+    "actual_files_hashed": 18,
+    "actual_bytes_hashed": 275529976,
+    "tables": [
+      {
+        "component": "portal_exit",
+        "path": "validation.lance",
+        "resolved_path": "/opt/huawei/explorer-env/dataset/ag_data/data/world_model/ContextWorld-v1-full/artifacts/synthesis/tworoom_portal_exit_h3_release_v1/validation.lance",
+        "sha256": "8e24dddf2fd11269ca70fb80b8f2f11272e0954321381d93d229fc229224d0ca",
+        "size_bytes": 14009019,
+        "file_count": 3,
+        "status": "verified_native_table",
+        "hash_algorithm": "lance_directory_sha256_v1"
+      },
+      {
+        "component": "robot_arm_mass",
+        "path": "validation.lance",
+        "resolved_path": "/opt/huawei/explorer-env/dataset/ag_data/data/world_model/ContextWorld-v1-full/artifacts/synthesis/reacher_robot_arm_mass_h3_release_v1/validation.lance",
+        "sha256": "fd3e18e0a6e9c545f89821fc3c3149b1905b5b58322cd42d53359f532162f23a",
+        "size_bytes": 91317033,
+        "file_count": 3,
+        "status": "verified_native_table",
+        "hash_algorithm": "lance_directory_sha256_v1"
+      },
+      {
+        "component": "action_strength",
+        "path": "validation.lance",
+        "resolved_path": "/opt/huawei/explorer-env/dataset/ag_data/data/world_model/ContextWorld-v1-full/artifacts/evaluation/history3/pusht_action_strength_h3_public_test_v1/validation.lance",
+        "sha256": "40de386fe8f0e56326430306fc3bc60b0634d286eacf1876b42587fe1930d577",
+        "size_bytes": 65379247,
+        "file_count": 3,
+        "status": "verified_native_table",
+        "hash_algorithm": "lance_directory_sha256_v1"
+      },
+      {
+        "component": "contact_friction",
+        "path": "validation.lance",
+        "resolved_path": "/opt/huawei/explorer-env/dataset/ag_data/data/world_model/ContextWorld-v1-full/artifacts/synthesis/pusht_contact_friction_h3_release_v3/validation.lance",
+        "sha256": "64d373dfd63f488fc2f7081a441c6781160e55f87d8e03f0da1ff6051c6f1a8d",
+        "size_bytes": 28204953,
+        "file_count": 3,
+        "status": "verified_native_table",
+        "hash_algorithm": "lance_directory_sha256_v1"
+      },
+      {
+        "component": "motion_damping",
+        "path": "validation.lance",
+        "resolved_path": "/opt/huawei/explorer-env/dataset/ag_data/code/ContextWorld/artifacts/synthesis/pusht_motion_damping_h3_release_v4/validation.lance",
+        "sha256": "603487378c8aaaf11d06f6cccea0de19cc6cbe9a6108b475974168d7d605ad77",
+        "size_bytes": 56075721,
+        "file_count": 3,
+        "status": "verified_native_table",
+        "hash_algorithm": "lance_directory_sha256_v1"
+      },
+      {
+        "component": "cube_gripper_carry",
+        "path": "validation.lance",
+        "resolved_path": "/opt/huawei/explorer-env/dataset/ag_data/data/world_model/ContextWorld-v1-full/artifacts/synthesis/cube_gripper_carry_rule_h3_v4r1_release_projection_v1/validation.lance",
+        "sha256": "ba72017e5f47408b3cd351398a323e626f052ee1a9e252698f3c78efd550fb6f",
+        "size_bytes": 20544003,
+        "file_count": 3,
+        "status": "verified_native_table",
+        "hash_algorithm": "lance_directory_sha256_v1"
+      }
+    ],
+    "historical_native_manifest_note": "Unavailable historical native manifests/provenance remain declared; current table bytes bind to release table SHA and/or the result-bound package manifest members."
+  },
+  "capability_controls": {
+    "action_delay": {
+      "no_history": {
+        "checks": {
+          "context_switch_rate": false,
+          "correct_history_rate": false,
+          "normalized_response_error": false,
+          "response_gain": false,
+          "target_latent_separation": true
+        },
+        "context_switch_rate": 0.0,
+        "correct_history_rate": 0.0,
+        "delay_pairs": [
+          "0>1",
+          "0>2",
+          "0>3",
+          "0>4",
+          "0>5",
+          "0>6",
+          "0>7",
+          "0>8",
+          "0>9",
+          "0>10",
+          "1>2",
+          "1>3",
+          "1>4",
+          "1>5",
+          "1>6",
+          "1>7",
+          "1>8",
+          "1>9",
+          "1>10",
+          "2>3",
+          "2>4",
+          "2>5",
+          "2>6",
+          "2>7",
+          "2>8",
+          "2>9",
+          "2>10",
+          "3>4",
+          "3>5",
+          "3>6",
+          "3>7",
+          "3>8",
+          "3>9",
+          "3>10",
+          "4>5",
+          "4>6",
+          "4>7",
+          "4>8",
+          "4>9",
+          "4>10"
+        ],
+        "normalized_response_error": 1.0,
+        "passed": false,
+        "response_gain": 0.0
+      },
+      "oracle": {
+        "checks": {
+          "context_switch_rate": true,
+          "correct_history_rate": true,
+          "normalized_response_error": true,
+          "response_gain": true,
+          "target_latent_separation": true
+        },
+        "context_switch_rate": 1.0,
+        "correct_history_rate": 1.0,
+        "delay_pairs": [
+          "0>1",
+          "0>2",
+          "0>3",
+          "0>4",
+          "0>5",
+          "0>6",
+          "0>7",
+          "0>8",
+          "0>9",
+          "0>10",
+          "1>2",
+          "1>3",
+          "1>4",
+          "1>5",
+          "1>6",
+          "1>7",
+          "1>8",
+          "1>9",
+          "1>10",
+          "2>3",
+          "2>4",
+          "2>5",
+          "2>6",
+          "2>7",
+          "2>8",
+          "2>9",
+          "2>10",
+          "3>4",
+          "3>5",
+          "3>6",
+          "3>7",
+          "3>8",
+          "3>9",
+          "3>10",
+          "4>5",
+          "4>6",
+          "4>7",
+          "4>8",
+          "4>9",
+          "4>10"
+        ],
+        "normalized_response_error": 0.0,
+        "passed": true,
+        "response_gain": 1.0
+      },
+      "reversed": {
+        "checks": {
+          "context_switch_rate": false,
+          "correct_history_rate": false,
+          "normalized_response_error": false,
+          "response_gain": false,
+          "target_latent_separation": true
+        },
+        "context_switch_rate": 0.0,
+        "correct_history_rate": 0.0,
+        "delay_pairs": [
+          "0>1",
+          "0>2",
+          "0>3",
+          "0>4",
+          "0>5",
+          "0>6",
+          "0>7",
+          "0>8",
+          "0>9",
+          "0>10",
+          "1>2",
+          "1>3",
+          "1>4",
+          "1>5",
+          "1>6",
+          "1>7",
+          "1>8",
+          "1>9",
+          "1>10",
+          "2>3",
+          "2>4",
+          "2>5",
+          "2>6",
+          "2>7",
+          "2>8",
+          "2>9",
+          "2>10",
+          "3>4",
+          "3>5",
+          "3>6",
+          "3>7",
+          "3>8",
+          "3>9",
+          "3>10",
+          "4>5",
+          "4>6",
+          "4>7",
+          "4>8",
+          "4>9",
+          "4>10"
+        ],
+        "normalized_response_error": 4.0,
+        "passed": false,
+        "response_gain": -1.0
+      },
+      "tiny": {
+        "checks": {
+          "context_switch_rate": true,
+          "correct_history_rate": true,
+          "normalized_response_error": true,
+          "response_gain": false,
+          "target_latent_separation": true
+        },
+        "context_switch_rate": 1.0,
+        "correct_history_rate": 1.0,
+        "delay_pairs": [
+          "0>1",
+          "0>2",
+          "0>3",
+          "0>4",
+          "0>5",
+          "0>6",
+          "0>7",
+          "0>8",
+          "0>9",
+          "0>10",
+          "1>2",
+          "1>3",
+          "1>4",
+          "1>5",
+          "1>6",
+          "1>7",
+          "1>8",
+          "1>9",
+          "1>10",
+          "2>3",
+          "2>4",
+          "2>5",
+          "2>6",
+          "2>7",
+          "2>8",
+          "2>9",
+          "2>10",
+          "3>4",
+          "3>5",
+          "3>6",
+          "3>7",
+          "3>8",
+          "3>9",
+          "3>10",
+          "4>5",
+          "4>6",
+          "4>7",
+          "4>8",
+          "4>9",
+          "4>10"
+        ],
+        "normalized_response_error": 0.9800999999999999,
+        "passed": false,
+        "response_gain": 0.010000000000000002
+      }
+    },
+    "schema_version": 1,
+    "scope": {
+      "common_offset_scope": "response-difference geometry only; absolute prediction MSE and target-choice metrics are outside this invariance control",
+      "no_history_control_scope": "speed no_history uses a per-query target anchor held constant across histories; it is a privileged negative control for history use, not a realizable query-only predictor",
+      "population_false_positive_rate_estimated": false,
+      "synthetic": true
+    },
+    "shared_paired_latent": {
+      "no_history": {
+        "checks_by_task": {
+          "action_strength": {
+            "normalized_response_error": false,
+            "response_gain": false,
+            "target_latent_separation": true
+          },
+          "contact_friction": {
+            "normalized_response_error": false,
+            "response_gain": false,
+            "target_latent_separation": true
+          },
+          "cube_grasp_rule": {
+            "normalized_response_error": false,
+            "response_gain": false,
+            "target_latent_separation": true
+          },
+          "motion_damping": {
+            "normalized_response_error": false,
+            "response_gain": false,
+            "target_latent_separation": true
+          },
+          "portal_exit": {
+            "normalized_response_error": false,
+            "response_gain": false,
+            "target_latent_separation": true
+          },
+          "reacher_arm_mass": {
+            "normalized_response_error": false,
+            "response_gain": false,
+            "target_latent_separation": true
+          }
+        },
+        "normalized_response_error": 1.0,
+        "response_gain": 0.0
+      },
+      "oracle": {
+        "checks_by_task": {
+          "action_strength": {
+            "normalized_response_error": true,
+            "response_gain": true,
+            "target_latent_separation": true
+          },
+          "contact_friction": {
+            "normalized_response_error": true,
+            "response_gain": true,
+            "target_latent_separation": true
+          },
+          "cube_grasp_rule": {
+            "normalized_response_error": true,
+            "response_gain": true,
+            "target_latent_separation": true
+          },
+          "motion_damping": {
+            "normalized_response_error": true,
+            "response_gain": true,
+            "target_latent_separation": true
+          },
+          "portal_exit": {
+            "normalized_response_error": true,
+            "response_gain": true,
+            "target_latent_separation": true
+          },
+          "reacher_arm_mass": {
+            "normalized_response_error": true,
+            "response_gain": true,
+            "target_latent_separation": true
+          }
+        },
+        "normalized_response_error": 0.0,
+        "response_gain": 1.0
+      },
+      "reversed": {
+        "checks_by_task": {
+          "action_strength": {
+            "normalized_response_error": false,
+            "response_gain": false,
+            "target_latent_separation": true
+          },
+          "contact_friction": {
+            "normalized_response_error": false,
+            "response_gain": false,
+            "target_latent_separation": true
+          },
+          "cube_grasp_rule": {
+            "normalized_response_error": false,
+            "response_gain": false,
+            "target_latent_separation": true
+          },
+          "motion_damping": {
+            "normalized_response_error": false,
+            "response_gain": false,
+            "target_latent_separation": true
+          },
+          "portal_exit": {
+            "normalized_response_error": false,
+            "response_gain": false,
+            "target_latent_separation": true
+          },
+          "reacher_arm_mass": {
+            "normalized_response_error": false,
+            "response_gain": false,
+            "target_latent_separation": true
+          }
+        },
+        "normalized_response_error": 4.0,
+        "response_gain": -1.0
+      },
+      "tiny": {
+        "checks_by_task": {
+          "action_strength": {
+            "normalized_response_error": true,
+            "response_gain": false,
+            "target_latent_separation": true
+          },
+          "contact_friction": {
+            "normalized_response_error": true,
+            "response_gain": false,
+            "target_latent_separation": true
+          },
+          "cube_grasp_rule": {
+            "normalized_response_error": true,
+            "response_gain": false,
+            "target_latent_separation": true
+          },
+          "motion_damping": {
+            "normalized_response_error": true,
+            "response_gain": false,
+            "target_latent_separation": true
+          },
+          "portal_exit": {
+            "normalized_response_error": true,
+            "response_gain": false,
+            "target_latent_separation": true
+          },
+          "reacher_arm_mass": {
+            "normalized_response_error": true,
+            "response_gain": false,
+            "target_latent_separation": true
+          }
+        },
+        "normalized_response_error": 0.9801,
+        "response_gain": 0.009999999999999927
+      }
+    },
+    "speed": {
+      "no_history": {
+        "checks": {
+          "context_switch_rate": false,
+          "correct_history_rate": false,
+          "normalized_response_error": false,
+          "response_gain": false,
+          "target_latent_separation": true,
+          "worst_reference_speed_correct_history_rate": false
+        },
+        "context_switch_rate": 0.0,
+        "correct_history_rate": 0.0,
+        "normalized_response_error": 1.0,
+        "passed": false,
+        "response_gain": 0.0
+      },
+      "oracle": {
+        "checks": {
+          "context_switch_rate": true,
+          "correct_history_rate": true,
+          "normalized_response_error": true,
+          "response_gain": true,
+          "target_latent_separation": true,
+          "worst_reference_speed_correct_history_rate": true
+        },
+        "context_switch_rate": 1.0,
+        "correct_history_rate": 1.0,
+        "normalized_response_error": 0.0,
+        "passed": true,
+        "response_gain": 1.0
+      },
+      "reversed": {
+        "checks": {
+          "context_switch_rate": false,
+          "correct_history_rate": true,
+          "normalized_response_error": false,
+          "response_gain": false,
+          "target_latent_separation": true,
+          "worst_reference_speed_correct_history_rate": true
+        },
+        "context_switch_rate": 0.0,
+        "correct_history_rate": 1.0,
+        "normalized_response_error": 4.0,
+        "passed": false,
+        "response_gain": -1.0
+      },
+      "tiny": {
+        "checks": {
+          "context_switch_rate": true,
+          "correct_history_rate": true,
+          "normalized_response_error": true,
+          "response_gain": false,
+          "target_latent_separation": true,
+          "worst_reference_speed_correct_history_rate": true
+        },
+        "context_switch_rate": 1.0,
+        "correct_history_rate": 1.0,
+        "normalized_response_error": 0.9801000000000002,
+        "passed": false,
+        "response_gain": 0.009999999999999912
+      }
+    }
+  },
+  "verification": {
+    "core_tests": {
+      "passed": 164,
+      "failed": 0,
+      "skipped": 0
+    },
+    "document_tests": {
+      "passed": 127,
+      "failed": 0,
+      "skipped": 0
+    },
+    "freeze_verifier": {
+      "status": "verified",
+      "freeze_path": "/opt/huawei/explorer-env/dataset/ag_data/code/ContextWorld/configs/benchmark/contextworld_joint_scratch_v1_reference_results_freeze_v3.json",
+      "schema_version": 3,
+      "rows": 135,
+      "source_results": 270
+    },
+    "table_renderer_check": "passed",
+    "integrity_tests": {
+      "passed": 13,
+      "failed": 0,
+      "skipped": 0
+    },
+    "unique_tests_passed": 304,
+    "selected_development_member_bytes": "verified_against_recorded_package_manifest; hashes_cached_only_within_one_verification",
+    "logs": {
+      "core_tests": {
+        "path": "artifacts/evaluation/baseline_completion_v3/validation/contextworld_v3_core_tests.log",
+        "sha256": "4a091e0dc63da2c108e89729d73d32045c3d30de6c64653b7f91007560396de0"
+      },
+      "document_tests": {
+        "path": "artifacts/evaluation/baseline_completion_v3/validation/contextworld_v3_document_tests.log",
+        "sha256": "239362e39ebc41966232ea131320556e1a08cbf61b977edfd6fa60fe8aa74f46"
+      },
+      "integrity_tests": {
+        "path": "artifacts/evaluation/baseline_completion_v3/validation/contextworld_v3_integrity_tests.log",
+        "sha256": "f48bcf5341f140ddce0ff14fb5ce2f4ad9bdc09a47a1689836eff79d1b9c8008"
+      },
+      "verify": {
+        "path": "artifacts/evaluation/baseline_completion_v3/validation/contextworld_v3_verify.log",
+        "sha256": "eaf2ead84bb0e2719c1d39a39999d0c491f84b0f6010b5617e754615645d5c9e"
+      },
+      "build": {
+        "path": "artifacts/evaluation/baseline_completion_v3/validation/contextworld_v3_build.log",
+        "sha256": "4c2c7a4deb80ca4f67bb6f64cb29df7987c5c78209610a28ec7dd0e46a082b00"
+      }
+    }
+  },
+  "remaining_scope_limits": [
+    "contact_friction and motion_damping reference reporting remains Development; their historical Test is excluded",
+    "original DINO-WM ICL remains not_compatible with RGB/action contract; supplementary evidence identity retained",
+    "255 legacy evaluations lack automatically captured runtime fingerprints; no clean-environment full rerun claimed",
+    "checkpoint hashes remain evaluator-declared; all checkpoint bytes were not rehashed in this repair",
+    "no claim of population FPR calibration, exact eleven-delay recognition, arbitrary extrapolation, abstract-rule transfer or planning reliability",
+    "stable public distribution and independent external implementation remain separate publication work"
+  ],
+  "new_model_training": false,
+  "new_gpu_inference": false,
+  "threshold_values_changed": false,
+  "prior_validity_evidence": {
+    "path": "docs/reference/baseline_validity_review_2026-09-10.json",
+    "sha256": "e7f1b5605533e5e7d235f6cfb97646d40513c1e9f149e34191b8ac5131337203"
+  },
+  "known_blocking_repairs_remaining": []
+}

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import copy
 import json
+import math
 
 import pytest
 
@@ -69,6 +71,100 @@ def _action_result(
             },
         }
     return result
+
+
+def _door_result() -> dict:
+    """Build complete numeric Door evidence for both split entry points."""
+
+    cells = {
+        f"s{seed}/{direction}": {
+            "paired_advantage": {"same_vs_other_rule_history": 1.0},
+            "same_history_two_target_accuracy": 0.9,
+        }
+        for seed in (42, 43, 44, 45, 46, 47)
+        for direction in ("left_to_right", "right_to_left")
+    }
+    rules = {
+        rule: {
+            "overall": {
+                "paired_advantage": {
+                    "same_vs_other_rule_history": 1.0,
+                },
+                "same_history_two_target_accuracy": 0.9,
+                "matching_vs_opposite_history_win_rate": 0.9,
+            },
+            "by_eval_seed_and_direction": copy.deepcopy(cells),
+        }
+        for rule in ("passable", "blocked")
+    }
+    bootstrap_metrics = {
+        name: {"mean": 1.0, "lower": 0.5, "upper": 1.5}
+        for name in (
+            "passable/same_vs_other_rule_history",
+            "blocked/same_vs_other_rule_history",
+            "passable/matching_history_two_target_margin",
+            "blocked/matching_history_two_target_margin",
+        )
+    }
+    summary = {
+        "by_true_rule": rules,
+        "paired_static_query_bootstrap": {
+            "metrics": bootstrap_metrics,
+        },
+        "target_latent_separation": {
+            "queries": 300,
+            "minimum_mse": 1.0,
+        },
+        "decision": {
+            "passed": True,
+            "checks": {
+                "matching_history_beats_opposite_history_for_each_true_rule": True,
+                "matching_history_beats_opposite_history_in_every_seed_direction_cell": True,
+                "matching_history_target_accuracy_above_threshold_for_each_rule": True,
+                (
+                    "matching_history_target_accuracy_above_threshold_in_every_seed_direction_cell"
+                ): True,
+                "matching_history_beats_opposite_history_on_majority_queries_for_each_rule": True,
+                "required_bootstrap_lower_bounds_above_threshold": True,
+                "target_latents_are_separated_for_every_query": True,
+            },
+        },
+    }
+    gate_completion = {
+        "metrics": {
+            "correct_history_rate": 1.0,
+            "context_switch_rate": 1.0,
+            "worst_rule_correct_target_choice_rate": 1.0,
+            "latent_response": {
+                "target_latent_separation": {
+                    "zero_separation_pair_count": 0,
+                    "minimum_target_response_mse": 1.0,
+                },
+                "response_gain": 1.0,
+                "normalized_response_error": 0.0,
+            },
+        },
+        "uncertainty": {
+            "lower_bounds": {
+                "context_switch_rate": 1.0,
+                "worst_rule_correct_target_choice_rate": 1.0,
+            }
+        },
+        "passed": True,
+    }
+    return {"summary": summary, "gate_completion": gate_completion}
+
+
+def _door_development_result() -> dict:
+    result = _door_result()
+    return {
+        "metrics": {
+            key: copy.deepcopy(value)
+            for key, value in result["summary"].items()
+            if key != "decision"
+        },
+        "gate_completion_inputs": copy.deepcopy(result["gate_completion"]),
+    }
 
 
 def test_primary_gate_pass_does_not_override_failed_additive_gate() -> None:
@@ -168,6 +264,93 @@ def test_development_decision_free_inputs_are_rescored_and_missing_inputs_fail()
         "action_delay", {"core_h1": result["core_h1"]}, split="development"
     )
     assert missing["passed"] is False
+
+
+def test_door_numeric_gate_rejects_stale_true_flags_with_bad_accuracy_and_win() -> None:
+    result = _door_result()
+    for row in result["summary"]["by_true_rule"].values():
+        row["overall"]["same_history_two_target_accuracy"] = 0.0
+        row["overall"]["matching_vs_opposite_history_win_rate"] = 0.0
+
+    receipt = reference_decision_for_result("door", result, split="test")
+
+    assert receipt["original_gate"]["passed"] is False
+    assert receipt["passed"] is False
+    assert receipt["original_gate"]["legacy_diagnostics"]["stored_passed"] is True
+    assert receipt["original_gate"]["legacy_diagnostics"]["agrees_with_numeric"] is False
+    assert (
+        "original_rule_passable_target_accuracy"
+        in receipt["original_gate"]["reason_codes"]
+    )
+
+
+def test_door_development_gate_rejects_negative_per_cell_advantage() -> None:
+    result = _door_development_result()
+    result["metrics"]["by_true_rule"]["blocked"][
+        "by_eval_seed_and_direction"
+    ]["s42/left_to_right"]["paired_advantage"][
+        "same_vs_other_rule_history"
+    ] = -1.0
+
+    receipt = reference_decision_for_result(
+        "door", result, split="development"
+    )
+
+    assert receipt["original_gate"]["passed"] is False
+    assert receipt["passed"] is False
+    assert (
+        "original_rule_blocked_s42/left_to_right_paired_advantage"
+        in receipt["original_gate"]["reason_codes"]
+    )
+
+
+@pytest.mark.parametrize("missing", ["rule", "cell"])
+def test_door_numeric_gate_rejects_missing_required_rule_or_cell(
+    missing: str,
+) -> None:
+    result = _door_result()
+    if missing == "rule":
+        del result["summary"]["by_true_rule"]["blocked"]
+    else:
+        del result["summary"]["by_true_rule"]["passable"][
+            "by_eval_seed_and_direction"
+        ]["s46/right_to_left"]
+
+    receipt = reference_decision_for_result("door", result, split="test")
+
+    assert receipt["original_gate"]["passed"] is False
+    assert receipt["passed"] is False
+    reason_codes = receipt["original_gate"]["reason_codes"]
+    if missing == "rule":
+        assert "original_rule_missing" in reason_codes
+    else:
+        assert "original_rule_passable_cell_missing" in reason_codes
+
+
+def test_door_numeric_gate_rejects_nonfinite_numeric_evidence() -> None:
+    result = _door_result()
+    result["summary"]["by_true_rule"]["passable"][
+        "overall"
+    ]["same_history_two_target_accuracy"] = math.nan
+
+    receipt = reference_decision_for_result("door", result, split="test")
+
+    assert receipt["original_gate"]["passed"] is False
+    assert receipt["passed"] is False
+
+
+def test_door_numeric_gate_accepts_complete_test_and_development_inputs() -> None:
+    test_receipt = reference_decision_for_result(
+        "door", _door_result(), split="test"
+    )
+    development_receipt = reference_decision_for_result(
+        "door", _door_development_result(), split="development"
+    )
+
+    assert test_receipt["original_gate"]["passed"] is True
+    assert test_receipt["passed"] is True
+    assert development_receipt["original_gate"]["passed"] is True
+    assert development_receipt["passed"] is True
 
 
 def test_reference_decision_cli_writes_single_and_method_receipts(tmp_path) -> None:

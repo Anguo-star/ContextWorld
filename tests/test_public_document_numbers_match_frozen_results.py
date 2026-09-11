@@ -360,18 +360,18 @@ def test_documented_cem_budget_matches_the_recorded_budget() -> None:
 # the superseded per-task recipes, so the two are deliberately NOT compared
 # here -- the historical numbers keep their own static record under
 # ``docs/archive/``.  What follows binds every documented §5.1 cell to
-# ``contextworld_joint_scratch_v1_reference_results_freeze_v1.json``, which
+# ``contextworld_joint_scratch_v1_reference_results_freeze_v3.json``, which
 # holds the per-checkpoint main score and gate verdict for both splits.
 # ---------------------------------------------------------------------------
 
 CURRENT_FREEZE = (
     ROOT
     / "configs/benchmark"
-    / "contextworld_joint_scratch_v1_reference_results_freeze_v2.json"
+    / "contextworld_joint_scratch_v1_reference_results_freeze_v3.json"
 )
-# The two components the suite registry marks ``failed_development`` never
-# consumed the held-out split, so their documented cells carry the Development
-# number and must say so.
+# The two components marked ``failed_development`` have historical Test
+# results, but those are excluded from final reporting. Their current cells
+# carry the Development number and must say so.
 DEVELOPMENT_ONLY_SPLIT = "development"
 
 

@@ -131,7 +131,7 @@ def test_public_document_uses_one_split_aware_comparison_table() -> None:
     # the pointer to its machine-readable source, plus the superseded records
     # kept for provenance.
     assert (
-        "contextworld_joint_scratch_v1_reference_results_freeze_v2.json" in section
+        "contextworld_joint_scratch_v1_reference_results_freeze_v3.json" in section
     )
     assert "complete_comparison_v2.json" in section
     assert "contextworld_dinowm_component_development_results_v1.json" in section

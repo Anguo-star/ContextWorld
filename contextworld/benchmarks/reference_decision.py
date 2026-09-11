@@ -30,7 +30,7 @@ from contextworld.paths import repository_root
 
 
 REFERENCE_DECISION_SCHEMA_VERSION = 1
-REFERENCE_CONTRACT_ID = "contextworld_reference_decision_v1"
+REFERENCE_CONTRACT_ID = "contextworld_reference_decision_v2"
 REFERENCE_CONTRACT_VERSION = REFERENCE_CONTRACT_ID
 
 COMPONENTS: tuple[str, ...] = (
@@ -66,6 +66,25 @@ _RELEASE_CONFIGS: dict[str, str] = {
 
 _GATE_COMPLETION_CONFIG = (
     "configs/benchmark/contextworld_test_gate_completion_v1.yaml"
+)
+
+# The Door release is a fixed six-seed x two-direction matrix.  Keep these
+# members explicit in the independent decision reader: accepting whatever
+# rule/cell keys happen to be present would allow an incomplete summary to
+# pass while still carrying plausible aggregate values.
+_DOOR_TRUE_RULES: tuple[str, ...] = ("passable", "blocked")
+_DOOR_EVAL_SEEDS: tuple[int, ...] = (42, 43, 44, 45, 46, 47)
+_DOOR_DIRECTIONS: tuple[str, ...] = ("left_to_right", "right_to_left")
+_DOOR_REQUIRED_CELLS: tuple[str, ...] = tuple(
+    f"s{seed}/{direction}"
+    for seed in _DOOR_EVAL_SEEDS
+    for direction in _DOOR_DIRECTIONS
+)
+_DOOR_REQUIRED_BOOTSTRAP_METRICS: tuple[str, ...] = (
+    "passable/same_vs_other_rule_history",
+    "blocked/same_vs_other_rule_history",
+    "passable/matching_history_two_target_margin",
+    "blocked/matching_history_two_target_margin",
 )
 
 
@@ -121,6 +140,8 @@ def reference_contract_identity(
         "speed_scorer": "contextworld/benchmarks/speed_icl_score.py",
         "action_delay_scorer": "contextworld/benchmarks/action_delay_icl_score.py",
         "door_scorer": "contextworld/benchmarks/door_icl_score.py",
+        "paired_latent_response": "contextworld/benchmarks/paired_latent_response.py",
+        "causal_data_contract": "contextworld/benchmarks/causal_data_contract.py",
         "action_strength_scorer": "contextworld/benchmarks/action_strength_icl_score.py",
         "contact_friction_scorer": "contextworld/benchmarks/contact_friction_icl_score.py",
         "cube_gripper_carry_scorer": "contextworld/benchmarks/cube_grasp_rule_v4r1_icl_score.py",
@@ -491,143 +512,351 @@ def _hidden_future_gate(
     }
 
 
-def _door_original_gate(result: Mapping[str, Any]) -> dict[str, Any]:
-    summary = result.get("summary")
-    if not isinstance(summary, Mapping):
-        return {
-            "present": False,
-            "passed": False,
-            "checks": {},
-            "reason_codes": ["original_summary_missing"],
-        }
-    decision = summary.get("decision")
-    if not isinstance(decision, Mapping) or not isinstance(
-        decision.get("passed"), bool
-    ):
-        return {
-            "present": False,
-            "passed": False,
-            "checks": {},
-            "reason_codes": ["original_decision_missing"],
-        }
-    by_rule = summary.get("by_true_rule")
-    bootstrap = summary.get("paired_static_query_bootstrap")
-    reasons: list[str] = []
-    if not isinstance(by_rule, Mapping) or not by_rule:
-        reasons.append("original_rule_metrics_missing")
-    if not isinstance(bootstrap, Mapping):
-        reasons.append("original_bootstrap_missing")
-    checks = decision.get("checks")
-    if not isinstance(checks, Mapping) or not checks:
-        reasons.append("original_checks_missing")
-        checks_out: dict[str, bool] = {}
-    else:
-        checks_out = {str(key): bool(value) for key, value in checks.items()}
-    if reasons or not decision["passed"] or not all(checks_out.values()):
-        return {
-            "present": True,
-            "passed": False,
-            "checks": checks_out,
-            "reason_codes": sorted(set(reasons + (["original_gate_failed"] if not decision["passed"] else []))),
-        }
+def _finite_measure(value: Any) -> bool:
+    """Return whether ``value`` is a real finite metric value.
+
+    ``float(True)`` is finite, but a boolean is never valid evidence for a
+    Door numeric criterion.  Keep this stricter helper local to the Door
+    contract so historical non-Door readers retain their existing behavior.
+    """
+
+    return not isinstance(value, bool) and _finite_number(value)
+
+
+def _door_legacy_diagnostics(
+    stored_decision: Mapping[str, Any] | None,
+    *,
+    numeric_passed: bool,
+) -> dict[str, Any]:
+    """Expose old summary flags as audit information only.
+
+    The old result decision is deliberately never used to make the new gate
+    pass.  Keeping its internal consistency and agreement with the numeric
+    result in the receipt makes stale envelopes visible without allowing them
+    to override retained metrics.
+    """
+
+    if not isinstance(stored_decision, Mapping):
+        return {"present": False}
+    stored_passed = stored_decision.get("passed")
+    stored_checks = stored_decision.get("checks")
+    checks_are_boolean = isinstance(stored_checks, Mapping) and bool(
+        stored_checks
+    ) and all(isinstance(value, bool) for value in stored_checks.values())
+    checks_passed = (
+        bool(checks_are_boolean and all(stored_checks.values()))
+        if isinstance(stored_checks, Mapping)
+        else None
+    )
     return {
         "present": True,
-        "passed": True,
-        "checks": checks_out,
-        "reason_codes": [],
+        "stored_passed": stored_passed
+        if isinstance(stored_passed, bool)
+        else None,
+        "stored_checks": (
+            {str(key): value for key, value in stored_checks.items()}
+            if isinstance(stored_checks, Mapping)
+            else None
+        ),
+        "checks_are_boolean": bool(checks_are_boolean),
+        "checks_passed": checks_passed,
+        "stored_self_consistent": bool(
+            isinstance(stored_passed, bool)
+            and checks_passed is not None
+            and stored_passed == checks_passed
+        ),
+        "agrees_with_numeric": bool(
+            isinstance(stored_passed, bool)
+            and stored_passed == numeric_passed
+        ),
     }
+
+
+def _door_numeric_original_gate(
+    metrics: Mapping[str, Any],
+    release: Mapping[str, Any] | None,
+    *,
+    stored_decision: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Recompute the original Door rule-switch gate from numeric evidence.
+
+    This is shared by Public Test summaries and decision-free Development
+    metrics.  It mirrors the ``informative_history_rule_switch_v2`` contract
+    in ``hidden_passage_validation`` while requiring the complete fixed
+    matrix, so aggregate flags or a partial set of cells cannot substitute for
+    the original evidence.
+    """
+
+    if not isinstance(metrics, Mapping) or not metrics:
+        return {
+            "present": False,
+            "passed": False,
+            "checks": {},
+            "reason_codes": ["original_metrics_missing"],
+            "legacy_diagnostics": _door_legacy_diagnostics(
+                stored_decision, numeric_passed=False
+            ),
+        }
+
+    scoring = release.get("scoring", {}) if isinstance(release, Mapping) else {}
+    gates = scoring.get("gates", {}) if isinstance(scoring, Mapping) else {}
+    if not isinstance(gates, Mapping):
+        gates = {}
+    min_accuracy = gates.get(
+        "minimum_same_history_two_target_accuracy_exclusive"
+    )
+    min_win = gates.get(
+        "minimum_matching_vs_opposite_history_win_rate_exclusive"
+    )
+    min_separation = gates.get("minimum_target_pair_latent_mse_exclusive")
+    bootstrap_config = gates.get("paired_bootstrap")
+    if not isinstance(bootstrap_config, Mapping):
+        bootstrap_config = {}
+    bootstrap_lower_minimum = bootstrap_config.get(
+        "minimum_lower_bound_exclusive"
+    )
+
+    reasons: list[str] = []
+    for name, value in (
+        ("accuracy_threshold", min_accuracy),
+        ("history_win_threshold", min_win),
+        ("separation_threshold", min_separation),
+        ("bootstrap_lower_threshold", bootstrap_lower_minimum),
+    ):
+        if not _finite_measure(value):
+            reasons.append(f"original_{name}_missing_or_nonfinite")
+
+    checks: dict[str, bool] = {}
+    rule_evidence: dict[str, Any] = {}
+    rules = metrics.get("by_true_rule")
+    expected_rules = set(_DOOR_TRUE_RULES)
+    if not isinstance(rules, Mapping):
+        reasons.append("original_rule_metrics_missing")
+        rules = {}
+    elif {str(key) for key in rules} != expected_rules:
+        observed_rule_names = {str(key) for key in rules}
+        missing = sorted(expected_rules - observed_rule_names)
+        extra = sorted(observed_rule_names - expected_rules)
+        if missing:
+            reasons.append("original_rule_missing")
+        if extra:
+            reasons.append("original_rule_unexpected")
+
+    overall_advantage: dict[str, bool] = {}
+    overall_accuracy: dict[str, bool] = {}
+    overall_history_win: dict[str, bool] = {}
+    cell_advantage: dict[str, bool] = {}
+    cell_accuracy: dict[str, bool] = {}
+    for rule in _DOOR_TRUE_RULES:
+        row = rules.get(rule)
+        if not isinstance(row, Mapping):
+            reasons.append(f"original_rule_{rule}_metrics_missing")
+            rule_evidence[rule] = {"present": False}
+            overall_advantage[rule] = False
+            overall_accuracy[rule] = False
+            overall_history_win[rule] = False
+            for cell_name in _DOOR_REQUIRED_CELLS:
+                cell_advantage[f"{rule}/{cell_name}"] = False
+                cell_accuracy[f"{rule}/{cell_name}"] = False
+            continue
+
+        overall = row.get("overall")
+        cells = row.get("by_eval_seed_and_direction")
+        if not isinstance(overall, Mapping):
+            reasons.append(f"original_rule_{rule}_overall_missing")
+            overall = {}
+        if not isinstance(cells, Mapping):
+            reasons.append(f"original_rule_{rule}_cells_missing")
+            cells = {}
+        elif {str(key) for key in cells} != set(_DOOR_REQUIRED_CELLS):
+            observed_cell_names = {str(key) for key in cells}
+            missing_cells = set(_DOOR_REQUIRED_CELLS) - observed_cell_names
+            extra_cells = observed_cell_names - set(_DOOR_REQUIRED_CELLS)
+            if missing_cells:
+                reasons.append(f"original_rule_{rule}_cell_missing")
+            if extra_cells:
+                reasons.append(f"original_rule_{rule}_cell_unexpected")
+
+        overall_adv = overall.get("paired_advantage")
+        overall_adv = (
+            overall_adv.get("same_vs_other_rule_history")
+            if isinstance(overall_adv, Mapping)
+            else None
+        )
+        overall_accuracy_value = overall.get("same_history_two_target_accuracy")
+        overall_win_value = overall.get(
+            "matching_vs_opposite_history_win_rate"
+        )
+        # The history advantage criterion is independent of the latent-MSE
+        # separation threshold and retains the original strict ``> 0`` rule.
+        overall_advantage[rule] = bool(
+            _finite_measure(overall_adv) and float(overall_adv) > 0.0
+        )
+        overall_accuracy[rule] = bool(
+            _finite_measure(overall_accuracy_value)
+            and _finite_measure(min_accuracy)
+            and float(overall_accuracy_value) > float(min_accuracy)
+        )
+        overall_history_win[rule] = bool(
+            _finite_measure(overall_win_value)
+            and _finite_measure(min_win)
+            and float(overall_win_value) > float(min_win)
+        )
+        if not overall_advantage[rule]:
+            reasons.append(f"original_rule_{rule}_paired_advantage")
+        if not overall_accuracy[rule]:
+            reasons.append(f"original_rule_{rule}_target_accuracy")
+        if not overall_history_win[rule]:
+            reasons.append(f"original_rule_{rule}_history_win")
+
+        evidence_cells: dict[str, Any] = {}
+        for cell_name in _DOOR_REQUIRED_CELLS:
+            cell = cells.get(cell_name)
+            key = f"{rule}/{cell_name}"
+            if not isinstance(cell, Mapping):
+                reasons.append(f"original_rule_{rule}_{cell_name}_missing")
+                cell_advantage[key] = False
+                cell_accuracy[key] = False
+                evidence_cells[cell_name] = {"present": False}
+                continue
+            cell_adv = cell.get("paired_advantage")
+            cell_adv = (
+                cell_adv.get("same_vs_other_rule_history")
+                if isinstance(cell_adv, Mapping)
+                else None
+            )
+            cell_accuracy_value = cell.get("same_history_two_target_accuracy")
+            cell_advantage[key] = bool(
+                _finite_measure(cell_adv) and float(cell_adv) > 0.0
+            )
+            cell_accuracy[key] = bool(
+                _finite_measure(cell_accuracy_value)
+                and _finite_measure(min_accuracy)
+                and float(cell_accuracy_value) > float(min_accuracy)
+            )
+            if not cell_advantage[key]:
+                reasons.append(
+                    f"original_rule_{rule}_{cell_name}_paired_advantage"
+                )
+            if not cell_accuracy[key]:
+                reasons.append(
+                    f"original_rule_{rule}_{cell_name}_target_accuracy"
+                )
+            evidence_cells[cell_name] = {
+                "paired_advantage": cell_advantage[key],
+                "target_accuracy": cell_accuracy[key],
+            }
+        rule_evidence[rule] = {
+            "present": True,
+            "overall": {
+                "paired_advantage": overall_advantage[rule],
+                "target_accuracy": overall_accuracy[rule],
+                "history_win": overall_history_win[rule],
+            },
+            "cells": evidence_cells,
+        }
+
+    checks[
+        "matching_history_beats_opposite_history_for_each_true_rule"
+    ] = bool(overall_advantage) and all(overall_advantage.values())
+    checks[
+        "matching_history_beats_opposite_history_in_every_seed_direction_cell"
+    ] = bool(cell_advantage) and all(cell_advantage.values())
+    checks[
+        "matching_history_target_accuracy_above_threshold_for_each_rule"
+    ] = bool(overall_accuracy) and all(overall_accuracy.values())
+    checks[
+        "matching_history_target_accuracy_above_threshold_in_every_seed_direction_cell"
+    ] = bool(cell_accuracy) and all(cell_accuracy.values())
+    checks[
+        "matching_history_beats_opposite_history_on_majority_queries_for_each_rule"
+    ] = bool(overall_history_win) and all(overall_history_win.values())
+
+    bootstrap = metrics.get("paired_static_query_bootstrap")
+    bootstrap_metrics = (
+        bootstrap.get("metrics") if isinstance(bootstrap, Mapping) else None
+    )
+    bootstrap_checks: dict[str, bool] = {}
+    if not isinstance(bootstrap, Mapping):
+        reasons.append("original_bootstrap_missing")
+    if not isinstance(bootstrap_metrics, Mapping):
+        reasons.append("original_bootstrap_metrics_missing")
+        bootstrap_metrics = {}
+    for metric_name in _DOOR_REQUIRED_BOOTSTRAP_METRICS:
+        item = bootstrap_metrics.get(metric_name)
+        lower = item.get("lower") if isinstance(item, Mapping) else None
+        bootstrap_checks[metric_name] = bool(
+            _finite_measure(lower)
+            and _finite_measure(bootstrap_lower_minimum)
+            and float(lower) > float(bootstrap_lower_minimum)
+        )
+        if not bootstrap_checks[metric_name]:
+            reasons.append(
+                "original_bootstrap_"
+                + metric_name.replace("/", "_").replace("-", "_")
+            )
+    checks["required_bootstrap_lower_bounds_above_threshold"] = bool(
+        bootstrap_checks and all(bootstrap_checks.values())
+    )
+
+    separation = metrics.get("target_latent_separation")
+    observed_separation = (
+        separation.get("minimum_mse")
+        if isinstance(separation, Mapping)
+        else None
+    )
+    separation_check = bool(
+        _finite_measure(observed_separation)
+        and _finite_measure(min_separation)
+        and float(observed_separation) > float(min_separation)
+    )
+    if not separation_check:
+        reasons.append("original_target_latent_separation")
+    checks["target_latents_are_separated_for_every_query"] = separation_check
+
+    passed = bool(checks) and all(checks.values()) and not reasons
+    return {
+        "present": True,
+        "passed": passed,
+        "checks": checks,
+        "reason_codes": sorted(set(reasons)),
+        "numeric_evidence": {
+            "required_rules": list(_DOOR_TRUE_RULES),
+            "required_cells": list(_DOOR_REQUIRED_CELLS),
+            "rules": rule_evidence,
+            "bootstrap": bootstrap_checks,
+            "target_latent_separation": separation_check,
+        },
+        "legacy_diagnostics": _door_legacy_diagnostics(
+            stored_decision, numeric_passed=passed
+        ),
+    }
+
+
+def _door_original_gate(
+    result: Mapping[str, Any], release: Mapping[str, Any] | None = None
+) -> dict[str, Any]:
+    """Recompute the Test Door gate from its retained numeric summary."""
+
+    summary = result.get("summary")
+    if not isinstance(summary, Mapping):
+        return _door_numeric_original_gate(
+            {}, release, stored_decision=None
+        )
+    decision = summary.get("decision")
+    return _door_numeric_original_gate(
+        summary,
+        release,
+        stored_decision=decision if isinstance(decision, Mapping) else None,
+    )
 
 
 def _door_development_original_gate(
     metrics: Mapping[str, Any], release: Mapping[str, Any] | None
 ) -> dict[str, Any]:
-    """Rebuild the frozen Door decision from decision-free Development data."""
+    """Recompute the Development Door gate from decision-free metrics."""
 
-    scoring = release.get("scoring", {}) if isinstance(release, Mapping) else {}
-    gates = scoring.get("gates", {}) if isinstance(scoring, Mapping) else {}
-    rules = metrics.get("by_true_rule")
-    bootstrap = metrics.get("paired_static_query_bootstrap")
-    separation = metrics.get("target_latent_separation")
-    checks: dict[str, bool] = {}
-    reasons: list[str] = []
-    if not isinstance(rules, Mapping) or not rules:
-        return {
-            "present": False,
-            "passed": False,
-            "checks": {},
-            "reason_codes": ["original_rule_metrics_missing"],
-        }
-    min_accuracy = gates.get("minimum_same_history_two_target_accuracy_exclusive")
-    min_win = gates.get("minimum_matching_vs_opposite_history_win_rate_exclusive")
-    for rule, row in rules.items():
-        if not isinstance(row, Mapping):
-            reasons.append(f"original_rule_{rule}_metrics_missing")
-            continue
-        overall = row.get("overall")
-        if not isinstance(overall, Mapping):
-            reasons.append(f"original_rule_{rule}_overall_missing")
-            continue
-        accuracy = overall.get("same_history_two_target_accuracy")
-        win = overall.get("matching_vs_opposite_history_win_rate")
-        checks[f"{rule}_target_accuracy"] = bool(
-            _finite_number(accuracy)
-            and _finite_number(min_accuracy)
-            and float(accuracy) > float(min_accuracy)
-        )
-        checks[f"{rule}_history_win"] = bool(
-            _finite_number(win)
-            and _finite_number(min_win)
-            and float(win) > float(min_win)
-        )
-    # The formal rule-switch contract also requires every seed/direction cell.
-    if isinstance(min_accuracy, (int, float)):
-        checks["every_seed_direction_target_accuracy"] = all(
-            isinstance(row, Mapping)
-            and isinstance(row.get("by_eval_seed_and_direction"), Mapping)
-            and bool(row.get("by_eval_seed_and_direction"))
-            and all(
-                isinstance(cell, Mapping)
-                and _finite_number(cell.get("same_history_two_target_accuracy"))
-                and float(cell["same_history_two_target_accuracy"]) > float(min_accuracy)
-                for cell in (row.get("by_eval_seed_and_direction", {}) or {}).values()
-            )
-            for row in rules.values()
-        )
-    if isinstance(bootstrap, Mapping):
-        bootstrap_metrics = bootstrap.get("metrics")
-        required = gates.get("paired_bootstrap", {}).get("required_metrics", [])
-        lower_minimum = gates.get("paired_bootstrap", {}).get(
-            "minimum_lower_bound_exclusive", 0.0
-        )
-        if isinstance(bootstrap_metrics, Mapping):
-            for name in required:
-                item = bootstrap_metrics.get(name)
-                lower = item.get("lower") if isinstance(item, Mapping) else None
-                checks[f"bootstrap_{name}"] = bool(
-                    _finite_number(lower)
-                    and _finite_number(lower_minimum)
-                    and float(lower) > float(lower_minimum)
-                )
-        else:
-            checks["bootstrap_evidence"] = False
-    else:
-        checks["bootstrap_evidence"] = False
-    min_separation = gates.get("minimum_target_pair_latent_mse_exclusive")
-    observed_separation = (
-        separation.get("minimum_mse") if isinstance(separation, Mapping) else None
-    )
-    checks["target_latent_separation"] = bool(
-        _finite_number(observed_separation)
-        and _finite_number(min_separation)
-        and float(observed_separation) > float(min_separation)
-    )
-    reasons.extend(f"original_{name}" for name, ok in checks.items() if not ok)
-    return {
-        "present": True,
-        "passed": bool(checks) and all(checks.values()) and not reasons,
-        "checks": checks,
-        "reason_codes": sorted(set(reasons)),
-    }
+    return _door_numeric_original_gate(metrics, release)
 
 
 def _speed_single_decision(
@@ -757,7 +986,7 @@ def _generic_single_decision(
 ) -> dict[str, Any]:
     if component == "door":
         if isinstance(result.get("summary"), Mapping):
-            original = _door_original_gate(result)
+            original = _door_original_gate(result, release)
         else:
             metrics = result.get("metrics")
             original = (

@@ -207,8 +207,8 @@ ContextWorld 的参考结果分两部分维护：§5.1 是**当前标准参考**
 
 ### 5.1 当前标准参考（2026-09-03 训练批次 / baseline completion v2）
 
-> v2 保留当前测量快照。[有效性校核](reference/Baseline_Validity_Review_2026-09-10.md)发现
-> 判定和关键依赖绑定仍需修复；以下分数保留，最终研究基准验收暂未通过。
+> 当前固定参考为 v3；v2 校核发现的判定与关键来源绑定缺口已修复。
+> [最终验收记录](reference/Baseline_Final_Acceptance_2026-09-10.md)说明验证结果及能力声明范围。
 
 LeWM、PLDM 与 DINO-WM（StableWM 的 PreJEPA 实现）三个模型均已完成标准
 `joint_scratch_v1` 配方（`CW_METHOD=native`，10 epochs，从零训练，训练种子
@@ -216,7 +216,7 @@ LeWM、PLDM 与 DINO-WM（StableWM 的 PreJEPA 实现）三个模型均已完成
 历史 Public Test 运行及后续评分收尾均保留来源与准入边界。本节表格同时给出四个量：**原始基线 ICL、原始环境 CEM、训练后 ICL、
 训练后原任务 CEM**。完整逐训练
 种子数据、检查点 SHA-256 与训练代码版本见机器可读冻结记录
-[`contextworld_joint_scratch_v1_reference_results_freeze_v2.json`](../configs/benchmark/contextworld_joint_scratch_v1_reference_results_freeze_v2.json)，
+[`contextworld_joint_scratch_v1_reference_results_freeze_v3.json`](../configs/benchmark/contextworld_joint_scratch_v1_reference_results_freeze_v3.json)，
 逐评测种子明细见
 [结果复现附录 §5.1](reference/Benchmark_Result_Provenance.md#51-2026-09-03-完整重训全部九项的完整三训练种子结果)。
 
@@ -274,7 +274,7 @@ LeWM、PLDM 与 DINO-WM（StableWM 的 PreJEPA 实现）三个模型均已完成
 
 **本表的机器可读来源。** 逐检查点的主分数与门槛总判定（Development 与 Public Test 各一份，
 共 135 个检查点×任务单元）在
-`configs/benchmark/contextworld_joint_scratch_v1_reference_results_freeze_v2.json`；
+`configs/benchmark/contextworld_joint_scratch_v1_reference_results_freeze_v3.json`；
 `tests/test_public_document_numbers_match_frozen_results.py` 逐格核对本表与该文件。
 两份被它取代的早期记录仍保留可查：DINO-WM 组件训练途中的 Development 快照
 `configs/benchmark/contextworld_dinowm_component_development_results_v1.json`
@@ -547,7 +547,7 @@ LeWM 从 32.43%（历史参考）到 97.75%（本批）的变化**不是口径�
 
 LeWM、PLDM 和 DINO-WM（StableWM PreJEPA 实现）是仓库提供的参考集成，不限制其他模型
 参与。当前参考覆盖三个模型、九项组件、三个训练种子；已有 Development 和历史 Public Test
-结果均在 v2 中保留，当前门槛结论见 §5.1。历史 Test 结果存在不等于满足当前 Development
+结果均在 v3 中保留，当前门槛结论见 §5.1。历史 Test 结果存在不等于满足当前 Development
 准入，接触摩擦和运动阻尼的 Test 结果明确排除正式报告。DINO-WM 的记录保留补充证据身份，
 本轮数值冻结不追认其为原正式 scoreboard 成绩。Public v1 仍计划
 补充由独立实现、独立训练代码和共同预算产生的开源模型结果。在这些结果补齐前，不宣称
@@ -711,8 +711,9 @@ physical-group mean within query, then query mean"）、同一冻结资产集与
 
 ##### 适用范围
 
-正式六组结果验证 History=7 下模型能识别 0–10 各档延迟对应的一步物理响应（六个响应组
-分别达标），不验证未见延迟外推、多步自回归或隐藏延迟下的闭环规划。二元诊断数值只说明
+正式结果验证 History=7 下六个一步物理响应组（0、1、2、3、4、5–10）分别达标。
+一步未来无法区分 5–10，因此不表示精确识别全部 11 档延迟；h2/h3 是辅助诊断，
+不属于当前通过条件。也不验证未见延迟外推、多步自回归或隐藏延迟下的闭环规划。二元诊断数值只说明
 “有无延迟”的区分，不能单独支撑延迟识别结论。
 
 ### 6.3 接触或附着条件动力学
@@ -732,8 +733,8 @@ Training 包含 8,192 对样本，Development 和 Public Test 各包含 256 对�
 ##### 评测方法
 
 主指标是真实下一状态选择正确率，同时检查正确历史、预测切换和最弱摩擦条件，四项门限
-分别为 95%、95%、95% 和 90%。当前参考方法未满足 Development 的全部条件，因此没有读取
-Public Test。
+分别为 95%、95%、95% 和 90%。当前参考方法未满足 Development 的全部条件，正式比较使用
+Development；已有历史 Public Test 结果保留来源，但排除正式报告。
 
 ##### 基线表现
 
@@ -744,7 +745,7 @@ LeWM 与 PLDM 三个检查点主分数均在随机水平（LeWM 均值 50.07% ±
 66.56% ± 3.27pp，均低于原始基线。LeWM 曾用 `mixed_frozen_image_paired_future_matching_1p00` 配方
 （8192 步，单训练种子 13313）达到 96.09%（但正确历史门未过），见
 [历史参考](archive/LeWM_PLDM_Pre_2026-09-03_Reference_Results.md)；当前标准配方
-在三个种子上都没有学到这一规律，落差不是种子随机性（见 §5.3）。
+在三个种子上均未提供达到完整门槛的能力证据，落差不是种子随机性（见 §5.3）。
 
 ##### 适用范围
 
@@ -764,8 +765,8 @@ Training 包含 8,192 对样本，Development 和 Public Test 各包含 256 对�
 ##### 评测方法
 
 主指标是真实下一状态选择正确率，同时检查正确历史、预测切换和最弱阻尼条件，四项门限
-分别为 95%、95%、95% 和 90%。当前参考方法未满足 Development 的全部条件，因此没有读取
-Public Test。
+分别为 95%、95%、95% 和 90%。当前参考方法未满足 Development 的全部条件，正式比较使用
+Development；已有历史 Public Test 结果保留来源，但排除正式报告。
 
 ##### 基线表现
 
@@ -776,7 +777,7 @@ CEM（非正式）均值 LeWM 79.33% ± 4.04pp（接近原始基线 82.22%）、
 0.96pp（明显低于原始基线 75.67%）。LeWM 曾用 `mixed_frozen_image_paired_future_ranking_twin_1p00` 配方
 （8192 步，单训练种子 14321）达到 97.46%（但正确历史只有 52.93%，接近随机），见
 [历史参考](archive/LeWM_PLDM_Pre_2026-09-03_Reference_Results.md)；当前标准配方
-在三个种子上都没有学到这一规律，与接触摩擦同属一类差距。
+在三个种子上均未提供达到完整门槛的能力证据，与接触摩擦同属一类差距。
 
 ##### 适用范围
 
@@ -947,6 +948,14 @@ ContextWorld 的结论仅覆盖本文列出的环境、隐藏规律、历史长�
 - 一步预测能力必然转化为所有任务上的闭环规划能力；
 - 仓库内参考模型已经代表所有 latent 世界模型架构。
 
+当前 ICL 门槛测量的是固定数据分布内的历史条件响应：目标选择、历史使用、响应方向和
+相对幅度。两种预测同时带有共同偏置时，差分响应仍可能通过；因此 ICL 通过不能单独
+证明绝对预测误差小，原任务 CEM 也不能代替隐藏规律条件下的闭环规划验证。
+门通行历史提供直接的碰撞线索，接近满分支持当前两规则任务，不等于已验证抽象规则迁移。
+
+固定正/负控制用于检验这些门槛能否拒绝无历史、反向历史和微弱响应，并保留正确响应。
+它们验证具体辨别机制，不是所有潜在捷径的穷举，也没有给出真实模型总体的假阳性率。
+
 Test 已公开以支持完全离线复现，但仍不应用于模型选择。公开发布还需提供稳定的数据集修订
 版本与最终分发元数据；若未来需要抗 Test 过拟合的竞赛，可另设新的私有 challenge split，
 不改变本版公开 Test 的角色。
@@ -957,7 +966,7 @@ Test 已公开以支持完全离线复现，但仍不应用于模型选择。公
 应该以什么为起点、如何与当前参考做对比。
 
 **以 §5.1 的冻结快照为当前主参考。** 新方法与根因研究都应从
-[`contextworld_native_v1_2026-09-03_snapshot.json`](reference/contextworld_native_v1_2026-09-03_snapshot.json)
+[`contextworld_joint_scratch_v1_reference_results_freeze_v3.json`](../configs/benchmark/contextworld_joint_scratch_v1_reference_results_freeze_v3.json)
 锁定的数据版本、评分协议版本、训练配方版本与检查点/种子清单出发，而不是从 §5.2 的
 历史归档出发。历史结果保留、标注方法与训练身份，但不与当前参考混合归因——已有的
 历史检查点若训练身份（配方、训练量、训练种子、数据与代码版本）与当前快照一致，

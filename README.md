@@ -116,11 +116,11 @@ contextworld-public-test-report verify --receipt public_test_report_<report_id>.
 
 ### 固定研究参考
 
-当前 v2 已完成工程归档，但[测量有效性校核](docs/reference/Baseline_Validity_Review_2026-09-10.md)
-发现判定与关键依赖绑定仍有缺口；最终研究基准验收暂未通过，修复后再锁定后续比较版本。
+当前参考升级为 v3，修复 v2 校核发现的判定与来源绑定缺口。验收证据与明确的能力范围见
+[最终验收记录](docs/reference/Baseline_Final_Acceptance_2026-09-10.md)。
 
 后续方法以
-[`contextworld_joint_scratch_v1_reference_results_freeze_v2.json`](configs/benchmark/contextworld_joint_scratch_v1_reference_results_freeze_v2.json)
+[`contextworld_joint_scratch_v1_reference_results_freeze_v3.json`](configs/benchmark/contextworld_joint_scratch_v1_reference_results_freeze_v3.json)
 为比较起点。该记录绑定逐单元源结果快照、主分数、门槛决策、数据选择、检查点与代码身份；
 历史运行时未自动记录的部分明确披露，新补评记录实际运行时。
 
@@ -130,6 +130,9 @@ python scripts/freeze_current_reference_baseline.py verify
 
 # 核对主文档和 Development 表是否仍与冻结记录一致
 python scripts/render_current_reference_tables.py --check
+
+# 运行固定正/负控制
+python scripts/verify_reference_capability_controls.py
 
 # 新方法使用同一判定器，原始评测 JSON 保持不变
 python -m contextworld.benchmarks.reference_decision single \

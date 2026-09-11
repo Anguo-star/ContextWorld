@@ -99,7 +99,7 @@ def render(freeze: dict, document: str, appendix: str) -> tuple[str, str]:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--freeze", type=Path, default=ROOT / "configs/benchmark/contextworld_joint_scratch_v1_reference_results_freeze_v2.json")
+    parser.add_argument("--freeze", type=Path, default=ROOT / "configs/benchmark/contextworld_joint_scratch_v1_reference_results_freeze_v3.json")
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()
     paths = [ROOT / "docs/ContextWorld_ICL_Benchmark.md", ROOT / "docs/reference/Benchmark_Result_Provenance.md"]

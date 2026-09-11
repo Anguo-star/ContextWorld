@@ -11,6 +11,7 @@ import hashlib
 import importlib.util
 import json
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -223,3 +224,191 @@ def test_existing_different_output_is_not_silently_replaced(tmp_path: Path) -> N
             strict=False,
             write=True,
         )
+
+
+def _native_fixture(tmp_path: Path, module: Any, monkeypatch: pytest.MonkeyPatch):
+    """Make a small native validation release with real table/manifest bytes."""
+
+    artifact = tmp_path / "artifact"
+    table = artifact / "validation.lance"
+    table.mkdir(parents=True)
+    (table / "data.bin").write_bytes(b"native-table-bytes")
+    manifest = artifact / "manifest.json"
+    manifest.write_bytes(b'{"release":"fixture"}\n')
+    table_sha = module._native_table_sha256(table)[0]
+    manifest_sha = _sha(manifest)
+    config = {
+        "release_id": "fixture-native-release",
+        "data": {
+            "artifact_tree": {"root": "artifact"},
+            "pair_counts": {"validation": 256},
+            "lance_tables": {"validation": "validation.lance"},
+            "table_sha256": {"validation": table_sha},
+            "manifest_sha256": manifest_sha,
+            "artifacts": {"manifest": {"path": "manifest.json", "sha256": manifest_sha}},
+        },
+    }
+    config_path = tmp_path / "release.yaml"
+    # JSON is valid YAML and keeps this fixture independent of a serializer.
+    config_path.write_text(json.dumps(config), encoding="utf-8")
+    payload = {
+        "bundle": {
+            "artifact_root": str(artifact),
+            "selection_policy": "fixture_public_test",
+        },
+        "result": {
+            "data": {"root": str(artifact), "pair_count": 256, "condition_count": 512},
+            "release": {
+                "release_id": "fixture-native-release",
+                "data_manifest_sha256": manifest_sha,
+            },
+        },
+        "selection_policy": "fixture_public_test",
+    }
+    monkeypatch.setitem(module.RELEASE_CONFIG, "action_strength", str(config_path))
+    return payload, artifact, table, config_path
+
+
+def test_native_binding_hashes_actual_table_and_rejects_table_byte_drift(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    module = _module()
+    payload, _, table, _ = _native_fixture(tmp_path, module, monkeypatch)
+    binding = module._native_validation_identity(
+        task="action_strength",
+        result=payload["result"],
+        payload=payload,
+        root=tmp_path,
+        strict=True,
+    )
+    assert binding["status"] == "verified"
+    assert binding["selection"]["pair_count"] == 256
+    assert binding["members"][0]["status"] == "verified_native_table"
+    table_sha = binding["members"][0]["sha256"]
+    assert table_sha == module._native_table_sha256(table)[0]
+
+    (table / "data.bin").write_bytes(b"changed-table-bytes")
+    with pytest.raises(module.FreezeError, match="table SHA disagrees"):
+        module._native_validation_identity(
+            task="action_strength",
+            result=payload["result"],
+            payload=payload,
+            root=tmp_path,
+            strict=True,
+        )
+
+
+def test_native_binding_rejects_conflicting_result_manifest_claims(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    module = _module()
+    payload, _, _, _ = _native_fixture(tmp_path, module, monkeypatch)
+    payload["result"]["release"]["confirmation_manifest_sha256"] = "b" * 64
+    with pytest.raises(module.FreezeError, match="result manifest identities conflict"):
+        module._native_validation_identity(
+            task="action_strength",
+            result=payload["result"],
+            payload=payload,
+            root=tmp_path,
+            strict=True,
+        )
+
+
+def test_native_binding_rejects_selection_member_drift(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    module = _module()
+    payload, _, _, config_path = _native_fixture(tmp_path, module, monkeypatch)
+    config = json.loads(config_path.read_text(encoding="utf-8"))
+    config["data"]["pair_counts"]["validation"] = 255
+    config_path.write_text(json.dumps(config), encoding="utf-8")
+    with pytest.raises(module.FreezeError, match="pair count disagrees"):
+        module._native_validation_identity(
+            task="action_strength",
+            result=payload["result"],
+            payload=payload,
+            root=tmp_path,
+            strict=True,
+        )
+
+
+def test_native_package_manifest_must_list_every_table_file(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    module = _module()
+    payload, artifact, _, _ = _native_fixture(tmp_path, module, monkeypatch)
+    (artifact / "manifest.jsonl").write_text("", encoding="utf-8")
+    with pytest.raises(module.FreezeError, match="absent from package manifest"):
+        module._native_validation_identity(
+            task="action_strength",
+            result=payload["result"],
+            payload=payload,
+            root=tmp_path,
+            strict=True,
+        )
+
+
+def test_native_provenance_sha_mismatch_is_not_waived_by_package_chain(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    module = _module()
+    payload, artifact, _, config_path = _native_fixture(tmp_path, module, monkeypatch)
+    provenance = artifact / "portable_provenance.json"
+    provenance.write_bytes(b"actual provenance")
+    config = json.loads(config_path.read_text(encoding="utf-8"))
+    expected = "a" * 64
+    config["data"]["artifacts"]["portable_provenance"] = {"path": "portable_provenance.json", "sha256": expected}
+    config_path.write_text(json.dumps(config), encoding="utf-8")
+    payload["result"]["release"]["portable_provenance_sha256"] = expected
+    with pytest.raises(module.FreezeError, match="provenance SHA disagrees"):
+        module._native_validation_identity(
+            task="action_strength",
+            result=payload["result"],
+            payload=payload,
+            root=tmp_path,
+            strict=True,
+        )
+
+
+def test_v3_requires_parent_and_decision_contract_for_production_receipt(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    module, v1, audit, output, _, _, _ = _fixture(tmp_path)
+    frozen = module.build_freeze(
+        v1_path=v1,
+        audit_path=audit,
+        output=output,
+        repo_root=tmp_path,
+        strict=False,
+        write=True,
+    )
+    frozen["coverage"]["checkpoint_rows"] = 135
+    output.write_text(json.dumps(frozen), encoding="utf-8")
+    with pytest.raises(module.FreezeError, match="v3 parent freeze identity is missing"):
+        module.verify_freeze(freeze_path=output, repo_root=tmp_path)
+
+    parent = tmp_path / "parent.json"
+    parent.write_text("{}", encoding="utf-8")
+    frozen["inputs"]["parent_freeze"] = module.identity(parent, root=tmp_path)
+    output.write_text(json.dumps(frozen), encoding="utf-8")
+    with pytest.raises(module.FreezeError, match="v3 decision contract identity is missing"):
+        module.verify_freeze(freeze_path=output, repo_root=tmp_path)
+
+
+def test_v3_production_inventory_rejects_critical_source_drift(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    module, v1, audit, output, _, _, _ = _fixture(tmp_path)
+    frozen = module.build_freeze(
+        v1_path=v1,
+        audit_path=audit,
+        output=output,
+        repo_root=tmp_path,
+        strict=False,
+        write=True,
+    )
+    parent = tmp_path / "parent.json"
+    parent.write_text("{}", encoding="utf-8")
+    frozen["inputs"]["parent_freeze"] = module.identity(parent, root=tmp_path)
+    monkeypatch.setattr(module, "_decision_contract_identity", lambda *, root: {})
+    frozen["inputs"]["decision_contract"] = {}
+    source_identities = []
+    for relative in module.EVALUATION_SOURCE_PATHS:
+        path = tmp_path / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(relative, encoding="utf-8")
+        source_identities.append(module.identity(path, root=tmp_path))
+    frozen["inputs"]["evaluation_sources"] = source_identities
+    output.write_text(json.dumps(frozen), encoding="utf-8")
+    assert module.verify_freeze(freeze_path=output, repo_root=tmp_path)["status"] == "verified"
+
+    drifted = tmp_path / module.EVALUATION_SOURCE_PATHS[0]
+    drifted.write_text("changed", encoding="utf-8")
+    with pytest.raises(module.FreezeError, match="evaluation source drifted"):
+        module.verify_freeze(freeze_path=output, repo_root=tmp_path)

@@ -250,7 +250,7 @@ Cube PLDM 在 v4r1 Development 上三个检查点为 50.20%、50.20% 和 50.00%�
 
 ### 5.1 2026-09-03 完整重训：全部九项的完整三训练种子结果
 
-当前唯一数值来源为 `configs/benchmark/contextworld_joint_scratch_v1_reference_results_freeze_v2.json`。
+当前唯一数值来源为 `configs/benchmark/contextworld_joint_scratch_v1_reference_results_freeze_v3.json`。
 本节逐任务运行细节保留早期执行记录；运行时迁移和 Development 载荷更新后的最终值见主文档
 §5.1 与本附录 §5.2，不以早期数值覆盖最终冻结值。
 
@@ -431,7 +431,7 @@ emitter 提供之前，速度与门通行规则不应被写成与前两项同级
 eval_results/benchmark_icl/<task>/result.json` 与同目录下
 `eval_results/benchmark_cem/<task>/*_metrics.json`（`pldm-contextworld-v1` 同构），
 当前结果、独立门槛决策与源文件身份汇总在
-`configs/benchmark/contextworld_joint_scratch_v1_reference_results_freeze_v2.json`。
+`configs/benchmark/contextworld_joint_scratch_v1_reference_results_freeze_v3.json`。
 早期 `contextworld_native_v1_2026-09-03_snapshot.json` 只有 60 条记录，保留为阶段快照，
 不能代表当前完整的 81 个训练后单元。冻结参考结果也不自动成为官方 scoreboard 行。
 旧配方 / `v4r1` / legacy 历史结果见
@@ -443,7 +443,7 @@ Development 用于实现检查、训练配方选择与准入；Public Test 用�
 主指标、门槛阈值与要求的分层结构，数据行保持隔离。Development 原始信封不输出 `gate`，
 独立决策回执用同一内核判定；不能将 Development 数值标成 Test 成绩。
 
-下表由当前 v2 冻结记录生成。数值为百分比，`±` 为三个训练种子的样本标准差，括号为
+下表由当前 v3 冻结记录生成。数值为百分比，`±` 为三个训练种子的样本标准差，括号为
 逐种子值。主分数与门槛总判定分别记录；主分数高不能替代全部门槛通过。
 
 | 任务 | 模型 | 随机基线 | 训练前（逐种子） | 训练后（逐种子） |
