@@ -18,8 +18,12 @@
 2. **非冻结补充证据**：DINO-WM / PreJEPA 的 ICL 诊断与 CEM，以及“完整对照记录”中
    另行运行的结果。这些工件自身标注 `official_frozen_matrix: false` 或
    `formal_scoreboard_eligible: false`，不进入正式 scoreboard。
-3. **仅在 Development 上评测的结果**：对应组件尚未开放 Public Test，因此不能作为
-   Public Test 成绩。
+3. **Development 报告结果**：未获 Public Test 准入的组件保留 Development 结论。历史上已经
+   运行的 Test 文件仍须披露，但不能把它们当作获准的正式成绩。
+
+这里的“非冻结”沿用历史工件对正式 scoreboard 的分类。当前研究参考 v2 已固定三模型的
+数值与来源，包括 DINO-WM 补充证据；它不改变历史正式发布资格。主文档 §5.1 与 v2 是当前
+比较入口，以下分阶段记录保留当时的协议与结果。
 
 ## 2. 原始 LeWM 与 PLDM 的 ICL 起点
 
@@ -210,7 +214,7 @@ action-planning 记录的语义是 `EXECUTED_VALID_DESCRIPTIVE`，`model_perform
 - `configs/benchmark/cube_gripper_carry_h3_v4r1_icl_release_v1.yaml`（Cube 门限与保持判定）
 - `contextworld-scoreboard --input <public_scoreboard_spec.json>` 重新渲染 scoreboard
 
-## 5. 仅在 Development 上评测的结果与门限失败说明
+## 5. 当前参考结果与门限失败说明
 
 接触摩擦、运动阻尼与 Cube PLDM 的正式参考流程停在 Development，Public Test 未打开、
 未读取、未评分，因此正式 scoreboard 没有对应 Public Test 成绩或训练后 CEM。接触摩擦
@@ -245,6 +249,10 @@ Cube PLDM 在 v4r1 Development 上三个检查点为 50.20%、50.20% 和 50.00%�
   Development 数值与授权状态）
 
 ### 5.1 2026-09-03 完整重训：全部九项的完整三训练种子结果
+
+当前唯一数值来源为 `configs/benchmark/contextworld_joint_scratch_v1_reference_results_freeze_v2.json`。
+本节逐任务运行细节保留早期执行记录；运行时迁移和 Development 载荷更新后的最终值见主文档
+§5.1 与本附录 §5.2，不以早期数值覆盖最终冻结值。
 
 LeWM 与 PLDM 均完成了标准 `joint_scratch_v1` 配方（`CW_METHOD=native`，
 `CW_RESUME=reset`，10 epochs，训练种子 3072/3073/3074）下全部九项组件的从零训练
@@ -422,44 +430,36 @@ emitter 提供之前，速度与门通行规则不应被写成与前两项同级
 机器可读来源：本节数据直接读取自 `ckpt/lewm-contextworld-v1/checkpoints/<run>/
 eval_results/benchmark_icl/<task>/result.json` 与同目录下
 `eval_results/benchmark_cem/<task>/*_metrics.json`（`pldm-contextworld-v1` 同构），
-并按检查点身份汇总进
-[`contextworld_native_v1_2026-09-03_snapshot.json`](contextworld_native_v1_2026-09-03_snapshot.json)
-（含 checkpoint SHA-256、`stable_worldmodel` commit、数据 manifest SHA-256），但尚未
-汇总进任何 `artifacts/evaluation/` 或 `configs/benchmark/*.json` 冻结工件；如需将其
-提升为正式 scoreboard 行，需在对应 Public Test 结果就绪的前提下，通过
-`contextworld-scoreboard` 相同的汇总流程生成对应工件。旧配方 / `v4r1` / legacy 的
-历史结果见
+当前结果、独立门槛决策与源文件身份汇总在
+`configs/benchmark/contextworld_joint_scratch_v1_reference_results_freeze_v2.json`。
+早期 `contextworld_native_v1_2026-09-03_snapshot.json` 只有 60 条记录，保留为阶段快照，
+不能代表当前完整的 81 个训练后单元。冻结参考结果也不自动成为官方 scoreboard 行。
+旧配方 / `v4r1` / legacy 历史结果见
 [《LeWM / PLDM：2026-09-03 之前的参考结果》](../archive/LeWM_PLDM_Pre_2026-09-03_Reference_Results.md)。
 
-## 5.2 Development 逐单元数值（评测集合理性诊断）
+## 5.2 Development 逐单元数值
 
-主文档 §5.1 只报告 Public Test，因为那是最终结论所在。本节记录 Development 的逐单元
-数值，用途是**检查评测集本身构造得是否合理**，不作能力结论：
+Development 用于实现检查、训练配方选择与准入；Public Test 用于最终报告。两者使用相同
+主指标、门槛阈值与要求的分层结构，数据行保持隔离。Development 原始信封不输出 `gate`，
+独立决策回执用同一内核判定；不能将 Development 数值标成 Test 成绩。
 
-- 未接触过合成数据的检查点是否落在随机基线附近（若显著偏离，说明起点本身泄露了答案）；
-- 历史是否真的参与决策（响应增益、上下文切换等辅助指标）；
-- 同一任务三个训练种子是否稳定（若逐种子剧烈波动，说明该组件的抽样量不足）。
-
-**两个划分刻意不使用同一套评分结构。** Development 用于配方与检查点选择，若它与
-Public Test 完全一致，选择过程就会泄露 Test 分布。因此本节数值**不与主文档 §5.1 的
-Public Test 数值并列比较**，也不能相减；各自的评分结构差异见下方“已知结构差异”。
-
-数值为百分比，`±` 后为三个训练种子间的样本标准差，括号内为逐训练种子值。
+下表由当前 v2 冻结记录生成。数值为百分比，`±` 为三个训练种子的样本标准差，括号为
+逐种子值。主分数与门槛总判定分别记录；主分数高不能替代全部门槛通过。
 
 | 任务 | 模型 | 随机基线 | 训练前（逐种子） | 训练后（逐种子） |
 |---|---|---:|---:|---:|
-| 速度 | LeWM | 50%（匹配 vs 非匹配历史） | 45.02 ± 1.78（43.06 / 46.53 / 45.49） | 80.44 ± 4.62（75.35 / 84.38 / 81.60） |
-| 速度 | PLDM | 50%（匹配 vs 非匹配历史） | 49.07 ± 0.80（48.61 / 50.00 / 48.61） | 74.31 ± 2.43（75.35 / 71.53 / 76.04） |
-| 速度 | DINO-WM | 50%（匹配 vs 非匹配历史） | — | 37.38 ± 4.34（41.67 / 37.50 / 32.99） |
+| 速度 | LeWM | 33.33% | 59.15 ± 2.37（56.44 / 60.11 / 60.89） | 98.00 ± 0.44（97.56 / 98.44 / 98.00） |
+| 速度 | PLDM | 33.33% | 48.48 ± 4.36（50.89 / 43.44 / 51.11） | 97.19 ± 1.88（97.67 / 95.11 / 98.78） |
+| 速度 | DINO-WM | 33.33% | — | 56.56 ± 3.84（55.22 / 53.56 / 60.89） |
 | 推手移动幅度 | LeWM | 50% | 49.15 ± 0.92（48.44 / 50.20 / 48.83） | 50.00 ± 0.00（50.00 / 50.00 / 50.00） |
 | 推手移动幅度 | PLDM | 50% | 47.66 ± 1.03（47.27 / 48.83 / 46.88） | 50.07 ± 0.11（50.00 / 50.20 / 50.00） |
 | 推手移动幅度 | DINO-WM | 50% | — | 89.19 ± 0.81（89.84 / 89.45 / 88.28） |
 | 机械臂质量 | LeWM | 50% | 50.13 ± 0.30（50.39 / 49.80 / 50.20） | 85.35 ± 0.52（84.77 / 85.74 / 85.55） |
 | 机械臂质量 | PLDM | 50% | 51.43 ± 0.49（51.37 / 51.95 / 50.98） | 52.60 ± 2.05（52.54 / 54.69 / 50.59） |
 | 机械臂质量 | DINO-WM | 50% | — | 51.37 ± 0.68（50.59 / 51.76 / 51.76） |
-| 动作延迟 | LeWM | 16.67% | 16.67 ± 0.00（16.67 / 16.67 / 16.67） | 97.99 ± 1.75（96.48 / 99.91 / 97.59） |
-| 动作延迟 | PLDM | 16.67% | 16.67 ± 0.00（16.67 / 16.67 / 16.67） | 100.00 ± 0.00（100.00 / 100.00 / 100.00） |
-| 动作延迟 | DINO-WM | 16.67% | — | 16.67 ± 0.00（16.67 / 16.67 / 16.67） |
+| 动作延迟 | LeWM | 16.67% | 16.67 ± 0.00（16.67 / 16.67 / 16.67） | 97.64 ± 0.38（97.21 / 97.75 / 97.95） |
+| 动作延迟 | PLDM | 16.67% | 16.66 ± 0.01（16.67 / 16.65 / 16.67） | 99.98 ± 0.02（100.00 / 99.96 / 99.99） |
+| 动作延迟 | DINO-WM | 16.67% | — | 16.63 ± 0.03（16.61 / 16.61 / 16.67） |
 | 接触摩擦 | LeWM | 50% | 49.87 ± 0.45（49.61 / 49.61 / 50.39） | 50.07 ± 0.11（50.00 / 50.00 / 50.20） |
 | 接触摩擦 | PLDM | 50% | 49.80 ± 0.20（50.00 / 49.80 / 49.61） | 50.13 ± 0.30（50.20 / 50.39 / 49.80） |
 | 接触摩擦 | DINO-WM | 50% | — | 49.61 ± 0.20（49.61 / 49.41 / 49.80） |
@@ -470,23 +470,16 @@ Public Test 数值并列比较**，也不能相减；各自的评分结构差异
 | Cube 夹爪携带规则 | PLDM | 50% | 50.65 ± 0.45（50.39 / 50.39 / 51.17） | 50.00 ± 0.00（50.00 / 50.00 / 50.00） |
 | Cube 夹爪携带规则 | DINO-WM | 50% | — | 50.33 ± 0.11（50.20 / 50.39 / 50.39） |
 | 门通行规则 | LeWM | 50% | 50.00 ± 0.00（50.00 / 50.00 / 50.00） | 100.00 ± 0.00（100.00 / 100.00 / 100.00） |
-| 门通行规则 | PLDM | 50% | 50.23 ± 0.20（50.00 / 50.35 / 50.35） | 100.00 ± 0.00（100.00 / 100.00 / 100.00） |
+| 门通行规则 | PLDM | 50% | 50.00 ± 0.17（50.00 / 49.83 / 50.17） | 100.00 ± 0.00（100.00 / 100.00 / 100.00） |
 | 门通行规则 | DINO-WM | 50% | — | 100.00 ± 0.00（100.00 / 100.00 / 100.00） |
 | 传送门出口位置 | LeWM | 50% | 50.00 ± 0.00（50.00 / 50.00 / 50.00） | 50.91 ± 0.30（50.98 / 50.59 / 51.17） |
 | 传送门出口位置 | PLDM | 50% | 50.07 ± 0.11（50.00 / 50.20 / 50.00） | 69.53 ± 2.77（67.38 / 72.66 / 68.55） |
 | 传送门出口位置 | DINO-WM | 50% | — | 99.41 ± 0.20（99.22 / 99.41 / 99.61） |
 
-**已知结构差异（Development 相对 Public Test）。** 这些差异是划分定位不同带来的，不是缺陷：
-
-| 任务 | Development | Public Test |
-|---|---|---|
-| 速度 | 匹配速度历史与非匹配速度历史的逐 query 胜率，两条件 | 每个参考速度三个历史条件，要求匹配条件优于其余每一个 |
-| 门通行规则 | 16 个训练相邻门位、288 对、两个历史条件、不分层 | 42 个未见门位、1800 条记录、三个历史条件、按评测种子 × 方向分层并做分层 bootstrap |
-| 动作延迟 | 六个物理响应组宏平均，与 Public Test 同定义 | 六个物理响应组宏平均，另含最弱组与 bootstrap 下界门槛 |
-| 其余六项 | 配对双目标最近邻准确率 | 同定义，数据为独立划分 |
-
-Development 不产出 `gate` 或通过判定字段；正式判定只来自 Public Test。这一点由
-`tests/test_bundle_development.py` 的 `assert "gate" not in result` 固定。
+**当前共有的评分合同。** 速度按参考速度比较匹配历史与其余全部历史；门通行使用三个
+历史条件、真规则与方向分层、每种子 50 query；动作延迟使用六个物理响应组主指标及完整
+门槛输入，300 query 按六个评测种子组织；其余六项均为配对双目标判别。
+历史 Speed history-utility、Door 288 对和 ActionDelay 30-query 结果不再作为当前比较值。
 
 ## 6. DINO-WM / PreJEPA 非冻结补充证据
 
@@ -516,8 +509,9 @@ Cube 219/217/224，逐评测种子成功数同样保存在工件中。评测种�
 
 ### 6.2 使用 ContextWorld-v1 组件数据训练的检查点
 
-当前有七个组件完成三训练种子的 10-epoch 从头训练、公开 Development ICL，以及每枚
-检查点 42–47 六个评测种子 × 50 次的原任务 CEM，共 21 个完整评测单元。其中 19 份原
+以下记录保留七组件初次完成时的 Development 数值与运行恢复经过；它不是当前主分数表。
+当前九组件 × 三种子均已完成，最终 Development 数值与全部身份见 §5.2 和 v2 freeze。
+该阶段七个组件各完成三种子的 10-epoch 从头训练、ICL 及原任务 CEM，共 21 个单元。其中 19 份原
 manifest 为 `completed`；Cube 的种子 3073 和 3074 保留原 manifest 中六个完成的 CEM
 单元，并分别由新的 `completed` ICL recovery manifest 补齐。恢复过程没有改写失败记录。
 
@@ -547,8 +541,9 @@ manifest 为 `completed`；Cube 的种子 3073 和 3074 保留原 manifest 中�
 139/140/118）。Cube 的三个 epoch-10 检查点均已完成 Development ICL 和全部六个 CEM
 单元；种子 3073、3074 的 ICL 执行由独立 recovery manifest 补齐。
 
-这些结果只使用公开 Development，`public_test_accessed=false`、
-`formal_pass_available=false`、`official_scoreboard_row=false`。机器可读来源：
+这些早期回执当时声明 `public_test_accessed=false`、`formal_pass_available=false`、
+`official_scoreboard_row=false`；后续 Test 执行独立登记，这些字段不能证明此后也未读取 Test。
+历史机器可读来源：
 
 - `configs/benchmark/contextworld_dinowm_component_development_results_v1.json`
   （推手移动幅度、动作延迟两行尚未并入此工件，当前直接读取自
@@ -594,26 +589,17 @@ CEM 判定；主文档只将它们标作“补充”结果。
 
 ## 8. 目前不可获得的证据
 
-以下内容在仓库中没有测量结果，不应从现有数字外推：
+现有测量与正式报告资格应分开理解：
 
-- **未通过 Development 的组件**的 Public Test 分数：协议不授权读取，这是设计约束
-  而不是待办。自动 post-train 管线默认只跑 Development（`CW_POST_TRAIN_EVAL` 默认
-  关闭，`scripts/run_stablewm_eval.py` 固定 `--evaluation-split development`），
-  Public Test 需要单独发起。已通过 Development 的组件（速度、机械臂质量、动作延迟、
-  门通行规则）的 Public Test 分数见 5.1 节；
-- 只用原环境数据训练的 **LeWM/PLDM 三训练种子原始基线 ICL**：**尚未评测，但不需要
-  新训练**。三种子权重共 24 枚已存在于
-  `data/world_model/quentinll/lewm-{tworooms,pusht,reacher,cube}/ckpt/`
-  （`{env}_lewm_20260430`、`{env}_lewm_baseline_seed307{3,4}`、`{env}_pldm_baseline`、
-  `{env}_pldm_baseline_seed307{3,4}`，均 10 epoch、纯原环境 h5），第 3 节的原始环境
-  CEM 三种子成绩就是用它们跑出来的。缺的只是对这 24 枚补跑 ICL 评测。
-  补跑前有两个口径点需要写进协议：(1) 现行 18 单元里 tworoom×LeWM 用的是仓库自训的
-  `h3_origheldout_s3072`，改用 lightning 三元组会切换血统，应沿用第 3 节 CEM 已做过的
-  同一披露口径；(2) ICL 通道尚未加载过 `tworoom_lewm_20260430`，补跑前应按预注册
-  sha256 做一次加载冒烟。DINO-WM 的原始三种子检查点存在
-  （`ckpt/dino-wm/checkpoints/{cube,pusht,reacher,tworoom}_prejepa_original_s307{2,3,4}`）
-  且原始任务 CEM 完整，但其原始 ICL 只有零填充诊断轨道（输入合同不兼容，
-  `not_compatible`）；
+- 原始 LeWM/PLDM 三种子 ICL 已完成：24 枚环境级检查点、54 个任务单元、两个划分共
+  108 个分数，当前身份和重评记录见 v2 freeze。旧单检查点 `h3_origheldout_s3072` 的
+  血统披露保留在历史归档，不混入新的原环境三种子统计。
+- contact_friction/motion_damping 历史上实际产生了 30 个 Test 单元；由于未获准入，
+  当前表格只报告其 Development 值。保留读取事实和排除理由，不声称 Test 从未打开。
+- DINO-WM 原环境检查点的正式 ICL 输入合同仍不兼容，原任务 CEM 完整，零填充诊断另存。
+
+以下归因或能力范围仍不由现有参考结果支持：
+
 - `native` 配方与旧配方之间 30–70pp 落差的**各差异轴单独贡献量**：落差本身对应四条
   训练配方差异轴（配对关系是否进入训练目标、初始化是微调还是从零、`num_preds` 是 3
   还是 1、配对 clip 还是滑窗稠密 clip），见主文档 §5.3。四条同时变化，因此**不能做

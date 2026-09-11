@@ -84,9 +84,12 @@ def load_test_gate_completion_config(
         raise ValueError(f"Unsupported gate-completion config: {config_path}")
     if payload.get("release_id") != "contextworld_test_gate_completion_v1":
         raise ValueError(f"Unexpected gate-completion release id: {config_path}")
-    if payload.get("status") != "additive_test_gate_completion":
+    if payload.get("status") not in {
+        "additive_test_gate_completion",
+        "accepted_additive_test_gate_completion",
+    }:
         raise ValueError(
-            "Gate-completion config must declare additive_test_gate_completion"
+            "Gate-completion config must declare accepted additive_test_gate_completion"
         )
     missing = set(GATE_KEYS_BY_COMPONENT) - set(payload)
     if missing:

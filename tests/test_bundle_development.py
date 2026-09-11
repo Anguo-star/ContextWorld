@@ -325,6 +325,151 @@ def test_action_delay_selection_is_6_times_10_times_5(
     assert arrays.selection["selected_contrast_pairs"] == 300
 
 
+def test_action_delay_dev_reader_preserves_real_lance_identity() -> None:
+    """The released 1.0.3-rc1 Lance rows keep query seed/room/direction."""
+
+    bundle_root = Path(
+        "/opt/huawei/explorer-env/dataset/ag_data/data/world_model/ContextWorld-v1"
+    )
+    if not bundle_root.is_dir():
+        pytest.skip("ContextWorld-v1 bundle is not mounted")
+    try:
+        payload = development.resolve_development_payload(
+            bundle_root, task="action_delay"
+        )
+        available, episodes = development._read_tworoom_episodes(
+            payload.members[0],
+            expected_steps=50,
+            frame_steps=tuple(range(0, 50, 5)),
+            selected_episode_ids=(0,),
+            metadata_columns=(
+                "dev_eval_seed",
+                "dev_room",
+                "dev_direction",
+                "dev_query_id",
+                "dev_delay",
+            ),
+        )
+    except (ImportError, RuntimeError) as exc:
+        pytest.skip(f"Lance/Pillow or released payload unavailable: {exc}")
+
+    assert 0 in available
+    pixels, actions, _, metadata = episodes[0]
+    assert pixels.shape[0] == 10
+    assert actions.shape[0] == 10
+    assert metadata == {
+        "dev_eval_seed": 52.0,
+        "dev_room": "right",
+        "dev_direction": "down",
+        "dev_query_id": "action-delay-h7-val-s52-q00",
+        "dev_delay": 0.0,
+    }
+
+
+def test_action_delay_auxiliary_h2_h3_reuses_test_horizon_kernel(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A three-future adapter receives the 9-block prefix once for h1/h2/h3."""
+
+    root = Path("/tmp/contextworld-bundle")
+    members = tuple(
+        root / f"ad-h7-paired-val-p{profile:03d}-d{delay}-deadbeef.lance"
+        for profile in range(6)
+        for delay in range(11)
+    )
+    payload = _payload(
+        "action_delay",
+        history=7,
+        selection={
+            "reference_condition": 0,
+            "contrasts": list(range(1, 11)),
+            "profiles": 6,
+            "pairs_per_contrast_per_profile": 50,
+            "selected_pair_count": 3000,
+        },
+        members=members,
+    )
+
+    def fake_read(path: Path, **kwargs: object):
+        delay = int(path.name.split("-d", 1)[1].split("-", 1)[0])
+        profile = int(path.name.split("val-p", 1)[1][:3])
+        available = tuple(range(160))
+        selected = tuple(kwargs.get("selected_episode_ids") or available)
+        records = {}
+        for episode in selected:
+            frames = np.zeros((10, 2, 2, 3), dtype=np.uint8)
+            frames[1] = 1 + delay
+            frames[6] = 0
+            frames[7] = 10 + delay
+            frames[8] = 20 + delay
+            frames[9] = 30 + delay
+            metadata = {
+                "dev_eval_seed": float(52 + profile),
+                "dev_room": "left" if episode % 2 else "right",
+                "dev_direction": "up" if episode % 2 else "down",
+                "dev_query_id": (
+                    f"action-delay-h7-val-s{52 + profile}"
+                    f"-q{episode:02d}"
+                ),
+                "dev_delay": float(delay),
+            }
+            actions = np.zeros((10, 5, 2), dtype=np.float32)
+            records[episode] = (frames, actions, None, metadata)
+        return available, records
+
+    class ThreeFutureAdapter(_Adapter):
+        def __init__(self) -> None:
+            super().__init__(history=7, action_dim=2)
+            self._protocol = AdapterProtocol(
+                history_tokens=7,
+                action_block_raw_steps=5,
+                action_dim=2,
+                future_action_blocks=3,
+            )
+
+        def rollout_latents(
+            self,
+            input_pixels: np.ndarray,
+            raw_action_blocks: np.ndarray,
+            *,
+            batch_size: int,
+        ) -> np.ndarray:
+            del raw_action_blocks, batch_size
+            values = np.asarray(input_pixels, dtype=np.float32)[:, -1].mean(
+                axis=(1, 2)
+            )
+            return np.repeat(values[:, None, :], 3, axis=1)
+
+    monkeypatch.setattr(
+        development, "resolve_development_payload", lambda *a, **k: payload
+    )
+    monkeypatch.setattr(development, "_read_tworoom_episodes", fake_read)
+    result = development.evaluate_bundle_development_model(
+        task="action_delay",
+        adapter=ThreeFutureAdapter(),
+        model_name="three-future",
+        training_recipe="test",
+        training_seed=1,
+        benchmark_root="/tmp/contextworld-bundle",
+        batch_size=32,
+    )
+
+    metrics = result["metrics"]
+    assert result["record_count"] == 3300
+    assert metrics["auxiliary_horizons"]["available"] == [2, 3]
+    assert set(metrics["by_horizon"]) == {"1", "2", "3"}
+    assert metrics["by_horizon"]["2"]["overall"]["query_target_units"] == 3300
+    assert metrics["by_horizon"]["3"]["overall"]["query_target_units"] == 3300
+    assert metrics["eval_seed_query_counts"] == {
+        "52": 50,
+        "53": 50,
+        "54": 50,
+        "55": 50,
+        "56": 50,
+        "57": 50,
+    }
+
+
 _SPEED_TRACK = "seen_for_multi"
 _SPEED_CONDITION_SPEEDS = {
     "history_low": 10.0,

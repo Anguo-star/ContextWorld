@@ -45,6 +45,7 @@ from contextworld.evaluation.action_delay_h7_core import (
     physical_group,
     summarize_action_delay_h1_physical,
 )
+from contextworld.evaluation.action_delay_h7_score import physical_future_group
 from contextworld.training import stablewm_bundle
 
 
@@ -137,6 +138,14 @@ _DECISION_FREE_KEYS = frozenset(
 _ACTION_DELAY_MEMBER_PATTERN = re.compile(
     r"^ad-h7-paired-val-(?P<profile>p\d+)-d(?P<delay>\d+)-"
 )
+_ACTION_DELAY_FRAME_STEPS = tuple(range(0, 50, 5))
+_ACTION_DELAY_METADATA_COLUMNS = (
+    "dev_eval_seed",
+    "dev_room",
+    "dev_direction",
+    "dev_query_id",
+    "dev_delay",
+)
 # The formal Public Test fixes its bootstrap uncertainty contract in
 # ``tworoom_action_delay_h7_core_icl_v2.yaml`` (scoring.uncertainty).  The
 # Development bundle ships no uncertainty section, so these fixed diagnostic
@@ -195,6 +204,7 @@ class _DelayFamilyArrays:
     """
 
     query_ids: tuple[str, ...]
+    query_metadata: tuple[Mapping[str, Any], ...]
     delay_values: tuple[int, ...]
     member_pixels: np.ndarray
     raw_action_blocks: np.ndarray
@@ -415,10 +425,12 @@ def _read_tworoom_episodes(
     selected_episode_ids: Sequence[int] | None = None,
     include_speed: bool = False,
     allow_prefix_clip: bool = False,
-) -> tuple[tuple[int, ...], dict[int, tuple[np.ndarray, np.ndarray, float | None]]]:
+    metadata_columns: Sequence[str] = (),
+) -> tuple[tuple[int, ...], dict[int, tuple[Any, ...]]]:
     columns = ["episode_idx", "step_idx", "pixels", "action"]
     if include_speed:
         columns.append("variation_agent_speed")
+    columns.extend(str(name) for name in metadata_columns)
     table = _lance_table(path, columns=columns)
     available, rows_by_episode, _, _ = _episode_rows(
         table,
@@ -434,9 +446,13 @@ def _read_tworoom_episodes(
         if include_speed
         else None
     )
+    metadata_values = {
+        str(name): table[str(name)].to_pylist()
+        for name in metadata_columns
+    }
     if expected_steps % 5:
         raise RuntimeError("Development TwoRoom clips must be divisible into 5-step actions")
-    result: dict[int, tuple[np.ndarray, np.ndarray, float | None]] = {}
+    result: dict[int, tuple[Any, ...]] = {}
     for episode, rows in rows_by_episode.items():
         speed: float | None = None
         if speeds is not None:
@@ -446,11 +462,29 @@ def _read_tworoom_episodes(
                     f"Development speed changes within episode {episode}"
                 )
             speed = float(speed_values[0])
-        result[episode] = (
+        values: list[Any] = [
             np.stack([_decode_rgb(pixels[int(rows[index])]) for index in frame_steps]),
             actions[rows].reshape(expected_steps // 5, 5, actions.shape[-1]),
             speed,
-        )
+        ]
+        if metadata_columns:
+            metadata: dict[str, Any] = {}
+            for name in metadata_columns:
+                raw_values = [metadata_values[str(name)][int(row)] for row in rows]
+                normalized = {
+                    _scalar(value)
+                    if str(name) in {"dev_eval_seed", "dev_delay"}
+                    else str(value)
+                    for value in raw_values
+                }
+                if len(normalized) != 1:
+                    raise RuntimeError(
+                        f"Development column {name} is not constant in episode "
+                        f"{episode} of {path.name}"
+                    )
+                metadata[str(name)] = normalized.pop()
+            values.append(metadata)
+        result[episode] = tuple(values)
     return available, result
 
 
@@ -961,6 +995,43 @@ def _door_structural_metrics(
     return metrics, scored["records"], state, selection
 
 
+def _delay_episode_parts(
+    value: tuple[Any, ...],
+    *,
+    profile: str,
+    episode: int,
+    fallback_delay: int,
+) -> tuple[np.ndarray, np.ndarray, float | None, dict[str, Any]]:
+    """Normalize the paired reader's optional metadata extension.
+
+    The first three values are the long-standing ``(pixels, actions, speed)``
+    contract.  The fourth value is present for the 1.0.3-rc1 Action Delay
+    payload and carries the episode-constant ``dev_*`` identity columns.  The
+    small fallback keeps synthetic/unit readers that implement the old tuple
+    shape useful while ensuring every emitted query still has a stable local
+    identity.
+    """
+
+    if len(value) < 3:
+        raise RuntimeError(
+            f"Action Delay Development {profile}/episode_{episode:04d} "
+            "returned an incomplete episode tuple"
+        )
+    pixels = np.asarray(value[0])
+    actions = np.asarray(value[1], dtype=np.float32)
+    speed = value[2]
+    metadata = dict(value[3]) if len(value) >= 4 and isinstance(value[3], Mapping) else {}
+    metadata.setdefault(
+        "dev_query_id",
+        f"{profile}/episode_{episode:04d}",
+    )
+    metadata.setdefault("dev_eval_seed", 0.0)
+    metadata.setdefault("dev_delay", float(fallback_delay))
+    metadata.setdefault("dev_room", None)
+    metadata.setdefault("dev_direction", None)
+    return pixels, actions, speed, metadata
+
+
 def _action_delay_arrays(payload: DevelopmentPayload) -> _DelayFamilyArrays:
     """Read complete per-episode delay families for six-group scoring.
 
@@ -1011,6 +1082,7 @@ def _action_delay_arrays(payload: DevelopmentPayload) -> _DelayFamilyArrays:
         expected_profiles * len(contrasts) * per_contrast,
     )
     query_ids: list[str] = []
+    query_metadata: list[dict[str, Any]] = []
     member_pixels: list[np.ndarray] = []
     actions: list[np.ndarray] = []
     candidate_pairs = 0
@@ -1018,7 +1090,8 @@ def _action_delay_arrays(payload: DevelopmentPayload) -> _DelayFamilyArrays:
         reference_ids, reference = _read_tworoom_episodes(
             grouped[profile][reference_delay],
             expected_steps=50,
-            frame_steps=(0, 5, 10, 15, 20, 25, 30, 35),
+            frame_steps=_ACTION_DELAY_FRAME_STEPS,
+            metadata_columns=_ACTION_DELAY_METADATA_COLUMNS,
         )
         if len(reference_ids) < per_contrast:
             raise RuntimeError(
@@ -1033,8 +1106,9 @@ def _action_delay_arrays(payload: DevelopmentPayload) -> _DelayFamilyArrays:
             delayed_ids, delayed = _read_tworoom_episodes(
                 grouped[profile][delay],
                 expected_steps=50,
-                frame_steps=(0, 5, 10, 15, 20, 25, 30, 35),
+                frame_steps=_ACTION_DELAY_FRAME_STEPS,
                 selected_episode_ids=selected_ids,
+                metadata_columns=_ACTION_DELAY_METADATA_COLUMNS,
             )
             # ``delayed_ids`` is the complete id set even when frame decoding
             # is limited to selected ids, so it also checks file pairing.
@@ -1046,9 +1120,45 @@ def _action_delay_arrays(payload: DevelopmentPayload) -> _DelayFamilyArrays:
             candidate_pairs += len(reference_ids)
             conditions[delay] = delayed
         for episode in selected_ids:
-            base_pixels, base_actions, _ = reference[episode]
+            base_pixels, base_actions, _, base_metadata = _delay_episode_parts(
+                reference[episode],
+                profile=profile,
+                episode=episode,
+                fallback_delay=reference_delay,
+            )
+            query_id = str(base_metadata["dev_query_id"])
+            if not query_id:
+                raise RuntimeError(
+                    f"Action Delay Development {profile}/episode_{episode:04d} "
+                    "has an empty dev_query_id"
+                )
             for delay in contrasts:
-                delayed_pixels, delayed_actions, _ = conditions[delay][episode]
+                delayed_pixels, delayed_actions, _, delayed_metadata = (
+                    _delay_episode_parts(
+                        conditions[delay][episode],
+                        profile=profile,
+                        episode=episode,
+                        fallback_delay=delay,
+                    )
+                )
+                for field in (
+                    "dev_query_id",
+                    "dev_eval_seed",
+                    "dev_room",
+                    "dev_direction",
+                ):
+                    if delayed_metadata.get(field) != base_metadata.get(field):
+                        raise RuntimeError(
+                            f"Action Delay Development metadata {field} differs "
+                            f"for {profile}/episode_{episode:04d}/d{delay}"
+                        )
+                observed_delay = int(float(delayed_metadata["dev_delay"]))
+                if observed_delay != delay:
+                    raise RuntimeError(
+                        f"Action Delay Development metadata dev_delay disagrees "
+                        f"with filename for {profile}/episode_{episode:04d}: "
+                        f"{observed_delay} != {delay}"
+                    )
                 _ensure_paired_example(
                     pair_id=(
                         f"{profile}/d{reference_delay}_vs_d{delay}/"
@@ -1060,9 +1170,34 @@ def _action_delay_arrays(payload: DevelopmentPayload) -> _DelayFamilyArrays:
                     second_actions=delayed_actions,
                     history_length=7,
                 )
-            query_ids.append(f"{profile}/episode_{episode:04d}")
+            query_ids.append(query_id)
+            query_index_match = re.search(r"(?:^|-)q(?P<index>\d+)$", query_id)
+            query_metadata.append(
+                {
+                    "profile": profile,
+                    "query_id": query_id,
+                    "eval_seed": int(float(base_metadata["dev_eval_seed"])),
+                    "evaluation_index": (
+                        int(query_index_match["index"])
+                        if query_index_match is not None
+                        else int(episode)
+                    ),
+                    "room": base_metadata.get("dev_room"),
+                    "direction": base_metadata.get("dev_direction"),
+                }
+            )
             member_pixels.append(
-                np.stack([conditions[delay][episode][0] for delay in expected_delays])
+                np.stack(
+                    [
+                        _delay_episode_parts(
+                            conditions[delay][episode],
+                            profile=profile,
+                            episode=episode,
+                            fallback_delay=delay,
+                        )[0]
+                        for delay in expected_delays
+                    ]
+                )
             )
             actions.append(base_actions)
     if len(grouped) != expected_profiles:
@@ -1075,8 +1210,86 @@ def _action_delay_arrays(payload: DevelopmentPayload) -> _DelayFamilyArrays:
             "Action Delay Development selected pair count disagrees with public contract: "
             f"observed={len(query_ids) * len(contrasts)} expected={expected_selected}"
         )
+    if len(set(query_ids)) != len(query_ids):
+        raise RuntimeError("Action Delay Development query ids must be unique")
+
+    # The 1.0.3-rc1 contract carries six real evaluation seeds and balanced
+    # room/direction strata.  Validate those values when the payload provides
+    # them; the compatibility fallback above uses ``0``/``None`` only for
+    # synthetic readers that predate the metadata columns.
+    observed_seeds = {int(row["eval_seed"]) for row in query_metadata}
+    observed_rooms = {row["room"] for row in query_metadata}
+    observed_directions = {row["direction"] for row in query_metadata}
+    expected_seeds = {
+        int(value)
+        for value in selection_contract.get("eval_seeds", ())
+    }
+    profile_seed_mapping = selection_contract.get("profile_eval_seed_mapping", {})
+    if isinstance(profile_seed_mapping, Mapping):
+        for profile, expected_seed in profile_seed_mapping.items():
+            profile_query_seeds = {
+                int(row["eval_seed"])
+                for row in query_metadata
+                if str(row.get("profile")) == str(profile)
+            }
+            if profile_query_seeds and profile_query_seeds != {int(expected_seed)}:
+                raise RuntimeError(
+                    "Action Delay Development profile/eval_seed metadata disagrees "
+                    f"for {profile}: {sorted(profile_query_seeds)} != "
+                    f"{int(expected_seed)}"
+                )
+    if expected_seeds and observed_seeds != expected_seeds:
+        if not (observed_seeds == {0} and all(value is None for value in observed_rooms)):
+            raise RuntimeError(
+                "Action Delay Development eval_seed metadata disagrees with "
+                f"the public contract: observed={sorted(observed_seeds)} "
+                f"expected={sorted(expected_seeds)}"
+            )
+    seed_counts: dict[int, int] = {}
+    seed_room_counts: dict[tuple[int, str], int] = {}
+    seed_direction_counts: dict[tuple[int, str], int] = {}
+    for row in query_metadata:
+        seed = int(row["eval_seed"])
+        seed_counts[seed] = seed_counts.get(seed, 0) + 1
+        if row["room"] is not None:
+            key = (seed, str(row["room"]))
+            seed_room_counts[key] = seed_room_counts.get(key, 0) + 1
+        if row["direction"] is not None:
+            key = (seed, str(row["direction"]))
+            seed_direction_counts[key] = seed_direction_counts.get(key, 0) + 1
+    if expected_seeds and observed_seeds == expected_seeds:
+        if set(seed_counts.values()) != {
+            int(selection_contract.get("unique_queries_per_eval_seed", 50))
+        }:
+            raise RuntimeError(
+                "Action Delay Development queries are not balanced by eval seed"
+            )
+        expected_rooms = selection_contract.get("rooms_per_seed", {})
+        expected_directions = selection_contract.get("directions_per_seed", {})
+        if expected_rooms and {
+            (seed, room): count for (seed, room), count in seed_room_counts.items()
+        } != {
+            (seed, str(room)): int(count)
+            for seed in expected_seeds
+            for room, count in expected_rooms.items()
+        }:
+            raise RuntimeError(
+                "Action Delay Development room strata disagree with the public contract"
+            )
+        if expected_directions and {
+            (seed, direction): count
+            for (seed, direction), count in seed_direction_counts.items()
+        } != {
+            (seed, str(direction)): int(count)
+            for seed in expected_seeds
+            for direction, count in expected_directions.items()
+        }:
+            raise RuntimeError(
+                "Action Delay Development direction strata disagree with the public contract"
+            )
     return _DelayFamilyArrays(
         query_ids=tuple(query_ids),
+        query_metadata=tuple(query_metadata),
         delay_values=tuple(expected_delays),
         member_pixels=np.stack(member_pixels),
         raw_action_blocks=np.stack(actions),
@@ -1088,6 +1301,17 @@ def _action_delay_arrays(payload: DevelopmentPayload) -> _DelayFamilyArrays:
             "selected_queries": len(query_ids),
             "queries_per_profile": per_contrast,
             "selected_contrast_pairs": len(query_ids) * len(contrasts),
+            "eval_seeds": sorted(observed_seeds),
+            "eval_seed_query_counts": {
+                str(seed): int(count)
+                for seed, count in sorted(seed_counts.items())
+            },
+            "query_metadata_fields": [
+                "query_id",
+                "eval_seed",
+                "room",
+                "direction",
+            ],
             "rule": (
                 "all registered delay members per profile; first sorted "
                 "shared episode ids"
@@ -1362,6 +1586,133 @@ def _evaluate_paired(
     return metrics, records, {"before": before, "after": after}
 
 
+def _summarize_development_action_delay_horizons(
+    records: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """Apply the Test horizon matrix kernel with Development strata.
+
+    ``summarize_h7_validation_records`` is frozen around the Public-Test
+    seed constants (42--47).  Development deliberately uses seeds 52--57,
+    so this wrapper reuses its matrix selector and metric aggregation while
+    constructing the two seed/direction breakdowns from the actual rows.
+    """
+
+    from collections import defaultdict
+
+    from contextworld.evaluation.action_delay_h7_score import (
+        _aggregate_metrics,
+        _summarize_query_matrices,
+    )
+
+    grouped: dict[tuple[str, int], list[dict[str, Any]]] = defaultdict(list)
+    for row in records:
+        grouped[(str(row["query_id"]), int(row["horizon"]))].append(row)
+    horizon_matrices: list[tuple[dict[str, Any], int, dict[tuple[int, int], float]]] = []
+    trajectory_groups: dict[str, dict[tuple[int, int], list[float]]] = defaultdict(
+        lambda: defaultdict(list)
+    )
+    trajectory_exemplars: dict[str, dict[str, Any]] = {}
+    for (query_id, horizon), rows in sorted(grouped.items()):
+        losses = {
+            (int(row["history_delay"]), int(row["target_delay"])): float(
+                row["latent_mse"]
+            )
+            for row in rows
+        }
+        horizon_matrices.append((rows[0], horizon, losses))
+        trajectory_exemplars[query_id] = rows[0]
+        for pair, loss in losses.items():
+            trajectory_groups[query_id][pair].append(loss)
+
+    horizon_metrics = _summarize_query_matrices(horizon_matrices)
+    trajectory_matrices: list[
+        tuple[dict[str, Any], str, dict[tuple[int, int], float]]
+    ] = []
+    for query_id in sorted(trajectory_groups):
+        values = trajectory_groups[query_id]
+        if not all(len(losses) == 3 for losses in values.values()):
+            raise ValueError(f"Incomplete Development three-step trajectory: {query_id}")
+        trajectory_matrices.append(
+            (
+                trajectory_exemplars[query_id],
+                "trajectory",
+                {pair: float(np.mean(losses)) for pair, losses in values.items()},
+            )
+        )
+    trajectory_metrics = _summarize_query_matrices(trajectory_matrices)
+
+    def breakdown(rows: list[dict[str, Any]]) -> dict[str, Any]:
+        seeds = sorted({int(row["eval_seed"]) for row in rows})
+        directions = sorted({str(row["direction"]) for row in rows})
+        return {
+            "overall": _aggregate_metrics(rows),
+            "by_target_delay": {
+                str(delay): _aggregate_metrics(
+                    [row for row in rows if int(row["target_delay"]) == delay]
+                )
+                for delay in range(11)
+            },
+            "by_track": {
+                track: _aggregate_metrics(
+                    [row for row in rows if row["target_track"] == track]
+                )
+                for track in (
+                    "training_seen",
+                    "within_range_unseen",
+                    "above_range_unseen",
+                )
+            },
+            "by_target_delay_and_eval_seed": {
+                str(delay): {
+                    str(seed): _aggregate_metrics(
+                        [
+                            row
+                            for row in rows
+                            if int(row["target_delay"]) == delay
+                            and int(row["eval_seed"]) == seed
+                        ]
+                    )
+                    for seed in seeds
+                }
+                for delay in range(11)
+            },
+            "by_target_delay_and_direction": {
+                str(delay): {
+                    direction: _aggregate_metrics(
+                        [
+                            row
+                            for row in rows
+                            if int(row["target_delay"]) == delay
+                            and str(row["direction"]) == direction
+                        ]
+                    )
+                    for direction in directions
+                }
+                for delay in range(11)
+            },
+        }
+
+    return {
+        "trajectory": {
+            **breakdown(trajectory_metrics),
+            "query_metrics": trajectory_metrics,
+        },
+        "by_horizon": {
+            str(horizon): {
+                **breakdown(
+                    [row for row in horizon_metrics if int(row["horizon"]) == horizon]
+                ),
+                "query_metrics": [
+                    row
+                    for row in horizon_metrics
+                    if int(row["horizon"]) == horizon
+                ],
+            }
+            for horizon in (1, 2, 3)
+        },
+    }
+
+
 def _action_delay_physical_group_metrics(
     *,
     payload: DevelopmentPayload,
@@ -1400,7 +1751,7 @@ def _action_delay_physical_group_metrics(
         or len(set(arrays.query_ids)) != queries
         or arrays.member_pixels.ndim != 6
         or arrays.member_pixels.shape[:2] != (queries, delays)
-        or arrays.member_pixels.shape[2] != history_length + 1
+        or arrays.member_pixels.shape[2] < history_length + 1
         or arrays.raw_action_blocks.ndim != 4
         or arrays.raw_action_blocks.shape[0] != queries
         or arrays.raw_action_blocks.shape[1] < history_length
@@ -1408,6 +1759,25 @@ def _action_delay_physical_group_metrics(
         != (payload.frameskip, payload.action_dimension)
     ):
         raise RuntimeError("Malformed Action Delay Development arrays")
+    if len(arrays.query_metadata) != queries:
+        raise RuntimeError("Action Delay Development query metadata is incomplete")
+
+    # The 1.0.3-rc1 Development payload carries h1/h2/h3 target frames at
+    # token offsets 7/8/9.  A compatible adapter can request all three with a
+    # single nine-block call, letting the same Test-side horizon kernel score
+    # the two auxiliary outputs.  Older synthetic readers and one-future
+    # adapters retain the original h1-only route.
+    available_horizons = min(
+        3,
+        int(arrays.member_pixels.shape[2] - history_length),
+    )
+    protocol_horizons = int(adapter.protocol.future_action_blocks)
+    auxiliary_horizons = (
+        (2, 3)
+        if available_horizons >= 3 and protocol_horizons >= 3
+        else ()
+    )
+    requested_horizons = 3 if auxiliary_horizons else 1
     histories = arrays.member_pixels[:, :, :history_length].reshape(
         queries * delays,
         history_length,
@@ -1417,12 +1787,14 @@ def _action_delay_physical_group_metrics(
     # episode's action blocks, so the reference member's blocks describe all
     # eleven conditions.
     actions = np.repeat(
-        arrays.raw_action_blocks[:, None, :history_length],
+        arrays.raw_action_blocks[
+            :, None, : history_length - 1 + requested_horizons
+        ],
         repeats=delays,
         axis=1,
     ).reshape(
         queries * delays,
-        history_length,
+        history_length - 1 + requested_horizons,
         payload.frameskip,
         payload.action_dimension,
     )
@@ -1432,21 +1804,24 @@ def _action_delay_physical_group_metrics(
     )
     if (
         predicted.ndim != 3
-        or predicted.shape[:2] != (queries * delays, 1)
+        or predicted.shape[:2] != (queries * delays, requested_horizons)
         or not np.isfinite(predicted).all()
     ):
         raise RuntimeError(
             "Action Delay Development adapter must return finite "
-            "(query_count * delay_count, 1, latent_dim) futures"
+            f"(query_count * delay_count, {requested_horizons}, latent_dim) futures"
         )
-    futures = arrays.member_pixels[:, :, history_length].reshape(
-        queries * delays,
+    futures = arrays.member_pixels[
+        :, :, history_length : history_length + requested_horizons
+    ].reshape(
+        queries * delays * requested_horizons,
         *arrays.member_pixels.shape[3:],
     )
     encoded = np.asarray(adapter.encode_pixels(futures, batch_size=int(batch_size)))
     if (
         encoded.ndim != 2
-        or encoded.shape != (queries * delays, predicted.shape[-1])
+        or encoded.shape
+        != (queries * delays * requested_horizons, predicted.shape[-1])
         or not np.isfinite(encoded).all()
     ):
         raise RuntimeError(
@@ -1455,14 +1830,17 @@ def _action_delay_physical_group_metrics(
     after = adapter.frozen_state_hash()
     if before != after:
         raise RuntimeError("Model state changed during action_delay Development scoring")
-    predictions = predicted[:, 0].reshape(queries, delays, -1)
-    targets = encoded.reshape(queries, delays, -1)
+    predictions = predicted.reshape(queries, delays, requested_horizons, -1)
+    targets = encoded.reshape(queries, delays, requested_horizons, -1)
+    predictions_h1 = predictions[:, :, 0]
+    targets_h1 = targets[:, :, 0]
     losses = np.square(
-        predictions[:, :, None, :] - targets[:, None, :, :]
+        predictions_h1[:, :, None, :] - targets_h1[:, None, :, :]
     ).mean(axis=-1)
     query_rows: list[dict[str, Any]] = []
     records: list[dict[str, Any]] = []
     for query_index, query_id in enumerate(arrays.query_ids):
+        metadata = arrays.query_metadata[query_index]
         for condition_index, delay in enumerate(arrays.delay_values):
             # Same nearest-target decision and lowest-delay tie-break as the
             # frozen scorer's ``selected_target``
@@ -1478,9 +1856,12 @@ def _action_delay_physical_group_metrics(
             query_rows.append(
                 {
                     "query_id": query_id,
-                    # Development clips carry no eval seed; the frozen kernel
-                    # only requires one consistent value per query.
-                    "eval_seed": 0,
+                    "eval_seed": int(metadata.get("eval_seed", 0)),
+                    "evaluation_index": int(
+                        metadata.get("evaluation_index", query_index % 50)
+                    ),
+                    "room": metadata.get("room"),
+                    "direction": metadata.get("direction"),
                     "horizon": 1,
                     "target_delay": int(delay),
                     "selected_target": selected_delay,
@@ -1491,6 +1872,12 @@ def _action_delay_physical_group_metrics(
             records.append(
                 {
                     "query_id": query_id,
+                    "eval_seed": int(metadata.get("eval_seed", 0)),
+                    "evaluation_index": int(
+                        metadata.get("evaluation_index", query_index % 50)
+                    ),
+                    "room": metadata.get("room"),
+                    "direction": metadata.get("direction"),
                     "target_delay": int(delay),
                     "target_physical_group": true_group,
                     "selected_target": selected_delay,
@@ -1509,6 +1896,102 @@ def _action_delay_physical_group_metrics(
         bootstrap_resamples=_ACTION_DELAY_BOOTSTRAP_RESAMPLES,
         bootstrap_seed=_ACTION_DELAY_BOOTSTRAP_RANDOM_SEED,
     )
+    metadata_by_query = {
+        str(row["query_id"]): row for row in arrays.query_metadata
+    }
+    for row in metrics.get("query_metrics", []):
+        metadata = metadata_by_query.get(str(row["query_id"]), {})
+        row["room"] = metadata.get("room")
+        row["direction"] = metadata.get("direction")
+    metrics["query_metadata"] = {
+        "fields": ["query_id", "eval_seed", "room", "direction"],
+        "eval_seed_query_counts": metrics.get("eval_seed_query_counts", {}),
+        "room_counts": {
+            str(room): sum(
+                1 for row in arrays.query_metadata if row.get("room") == room
+            )
+            for room in sorted(
+                {
+                    row.get("room")
+                    for row in arrays.query_metadata
+                    if row.get("room") is not None
+                }
+            )
+        },
+        "direction_counts": {
+            str(direction): sum(
+                1
+                for row in arrays.query_metadata
+                if row.get("direction") == direction
+            )
+            for direction in sorted(
+                {
+                    row.get("direction")
+                    for row in arrays.query_metadata
+                    if row.get("direction") is not None
+                }
+            )
+        },
+    }
+
+    if auxiliary_horizons:
+        # Build the full Test-shaped horizon loss records from the one h3
+        # rollout.  This is retained as Development diagnostics only; no gate
+        # or pass decision is copied into the result.
+        def _target_track(delay: int) -> str:
+            if delay in (0, 4, 8):
+                return "training_seen"
+            if delay in (1, 2, 3, 5, 6, 7):
+                return "within_range_unseen"
+            return "above_range_unseen"
+
+        horizon_records: list[dict[str, Any]] = []
+        horizon_losses = np.square(
+            predictions[:, :, None, :, :]
+            - targets[:, None, :, :, :]
+        ).mean(axis=-1)
+        for query_index, query_id in enumerate(arrays.query_ids):
+            metadata = arrays.query_metadata[query_index]
+            for horizon_index in range(requested_horizons):
+                horizon = horizon_index + 1
+                for history_index, history_delay in enumerate(arrays.delay_values):
+                    for target_index, target_delay in enumerate(arrays.delay_values):
+                        horizon_records.append(
+                            {
+                                "query_id": str(query_id),
+                                "eval_seed": int(metadata.get("eval_seed", 0)),
+                                "evaluation_index": int(
+                                    metadata.get("evaluation_index", query_index % 50)
+                                ),
+                                "room": metadata.get("room"),
+                                "direction": metadata.get("direction"),
+                                "history_delay": int(history_delay),
+                                "target_delay": int(target_delay),
+                                "target_track": _target_track(int(target_delay)),
+                                "horizon": horizon,
+                                "target_physical_group": physical_future_group(
+                                    int(target_delay), horizon
+                                ),
+                                "latent_mse": float(
+                                    horizon_losses[
+                                        query_index,
+                                        history_index,
+                                        target_index,
+                                        horizon_index,
+                                    ]
+                                ),
+                            }
+                        )
+        horizon_summary = _summarize_development_action_delay_horizons(
+            horizon_records
+        )
+        metrics["by_horizon"] = _decision_free(horizon_summary["by_horizon"])
+        metrics["trajectory"] = _decision_free(horizon_summary["trajectory"])
+        metrics["auxiliary_horizons"] = {
+            "available": [2, 3],
+            "source": "single_h3_rollout_reused_for_h2_h3",
+            "record_count": len(horizon_records),
+        }
     # Structural parity with Public Test: emit the same six anti-shortcut gate
     # INPUT metrics through the Test kernel itself.  ``losses`` is indexed
     # [query, history condition, target], so the matching-history entry for a
@@ -1542,8 +2025,8 @@ def _action_delay_physical_group_metrics(
                 losses[query_index, target_index, target_index] < min(alternatives)
             )
     gate_inputs = action_delay_gate_completion_metrics(
-        predicted_h1=predictions,
-        encoded_h1=targets,
+        predicted_h1=predictions_h1,
+        encoded_h1=targets_h1,
         query_ids=[str(value) for value in arrays.query_ids],
         history_strict_wins=strict_wins,
         config=load_test_gate_completion_config(),

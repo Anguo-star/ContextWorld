@@ -25,6 +25,52 @@ import pytest
 from contextworld.benchmarks import public_test_report_cli as cli
 
 
+def test_v2_admission_rejects_headline_only_development_evidence(tmp_path: Path) -> None:
+    """A caller's true flag cannot bypass missing anti-shortcut evidence."""
+    checkpoint = make_checkpoint(tmp_path)
+    source = tmp_path / "development.json"
+    source.write_text(json.dumps({
+        "evaluation_split": "development", "task": "action_delay",
+        "result": {
+            "model": {"training_seed": 3072, "adapter": {
+                "checkpoint_sha256": sha256_bytes(checkpoint),
+            }},
+            "metrics": {"physical_group_macro_accuracy": 1.0},
+        },
+    }))
+    raw = make_unit(component="action_delay", checkpoint=checkpoint,
+                    output=tmp_path / "test.json")
+    raw["admission"]["development_result"] = {
+        "path": str(source), "sha256": sha256_bytes(source),
+    }
+    units = cli.parse_units({"schema_version": 2, "units": [raw]})
+    assert units[0].admission_cleared is False
+    assert units[0].reference_admission["decision"]["passed"] is False
+    decision = cli.plan_unit(units[0], tmp_path, force=False)
+    assert decision.status == cli.STATUS_SKIPPED_NOT_ADMITTED
+    assert not decision.will_run
+
+
+def test_v2_admission_rejects_changed_evidence_and_other_weights(tmp_path: Path) -> None:
+    checkpoint = make_checkpoint(tmp_path)
+    source = tmp_path / "development.json"
+    envelope = {
+        "evaluation_split": "development", "task": "door",
+        "result": {"model": {"training_seed": 3072, "adapter": {
+            "checkpoint_sha256": "0" * 64,
+        }}},
+    }
+    source.write_text(json.dumps(envelope))
+    raw = make_unit(component="door", checkpoint=checkpoint, output=tmp_path / "test.json")
+    raw["admission"]["development_result"] = {"path": str(source), "sha256": "0" * 64}
+    manifest = {"schema_version": 2, "units": [raw]}
+    with pytest.raises(ValueError, match="has changed"):
+        cli.parse_units(manifest)
+    raw["admission"]["development_result"]["sha256"] = sha256_bytes(source)
+    with pytest.raises(ValueError, match="another checkpoint"):
+        cli.parse_units(manifest)
+
+
 def sha256_bytes(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 

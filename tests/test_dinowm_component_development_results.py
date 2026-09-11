@@ -98,7 +98,8 @@ def test_public_document_reports_all_nine_component_states() -> None:
     document = BENCHMARK.read_text(encoding="utf-8")
 
     assert "public_test_accessed=false" not in document
-    assert "Public Test 没有打开" in document
+    assert "Public Test 没有打开" not in document
+    assert "历史批次实际已产生相应 Test 文件" in document
     for label in (
         "速度",
         "门通行规则",
@@ -130,7 +131,7 @@ def test_public_document_uses_one_split_aware_comparison_table() -> None:
     # the pointer to its machine-readable source, plus the superseded records
     # kept for provenance.
     assert (
-        "contextworld_joint_scratch_v1_reference_results_freeze_v1.json" in section
+        "contextworld_joint_scratch_v1_reference_results_freeze_v2.json" in section
     )
     assert "complete_comparison_v2.json" in section
     assert "contextworld_dinowm_component_development_results_v1.json" in section

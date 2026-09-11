@@ -109,6 +109,37 @@ contextworld-public-test-report verify --receipt public_test_report_<report_id>.
 准入闸门：未清过 Development 的单元会被拒绝执行（回执记为 `skipped_not_admitted`），
 公开 Test 只用于最终报告，不参与模型选择或调参。
 
+当前参考使用 `schema_version: 2` 的清单。每个单元的 `admission` 除
+`cleared_development` 外，还须提供 `development_result: {"path": "/absolute/result.json",
+"sha256": "..."}`。入口核对任务、训练种子、检查点和源文件哈希，再按统一门槛重新判定；
+手填通过标志不能绕过检查。旧 v1 清单保留历史语义，不代表已经经过当前参考的准入核验。
+
+### 固定研究参考
+
+后续方法以
+[`contextworld_joint_scratch_v1_reference_results_freeze_v2.json`](configs/benchmark/contextworld_joint_scratch_v1_reference_results_freeze_v2.json)
+为比较起点。该记录绑定逐单元源结果快照、主分数、门槛决策、数据选择、检查点与代码身份；
+历史运行时未自动记录的部分明确披露，新补评记录实际运行时。
+
+```bash
+# 核对冻结来源、分数和门槛决策
+python scripts/freeze_current_reference_baseline.py verify
+
+# 核对主文档和 Development 表是否仍与冻结记录一致
+python scripts/render_current_reference_tables.py --check
+
+# 新方法使用同一判定器，原始评测 JSON 保持不变
+python -m contextworld.benchmarks.reference_decision single \
+  --component action_delay --split development --input result.json \
+  --output reference_decision.json
+```
+
+新方法追加独立结果并引用该 freeze ID。改变任务数据、主指标或门槛语义时建立新版本，
+不覆盖已有参考，也不以提高 baseline 分数作为封板条件。
+方法级判定使用同模块的 `method` 子命令，重复三次 `--input`；三个独立训练种子、不同
+检查点哈希及一致配方/adapter 身份必须齐全，且各自通过。旧单组件 scorer 的历史通过字段
+保留原义，当前结论以 `reference_decision` 为准。
+
 ## 接入其他模型
 
 数据包不限制模型必须属于内置模型族。外部模型只需实现

@@ -294,6 +294,7 @@ class TestResultLabelling:
         )
         assert payload["result_kind"] == RESULT_KIND == "development_only_not_public_test"
         assert payload["official_scoreboard_row"] is False
+        assert payload["runtime_fingerprint"]["schema_version"] == 1
         # The evaluator payload is nested, never spread into the envelope, so
         # a Development result cannot be replayed as a held-out result.
         assert payload["result"] == {"metrics": {"icl_score": 0.5}}
@@ -390,6 +391,7 @@ class TestResultLabelling:
         assert payload["result_kind"] == "public_test_offline_final_report_v1"
         assert payload["evaluation_split"] == "test"
         assert payload["official_scoreboard_row"] is False
+        assert payload["runtime_fingerprint"]["schema_version"] == 1
         assert payload["result"]["gate"]["passed"] is False
         assert "must not be fed back into tuning" in payload["note"]
 
@@ -489,7 +491,7 @@ class TestArgumentParsing:
                 ]
             )
 
-    def test_h3_tail_projection_is_limited_to_action_delay_prejepa(self) -> None:
+    def test_h3_tail_projection_is_limited_to_action_delay(self) -> None:
         with pytest.raises(SystemExit):
             external_model_cli.parse_args(
                 [
@@ -511,6 +513,28 @@ class TestArgumentParsing:
             ]
         )
         assert parsed.history_adapter == "h3_tail_projection"
+
+    @pytest.mark.parametrize("family", ("lewm", "pldm"))
+    def test_h3_tail_projection_explicitly_selects_h3_builtin_family(
+        self, family: str
+    ) -> None:
+        parsed = external_model_cli.parse_args(
+            [
+                "--task", "action_delay",
+                "--adapter", family,
+                "--checkpoint", "/tmp/x.pt",
+                "--model-name", "m",
+                "--history-adapter", "h3_tail_projection",
+            ]
+        )
+        adapter_class = _builtins_for_run(
+            TASKS["action_delay"], parsed
+        )[family]
+        assert adapter_class.__name__ == (
+            "StableWorldModelLeWMH3TailProjectionAdapter"
+            if family == "lewm"
+            else "StableWorldModelPLDMH3TailProjectionAdapter"
+        )
 
 
 def _pins_from_release_payload(payload: dict[str, Any]) -> dict[str, str]:

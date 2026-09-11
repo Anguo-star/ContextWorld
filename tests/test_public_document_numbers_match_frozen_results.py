@@ -367,7 +367,7 @@ def test_documented_cem_budget_matches_the_recorded_budget() -> None:
 CURRENT_FREEZE = (
     ROOT
     / "configs/benchmark"
-    / "contextworld_joint_scratch_v1_reference_results_freeze_v1.json"
+    / "contextworld_joint_scratch_v1_reference_results_freeze_v2.json"
 )
 # The two components the suite registry marks ``failed_development`` never
 # consumed the held-out split, so their documented cells carry the Development
@@ -503,8 +503,9 @@ def test_documented_gate_verdict_matches_the_current_freeze(
     if len(cells) != 3:
         pytest.skip(f"{component_id}/{family} has no three-checkpoint record")
     verdicts = [row[split]["all_gates_passed"] for row in cells]
-    if any(value is None for value in verdicts):
-        pytest.skip(f"{component_id}/{family} records no gate decision")
+    assert all(isinstance(value, bool) for value in verdicts), (
+        f"{component_id}/{family} lacks a versioned decision for the displayed split"
+    )
     passed = sum(1 for value in verdicts if value)
 
     table, row = _reference_row(component_id, family)

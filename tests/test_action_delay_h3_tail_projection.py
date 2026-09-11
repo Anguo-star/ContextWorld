@@ -10,6 +10,9 @@ from contextworld.benchmarks import action_delay_original_baseline_recovery_cli
 from contextworld.benchmarks.action_delay_h3_tail_projection import (
     H3TailProjectionActionDelayAdapter,
 )
+from contextworld.benchmarks.action_delay_development_adapter import (
+    DevelopmentH3TailProjectionActionDelayAdapter,
+)
 from contextworld.benchmarks.adapters import AdapterProtocol
 from contextworld.benchmarks.source_fingerprint import (
     SEMANTIC_UNCHANGED,
@@ -44,7 +47,7 @@ class _NativeH3Adapter:
         batch_size: int,
     ) -> np.ndarray:
         self.received = (pixels.copy(), actions.copy(), batch_size)
-        return np.zeros((len(pixels), 3, 4), dtype=np.float32)
+        return np.zeros((len(pixels), actions.shape[1] - 2, 4), dtype=np.float32)
 
     def encode_pixels(self, pixels: np.ndarray, *, batch_size: int) -> np.ndarray:
         return np.asarray(pixels)[:, 0, 0, :1]
@@ -113,6 +116,34 @@ def test_h3_tail_projection_rejects_unaligned_h7_action_sequence() -> None:
 
     with pytest.raises(ValueError, match=r"expects \[B,9,5,A\] action blocks"):
         adapter.rollout_latents(pixels, actions, batch_size=1)
+
+
+def test_development_h3_tail_projection_accepts_seven_action_blocks() -> None:
+    base = _NativeH3Adapter()
+    adapter = DevelopmentH3TailProjectionActionDelayAdapter(base)
+    pixels = np.arange(2 * 7 * 1 * 1 * 3, dtype=np.uint8).reshape(2, 7, 1, 1, 3)
+    actions = np.arange(2 * 7 * 5 * 2, dtype=np.float32).reshape(2, 7, 5, 2)
+
+    predicted = adapter.rollout_latents(pixels, actions, batch_size=13)
+
+    assert predicted.shape == (2, 1, 4)
+    assert base.received is not None
+    received_pixels, received_actions, batch_size = base.received
+    assert batch_size == 13
+    assert np.array_equal(received_pixels, pixels[:, -3:])
+    assert np.array_equal(received_actions, actions[:, -3:])
+    assert adapter.metadata["supported_request_conventions"] == {
+        "development_h1": {
+            "source_action_block_count": 7,
+            "projected_action_block_count": 3,
+            "future_action_blocks": 1,
+        },
+        "test_h3": {
+            "source_action_block_count": 9,
+            "projected_action_block_count": 5,
+            "future_action_blocks": 3,
+        },
+    }
 
 
 def test_recovery_cli_defaults_to_native_h7_and_tail_projection_is_explicit(

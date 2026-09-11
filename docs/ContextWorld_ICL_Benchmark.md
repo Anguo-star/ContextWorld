@@ -49,19 +49,19 @@ Test 成绩报告。公开 Test 提高了可复现性，但由于当前没有托
 “Development-only selection, Test-only final reporting”的信息边界。
 
 Development 的公开抽取由每个组件的 `task_registry.json` 固定，不是统一采样：门通行
-规则 288 对，动作延迟 300 对，速度 288 个 history-utility case，其余六项各 256 对。
+规则与动作延迟各 300 个 query，速度按四条 track 的参考速度族抽取，其余六项各 256 对。
 原任务 CEM 的“6 × 50”是另一套预算（见 4.3），不要与 Development 的抽样数混用。
 
 | 任务 | Training | Development | Public Test | 主要变化范围 |
 |---|---:|---:|---:|---|
-| 速度 | 32 档速度 | 288 个 history-utility case | 每个参考速度 300 个查询 | 训练内插值与范围外速度 |
+| 速度 | 32 档速度 | 每个参考速度 300 个查询 | 每个参考速度 300 个查询 | 训练内插值与范围外速度 |
 | 推手移动幅度 | 2,048 对 | 256 对 | 256 对 | 移动幅度 60 / 140 |
 | 机械臂质量 | 2,048 对 | 256 对 | 256 对 | 密度 500 / 1500 |
-| 动作延迟 | 延迟 0–10 | 300 对 | 300 个查询 × 11 种延迟 | 0、1、2、3、4、5–10 六个响应组 |
+| 动作延迟 | 延迟 0–10 | 300 个查询 × 11 种延迟 | 300 个查询 × 11 种延迟 | 0、1、2、3、4、5–10 六个响应组 |
 | 接触摩擦 | 8,192 对 | 256 对 | 256 对 | 摩擦系数 0.05 / 0.80 |
 | 运动阻尼 | 8,192 对 | 256 对 | 256 对 | 阻尼 0.2 / 1.0 |
 | Cube 夹爪携带规则 | 2,048 对 | 256 对 | 256 对 | 可携带 / 不可携带 |
-| 门通行规则 | 96 个门位置 | 16 个门位置、288 对 | 42 个未见门位置、300 个场景 | 可通过 / 被阻挡 |
+| 门通行规则 | 96 个门位置 | 16 个 loader-val 门位置、300 个场景 | 42 个未见门位置、300 个场景 | 可通过 / 被阻挡 |
 | 传送门出口位置 | 2,048 对 | 256 对 | 256 对 | 靠近边界 / 远离边界的出口 |
 
 ## 3. 评测协议
@@ -145,9 +145,9 @@ Training、Development 和 Public Test 的场景、生成模板和 query 哈希�
 参考方法通常使用三个独立训练种子。只有三个检查点分别满足该任务的全部条件，方法才
 记为 3/3 通过；平均分达到门槛不能替代逐检查点判定。
 
-公开 Speed Development 不复用上述匹配指标。它比较完整 H3 历史与 current-frame-only
-消融的一步预测误差，报告历史带来的改善（history-utility diagnostic）。这不是匹配反事实
-评测，也不产生正式通过判定；速度任务的正式分数来自 Public Test 的严格历史比较。
+Development 与 Public Test 共用主指标和门槛内核，使用隔离的数据行。Speed 的主指标是
+匹配历史相对其余每一个历史条件的严格胜率；早期 history-utility 数值仅保留为历史诊断。
+Development 原始结果不含通过字段；当前版本的独立决策回执按相同阈值核算准入。
 
 ### 4.2 评分有效性与防作弊
 
@@ -205,56 +205,55 @@ ContextWorld 的参考结果分两部分维护：§5.1 是**当前标准参考**
 规划能力是否保留；两项指标互补，不合成为单一总分。出现在参考结果表或记分板中并不代表
 通过该组件的门槛；每行通过与否只看“判定”列。
 
-### 5.1 当前标准参考（2026-09-03 训练批次 / 2026-09-07 完成 Public Test 补跑）
+### 5.1 当前标准参考（2026-09-03 训练批次 / baseline completion v2）
 
 LeWM、PLDM 与 DINO-WM（StableWM 的 PreJEPA 实现）三个模型均已完成标准
 `joint_scratch_v1` 配方（`CW_METHOD=native`，10 epochs，从零训练，训练种子
 3072/3073/3074）下全部九项组件的训练与自动 Development 评测，共 81 个训练单元；
-其中已通过 Development 准入门槛的组件另于 2026-09-07 完成 Public Test 评测（见下文
-第 3 点）。本节表格同时给出四个量：**原始基线 ICL、原始环境 CEM、训练后 ICL、
+历史 Public Test 运行及后续评分收尾均保留来源与准入边界。本节表格同时给出四个量：**原始基线 ICL、原始环境 CEM、训练后 ICL、
 训练后原任务 CEM**。完整逐训练
-种子数据、检查点 SHA-256 与训练代码版本见机器可读快照
-[`contextworld_native_v1_2026-09-03_snapshot.json`](reference/contextworld_native_v1_2026-09-03_snapshot.json)，
+种子数据、检查点 SHA-256 与训练代码版本见机器可读冻结记录
+[`contextworld_joint_scratch_v1_reference_results_freeze_v2.json`](../configs/benchmark/contextworld_joint_scratch_v1_reference_results_freeze_v2.json)，
 逐评测种子明细见
 [结果复现附录 §5.1](reference/Benchmark_Result_Provenance.md#51-2026-09-03-完整重训全部九项的完整三训练种子结果)。
 
 **读表前必须明确的四件事：**
 
-1. **四个 ICL 列都是三训练种子、同一评测数据、同一评分代码。** 基线侧是只用原环境数据
+1. **ICL 起点与训练后分数均为三训练种子。** 基线侧是只用原环境数据
    训练的检查点（4 环境 × 2 家族 × 3 种子），训练后侧是加入 ContextWorld 组件数据训练的
    检查点（3 模型 × 9 组件 × 3 种子）。两侧的 Development 都读 `ContextWorld-v1`
-   （rc1），Public Test 都读 `ContextWorld-v1-full`（rc2），因此**同一行内四个 ICL 列可以
-   直接比较**。数据身份见本节下方的溯源表。
-2. **每项任务的主分数字段不同，不能跨任务比较绝对值。** 速度的 Development 是
-   history-utility 诊断（完整 H3 历史相对仅当前帧的一步预测改善），Public Test 是训练
+   （rc1），Public Test 都读 `ContextWorld-v1-full`（rc2）；同一任务、同一划分上的训练前后
+   分数使用相同的数据选择与指标。动作延迟另有 H3→H7 架构差异，见 §5.1.2。
+   数据身份见本节下方的溯源表。
+2. **每项任务的主分数字段不同，不能跨任务比较绝对值。** 速度两侧都是训练
    范围内未见速度的一步严格正确率；动作延迟两侧都是六个物理响应组宏平均（随机基线
    16.67%）；门通行规则的 Public Test 是按真规则与方向分层的目标选择率；其余六项两侧
    都是配对正确率（随机基线 50%）。逐组件字段名见 §5.1.1。
 3. **DINO-WM 没有基线 ICL 列。** 其原始检查点的 predictor 需要 `observation`/`proprio`
    状态输入，在只给 RGB 与动作的评分接口下记为 `not_compatible`，因此基线两列为“—”。
-   DINO-WM 的基线原任务 CEM 完整，但与其组件结果一样属非冻结补充证据。
-4. **通过判定不在本表内。** 本表只报告分数；是否满足 §4.1 的全部门槛（主分数、最弱
-   条件、历史使用、上下文切换、latent 响应、bootstrap 下界）需逐检查点核算，见 §5.1.4。
-   分数高不等于通过：DINO-WM 的推手移动幅度与传送门出口位置主分数很高，但 latent 响应
-   增益低于 0.50 的门槛。
+   DINO-WM 的基线原任务 CEM 完整，与其组件结果同属补充证据；本轮固定其数值与来源，
+   不改变原工件的 `official_frozen_matrix: false` 身份。
+4. **通过判定见「ICL 门槛结果」列。** 主分数、最弱条件、历史使用、上下文切换、latent
+   响应和适用的 bootstrap 下界须逐检查点达标。分数高不等于通过：DINO-WM 的传送门出口
+   主分数很高，但 latent 响应增益低于 0.50；推手移动幅度则主分数本身未达 0.95。
 
-**本表只报告 Public Test。** Public Test 是最终结论所在；Development 用于检查评测集
-本身构造是否合理，不作能力结论，逐单元数值见
-[结果复现附录](reference/Benchmark_Result_Provenance.md)。两个划分刻意不使用同一套评分
-结构——若 Development 与 Public Test 完全一致，在 Development 上做的配方与检查点选择就会
-泄露 Test 分布。
+**本表默认报告 Public Test；Development 单元逐格标注。** Development 用于配方选择、
+实现检查和准入，逐单元数值见[结果复现附录](reference/Benchmark_Result_Provenance.md)。
+两个划分共用评分结构与阈值，依靠不同的数据行保持隔离；相同评分合同本身不构成数据泄漏。
 
 数值为百分比，`±` 后为三个训练种子间的样本标准差。训练前是只用原环境数据训练的检查点，
 训练后是加入 ContextWorld 组件数据训练的检查点，两者均为三训练种子。随机基线列给出该任务
 完全不使用历史时的期望水平，是判断“是否真的学到”的下界参照。带 † 的 CEM 单元是 DINO-WM
-的非冻结补充证据。
+的补充证据，已纳入当前研究参考的来源绑定，但未升级为原正式 scoreboard 成绩。
 
 **「ICL 门槛结果」列是本表的结论列，主分数不是。** 主分数只回答“能否选对真实未来”，
 不能排除模型靠与历史无关的静态线索取巧，因此每个检查点还要过该组件冻结发布里的全部
 反捷径门槛（最弱条件正确率、正确历史使用率、上下文/规律切换率、latent 响应增益、
 归一化响应误差，以及具备该项的组件的 paired bootstrap 95% 下界）。本列写“3/3 通过”
 只在三个训练种子**全部**过齐全部门槛时成立；否则写“未通过（n/3）”。阈值逐组件不同，
-以各自 `configs/benchmark/*_icl_release_v1.yaml` 为准，本表不做统一或折减。
+以各自 `configs/benchmark/*_icl_release_v1.yaml` 及追加的
+`contextworld_test_gate_completion_v1.yaml` 为准。当前版本的统一决策合取原门槛和追加门槛，
+历史字段保留原义，本表不折减阈值。
 
 高主分数被门槛否决的情形是本表要暴露的重点，不是异常：
 
@@ -271,8 +270,8 @@ LeWM、PLDM 与 DINO-WM（StableWM 的 PreJEPA 实现）三个模型均已完成
   未见速度，但不外推。
 
 **本表的机器可读来源。** 逐检查点的主分数与门槛总判定（Development 与 Public Test 各一份，
-共 135 枚检查点）在
-`configs/benchmark/contextworld_joint_scratch_v1_reference_results_freeze_v1.json`；
+共 135 个检查点×任务单元）在
+`configs/benchmark/contextworld_joint_scratch_v1_reference_results_freeze_v2.json`；
 `tests/test_public_document_numbers_match_frozen_results.py` 逐格核对本表与该文件。
 两份被它取代的早期记录仍保留可查：DINO-WM 组件训练途中的 Development 快照
 `configs/benchmark/contextworld_dinowm_component_development_results_v1.json`
@@ -286,12 +285,13 @@ DINO-WM。
 
 **Development 与 Public Test 可以出现在同一张表中，但每格必须自述是哪一个。**
 本表默认给 Public Test 数值；接触摩擦与运动阻尼两行标注（Development），
-因为这两个组件的 Public Test 没有打开。
+因为这两个组件未获当前参考的 Public Test 准入。历史批次实际已产生相应 Test 文件；
+冻结记录保留这些文件和读取事实，并明确排除其正式报告资格。
 本基准的协议是 Development 决定选型、Public Test 只用于最终报告；一个在 Development 上
 已经处于随机水平的组件不应再动用留出划分。`configs/benchmark/contextworld_icl_suite_v2.yaml`
 把这两个组件登记为 `failed_development`，与实测一致：三个模型在 Development 上主分数
-49.6–51.9%（随机水平 50%），六项门槛输入 0/3 通过，正确历史使用率、切换率、响应增益
-全部不达标。表中给出的是 Development 数值，不得读作 Public Test 结果。
+49.6–51.9%（随机水平 50%），全部条件合取后均为 0/3。表中给出的是 Development 数值，
+不得读作 Public Test 结果，也不能把排除已有 Test 结果描述为从未评测。
 
 | 能力类型 | 任务 | 模型 | 随机基线 | 原始 ICL 起点 | 组件训练后 ICL 主分数 | ICL 门槛结果 | 原始 CEM 起点 | 训练后原任务 CEM |
 |---|---|---|---:|---:|---:|:--|---:|---:|
@@ -323,20 +323,14 @@ DINO-WM。
 | 隐藏结构转移 | 传送门出口位置 | PLDM | 50% | 50.07% ± 0.11pp | 69.53% ± 1.37pp | 未通过（0/3） | 90.56% ± 5.17pp | 94.44% ± 2.17pp |
 | 隐藏结构转移 | 传送门出口位置 | DINO-WM | 50% | — | 99.35% ± 0.30pp | 未通过（0/3） | 98.44% ± 1.02pp† | 98.56% ± 0.84pp† |
 
-**速度的两个 ICL 列不是同一指标。** Development 报告 history-utility 诊断（完整 H3 历史
-相对仅当前帧的一步预测改善），Public Test 报告训练范围内未见速度的一步严格正确率
-（`unseen_interpolation` track、horizon 1、要求优于其余每一档参考速度）。二者不可相减。
-Public Test 侧另有两条 extrapolation track（训练范围外速度），三个模型逐检查点均为 0/3，
-属协议内单独登记的诊断轨，不计入本表。
+**速度两侧使用同一主指标。** 主分数取 `unseen_interpolation` track、horizon 1，要求匹配
+历史优于其余每一档历史。四条 track 均进入当前版本的门槛总判定；范围外结果单独保留，
+不与内插主分数求平均。
 
-**门通行规则的两个 ICL 列口径不同。** Development 用公开 bundle 的 288 对泛型配对
-（`correct_future_rate`），Public Test 用 1800 条记录按真规则 × 方向分层的目标选择率
-（`same_history_two_target_accuracy`），另含分层 bootstrap 与 two-target margin 审计。
-公开 Development 载荷撑不起正式口径：它没有 `eval_seed` 维度，Lance 表内没有 direction
-元数据，门位域与正式协议的 42 个未见门位按设计不相交（Development 用的是 16 个训练相邻
-门位）。另需登记一项载荷缺陷：现行“取前 18 个 sorted episode id”的选择规则使 288 对
-全部落在 `left_to_right`（每个 scenario 的 episode 0–39 为 ltr、40–79 为 rtl），方向维度
-实际退化。门通行规则的正式分数只能来自 Public Test 轨道。
+**门通行规则两侧使用同一主指标和分层结构。** 两侧各 300 场景、三个历史条件，均按
+真规则与方向汇总，并保留评测种子分层和 paired bootstrap。Development 使用 16 个
+loader-val 门位，Public Test 使用独立的 42 个门位。早期缺方向的 288 对载荷保存在
+legacy 目录，不再用于当前参考的 Development 比较。
 
 **动作延迟两列同为六组口径。** 六个物理响应组（0 / 1 / 2 / 3 / 4 / 5–10）宏平均，随机
 基线 16.67%，另要求最弱组 ≥60%、bootstrap 95% 下界 ≥70%。自动 post-train 管线早期对
@@ -344,18 +338,17 @@ Public Test 侧另有两条 extrapolation track（训练范围外速度），三
 已不再作为主分数使用；判定理由见 §5.1.4。基线两列的 16.67% 是 History=3 检查点经
 `h3_tail_projection` 在该评分器下的零样本读数，恰好等于随机水平。
 
-**评分所用数据的身份。** 全表 270 个 ICL 单元只用两个数据包，两侧一致：
+**评分所用数据的身份。** 当前参考固定以下数据目标，逐单元保留真实运行时的数据身份：
 
 | 划分 | 数据包 | 身份 |
 |---|---|---|
-| Development（基线 + 训练后） | `ContextWorld-v1` | `dataset_version 1.0.0-rc1`，manifest `46f5cdb8…`，task_registry `6a96183a…` |
+| Development（基线 + 训练后） | `ContextWorld-v1` | `dataset_version 1.0.3-rc1`，manifest `4c5b9cdc…`，task_registry `7952ff61…` |
 | Public Test（基线 + 训练后） | `ContextWorld-v1-full` | `dataset_version 1.0.0-rc2`，manifest `81eb29d8…`，task_registry `26b78ae7…` |
 
-两个包共有的 4368 个路径中 4356 个 sha256 相同，其余 12 个全是元数据（9 个
-`component_card.md` 加 `README.md`、`task_registry.json`、`VERSION.json`）；rc2 只是多出
-635 个 Public Test 载荷。因此两个划分同属一条数据血脉。全部 270 个单元的信封字段已逐一
-核对：Development 的 bundle manifest 前缀均为 `46f5cdb8` 且不含 `gate` 字段，Public Test
-均为 `81eb29d8` 且 `official_scoreboard_row: false`。
+Development 的速度、门通行和动作延迟载荷已按相同评分结构更新，Test 载荷保持冻结。
+原结果的旧 manifest 不改写；未变化组件通过成员文件与选择合同的等价证据绑定到当前目标。
+动作延迟因数据行实际变化而重新评测。Development 原始结果不含 `gate`，总判定保存在独立
+决策回执；Public Test 结果属于离线描述性证据，不自动成为官方 scoreboard 行。
 
 Public Test 已随基准公开分发，但可用不等于授权：不能在 Public Test 上选择或调参模型，Test 只用于最终报告。
 
@@ -370,14 +363,14 @@ Public Test 已随基准公开分发，但可用不等于授权：不能在 Publ
 
 | 任务 | Development 字段 | Public Test 字段 | 随机基线 |
 |---|---|---|---|
-| 速度 | `metrics.history_better_rate` | `tracks.unseen_interpolation.horizons.1.reference_speed_balanced_strict_query_win_rate_vs_every_other` | 两侧口径不同，见上 |
+| 速度 | `metrics.tracks.unseen_interpolation.horizons.1.reference_speed_balanced_strict_query_win_rate_vs_every_other` | `tracks.unseen_interpolation.horizons.1.reference_speed_balanced_strict_query_win_rate_vs_every_other` | 33.33% |
 | 推手移动幅度 | `metrics.correct_future_rate` | 同左 | 50% |
 | 机械臂质量 | `metrics.correct_future_rate` | 同左 | 50% |
 | 动作延迟 | `metrics.physical_group_macro_accuracy` | `core_h1.physical_group_macro_accuracy` | 16.67% |
 | 接触摩擦 | `metrics.correct_future_rate` | 同左 | 50% |
 | 运动阻尼 | `metrics.correct_future_rate` | 同左 | 50% |
 | Cube 夹爪携带规则 | `metrics.correct_future_rate` | 同左 | 50% |
-| 门通行规则 | `metrics.correct_future_rate` | `summary.overall.same_history_two_target_accuracy` | 50% |
+| 门通行规则 | `metrics.same_history_two_target_accuracy` | `summary.overall.same_history_two_target_accuracy` | 50% |
 | 传送门出口位置 | `metrics.correct_future_rate` | 同左 | 50% |
 
 #### 5.1.2 证据等级与已知不对称
@@ -391,20 +384,19 @@ Public Test 已随基准公开分发，但可用不等于授权：不能在 Publ
   这 24 枚。
 - **DINO-WM 没有基线 ICL。** 其原始检查点的 predictor 需要 `observation`/`proprio`
   状态输入，在只给 RGB 与动作的评分接口下记为 `not_compatible`，因此表中基线两列为“—”。
-  DINO-WM 的基线原任务 CEM 是完整的三训练种子 × 300 次，可以对照，但与其组件结果同属
-  非冻结补充证据。
+  DINO-WM 的基线原任务 CEM 是完整的三训练种子 × 300 次，可以对照；当前参考固定其
+  数值与来源，同时保留其补充证据身份。
 - **动作延迟的基线是跨历史长度读数。** 基线检查点是 History=3，该任务要求 History=7，
   基线两列使用 `h3_tail_projection`（只把对齐的最后三帧与最后五个动作块交给模型，不插值
-  位置编码、不训练、不改权重）。因此 16.67% → 97.99% 的差值里同时含有“学会延迟规律”与
-  “H3→H7 结构变化”两件事，不是严格配对的训练增益。
+  位置编码、不训练、不改权重）。因此 16.67% → 97.68% 的差值里同时含有“学会延迟规律”与
+  “H3→H7 结构变化”两件事，不是严格配对的训练增益。16.67% 是所测检查点的实测零样本
+  结果，不能据此推出 H3 架构的理论上限。其余八个组件的任务历史长度都是 3，基线原生匹配。
 - **CEM 两列的差不是非劣性判定。** 表中只并列训练前后的成功率，读者自行对读；正式非
   劣性判定与逐组件预注册的允许下降额度见 §4.3 与结果复现附录 §4.2。CEM 均为每枚检查点
   300 次；基线 Reacher 与 Cube 那批使用三个评测种子 × 100 次，其余使用六个评测种子 ×
   50 次，总预算相同但抽样结构不同。
-- **本表不含通过判定。** 分数达标不等于通过：门槛还包括最弱条件、历史使用、上下文或规律
-  切换、latent 响应增益与归一化响应误差、bootstrap 下界，需逐检查点核算。已知例子是
-  DINO-WM 的推手移动幅度与传送门出口位置——主分数分别为 93.82% 与 99.35%，但 latent
-  响应增益分别约为 0.48 与 0.35，低于 0.50 的门槛。
+- **本表的总判定逐检查点计算。** 门槛包括最弱条件、历史使用、上下文或规律切换、latent
+  响应增益与归一化响应误差及适用的 bootstrap 下界；平均主分数不能替代三种子全部通过。
 
 #### 5.1.3 训练源码快照与评测 checkout
 
@@ -495,6 +487,17 @@ LeWM 从 32.43%（历史参考）到 97.75%（本批）的变化**不是口径�
 
 ### 5.3 当前参考的已知边界
 
+- **门通行规则在训练后模型的顶端已无区分度，这是余量限制而不是数据缺陷。** 三个训练后
+  模型在 Development 与 **Public Test 两侧**的主分数都落在 99.83–100.00%，基线则是
+  50.00%。因此该组件仍能决定性地回答"学到 / 没学到"，但无法在已经学到的候选之间排序。
+  **不为此重新合成 Development 数据**：Public Test 已冻结且同样饱和，而 Development 必须
+  与 Public Test 结构与难度对等、只在数据行上不重叠；把 Development 造得更难会让它去测
+  Public Test 不测的东西，正是本轮消除的"两套口径"。要提高门通行的难度，只能同时改两侧、
+  发布新的 Public Test 版本。
+  在此之前，门通行的候选排序应读门槛输入而不是主分数——它们仍有区分力：三个满分模型的
+  latent 响应增益分别是 LeWM 0.942、PLDM 1.045、DINO-WM 0.758，归一化响应误差
+  0.045 / 0.021 / 0.223，即 DINO-WM 的响应幅度只有真实响应的约四分之三，这一点主分数
+  看不出来。
 - **训练代码在家族内统一；残留的版本差异在评测 checkout 上。** LeWM 与 PLDM 各自
   27 个训练单元共用一份 `stablewm_source` 源码快照，因此家族内跨任务比较不含训练代码
   差异（见 §5.1.2）。各次评测 pin 的 `stablewm_ref` checkout 则有 4 个版本、与组件成块
@@ -540,11 +543,10 @@ LeWM 从 32.43%（历史参考）到 97.75%（本批）的变化**不是口径�
 ### 5.4 外部模型验证状态
 
 LeWM、PLDM 和 DINO-WM（StableWM PreJEPA 实现）是仓库提供的参考集成，不限制其他模型
-参与。当前结果已经覆盖不同训练目标和模型结构：LeWM/PLDM 在 2026-09-03 批次上清过
-Development 的全部组件，其 Public Test 覆盖速度、机械臂质量、动作延迟、门通行规则
-四项（2026-09-07 评测）；未通过 Development 的组件按协议不授权读取 Test。DINO-WM 九
-项组件的三训练种子训练与 Development 评测已完成，但仍是非冻结补充证据，且其两项高分
-按正式门槛核算均未通过（见 §5.1 脚注），因此不产生 Public Test 行。Public v1 仍计划
+参与。当前参考覆盖三个模型、九项组件、三个训练种子；已有 Development 和历史 Public Test
+结果均在 v2 中保留，当前门槛结论见 §5.1。历史 Test 结果存在不等于满足当前 Development
+准入，接触摩擦和运动阻尼的 Test 结果明确排除正式报告。DINO-WM 的记录保留补充证据身份，
+本轮数值冻结不追认其为原正式 scoreboard 成绩。Public v1 仍计划
 补充由独立实现、独立训练代码和共同预算产生的开源模型结果。在这些结果补齐前，不宣称
 九项任务已经完成跨架构验证。
 
@@ -569,18 +571,16 @@ Training 覆盖 32 档速度。评测分别包含训练中出现的速度、训�
 ##### 评测方法
 
 主指标是训练范围内未见速度的一步严格正确率：与真实速度一致的历史必须同时优于另外
-两档历史。公开 Development 是 history-utility 诊断，不产生通过判定。若要把提升归因于
+两档历史。Development 使用同一指标，门槛判定写入独立回执。若要把提升归因于
 多速度训练，还需要同训练种子的单速度对照。
 
 ##### 基线表现
 
 原始 LeWM 和 PLDM 分别为 59.33% 和 51.44%（单检查点，Public Test）。
 
-当前参考批次（2026-09-03 训练、2026-09-07 Public Test 评测）的严格口径结果：LeWM
-三个检查点为 98.33%、98.67%、97.56%，平均 98.19%；PLDM 为 97.89%、94.44%、97.78%，
-平均 96.70%。两个家族的 `seen_for_multi` 与 `unseen_interpolation` 两条 core track 在
-horizon 1/2/3/5 上均逐检查点通过（3/3），两条 extrapolation track（高、低范围外速度）
-逐检查点 0/3。本批训练后原任务 CEM 为 LeWM 97.44% ± 0.19pp、PLDM 96.89% ± 0.19pp。
+当前参考的完整三种子数值与总判定统一见 §5.1。LeWM 与 PLDM 的内插主分数分别为
+98.19% 和 96.78%，但四条 track 的全部门槛合取后均为 0/3；这保留了内插能力与外推
+能力的区别。本批训练后原任务 CEM 为 LeWM 97.44% ± 0.19pp、PLDM 96.89% ± 0.19pp。
 
 旧批次的对应数值（LeWM 平均 95.26%；PLDM 97.22%/96.44%/96.44%，平均 96.70%，训练
 种子 3072/4096/5120）见

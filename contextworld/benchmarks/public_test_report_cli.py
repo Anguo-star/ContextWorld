@@ -42,7 +42,7 @@ import hashlib
 import json
 import subprocess
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any
 
@@ -96,6 +96,7 @@ class ReportUnit:
     training_recipe: str | None = None
     device: str | None = None
     batch_size: int | None = None
+    reference_admission: dict[str, Any] | None = None
 
     def resolved_model_name(self) -> str:
         if self.model_name:
@@ -117,10 +118,10 @@ def load_report_manifest(path: Path) -> dict[str, Any]:
 
     if not isinstance(manifest, dict):
         raise ValueError(f"checklist {path} must be a JSON object")
-    if manifest.get("schema_version") != SCHEMA_VERSION:
+    if manifest.get("schema_version") not in (1, 2):
         raise ValueError(
             f"checklist {path}: unsupported schema_version "
-            f"{manifest.get('schema_version')!r}, expected {SCHEMA_VERSION}"
+            f"{manifest.get('schema_version')!r}, expected 1 or 2"
         )
     for key in ("report_id", "benchmark_root", "units"):
         if not manifest.get(key):
@@ -191,7 +192,50 @@ def parse_unit(raw: Any, index: int) -> ReportUnit:
 
 
 def parse_units(manifest: dict[str, Any]) -> list[ReportUnit]:
-    return [parse_unit(raw, index) for index, raw in enumerate(manifest["units"])]
+    units = [parse_unit(raw, index) for index, raw in enumerate(manifest["units"])]
+    if manifest.get("schema_version") != 2:
+        return units  # Historical v1 checklists retain their declared semantics.
+    return [
+        _bind_reference_admission(unit, raw["admission"])
+        for unit, raw in zip(units, manifest["units"], strict=True)
+    ]
+
+
+def _bind_reference_admission(unit: ReportUnit, admission: dict[str, Any]) -> ReportUnit:
+    """V2 admission requires a hash-bound Development result for these weights."""
+    from contextworld.benchmarks.reference_decision import reference_decision_for_result
+
+    identity = admission.get("development_result")
+    if not isinstance(identity, dict) or not identity.get("path") or not identity.get("sha256"):
+        raise ValueError("schema v2 admission requires development_result path and sha256")
+    source = Path(identity["path"])
+    if not source.is_absolute() or sha256_file(source) != identity["sha256"]:
+        raise ValueError("Development admission source is absent, relative, or has changed")
+    envelope = json.loads(source.read_text())
+    if envelope.get("evaluation_split") != "development":
+        raise ValueError("Admission evidence must be a Development result")
+    payload = envelope.get("result", envelope)
+    if envelope.get("task", payload.get("bundle", {}).get("component_id")) != unit.component:
+        raise ValueError("Development admission evidence names another component")
+    model = payload.get("model", {})
+    adapter = model.get("adapter", {})
+    checkpoint_sha = sha256_file(unit.checkpoint)
+    if not checkpoint_sha or adapter.get("checkpoint_sha256") != checkpoint_sha:
+        raise ValueError("Development admission evidence names another checkpoint")
+    if model.get("training_seed") != unit.training_seed:
+        raise ValueError("Development admission evidence names another training seed")
+    decision = reference_decision_for_result(unit.component, payload, split="development")
+    receipt = {
+        "development_result": {"path": str(source), "sha256": identity["sha256"]},
+        "checkpoint_sha256": checkpoint_sha,
+        "decision": decision,
+    }
+    return replace(
+        unit,
+        admission_cleared=unit.admission_cleared and decision["passed"] is True,
+        admission_evidence=str(source),
+        reference_admission=receipt,
+    )
 
 
 def benchmark_identity(benchmark_root: Path) -> dict[str, Any]:
@@ -335,7 +379,19 @@ def _base_entry(unit: ReportUnit) -> dict[str, Any]:
         "command": None,
         "returncode": None,
         "message": None,
+        "reference_admission": unit.reference_admission,
     }
+
+
+def _current_test_decision(unit: ReportUnit) -> dict[str, Any] | None:
+    if unit.reference_admission is None:
+        return None
+    from contextworld.benchmarks.reference_decision import reference_decision_for_result
+
+    envelope = json.loads(unit.output.read_text())
+    return reference_decision_for_result(
+        unit.component, envelope.get("result", envelope), split="test"
+    )
 
 
 def run_report(
@@ -395,6 +451,7 @@ def run_report(
                 checkpoint_sha256_after=checkpoint_before,
                 message=decision.reason,
             )
+            entry["reference_decision"] = _current_test_decision(unit)
             totals[STATUS_SKIPPED_ALREADY_CURRENT] += 1
             print(f"[{position}/{len(units)}] {unit.component}: "
                   f"{STATUS_SKIPPED_ALREADY_CURRENT}")
@@ -425,6 +482,7 @@ def run_report(
             continue
 
         if result.returncode == 0 and output_sha is not None:
+            entry["reference_decision"] = _current_test_decision(unit)
             entry["status"] = STATUS_COMPLETED
             entry["message"] = (
                 "evaluation finished; checkpoint unchanged after evaluation"
@@ -447,7 +505,7 @@ def run_report(
             break
 
     receipt = {
-        "schema_version": SCHEMA_VERSION,
+        "schema_version": manifest["schema_version"],
         "report_id": manifest["report_id"],
         "created_utc": dt.datetime.now(dt.timezone.utc)
         .isoformat(timespec="seconds")
@@ -481,6 +539,12 @@ def verify_receipt(receipt_path: Path) -> int:
     mismatched = 0
     for entry in receipt.get("units", []):
         component = entry.get("component", "<unknown>")
+        admission = entry.get("reference_admission")
+        if admission:
+            source = admission["development_result"]
+            if sha256_file(Path(source["path"])) != source["sha256"]:
+                print(f"{component}: Development admission evidence changed")
+                mismatched += 1
         expected = entry.get("output_sha256")
         output = entry.get("output")
         if not expected or not output:

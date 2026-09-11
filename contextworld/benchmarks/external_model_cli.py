@@ -74,6 +74,24 @@ _ARTIFACT_ROOT_ENV = "CONTEXTWORLD_ARTIFACT_ROOT"
 _MODEL_CACHE_ROOT_ENV = "CONTEXTWORLD_MODEL_CACHE_ROOT"
 
 
+def _runtime_fingerprint() -> Any:
+    """Return the process/runtime identity when the optional helper exists.
+
+    ``runtime_identity`` is supplied by the baseline completion layer.  The
+    lazy import keeps this general evaluator importable in older checkouts,
+    while every current run stamps the same value at the envelope's top
+    level for both Development and Test results.
+    """
+
+    try:
+        from contextworld.benchmarks.runtime_identity import runtime_fingerprint
+    except ModuleNotFoundError as exc:
+        if exc.name != "contextworld.benchmarks.runtime_identity":
+            raise
+        return None
+    return runtime_fingerprint()
+
+
 @dataclass(frozen=True)
 class TaskBinding:
     """How one benchmark task is reached without touching its frozen CLI."""
@@ -311,10 +329,11 @@ def _validate_diagnostic_options(args: argparse.Namespace) -> None:
                 "--history-adapter h3_tail_projection is only available "
                 "for --task action_delay"
             )
-        if args.adapter != "prejepa":
+        if args.adapter not in {"prejepa", "lewm", "pldm"}:
             raise ValueError(
                 "--history-adapter h3_tail_projection is only available "
-                "for --adapter prejepa in contextworld-external-eval"
+                "for the built-in --adapter lewm, pldm, or prejepa in "
+                "contextworld-external-eval"
             )
 
 
@@ -336,15 +355,33 @@ def _prejepa_adapter_class_name(
 def _builtins_for_run(
     binding: TaskBinding, args: argparse.Namespace
 ) -> dict[str, type]:
-    """Resolve ordinary built-ins, replacing PreJEPA only on explicit opt-in."""
+    """Resolve ordinary built-ins, applying projection only on explicit opt-in."""
 
     builtins = binding.load_builtins()
+    if _history_adapter(args) == "h3_tail_projection" and args.adapter in {
+        "lewm",
+        "pldm",
+    }:
+        from contextworld.benchmarks.action_delay_development_adapter import (
+            StableWorldModelLeWMH3TailProjectionAdapter,
+            StableWorldModelPLDMH3TailProjectionAdapter,
+        )
+
+        projection_classes = {
+            "lewm": StableWorldModelLeWMH3TailProjectionAdapter,
+            "pldm": StableWorldModelPLDMH3TailProjectionAdapter,
+        }
+        return {**builtins, args.adapter: projection_classes[args.adapter]}
     if args.adapter != "prejepa":
         return builtins
     class_name = _prejepa_adapter_class_name(binding, args)
     if class_name is None:
         return builtins
-    module_name = f"{_SCORE}.prejepa_adapters"
+    module_name = (
+        f"{_SCORE}.action_delay_development_adapter"
+        if _history_adapter(args) == "h3_tail_projection"
+        else f"{_SCORE}.prejepa_adapters"
+    )
     module = __import__(module_name, fromlist=[class_name])
     return {**builtins, "prejepa": getattr(module, class_name)}
 
@@ -681,6 +718,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "adapter_spec": args.adapter,
             "model_name": args.model_name,
             "official_scoreboard_row": False,
+            "runtime_fingerprint": _runtime_fingerprint(),
             "selection_policy": (
                 "development_only_model_selection_test_final_reporting"
             ),
@@ -710,6 +748,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "adapter_spec": args.adapter,
         "model_name": args.model_name,
         "official_scoreboard_row": False,
+        "runtime_fingerprint": _runtime_fingerprint(),
         "note": (
             "Produced by contextworld-external-eval from the public "
             "ContextWorld-v1 Development split. It is not a held-out Public "
@@ -793,9 +832,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default="native",
         help=(
             "Use native task history (default). h3_tail_projection exposes "
-            "a native H3 PreJEPA checkpoint through the Action Delay H7 "
-            "Development boundary and is available only for --task "
-            "action_delay with --adapter prejepa."
+            "a native H3 LeWM, PLDM, or PreJEPA checkpoint through the "
+            "Action Delay H7 boundary and is available only for --task "
+            "action_delay with an explicit built-in adapter. Development "
+            "uses the 7-block/one-future request; Test uses the 9-block/"
+            "three-future request."
         ),
     )
     parser.add_argument(

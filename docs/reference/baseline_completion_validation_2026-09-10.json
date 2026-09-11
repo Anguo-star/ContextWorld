@@ -1,0 +1,57 @@
+{
+  "status": "completed",
+  "date": "2026-09-10",
+  "freeze": {
+    "path": "configs/benchmark/contextworld_joint_scratch_v1_reference_results_freeze_v2.json",
+    "sha256": "dfc670ca4e7ea19490a64152eac935c89bc050d18beea2ca0c3e1f40238b97f2"
+  },
+  "coverage": {
+    "post_training_units": 81,
+    "original_environment_task_units": 54,
+    "result_snapshots": 270,
+    "training_identity_receipts": 81,
+    "post_training_cem_units": 81,
+    "action_delay_development_reruns": 15
+  },
+  "validation": {
+    "freeze_verify": {
+      "status": "verified",
+      "freeze_path": "/opt/huawei/explorer-env/dataset/ag_data/code/ContextWorld/configs/benchmark/contextworld_joint_scratch_v1_reference_results_freeze_v2.json",
+      "rows": 135,
+      "source_results": 270
+    },
+    "action_delay_verify": {
+      "checked": 15,
+      "failures": [],
+      "status": "passed"
+    },
+    "tables_match_freeze": true,
+    "public_test_main_scores_unchanged": 135,
+    "test_checkpoint_passes": 18,
+    "development_checkpoint_passes": 18,
+    "current_regression_cases_passed": 274,
+    "current_regression_cases_skipped": 0,
+    "first_run": {
+      "passed": 271,
+      "failed": 1,
+      "failure": "obsolete assertion that Public Test was never accessed"
+    },
+    "targeted_reruns": {
+      "test_dinowm_component_development_results.py": {
+        "passed": 5
+      },
+      "test_current_reference_freeze.py": {
+        "passed": 5,
+        "new_cases": 2
+      }
+    },
+    "real_public_test_schema_v2_admission_plan_passed": true
+  },
+  "limits": {
+    "historical_runtime_unrecorded": 255,
+    "checkpoint_bytes_all_rehashed": false,
+    "all_dataset_member_bytes_rehashed": false,
+    "large_artifacts_tracked_in_git": false
+  },
+  "logs": "artifacts/evaluation/baseline_completion_v2/validation"
+}
