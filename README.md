@@ -116,6 +116,9 @@ contextworld-public-test-report verify --receipt public_test_report_<report_id>.
 
 ### 固定研究参考
 
+当前 v2 已完成工程归档，但[测量有效性校核](docs/reference/Baseline_Validity_Review_2026-09-10.md)
+发现判定与关键依赖绑定仍有缺口；最终研究基准验收暂未通过，修复后再锁定后续比较版本。
+
 后续方法以
 [`contextworld_joint_scratch_v1_reference_results_freeze_v2.json`](configs/benchmark/contextworld_joint_scratch_v1_reference_results_freeze_v2.json)
 为比较起点。该记录绑定逐单元源结果快照、主分数、门槛决策、数据选择、检查点与代码身份；

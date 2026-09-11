@@ -207,6 +207,9 @@ ContextWorld 的参考结果分两部分维护：§5.1 是**当前标准参考**
 
 ### 5.1 当前标准参考（2026-09-03 训练批次 / baseline completion v2）
 
+> v2 保留当前测量快照。[有效性校核](reference/Baseline_Validity_Review_2026-09-10.md)发现
+> 判定和关键依赖绑定仍需修复；以下分数保留，最终研究基准验收暂未通过。
+
 LeWM、PLDM 与 DINO-WM（StableWM 的 PreJEPA 实现）三个模型均已完成标准
 `joint_scratch_v1` 配方（`CW_METHOD=native`，10 epochs，从零训练，训练种子
 3072/3073/3074）下全部九项组件的训练与自动 Development 评测，共 81 个训练单元；

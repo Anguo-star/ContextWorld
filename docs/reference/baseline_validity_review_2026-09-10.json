@@ -1,0 +1,130 @@
+{
+  "verdict": "not_yet_accepted_as_final_research_foundation",
+  "reviewed_freeze_id": "contextworld_joint_scratch_v1_reference_results_freeze_v2",
+  "hard_findings": {
+    "door_decision_counterexamples": {
+      "development": {
+        "source": "artifacts/evaluation/baseline_completion_v2/frozen_results/door/post_component_training/PLDM/s3072/development.json",
+        "original_passed": true,
+        "mutation": "one seed/direction has negative matching-history advantage",
+        "mutated_passed": true,
+        "reason_codes": []
+      },
+      "test": {
+        "source": "artifacts/evaluation/baseline_completion_v2/frozen_results/door/post_component_training/PLDM/s3072/test.json",
+        "original_passed": true,
+        "mutation": "both true-rule primary accuracies/history win rates zero; stored decisions untouched",
+        "mutated_passed": true,
+        "reason_codes": []
+      }
+    },
+    "door_actual_impact": {
+      "development": {
+        "checked": 15,
+        "current_passes": 9,
+        "minimum_history_advantage_among_current_passes": 0.4345661924237854,
+        "current_passes_violating_omitted_condition": []
+      },
+      "test": {
+        "checked": 15,
+        "current_passes": 9,
+        "minimum_history_advantage_among_current_passes": 0.44583061833161364,
+        "current_passes_violating_omitted_condition": []
+      }
+    },
+    "source_coverage": {
+      "contextworld/benchmarks/paired_latent_response.py": {
+        "exists": true,
+        "mentioned_in_freeze": false
+      },
+      "contextworld/benchmarks/causal_data_contract.py": {
+        "exists": true,
+        "mentioned_in_freeze": false
+      },
+      "contextworld/benchmarks/reference_decision.py": {
+        "exists": true,
+        "mentioned_in_freeze": true
+      },
+      "contextworld/benchmarks/bundle_development.py": {
+        "exists": true,
+        "mentioned_in_freeze": true
+      }
+    }
+  },
+  "metric_controls": {
+    "no_history": {
+      "correct_future_rate": 0.5,
+      "correct_history_rate": 0.0,
+      "context_switch_rate": 0.0,
+      "joint_icl_pair_success_rate": 0.0,
+      "correct_future_mse_mean": 2.0,
+      "response_gain": 0.0,
+      "normalized_response_error": 1.0,
+      "passed": false
+    },
+    "correct_response": {
+      "correct_future_rate": 1.0,
+      "correct_history_rate": 1.0,
+      "context_switch_rate": 1.0,
+      "joint_icl_pair_success_rate": 1.0,
+      "correct_future_mse_mean": 0.0,
+      "response_gain": 1.0,
+      "normalized_response_error": 0.0,
+      "passed": true
+    },
+    "reversed_history": {
+      "correct_future_rate": 0.0,
+      "correct_history_rate": 0.0,
+      "context_switch_rate": 0.0,
+      "joint_icl_pair_success_rate": 0.0,
+      "correct_future_mse_mean": 4.0,
+      "response_gain": -1.0,
+      "normalized_response_error": 4.0,
+      "passed": false
+    },
+    "tiny_response": {
+      "correct_future_rate": 1.0,
+      "correct_history_rate": 1.0,
+      "context_switch_rate": 1.0,
+      "joint_icl_pair_success_rate": 1.0,
+      "correct_future_mse_mean": 0.9801000000000001,
+      "response_gain": 0.01,
+      "normalized_response_error": 0.9801,
+      "passed": false
+    },
+    "large_common_offset": {
+      "correct_future_rate": 1.0,
+      "correct_history_rate": 1.0,
+      "context_switch_rate": 1.0,
+      "joint_icl_pair_success_rate": 1.0,
+      "correct_future_mse_mean": 10000.0,
+      "response_gain": 1.0,
+      "normalized_response_error": 0.0,
+      "passed": true
+    }
+  },
+  "paired_data_check": {
+    "source": "Luna max paired-capability audit; actual decoded Lance query and x0 RGB hashes",
+    "components": [
+      "action_strength",
+      "robot_arm_mass",
+      "contact_friction",
+      "motion_damping",
+      "cube_gripper_carry",
+      "portal_exit"
+    ],
+    "queries_per_split_per_component": 256,
+    "modes_per_query": 2,
+    "query_only_bayes_accuracy_per_component": 0.5,
+    "dev_test_query_rgb_intersection_per_component": 0,
+    "dev_test_x0_rgb_intersection_per_component": 0,
+    "action_strength_pair_id_overlap": 256,
+    "pair_id_is_model_visible": false
+  },
+  "scope": {
+    "model_training_performed": false,
+    "gpu_inference_performed": false,
+    "frozen_results_modified": false,
+    "criterion_changes_performed": false
+  }
+}
