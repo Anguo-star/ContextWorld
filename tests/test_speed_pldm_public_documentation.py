@@ -195,19 +195,12 @@ def _document() -> str:
 
 
 def _reference_table(document: str) -> Table:
-    """The task-by-model matrix of post-training reference results."""
-    candidates = [
-        table
-        for table in _tables(document)
-        if "任务" in table.header
-        and "模型" in table.header
-        and any("ICL" in cell for cell in table.header)
-    ]
-    assert len(candidates) == 1, (
-        "expected exactly one 任务/模型 reference table carrying ICL columns, "
-        f"found {len(candidates)}"
+    # Share the independent reader of both displayed matrices and the appendix.
+    from test_public_document_numbers_match_frozen_results import (
+        _reference_table as read_reference_matrices,
     )
-    return candidates[0]
+
+    return read_reference_matrices(document)
 
 
 def test_reference_table_covers_every_registered_component_and_both_models() -> None:

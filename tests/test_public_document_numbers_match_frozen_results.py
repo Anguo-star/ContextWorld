@@ -206,19 +206,72 @@ def _document() -> str:
 
 
 def _reference_table(document: str) -> Table:
-    """The task-by-model matrix of post-training reference results."""
-    candidates = [
-        table
-        for table in _tables(document)
-        if "任务" in table.header
-        and "模型" in table.header
-        and any("ICL" in cell for cell in table.header)
-    ]
-    assert len(candidates) == 1, (
-        "expected exactly one 任务/模型 reference table carrying ICL columns, "
-        f"found {len(candidates)}"
-    )
-    return candidates[0]
+    """Read the paper matrices and join their cells to the appendix decisions.
+
+    Numerical checks consume the displayed wide-table cells. The appendix is
+    also checked for equality, so moving the detailed table cannot hide drift
+    in either representation.
+    """
+    matrices = []
+    for metric in ("ICL", "CEM"):
+        begin = f"<!-- BEGIN CURRENT_REFERENCE_{metric}_MATRIX -->"
+        end = f"<!-- END CURRENT_REFERENCE_{metric}_MATRIX -->"
+        assert document.count(begin) == document.count(end) == 1
+        block = document.split(begin)[1].split(end)[0]
+        tables = _markdown_tables(block)
+        assert len(tables) == 1
+        matrices.append(tables[0])
+
+    appendix = (ROOT / "docs/reference/Benchmark_Result_Provenance.md").read_text()
+    details = [table for table in _tables(appendix)
+               if "任务" in table.header and "ICL 门槛结果" in table.header]
+    assert len(details) == 1
+    detail = details[0]
+    assert len(detail.rows) == 27
+    labels = list(dict.fromkeys(row[1] for row in detail.rows))
+    assert len(labels) == 9
+    families = ("LeWM", "PLDM", "DINO-WM")
+    recipes = ("原环境数据", "原环境 + 对应 ICL 数据")
+    expected_keys = {(family, recipe) for family in families for recipe in recipes}
+    indexed = []
+    for index, (header, rows) in enumerate(matrices):
+        expected_labels = [
+            label + ("（Dev）" if index == 0 and label in ("接触摩擦", "运动阻尼") else "")
+            for label in labels
+        ]
+        assert list(header) == ["模型", "训练数据", *expected_labels]
+        assert len(rows) == 6 and all(len(row) == 11 for row in rows)
+        assert {(row[0], row[1]) for row in rows} == expected_keys
+        indexed.append({(row[0], row[1]): row for row in rows})
+
+    def cell(metric: int, family: str, recipe: str, task: str) -> str:
+        column = labels.index(task) + 2
+        value = indexed[metric][family, recipe][column]
+        if value == "—":
+            return value
+        match = re.fullmatch(r"(\d+\.\d+) ± (\d+\.\d+)(†?)", value)
+        assert match, f"malformed matrix value: {value!r}"
+        mean, spread, suffix = match.groups()
+        value = f"{mean}% ± {spread}pp{suffix}"
+        if metric == 0 and "（Dev）" in matrices[0][0][column]:
+            value += "（Development）"
+        return value
+
+    joined = []
+    for row in detail.rows:
+        values = list(row)
+        task, family = row[1:3]
+        for metric, recipe, column in ((0, recipes[0], 4), (0, recipes[1], 5),
+                                       (1, recipes[0], 7), (1, recipes[1], 8)):
+            values[column] = cell(metric, family, recipe, task)
+            assert values[column] == row[column], (
+                f"matrix/appendix mismatch for {task}/{family}/{recipe}: "
+                f"{values[column]} != {row[column]}"
+            )
+        joined.append(tuple(values))
+    displayed = [table for table in _tables(document) if "训练数据" in table.header]
+    assert len(displayed) == 2
+    return Table(displayed[0].path, displayed[0].context, detail.header, tuple(joined))
 
 
 def _reference_row(component_id: str, family: str) -> tuple[Table, tuple[str, ...]]:
@@ -485,6 +538,9 @@ def test_documented_pre_training_score_matches_the_current_freeze(
         f"{row_key}: document prints {documented[0]} as the starting point but "
         f"the frozen {split} baselines average {statistics.mean(scores)}"
     )
+    spread = _spread(cell)
+    assert spread is not None
+    assert abs(spread - statistics.stdev(scores)) <= MEAN_ROUNDING
 
 
 @pytest.mark.parametrize("row_key", CURRENT_ROW_KEYS)
@@ -553,6 +609,44 @@ def test_documented_post_training_cem_matches_the_current_freeze(
         f"{row_key}: document prints {documented[0]} but the frozen CEM runs "
         f"average {statistics.mean(per_seed)}"
     )
+    spread = _spread(cell)
+    assert spread is not None
+    assert abs(spread - statistics.stdev(per_seed)) <= MEAN_ROUNDING
+
+
+@pytest.mark.parametrize("row_key", CURRENT_ROW_KEYS)
+def test_documented_original_cem_matches_the_current_freeze(
+    row_key: tuple[str, str],
+) -> None:
+    component_id, family = row_key
+    cells = _frozen_cells(component_id, family, "original_environment_only")
+    if cells:
+        values = [
+            row["original_cem_evidence"]["member"]["success_rate"] * 100
+            for row in cells
+        ]
+    else:
+        assert family == "DINO-WM"
+        environments = {
+            "speed": "tworoom", "door": "tworoom", "portal_exit": "tworoom",
+            "action_delay": "tworoom", "action_strength": "pusht",
+            "contact_friction": "pusht", "motion_damping": "pusht",
+            "robot_arm_mass": "reacher", "cube_gripper_carry": "cube",
+        }
+        original = _dino_summary()["original_environment_cem"]["environments"]
+        values = [
+            value * 100
+            for value in original[environments[component_id]][
+                "success_rate_by_training_seed"
+            ].values()
+        ]
+    assert len(values) == 3
+    table, row = _reference_row(component_id, family)
+    cell = row[table.column("原始", "CEM")]
+    assert abs(_percentages(cell)[0] - statistics.mean(values)) <= MEAN_ROUNDING
+    spread = _spread(cell)
+    assert spread is not None
+    assert abs(spread - statistics.stdev(values)) <= MEAN_ROUNDING
 
 
 def test_dino_cem_cells_are_marked_non_frozen() -> None:

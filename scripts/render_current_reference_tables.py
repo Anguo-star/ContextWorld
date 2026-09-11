@@ -6,6 +6,7 @@ import argparse
 import hashlib
 import json
 import statistics
+from collections.abc import Callable
 from pathlib import Path
 
 
@@ -16,15 +17,27 @@ TASKS = {
     "Cube 夹爪携带规则": "cube_gripper_carry", "门通行规则": "door", "传送门出口位置": "portal_exit",
 }
 DEV_ONLY = {"contact_friction", "motion_damping"}
+FAMILIES = ("LeWM", "PLDM", "DINO-WM")
+TRAINING_STAGES = ("original_environment_only", "post_component_training")
+TRAINING_SEEDS = (3072, 3073, 3074)
 ENVIRONMENTS = {
     "speed": "tworoom", "action_delay": "tworoom", "door": "tworoom", "portal_exit": "tworoom",
     "action_strength": "pusht", "contact_friction": "pusht", "motion_damping": "pusht",
     "robot_arm_mass": "reacher", "cube_gripper_carry": "cube",
 }
 
+ICL_MATRIX_BEGIN = "<!-- BEGIN CURRENT_REFERENCE_ICL_MATRIX -->"
+ICL_MATRIX_END = "<!-- END CURRENT_REFERENCE_ICL_MATRIX -->"
+CEM_MATRIX_BEGIN = "<!-- BEGIN CURRENT_REFERENCE_CEM_MATRIX -->"
+CEM_MATRIX_END = "<!-- END CURRENT_REFERENCE_CEM_MATRIX -->"
+DETAIL_BEGIN = "<!-- BEGIN CURRENT_REFERENCE_DETAIL -->"
+DETAIL_END = "<!-- END CURRENT_REFERENCE_DETAIL -->"
+
 
 def render(freeze: dict, document: str, appendix: str) -> tuple[str, str]:
     rows = freeze["checkpoint_results"]
+    if len(DEV_ONLY) != 2 or len(TASKS) - len(DEV_ONLY) != 7:
+        raise ValueError("Reference report scope must remain 7 Test tasks + 2 Development tasks")
     dino_source = freeze["inputs"]["dino_original_diagnostic"]
     dino_path = ROOT / dino_source["path"]
     if hashlib.sha256(dino_path.read_bytes()).hexdigest() != dino_source["sha256"]:
@@ -38,7 +51,7 @@ def render(freeze: dict, document: str, appendix: str) -> tuple[str, str]:
         )
         if not found and family == "DINO-WM" and stage == "original_environment_only":
             return []
-        if [r["training_seed"] for r in found] != [3072, 3073, 3074]:
+        if [r["training_seed"] for r in found] != list(TRAINING_SEEDS):
             raise ValueError(f"Missing three-seed record: {task}/{family}/{stage}")
         return found
 
@@ -51,50 +64,144 @@ def render(freeze: dict, document: str, appendix: str) -> tuple[str, str]:
             return f"{mean:.2f} ± {sd:.2f}（{' / '.join(f'{v:.2f}' for v in values)}）"
         return f"{mean:.2f}% ± {sd:.2f}pp"
 
-    lines = document.splitlines()
-    table_start = next(i for i, line in enumerate(lines) if line.startswith("| 能力类型 | 任务 | 模型 | 随机基线 |"))
-    count = 0
-    for i in range(table_start + 2, len(lines)):
-        if not lines[i].startswith("|"):
-            break
-        cols = [c.strip() for c in lines[i].strip("|").split("|")]
-        task, family = TASKS[cols[1]], cols[2]
-        split = "development" if task in DEV_ONLY else "test"
-        original = cells(task, family, "original_environment_only")
-        trained = cells(task, family, "post_component_training")
-        suffix = "（Development）" if split == "development" else ""
-        cols[4] = scores(original, split) + (suffix if original else "")
-        cols[5] = scores(trained, split) + suffix
-        verdicts = [r[split]["all_gates_passed"] for r in trained]
-        if not all(isinstance(v, bool) for v in verdicts):
-            raise ValueError(f"Missing decision: {task}/{family}/{split}")
-        count_passed = sum(verdicts)
-        cols[6] = ("Development " if split == "development" else "") + (
-            "3/3 通过" if count_passed == 3 else f"未通过（{count_passed}/3）"
-        )
-        if original:
-            original_cem = [r["original_cem_evidence"]["member"]["success_rate"] * 100 for r in original]
-        else:
-            original_cem = [v * 100 for v in dino_cem[ENVIRONMENTS[task]]["success_rate_by_training_seed"].values()]
-        cols[7] = f"{statistics.mean(original_cem):.2f}% ± {statistics.stdev(original_cem):.2f}pp" + ("†" if family == "DINO-WM" else "")
-        cem = [statistics.mean(r["original_task_cem"]["success_rate_percent_by_eval_seed"].values()) for r in trained]
-        cols[8] = f"{statistics.mean(cem):.2f}% ± {statistics.stdev(cem):.2f}pp" + ("†" if family == "DINO-WM" else "")
-        lines[i] = "| " + " | ".join(cols) + " |"
-        count += 1
-    if count != 27:
-        raise ValueError(f"Expected 27 reference rows, found {count}")
+    def compact_scores(values: list[dict], split: str) -> str:
+        """Return a matrix cell in percent units without repeating the unit."""
+        if not values:
+            return "—"
+        numbers = [r[split]["main_score"] * 100 for r in values]
+        return f"{statistics.mean(numbers):.2f} ± {statistics.stdev(numbers):.2f}"
+
+    def cem_values(task: str, family: str, stage: str) -> list[float]:
+        selected = cells(task, family, stage)
+        if stage == "original_environment_only" and not selected:
+            by_seed = dino_cem[ENVIRONMENTS[task]]["success_rate_by_training_seed"]
+            expected = {str(seed) for seed in TRAINING_SEEDS}
+            if set(by_seed) != expected:
+                raise ValueError(f"Missing DINO CEM three-seed record: {task}")
+            return [float(by_seed[str(seed)]) * 100 for seed in TRAINING_SEEDS]
+        if not selected:
+            raise ValueError(f"Missing CEM record: {task}/{family}/{stage}")
+        if stage == "original_environment_only":
+            return [
+                float(row["original_cem_evidence"]["member"]["success_rate"])
+                * 100
+                for row in selected
+            ]
+        return [
+            statistics.mean(
+                row["original_task_cem"]["success_rate_percent_by_eval_seed"].values()
+            )
+            for row in selected
+        ]
+
+    def compact_cem(task: str, family: str, stage: str) -> str:
+        values = cem_values(task, family, stage)
+        cell = f"{statistics.mean(values):.2f} ± {statistics.stdev(values):.2f}"
+        return cell + ("†" if family == "DINO-WM" else "")
+
+    def matrix(header_labels: list[str], value_for: Callable[[str, str, str], str]) -> str:
+        lines = [
+            "| 模型 | 训练数据 | " + " | ".join(header_labels) + " |",
+            "|---|---|" + "---:|" * len(header_labels),
+        ]
+        for family in FAMILIES:
+            for stage, recipe in zip(TRAINING_STAGES, ("原环境数据", "原环境 + 对应 ICL 数据")):
+                cells_for_row = [
+                    value_for(task, family, stage)
+                    for task in TASKS.values()
+                ]
+                lines.append("| " + " | ".join((family, recipe, *cells_for_row)) + " |")
+        if len(lines) - 2 != 6:
+            raise ValueError("Expected six rows in reference matrix")
+        return "\n".join(lines)
+
+    icl_labels = [
+        label + "（Dev）" if task in DEV_ONLY else label
+        for label, task in TASKS.items()
+    ]
+    icl_matrix = matrix(
+        icl_labels,
+        lambda task, family, stage: compact_scores(
+            cells(task, family, stage),
+            "development" if task in DEV_ONLY else "test",
+        ),
+    )
+    cem_matrix = matrix(
+        list(TASKS),
+        lambda task, family, stage: compact_cem(task, family, stage),
+    )
+
+    def replace_marker(text: str, begin: str, end: str, replacement: str) -> str:
+        if text.count(begin) != 1 or text.count(end) != 1:
+            raise ValueError(f"Expected exactly one marker pair: {begin}")
+        begin_at = text.index(begin) + len(begin)
+        end_at = text.index(end, begin_at)
+        return text[:begin_at] + "\n" + replacement + "\n" + text[end_at:]
+
+    document = replace_marker(document, ICL_MATRIX_BEGIN, ICL_MATRIX_END, icl_matrix)
+    document = replace_marker(document, CEM_MATRIX_BEGIN, CEM_MATRIX_END, cem_matrix)
+
+    detail_lines = [
+        "| 能力类型 | 任务 | 模型 | 随机基线 | 原始 ICL 起点 | 组件训练后 ICL 主分数 | ICL 门槛结果 | 原始 CEM 起点 | 训练后原任务 CEM |",
+        "|---|---|---|---:|---:|---:|:--|---:|---:|",
+    ]
+    ability = {
+        "speed": "即时连续响应", "action_strength": "即时连续响应", "robot_arm_mass": "即时连续响应",
+        "action_delay": "时间延迟动力学", "contact_friction": "接触或附着条件动力学",
+        "motion_damping": "接触或附着条件动力学", "cube_gripper_carry": "接触或附着条件动力学",
+        "door": "隐藏结构转移", "portal_exit": "隐藏结构转移",
+    }
+    for label, task in TASKS.items():
+        for family in FAMILIES:
+            split = "development" if task in DEV_ONLY else "test"
+            original = cells(task, family, "original_environment_only")
+            trained = cells(task, family, "post_component_training")
+            suffix = "（Development）" if split == "development" else ""
+            verdicts = [row[split]["all_gates_passed"] for row in trained]
+            if not all(isinstance(value, bool) for value in verdicts):
+                raise ValueError(f"Missing decision: {task}/{family}/{split}")
+            count_passed = sum(verdicts)
+            verdict = ("Development " if split == "development" else "") + (
+                "3/3 通过" if count_passed == 3 else f"未通过（{count_passed}/3）"
+            )
+            original_cem = cem_values(task, family, "original_environment_only")
+            trained_cem = cem_values(task, family, "post_component_training")
+            original_cem_cell = (
+                f"{statistics.mean(original_cem):.2f}% ± {statistics.stdev(original_cem):.2f}pp"
+                + ("†" if family == "DINO-WM" else "")
+            )
+            trained_cem_cell = (
+                f"{statistics.mean(trained_cem):.2f}% ± {statistics.stdev(trained_cem):.2f}pp"
+                + ("†" if family == "DINO-WM" else "")
+            )
+            chance = "33.33%" if task == "speed" else "16.67%" if task == "action_delay" else "50%"
+            detail_lines.append(
+                "| " + " | ".join(
+                    (
+                        ability[task], label, family, chance,
+                        scores(original, split) + (suffix if original else ""),
+                        scores(trained, split) + suffix,
+                        verdict, original_cem_cell, trained_cem_cell,
+                    )
+                ) + " |"
+            )
+    if len(detail_lines) - 2 != 27:
+        raise ValueError(f"Expected 27 reference detail rows, found {len(detail_lines) - 2}")
+    appendix = replace_marker(appendix, DETAIL_BEGIN, DETAIL_END, "\n".join(detail_lines))
 
     dev_lines = ["| 任务 | 模型 | 随机基线 | 训练前（逐种子） | 训练后（逐种子） |", "|---|---|---:|---:|---:|"]
     for label, task in TASKS.items():
-        for family in ("LeWM", "PLDM", "DINO-WM"):
+        for family in FAMILIES:
             chance = "33.33%" if task == "speed" else "16.67%" if task == "action_delay" else "50%"
             original = scores(cells(task, family, "original_environment_only"), "development", detail=True)
             trained = scores(cells(task, family, "post_component_training"), "development", detail=True)
             dev_lines.append(f"| {label} | {family} | {chance} | {original} | {trained} |")
+    if len(dev_lines) - 2 != 27:
+        raise ValueError(f"Expected 27 Development rows, found {len(dev_lines) - 2}")
     start = appendix.index("| 任务 | 模型 | 随机基线 |", appendix.index("## 5.2 Development"))
     end = appendix.index("\n\n", start)
     appendix = appendix[:start] + "\n".join(dev_lines) + appendix[end:]
-    return "\n".join(lines) + "\n", appendix
+    return document, appendix
 
 
 def main() -> int:
@@ -111,7 +218,7 @@ def main() -> int:
         return int(bool(changed))
     for path, text in zip(paths, rendered):
         path.write_text(text)
-    print("rendered 27 current reference rows and 27 Development rows")
+    print("rendered 2 six-row matrices, 27 detail rows, and 27 Development rows")
     return 0
 
 

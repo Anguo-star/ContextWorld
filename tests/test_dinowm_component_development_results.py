@@ -22,21 +22,6 @@ PERCENT = re.compile(r"(\d+(?:\.\d+)?)%")
 SPREAD = re.compile(r"±\s*(\d+(?:\.\d+)?)\s*pp")
 
 
-def _comparison_rows(document: str) -> dict[tuple[str, str], tuple[str, ...]]:
-    header = (
-        "| 能力类型 | 任务 | 模型 | 随机基线 | 原始 ICL 起点 | 组件训练后 ICL 主分数 | ICL 门槛结果 | 原始 CEM 起点 | 训练后原任务 CEM |"
-    )
-    lines = document.splitlines()
-    start = lines.index(header)
-    rows: dict[tuple[str, str], tuple[str, ...]] = {}
-    for line in lines[start + 2 :]:
-        if not line.startswith("|"):
-            break
-        cells = tuple(cell.strip() for cell in line.strip("|").split("|"))
-        rows[(cells[1], cells[2])] = cells
-    return rows
-
-
 def test_partial_results_never_claim_public_test_or_scoreboard_status() -> None:
     record = json.loads(RESULTS.read_text(encoding="utf-8"))
 
@@ -114,15 +99,18 @@ def test_public_document_reports_all_nine_component_states() -> None:
         assert f"| {label} |" in document
 
 
-def test_public_document_uses_one_split_aware_comparison_table() -> None:
+def test_public_document_uses_model_recipe_matrices() -> None:
     document = BENCHMARK.read_text(encoding="utf-8")
     start = document.index("## 5. 参考结果")
     end = document.index("\n## 6. 任务说明", start)
     section = document[start:end]
 
-    assert section.count(
-        "| 能力类型 | 任务 | 模型 | 随机基线 | 原始 ICL 起点 | 组件训练后 ICL 主分数 | ICL 门槛结果 | 原始 CEM 起点 | 训练后原任务 CEM |"
-    ) == 1
+    assert section.count("<!-- BEGIN CURRENT_REFERENCE_ICL_MATRIX -->") == 1
+    assert section.count("<!-- BEGIN CURRENT_REFERENCE_CEM_MATRIX -->") == 1
+    assert section.count("| 模型 | 训练数据 |") == 2
+    assert "| 能力类型 | 任务 | 模型 |" not in section
+    assert "不同能力列对应不同检查点" in section
+    assert "不是对同一检查点继续微调" in section
     assert "### 5.3 DINO-WM / PreJEPA" not in section
     assert "Development" in section and "Public Test" in section
     # The mid-training phrasing ("尚未训练" / "无可评分的 epoch-10 检查点") is
