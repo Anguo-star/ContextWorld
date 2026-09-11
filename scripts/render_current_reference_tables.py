@@ -1,4 +1,4 @@
-"""Render the current reference tables from one frozen numerical source."""
+"""Render reference tables from v3 and the declared original-DINO supplement."""
 
 from __future__ import annotations
 
@@ -32,10 +32,19 @@ CEM_MATRIX_BEGIN = "<!-- BEGIN CURRENT_REFERENCE_CEM_MATRIX -->"
 CEM_MATRIX_END = "<!-- END CURRENT_REFERENCE_CEM_MATRIX -->"
 DETAIL_BEGIN = "<!-- BEGIN CURRENT_REFERENCE_DETAIL -->"
 DETAIL_END = "<!-- END CURRENT_REFERENCE_DETAIL -->"
+ORIGINAL_DINO = ROOT / "configs/benchmark/contextworld_dinowm_original_fixed_context_results_v1.json"
 
 
 def render(freeze: dict, document: str, appendix: str) -> tuple[str, str]:
-    rows = freeze["checkpoint_results"]
+    supplement = json.loads(ORIGINAL_DINO.read_text())
+    if supplement["claim_boundary"]["data_only_ablation"] is not False:
+        raise ValueError("Original DINO inference boundary must remain explicit")
+    base = supplement["inputs"]["base_freeze"]
+    if hashlib.sha256((ROOT / base["path"]).read_bytes()).hexdigest() != base["sha256"]:
+        raise ValueError("Supplement base freeze changed")
+    if json.loads((ROOT / base["path"]).read_text()) != freeze:
+        raise ValueError("Supplement belongs to a different base freeze")
+    rows = freeze["checkpoint_results"] + supplement["checkpoint_results"]
     if len(DEV_ONLY) != 2 or len(TASKS) - len(DEV_ONLY) != 7:
         raise ValueError("Reference report scope must remain 7 Test tasks + 2 Development tasks")
     dino_source = freeze["inputs"]["dino_original_diagnostic"]
@@ -49,8 +58,6 @@ def render(freeze: dict, document: str, appendix: str) -> tuple[str, str]:
             (r for r in rows if (r["component_id"], r["family"], r["stage"]) == (task, family, stage)),
             key=lambda r: r["training_seed"],
         )
-        if not found and family == "DINO-WM" and stage == "original_environment_only":
-            return []
         if [r["training_seed"] for r in found] != list(TRAINING_SEEDS):
             raise ValueError(f"Missing three-seed record: {task}/{family}/{stage}")
         return found
@@ -73,7 +80,7 @@ def render(freeze: dict, document: str, appendix: str) -> tuple[str, str]:
 
     def cem_values(task: str, family: str, stage: str) -> list[float]:
         selected = cells(task, family, stage)
-        if stage == "original_environment_only" and not selected:
+        if stage == "original_environment_only" and family == "DINO-WM":
             by_seed = dino_cem[ENVIRONMENTS[task]]["success_rate_by_training_seed"]
             expected = {str(seed) for seed in TRAINING_SEEDS}
             if set(by_seed) != expected:
@@ -119,13 +126,14 @@ def render(freeze: dict, document: str, appendix: str) -> tuple[str, str]:
         label + "（Dev）" if task in DEV_ONLY else label
         for label, task in TASKS.items()
     ]
-    icl_matrix = matrix(
-        icl_labels,
-        lambda task, family, stage: compact_scores(
+    def icl_cell(task: str, family: str, stage: str) -> str:
+        value = compact_scores(
             cells(task, family, stage),
             "development" if task in DEV_ONLY else "test",
-        ),
-    )
+        )
+        return value + ("‡" if family == "DINO-WM" and stage == "original_environment_only" else "")
+
+    icl_matrix = matrix(icl_labels, icl_cell)
     cem_matrix = matrix(
         list(TASKS),
         lambda task, family, stage: compact_cem(task, family, stage),
@@ -179,7 +187,7 @@ def render(freeze: dict, document: str, appendix: str) -> tuple[str, str]:
                 "| " + " | ".join(
                     (
                         ability[task], label, family, chance,
-                        scores(original, split) + (suffix if original else ""),
+                        scores(original, split) + ("‡" if family == "DINO-WM" else "") + suffix,
                         scores(trained, split) + suffix,
                         verdict, original_cem_cell, trained_cem_cell,
                     )
@@ -194,6 +202,8 @@ def render(freeze: dict, document: str, appendix: str) -> tuple[str, str]:
         for family in FAMILIES:
             chance = "33.33%" if task == "speed" else "16.67%" if task == "action_delay" else "50%"
             original = scores(cells(task, family, "original_environment_only"), "development", detail=True)
+            if family == "DINO-WM":
+                original += "‡"
             trained = scores(cells(task, family, "post_component_training"), "development", detail=True)
             dev_lines.append(f"| {label} | {family} | {chance} | {original} | {trained} |")
     if len(dev_lines) - 2 != 27:

@@ -1,0 +1,3231 @@
+{
+  "schema_version": "contextworld.dinowm-original-fixed-context-results.v1",
+  "status": "completed_supplemental_inference_variant",
+  "inference_variant": "dinowm_original_fixed_context_v1",
+  "adapter_spec": "contextworld.benchmarks.prejepa_original_context_adapter:OriginalDINOFixedContextAdapter",
+  "claim_boundary": {
+    "diagnostic": true,
+    "native_checkpoint_input_compatible": false,
+    "official_scoreboard_row": false,
+    "data_only_ablation": false,
+    "public_inputs": [
+      "pixels",
+      "action"
+    ],
+    "missing_context_policy": "fixed_model_normalized_zero",
+    "checkpoint_weights_modified": false,
+    "note": "Task scores use v3 kernels and splits; original state streams are fixed to normalized zero for ICL. CEM reuses native-input runs of the same weights."
+  },
+  "inputs": {
+    "base_freeze": {
+      "path": "configs/benchmark/contextworld_joint_scratch_v1_reference_results_freeze_v3.json",
+      "sha256": "01298ca407c4a72bdd9a1238879ae7109b1141a7cfdd2b25065cb0bdec87fef0"
+    },
+    "original_checkpoint_and_cem_source": {
+      "path": "artifacts/evaluation/dinowm_original_diagnostic_v1/summary.json",
+      "sha256": "606242730f3bbae9fb706370e3062479f15339309cb638f4544746bc83cea904"
+    },
+    "adapter_source": {
+      "path": "contextworld/benchmarks/prejepa_original_context_adapter.py",
+      "sha256": "3e9f786625fdb29d1d350510a24a03b7cd0c197f789d6e30534fc12ead91016c"
+    },
+    "evaluation_runner": {
+      "path": "scripts/eval_dinowm_original_icl_current.py",
+      "sha256": "769142768a87629e1056241e84c79771d14d46b8390937914c6996e3f94f94f9"
+    },
+    "freeze_builder": {
+      "path": "scripts/freeze_dinowm_original_icl.py",
+      "sha256": "0e6d1a59ee667c0c9b9c769f6b257e84aa6bde34a6e0b9109b7f624c1f7334d9"
+    }
+  },
+  "coverage": {
+    "distinct_checkpoints": 12,
+    "checkpoint_task_rows": 27,
+    "development": 27,
+    "test": 21,
+    "test_excluded": [
+      "contact_friction",
+      "motion_damping"
+    ]
+  },
+  "checkpoint_results": [
+    {
+      "component_id": "speed",
+      "family": "DINO-WM",
+      "stage": "original_environment_only",
+      "training_seed": 3072,
+      "environment": "tworoom",
+      "checkpoint": "tworoom_prejepa_original_s3072/weights_epoch_10.pt",
+      "checkpoint_sha256": "d72ae7c0004b8f9157d72dba92b0594a3d5f25a59cb4941149ecb5aaaf9f2e6a",
+      "history_adapter": "native",
+      "normalized_zero_state_streams": [
+        {
+          "in_chans": 2,
+          "key": "proprio"
+        }
+      ],
+      "development": {
+        "main_score": 0.3333333333333333,
+        "all_gates_passed": false,
+        "reason_codes": [
+          "track_extrapolation_high_rejected",
+          "track_extrapolation_low_rejected",
+          "track_seen_for_multi_rejected",
+          "track_unseen_interpolation_rejected"
+        ],
+        "source_result_path": "artifacts/evaluation/dinowm_original_icl_current_v1/speed/s3072/development.json",
+        "source_result_sha256": "8600da409596e16fd7bac22cd95036f8d0725354df151ac38c128685dbbf1402",
+        "state_sha256": "5397aaa7805cefb82230361eabf554b77b6db57ead28f21548b4a7b27adc06db",
+        "bundle": {
+          "bundle_schema_version": "ContextWorld-v1",
+          "component_id": "speed",
+          "dataset_id": "tworoom-speed",
+          "development_payload_id": "data",
+          "manifest_sha256": "4c5b9cdc84006caeac2a9770501f943affe2b81e32d70c27ab504770b28a93c4",
+          "member_count": 14,
+          "members": [
+            "components/tworoom-speed/v1/development/data/twmsdev-extrapolation_high-history_high-4bd37bba51.lance",
+            "components/tworoom-speed/v1/development/data/twmsdev-extrapolation_high-history_low-4bd37bba51.lance",
+            "components/tworoom-speed/v1/development/data/twmsdev-extrapolation_high-history_mid_high-4bd37bba51.lance",
+            "components/tworoom-speed/v1/development/data/twmsdev-extrapolation_high-history_mid_low-4bd37bba51.lance",
+            "components/tworoom-speed/v1/development/data/twmsdev-extrapolation_low-history_high-c17a2f6a5b.lance",
+            "components/tworoom-speed/v1/development/data/twmsdev-extrapolation_low-history_low-c17a2f6a5b.lance",
+            "components/tworoom-speed/v1/development/data/twmsdev-extrapolation_low-history_mid_high-c17a2f6a5b.lance",
+            "components/tworoom-speed/v1/development/data/twmsdev-extrapolation_low-history_mid_low-c17a2f6a5b.lance",
+            "components/tworoom-speed/v1/development/data/twmsdev-seen_for_multi-history_high-e5246a534f.lance",
+            "components/tworoom-speed/v1/development/data/twmsdev-seen_for_multi-history_low-e5246a534f.lance",
+            "components/tworoom-speed/v1/development/data/twmsdev-seen_for_multi-history_mid-e5246a534f.lance",
+            "components/tworoom-speed/v1/development/data/twmsdev-unseen_interpolation-history_high-63db47aae7.lance",
+            "components/tworoom-speed/v1/development/data/twmsdev-unseen_interpolation-history_low-63db47aae7.lance",
+            "components/tworoom-speed/v1/development/data/twmsdev-unseen_interpolation-history_mid-63db47aae7.lance"
+          ],
+          "task_registry_sha256": "7952ff61e59e1959d1b31f5c7aba9506b6410944f7063dad1c16a650b7aa6c46"
+        },
+        "selection": {
+          "episodes_per_table": [
+            900,
+            1200
+          ],
+          "eval_seeds": [
+            42,
+            43,
+            44,
+            45,
+            46,
+            47
+          ],
+          "kind": "structural_parity_speed_families",
+          "tables": 14,
+          "tracks": {
+            "extrapolation_high": {
+              "condition_speeds": {
+                "history_high": 10.25,
+                "history_low": 8.25,
+                "history_mid_high": 9.5,
+                "history_mid_low": 8.75
+              },
+              "episodes": 4800,
+              "history_conditions": [
+                "history_high",
+                "history_low",
+                "history_mid_high",
+                "history_mid_low"
+              ],
+              "reference_speeds": [
+                8.25,
+                8.75,
+                9.5,
+                10.25
+              ],
+              "static_queries": 300
+            },
+            "extrapolation_low": {
+              "condition_speeds": {
+                "history_high": 2.35,
+                "history_low": 1.75,
+                "history_mid_high": 2.15,
+                "history_mid_low": 1.95
+              },
+              "episodes": 4800,
+              "history_conditions": [
+                "history_high",
+                "history_low",
+                "history_mid_high",
+                "history_mid_low"
+              ],
+              "reference_speeds": [
+                1.75,
+                1.95,
+                2.15,
+                2.35
+              ],
+              "static_queries": 300
+            },
+            "seen_for_multi": {
+              "condition_speeds": {
+                "history_high": 7.0,
+                "history_low": 3.1,
+                "history_mid": 5.1
+              },
+              "episodes": 2700,
+              "history_conditions": [
+                "history_high",
+                "history_low",
+                "history_mid"
+              ],
+              "reference_speeds": [
+                3.1,
+                5.1,
+                7.0
+              ],
+              "static_queries": 300
+            },
+            "unseen_interpolation": {
+              "condition_speeds": {
+                "history_high": 6.9,
+                "history_low": 3.4,
+                "history_mid": 4.8
+              },
+              "episodes": 2700,
+              "history_conditions": [
+                "history_high",
+                "history_low",
+                "history_mid"
+              ],
+              "reference_speeds": [
+                3.4,
+                4.8,
+                6.9
+              ],
+              "static_queries": 300
+            }
+          },
+          "unique_queries_per_reference_speed_per_seed": 50
+        },
+        "result_kind": "development_only_not_public_test"
+      },
+      "test": {
+        "main_score": 0.33111111111111113,
+        "all_gates_passed": false,
+        "reason_codes": [
+          "track_extrapolation_high_rejected",
+          "track_extrapolation_low_rejected",
+          "track_seen_for_multi_rejected",
+          "track_unseen_interpolation_rejected"
+        ],
+        "source_result_path": "artifacts/evaluation/dinowm_original_icl_current_v1/speed/s3072/test.json",
+        "source_result_sha256": "a03770d4511cd6468d931597313acb2a70992f230fe2c78f97b8c54ece5f8e8f",
+        "state_sha256": "5397aaa7805cefb82230361eabf554b77b6db57ead28f21548b4a7b27adc06db",
+        "bundle": {
+          "artifact_root": "artifacts/evaluation/history3/speed_multistep_extrap_v5",
+          "component_ids": [
+            "speed",
+            "door",
+            "action_delay",
+            "action_strength",
+            "contact_friction",
+            "motion_damping",
+            "robot_arm_mass",
+            "portal_exit",
+            "cube_gripper_carry"
+          ],
+          "manifest_payload_files": 6,
+          "manifest_sha256": "81eb29d8eeaefb91750187831b9120b9241c78b4903047cd4b720a186c7f6d97",
+          "public_test_policy": "public_offline_final_reporting",
+          "release_status": "staging_not_public_release",
+          "schema_version": "contextworld.bundle-resolution.v1",
+          "selection_policy": "development_only_model_selection_test_final_reporting",
+          "task": "speed",
+          "task_registry_sha256": "26b78ae7d3bbaa2c170080bc1eb8791582a9183e7d606322aaf6bae1b01dcbdd"
+        },
+        "selection": "development_only_model_selection_test_final_reporting",
+        "result_kind": "public_test_offline_final_report_v1"
+      }
+    },
+    {
+      "component_id": "speed",
+      "family": "DINO-WM",
+      "stage": "original_environment_only",
+      "training_seed": 3073,
+      "environment": "tworoom",
+      "checkpoint": "tworoom_prejepa_original_s3073/weights_epoch_10.pt",
+      "checkpoint_sha256": "5772ce7ff013fdd19655831cc003ea5f1c8fda10651b5164ac344b3673f8e897",
+      "history_adapter": "native",
+      "normalized_zero_state_streams": [
+        {
+          "in_chans": 2,
+          "key": "proprio"
+        }
+      ],
+      "development": {
+        "main_score": 0.33,
+        "all_gates_passed": false,
+        "reason_codes": [
+          "track_extrapolation_high_rejected",
+          "track_extrapolation_low_rejected",
+          "track_seen_for_multi_rejected",
+          "track_unseen_interpolation_rejected"
+        ],
+        "source_result_path": "artifacts/evaluation/dinowm_original_icl_current_v1/speed/s3073/development.json",
+        "source_result_sha256": "b64ec165bc0caaae545fa7dfb57c38326a1c0df8c5a7b94dcb8e655127484269",
+        "state_sha256": "532f724839a67fe76f1ceba7dd481b9a05181b1685e499099ce2dc0740fa1aa4",
+        "bundle": {
+          "bundle_schema_version": "ContextWorld-v1",
+          "component_id": "speed",
+          "dataset_id": "tworoom-speed",
+          "development_payload_id": "data",
+          "manifest_sha256": "4c5b9cdc84006caeac2a9770501f943affe2b81e32d70c27ab504770b28a93c4",
+          "member_count": 14,
+          "members": [
+            "components/tworoom-speed/v1/development/data/twmsdev-extrapolation_high-history_high-4bd37bba51.lance",
+            "components/tworoom-speed/v1/development/data/twmsdev-extrapolation_high-history_low-4bd37bba51.lance",
+            "components/tworoom-speed/v1/development/data/twmsdev-extrapolation_high-history_mid_high-4bd37bba51.lance",
+            "components/tworoom-speed/v1/development/data/twmsdev-extrapolation_high-history_mid_low-4bd37bba51.lance",
+            "components/tworoom-speed/v1/development/data/twmsdev-extrapolation_low-history_high-c17a2f6a5b.lance",
+            "components/tworoom-speed/v1/development/data/twmsdev-extrapolation_low-history_low-c17a2f6a5b.lance",
+            "components/tworoom-speed/v1/development/data/twmsdev-extrapolation_low-history_mid_high-c17a2f6a5b.lance",
+            "components/tworoom-speed/v1/development/data/twmsdev-extrapolation_low-history_mid_low-c17a2f6a5b.lance",
+            "components/tworoom-speed/v1/development/data/twmsdev-seen_for_multi-history_high-e5246a534f.lance",
+            "components/tworoom-speed/v1/development/data/twmsdev-seen_for_multi-history_low-e5246a534f.lance",
+            "components/tworoom-speed/v1/development/data/twmsdev-seen_for_multi-history_mid-e5246a534f.lance",
+            "components/tworoom-speed/v1/development/data/twmsdev-unseen_interpolation-history_high-63db47aae7.lance",
+            "components/tworoom-speed/v1/development/data/twmsdev-unseen_interpolation-history_low-63db47aae7.lance",
+            "components/tworoom-speed/v1/development/data/twmsdev-unseen_interpolation-history_mid-63db47aae7.lance"
+          ],
+          "task_registry_sha256": "7952ff61e59e1959d1b31f5c7aba9506b6410944f7063dad1c16a650b7aa6c46"
+        },
+        "selection": {
+          "episodes_per_table": [
+            900,
+            1200
+          ],
+          "eval_seeds": [
+            42,
+            43,
+            44,
+            45,
+            46,
+            47
+          ],
+          "kind": "structural_parity_speed_families",
+          "tables": 14,
+          "tracks": {
+            "extrapolation_high": {
+              "condition_speeds": {
+                "history_high": 10.25,
+                "history_low": 8.25,
+                "history_mid_high": 9.5,
+                "history_mid_low": 8.75
+              },
+              "episodes": 4800,
+              "history_conditions": [
+                "history_high",
+                "history_low",
+                "history_mid_high",
+                "history_mid_low"
+              ],
+              "reference_speeds": [
+                8.25,
+                8.75,
+                9.5,
+                10.25
+              ],
+              "static_queries": 300
+            },
+            "extrapolation_low": {
+              "condition_speeds": {
+                "history_high": 2.35,
+                "history_low": 1.75,
+                "history_mid_high": 2.15,
+                "history_mid_low": 1.95
+              },
+              "episodes": 4800,
+              "history_conditions": [
+                "history_high",
+                "history_low",
+                "history_mid_high",
+                "history_mid_low"
+              ],
+              "reference_speeds": [
+                1.75,
+                1.95,
+                2.15,
+                2.35
+              ],
+              "static_queries": 300
+            },
+            "seen_for_multi": {
+              "condition_speeds": {
+                "history_high": 7.0,
+                "history_low": 3.1,
+                "history_mid": 5.1
+              },
+              "episodes": 2700,
+              "history_conditions": [
+                "history_high",
+                "history_low",
+                "history_mid"
+              ],
+              "reference_speeds": [
+                3.1,
+                5.1,
+                7.0
+              ],
+              "static_queries": 300
+            },
+            "unseen_interpolation": {
+              "condition_speeds": {
+                "history_high": 6.9,
+                "history_low": 3.4,
+                "history_mid": 4.8
+              },
+              "episodes": 2700,
+              "history_conditions": [
+                "history_high",
+                "history_low",
+                "history_mid"
+              ],
+              "reference_speeds": [
+                3.4,
+                4.8,
+                6.9
+              ],
+              "static_queries": 300
+            }
+          },
+          "unique_queries_per_reference_speed_per_seed": 50
+        },
+        "result_kind": "development_only_not_public_test"
+      },
+      "test": {
+        "main_score": 0.3333333333333333,
+        "all_gates_passed": false,
+        "reason_codes": [
+          "track_extrapolation_high_rejected",
+          "track_extrapolation_low_rejected",
+          "track_seen_for_multi_rejected",
+          "track_unseen_interpolation_rejected"
+        ],
+        "source_result_path": "artifacts/evaluation/dinowm_original_icl_current_v1/speed/s3073/test.json",
+        "source_result_sha256": "328283f0f2d053a8f83d192c2b030d2456e3d155f58e75c2d2696c069edcf3f2",
+        "state_sha256": "532f724839a67fe76f1ceba7dd481b9a05181b1685e499099ce2dc0740fa1aa4",
+        "bundle": {
+          "artifact_root": "artifacts/evaluation/history3/speed_multistep_extrap_v5",
+          "component_ids": [
+            "speed",
+            "door",
+            "action_delay",
+            "action_strength",
+            "contact_friction",
+            "motion_damping",
+            "robot_arm_mass",
+            "portal_exit",
+            "cube_gripper_carry"
+          ],
+          "manifest_payload_files": 6,
+          "manifest_sha256": "81eb29d8eeaefb91750187831b9120b9241c78b4903047cd4b720a186c7f6d97",
+          "public_test_policy": "public_offline_final_reporting",
+          "release_status": "staging_not_public_release",
+          "schema_version": "contextworld.bundle-resolution.v1",
+          "selection_policy": "development_only_model_selection_test_final_reporting",
+          "task": "speed",
+          "task_registry_sha256": "26b78ae7d3bbaa2c170080bc1eb8791582a9183e7d606322aaf6bae1b01dcbdd"
+        },
+        "selection": "development_only_model_selection_test_final_reporting",
+        "result_kind": "public_test_offline_final_report_v1"
+      }
+    },
+    {
+      "component_id": "speed",
+      "family": "DINO-WM",
+      "stage": "original_environment_only",
+      "training_seed": 3074,
+      "environment": "tworoom",
+      "checkpoint": "tworoom_prejepa_original_s3074/weights_epoch_10.pt",
+      "checkpoint_sha256": "59362582231e64d7e8124c7e8b71a9ddcb1dec74c88b01398843efc417767358",
+      "history_adapter": "native",
+      "normalized_zero_state_streams": [
+        {
+          "in_chans": 2,
+          "key": "proprio"
+        }
+      ],
+      "development": {
+        "main_score": 0.3311111111111111,
+        "all_gates_passed": false,
+        "reason_codes": [
+          "track_extrapolation_high_rejected",
+          "track_extrapolation_low_rejected",
+          "track_seen_for_multi_rejected",
+          "track_unseen_interpolation_rejected"
+        ],
+        "source_result_path": "artifacts/evaluation/dinowm_original_icl_current_v1/speed/s3074/development.json",
+        "source_result_sha256": "22f68d6c12e2be849bab68fc53aa5478e1bf1ce5ebd45b74860285432479209c",
+        "state_sha256": "974fd3ab30c4fe107b04711351536251b675c3d596f706ae255d43d494d59f0c",
+        "bundle": {
+          "bundle_schema_version": "ContextWorld-v1",
+          "component_id": "speed",
+          "dataset_id": "tworoom-speed",
+          "development_payload_id": "data",
+          "manifest_sha256": "4c5b9cdc84006caeac2a9770501f943affe2b81e32d70c27ab504770b28a93c4",
+          "member_count": 14,
+          "members": [
+            "components/tworoom-speed/v1/development/data/twmsdev-extrapolation_high-history_high-4bd37bba51.lance",
+            "components/tworoom-speed/v1/development/data/twmsdev-extrapolation_high-history_low-4bd37bba51.lance",
+            "components/tworoom-speed/v1/development/data/twmsdev-extrapolation_high-history_mid_high-4bd37bba51.lance",
+            "components/tworoom-speed/v1/development/data/twmsdev-extrapolation_high-history_mid_low-4bd37bba51.lance",
+            "components/tworoom-speed/v1/development/data/twmsdev-extrapolation_low-history_high-c17a2f6a5b.lance",
+            "components/tworoom-speed/v1/development/data/twmsdev-extrapolation_low-history_low-c17a2f6a5b.lance",
+            "components/tworoom-speed/v1/development/data/twmsdev-extrapolation_low-history_mid_high-c17a2f6a5b.lance",
+            "components/tworoom-speed/v1/development/data/twmsdev-extrapolation_low-history_mid_low-c17a2f6a5b.lance",
+            "components/tworoom-speed/v1/development/data/twmsdev-seen_for_multi-history_high-e5246a534f.lance",
+            "components/tworoom-speed/v1/development/data/twmsdev-seen_for_multi-history_low-e5246a534f.lance",
+            "components/tworoom-speed/v1/development/data/twmsdev-seen_for_multi-history_mid-e5246a534f.lance",
+            "components/tworoom-speed/v1/development/data/twmsdev-unseen_interpolation-history_high-63db47aae7.lance",
+            "components/tworoom-speed/v1/development/data/twmsdev-unseen_interpolation-history_low-63db47aae7.lance",
+            "components/tworoom-speed/v1/development/data/twmsdev-unseen_interpolation-history_mid-63db47aae7.lance"
+          ],
+          "task_registry_sha256": "7952ff61e59e1959d1b31f5c7aba9506b6410944f7063dad1c16a650b7aa6c46"
+        },
+        "selection": {
+          "episodes_per_table": [
+            900,
+            1200
+          ],
+          "eval_seeds": [
+            42,
+            43,
+            44,
+            45,
+            46,
+            47
+          ],
+          "kind": "structural_parity_speed_families",
+          "tables": 14,
+          "tracks": {
+            "extrapolation_high": {
+              "condition_speeds": {
+                "history_high": 10.25,
+                "history_low": 8.25,
+                "history_mid_high": 9.5,
+                "history_mid_low": 8.75
+              },
+              "episodes": 4800,
+              "history_conditions": [
+                "history_high",
+                "history_low",
+                "history_mid_high",
+                "history_mid_low"
+              ],
+              "reference_speeds": [
+                8.25,
+                8.75,
+                9.5,
+                10.25
+              ],
+              "static_queries": 300
+            },
+            "extrapolation_low": {
+              "condition_speeds": {
+                "history_high": 2.35,
+                "history_low": 1.75,
+                "history_mid_high": 2.15,
+                "history_mid_low": 1.95
+              },
+              "episodes": 4800,
+              "history_conditions": [
+                "history_high",
+                "history_low",
+                "history_mid_high",
+                "history_mid_low"
+              ],
+              "reference_speeds": [
+                1.75,
+                1.95,
+                2.15,
+                2.35
+              ],
+              "static_queries": 300
+            },
+            "seen_for_multi": {
+              "condition_speeds": {
+                "history_high": 7.0,
+                "history_low": 3.1,
+                "history_mid": 5.1
+              },
+              "episodes": 2700,
+              "history_conditions": [
+                "history_high",
+                "history_low",
+                "history_mid"
+              ],
+              "reference_speeds": [
+                3.1,
+                5.1,
+                7.0
+              ],
+              "static_queries": 300
+            },
+            "unseen_interpolation": {
+              "condition_speeds": {
+                "history_high": 6.9,
+                "history_low": 3.4,
+                "history_mid": 4.8
+              },
+              "episodes": 2700,
+              "history_conditions": [
+                "history_high",
+                "history_low",
+                "history_mid"
+              ],
+              "reference_speeds": [
+                3.4,
+                4.8,
+                6.9
+              ],
+              "static_queries": 300
+            }
+          },
+          "unique_queries_per_reference_speed_per_seed": 50
+        },
+        "result_kind": "development_only_not_public_test"
+      },
+      "test": {
+        "main_score": 0.3333333333333333,
+        "all_gates_passed": false,
+        "reason_codes": [
+          "track_extrapolation_high_rejected",
+          "track_extrapolation_low_rejected",
+          "track_seen_for_multi_rejected",
+          "track_unseen_interpolation_rejected"
+        ],
+        "source_result_path": "artifacts/evaluation/dinowm_original_icl_current_v1/speed/s3074/test.json",
+        "source_result_sha256": "f582bf786433c2c50c2eac539990d288bbe70b14aa09a74fec005cc99edad355",
+        "state_sha256": "974fd3ab30c4fe107b04711351536251b675c3d596f706ae255d43d494d59f0c",
+        "bundle": {
+          "artifact_root": "artifacts/evaluation/history3/speed_multistep_extrap_v5",
+          "component_ids": [
+            "speed",
+            "door",
+            "action_delay",
+            "action_strength",
+            "contact_friction",
+            "motion_damping",
+            "robot_arm_mass",
+            "portal_exit",
+            "cube_gripper_carry"
+          ],
+          "manifest_payload_files": 6,
+          "manifest_sha256": "81eb29d8eeaefb91750187831b9120b9241c78b4903047cd4b720a186c7f6d97",
+          "public_test_policy": "public_offline_final_reporting",
+          "release_status": "staging_not_public_release",
+          "schema_version": "contextworld.bundle-resolution.v1",
+          "selection_policy": "development_only_model_selection_test_final_reporting",
+          "task": "speed",
+          "task_registry_sha256": "26b78ae7d3bbaa2c170080bc1eb8791582a9183e7d606322aaf6bae1b01dcbdd"
+        },
+        "selection": "development_only_model_selection_test_final_reporting",
+        "result_kind": "public_test_offline_final_report_v1"
+      }
+    },
+    {
+      "component_id": "action_strength",
+      "family": "DINO-WM",
+      "stage": "original_environment_only",
+      "training_seed": 3072,
+      "environment": "pusht",
+      "checkpoint": "pusht_prejepa_original_s3072/weights_epoch_10.pt",
+      "checkpoint_sha256": "043fb6aee9cb728307973016468802c772d1bfff5cebc7affe05c7e5780fc329",
+      "history_adapter": "native",
+      "normalized_zero_state_streams": [
+        {
+          "in_chans": 4,
+          "key": "proprio"
+        }
+      ],
+      "development": {
+        "main_score": 0.49609375,
+        "all_gates_passed": false,
+        "reason_codes": [
+          "original_correct_future_rate",
+          "original_correct_history_rate",
+          "original_gate_completion_normalized_response_error",
+          "original_gate_completion_response_gain",
+          "original_rule_switch_rate",
+          "original_worst_strength_correct_future_rate"
+        ],
+        "source_result_path": "artifacts/evaluation/dinowm_original_icl_current_v1/action_strength/s3072/development.json",
+        "source_result_sha256": "d33a3052d97ae7b7cc506b8da85cfda41a53e49321d5676a1069338f03f541cc",
+        "state_sha256": "eacfca895071b75325bdf9867f1d07025ef669a7b4a48dabecfd4c818533cfd7",
+        "bundle": {
+          "bundle_schema_version": "ContextWorld-v1",
+          "component_id": "action_strength",
+          "dataset_id": "pusht-action-strength",
+          "development_payload_id": "data",
+          "manifest_sha256": "4c5b9cdc84006caeac2a9770501f943affe2b81e32d70c27ab504770b28a93c4",
+          "member_count": 1,
+          "members": [
+            "components/pusht-action-strength/v1/development/data.lance"
+          ],
+          "task_registry_sha256": "7952ff61e59e1959d1b31f5c7aba9506b6410944f7063dad1c16a650b7aa6c46"
+        },
+        "selection": {
+          "kind": "complete_registered_development_table",
+          "member": "components/pusht-action-strength/v1/development/data.lance",
+          "pair_count": 256
+        },
+        "result_kind": "development_only_not_public_test"
+      },
+      "test": {
+        "main_score": 0.490234375,
+        "all_gates_passed": false,
+        "reason_codes": [
+          "original_correct_future_rate",
+          "original_correct_history_rate",
+          "original_gate_completion_normalized_response_error",
+          "original_gate_completion_response_gain",
+          "original_rule_switch_rate",
+          "original_worst_strength_correct_future_rate"
+        ],
+        "source_result_path": "artifacts/evaluation/dinowm_original_icl_current_v1/action_strength/s3072/test.json",
+        "source_result_sha256": "2ad381974305ecd2602f81673ffd306d5cc70771bbc78c5afe8c1ac6b658920e",
+        "state_sha256": "eacfca895071b75325bdf9867f1d07025ef669a7b4a48dabecfd4c818533cfd7",
+        "bundle": {
+          "artifact_root": "artifacts/evaluation/history3/pusht_action_strength_h3_public_test_v1",
+          "component_ids": [
+            "speed",
+            "door",
+            "action_delay",
+            "action_strength",
+            "contact_friction",
+            "motion_damping",
+            "robot_arm_mass",
+            "portal_exit",
+            "cube_gripper_carry"
+          ],
+          "manifest_payload_files": 7,
+          "manifest_sha256": "81eb29d8eeaefb91750187831b9120b9241c78b4903047cd4b720a186c7f6d97",
+          "public_test_policy": "public_offline_final_reporting",
+          "release_status": "staging_not_public_release",
+          "schema_version": "contextworld.bundle-resolution.v1",
+          "selection_policy": "development_only_model_selection_test_final_reporting",
+          "task": "action_strength",
+          "task_registry_sha256": "26b78ae7d3bbaa2c170080bc1eb8791582a9183e7d606322aaf6bae1b01dcbdd"
+        },
+        "selection": "development_only_model_selection_test_final_reporting",
+        "result_kind": "public_test_offline_final_report_v1"
+      }
+    },
+    {
+      "component_id": "action_strength",
+      "family": "DINO-WM",
+      "stage": "original_environment_only",
+      "training_seed": 3073,
+      "environment": "pusht",
+      "checkpoint": "pusht_prejepa_original_s3073/weights_epoch_10.pt",
+      "checkpoint_sha256": "32e05c0d0b9f65b2b3029a31ad6405e5e20bf30a9a1a078754b0a81a4d7ff00e",
+      "history_adapter": "native",
+      "normalized_zero_state_streams": [
+        {
+          "in_chans": 4,
+          "key": "proprio"
+        }
+      ],
+      "development": {
+        "main_score": 0.490234375,
+        "all_gates_passed": false,
+        "reason_codes": [
+          "original_correct_future_rate",
+          "original_correct_history_rate",
+          "original_gate_completion_normalized_response_error",
+          "original_gate_completion_response_gain",
+          "original_rule_switch_rate",
+          "original_worst_strength_correct_future_rate"
+        ],
+        "source_result_path": "artifacts/evaluation/dinowm_original_icl_current_v1/action_strength/s3073/development.json",
+        "source_result_sha256": "915347cde749f84d2a2d4aa940eb4941022b678a8cdf9d17f40588c8a9921f44",
+        "state_sha256": "dd625545b898f78510b2a796a7b8cfa32861c55bc99cb5d4779f77b50e95fb69",
+        "bundle": {
+          "bundle_schema_version": "ContextWorld-v1",
+          "component_id": "action_strength",
+          "dataset_id": "pusht-action-strength",
+          "development_payload_id": "data",
+          "manifest_sha256": "4c5b9cdc84006caeac2a9770501f943affe2b81e32d70c27ab504770b28a93c4",
+          "member_count": 1,
+          "members": [
+            "components/pusht-action-strength/v1/development/data.lance"
+          ],
+          "task_registry_sha256": "7952ff61e59e1959d1b31f5c7aba9506b6410944f7063dad1c16a650b7aa6c46"
+        },
+        "selection": {
+          "kind": "complete_registered_development_table",
+          "member": "components/pusht-action-strength/v1/development/data.lance",
+          "pair_count": 256
+        },
+        "result_kind": "development_only_not_public_test"
+      },
+      "test": {
+        "main_score": 0.4921875,
+        "all_gates_passed": false,
+        "reason_codes": [
+          "original_correct_future_rate",
+          "original_correct_history_rate",
+          "original_gate_completion_normalized_response_error",
+          "original_gate_completion_response_gain",
+          "original_rule_switch_rate",
+          "original_worst_strength_correct_future_rate"
+        ],
+        "source_result_path": "artifacts/evaluation/dinowm_original_icl_current_v1/action_strength/s3073/test.json",
+        "source_result_sha256": "54531364ef315928561e85c7e1e82b4b823ece54c4467b03a8b0686e56f257d3",
+        "state_sha256": "dd625545b898f78510b2a796a7b8cfa32861c55bc99cb5d4779f77b50e95fb69",
+        "bundle": {
+          "artifact_root": "artifacts/evaluation/history3/pusht_action_strength_h3_public_test_v1",
+          "component_ids": [
+            "speed",
+            "door",
+            "action_delay",
+            "action_strength",
+            "contact_friction",
+            "motion_damping",
+            "robot_arm_mass",
+            "portal_exit",
+            "cube_gripper_carry"
+          ],
+          "manifest_payload_files": 7,
+          "manifest_sha256": "81eb29d8eeaefb91750187831b9120b9241c78b4903047cd4b720a186c7f6d97",
+          "public_test_policy": "public_offline_final_reporting",
+          "release_status": "staging_not_public_release",
+          "schema_version": "contextworld.bundle-resolution.v1",
+          "selection_policy": "development_only_model_selection_test_final_reporting",
+          "task": "action_strength",
+          "task_registry_sha256": "26b78ae7d3bbaa2c170080bc1eb8791582a9183e7d606322aaf6bae1b01dcbdd"
+        },
+        "selection": "development_only_model_selection_test_final_reporting",
+        "result_kind": "public_test_offline_final_report_v1"
+      }
+    },
+    {
+      "component_id": "action_strength",
+      "family": "DINO-WM",
+      "stage": "original_environment_only",
+      "training_seed": 3074,
+      "environment": "pusht",
+      "checkpoint": "pusht_prejepa_original_s3074/weights_epoch_10.pt",
+      "checkpoint_sha256": "7752b940bb0d6d564bade4ef2911e728dcc3cecbed6ae1b816828cb3d38522fe",
+      "history_adapter": "native",
+      "normalized_zero_state_streams": [
+        {
+          "in_chans": 4,
+          "key": "proprio"
+        }
+      ],
+      "development": {
+        "main_score": 0.5,
+        "all_gates_passed": false,
+        "reason_codes": [
+          "original_correct_future_rate",
+          "original_correct_history_rate",
+          "original_gate_completion_normalized_response_error",
+          "original_gate_completion_response_gain",
+          "original_rule_switch_rate",
+          "original_worst_strength_correct_future_rate"
+        ],
+        "source_result_path": "artifacts/evaluation/dinowm_original_icl_current_v1/action_strength/s3074/development.json",
+        "source_result_sha256": "75267c135900b6d3e32a129d344f5b2955199f28da48779b31d00eefe17d6b83",
+        "state_sha256": "8226dfa29399edb4251df655a81eba584c23e305451b21db015dc13b5e60af2d",
+        "bundle": {
+          "bundle_schema_version": "ContextWorld-v1",
+          "component_id": "action_strength",
+          "dataset_id": "pusht-action-strength",
+          "development_payload_id": "data",
+          "manifest_sha256": "4c5b9cdc84006caeac2a9770501f943affe2b81e32d70c27ab504770b28a93c4",
+          "member_count": 1,
+          "members": [
+            "components/pusht-action-strength/v1/development/data.lance"
+          ],
+          "task_registry_sha256": "7952ff61e59e1959d1b31f5c7aba9506b6410944f7063dad1c16a650b7aa6c46"
+        },
+        "selection": {
+          "kind": "complete_registered_development_table",
+          "member": "components/pusht-action-strength/v1/development/data.lance",
+          "pair_count": 256
+        },
+        "result_kind": "development_only_not_public_test"
+      },
+      "test": {
+        "main_score": 0.49609375,
+        "all_gates_passed": false,
+        "reason_codes": [
+          "original_correct_future_rate",
+          "original_correct_history_rate",
+          "original_gate_completion_normalized_response_error",
+          "original_gate_completion_response_gain",
+          "original_rule_switch_rate",
+          "original_worst_strength_correct_future_rate"
+        ],
+        "source_result_path": "artifacts/evaluation/dinowm_original_icl_current_v1/action_strength/s3074/test.json",
+        "source_result_sha256": "4ca3616bb021a28e45c758228b5d0a5f561f80d0570d300884b1d75c55047753",
+        "state_sha256": "8226dfa29399edb4251df655a81eba584c23e305451b21db015dc13b5e60af2d",
+        "bundle": {
+          "artifact_root": "artifacts/evaluation/history3/pusht_action_strength_h3_public_test_v1",
+          "component_ids": [
+            "speed",
+            "door",
+            "action_delay",
+            "action_strength",
+            "contact_friction",
+            "motion_damping",
+            "robot_arm_mass",
+            "portal_exit",
+            "cube_gripper_carry"
+          ],
+          "manifest_payload_files": 7,
+          "manifest_sha256": "81eb29d8eeaefb91750187831b9120b9241c78b4903047cd4b720a186c7f6d97",
+          "public_test_policy": "public_offline_final_reporting",
+          "release_status": "staging_not_public_release",
+          "schema_version": "contextworld.bundle-resolution.v1",
+          "selection_policy": "development_only_model_selection_test_final_reporting",
+          "task": "action_strength",
+          "task_registry_sha256": "26b78ae7d3bbaa2c170080bc1eb8791582a9183e7d606322aaf6bae1b01dcbdd"
+        },
+        "selection": "development_only_model_selection_test_final_reporting",
+        "result_kind": "public_test_offline_final_report_v1"
+      }
+    },
+    {
+      "component_id": "robot_arm_mass",
+      "family": "DINO-WM",
+      "stage": "original_environment_only",
+      "training_seed": 3072,
+      "environment": "reacher",
+      "checkpoint": "reacher_prejepa_original_s3072/weights_epoch_10.pt",
+      "checkpoint_sha256": "7d40d7d9c752776a88e00d83492a1ab279cd6bbabc05c90c95e35c5639c3f3b1",
+      "history_adapter": "native",
+      "normalized_zero_state_streams": [
+        {
+          "in_chans": 6,
+          "key": "observation"
+        }
+      ],
+      "development": {
+        "main_score": 0.498046875,
+        "all_gates_passed": false,
+        "reason_codes": [
+          "original_context_switch_rate",
+          "original_context_switch_rate_bootstrap_lower_bound",
+          "original_correct_future_rate",
+          "original_correct_future_rate_bootstrap_lower_bound",
+          "original_correct_history_rate",
+          "original_correct_history_rate_bootstrap_lower_bound",
+          "original_gate_completion_normalized_response_error",
+          "original_gate_completion_response_gain",
+          "original_worst_mass_correct_future_rate"
+        ],
+        "source_result_path": "artifacts/evaluation/dinowm_original_icl_current_v1/robot_arm_mass/s3072/development.json",
+        "source_result_sha256": "465d15eff015eda6664b58b61197721f33ea514fec8d276a9814d46379624b8d",
+        "state_sha256": "6957b1ecb5af0b6273c2d25f370cde9ae120307d3834e178ba6a5fb698efdb9b",
+        "bundle": {
+          "bundle_schema_version": "ContextWorld-v1",
+          "component_id": "robot_arm_mass",
+          "dataset_id": "reacher-arm-mass",
+          "development_payload_id": "data",
+          "manifest_sha256": "4c5b9cdc84006caeac2a9770501f943affe2b81e32d70c27ab504770b28a93c4",
+          "member_count": 1,
+          "members": [
+            "components/reacher-arm-mass/v1/development/data.lance"
+          ],
+          "task_registry_sha256": "7952ff61e59e1959d1b31f5c7aba9506b6410944f7063dad1c16a650b7aa6c46"
+        },
+        "selection": {
+          "kind": "complete_registered_development_table",
+          "member": "components/reacher-arm-mass/v1/development/data.lance",
+          "pair_count": 256
+        },
+        "result_kind": "development_only_not_public_test"
+      },
+      "test": {
+        "main_score": 0.50390625,
+        "all_gates_passed": false,
+        "reason_codes": [
+          "original_context_switch_rate",
+          "original_context_switch_rate_bootstrap_lower_bound",
+          "original_correct_future_rate",
+          "original_correct_future_rate_bootstrap_lower_bound",
+          "original_correct_history_rate",
+          "original_correct_history_rate_bootstrap_lower_bound",
+          "original_gate_completion_normalized_response_error",
+          "original_gate_completion_response_gain",
+          "original_worst_mass_correct_future_rate"
+        ],
+        "source_result_path": "artifacts/evaluation/dinowm_original_icl_current_v1/robot_arm_mass/s3072/test.json",
+        "source_result_sha256": "e6a5734a906a1567bce0f5bdc11a73c6ab68300df7b27a91d1ee24b5205ad283",
+        "state_sha256": "6957b1ecb5af0b6273c2d25f370cde9ae120307d3834e178ba6a5fb698efdb9b",
+        "bundle": {
+          "artifact_root": "artifacts/synthesis/reacher_robot_arm_mass_h3_release_v1",
+          "component_ids": [
+            "speed",
+            "door",
+            "action_delay",
+            "action_strength",
+            "contact_friction",
+            "motion_damping",
+            "robot_arm_mass",
+            "portal_exit",
+            "cube_gripper_carry"
+          ],
+          "manifest_payload_files": 3,
+          "manifest_sha256": "81eb29d8eeaefb91750187831b9120b9241c78b4903047cd4b720a186c7f6d97",
+          "public_test_policy": "public_offline_final_reporting",
+          "release_status": "staging_not_public_release",
+          "schema_version": "contextworld.bundle-resolution.v1",
+          "selection_policy": "development_only_model_selection_test_final_reporting",
+          "task": "robot_arm_mass",
+          "task_registry_sha256": "26b78ae7d3bbaa2c170080bc1eb8791582a9183e7d606322aaf6bae1b01dcbdd"
+        },
+        "selection": "development_only_model_selection_test_final_reporting",
+        "result_kind": "public_test_offline_final_report_v1"
+      }
+    },
+    {
+      "component_id": "robot_arm_mass",
+      "family": "DINO-WM",
+      "stage": "original_environment_only",
+      "training_seed": 3073,
+      "environment": "reacher",
+      "checkpoint": "reacher_prejepa_original_s3073/weights_epoch_10.pt",
+      "checkpoint_sha256": "b2d8adf179012393c3e3bab8ecfde9846412054456dbb8d4f447eba297a9643c",
+      "history_adapter": "native",
+      "normalized_zero_state_streams": [
+        {
+          "in_chans": 6,
+          "key": "observation"
+        }
+      ],
+      "development": {
+        "main_score": 0.5,
+        "all_gates_passed": false,
+        "reason_codes": [
+          "original_context_switch_rate",
+          "original_context_switch_rate_bootstrap_lower_bound",
+          "original_correct_future_rate",
+          "original_correct_future_rate_bootstrap_lower_bound",
+          "original_correct_history_rate",
+          "original_correct_history_rate_bootstrap_lower_bound",
+          "original_gate_completion_normalized_response_error",
+          "original_gate_completion_response_gain",
+          "original_worst_mass_correct_future_rate"
+        ],
+        "source_result_path": "artifacts/evaluation/dinowm_original_icl_current_v1/robot_arm_mass/s3073/development.json",
+        "source_result_sha256": "9ab876ccc5d6846339185739e051ce62a7f5162344729831bd1a9fea5ba27480",
+        "state_sha256": "f218acd535754c7053b0a94a4918220abd2ba143c8c505c5206f5212950e297c",
+        "bundle": {
+          "bundle_schema_version": "ContextWorld-v1",
+          "component_id": "robot_arm_mass",
+          "dataset_id": "reacher-arm-mass",
+          "development_payload_id": "data",
+          "manifest_sha256": "4c5b9cdc84006caeac2a9770501f943affe2b81e32d70c27ab504770b28a93c4",
+          "member_count": 1,
+          "members": [
+            "components/reacher-arm-mass/v1/development/data.lance"
+          ],
+          "task_registry_sha256": "7952ff61e59e1959d1b31f5c7aba9506b6410944f7063dad1c16a650b7aa6c46"
+        },
+        "selection": {
+          "kind": "complete_registered_development_table",
+          "member": "components/reacher-arm-mass/v1/development/data.lance",
+          "pair_count": 256
+        },
+        "result_kind": "development_only_not_public_test"
+      },
+      "test": {
+        "main_score": 0.50390625,
+        "all_gates_passed": false,
+        "reason_codes": [
+          "original_context_switch_rate",
+          "original_context_switch_rate_bootstrap_lower_bound",
+          "original_correct_future_rate",
+          "original_correct_future_rate_bootstrap_lower_bound",
+          "original_correct_history_rate",
+          "original_correct_history_rate_bootstrap_lower_bound",
+          "original_gate_completion_normalized_response_error",
+          "original_gate_completion_response_gain",
+          "original_worst_mass_correct_future_rate"
+        ],
+        "source_result_path": "artifacts/evaluation/dinowm_original_icl_current_v1/robot_arm_mass/s3073/test.json",
+        "source_result_sha256": "357d32a18023ed7832f9ddb37880f29ca51b6168abcaf9ea74233045fa1010f2",
+        "state_sha256": "f218acd535754c7053b0a94a4918220abd2ba143c8c505c5206f5212950e297c",
+        "bundle": {
+          "artifact_root": "artifacts/synthesis/reacher_robot_arm_mass_h3_release_v1",
+          "component_ids": [
+            "speed",
+            "door",
+            "action_delay",
+            "action_strength",
+            "contact_friction",
+            "motion_damping",
+            "robot_arm_mass",
+            "portal_exit",
+            "cube_gripper_carry"
+          ],
+          "manifest_payload_files": 3,
+          "manifest_sha256": "81eb29d8eeaefb91750187831b9120b9241c78b4903047cd4b720a186c7f6d97",
+          "public_test_policy": "public_offline_final_reporting",
+          "release_status": "staging_not_public_release",
+          "schema_version": "contextworld.bundle-resolution.v1",
+          "selection_policy": "development_only_model_selection_test_final_reporting",
+          "task": "robot_arm_mass",
+          "task_registry_sha256": "26b78ae7d3bbaa2c170080bc1eb8791582a9183e7d606322aaf6bae1b01dcbdd"
+        },
+        "selection": "development_only_model_selection_test_final_reporting",
+        "result_kind": "public_test_offline_final_report_v1"
+      }
+    },
+    {
+      "component_id": "robot_arm_mass",
+      "family": "DINO-WM",
+      "stage": "original_environment_only",
+      "training_seed": 3074,
+      "environment": "reacher",
+      "checkpoint": "reacher_prejepa_original_s3074/weights_epoch_10.pt",
+      "checkpoint_sha256": "04561e5dabe2ad9e32de5190e0fcf748c1e316252e7d0729f0db76782badfb05",
+      "history_adapter": "native",
+      "normalized_zero_state_streams": [
+        {
+          "in_chans": 6,
+          "key": "observation"
+        }
+      ],
+      "development": {
+        "main_score": 0.5,
+        "all_gates_passed": false,
+        "reason_codes": [
+          "original_context_switch_rate",
+          "original_context_switch_rate_bootstrap_lower_bound",
+          "original_correct_future_rate",
+          "original_correct_future_rate_bootstrap_lower_bound",
+          "original_correct_history_rate",
+          "original_correct_history_rate_bootstrap_lower_bound",
+          "original_gate_completion_normalized_response_error",
+          "original_gate_completion_response_gain",
+          "original_worst_mass_correct_future_rate"
+        ],
+        "source_result_path": "artifacts/evaluation/dinowm_original_icl_current_v1/robot_arm_mass/s3074/development.json",
+        "source_result_sha256": "48f3c9376e0247ec2252cb9b4aced871c616f1fde7193633fcd4cedd98451ee5",
+        "state_sha256": "69aaf85efdacb83c809dc2b9016dab617edcb34354c3b433db01e6e09fa9c058",
+        "bundle": {
+          "bundle_schema_version": "ContextWorld-v1",
+          "component_id": "robot_arm_mass",
+          "dataset_id": "reacher-arm-mass",
+          "development_payload_id": "data",
+          "manifest_sha256": "4c5b9cdc84006caeac2a9770501f943affe2b81e32d70c27ab504770b28a93c4",
+          "member_count": 1,
+          "members": [
+            "components/reacher-arm-mass/v1/development/data.lance"
+          ],
+          "task_registry_sha256": "7952ff61e59e1959d1b31f5c7aba9506b6410944f7063dad1c16a650b7aa6c46"
+        },
+        "selection": {
+          "kind": "complete_registered_development_table",
+          "member": "components/reacher-arm-mass/v1/development/data.lance",
+          "pair_count": 256
+        },
+        "result_kind": "development_only_not_public_test"
+      },
+      "test": {
+        "main_score": 0.501953125,
+        "all_gates_passed": false,
+        "reason_codes": [
+          "original_context_switch_rate",
+          "original_context_switch_rate_bootstrap_lower_bound",
+          "original_correct_future_rate",
+          "original_correct_future_rate_bootstrap_lower_bound",
+          "original_correct_history_rate",
+          "original_correct_history_rate_bootstrap_lower_bound",
+          "original_gate_completion_normalized_response_error",
+          "original_gate_completion_response_gain",
+          "original_worst_mass_correct_future_rate"
+        ],
+        "source_result_path": "artifacts/evaluation/dinowm_original_icl_current_v1/robot_arm_mass/s3074/test.json",
+        "source_result_sha256": "9489e385e09a95e12b97ae3a22a26bb4545e4074f6ac881f8f28d2b791e70b22",
+        "state_sha256": "69aaf85efdacb83c809dc2b9016dab617edcb34354c3b433db01e6e09fa9c058",
+        "bundle": {
+          "artifact_root": "artifacts/synthesis/reacher_robot_arm_mass_h3_release_v1",
+          "component_ids": [
+            "speed",
+            "door",
+            "action_delay",
+            "action_strength",
+            "contact_friction",
+            "motion_damping",
+            "robot_arm_mass",
+            "portal_exit",
+            "cube_gripper_carry"
+          ],
+          "manifest_payload_files": 3,
+          "manifest_sha256": "81eb29d8eeaefb91750187831b9120b9241c78b4903047cd4b720a186c7f6d97",
+          "public_test_policy": "public_offline_final_reporting",
+          "release_status": "staging_not_public_release",
+          "schema_version": "contextworld.bundle-resolution.v1",
+          "selection_policy": "development_only_model_selection_test_final_reporting",
+          "task": "robot_arm_mass",
+          "task_registry_sha256": "26b78ae7d3bbaa2c170080bc1eb8791582a9183e7d606322aaf6bae1b01dcbdd"
+        },
+        "selection": "development_only_model_selection_test_final_reporting",
+        "result_kind": "public_test_offline_final_report_v1"
+      }
+    },
+    {
+      "component_id": "action_delay",
+      "family": "DINO-WM",
+      "stage": "original_environment_only",
+      "training_seed": 3072,
+      "environment": "tworoom",
+      "checkpoint": "tworoom_prejepa_original_s3072/weights_epoch_10.pt",
+      "checkpoint_sha256": "d72ae7c0004b8f9157d72dba92b0594a3d5f25a59cb4941149ecb5aaaf9f2e6a",
+      "history_adapter": "h3_tail_projection",
+      "normalized_zero_state_streams": [
+        {
+          "in_chans": 2,
+          "key": "proprio"
+        }
+      ],
+      "development": {
+        "main_score": 0.16648148148148148,
+        "all_gates_passed": false,
+        "reason_codes": [
+          "gate_completion_context_switch_rate",
+          "gate_completion_context_switch_rate_bootstrap_lower_bound",
+          "gate_completion_correct_history_rate",
+          "gate_completion_correct_history_rate_bootstrap_lower_bound",
+          "gate_completion_normalized_response_error",
+          "gate_completion_response_gain",
+          "legacy_bootstrap_lower_bound",
+          "legacy_minimum_physical_group_accuracy",
+          "legacy_physical_group_macro_accuracy"
+        ],
+        "source_result_path": "artifacts/evaluation/dinowm_original_icl_current_v1/action_delay/s3072/development.json",
+        "source_result_sha256": "a14d7cdfc3da5a0e75cf2de386a9067388543f05e757d1ae17ae2eb1eb012329",
+        "state_sha256": "5397aaa7805cefb82230361eabf554b77b6db57ead28f21548b4a7b27adc06db",
+        "bundle": {
+          "bundle_schema_version": "ContextWorld-v1",
+          "component_id": "action_delay",
+          "dataset_id": "tworoom-action-delay",
+          "development_payload_id": "full",
+          "manifest_sha256": "4c5b9cdc84006caeac2a9770501f943affe2b81e32d70c27ab504770b28a93c4",
+          "member_count": 66,
+          "members": [
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p000-d0-5ba831ec45.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p000-d1-40f4ca7e78.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p000-d10-4889368e4e.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p000-d2-3e39488a80.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p000-d3-71027ca2d5.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p000-d4-2de54572e9.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p000-d5-1777d5d45c.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p000-d6-d93bb6da1f.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p000-d7-d6df0d2b28.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p000-d8-bab6c29410.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p000-d9-5e17b997c9.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p001-d0-75cd28b982.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p001-d1-02f4fa01ec.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p001-d10-937112ae66.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p001-d2-693738e90d.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p001-d3-ab42c6b5cc.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p001-d4-09010921b1.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p001-d5-9b884ba1ca.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p001-d6-3490ef4fc9.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p001-d7-b76d79e719.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p001-d8-392c87b355.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p001-d9-5b04deaf0f.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p002-d0-396bf17a9e.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p002-d1-e0a7333bba.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p002-d10-36ac3c15e7.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p002-d2-a379f8ee84.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p002-d3-2a3bc315d1.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p002-d4-04dbbf1fe1.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p002-d5-7bc7ac2017.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p002-d6-c291becaa3.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p002-d7-2fef9714ce.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p002-d8-05c4b3b0b3.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p002-d9-debb46cf99.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p003-d0-6a99d8f3dc.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p003-d1-3b74ca1a8c.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p003-d10-a3ef6f3929.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p003-d2-07bf25b421.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p003-d3-f78626706d.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p003-d4-0b30cf9e37.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p003-d5-3f6fb3a277.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p003-d6-9a4bf6bfd7.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p003-d7-2b5028ffd3.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p003-d8-7788592474.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p003-d9-8e331b76de.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p004-d0-f3a8611a69.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p004-d1-cb2a0d9f77.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p004-d10-814db5bbd1.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p004-d2-3707992c16.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p004-d3-96b4b5886f.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p004-d4-f0d24d04fb.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p004-d5-e64a34115d.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p004-d6-1fd65b24ef.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p004-d7-8f834deaa3.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p004-d8-e9772f34d1.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p004-d9-e545bb2a27.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p005-d0-12b343b4ba.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p005-d1-9d672cf4a3.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p005-d10-12d5aefd45.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p005-d2-9d683e4de7.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p005-d3-d3f59b6a81.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p005-d4-0776223347.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p005-d5-f5e0b5b680.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p005-d6-5d3eaf3d6d.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p005-d7-1499c68175.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p005-d8-a8dbbc6af1.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p005-d9-9193dee245.lance"
+          ],
+          "task_registry_sha256": "7952ff61e59e1959d1b31f5c7aba9506b6410944f7063dad1c16a650b7aa6c46"
+        },
+        "selection": {
+          "candidate_pairs": 3000,
+          "delay_values": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10
+          ],
+          "eval_seed_query_counts": {
+            "52": 50,
+            "53": 50,
+            "54": 50,
+            "55": 50,
+            "56": 50,
+            "57": 50
+          },
+          "eval_seeds": [
+            52,
+            53,
+            54,
+            55,
+            56,
+            57
+          ],
+          "kind": "matched_filename_profile_delay_family_and_episode_id",
+          "profiles": 6,
+          "queries_per_profile": 50,
+          "query_metadata_fields": [
+            "query_id",
+            "eval_seed",
+            "room",
+            "direction"
+          ],
+          "rule": "all registered delay members per profile; first sorted shared episode ids",
+          "selected_contrast_pairs": 3000,
+          "selected_queries": 300
+        },
+        "result_kind": "development_only_not_public_test"
+      },
+      "test": {
+        "main_score": 0.16574074074074072,
+        "all_gates_passed": false,
+        "reason_codes": [
+          "gate_completion_context_switch_rate",
+          "gate_completion_context_switch_rate_bootstrap_lower_bound",
+          "gate_completion_correct_history_rate",
+          "gate_completion_correct_history_rate_bootstrap_lower_bound",
+          "gate_completion_normalized_response_error",
+          "gate_completion_response_gain",
+          "legacy_bootstrap_lower_bound",
+          "legacy_minimum_physical_group_accuracy",
+          "legacy_physical_group_macro_accuracy"
+        ],
+        "source_result_path": "artifacts/evaluation/dinowm_original_icl_current_v1/action_delay/s3072/test.json",
+        "source_result_sha256": "b9b376b13e8be2e1a9f95206042c99bb134cb709910ced81bc9ddac5e19f289b",
+        "state_sha256": "5397aaa7805cefb82230361eabf554b77b6db57ead28f21548b4a7b27adc06db",
+        "bundle": {
+          "artifact_root": "artifacts/evaluation/history7/action_delay_validation_v1",
+          "component_ids": [
+            "speed",
+            "door",
+            "action_delay",
+            "action_strength",
+            "contact_friction",
+            "motion_damping",
+            "robot_arm_mass",
+            "portal_exit",
+            "cube_gripper_carry"
+          ],
+          "manifest_payload_files": 304,
+          "manifest_sha256": "81eb29d8eeaefb91750187831b9120b9241c78b4903047cd4b720a186c7f6d97",
+          "public_test_policy": "public_offline_final_reporting",
+          "release_status": "staging_not_public_release",
+          "schema_version": "contextworld.bundle-resolution.v1",
+          "selection_policy": "development_only_model_selection_test_final_reporting",
+          "task": "action_delay",
+          "task_registry_sha256": "26b78ae7d3bbaa2c170080bc1eb8791582a9183e7d606322aaf6bae1b01dcbdd"
+        },
+        "selection": "development_only_model_selection_test_final_reporting",
+        "result_kind": "public_test_offline_final_report_v1"
+      }
+    },
+    {
+      "component_id": "action_delay",
+      "family": "DINO-WM",
+      "stage": "original_environment_only",
+      "training_seed": 3073,
+      "environment": "tworoom",
+      "checkpoint": "tworoom_prejepa_original_s3073/weights_epoch_10.pt",
+      "checkpoint_sha256": "5772ce7ff013fdd19655831cc003ea5f1c8fda10651b5164ac344b3673f8e897",
+      "history_adapter": "h3_tail_projection",
+      "normalized_zero_state_streams": [
+        {
+          "in_chans": 2,
+          "key": "proprio"
+        }
+      ],
+      "development": {
+        "main_score": 0.16666666666666666,
+        "all_gates_passed": false,
+        "reason_codes": [
+          "gate_completion_context_switch_rate",
+          "gate_completion_context_switch_rate_bootstrap_lower_bound",
+          "gate_completion_correct_history_rate",
+          "gate_completion_correct_history_rate_bootstrap_lower_bound",
+          "gate_completion_normalized_response_error",
+          "gate_completion_response_gain",
+          "legacy_bootstrap_lower_bound",
+          "legacy_minimum_physical_group_accuracy",
+          "legacy_physical_group_macro_accuracy"
+        ],
+        "source_result_path": "artifacts/evaluation/dinowm_original_icl_current_v1/action_delay/s3073/development.json",
+        "source_result_sha256": "94857e5251abc40839655af4a6e9d5e9b8f4ed31f0ecb81a34c41b2f8fc337c2",
+        "state_sha256": "532f724839a67fe76f1ceba7dd481b9a05181b1685e499099ce2dc0740fa1aa4",
+        "bundle": {
+          "bundle_schema_version": "ContextWorld-v1",
+          "component_id": "action_delay",
+          "dataset_id": "tworoom-action-delay",
+          "development_payload_id": "full",
+          "manifest_sha256": "4c5b9cdc84006caeac2a9770501f943affe2b81e32d70c27ab504770b28a93c4",
+          "member_count": 66,
+          "members": [
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p000-d0-5ba831ec45.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p000-d1-40f4ca7e78.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p000-d10-4889368e4e.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p000-d2-3e39488a80.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p000-d3-71027ca2d5.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p000-d4-2de54572e9.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p000-d5-1777d5d45c.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p000-d6-d93bb6da1f.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p000-d7-d6df0d2b28.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p000-d8-bab6c29410.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p000-d9-5e17b997c9.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p001-d0-75cd28b982.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p001-d1-02f4fa01ec.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p001-d10-937112ae66.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p001-d2-693738e90d.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p001-d3-ab42c6b5cc.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p001-d4-09010921b1.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p001-d5-9b884ba1ca.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p001-d6-3490ef4fc9.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p001-d7-b76d79e719.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p001-d8-392c87b355.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p001-d9-5b04deaf0f.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p002-d0-396bf17a9e.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p002-d1-e0a7333bba.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p002-d10-36ac3c15e7.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p002-d2-a379f8ee84.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p002-d3-2a3bc315d1.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p002-d4-04dbbf1fe1.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p002-d5-7bc7ac2017.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p002-d6-c291becaa3.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p002-d7-2fef9714ce.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p002-d8-05c4b3b0b3.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p002-d9-debb46cf99.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p003-d0-6a99d8f3dc.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p003-d1-3b74ca1a8c.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p003-d10-a3ef6f3929.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p003-d2-07bf25b421.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p003-d3-f78626706d.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p003-d4-0b30cf9e37.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p003-d5-3f6fb3a277.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p003-d6-9a4bf6bfd7.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p003-d7-2b5028ffd3.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p003-d8-7788592474.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p003-d9-8e331b76de.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p004-d0-f3a8611a69.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p004-d1-cb2a0d9f77.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p004-d10-814db5bbd1.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p004-d2-3707992c16.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p004-d3-96b4b5886f.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p004-d4-f0d24d04fb.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p004-d5-e64a34115d.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p004-d6-1fd65b24ef.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p004-d7-8f834deaa3.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p004-d8-e9772f34d1.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p004-d9-e545bb2a27.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p005-d0-12b343b4ba.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p005-d1-9d672cf4a3.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p005-d10-12d5aefd45.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p005-d2-9d683e4de7.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p005-d3-d3f59b6a81.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p005-d4-0776223347.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p005-d5-f5e0b5b680.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p005-d6-5d3eaf3d6d.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p005-d7-1499c68175.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p005-d8-a8dbbc6af1.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p005-d9-9193dee245.lance"
+          ],
+          "task_registry_sha256": "7952ff61e59e1959d1b31f5c7aba9506b6410944f7063dad1c16a650b7aa6c46"
+        },
+        "selection": {
+          "candidate_pairs": 3000,
+          "delay_values": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10
+          ],
+          "eval_seed_query_counts": {
+            "52": 50,
+            "53": 50,
+            "54": 50,
+            "55": 50,
+            "56": 50,
+            "57": 50
+          },
+          "eval_seeds": [
+            52,
+            53,
+            54,
+            55,
+            56,
+            57
+          ],
+          "kind": "matched_filename_profile_delay_family_and_episode_id",
+          "profiles": 6,
+          "queries_per_profile": 50,
+          "query_metadata_fields": [
+            "query_id",
+            "eval_seed",
+            "room",
+            "direction"
+          ],
+          "rule": "all registered delay members per profile; first sorted shared episode ids",
+          "selected_contrast_pairs": 3000,
+          "selected_queries": 300
+        },
+        "result_kind": "development_only_not_public_test"
+      },
+      "test": {
+        "main_score": 0.16694444444444442,
+        "all_gates_passed": false,
+        "reason_codes": [
+          "gate_completion_context_switch_rate",
+          "gate_completion_context_switch_rate_bootstrap_lower_bound",
+          "gate_completion_correct_history_rate",
+          "gate_completion_correct_history_rate_bootstrap_lower_bound",
+          "gate_completion_normalized_response_error",
+          "gate_completion_response_gain",
+          "legacy_bootstrap_lower_bound",
+          "legacy_minimum_physical_group_accuracy",
+          "legacy_physical_group_macro_accuracy"
+        ],
+        "source_result_path": "artifacts/evaluation/dinowm_original_icl_current_v1/action_delay/s3073/test.json",
+        "source_result_sha256": "2237cd719dfe4704dbffc71f6a386a6abce948da300c853076cf63e313573316",
+        "state_sha256": "532f724839a67fe76f1ceba7dd481b9a05181b1685e499099ce2dc0740fa1aa4",
+        "bundle": {
+          "artifact_root": "artifacts/evaluation/history7/action_delay_validation_v1",
+          "component_ids": [
+            "speed",
+            "door",
+            "action_delay",
+            "action_strength",
+            "contact_friction",
+            "motion_damping",
+            "robot_arm_mass",
+            "portal_exit",
+            "cube_gripper_carry"
+          ],
+          "manifest_payload_files": 304,
+          "manifest_sha256": "81eb29d8eeaefb91750187831b9120b9241c78b4903047cd4b720a186c7f6d97",
+          "public_test_policy": "public_offline_final_reporting",
+          "release_status": "staging_not_public_release",
+          "schema_version": "contextworld.bundle-resolution.v1",
+          "selection_policy": "development_only_model_selection_test_final_reporting",
+          "task": "action_delay",
+          "task_registry_sha256": "26b78ae7d3bbaa2c170080bc1eb8791582a9183e7d606322aaf6bae1b01dcbdd"
+        },
+        "selection": "development_only_model_selection_test_final_reporting",
+        "result_kind": "public_test_offline_final_report_v1"
+      }
+    },
+    {
+      "component_id": "action_delay",
+      "family": "DINO-WM",
+      "stage": "original_environment_only",
+      "training_seed": 3074,
+      "environment": "tworoom",
+      "checkpoint": "tworoom_prejepa_original_s3074/weights_epoch_10.pt",
+      "checkpoint_sha256": "59362582231e64d7e8124c7e8b71a9ddcb1dec74c88b01398843efc417767358",
+      "history_adapter": "h3_tail_projection",
+      "normalized_zero_state_streams": [
+        {
+          "in_chans": 2,
+          "key": "proprio"
+        }
+      ],
+      "development": {
+        "main_score": 0.16629629629629628,
+        "all_gates_passed": false,
+        "reason_codes": [
+          "gate_completion_context_switch_rate",
+          "gate_completion_context_switch_rate_bootstrap_lower_bound",
+          "gate_completion_correct_history_rate",
+          "gate_completion_correct_history_rate_bootstrap_lower_bound",
+          "gate_completion_normalized_response_error",
+          "gate_completion_response_gain",
+          "legacy_bootstrap_lower_bound",
+          "legacy_minimum_physical_group_accuracy",
+          "legacy_physical_group_macro_accuracy"
+        ],
+        "source_result_path": "artifacts/evaluation/dinowm_original_icl_current_v1/action_delay/s3074/development.json",
+        "source_result_sha256": "faeb97e7fd654dde8914a13f299c0c9f943c73ab29a1702ccb37d9b197b338c0",
+        "state_sha256": "974fd3ab30c4fe107b04711351536251b675c3d596f706ae255d43d494d59f0c",
+        "bundle": {
+          "bundle_schema_version": "ContextWorld-v1",
+          "component_id": "action_delay",
+          "dataset_id": "tworoom-action-delay",
+          "development_payload_id": "full",
+          "manifest_sha256": "4c5b9cdc84006caeac2a9770501f943affe2b81e32d70c27ab504770b28a93c4",
+          "member_count": 66,
+          "members": [
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p000-d0-5ba831ec45.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p000-d1-40f4ca7e78.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p000-d10-4889368e4e.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p000-d2-3e39488a80.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p000-d3-71027ca2d5.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p000-d4-2de54572e9.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p000-d5-1777d5d45c.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p000-d6-d93bb6da1f.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p000-d7-d6df0d2b28.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p000-d8-bab6c29410.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p000-d9-5e17b997c9.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p001-d0-75cd28b982.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p001-d1-02f4fa01ec.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p001-d10-937112ae66.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p001-d2-693738e90d.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p001-d3-ab42c6b5cc.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p001-d4-09010921b1.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p001-d5-9b884ba1ca.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p001-d6-3490ef4fc9.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p001-d7-b76d79e719.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p001-d8-392c87b355.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p001-d9-5b04deaf0f.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p002-d0-396bf17a9e.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p002-d1-e0a7333bba.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p002-d10-36ac3c15e7.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p002-d2-a379f8ee84.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p002-d3-2a3bc315d1.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p002-d4-04dbbf1fe1.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p002-d5-7bc7ac2017.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p002-d6-c291becaa3.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p002-d7-2fef9714ce.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p002-d8-05c4b3b0b3.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p002-d9-debb46cf99.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p003-d0-6a99d8f3dc.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p003-d1-3b74ca1a8c.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p003-d10-a3ef6f3929.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p003-d2-07bf25b421.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p003-d3-f78626706d.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p003-d4-0b30cf9e37.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p003-d5-3f6fb3a277.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p003-d6-9a4bf6bfd7.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p003-d7-2b5028ffd3.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p003-d8-7788592474.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p003-d9-8e331b76de.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p004-d0-f3a8611a69.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p004-d1-cb2a0d9f77.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p004-d10-814db5bbd1.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p004-d2-3707992c16.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p004-d3-96b4b5886f.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p004-d4-f0d24d04fb.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p004-d5-e64a34115d.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p004-d6-1fd65b24ef.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p004-d7-8f834deaa3.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p004-d8-e9772f34d1.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p004-d9-e545bb2a27.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p005-d0-12b343b4ba.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p005-d1-9d672cf4a3.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p005-d10-12d5aefd45.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p005-d2-9d683e4de7.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p005-d3-d3f59b6a81.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p005-d4-0776223347.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p005-d5-f5e0b5b680.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p005-d6-5d3eaf3d6d.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p005-d7-1499c68175.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p005-d8-a8dbbc6af1.lance",
+            "components/tworoom-action-delay/v1/development/full/ad-h7-paired-val-p005-d9-9193dee245.lance"
+          ],
+          "task_registry_sha256": "7952ff61e59e1959d1b31f5c7aba9506b6410944f7063dad1c16a650b7aa6c46"
+        },
+        "selection": {
+          "candidate_pairs": 3000,
+          "delay_values": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10
+          ],
+          "eval_seed_query_counts": {
+            "52": 50,
+            "53": 50,
+            "54": 50,
+            "55": 50,
+            "56": 50,
+            "57": 50
+          },
+          "eval_seeds": [
+            52,
+            53,
+            54,
+            55,
+            56,
+            57
+          ],
+          "kind": "matched_filename_profile_delay_family_and_episode_id",
+          "profiles": 6,
+          "queries_per_profile": 50,
+          "query_metadata_fields": [
+            "query_id",
+            "eval_seed",
+            "room",
+            "direction"
+          ],
+          "rule": "all registered delay members per profile; first sorted shared episode ids",
+          "selected_contrast_pairs": 3000,
+          "selected_queries": 300
+        },
+        "result_kind": "development_only_not_public_test"
+      },
+      "test": {
+        "main_score": 0.1660185185185185,
+        "all_gates_passed": false,
+        "reason_codes": [
+          "gate_completion_context_switch_rate",
+          "gate_completion_context_switch_rate_bootstrap_lower_bound",
+          "gate_completion_correct_history_rate",
+          "gate_completion_correct_history_rate_bootstrap_lower_bound",
+          "gate_completion_normalized_response_error",
+          "gate_completion_response_gain",
+          "legacy_bootstrap_lower_bound",
+          "legacy_minimum_physical_group_accuracy",
+          "legacy_physical_group_macro_accuracy"
+        ],
+        "source_result_path": "artifacts/evaluation/dinowm_original_icl_current_v1/action_delay/s3074/test.json",
+        "source_result_sha256": "d9241fe67e108456d084f71e778dce838d46c46d5bdc0f7a76c80fc2e8d6a0d0",
+        "state_sha256": "974fd3ab30c4fe107b04711351536251b675c3d596f706ae255d43d494d59f0c",
+        "bundle": {
+          "artifact_root": "artifacts/evaluation/history7/action_delay_validation_v1",
+          "component_ids": [
+            "speed",
+            "door",
+            "action_delay",
+            "action_strength",
+            "contact_friction",
+            "motion_damping",
+            "robot_arm_mass",
+            "portal_exit",
+            "cube_gripper_carry"
+          ],
+          "manifest_payload_files": 304,
+          "manifest_sha256": "81eb29d8eeaefb91750187831b9120b9241c78b4903047cd4b720a186c7f6d97",
+          "public_test_policy": "public_offline_final_reporting",
+          "release_status": "staging_not_public_release",
+          "schema_version": "contextworld.bundle-resolution.v1",
+          "selection_policy": "development_only_model_selection_test_final_reporting",
+          "task": "action_delay",
+          "task_registry_sha256": "26b78ae7d3bbaa2c170080bc1eb8791582a9183e7d606322aaf6bae1b01dcbdd"
+        },
+        "selection": "development_only_model_selection_test_final_reporting",
+        "result_kind": "public_test_offline_final_report_v1"
+      }
+    },
+    {
+      "component_id": "contact_friction",
+      "family": "DINO-WM",
+      "stage": "original_environment_only",
+      "training_seed": 3072,
+      "environment": "pusht",
+      "checkpoint": "pusht_prejepa_original_s3072/weights_epoch_10.pt",
+      "checkpoint_sha256": "043fb6aee9cb728307973016468802c772d1bfff5cebc7affe05c7e5780fc329",
+      "history_adapter": "native",
+      "normalized_zero_state_streams": [
+        {
+          "in_chans": 4,
+          "key": "proprio"
+        }
+      ],
+      "development": {
+        "main_score": 0.490234375,
+        "all_gates_passed": false,
+        "reason_codes": [
+          "original_context_switch_rate",
+          "original_correct_future_rate",
+          "original_correct_history_rate",
+          "original_gate_completion_normalized_response_error",
+          "original_gate_completion_response_gain",
+          "original_worst_friction_correct_future_rate"
+        ],
+        "source_result_path": "artifacts/evaluation/dinowm_original_icl_current_v1/contact_friction/s3072/development.json",
+        "source_result_sha256": "c07e72d62dfaaa4d5bd75af05792274388608b468afef349d9478c274245e8d3",
+        "state_sha256": "eacfca895071b75325bdf9867f1d07025ef669a7b4a48dabecfd4c818533cfd7",
+        "bundle": {
+          "bundle_schema_version": "ContextWorld-v1",
+          "component_id": "contact_friction",
+          "dataset_id": "pusht-contact-friction",
+          "development_payload_id": "data",
+          "manifest_sha256": "4c5b9cdc84006caeac2a9770501f943affe2b81e32d70c27ab504770b28a93c4",
+          "member_count": 1,
+          "members": [
+            "components/pusht-contact-friction/v1/development/data.lance"
+          ],
+          "task_registry_sha256": "7952ff61e59e1959d1b31f5c7aba9506b6410944f7063dad1c16a650b7aa6c46"
+        },
+        "selection": {
+          "kind": "complete_registered_development_table",
+          "member": "components/pusht-contact-friction/v1/development/data.lance",
+          "pair_count": 256
+        },
+        "result_kind": "development_only_not_public_test"
+      }
+    },
+    {
+      "component_id": "contact_friction",
+      "family": "DINO-WM",
+      "stage": "original_environment_only",
+      "training_seed": 3073,
+      "environment": "pusht",
+      "checkpoint": "pusht_prejepa_original_s3073/weights_epoch_10.pt",
+      "checkpoint_sha256": "32e05c0d0b9f65b2b3029a31ad6405e5e20bf30a9a1a078754b0a81a4d7ff00e",
+      "history_adapter": "native",
+      "normalized_zero_state_streams": [
+        {
+          "in_chans": 4,
+          "key": "proprio"
+        }
+      ],
+      "development": {
+        "main_score": 0.49609375,
+        "all_gates_passed": false,
+        "reason_codes": [
+          "original_context_switch_rate",
+          "original_correct_future_rate",
+          "original_correct_history_rate",
+          "original_gate_completion_normalized_response_error",
+          "original_gate_completion_response_gain",
+          "original_worst_friction_correct_future_rate"
+        ],
+        "source_result_path": "artifacts/evaluation/dinowm_original_icl_current_v1/contact_friction/s3073/development.json",
+        "source_result_sha256": "199603ce177547f2ed2b23e04ee1c47bdc7670657ae3a7282c5531ea6979d9aa",
+        "state_sha256": "dd625545b898f78510b2a796a7b8cfa32861c55bc99cb5d4779f77b50e95fb69",
+        "bundle": {
+          "bundle_schema_version": "ContextWorld-v1",
+          "component_id": "contact_friction",
+          "dataset_id": "pusht-contact-friction",
+          "development_payload_id": "data",
+          "manifest_sha256": "4c5b9cdc84006caeac2a9770501f943affe2b81e32d70c27ab504770b28a93c4",
+          "member_count": 1,
+          "members": [
+            "components/pusht-contact-friction/v1/development/data.lance"
+          ],
+          "task_registry_sha256": "7952ff61e59e1959d1b31f5c7aba9506b6410944f7063dad1c16a650b7aa6c46"
+        },
+        "selection": {
+          "kind": "complete_registered_development_table",
+          "member": "components/pusht-contact-friction/v1/development/data.lance",
+          "pair_count": 256
+        },
+        "result_kind": "development_only_not_public_test"
+      }
+    },
+    {
+      "component_id": "contact_friction",
+      "family": "DINO-WM",
+      "stage": "original_environment_only",
+      "training_seed": 3074,
+      "environment": "pusht",
+      "checkpoint": "pusht_prejepa_original_s3074/weights_epoch_10.pt",
+      "checkpoint_sha256": "7752b940bb0d6d564bade4ef2911e728dcc3cecbed6ae1b816828cb3d38522fe",
+      "history_adapter": "native",
+      "normalized_zero_state_streams": [
+        {
+          "in_chans": 4,
+          "key": "proprio"
+        }
+      ],
+      "development": {
+        "main_score": 0.49609375,
+        "all_gates_passed": false,
+        "reason_codes": [
+          "original_context_switch_rate",
+          "original_correct_future_rate",
+          "original_correct_history_rate",
+          "original_gate_completion_normalized_response_error",
+          "original_gate_completion_response_gain",
+          "original_worst_friction_correct_future_rate"
+        ],
+        "source_result_path": "artifacts/evaluation/dinowm_original_icl_current_v1/contact_friction/s3074/development.json",
+        "source_result_sha256": "342719d9ef3a8d17717af4a2ba4bed4bf815633fd56322961a424a6668af6260",
+        "state_sha256": "8226dfa29399edb4251df655a81eba584c23e305451b21db015dc13b5e60af2d",
+        "bundle": {
+          "bundle_schema_version": "ContextWorld-v1",
+          "component_id": "contact_friction",
+          "dataset_id": "pusht-contact-friction",
+          "development_payload_id": "data",
+          "manifest_sha256": "4c5b9cdc84006caeac2a9770501f943affe2b81e32d70c27ab504770b28a93c4",
+          "member_count": 1,
+          "members": [
+            "components/pusht-contact-friction/v1/development/data.lance"
+          ],
+          "task_registry_sha256": "7952ff61e59e1959d1b31f5c7aba9506b6410944f7063dad1c16a650b7aa6c46"
+        },
+        "selection": {
+          "kind": "complete_registered_development_table",
+          "member": "components/pusht-contact-friction/v1/development/data.lance",
+          "pair_count": 256
+        },
+        "result_kind": "development_only_not_public_test"
+      }
+    },
+    {
+      "component_id": "motion_damping",
+      "family": "DINO-WM",
+      "stage": "original_environment_only",
+      "training_seed": 3072,
+      "environment": "pusht",
+      "checkpoint": "pusht_prejepa_original_s3072/weights_epoch_10.pt",
+      "checkpoint_sha256": "043fb6aee9cb728307973016468802c772d1bfff5cebc7affe05c7e5780fc329",
+      "history_adapter": "native",
+      "normalized_zero_state_streams": [
+        {
+          "in_chans": 4,
+          "key": "proprio"
+        }
+      ],
+      "development": {
+        "main_score": 0.50390625,
+        "all_gates_passed": false,
+        "reason_codes": [
+          "original_context_switch_rate",
+          "original_correct_future_rate",
+          "original_correct_history_rate",
+          "original_gate_completion_normalized_response_error",
+          "original_gate_completion_response_gain",
+          "original_worst_damping_correct_future_rate"
+        ],
+        "source_result_path": "artifacts/evaluation/dinowm_original_icl_current_v1/motion_damping/s3072/development.json",
+        "source_result_sha256": "0b395fa920f2e521effa684f78baa9d878c77d13b3d99a6be265f6bdd1237f92",
+        "state_sha256": "eacfca895071b75325bdf9867f1d07025ef669a7b4a48dabecfd4c818533cfd7",
+        "bundle": {
+          "bundle_schema_version": "ContextWorld-v1",
+          "component_id": "motion_damping",
+          "dataset_id": "pusht-motion-damping",
+          "development_payload_id": "data",
+          "manifest_sha256": "4c5b9cdc84006caeac2a9770501f943affe2b81e32d70c27ab504770b28a93c4",
+          "member_count": 1,
+          "members": [
+            "components/pusht-motion-damping/v1/development/data.lance"
+          ],
+          "task_registry_sha256": "7952ff61e59e1959d1b31f5c7aba9506b6410944f7063dad1c16a650b7aa6c46"
+        },
+        "selection": {
+          "kind": "complete_registered_development_table",
+          "member": "components/pusht-motion-damping/v1/development/data.lance",
+          "pair_count": 256
+        },
+        "result_kind": "development_only_not_public_test"
+      }
+    },
+    {
+      "component_id": "motion_damping",
+      "family": "DINO-WM",
+      "stage": "original_environment_only",
+      "training_seed": 3073,
+      "environment": "pusht",
+      "checkpoint": "pusht_prejepa_original_s3073/weights_epoch_10.pt",
+      "checkpoint_sha256": "32e05c0d0b9f65b2b3029a31ad6405e5e20bf30a9a1a078754b0a81a4d7ff00e",
+      "history_adapter": "native",
+      "normalized_zero_state_streams": [
+        {
+          "in_chans": 4,
+          "key": "proprio"
+        }
+      ],
+      "development": {
+        "main_score": 0.498046875,
+        "all_gates_passed": false,
+        "reason_codes": [
+          "original_context_switch_rate",
+          "original_correct_future_rate",
+          "original_correct_history_rate",
+          "original_gate_completion_normalized_response_error",
+          "original_gate_completion_response_gain",
+          "original_worst_damping_correct_future_rate"
+        ],
+        "source_result_path": "artifacts/evaluation/dinowm_original_icl_current_v1/motion_damping/s3073/development.json",
+        "source_result_sha256": "d8f0fce135a4a926ef7dd940015155aab5ebd70bf249bc3ab566c3bbe97a431d",
+        "state_sha256": "dd625545b898f78510b2a796a7b8cfa32861c55bc99cb5d4779f77b50e95fb69",
+        "bundle": {
+          "bundle_schema_version": "ContextWorld-v1",
+          "component_id": "motion_damping",
+          "dataset_id": "pusht-motion-damping",
+          "development_payload_id": "data",
+          "manifest_sha256": "4c5b9cdc84006caeac2a9770501f943affe2b81e32d70c27ab504770b28a93c4",
+          "member_count": 1,
+          "members": [
+            "components/pusht-motion-damping/v1/development/data.lance"
+          ],
+          "task_registry_sha256": "7952ff61e59e1959d1b31f5c7aba9506b6410944f7063dad1c16a650b7aa6c46"
+        },
+        "selection": {
+          "kind": "complete_registered_development_table",
+          "member": "components/pusht-motion-damping/v1/development/data.lance",
+          "pair_count": 256
+        },
+        "result_kind": "development_only_not_public_test"
+      }
+    },
+    {
+      "component_id": "motion_damping",
+      "family": "DINO-WM",
+      "stage": "original_environment_only",
+      "training_seed": 3074,
+      "environment": "pusht",
+      "checkpoint": "pusht_prejepa_original_s3074/weights_epoch_10.pt",
+      "checkpoint_sha256": "7752b940bb0d6d564bade4ef2911e728dcc3cecbed6ae1b816828cb3d38522fe",
+      "history_adapter": "native",
+      "normalized_zero_state_streams": [
+        {
+          "in_chans": 4,
+          "key": "proprio"
+        }
+      ],
+      "development": {
+        "main_score": 0.498046875,
+        "all_gates_passed": false,
+        "reason_codes": [
+          "original_context_switch_rate",
+          "original_correct_future_rate",
+          "original_correct_history_rate",
+          "original_gate_completion_normalized_response_error",
+          "original_gate_completion_response_gain",
+          "original_worst_damping_correct_future_rate"
+        ],
+        "source_result_path": "artifacts/evaluation/dinowm_original_icl_current_v1/motion_damping/s3074/development.json",
+        "source_result_sha256": "f646695cf6dca609b654fda2784e4a5be45874f818199445e30ea4ed4c61ca55",
+        "state_sha256": "8226dfa29399edb4251df655a81eba584c23e305451b21db015dc13b5e60af2d",
+        "bundle": {
+          "bundle_schema_version": "ContextWorld-v1",
+          "component_id": "motion_damping",
+          "dataset_id": "pusht-motion-damping",
+          "development_payload_id": "data",
+          "manifest_sha256": "4c5b9cdc84006caeac2a9770501f943affe2b81e32d70c27ab504770b28a93c4",
+          "member_count": 1,
+          "members": [
+            "components/pusht-motion-damping/v1/development/data.lance"
+          ],
+          "task_registry_sha256": "7952ff61e59e1959d1b31f5c7aba9506b6410944f7063dad1c16a650b7aa6c46"
+        },
+        "selection": {
+          "kind": "complete_registered_development_table",
+          "member": "components/pusht-motion-damping/v1/development/data.lance",
+          "pair_count": 256
+        },
+        "result_kind": "development_only_not_public_test"
+      }
+    },
+    {
+      "component_id": "cube_gripper_carry",
+      "family": "DINO-WM",
+      "stage": "original_environment_only",
+      "training_seed": 3072,
+      "environment": "cube",
+      "checkpoint": "cube_prejepa_original_s3072/weights_epoch_10.pt",
+      "checkpoint_sha256": "a27f91de5619b925751296bd4f8a2097335cc45c6b86fa05440483ab2e5b3638",
+      "history_adapter": "native",
+      "normalized_zero_state_streams": [
+        {
+          "in_chans": 28,
+          "key": "observation"
+        }
+      ],
+      "development": {
+        "main_score": 0.5,
+        "all_gates_passed": false,
+        "reason_codes": [
+          "original_context_switch_rate",
+          "original_context_switch_rate_bootstrap_lower_bound",
+          "original_correct_future_rate",
+          "original_correct_future_rate_bootstrap_lower_bound",
+          "original_correct_history_rate",
+          "original_correct_history_rate_bootstrap_lower_bound",
+          "original_gate_completion_normalized_response_error",
+          "original_gate_completion_response_gain",
+          "original_worst_rule_correct_future_rate"
+        ],
+        "source_result_path": "artifacts/evaluation/dinowm_original_icl_current_v1/cube_gripper_carry/s3072/development.json",
+        "source_result_sha256": "a09fe4da9f46a62386d8982e7bd15748d2acbbf30a5acde507ee11d3c9087076",
+        "state_sha256": "41fdff46e2efafb55e0c109ef9aac449601c926cfed2ffe6dec23f53706c17a6",
+        "bundle": {
+          "bundle_schema_version": "ContextWorld-v1",
+          "component_id": "cube_gripper_carry",
+          "dataset_id": "cube-gripper-carry",
+          "development_payload_id": "data",
+          "manifest_sha256": "4c5b9cdc84006caeac2a9770501f943affe2b81e32d70c27ab504770b28a93c4",
+          "member_count": 1,
+          "members": [
+            "components/cube-gripper-carry/v1/development/data.lance"
+          ],
+          "task_registry_sha256": "7952ff61e59e1959d1b31f5c7aba9506b6410944f7063dad1c16a650b7aa6c46"
+        },
+        "selection": {
+          "kind": "complete_registered_development_table",
+          "member": "components/cube-gripper-carry/v1/development/data.lance",
+          "pair_count": 256
+        },
+        "result_kind": "development_only_not_public_test"
+      },
+      "test": {
+        "main_score": 0.501953125,
+        "all_gates_passed": false,
+        "reason_codes": [
+          "original_context_switch_rate",
+          "original_context_switch_rate_bootstrap_lower_bound",
+          "original_correct_future_rate",
+          "original_correct_future_rate_bootstrap_lower_bound",
+          "original_correct_history_rate",
+          "original_correct_history_rate_bootstrap_lower_bound",
+          "original_gate_completion_normalized_response_error",
+          "original_gate_completion_response_gain",
+          "original_worst_rule_correct_future_rate"
+        ],
+        "source_result_path": "artifacts/evaluation/dinowm_original_icl_current_v1/cube_gripper_carry/s3072/test.json",
+        "source_result_sha256": "3263be2551885e3e321f710b052e47e27691d6730d99cb38cb4c96cc30de230b",
+        "state_sha256": "41fdff46e2efafb55e0c109ef9aac449601c926cfed2ffe6dec23f53706c17a6",
+        "bundle": {
+          "artifact_root": "artifacts/synthesis/cube_gripper_carry_rule_h3_v4r1_release_projection_v1",
+          "component_ids": [
+            "speed",
+            "door",
+            "action_delay",
+            "action_strength",
+            "contact_friction",
+            "motion_damping",
+            "robot_arm_mass",
+            "portal_exit",
+            "cube_gripper_carry"
+          ],
+          "manifest_payload_files": 3,
+          "manifest_sha256": "81eb29d8eeaefb91750187831b9120b9241c78b4903047cd4b720a186c7f6d97",
+          "public_test_policy": "public_offline_final_reporting",
+          "release_status": "staging_not_public_release",
+          "schema_version": "contextworld.bundle-resolution.v1",
+          "selection_policy": "development_only_model_selection_test_final_reporting",
+          "task": "cube_gripper_carry",
+          "task_registry_sha256": "26b78ae7d3bbaa2c170080bc1eb8791582a9183e7d606322aaf6bae1b01dcbdd"
+        },
+        "selection": "development_only_model_selection_test_final_reporting",
+        "result_kind": "public_test_offline_final_report_v1"
+      }
+    },
+    {
+      "component_id": "cube_gripper_carry",
+      "family": "DINO-WM",
+      "stage": "original_environment_only",
+      "training_seed": 3073,
+      "environment": "cube",
+      "checkpoint": "cube_prejepa_original_s3073/weights_epoch_10.pt",
+      "checkpoint_sha256": "91d49754969bfdea5126ca0a0f776773de5ae36b35a299af72a211105bee7212",
+      "history_adapter": "native",
+      "normalized_zero_state_streams": [
+        {
+          "in_chans": 28,
+          "key": "observation"
+        }
+      ],
+      "development": {
+        "main_score": 0.501953125,
+        "all_gates_passed": false,
+        "reason_codes": [
+          "original_context_switch_rate",
+          "original_context_switch_rate_bootstrap_lower_bound",
+          "original_correct_future_rate",
+          "original_correct_future_rate_bootstrap_lower_bound",
+          "original_correct_history_rate",
+          "original_correct_history_rate_bootstrap_lower_bound",
+          "original_gate_completion_normalized_response_error",
+          "original_gate_completion_response_gain",
+          "original_worst_rule_correct_future_rate"
+        ],
+        "source_result_path": "artifacts/evaluation/dinowm_original_icl_current_v1/cube_gripper_carry/s3073/development.json",
+        "source_result_sha256": "45942afca920fff220eb74da0fc693cafcb4b66020d4b9ec5863684ead4de5df",
+        "state_sha256": "a69ddb8b4713e8059833bda010855fb19482c4fc47aabbbf80c1aa37300ea96d",
+        "bundle": {
+          "bundle_schema_version": "ContextWorld-v1",
+          "component_id": "cube_gripper_carry",
+          "dataset_id": "cube-gripper-carry",
+          "development_payload_id": "data",
+          "manifest_sha256": "4c5b9cdc84006caeac2a9770501f943affe2b81e32d70c27ab504770b28a93c4",
+          "member_count": 1,
+          "members": [
+            "components/cube-gripper-carry/v1/development/data.lance"
+          ],
+          "task_registry_sha256": "7952ff61e59e1959d1b31f5c7aba9506b6410944f7063dad1c16a650b7aa6c46"
+        },
+        "selection": {
+          "kind": "complete_registered_development_table",
+          "member": "components/cube-gripper-carry/v1/development/data.lance",
+          "pair_count": 256
+        },
+        "result_kind": "development_only_not_public_test"
+      },
+      "test": {
+        "main_score": 0.505859375,
+        "all_gates_passed": false,
+        "reason_codes": [
+          "original_context_switch_rate",
+          "original_context_switch_rate_bootstrap_lower_bound",
+          "original_correct_future_rate",
+          "original_correct_future_rate_bootstrap_lower_bound",
+          "original_correct_history_rate",
+          "original_correct_history_rate_bootstrap_lower_bound",
+          "original_gate_completion_normalized_response_error",
+          "original_gate_completion_response_gain",
+          "original_worst_rule_correct_future_rate"
+        ],
+        "source_result_path": "artifacts/evaluation/dinowm_original_icl_current_v1/cube_gripper_carry/s3073/test.json",
+        "source_result_sha256": "273573cba13aeb0daa3ca9efa95709eca96c80dc281577634fcccc3a01c679fd",
+        "state_sha256": "a69ddb8b4713e8059833bda010855fb19482c4fc47aabbbf80c1aa37300ea96d",
+        "bundle": {
+          "artifact_root": "artifacts/synthesis/cube_gripper_carry_rule_h3_v4r1_release_projection_v1",
+          "component_ids": [
+            "speed",
+            "door",
+            "action_delay",
+            "action_strength",
+            "contact_friction",
+            "motion_damping",
+            "robot_arm_mass",
+            "portal_exit",
+            "cube_gripper_carry"
+          ],
+          "manifest_payload_files": 3,
+          "manifest_sha256": "81eb29d8eeaefb91750187831b9120b9241c78b4903047cd4b720a186c7f6d97",
+          "public_test_policy": "public_offline_final_reporting",
+          "release_status": "staging_not_public_release",
+          "schema_version": "contextworld.bundle-resolution.v1",
+          "selection_policy": "development_only_model_selection_test_final_reporting",
+          "task": "cube_gripper_carry",
+          "task_registry_sha256": "26b78ae7d3bbaa2c170080bc1eb8791582a9183e7d606322aaf6bae1b01dcbdd"
+        },
+        "selection": "development_only_model_selection_test_final_reporting",
+        "result_kind": "public_test_offline_final_report_v1"
+      }
+    },
+    {
+      "component_id": "cube_gripper_carry",
+      "family": "DINO-WM",
+      "stage": "original_environment_only",
+      "training_seed": 3074,
+      "environment": "cube",
+      "checkpoint": "cube_prejepa_original_s3074/weights_epoch_10.pt",
+      "checkpoint_sha256": "a6b0ce5d637011cbebc8c03178d46a02f9f56f3c43a46511cc913e5ef29f3772",
+      "history_adapter": "native",
+      "normalized_zero_state_streams": [
+        {
+          "in_chans": 28,
+          "key": "observation"
+        }
+      ],
+      "development": {
+        "main_score": 0.501953125,
+        "all_gates_passed": false,
+        "reason_codes": [
+          "original_context_switch_rate",
+          "original_context_switch_rate_bootstrap_lower_bound",
+          "original_correct_future_rate",
+          "original_correct_future_rate_bootstrap_lower_bound",
+          "original_correct_history_rate",
+          "original_correct_history_rate_bootstrap_lower_bound",
+          "original_gate_completion_normalized_response_error",
+          "original_gate_completion_response_gain",
+          "original_worst_rule_correct_future_rate"
+        ],
+        "source_result_path": "artifacts/evaluation/dinowm_original_icl_current_v1/cube_gripper_carry/s3074/development.json",
+        "source_result_sha256": "a9a10fe8e45f29061f3bf04e6b5b0e555215091f66335caf3d66b37f7036b15f",
+        "state_sha256": "4edbf5711ce3a43ed18d67fc2f9cb4cdacc4f1a432e85e78207d76910078cff1",
+        "bundle": {
+          "bundle_schema_version": "ContextWorld-v1",
+          "component_id": "cube_gripper_carry",
+          "dataset_id": "cube-gripper-carry",
+          "development_payload_id": "data",
+          "manifest_sha256": "4c5b9cdc84006caeac2a9770501f943affe2b81e32d70c27ab504770b28a93c4",
+          "member_count": 1,
+          "members": [
+            "components/cube-gripper-carry/v1/development/data.lance"
+          ],
+          "task_registry_sha256": "7952ff61e59e1959d1b31f5c7aba9506b6410944f7063dad1c16a650b7aa6c46"
+        },
+        "selection": {
+          "kind": "complete_registered_development_table",
+          "member": "components/cube-gripper-carry/v1/development/data.lance",
+          "pair_count": 256
+        },
+        "result_kind": "development_only_not_public_test"
+      },
+      "test": {
+        "main_score": 0.498046875,
+        "all_gates_passed": false,
+        "reason_codes": [
+          "original_context_switch_rate",
+          "original_context_switch_rate_bootstrap_lower_bound",
+          "original_correct_future_rate",
+          "original_correct_future_rate_bootstrap_lower_bound",
+          "original_correct_history_rate",
+          "original_correct_history_rate_bootstrap_lower_bound",
+          "original_gate_completion_normalized_response_error",
+          "original_gate_completion_response_gain",
+          "original_worst_rule_correct_future_rate"
+        ],
+        "source_result_path": "artifacts/evaluation/dinowm_original_icl_current_v1/cube_gripper_carry/s3074/test.json",
+        "source_result_sha256": "c9e3fd4b025eaa9248b4d5c593a5aecf7cedb0bd99f915c51f12e6be7a12c202",
+        "state_sha256": "4edbf5711ce3a43ed18d67fc2f9cb4cdacc4f1a432e85e78207d76910078cff1",
+        "bundle": {
+          "artifact_root": "artifacts/synthesis/cube_gripper_carry_rule_h3_v4r1_release_projection_v1",
+          "component_ids": [
+            "speed",
+            "door",
+            "action_delay",
+            "action_strength",
+            "contact_friction",
+            "motion_damping",
+            "robot_arm_mass",
+            "portal_exit",
+            "cube_gripper_carry"
+          ],
+          "manifest_payload_files": 3,
+          "manifest_sha256": "81eb29d8eeaefb91750187831b9120b9241c78b4903047cd4b720a186c7f6d97",
+          "public_test_policy": "public_offline_final_reporting",
+          "release_status": "staging_not_public_release",
+          "schema_version": "contextworld.bundle-resolution.v1",
+          "selection_policy": "development_only_model_selection_test_final_reporting",
+          "task": "cube_gripper_carry",
+          "task_registry_sha256": "26b78ae7d3bbaa2c170080bc1eb8791582a9183e7d606322aaf6bae1b01dcbdd"
+        },
+        "selection": "development_only_model_selection_test_final_reporting",
+        "result_kind": "public_test_offline_final_report_v1"
+      }
+    },
+    {
+      "component_id": "door",
+      "family": "DINO-WM",
+      "stage": "original_environment_only",
+      "training_seed": 3072,
+      "environment": "tworoom",
+      "checkpoint": "tworoom_prejepa_original_s3072/weights_epoch_10.pt",
+      "checkpoint_sha256": "d72ae7c0004b8f9157d72dba92b0594a3d5f25a59cb4941149ecb5aaaf9f2e6a",
+      "history_adapter": "native",
+      "normalized_zero_state_streams": [
+        {
+          "in_chans": 2,
+          "key": "proprio"
+        }
+      ],
+      "development": {
+        "main_score": 0.5033333333333333,
+        "all_gates_passed": false,
+        "reason_codes": [
+          "gate_completion_context_switch_rate",
+          "gate_completion_context_switch_rate_bootstrap_lower_bound",
+          "gate_completion_response_gain",
+          "gate_completion_worst_rule_correct_target_choice_rate",
+          "gate_completion_worst_rule_correct_target_choice_rate_bootstrap_lower_bound",
+          "original_bootstrap_blocked_matching_history_two_target_margin",
+          "original_bootstrap_passable_same_vs_other_rule_history",
+          "original_rule_blocked_s42/left_to_right_paired_advantage",
+          "original_rule_blocked_s42/right_to_left_target_accuracy",
+          "original_rule_blocked_s43/left_to_right_target_accuracy",
+          "original_rule_blocked_s43/right_to_left_target_accuracy",
+          "original_rule_blocked_s44/right_to_left_target_accuracy",
+          "original_rule_blocked_s45/right_to_left_target_accuracy",
+          "original_rule_blocked_s46/left_to_right_paired_advantage",
+          "original_rule_blocked_s46/right_to_left_target_accuracy",
+          "original_rule_blocked_s47/left_to_right_paired_advantage",
+          "original_rule_blocked_s47/left_to_right_target_accuracy",
+          "original_rule_blocked_s47/right_to_left_target_accuracy",
+          "original_rule_blocked_target_accuracy",
+          "original_rule_passable_history_win",
+          "original_rule_passable_paired_advantage",
+          "original_rule_passable_s42/left_to_right_target_accuracy",
+          "original_rule_passable_s42/right_to_left_paired_advantage",
+          "original_rule_passable_s43/right_to_left_paired_advantage",
+          "original_rule_passable_s44/left_to_right_target_accuracy",
+          "original_rule_passable_s44/right_to_left_paired_advantage",
+          "original_rule_passable_s45/left_to_right_target_accuracy",
+          "original_rule_passable_s45/right_to_left_paired_advantage",
+          "original_rule_passable_s46/left_to_right_target_accuracy",
+          "original_rule_passable_s46/right_to_left_paired_advantage",
+          "original_rule_passable_s47/right_to_left_paired_advantage"
+        ],
+        "source_result_path": "artifacts/evaluation/dinowm_original_icl_current_v1/door/s3072/development.json",
+        "source_result_sha256": "11c3d0d280492bce606da72823bf7894db73b6778aed80b55887fceab95be394",
+        "state_sha256": "5397aaa7805cefb82230361eabf554b77b6db57ead28f21548b4a7b27adc06db",
+        "bundle": {
+          "bundle_schema_version": "ContextWorld-v1",
+          "component_id": "door",
+          "dataset_id": "tworoom-door",
+          "development_payload_id": "data",
+          "manifest_sha256": "4c5b9cdc84006caeac2a9770501f943affe2b81e32d70c27ab504770b28a93c4",
+          "member_count": 48,
+          "members": [
+            "components/tworoom-door/v1/development/data/hpdev-d065-did_not_attempt_crossing-699b998869.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d065-observed_blocked-699b998869.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d065-observed_passable-699b998869.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d077-did_not_attempt_crossing-0b72f59276.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d077-observed_blocked-0b72f59276.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d077-observed_passable-0b72f59276.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d079-did_not_attempt_crossing-23a80a7eeb.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d079-observed_blocked-23a80a7eeb.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d079-observed_passable-23a80a7eeb.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d087-did_not_attempt_crossing-65de8bcadb.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d087-observed_blocked-65de8bcadb.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d087-observed_passable-65de8bcadb.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d112-did_not_attempt_crossing-a74332a2ff.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d112-observed_blocked-a74332a2ff.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d112-observed_passable-a74332a2ff.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d115-did_not_attempt_crossing-7330183c36.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d115-observed_blocked-7330183c36.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d115-observed_passable-7330183c36.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d131-did_not_attempt_crossing-9cc8efa2c0.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d131-observed_blocked-9cc8efa2c0.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d131-observed_passable-9cc8efa2c0.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d152-did_not_attempt_crossing-879449c58f.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d152-observed_blocked-879449c58f.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d152-observed_passable-879449c58f.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d167-did_not_attempt_crossing-ae33f2218f.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d167-observed_blocked-ae33f2218f.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d167-observed_passable-ae33f2218f.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d169-did_not_attempt_crossing-55e40d498b.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d169-observed_blocked-55e40d498b.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d169-observed_passable-55e40d498b.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d171-did_not_attempt_crossing-81dc066db5.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d171-observed_blocked-81dc066db5.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d171-observed_passable-81dc066db5.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d172-did_not_attempt_crossing-f1056701ee.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d172-observed_blocked-f1056701ee.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d172-observed_passable-f1056701ee.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d175-did_not_attempt_crossing-7958be71b1.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d175-observed_blocked-7958be71b1.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d175-observed_passable-7958be71b1.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d180-did_not_attempt_crossing-0eed7aba85.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d180-observed_blocked-0eed7aba85.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d180-observed_passable-0eed7aba85.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d183-did_not_attempt_crossing-1805354084.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d183-observed_blocked-1805354084.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d183-observed_passable-1805354084.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d185-did_not_attempt_crossing-90c2da45a1.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d185-observed_blocked-90c2da45a1.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d185-observed_passable-90c2da45a1.lance"
+          ],
+          "task_registry_sha256": "7952ff61e59e1959d1b31f5c7aba9506b6410944f7063dad1c16a650b7aa6c46"
+        },
+        "selection": {
+          "episodes_per_table": [
+            16,
+            17,
+            18,
+            19,
+            20
+          ],
+          "eval_seeds": [
+            42,
+            43,
+            44,
+            45,
+            46,
+            47
+          ],
+          "history_conditions": [
+            "observed_passable",
+            "observed_blocked",
+            "did_not_attempt_crossing"
+          ],
+          "kind": "structural_parity_static_queries",
+          "per_direction_per_eval_seed": 25,
+          "rule": "one Lance table per (door position, history condition)",
+          "tables": 48,
+          "unique_queries": 300,
+          "unique_queries_per_eval_seed": 50
+        },
+        "result_kind": "development_only_not_public_test"
+      },
+      "test": {
+        "main_score": 0.5,
+        "all_gates_passed": false,
+        "reason_codes": [
+          "gate_completion_context_switch_rate",
+          "gate_completion_context_switch_rate_bootstrap_lower_bound",
+          "gate_completion_normalized_response_error",
+          "gate_completion_response_gain",
+          "gate_completion_worst_rule_correct_target_choice_rate",
+          "gate_completion_worst_rule_correct_target_choice_rate_bootstrap_lower_bound",
+          "original_bootstrap_blocked_matching_history_two_target_margin",
+          "original_bootstrap_passable_same_vs_other_rule_history",
+          "original_rule_blocked_s42/left_to_right_target_accuracy",
+          "original_rule_blocked_s42/right_to_left_paired_advantage",
+          "original_rule_blocked_s42/right_to_left_target_accuracy",
+          "original_rule_blocked_s43/left_to_right_target_accuracy",
+          "original_rule_blocked_s43/right_to_left_paired_advantage",
+          "original_rule_blocked_s43/right_to_left_target_accuracy",
+          "original_rule_blocked_s44/left_to_right_target_accuracy",
+          "original_rule_blocked_s44/right_to_left_target_accuracy",
+          "original_rule_blocked_s45/left_to_right_target_accuracy",
+          "original_rule_blocked_s45/right_to_left_target_accuracy",
+          "original_rule_blocked_s46/left_to_right_target_accuracy",
+          "original_rule_blocked_s46/right_to_left_target_accuracy",
+          "original_rule_blocked_s47/left_to_right_target_accuracy",
+          "original_rule_blocked_s47/right_to_left_target_accuracy",
+          "original_rule_blocked_target_accuracy",
+          "original_rule_passable_history_win",
+          "original_rule_passable_paired_advantage",
+          "original_rule_passable_s42/left_to_right_paired_advantage",
+          "original_rule_passable_s43/left_to_right_paired_advantage",
+          "original_rule_passable_s43/right_to_left_paired_advantage",
+          "original_rule_passable_s44/left_to_right_paired_advantage",
+          "original_rule_passable_s44/right_to_left_paired_advantage",
+          "original_rule_passable_s45/right_to_left_paired_advantage",
+          "original_rule_passable_s46/right_to_left_paired_advantage",
+          "original_rule_passable_s47/left_to_right_paired_advantage",
+          "original_rule_passable_s47/right_to_left_paired_advantage"
+        ],
+        "source_result_path": "artifacts/evaluation/dinowm_original_icl_current_v1/door/s3072/test.json",
+        "source_result_sha256": "54ea9a824b0eeacce6fae22c2082d4c569aaf6eda999f8286a13843aa2ffd29f",
+        "state_sha256": "5397aaa7805cefb82230361eabf554b77b6db57ead28f21548b4a7b27adc06db",
+        "bundle": {
+          "artifact_root": "artifacts/evaluation/history3/hidden_passage_validation_v2",
+          "component_ids": [
+            "speed",
+            "door",
+            "action_delay",
+            "action_strength",
+            "contact_friction",
+            "motion_damping",
+            "robot_arm_mass",
+            "portal_exit",
+            "cube_gripper_carry"
+          ],
+          "manifest_payload_files": 303,
+          "manifest_sha256": "81eb29d8eeaefb91750187831b9120b9241c78b4903047cd4b720a186c7f6d97",
+          "public_test_policy": "public_offline_final_reporting",
+          "release_status": "staging_not_public_release",
+          "schema_version": "contextworld.bundle-resolution.v1",
+          "selection_policy": "development_only_model_selection_test_final_reporting",
+          "task": "door",
+          "task_registry_sha256": "26b78ae7d3bbaa2c170080bc1eb8791582a9183e7d606322aaf6bae1b01dcbdd"
+        },
+        "selection": "development_only_model_selection_test_final_reporting",
+        "result_kind": "public_test_offline_final_report_v1"
+      }
+    },
+    {
+      "component_id": "door",
+      "family": "DINO-WM",
+      "stage": "original_environment_only",
+      "training_seed": 3073,
+      "environment": "tworoom",
+      "checkpoint": "tworoom_prejepa_original_s3073/weights_epoch_10.pt",
+      "checkpoint_sha256": "5772ce7ff013fdd19655831cc003ea5f1c8fda10651b5164ac344b3673f8e897",
+      "history_adapter": "native",
+      "normalized_zero_state_streams": [
+        {
+          "in_chans": 2,
+          "key": "proprio"
+        }
+      ],
+      "development": {
+        "main_score": 0.5016666666666667,
+        "all_gates_passed": false,
+        "reason_codes": [
+          "gate_completion_context_switch_rate",
+          "gate_completion_context_switch_rate_bootstrap_lower_bound",
+          "gate_completion_response_gain",
+          "gate_completion_worst_rule_correct_target_choice_rate",
+          "gate_completion_worst_rule_correct_target_choice_rate_bootstrap_lower_bound",
+          "original_bootstrap_blocked_matching_history_two_target_margin",
+          "original_bootstrap_blocked_same_vs_other_rule_history",
+          "original_rule_blocked_s42/left_to_right_paired_advantage",
+          "original_rule_blocked_s42/right_to_left_target_accuracy",
+          "original_rule_blocked_s43/left_to_right_target_accuracy",
+          "original_rule_blocked_s43/right_to_left_target_accuracy",
+          "original_rule_blocked_s44/left_to_right_paired_advantage",
+          "original_rule_blocked_s44/right_to_left_target_accuracy",
+          "original_rule_blocked_s45/left_to_right_paired_advantage",
+          "original_rule_blocked_s45/left_to_right_target_accuracy",
+          "original_rule_blocked_s45/right_to_left_target_accuracy",
+          "original_rule_blocked_s46/left_to_right_paired_advantage",
+          "original_rule_blocked_s46/left_to_right_target_accuracy",
+          "original_rule_blocked_s46/right_to_left_target_accuracy",
+          "original_rule_blocked_s47/left_to_right_target_accuracy",
+          "original_rule_blocked_s47/right_to_left_target_accuracy",
+          "original_rule_blocked_target_accuracy",
+          "original_rule_passable_s42/left_to_right_target_accuracy",
+          "original_rule_passable_s42/right_to_left_paired_advantage",
+          "original_rule_passable_s43/right_to_left_paired_advantage",
+          "original_rule_passable_s44/left_to_right_target_accuracy",
+          "original_rule_passable_s44/right_to_left_paired_advantage",
+          "original_rule_passable_s45/right_to_left_paired_advantage",
+          "original_rule_passable_s46/right_to_left_paired_advantage",
+          "original_rule_passable_s47/right_to_left_paired_advantage"
+        ],
+        "source_result_path": "artifacts/evaluation/dinowm_original_icl_current_v1/door/s3073/development.json",
+        "source_result_sha256": "b25d8ce64f05637d3eb6adfe313f3b7bdf7db587331edc43b488f0d07c7f4ae4",
+        "state_sha256": "532f724839a67fe76f1ceba7dd481b9a05181b1685e499099ce2dc0740fa1aa4",
+        "bundle": {
+          "bundle_schema_version": "ContextWorld-v1",
+          "component_id": "door",
+          "dataset_id": "tworoom-door",
+          "development_payload_id": "data",
+          "manifest_sha256": "4c5b9cdc84006caeac2a9770501f943affe2b81e32d70c27ab504770b28a93c4",
+          "member_count": 48,
+          "members": [
+            "components/tworoom-door/v1/development/data/hpdev-d065-did_not_attempt_crossing-699b998869.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d065-observed_blocked-699b998869.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d065-observed_passable-699b998869.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d077-did_not_attempt_crossing-0b72f59276.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d077-observed_blocked-0b72f59276.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d077-observed_passable-0b72f59276.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d079-did_not_attempt_crossing-23a80a7eeb.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d079-observed_blocked-23a80a7eeb.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d079-observed_passable-23a80a7eeb.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d087-did_not_attempt_crossing-65de8bcadb.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d087-observed_blocked-65de8bcadb.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d087-observed_passable-65de8bcadb.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d112-did_not_attempt_crossing-a74332a2ff.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d112-observed_blocked-a74332a2ff.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d112-observed_passable-a74332a2ff.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d115-did_not_attempt_crossing-7330183c36.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d115-observed_blocked-7330183c36.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d115-observed_passable-7330183c36.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d131-did_not_attempt_crossing-9cc8efa2c0.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d131-observed_blocked-9cc8efa2c0.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d131-observed_passable-9cc8efa2c0.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d152-did_not_attempt_crossing-879449c58f.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d152-observed_blocked-879449c58f.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d152-observed_passable-879449c58f.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d167-did_not_attempt_crossing-ae33f2218f.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d167-observed_blocked-ae33f2218f.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d167-observed_passable-ae33f2218f.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d169-did_not_attempt_crossing-55e40d498b.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d169-observed_blocked-55e40d498b.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d169-observed_passable-55e40d498b.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d171-did_not_attempt_crossing-81dc066db5.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d171-observed_blocked-81dc066db5.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d171-observed_passable-81dc066db5.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d172-did_not_attempt_crossing-f1056701ee.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d172-observed_blocked-f1056701ee.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d172-observed_passable-f1056701ee.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d175-did_not_attempt_crossing-7958be71b1.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d175-observed_blocked-7958be71b1.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d175-observed_passable-7958be71b1.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d180-did_not_attempt_crossing-0eed7aba85.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d180-observed_blocked-0eed7aba85.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d180-observed_passable-0eed7aba85.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d183-did_not_attempt_crossing-1805354084.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d183-observed_blocked-1805354084.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d183-observed_passable-1805354084.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d185-did_not_attempt_crossing-90c2da45a1.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d185-observed_blocked-90c2da45a1.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d185-observed_passable-90c2da45a1.lance"
+          ],
+          "task_registry_sha256": "7952ff61e59e1959d1b31f5c7aba9506b6410944f7063dad1c16a650b7aa6c46"
+        },
+        "selection": {
+          "episodes_per_table": [
+            16,
+            17,
+            18,
+            19,
+            20
+          ],
+          "eval_seeds": [
+            42,
+            43,
+            44,
+            45,
+            46,
+            47
+          ],
+          "history_conditions": [
+            "observed_passable",
+            "observed_blocked",
+            "did_not_attempt_crossing"
+          ],
+          "kind": "structural_parity_static_queries",
+          "per_direction_per_eval_seed": 25,
+          "rule": "one Lance table per (door position, history condition)",
+          "tables": 48,
+          "unique_queries": 300,
+          "unique_queries_per_eval_seed": 50
+        },
+        "result_kind": "development_only_not_public_test"
+      },
+      "test": {
+        "main_score": 0.505,
+        "all_gates_passed": false,
+        "reason_codes": [
+          "gate_completion_context_switch_rate",
+          "gate_completion_context_switch_rate_bootstrap_lower_bound",
+          "gate_completion_response_gain",
+          "gate_completion_worst_rule_correct_target_choice_rate",
+          "gate_completion_worst_rule_correct_target_choice_rate_bootstrap_lower_bound",
+          "original_bootstrap_blocked_matching_history_two_target_margin",
+          "original_rule_blocked_s42/left_to_right_target_accuracy",
+          "original_rule_blocked_s42/right_to_left_target_accuracy",
+          "original_rule_blocked_s43/left_to_right_target_accuracy",
+          "original_rule_blocked_s43/right_to_left_target_accuracy",
+          "original_rule_blocked_s44/left_to_right_target_accuracy",
+          "original_rule_blocked_s44/right_to_left_target_accuracy",
+          "original_rule_blocked_s45/left_to_right_target_accuracy",
+          "original_rule_blocked_s45/right_to_left_target_accuracy",
+          "original_rule_blocked_s46/right_to_left_target_accuracy",
+          "original_rule_blocked_s47/left_to_right_target_accuracy",
+          "original_rule_blocked_s47/right_to_left_target_accuracy",
+          "original_rule_blocked_target_accuracy",
+          "original_rule_passable_s43/right_to_left_paired_advantage",
+          "original_rule_passable_s44/right_to_left_paired_advantage",
+          "original_rule_passable_s45/right_to_left_paired_advantage"
+        ],
+        "source_result_path": "artifacts/evaluation/dinowm_original_icl_current_v1/door/s3073/test.json",
+        "source_result_sha256": "1b2ce741ba1a32bf38d8979916dc6d2688490dfb370c7efb7d86df4f68ea58e4",
+        "state_sha256": "532f724839a67fe76f1ceba7dd481b9a05181b1685e499099ce2dc0740fa1aa4",
+        "bundle": {
+          "artifact_root": "artifacts/evaluation/history3/hidden_passage_validation_v2",
+          "component_ids": [
+            "speed",
+            "door",
+            "action_delay",
+            "action_strength",
+            "contact_friction",
+            "motion_damping",
+            "robot_arm_mass",
+            "portal_exit",
+            "cube_gripper_carry"
+          ],
+          "manifest_payload_files": 303,
+          "manifest_sha256": "81eb29d8eeaefb91750187831b9120b9241c78b4903047cd4b720a186c7f6d97",
+          "public_test_policy": "public_offline_final_reporting",
+          "release_status": "staging_not_public_release",
+          "schema_version": "contextworld.bundle-resolution.v1",
+          "selection_policy": "development_only_model_selection_test_final_reporting",
+          "task": "door",
+          "task_registry_sha256": "26b78ae7d3bbaa2c170080bc1eb8791582a9183e7d606322aaf6bae1b01dcbdd"
+        },
+        "selection": "development_only_model_selection_test_final_reporting",
+        "result_kind": "public_test_offline_final_report_v1"
+      }
+    },
+    {
+      "component_id": "door",
+      "family": "DINO-WM",
+      "stage": "original_environment_only",
+      "training_seed": 3074,
+      "environment": "tworoom",
+      "checkpoint": "tworoom_prejepa_original_s3074/weights_epoch_10.pt",
+      "checkpoint_sha256": "59362582231e64d7e8124c7e8b71a9ddcb1dec74c88b01398843efc417767358",
+      "history_adapter": "native",
+      "normalized_zero_state_streams": [
+        {
+          "in_chans": 2,
+          "key": "proprio"
+        }
+      ],
+      "development": {
+        "main_score": 0.5316666666666667,
+        "all_gates_passed": false,
+        "reason_codes": [
+          "gate_completion_context_switch_rate",
+          "gate_completion_context_switch_rate_bootstrap_lower_bound",
+          "gate_completion_response_gain",
+          "gate_completion_worst_rule_correct_target_choice_rate",
+          "gate_completion_worst_rule_correct_target_choice_rate_bootstrap_lower_bound",
+          "original_bootstrap_blocked_matching_history_two_target_margin",
+          "original_rule_blocked_s42/right_to_left_target_accuracy",
+          "original_rule_blocked_s43/right_to_left_target_accuracy",
+          "original_rule_blocked_s44/right_to_left_target_accuracy",
+          "original_rule_blocked_s45/right_to_left_target_accuracy",
+          "original_rule_blocked_s46/right_to_left_target_accuracy",
+          "original_rule_blocked_s47/right_to_left_target_accuracy",
+          "original_rule_passable_s43/left_to_right_target_accuracy",
+          "original_rule_passable_s43/right_to_left_paired_advantage",
+          "original_rule_passable_s44/left_to_right_target_accuracy",
+          "original_rule_passable_s44/right_to_left_paired_advantage",
+          "original_rule_passable_s44/right_to_left_target_accuracy",
+          "original_rule_passable_s45/left_to_right_target_accuracy",
+          "original_rule_passable_s45/right_to_left_paired_advantage",
+          "original_rule_passable_s46/right_to_left_paired_advantage"
+        ],
+        "source_result_path": "artifacts/evaluation/dinowm_original_icl_current_v1/door/s3074/development.json",
+        "source_result_sha256": "46a588461967a8722b2540e46a1fbfb4600221fe97790e0de53969dfbe6ee8bd",
+        "state_sha256": "974fd3ab30c4fe107b04711351536251b675c3d596f706ae255d43d494d59f0c",
+        "bundle": {
+          "bundle_schema_version": "ContextWorld-v1",
+          "component_id": "door",
+          "dataset_id": "tworoom-door",
+          "development_payload_id": "data",
+          "manifest_sha256": "4c5b9cdc84006caeac2a9770501f943affe2b81e32d70c27ab504770b28a93c4",
+          "member_count": 48,
+          "members": [
+            "components/tworoom-door/v1/development/data/hpdev-d065-did_not_attempt_crossing-699b998869.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d065-observed_blocked-699b998869.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d065-observed_passable-699b998869.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d077-did_not_attempt_crossing-0b72f59276.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d077-observed_blocked-0b72f59276.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d077-observed_passable-0b72f59276.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d079-did_not_attempt_crossing-23a80a7eeb.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d079-observed_blocked-23a80a7eeb.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d079-observed_passable-23a80a7eeb.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d087-did_not_attempt_crossing-65de8bcadb.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d087-observed_blocked-65de8bcadb.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d087-observed_passable-65de8bcadb.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d112-did_not_attempt_crossing-a74332a2ff.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d112-observed_blocked-a74332a2ff.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d112-observed_passable-a74332a2ff.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d115-did_not_attempt_crossing-7330183c36.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d115-observed_blocked-7330183c36.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d115-observed_passable-7330183c36.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d131-did_not_attempt_crossing-9cc8efa2c0.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d131-observed_blocked-9cc8efa2c0.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d131-observed_passable-9cc8efa2c0.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d152-did_not_attempt_crossing-879449c58f.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d152-observed_blocked-879449c58f.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d152-observed_passable-879449c58f.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d167-did_not_attempt_crossing-ae33f2218f.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d167-observed_blocked-ae33f2218f.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d167-observed_passable-ae33f2218f.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d169-did_not_attempt_crossing-55e40d498b.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d169-observed_blocked-55e40d498b.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d169-observed_passable-55e40d498b.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d171-did_not_attempt_crossing-81dc066db5.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d171-observed_blocked-81dc066db5.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d171-observed_passable-81dc066db5.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d172-did_not_attempt_crossing-f1056701ee.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d172-observed_blocked-f1056701ee.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d172-observed_passable-f1056701ee.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d175-did_not_attempt_crossing-7958be71b1.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d175-observed_blocked-7958be71b1.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d175-observed_passable-7958be71b1.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d180-did_not_attempt_crossing-0eed7aba85.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d180-observed_blocked-0eed7aba85.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d180-observed_passable-0eed7aba85.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d183-did_not_attempt_crossing-1805354084.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d183-observed_blocked-1805354084.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d183-observed_passable-1805354084.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d185-did_not_attempt_crossing-90c2da45a1.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d185-observed_blocked-90c2da45a1.lance",
+            "components/tworoom-door/v1/development/data/hpdev-d185-observed_passable-90c2da45a1.lance"
+          ],
+          "task_registry_sha256": "7952ff61e59e1959d1b31f5c7aba9506b6410944f7063dad1c16a650b7aa6c46"
+        },
+        "selection": {
+          "episodes_per_table": [
+            16,
+            17,
+            18,
+            19,
+            20
+          ],
+          "eval_seeds": [
+            42,
+            43,
+            44,
+            45,
+            46,
+            47
+          ],
+          "history_conditions": [
+            "observed_passable",
+            "observed_blocked",
+            "did_not_attempt_crossing"
+          ],
+          "kind": "structural_parity_static_queries",
+          "per_direction_per_eval_seed": 25,
+          "rule": "one Lance table per (door position, history condition)",
+          "tables": 48,
+          "unique_queries": 300,
+          "unique_queries_per_eval_seed": 50
+        },
+        "result_kind": "development_only_not_public_test"
+      },
+      "test": {
+        "main_score": 0.525,
+        "all_gates_passed": false,
+        "reason_codes": [
+          "gate_completion_context_switch_rate",
+          "gate_completion_context_switch_rate_bootstrap_lower_bound",
+          "gate_completion_response_gain",
+          "gate_completion_worst_rule_correct_target_choice_rate",
+          "gate_completion_worst_rule_correct_target_choice_rate_bootstrap_lower_bound",
+          "original_bootstrap_blocked_matching_history_two_target_margin",
+          "original_rule_blocked_s42/left_to_right_target_accuracy",
+          "original_rule_blocked_s42/right_to_left_target_accuracy",
+          "original_rule_blocked_s43/right_to_left_target_accuracy",
+          "original_rule_blocked_s44/right_to_left_target_accuracy",
+          "original_rule_blocked_s45/right_to_left_target_accuracy",
+          "original_rule_blocked_s46/right_to_left_target_accuracy",
+          "original_rule_blocked_s47/left_to_right_target_accuracy",
+          "original_rule_blocked_s47/right_to_left_target_accuracy",
+          "original_rule_blocked_target_accuracy",
+          "original_rule_passable_s43/left_to_right_target_accuracy",
+          "original_rule_passable_s43/right_to_left_paired_advantage",
+          "original_rule_passable_s44/right_to_left_paired_advantage",
+          "original_rule_passable_s45/right_to_left_paired_advantage",
+          "original_rule_passable_s46/left_to_right_target_accuracy",
+          "original_rule_passable_s46/right_to_left_paired_advantage"
+        ],
+        "source_result_path": "artifacts/evaluation/dinowm_original_icl_current_v1/door/s3074/test.json",
+        "source_result_sha256": "17e8b81e41c9b50c25ea0ebd86df968deaf21d89e9e72ceebd79b52a420cc6ab",
+        "state_sha256": "974fd3ab30c4fe107b04711351536251b675c3d596f706ae255d43d494d59f0c",
+        "bundle": {
+          "artifact_root": "artifacts/evaluation/history3/hidden_passage_validation_v2",
+          "component_ids": [
+            "speed",
+            "door",
+            "action_delay",
+            "action_strength",
+            "contact_friction",
+            "motion_damping",
+            "robot_arm_mass",
+            "portal_exit",
+            "cube_gripper_carry"
+          ],
+          "manifest_payload_files": 303,
+          "manifest_sha256": "81eb29d8eeaefb91750187831b9120b9241c78b4903047cd4b720a186c7f6d97",
+          "public_test_policy": "public_offline_final_reporting",
+          "release_status": "staging_not_public_release",
+          "schema_version": "contextworld.bundle-resolution.v1",
+          "selection_policy": "development_only_model_selection_test_final_reporting",
+          "task": "door",
+          "task_registry_sha256": "26b78ae7d3bbaa2c170080bc1eb8791582a9183e7d606322aaf6bae1b01dcbdd"
+        },
+        "selection": "development_only_model_selection_test_final_reporting",
+        "result_kind": "public_test_offline_final_report_v1"
+      }
+    },
+    {
+      "component_id": "portal_exit",
+      "family": "DINO-WM",
+      "stage": "original_environment_only",
+      "training_seed": 3072,
+      "environment": "tworoom",
+      "checkpoint": "tworoom_prejepa_original_s3072/weights_epoch_10.pt",
+      "checkpoint_sha256": "d72ae7c0004b8f9157d72dba92b0594a3d5f25a59cb4941149ecb5aaaf9f2e6a",
+      "history_adapter": "native",
+      "normalized_zero_state_streams": [
+        {
+          "in_chans": 2,
+          "key": "proprio"
+        }
+      ],
+      "development": {
+        "main_score": 0.4921875,
+        "all_gates_passed": false,
+        "reason_codes": [
+          "original_context_switch_rate",
+          "original_context_switch_rate_bootstrap_lower_bound",
+          "original_correct_future_rate",
+          "original_correct_future_rate_bootstrap_lower_bound",
+          "original_correct_history_rate",
+          "original_correct_history_rate_bootstrap_lower_bound",
+          "original_gate_completion_normalized_response_error",
+          "original_gate_completion_response_gain",
+          "original_worst_exit_correct_future_rate",
+          "original_worst_exit_correct_future_rate_bootstrap_lower_bound"
+        ],
+        "source_result_path": "artifacts/evaluation/dinowm_original_icl_current_v1/portal_exit/s3072/development.json",
+        "source_result_sha256": "02f19ebf5fbf1b08e8e301c8d67b4eb8e5a574747e52797c15cdc4cd80c3fbd0",
+        "state_sha256": "5397aaa7805cefb82230361eabf554b77b6db57ead28f21548b4a7b27adc06db",
+        "bundle": {
+          "bundle_schema_version": "ContextWorld-v1",
+          "component_id": "portal_exit",
+          "dataset_id": "tworoom-portal-exit",
+          "development_payload_id": "data",
+          "manifest_sha256": "4c5b9cdc84006caeac2a9770501f943affe2b81e32d70c27ab504770b28a93c4",
+          "member_count": 1,
+          "members": [
+            "components/tworoom-portal-exit/v1/development/data.lance"
+          ],
+          "task_registry_sha256": "7952ff61e59e1959d1b31f5c7aba9506b6410944f7063dad1c16a650b7aa6c46"
+        },
+        "selection": {
+          "kind": "complete_registered_development_table",
+          "member": "components/tworoom-portal-exit/v1/development/data.lance",
+          "pair_count": 256
+        },
+        "result_kind": "development_only_not_public_test"
+      },
+      "test": {
+        "main_score": 0.49609375,
+        "all_gates_passed": false,
+        "reason_codes": [
+          "original_context_switch_rate",
+          "original_context_switch_rate_bootstrap_lower_bound",
+          "original_correct_future_rate",
+          "original_correct_future_rate_bootstrap_lower_bound",
+          "original_correct_history_rate",
+          "original_correct_history_rate_bootstrap_lower_bound",
+          "original_gate_completion_normalized_response_error",
+          "original_gate_completion_response_gain",
+          "original_worst_exit_correct_future_rate",
+          "original_worst_exit_correct_future_rate_bootstrap_lower_bound"
+        ],
+        "source_result_path": "artifacts/evaluation/dinowm_original_icl_current_v1/portal_exit/s3072/test.json",
+        "source_result_sha256": "2fa20708d27e2d3d8e1159cf6043c0b9f4b61315e4638a182dbc57f6878016d5",
+        "state_sha256": "5397aaa7805cefb82230361eabf554b77b6db57ead28f21548b4a7b27adc06db",
+        "bundle": {
+          "artifact_root": "artifacts/synthesis/tworoom_portal_exit_h3_release_v1",
+          "component_ids": [
+            "speed",
+            "door",
+            "action_delay",
+            "action_strength",
+            "contact_friction",
+            "motion_damping",
+            "robot_arm_mass",
+            "portal_exit",
+            "cube_gripper_carry"
+          ],
+          "manifest_payload_files": 3,
+          "manifest_sha256": "81eb29d8eeaefb91750187831b9120b9241c78b4903047cd4b720a186c7f6d97",
+          "public_test_policy": "public_offline_final_reporting",
+          "release_status": "staging_not_public_release",
+          "schema_version": "contextworld.bundle-resolution.v1",
+          "selection_policy": "development_only_model_selection_test_final_reporting",
+          "task": "portal_exit",
+          "task_registry_sha256": "26b78ae7d3bbaa2c170080bc1eb8791582a9183e7d606322aaf6bae1b01dcbdd"
+        },
+        "selection": "development_only_model_selection_test_final_reporting",
+        "result_kind": "public_test_offline_final_report_v1"
+      }
+    },
+    {
+      "component_id": "portal_exit",
+      "family": "DINO-WM",
+      "stage": "original_environment_only",
+      "training_seed": 3073,
+      "environment": "tworoom",
+      "checkpoint": "tworoom_prejepa_original_s3073/weights_epoch_10.pt",
+      "checkpoint_sha256": "5772ce7ff013fdd19655831cc003ea5f1c8fda10651b5164ac344b3673f8e897",
+      "history_adapter": "native",
+      "normalized_zero_state_streams": [
+        {
+          "in_chans": 2,
+          "key": "proprio"
+        }
+      ],
+      "development": {
+        "main_score": 0.498046875,
+        "all_gates_passed": false,
+        "reason_codes": [
+          "original_context_switch_rate",
+          "original_context_switch_rate_bootstrap_lower_bound",
+          "original_correct_future_rate",
+          "original_correct_future_rate_bootstrap_lower_bound",
+          "original_correct_history_rate",
+          "original_correct_history_rate_bootstrap_lower_bound",
+          "original_gate_completion_normalized_response_error",
+          "original_gate_completion_response_gain",
+          "original_worst_exit_correct_future_rate",
+          "original_worst_exit_correct_future_rate_bootstrap_lower_bound"
+        ],
+        "source_result_path": "artifacts/evaluation/dinowm_original_icl_current_v1/portal_exit/s3073/development.json",
+        "source_result_sha256": "2de3aa7ac2f8c53ce6315a07d86e71b43e553b04658771e4dbf3e4e590f6e962",
+        "state_sha256": "532f724839a67fe76f1ceba7dd481b9a05181b1685e499099ce2dc0740fa1aa4",
+        "bundle": {
+          "bundle_schema_version": "ContextWorld-v1",
+          "component_id": "portal_exit",
+          "dataset_id": "tworoom-portal-exit",
+          "development_payload_id": "data",
+          "manifest_sha256": "4c5b9cdc84006caeac2a9770501f943affe2b81e32d70c27ab504770b28a93c4",
+          "member_count": 1,
+          "members": [
+            "components/tworoom-portal-exit/v1/development/data.lance"
+          ],
+          "task_registry_sha256": "7952ff61e59e1959d1b31f5c7aba9506b6410944f7063dad1c16a650b7aa6c46"
+        },
+        "selection": {
+          "kind": "complete_registered_development_table",
+          "member": "components/tworoom-portal-exit/v1/development/data.lance",
+          "pair_count": 256
+        },
+        "result_kind": "development_only_not_public_test"
+      },
+      "test": {
+        "main_score": 0.484375,
+        "all_gates_passed": false,
+        "reason_codes": [
+          "original_context_switch_rate",
+          "original_context_switch_rate_bootstrap_lower_bound",
+          "original_correct_future_rate",
+          "original_correct_future_rate_bootstrap_lower_bound",
+          "original_correct_history_rate",
+          "original_correct_history_rate_bootstrap_lower_bound",
+          "original_gate_completion_normalized_response_error",
+          "original_gate_completion_response_gain",
+          "original_worst_exit_correct_future_rate",
+          "original_worst_exit_correct_future_rate_bootstrap_lower_bound"
+        ],
+        "source_result_path": "artifacts/evaluation/dinowm_original_icl_current_v1/portal_exit/s3073/test.json",
+        "source_result_sha256": "27bcad2a9a76089ee9bc791ee2ea99c8fc205c19791f1e13f4d0a7a89e3c88ed",
+        "state_sha256": "532f724839a67fe76f1ceba7dd481b9a05181b1685e499099ce2dc0740fa1aa4",
+        "bundle": {
+          "artifact_root": "artifacts/synthesis/tworoom_portal_exit_h3_release_v1",
+          "component_ids": [
+            "speed",
+            "door",
+            "action_delay",
+            "action_strength",
+            "contact_friction",
+            "motion_damping",
+            "robot_arm_mass",
+            "portal_exit",
+            "cube_gripper_carry"
+          ],
+          "manifest_payload_files": 3,
+          "manifest_sha256": "81eb29d8eeaefb91750187831b9120b9241c78b4903047cd4b720a186c7f6d97",
+          "public_test_policy": "public_offline_final_reporting",
+          "release_status": "staging_not_public_release",
+          "schema_version": "contextworld.bundle-resolution.v1",
+          "selection_policy": "development_only_model_selection_test_final_reporting",
+          "task": "portal_exit",
+          "task_registry_sha256": "26b78ae7d3bbaa2c170080bc1eb8791582a9183e7d606322aaf6bae1b01dcbdd"
+        },
+        "selection": "development_only_model_selection_test_final_reporting",
+        "result_kind": "public_test_offline_final_report_v1"
+      }
+    },
+    {
+      "component_id": "portal_exit",
+      "family": "DINO-WM",
+      "stage": "original_environment_only",
+      "training_seed": 3074,
+      "environment": "tworoom",
+      "checkpoint": "tworoom_prejepa_original_s3074/weights_epoch_10.pt",
+      "checkpoint_sha256": "59362582231e64d7e8124c7e8b71a9ddcb1dec74c88b01398843efc417767358",
+      "history_adapter": "native",
+      "normalized_zero_state_streams": [
+        {
+          "in_chans": 2,
+          "key": "proprio"
+        }
+      ],
+      "development": {
+        "main_score": 0.494140625,
+        "all_gates_passed": false,
+        "reason_codes": [
+          "original_context_switch_rate",
+          "original_context_switch_rate_bootstrap_lower_bound",
+          "original_correct_future_rate",
+          "original_correct_future_rate_bootstrap_lower_bound",
+          "original_correct_history_rate",
+          "original_correct_history_rate_bootstrap_lower_bound",
+          "original_gate_completion_normalized_response_error",
+          "original_gate_completion_response_gain",
+          "original_worst_exit_correct_future_rate",
+          "original_worst_exit_correct_future_rate_bootstrap_lower_bound"
+        ],
+        "source_result_path": "artifacts/evaluation/dinowm_original_icl_current_v1/portal_exit/s3074/development.json",
+        "source_result_sha256": "f12580a00f76507b68777a5b50276fe14666bd633f33726da774801d3d7bb5af",
+        "state_sha256": "974fd3ab30c4fe107b04711351536251b675c3d596f706ae255d43d494d59f0c",
+        "bundle": {
+          "bundle_schema_version": "ContextWorld-v1",
+          "component_id": "portal_exit",
+          "dataset_id": "tworoom-portal-exit",
+          "development_payload_id": "data",
+          "manifest_sha256": "4c5b9cdc84006caeac2a9770501f943affe2b81e32d70c27ab504770b28a93c4",
+          "member_count": 1,
+          "members": [
+            "components/tworoom-portal-exit/v1/development/data.lance"
+          ],
+          "task_registry_sha256": "7952ff61e59e1959d1b31f5c7aba9506b6410944f7063dad1c16a650b7aa6c46"
+        },
+        "selection": {
+          "kind": "complete_registered_development_table",
+          "member": "components/tworoom-portal-exit/v1/development/data.lance",
+          "pair_count": 256
+        },
+        "result_kind": "development_only_not_public_test"
+      },
+      "test": {
+        "main_score": 0.490234375,
+        "all_gates_passed": false,
+        "reason_codes": [
+          "original_context_switch_rate",
+          "original_context_switch_rate_bootstrap_lower_bound",
+          "original_correct_future_rate",
+          "original_correct_future_rate_bootstrap_lower_bound",
+          "original_correct_history_rate",
+          "original_correct_history_rate_bootstrap_lower_bound",
+          "original_gate_completion_normalized_response_error",
+          "original_gate_completion_response_gain",
+          "original_worst_exit_correct_future_rate",
+          "original_worst_exit_correct_future_rate_bootstrap_lower_bound"
+        ],
+        "source_result_path": "artifacts/evaluation/dinowm_original_icl_current_v1/portal_exit/s3074/test.json",
+        "source_result_sha256": "022120278cb05b56c7f745d67d0e6fe4af767292c0423c0a6075d6aed558c189",
+        "state_sha256": "974fd3ab30c4fe107b04711351536251b675c3d596f706ae255d43d494d59f0c",
+        "bundle": {
+          "artifact_root": "artifacts/synthesis/tworoom_portal_exit_h3_release_v1",
+          "component_ids": [
+            "speed",
+            "door",
+            "action_delay",
+            "action_strength",
+            "contact_friction",
+            "motion_damping",
+            "robot_arm_mass",
+            "portal_exit",
+            "cube_gripper_carry"
+          ],
+          "manifest_payload_files": 3,
+          "manifest_sha256": "81eb29d8eeaefb91750187831b9120b9241c78b4903047cd4b720a186c7f6d97",
+          "public_test_policy": "public_offline_final_reporting",
+          "release_status": "staging_not_public_release",
+          "schema_version": "contextworld.bundle-resolution.v1",
+          "selection_policy": "development_only_model_selection_test_final_reporting",
+          "task": "portal_exit",
+          "task_registry_sha256": "26b78ae7d3bbaa2c170080bc1eb8791582a9183e7d606322aaf6bae1b01dcbdd"
+        },
+        "selection": "development_only_model_selection_test_final_reporting",
+        "result_kind": "public_test_offline_final_report_v1"
+      }
+    }
+  ]
+}

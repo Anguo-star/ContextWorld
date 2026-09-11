@@ -249,7 +249,7 @@ def _reference_table(document: str) -> Table:
         value = indexed[metric][family, recipe][column]
         if value == "—":
             return value
-        match = re.fullmatch(r"(\d+\.\d+) ± (\d+\.\d+)(†?)", value)
+        match = re.fullmatch(r"(\d+\.\d+) ± (\d+\.\d+)([†‡]?)", value)
         assert match, f"malformed matrix value: {value!r}"
         mean, spread, suffix = match.groups()
         value = f"{mean}% ± {spread}pp{suffix}"
@@ -518,7 +518,7 @@ def test_documented_post_training_score_matches_the_current_freeze(
 def test_documented_pre_training_score_matches_the_current_freeze(
     row_key: tuple[str, str],
 ) -> None:
-    """训练前 is the original-environment-only checkpoint, or — when absent."""
+    """Original scores bind to v3 or the marked DINO inference supplement."""
     component_id, family = row_key
     split = _documented_split(component_id)
     cells = _frozen_cells(component_id, family, "original_environment_only")
@@ -526,11 +526,13 @@ def test_documented_pre_training_score_matches_the_current_freeze(
     cell = row[table.column("原始", "ICL")]
 
     if not cells:
-        assert not _percentages(cell), (
-            f"{row_key}: no original-environment checkpoint is frozen, so the "
-            f"documented starting point must stay em-dashed, got {cell!r}"
-        )
-        return
+        assert family == "DINO-WM"
+        supplement = json.loads((ROOT / "configs/benchmark/contextworld_dinowm_original_fixed_context_results_v1.json").read_text())
+        cells = [r for r in supplement["checkpoint_results"] if r["component_id"] == component_id]
+        assert len(cells) == 3
+        assert "‡" in cell
+        assert supplement["claim_boundary"]["diagnostic"] is True
+        assert supplement["claim_boundary"]["data_only_ablation"] is False
     scores = [row_[split]["main_score"] * 100 for row_ in cells]
     documented = _percentages(cell)
     assert documented, f"{row_key}: no percentage in {cell!r}"
