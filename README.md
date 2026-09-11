@@ -116,7 +116,7 @@ contextworld-public-test-report verify --receipt public_test_report_<report_id>.
 
 ### 固定研究参考
 
-当前参考升级为 v3，修复 v2 校核发现的判定与来源绑定缺口。验收证据与明确的能力范围见
+当前固定参考为 v3，覆盖七项 Test 与两项 Development 对照。验收证据与能力范围见
 [最终验收记录](docs/reference/Baseline_Final_Acceptance_2026-09-10.md)。
 
 后续方法以

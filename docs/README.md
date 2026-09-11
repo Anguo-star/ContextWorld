@@ -31,13 +31,14 @@
 
 ## 结果复现
 
+- [固定基准验收](reference/Baseline_Final_Acceptance_2026-09-10.md)：v3 的覆盖范围、验证证据与后续比较规则；
 - [参考结果复现附录](reference/Benchmark_Result_Provenance.md)：检查点来源、训练种子、评测预算和机器可读结果；
 - `protocols/`：执行前确定的任务协议；
 - `archive/`：已经结束的实验阶段材料；
 - `reference/`：第三方工程、运行环境和结果来源说明。
 
-这些材料用于复核已报告结果，不是新的排行榜。Test 数据由 `ContextWorld-v1` 数据包统一
-公开，历史结果目录本身不再承担数据分发职责。
+这些材料用于复核已报告结果，不是新的排行榜。Training/Development 使用 `ContextWorld-v1`，
+Test 使用 `ContextWorld-v1-full`；历史结果目录不承担当前数据分发职责。
 
 ## 仓库维护与发布
 

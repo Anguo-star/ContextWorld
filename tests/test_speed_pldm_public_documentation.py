@@ -229,7 +229,7 @@ def test_reference_table_covers_every_registered_component_and_both_models() -> 
         }
 
 
-def test_speed_pldm_writing_separates_frozen_and_diagnostic_evidence() -> None:
+def test_speed_pldm_writing_preserves_evidence_scope() -> None:
     document = _document()
     flat = _flatten(document)
     card = _flatten(_subtree(document, _display_names()["speed"]))
@@ -237,18 +237,16 @@ def test_speed_pldm_writing_separates_frozen_and_diagnostic_evidence() -> None:
     for stale in STALE_CLAIMS:
         assert stale not in flat, f"stale Speed PLDM claim is back: {stale}"
 
-    # The frozen retention evidence and the ungated action-planning analysis
-    # are different measurements and must stay distinguishable in the card.
+    # Current CEM results must remain explicit. Historical action-planning
+    # diagnostics may move to the archive, but cannot become gated evidence
+    # if a task card still mentions them.
     assert re.search(r"原任务\s*CEM", card), (
         "the Speed card must name the frozen original-task CEM retention result"
     )
-    assert re.search(r"(action-planning|动作规划|规划)[^。；]{0,8}(分析|诊断)", card), (
-        "the Speed card must name the separate action-planning analysis"
-    )
-    assert re.search(r"(没有|不设|未设|无)[^。；]{0,12}门槛", card), (
-        "the Speed card must say the action-planning analysis has no "
-        "pre-registered performance gate, so its number is not a pass"
-    )
+    if re.search(r"(action-planning|动作规划|规划)[^。；]{0,8}(分析|诊断)", card):
+        assert re.search(r"(没有|不设|未设|无)[^。；]{0,12}门槛", card), (
+            "an action-planning diagnostic must not imply a performance gate"
+        )
 
     # Without a single-speed control at the same training seed, nothing in the
     # card may be attributed to the multi-speed data itself.
