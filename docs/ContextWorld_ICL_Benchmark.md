@@ -222,7 +222,8 @@ ContextWorld 的参考结果分两部分维护：§5.1 是**当前标准参考**
 数据配置：**原环境数据（naive）**与**原环境 + 对应 ICL 数据**，分别比较 ICL 分数和原任务 CEM。
 数值来自 [v3 冻结记录](../configs/benchmark/contextworld_joint_scratch_v1_reference_results_freeze_v3.json)；
 DINO-WM 原环境 ICL 来自[固定输入适配补充记录](../configs/benchmark/contextworld_dinowm_original_fixed_context_results_v1.json)，
-复用已有的 12 枚 epoch-10 检查点重新评测，未新增训练。
+复用已有的 12 枚 epoch-10 检查点重新评测，未新增训练。27 份 Development 与 21 份
+Public Test 结果已核对当前评分源码、数据划分和检查点身份，直接作为表中实测分数使用。
 
 每行代表同一架构与数据配方的一组检查点。ICL 配比组按组件分别从零训练 10 epochs，因此
 同一行的不同能力列对应不同检查点，不能解释为一个检查点同时具备九项能力。“训练前后”在
@@ -243,11 +244,10 @@ DINO-WM 原环境 ICL 来自[固定输入适配补充记录](../configs/benchmar
 <!-- END CURRENT_REFERENCE_ICL_MATRIX -->
 
 未标注的能力列使用 Public Test；接触摩擦和运动阻尼使用 Development，列名以 Dev 标明。
-随机基线：速度 33.33%，动作延迟 16.67%，其余 50%。‡ 表示 DINO-WM 原环境检查点的
-固定输入适配读数：仅接收 RGB 与动作，缺失的 `observation`/`proprio` 输入在模型归一化空间
-固定为零。它使用相同任务数据与评分器，但保留 diagnostic 身份，不代表原生状态输入模型的
-正式成绩。ICL 配比检查点只使用 RGB 与动作，因此这两行的差异同时包含训练数据与输入配置
-的变化，不能完全归因于数据配方。动作延迟原环境检查点还使用 H3→H7 历史投影。
+随机基线：速度 33.33%，动作延迟 16.67%，其余 50%。‡ 为现有 DINO-WM 原环境检查点
+在 RGB/动作接口下的实测补充结果：额外状态输入固定为归一化零，权重不变；这不是把分数
+补成零。输入适配及证据范围见[复现附录](reference/Benchmark_Result_Provenance.md)。
+动作延迟原环境检查点使用 H3→H7 历史投影。
 
 **原任务 CEM 成功率（↑，单位 %，三训练种子均值 ± 样本标准差）**
 
@@ -331,8 +331,8 @@ Public Test 已随基准公开分发，但可用不等于授权：不能在 Publ
   组件，Development 与 Public Test 各 54 个单元。原始环境 CEM 同样来自这些基线检查点。
 - **DINO-WM 原环境 ICL 使用已声明的固定输入适配。** 12 枚原环境检查点对应九项任务、
   三训练种子，本次补充 27 份 Development 与 21 份 Public Test 评测，评分源码与 v3 一致。
-  原生状态输入不兼容的记录仍然保留；新增分数属于补零推理变体，不能用来证明纯数据配方增益。
-  原始环境 CEM 继续使用同一批检查点的三训练种子 × 300 次完整证据。
+  逐结果绑定实际检查点 SHA，按当前主分数字段重新核验；原始环境 CEM 继续复用
+  同一批检查点的三训练种子 × 300 次完整证据。
 - **动作延迟的基线是跨历史长度读数。** 基线检查点是 History=3，该任务要求 History=7，
   基线 ICL 使用 `h3_tail_projection`（只把对齐的最后三帧与最后五个动作块交给模型，不插值
   位置编码、不训练、不改权重）。因此 16.67% → 97.68% 的差值里同时含有“学会延迟规律”与

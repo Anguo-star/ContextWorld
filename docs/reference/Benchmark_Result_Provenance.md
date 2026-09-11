@@ -22,6 +22,8 @@ RGB+动作的原生 ICL 接口。当前表以 ‡ 标出固定补零推理变体
 来源为 [DINO-WM 原环境补充记录](../../configs/benchmark/contextworld_dinowm_original_fixed_context_results_v1.json)。
 补充记录使用现有 12 枚检查点，新增 27 份 Development 和 21 份 Test；保留 diagnostic、
 非官方 scoreboard 身份，未改写 v3。其 CEM 复用相同权重的原生输入评测，仍为补充证据。
+这 48 份 ICL 结果已按当前评分器、划分与权重身份核验，可以直接报告；本表使用上述已有
+原环境检查点，不另设检查点定位或训练配置审计作为分数展示的前置条件。
 
 ## 2. 复现入口与评分合同
 
