@@ -105,9 +105,18 @@ def test_public_document_uses_model_recipe_matrices() -> None:
     end = document.index("\n## 6. 任务说明", start)
     section = document[start:end]
 
+    appendix = (ROOT / "docs/reference/Benchmark_Result_Provenance.md").read_text(
+        encoding="utf-8"
+    )
+
+    # The main document keeps only the six-row ICL matrix; the CEM retention
+    # table moved to the appendix (§5.3 原任务规划能力保持（CEM）).
     assert section.count("<!-- BEGIN CURRENT_REFERENCE_ICL_MATRIX -->") == 1
-    assert section.count("<!-- BEGIN CURRENT_REFERENCE_CEM_MATRIX -->") == 1
-    assert section.count("| 模型 | 训练数据 |") == 2
+    assert section.count("<!-- BEGIN CURRENT_REFERENCE_CEM_MATRIX -->") == 0
+    assert section.count("<!-- END CURRENT_REFERENCE_CEM_MATRIX -->") == 0
+    assert section.count("| 模型 | 训练数据 |") == 1
+    assert appendix.count("<!-- BEGIN CURRENT_REFERENCE_CEM_MATRIX -->") == 1
+    assert appendix.count("<!-- END CURRENT_REFERENCE_CEM_MATRIX -->") == 1
     assert "| 能力类型 | 任务 | 模型 |" not in section
     assert "不同能力列对应不同检查点" in section
     assert "不是对同一检查点继续微调" in section

@@ -31,6 +31,7 @@ from typing import Any, Callable, Mapping, Sequence
 import numpy as np
 
 from .groups import (
+    ConcatenatedDataset,
     LogicalGroupDataset,
     RelationBatchSampler,
     ScenarioBalancedDataset,
@@ -41,13 +42,49 @@ URI_PREFIX = "contextworld://v1/"
 FORMAT_NAME = "contextworld_bundle"
 MODEL_COLUMNS = ("pixels", "action")
 _DELAY_PATTERN = re.compile(r"(?:^|[-_])d(?P<delay>\d+)(?:[-_])")
+_PAIRED_SHARD_PATTERN = re.compile(r"(?:^|[-_])p(?P<shard>\d+)(?:[-_])")
 CONDITIONAL_JOINT_METHOD = "coja_v1"
-CONDITIONAL_JOINT_COMPONENTS = frozenset(
-    {"action_strength", "contact_friction", "portal_exit", "robot_arm_mass"}
-)
-CONDITIONAL_JOINT_GROUP_WIDTH = 2
+PAIR_RELATION_KIND = "public_pair_identity_v1"
+DELAY_TRIPLET_RELATION_KIND = "public_same_query_delay_triplet_v1"
 CONDITIONAL_JOINT_GROUP_COLUMN = "conditional_joint_group"
 PUBLIC_RELATION_COLUMN = "pair_id"
+PUBLIC_QUERY_COLUMN = "id"
+ACTION_DELAY_COJA_DELAYS = frozenset({0, 4, 8})
+# One registered relation contract per component whose public bundle declares
+# an audited same-query group.  ``group_width`` is the arm count the checkout's
+# own objective is told to expect; ``clip_anchor`` pins the single episode
+# offset at which the arms still share one query, or is ``None`` when every
+# sliding clip of the registered payload stays aligned.
+CONDITIONAL_JOINT_CONTRACTS: dict[str, dict[str, Any]] = {
+    component: {
+        "group_width": 2,
+        "relation_kind": PAIR_RELATION_KIND,
+        "payload_id": "data",
+        "clip_anchor": None,
+    }
+    for component in (
+        "action_strength",
+        "contact_friction",
+        "motion_damping",
+        "portal_exit",
+        "robot_arm_mass",
+    )
+}
+CONDITIONAL_JOINT_CONTRACTS["action_delay"] = {
+    "group_width": 3,
+    "relation_kind": DELAY_TRIPLET_RELATION_KIND,
+    # The coarse payload is the audited delay-0/4/8 triplet release; the full
+    # payload publishes eleven delays per query and carries no three-way
+    # relation.
+    "payload_id": "coarse",
+    # Only the clip anchored at raw step zero keeps the query frame identical
+    # across the three delay arms.  A later offset slides the query past that
+    # shared prefix, so its arms would no longer answer the same query.
+    "clip_anchor": 0,
+}
+ROLLOUT_PROTOCOL = "pusht_motion_damping_history3_query_anchored_rollout_k10_v1"
+ROLLOUT_COMPONENT = "motion_damping"
+ROLLOUT_MAX_STEPS = 10
 DEVELOPMENT_EVALUATION_SCHEMA_VERSION = "contextworld.development_evaluation.v1"
 DEVELOPMENT_EVALUATION_STATUS = "public_development_only"
 TWOROOM_NORMALIZER_PROTOCOL = "tworoom_original_train_s3072_unbiased_zscore_v1"
@@ -158,22 +195,24 @@ def _conditional_joint_contract(
             f"Unsupported ContextWorld training method: {method!r}; "
             f"expected {CONDITIONAL_JOINT_METHOD!r}"
         )
-    if component_id not in CONDITIONAL_JOINT_COMPONENTS:
-        supported = ", ".join(sorted(CONDITIONAL_JOINT_COMPONENTS))
+    if component_id not in CONDITIONAL_JOINT_CONTRACTS:
+        supported = ", ".join(sorted(CONDITIONAL_JOINT_CONTRACTS))
         raise ValueError(
             f"{CONDITIONAL_JOINT_METHOD} is registered only for components "
-            f"with audited public pair identities ({supported}), not "
+            f"with audited public same-query relations ({supported}), not "
             f"{component_id!r}"
         )
-    if payload_id != "data":
+    registered = CONDITIONAL_JOINT_CONTRACTS[component_id]
+    if payload_id != registered["payload_id"]:
         raise ValueError(
             f"{component_id} conditional-joint training requires the "
-            f"registered data payload, observed={payload_id!r}"
+            f"registered {registered['payload_id']!r} payload, "
+            f"observed={payload_id!r}"
         )
     return {
         "method": method,
-        "group_width": CONDITIONAL_JOINT_GROUP_WIDTH,
-        "relation_kind": "public_pair_identity_v1",
+        "group_width": int(registered["group_width"]),
+        "relation_kind": str(registered["relation_kind"]),
     }
 
 
@@ -188,6 +227,8 @@ def build_contextworld_dataset_uri(
     synthetic_weight: float = 1.0,
     epoch_size: int | None = None,
     conditional_joint_method: str | None = None,
+    rollout_steps: int = 1,
+    rollout_artifact_root: str | Path | None = None,
 ) -> str:
     """Return a Hydra-safe, immutable runtime dataset identifier."""
 
@@ -211,6 +252,17 @@ def build_contextworld_dataset_uri(
         original = None
     if epoch_size is not None and epoch_size <= 0:
         raise ValueError("epoch_size must be positive")
+    if rollout_steps < 1:
+        raise ValueError("rollout_steps must be positive")
+    rollout_root = None
+    if rollout_artifact_root is not None:
+        rollout_root = _safe_absolute_path(
+            rollout_artifact_root, label="Rollout artifact root"
+        )
+    if (rollout_steps > 1) != (rollout_root is not None):
+        raise ValueError(
+            "rollout_steps > 1 and rollout_artifact_root must be supplied together"
+        )
 
     spec: dict[str, Any] = {
         "root": str(root),
@@ -224,6 +276,11 @@ def build_contextworld_dataset_uri(
         },
         "epoch_size": epoch_size,
         "conditional_joint_method": conditional_joint_method,
+        "rollout": (
+            {"steps": int(rollout_steps), "artifact_root": str(rollout_root)}
+            if rollout_root is not None
+            else None
+        ),
     }
     # Validate before a GPU job is rendered.  The URI contains no query
     # ``=`` characters, which keeps it safe as a Hydra override value.
@@ -592,6 +649,77 @@ def _payload_members(root: Path, payload: Mapping[str, Any]) -> list[Path]:
     return resolved
 
 
+def _rollout_spec(
+    spec: Mapping[str, Any], component: Mapping[str, Any], *, split: str
+) -> dict[str, Any] | None:
+    value = spec.get("rollout")
+    if value is None:
+        return None
+    if not isinstance(value, Mapping):
+        raise ValueError("ContextWorld rollout contract must be a mapping")
+    steps = value.get("steps")
+    if isinstance(steps, bool) or not isinstance(steps, int):
+        raise ValueError("ContextWorld rollout steps must be an integer")
+    if not 2 <= steps <= ROLLOUT_MAX_STEPS:
+        raise ValueError(
+            f"ContextWorld rollout steps must be in [2,{ROLLOUT_MAX_STEPS}]"
+        )
+    if component.get("component_id") != ROLLOUT_COMPONENT or split != "training":
+        raise ValueError(
+            "The query-anchored rollout artifact is registered only for "
+            "motion_damping training"
+        )
+    root = _safe_absolute_path(
+        str(value.get("artifact_root", "")), label="Rollout artifact root"
+    )
+    if not root.is_dir() or root.is_symlink():
+        raise ValueError(f"Missing or unsafe rollout artifact root: {root}")
+    manifest_path = root / "manifest.json"
+    frames_path = root / "train.lance"
+    episodes_path = root / "train_episodes.lance"
+    for path in (manifest_path, frames_path, episodes_path):
+        expected = path.is_file() if path == manifest_path else path.is_dir()
+        if not expected or path.is_symlink():
+            raise ValueError(f"Missing or unsafe rollout artifact member: {path}")
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"Malformed rollout manifest: {manifest_path}") from exc
+    anchor = manifest.get("anchored_clip_contract")
+    checks = {
+        "passed": manifest.get("passed") is True,
+        "protocol": manifest.get("protocol") == ROLLOUT_PROTOCOL,
+        "history_size": isinstance(anchor, Mapping)
+        and anchor.get("history_size") == int(component["history_length"]),
+        "max_prediction_horizon": isinstance(anchor, Mapping)
+        and anchor.get("max_prediction_horizon") == ROLLOUT_MAX_STEPS,
+        "start_step": isinstance(anchor, Mapping)
+        and anchor.get("start_step") == 0,
+        "frame_stride": isinstance(anchor, Mapping)
+        and anchor.get("model_frame_rows")
+        == list(range(0, 61, int(component["frameskip"]))),
+        "split_isolation": isinstance(manifest.get("cross_split_audit"), Mapping)
+        and manifest["cross_split_audit"].get("passed") is True,
+    }
+    if not all(checks.values()):
+        failed = sorted(name for name, passed in checks.items() if not passed)
+        raise ValueError(
+            "Rollout artifact does not satisfy its query-anchored contract: "
+            + ", ".join(failed)
+        )
+    return {
+        "steps": steps,
+        "max_steps": ROLLOUT_MAX_STEPS,
+        "protocol": ROLLOUT_PROTOCOL,
+        "start_step": 0,
+        "artifact_root": str(root),
+        "manifest": str(manifest_path),
+        "manifest_sha256": _sha256_file(manifest_path),
+        "frames": str(frames_path),
+        "episode_metadata": str(episodes_path),
+    }
+
+
 def _describe_spec(spec: Mapping[str, Any]) -> dict[str, Any]:
     root = _safe_absolute_path(str(spec.get("root", "")), label="Bundle root")
     contract = _bundle_contract(str(root))
@@ -605,6 +733,9 @@ def _describe_spec(spec: Mapping[str, Any]) -> dict[str, Any]:
         ),
     )
     members = _payload_members(root, payload)
+    rollout = _rollout_spec(spec, component, split=split)
+    if rollout is not None:
+        members = [Path(rollout["frames"])]
     original_value = spec.get("original_dataset")
     if original_value is not None:
         original = _safe_absolute_path(str(original_value), label="Original dataset")
@@ -629,7 +760,11 @@ def _describe_spec(spec: Mapping[str, Any]) -> dict[str, Any]:
     if bool(original_weight) != bool(original_value):
         raise ValueError("Original dataset and original mixture weight disagree")
 
-    relative_members = [str(path.relative_to(root)) for path in members]
+    relative_members = (
+        [f"rollout:{rollout['manifest_sha256']}:train.lance"]
+        if rollout is not None
+        else [str(path.relative_to(root)) for path in members]
+    )
     member_list_sha256 = hashlib.sha256(
         ("\n".join(relative_members) + "\n").encode("utf-8")
     ).hexdigest()
@@ -671,6 +806,7 @@ def _describe_spec(spec: Mapping[str, Any]) -> dict[str, Any]:
         },
         "epoch_size": spec.get("epoch_size"),
         "conditional_joint": conditional_joint,
+        "rollout": rollout,
     }
 
 
@@ -709,6 +845,8 @@ class _ProjectedLanceSequence:
         frameskip: int,
         keys_to_load: Sequence[str],
         transform: Callable[[dict[str, Any]], dict[str, Any]] | None = None,
+        anchored_start: int | None = None,
+        episode_metadata: Path | None = None,
     ) -> None:
         import lance
 
@@ -718,6 +856,8 @@ class _ProjectedLanceSequence:
         self.span = self.num_steps * self.frameskip
         self._keys = list(keys_to_load)
         self._transform = transform
+        self._anchored_start = anchored_start
+        self._episode_metadata = episode_metadata
         # Lance/Arrow dataset handles are native objects and must not be
         # inherited by Linux DataLoader workers through ``fork``.  Inspect the
         # member while constructing the lightweight Python index, then drop
@@ -733,7 +873,14 @@ class _ProjectedLanceSequence:
         self._offsets, self._lengths = _episode_structure(
             dataset, step_column="step_idx"
         )
-        self._clip_counts = np.maximum(self._lengths - self.span + 1, 0)
+        if anchored_start is None:
+            self._clip_counts = np.maximum(self._lengths - self.span + 1, 0)
+        else:
+            if anchored_start < 0:
+                raise ValueError("anchored_start must be non-negative")
+            self._clip_counts = (
+                self._lengths >= anchored_start + self.span
+            ).astype(np.int64)
         self._clip_cumulative = np.cumsum(self._clip_counts, dtype=np.int64)
         self._dataset = None
         self._dataset_pid = None
@@ -753,6 +900,12 @@ class _ProjectedLanceSequence:
         return previous, int(self._clip_counts[episode])
 
     def episode_relation_keys(self, column: str) -> list[str]:
+        if self._episode_metadata is not None:
+            return _episode_sidecar_relation_keys(
+                self._episode_metadata,
+                episode_count=len(self._offsets),
+                column=column,
+            )
         return _episode_relation_keys(
             self.path, self._offsets, self._lengths, column
         )
@@ -775,7 +928,10 @@ class _ProjectedLanceSequence:
             raise IndexError(index)
         episode = int(np.searchsorted(self._clip_cumulative, index, side="right"))
         previous = 0 if episode == 0 else int(self._clip_cumulative[episode - 1])
-        return episode, int(index - previous)
+        start = int(index - previous)
+        if self._anchored_start is not None:
+            start = int(self._anchored_start)
+        return episode, start
 
     def _open(self):
         pid = os.getpid()
@@ -1032,20 +1188,47 @@ def _episode_relation_keys(
     return keys
 
 
-def _paired_episode_relations(leaf: Any) -> list[tuple[int, int]]:
-    """Return aligned clip indices for every public same-query pair."""
+def _episode_sidecar_relation_keys(
+    path: Path, *, episode_count: int, column: str
+) -> list[str]:
+    """Read one relation key per episode from the rollout side table."""
+
+    import lance
+
+    dataset = lance.dataset(str(path))
+    required = {"episode_idx", column}
+    if not required <= set(dataset.schema.names):
+        raise ValueError(
+            f"Rollout episode metadata {path} misses {sorted(required - set(dataset.schema.names))}"
+        )
+    table = dataset.to_table(columns=["episode_idx", column])
+    episodes = np.asarray(table.column("episode_idx").to_pylist(), dtype=np.int64)
+    if not np.array_equal(episodes, np.arange(episode_count, dtype=np.int64)):
+        raise ValueError(
+            "Rollout episode metadata must contain exactly one ordered row per episode"
+        )
+    return [str(value) for value in table.column(column).to_pylist()]
+
+
+def _paired_episode_relations(leaf: Any, *, group_width: int) -> list[tuple[int, ...]]:
+    """Return aligned clip indices for every public same-query group.
+
+    One registered Lance table publishes every arm, so a relation is the set
+    of episodes that share a public relation key, aligned clip by clip.
+    """
 
     episodes: dict[str, list[int]] = {}
     for episode, key in enumerate(
         leaf.episode_relation_keys(PUBLIC_RELATION_COLUMN)
     ):
         episodes.setdefault(key, []).append(episode)
-    relations: list[tuple[int, int]] = []
+    relations: list[tuple[int, ...]] = []
     for key in sorted(episodes):
         arms = episodes[key]
-        if len(arms) != CONDITIONAL_JOINT_GROUP_WIDTH:
+        if len(arms) != group_width:
             raise ValueError(
-                f"Public relation {key!r} has {len(arms)} episodes; expected 2"
+                f"Public relation {key!r} has {len(arms)} episodes; "
+                f"expected {group_width}"
             )
         ranges = [leaf.episode_clip_range(episode) for episode in arms]
         counts = {count for _, count in ranges}
@@ -1060,6 +1243,90 @@ def _paired_episode_relations(leaf: Any) -> list[tuple[int, int]]:
     if not relations:
         raise ValueError("Conditional-joint training publishes no pair relations")
     return relations
+
+
+def _delay_triplet_relations(
+    members: Sequence[Path], leaves: Sequence[Any], *, group_width: int
+) -> list[tuple[int, ...]]:
+    """Return aligned clip indices for every public same-query delay group.
+
+    ActionDelay publishes one Lance member per (paired-query shard, delay)
+    instead of one table with a relation column.  The arms of a shard replay
+    the same queries and the same actions in the same episode order and differ
+    only in how long an action is delayed, so a relation is the same episode
+    read from each delay arm.  Indices are the flat positions the arms occupy
+    once the members are concatenated in registry order.
+    """
+
+    bases: list[int] = []
+    total = 0
+    for leaf in leaves:
+        bases.append(total)
+        total += len(leaf)
+
+    shards: dict[str, dict[int, tuple[int, Any]]] = {}
+    for base, member, leaf in zip(bases, members, leaves):
+        shard = _PAIRED_SHARD_PATTERN.search(member.name)
+        delay = _DELAY_PATTERN.search(member.name)
+        if shard is None or delay is None:
+            raise ValueError(
+                "Conditional-joint delay training needs the published paired "
+                f"shard and delay identity, missing in {member.name}"
+            )
+        arms = shards.setdefault(shard.group("shard"), {})
+        steps = int(delay.group("delay"))
+        if steps in arms:
+            raise ValueError(
+                f"Public delay shard {shard.group('shard')!r} publishes delay "
+                f"{steps} more than once"
+            )
+        arms[steps] = (base, leaf)
+
+    relations: list[tuple[int, ...]] = []
+    for shard in sorted(shards):
+        if len(shards[shard]) != group_width:
+            raise ValueError(
+                f"Public delay shard {shard!r} has {len(shards[shard])} delay arms; "
+                f"expected {group_width}"
+            )
+        observed_delays = set(shards[shard])
+        if observed_delays != ACTION_DELAY_COJA_DELAYS:
+            raise ValueError(
+                f"Public delay shard {shard!r} has delays "
+                f"{sorted(observed_delays)}; expected "
+                f"{sorted(ACTION_DELAY_COJA_DELAYS)}"
+            )
+        arms = [shards[shard][steps] for steps in sorted(shards[shard])]
+        # The delay arms are related by their member names.  Reading the
+        # public per-episode query identity keeps that naming honest: a shard
+        # whose arms do not repeat one query per episode, in one order, is
+        # rejected rather than trained as a same-query relation.
+        queries = [
+            leaf.episode_relation_keys(PUBLIC_QUERY_COLUMN) for _, leaf in arms
+        ]
+        if any(value != queries[0] for value in queries[1:]):
+            raise ValueError(
+                f"Public delay shard {shard!r} does not repeat one query "
+                "identity per episode across its delay arms"
+            )
+        for episode in range(len(queries[0])):
+            ranges = [leaf.episode_clip_range(episode) for _, leaf in arms]
+            counts = {count for _, count in ranges}
+            if len(counts) != 1:
+                raise ValueError(
+                    f"Public delay shard {shard!r} has unequal arm clip counts"
+                )
+            for offset in range(counts.pop()):
+                relations.append(
+                    tuple(
+                        base + start + offset
+                        for (base, _), (start, _) in zip(arms, ranges)
+                    )
+                )
+    if not relations:
+        raise ValueError("Conditional-joint training publishes no delay relations")
+    return relations
+
 
 def _integer_weight_counts(weights: Sequence[float]) -> list[int]:
     values = [Fraction(str(float(weight))).limit_denominator(10_000) for weight in weights]
@@ -1200,7 +1467,7 @@ def _registered_action_normalizer_source(
 
 
 class _ConditionalJointSubset:
-    """Flat rows whose synthetic half is partitioned into complete pairs."""
+    """Flat rows whose synthetic half is partitioned into complete groups."""
 
     def __init__(self, runtime: "_RuntimeDataset", singles: Any, relations: Any):
         import torch
@@ -1210,8 +1477,11 @@ class _ConditionalJointSubset:
         self.relations = torch.as_tensor(relations, dtype=torch.long).clone()
         if self.singles.ndim != 1:
             raise ValueError("Conditional-joint singles must be one-dimensional")
-        if self.relations.ndim != 2 or self.relations.size(1) != 2:
-            raise ValueError("Conditional-joint relations must have shape (P,2)")
+        if self.relations.ndim != 2 or self.relations.size(1) < 2:
+            raise ValueError(
+                "Conditional-joint relations must have shape (P,G) with G >= 2"
+            )
+        self.group_width = int(self.relations.size(1))
         self._global_indices = torch.cat(
             (self.singles, self.relations.reshape(-1)), dim=0
         )
@@ -1226,7 +1496,7 @@ class _ConditionalJointSubset:
     def _group_id(self, index: int) -> int:
         if index < self.singles.numel():
             return -1
-        return (index - int(self.singles.numel())) // 2
+        return (index - int(self.singles.numel())) // self.group_width
 
     def __getitem__(self, index: int) -> dict[str, Any]:
         if index < 0:
@@ -1285,10 +1555,10 @@ class _ConditionalJointSubset:
         relation_start = int(self.singles.numel())
         relation_ids = torch.arange(self.relations.size(0), dtype=torch.long)
         local_relations = torch.stack(
-            (
-                relation_start + 2 * relation_ids,
-                relation_start + 2 * relation_ids + 1,
-            ),
+            [
+                relation_start + self.group_width * relation_ids + arm
+                for arm in range(self.group_width)
+            ],
             dim=1,
         )
         config["batch_sampler"] = RelationBatchSampler(
@@ -1394,6 +1664,7 @@ class _RuntimeDataset:
         local_relations = torch.as_tensor(
             self.conditional_relations, dtype=torch.long
         )
+        group_width = int(local_relations.size(1))
         relation_occurrences = []
         for offset in range(0, draws["synthetic"], synthetic_length):
             shifted = local_relations + offset
@@ -1409,7 +1680,7 @@ class _RuntimeDataset:
         if train_relation_count <= 0 or train_relation_count >= relations.size(0):
             raise ValueError("Conditional-joint split leaves an empty partition")
 
-        usable_originals = 2 * relations.size(0)
+        usable_originals = group_width * relations.size(0)
         if usable_originals > draws["original"]:
             raise ValueError("Conditional-joint relations exceed original mixture rows")
         original_occurrences = torch.randperm(
@@ -1418,7 +1689,7 @@ class _RuntimeDataset:
         original_indices = (
             original_occurrences * self.dataset.cycle_size + original_position
         )
-        train_original_count = 2 * train_relation_count
+        train_original_count = group_width * train_relation_count
         train = _ConditionalJointSubset(
             self,
             original_indices[:train_original_count],
@@ -1449,13 +1720,17 @@ def _open_runtime_dataset(uri: str, **kwargs: Any):
         component, split=identity["split"], payload_id=identity["payload_id"]
     )
     members = _payload_members(root, payload)
+    rollout = identity.get("rollout")
+    if rollout is not None:
+        members = [Path(rollout["frames"])]
 
     num_steps = int(kwargs.get("num_steps", identity["history_length"] + 1))
     frameskip = int(kwargs.get("frameskip", identity["frameskip"]))
-    if num_steps != int(identity["history_length"]) + 1:
+    rollout_steps = int(rollout["steps"]) if rollout is not None else 1
+    if num_steps != int(identity["history_length"]) + rollout_steps:
         raise ValueError(
             f"Component {identity['component']} needs num_steps="
-            f"{int(identity['history_length']) + 1}, observed={num_steps}"
+            f"{int(identity['history_length']) + rollout_steps}, observed={num_steps}"
         )
     if frameskip != int(identity["frameskip"]):
         raise ValueError(
@@ -1476,6 +1751,19 @@ def _open_runtime_dataset(uri: str, **kwargs: Any):
         "keys_to_load": keys,
         "keys_to_cache": kwargs.get("keys_to_cache"),
     }
+    conditional_joint = identity.get("conditional_joint")
+    joint_contract = (
+        CONDITIONAL_JOINT_CONTRACTS[identity["component"]]
+        if conditional_joint is not None
+        else None
+    )
+    # A rollout artifact and a relation contract can both pin the episode
+    # offset a clip starts at; the rollout artifact owns it when present.
+    anchored_start = (
+        int(rollout["start_step"])
+        if rollout is not None
+        else (joint_contract or {}).get("clip_anchor")
+    )
     adapter = identity["adapter"]
     leaves: list[Any] = []
     for member in members:
@@ -1485,6 +1773,12 @@ def _open_runtime_dataset(uri: str, **kwargs: Any):
                 num_steps=num_steps,
                 frameskip=frameskip,
                 keys_to_load=keys,
+                anchored_start=anchored_start,
+                episode_metadata=(
+                    Path(rollout["episode_metadata"])
+                    if rollout is not None
+                    else None
+                ),
             )
         elif adapter == "cube_block_projection_to_sequence_v1":
             leaf = _CubeBlockedSequence(
@@ -1501,6 +1795,7 @@ def _open_runtime_dataset(uri: str, **kwargs: Any):
                 num_steps=num_steps,
                 frameskip=frameskip,
                 keys_to_load=keys,
+                anchored_start=anchored_start,
             )
         else:
             raise ValueError(f"Unsupported ContextWorld StableWM adapter: {adapter}")
@@ -1510,15 +1805,25 @@ def _open_runtime_dataset(uri: str, **kwargs: Any):
             )
         leaves.append(leaf)
 
-    conditional_joint = identity.get("conditional_joint")
     if conditional_joint is not None:
-        if len(leaves) != 1:
-            raise ValueError(
-                "Conditional-joint training expects its "
-                "single registered public Lance table"
+        group_width = int(conditional_joint["group_width"])
+        if conditional_joint["relation_kind"] == PAIR_RELATION_KIND:
+            if len(leaves) != 1:
+                raise ValueError(
+                    "Conditional-joint training expects its "
+                    "single registered public Lance table"
+                )
+            synthetic = leaves[0]
+            conditional_relations = _paired_episode_relations(
+                synthetic, group_width=group_width
             )
-        synthetic = leaves[0]
-        conditional_relations = _paired_episode_relations(synthetic)
+        else:
+            # Every published delay arm is one member, so the relation is only
+            # addressable once the members share one flat index space.
+            conditional_relations = _delay_triplet_relations(
+                members, leaves, group_width=group_width
+            )
+            synthetic = ConcatenatedDataset(leaves)
     elif identity["component"] == "action_delay" and identity["payload_id"] == "full":
         delay_groups: dict[str, list[Any]] = {str(i): [] for i in range(5)}
         delay_groups["5_to_10"] = []

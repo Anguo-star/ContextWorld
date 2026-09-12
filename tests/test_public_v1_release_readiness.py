@@ -12,6 +12,11 @@ READINESS_CONFIG = (
     / "configs/benchmark/contextworld_public_v1_release_readiness_draft_v1.yaml"
 )
 READINESS_DOCUMENT = ROOT / "docs/ContextWorld_Public_v1_Release_Readiness.md"
+# The Cube external-pilot readiness narrative is archived verbatim; the legacy
+# document-text assertions below must read the archive, not the current doc.
+ARCHIVED_READINESS_DOCUMENT = (
+    ROOT / "docs/archive/ContextWorld_Public_v1_Release_Readiness_Pre_V3.md"
+)
 FROZEN_PUBLIC_DOCUMENT = ROOT / "docs/ContextWorld_ICL_Benchmark.md"
 
 
@@ -116,7 +121,7 @@ def test_cube_comparison_reports_only_existing_evidence() -> None:
     )
     assert rows["trained_pldm"]["public_score"] == "not_authorized_not_run"
 
-    document = READINESS_DOCUMENT.read_text(encoding="utf-8")
+    document = ARCHIVED_READINESS_DOCUMENT.read_text(encoding="utf-8")
     assert "独立 v4r1 描述性基线" in document
     assert "78.45%；77.73%、79.10%、78.52%" in document
     assert "50.13%；50.20%、50.20%、50.00%" in document
@@ -153,7 +158,7 @@ def test_external_model_matrix_is_empty_and_fail_closed() -> None:
         assert slot["public_status"] == "not_authorized_not_run"
         assert slot["cem_status"] == "not_run"
 
-    document = READINESS_DOCUMENT.read_text(encoding="utf-8")
+    document = ARCHIVED_READINESS_DOCUMENT.read_text(encoding="utf-8")
     assert "多开源模型对比表（待补齐）" in document
     assert document.count("| External-0") == 3
     assert "空白项必须由真实运行和冻结证据填写" in document
@@ -189,3 +194,37 @@ def test_all_public_v1_blockers_remain_explicit_and_navigable() -> None:
     docs_readme = (ROOT / "docs/README.md").read_text(encoding="utf-8")
     assert "ContextWorld_Public_v1_Release_Readiness.md" in root_readme
     assert "ContextWorld_Public_v1_Release_Readiness.md" in docs_readme
+
+
+def test_v3_readiness_document_tracks_data_release_not_legacy_pilot() -> None:
+    current = READINESS_DOCUMENT.read_text(encoding="utf-8")
+    archive = ARCHIVED_READINESS_DOCUMENT.read_text(encoding="utf-8")
+
+    # Archive is the historical pilot narrative, kept byte-identical to the
+    # pre-V3 document, and the current doc links it as history only.
+    assert "独立 v4r1 描述性基线" not in current
+    assert "External-0" not in current
+    assert (
+        "archive/ContextWorld_Public_v1_Release_Readiness_Pre_V3.md" in current
+    )
+    assert "历史记录" in current and "不构成当前发布门" in current
+    assert "ContextWorld_ICL_Benchmark.md" in current
+
+    # Current doc is a v3 data-release readiness table with real blockers.
+    assert (
+        "contextworld_joint_scratch_v1_reference_results_freeze_v3" in current
+    )
+    assert (
+        "01298ca407c4a72bdd9a1238879ae7109b1141a7cfdd2b25065cb0bdec87fef0"
+        in current
+    )
+    assert "prepare_contextworld_hf_release.py" in current
+    assert "snapshot_download" in current
+    assert all(f"| R{number} |" in current for number in range(1, 9))
+    assert "阻断（未提供）" in current
+    for legacy_claim in ("Public v1 外部开源模型试点", "多开源模型对比表"):
+        assert legacy_claim not in current
+
+    # Legacy narrative survives only in the archive.
+    assert "独立 v4r1 描述性基线" in archive
+    assert archive.count("| External-0") == 3

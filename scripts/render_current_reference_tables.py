@@ -25,6 +25,7 @@ ENVIRONMENTS = {
     "action_strength": "pusht", "contact_friction": "pusht", "motion_damping": "pusht",
     "robot_arm_mass": "reacher", "cube_gripper_carry": "cube",
 }
+ENVIRONMENT_NAMES = {"tworoom": "TwoRoom", "pusht": "PushT", "reacher": "Reacher", "cube": "Cube"}
 
 ICL_MATRIX_BEGIN = "<!-- BEGIN CURRENT_REFERENCE_ICL_MATRIX -->"
 ICL_MATRIX_END = "<!-- END CURRENT_REFERENCE_ICL_MATRIX -->"
@@ -101,9 +102,9 @@ def render(freeze: dict, document: str, appendix: str) -> tuple[str, str]:
             for row in selected
         ]
 
-    def compact_cem(task: str, family: str, stage: str) -> str:
-        values = cem_values(task, family, stage)
-        cell = f"{statistics.mean(values):.2f} ± {statistics.stdev(values):.2f}"
+    def cem_cell(values: list[float], family: str) -> str:
+        """One CEM retention cell: mean ± sample sd in percent units."""
+        cell = f"{statistics.mean(values):.2f}% ± {statistics.stdev(values):.2f}pp"
         return cell + ("†" if family == "DINO-WM" else "")
 
     def matrix(header_labels: list[str], value_for: Callable[[str, str, str], str]) -> str:
@@ -134,10 +135,6 @@ def render(freeze: dict, document: str, appendix: str) -> tuple[str, str]:
         return value + ("‡" if family == "DINO-WM" and stage == "original_environment_only" else "")
 
     icl_matrix = matrix(icl_labels, icl_cell)
-    cem_matrix = matrix(
-        list(TASKS),
-        lambda task, family, stage: compact_cem(task, family, stage),
-    )
 
     def replace_marker(text: str, begin: str, end: str, replacement: str) -> str:
         if text.count(begin) != 1 or text.count(end) != 1:
@@ -146,12 +143,18 @@ def render(freeze: dict, document: str, appendix: str) -> tuple[str, str]:
         end_at = text.index(end, begin_at)
         return text[:begin_at] + "\n" + replacement + "\n" + text[end_at:]
 
+    if CEM_MATRIX_BEGIN in document or CEM_MATRIX_END in document:
+        raise ValueError(
+            "CURRENT_REFERENCE_CEM_MATRIX moved to the appendix section "
+            "5.3 原任务规划能力保持（CEM）; it must not appear in the main document"
+        )
     document = replace_marker(document, ICL_MATRIX_BEGIN, ICL_MATRIX_END, icl_matrix)
-    document = replace_marker(document, CEM_MATRIX_BEGIN, CEM_MATRIX_END, cem_matrix)
 
+    # §5.1 detail is ICL-only now; the CEM retention table owns its columns
+    # in appendix section 5.3.
     detail_lines = [
-        "| 能力类型 | 任务 | 模型 | 随机基线 | 原始 ICL 起点 | 组件训练后 ICL 主分数 | ICL 门槛结果 | 原始 CEM 起点 | 训练后原任务 CEM |",
-        "|---|---|---|---:|---:|---:|:--|---:|---:|",
+        "| 能力类型 | 任务 | 模型 | 随机基线 | 原始 ICL 起点 | 组件训练后 ICL 主分数 | ICL 门槛结果 |",
+        "|---|---|---|---:|---:|---:|:--|",
     ]
     ability = {
         "speed": "即时连续响应", "action_strength": "即时连续响应", "robot_arm_mass": "即时连续响应",
@@ -172,16 +175,6 @@ def render(freeze: dict, document: str, appendix: str) -> tuple[str, str]:
             verdict = ("Development " if split == "development" else "") + (
                 "3/3 通过" if count_passed == 3 else f"未通过（{count_passed}/3）"
             )
-            original_cem = cem_values(task, family, "original_environment_only")
-            trained_cem = cem_values(task, family, "post_component_training")
-            original_cem_cell = (
-                f"{statistics.mean(original_cem):.2f}% ± {statistics.stdev(original_cem):.2f}pp"
-                + ("†" if family == "DINO-WM" else "")
-            )
-            trained_cem_cell = (
-                f"{statistics.mean(trained_cem):.2f}% ± {statistics.stdev(trained_cem):.2f}pp"
-                + ("†" if family == "DINO-WM" else "")
-            )
             chance = "33.33%" if task == "speed" else "16.67%" if task == "action_delay" else "50%"
             detail_lines.append(
                 "| " + " | ".join(
@@ -189,13 +182,39 @@ def render(freeze: dict, document: str, appendix: str) -> tuple[str, str]:
                         ability[task], label, family, chance,
                         scores(original, split) + ("‡" if family == "DINO-WM" else "") + suffix,
                         scores(trained, split) + suffix,
-                        verdict, original_cem_cell, trained_cem_cell,
+                        verdict,
                     )
                 ) + " |"
             )
     if len(detail_lines) - 2 != 27:
         raise ValueError(f"Expected 27 reference detail rows, found {len(detail_lines) - 2}")
     appendix = replace_marker(appendix, DETAIL_BEGIN, DETAIL_END, "\n".join(detail_lines))
+
+    # §5.3 原任务规划能力保持（CEM）: one long row per model/component; the
+    # delta column is plain arithmetic (post minus original) on the already
+    # frozen per-seed scores, never a new metric or a pass claim.
+    cem_lines = [
+        "| 模型 | ICL 训练组件 | 原环境任务 | 原环境数据 CEM | ICL 配比 CEM | 变化（pp） |",
+        "|---|---|---|---:|---:|---:|",
+    ]
+    for family in FAMILIES:
+        for label, task in TASKS.items():
+            original_values = cem_values(task, family, "original_environment_only")
+            trained_values = cem_values(task, family, "post_component_training")
+            delta = statistics.mean(trained_values) - statistics.mean(original_values)
+            cem_lines.append(
+                "| " + " | ".join(
+                    (
+                        family, label, ENVIRONMENT_NAMES[ENVIRONMENTS[task]],
+                        cem_cell(original_values, family),
+                        cem_cell(trained_values, family),
+                        f"{delta:+.2f}",
+                    )
+                ) + " |"
+            )
+    if len(cem_lines) - 2 != 27:
+        raise ValueError(f"Expected 27 CEM retention rows, found {len(cem_lines) - 2}")
+    appendix = replace_marker(appendix, CEM_MATRIX_BEGIN, CEM_MATRIX_END, "\n".join(cem_lines))
 
     dev_lines = ["| 任务 | 模型 | 随机基线 | 训练前（逐种子） | 训练后（逐种子） |", "|---|---|---:|---:|---:|"]
     for label, task in TASKS.items():
@@ -228,7 +247,7 @@ def main() -> int:
         return int(bool(changed))
     for path, text in zip(paths, rendered):
         path.write_text(text)
-    print("rendered 2 six-row matrices, 27 detail rows, and 27 Development rows")
+    print("rendered 1 six-row ICL matrix, 27 ICL detail rows, 27 CEM retention rows, and 27 Development rows")
     return 0
 
 

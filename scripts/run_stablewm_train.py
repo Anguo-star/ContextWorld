@@ -22,12 +22,14 @@ optional hand-off to original-environment MPC evaluation.
 from __future__ import annotations
 
 import argparse
+import errno
 import hashlib
 import importlib.metadata
 import json
 import os
 import re
 import shlex
+import shutil
 import subprocess
 import sys
 from dataclasses import dataclass
@@ -46,6 +48,7 @@ from contextworld.training.seeds import (  # noqa: E402
     parse_training_seeds,
     reject_legacy_seed_environment,
 )
+from contextworld.training.benchmark_root import resolve_benchmark_root  # noqa: E402
 from contextworld.training.stablewm_bundle import (  # noqa: E402
     URI_PREFIX as CONTEXTWORLD_DATASET_URI_PREFIX,
     build_contextworld_dataset_uri,
@@ -57,6 +60,10 @@ DEFAULT_PROFILE_CONFIG = (REPO_ROOT /
 TRAINING_IDENTITY_FILENAME = "contextworld_training_identity_v1.json"
 TRAINING_IDENTITY_SCHEMA = "contextworld.stablewm-training-identity.v1"
 FAMILY_ENTRY_SCRIPT = REPO_ROOT / "scripts/run_stablewm_family_entry.py"
+ROLLOUT_ENTRY_SCRIPT = REPO_ROOT / "scripts/run_stablewm_rollout_entry.py"
+ROLLOUT_OVERLAY_SOURCE = (
+    REPO_ROOT / "contextworld/training/stablewm_rollout.py"
+)
 STABLEWM_BOOTSTRAP_DIR = REPO_ROOT / "scripts/stablewm_bootstrap"
 STABLEWM_SITECUSTOMIZE = STABLEWM_BOOTSTRAP_DIR / "sitecustomize.py"
 STABLEWM_BUNDLE_ADAPTER = (
@@ -586,6 +593,75 @@ def _validate_method(args: argparse.Namespace, contract: dict[str, Any]) -> None
         )
 
 
+def _rollout_recipe(
+    args: argparse.Namespace, contract: dict[str, Any]
+) -> dict[str, Any] | None:
+    """Validate and return the orthogonal autoregressive rollout recipe."""
+
+    steps = int(args.rollout_steps)
+    if steps == 1:
+        if args.rollout_context != "sliding":
+            raise SystemExit(
+                "CW_ROLLOUT_CONTEXT=expanding requires "
+                "CW_ROLLOUT_STEPS greater than one"
+            )
+        if args.rollout_artifact_root:
+            raise SystemExit(
+                "CW_ROLLOUT_ARTIFACT_ROOT is valid only when "
+                "CW_ROLLOUT_STEPS is greater than one"
+            )
+        # Preserve custom/native v1 profiles that predate the optional
+        # rollout section.  They do not need to know this overlay exists.
+        return None
+    rollout = contract.get("rollout_training")
+    if not isinstance(rollout, dict):
+        raise SystemExit("StableWM profile has no rollout_training contract")
+    minimum = int(rollout.get("min_steps", 1))
+    maximum = int(rollout.get("max_steps", 1))
+    if not minimum <= steps <= maximum:
+        raise SystemExit(
+            f"CW_ROLLOUT_STEPS must be in [{minimum},{maximum}], observed={steps}"
+        )
+    if args.original_env or not args.component:
+        raise SystemExit(
+            "Autoregressive rollout training currently requires a registered "
+            "benchmark component"
+        )
+    if args.training_track not in rollout.get("training_tracks", []):
+        raise SystemExit(
+            "Autoregressive rollout training is unavailable on training track "
+            f"{args.training_track!r}"
+        )
+    if args.family not in rollout.get("families", []):
+        raise SystemExit(
+            f"Autoregressive rollout training is unavailable for {args.family!r}"
+        )
+    if args.rollout_context == "expanding" and args.family not in {
+        "lewm",
+        "pldm",
+    }:
+        raise SystemExit(
+            "CW_ROLLOUT_CONTEXT=expanding is currently available only for "
+            "CW_FAMILY=lewm or pldm"
+        )
+    components = rollout.get("components")
+    recipe = components.get(args.component) if isinstance(components, dict) else None
+    if not isinstance(recipe, dict):
+        raise SystemExit(
+            f"Component {args.component!r} has no query-anchored rollout data contract"
+        )
+    if args.dataset:
+        raise SystemExit(
+            "Rollout training owns its registered mixture; omit CW_DATASET/--dataset"
+        )
+    if args.num_preds not in (None, 1):
+        raise SystemExit(
+            "CW_NUM_PREDS is a StableWM target-offset parameter, not rollout. "
+            "Keep it at 1 and use CW_ROLLOUT_STEPS."
+        )
+    return recipe
+
+
 def resolve_target(args: argparse.Namespace, contract: dict[str, Any]) -> Target:
     if bool(args.original_env) == bool(args.component):
         raise SystemExit("Select exactly one target: --original-env or --component")
@@ -678,19 +754,7 @@ def resolve_target(args: argparse.Namespace, contract: dict[str, Any]) -> Target
             # The method owns the payload and mixture it was registered with;
             # `_validate_method` has already rejected operator overrides.
             recipe = {**recipe, **method_recipe}
-        root_value = args.benchmark_root
-        if not root_value and args.dataset_root:
-            root_value = str(
-                _absolute_path(args.dataset_root, label="--dataset-root")
-                / "ContextWorld-v1"
-            )
-        if not root_value:
-            raise SystemExit(
-                "Benchmark component training needs --benchmark-root/"
-                "CONTEXTWORLD_BENCHMARK_ROOT, or a --dataset-root containing "
-                "ContextWorld-v1."
-            )
-        benchmark_root = _absolute_path(root_value, label="--benchmark-root")
+        benchmark_root = _benchmark_root_for_post_eval(args)
         original_weight = (
             args.mix_original_weight
             if args.mix_original_weight is not None
@@ -720,6 +784,15 @@ def resolve_target(args: argparse.Namespace, contract: dict[str, Any]) -> Target
                 spec["environment"]
             ]["dataset"]
             original_dataset = original_root / original_relative
+        rollout_recipe = _rollout_recipe(args, contract)
+        rollout_artifact_root = None
+        if rollout_recipe is not None:
+            root_value = args.rollout_artifact_root or str(
+                REPO_ROOT / str(rollout_recipe["default_artifact_root"])
+            )
+            rollout_artifact_root = _absolute_path(
+                root_value, label="--rollout-artifact-root"
+            )
         try:
             dataset = build_contextworld_dataset_uri(
                 benchmark_root,
@@ -736,6 +809,8 @@ def resolve_target(args: argparse.Namespace, contract: dict[str, Any]) -> Target
                 conditional_joint_method=(
                     None if method_recipe is None else method
                 ),
+                rollout_steps=args.rollout_steps,
+                rollout_artifact_root=rollout_artifact_root,
             )
             runtime_identity = describe_contextworld_dataset(dataset)
         except (OSError, ValueError, KeyError, TypeError) as exc:
@@ -1162,6 +1237,11 @@ def build_overrides(
 
     frameskip = args.frameskip or contract["defaults"]["frameskip"]
     num_preds = args.num_preds or contract["defaults"]["num_preds"]
+    if args.rollout_steps > 1:
+        # num_preds is a target offset in the upstream trainers. True rollout
+        # keeps that one-step model contract and changes only the loaded
+        # sequence length plus the ContextWorld forward overlay.
+        num_preds = 1
     num_workers = args.num_workers
     if num_workers is None and _is_contextworld_dataset_uri(target.dataset):
         # Family defaults range from 6 to 16 workers *per DDP rank*. Keep the
@@ -1201,6 +1281,21 @@ def build_overrides(
         ("embed_dim", args.embed_dim),
     ):
         _add(entries, keys.get(name), value)
+    if args.rollout_steps > 1:
+        _add(
+            entries,
+            keys.get("sequence_length"),
+            target.history_size + args.rollout_steps,
+        )
+        if args.rollout_context == "expanding":
+            # Step K sees the H observed states plus K-1 prior predictions.
+            # Allocate those absolute position vectors at model construction
+            # so they are optimizer-owned and checkpointed.
+            _add(
+                entries,
+                "model.predictor.num_frames",
+                target.history_size + args.rollout_steps - 1,
+            )
 
     for name, value in (
         ("train_split", args.train_split),
@@ -1378,6 +1473,10 @@ def _run_name(args: argparse.Namespace, target: Target, seed: int,
         # A different objective must not share a run directory (and therefore
         # an immutable training identity) with its native counterpart.
         default_base = f"{default_base}_{method}"
+    if args.rollout_steps > 1:
+        default_base = f"{default_base}_rollout{args.rollout_steps}"
+        if args.rollout_context != "sliding":
+            default_base = f"{default_base}_{args.rollout_context}"
     base = args.run_name or default_base
     name = f"{base}_s{seed}" if len(seeds) > 1 or args.run_name is None else base
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,127}", name):
@@ -1559,6 +1658,8 @@ def _training_identity_document(
         "family": args.family,
         "training_track": args.training_track,
         "method": getattr(args, "method", "native"),
+        "rollout_steps": int(args.rollout_steps),
+        "rollout_context": str(args.rollout_context),
         "run_name": run_name,
         "seed": seed,
         "target": {
@@ -1590,6 +1691,17 @@ def _training_identity_document(
         "training_dependencies": _training_dependency_identity(),
         "hydra_overrides": overrides,
     }
+    if args.rollout_steps > 1:
+        identity["contextworld_rollout_entry"] = {
+            "path": str(ROLLOUT_ENTRY_SCRIPT),
+            "sha256": _sha256_file(ROLLOUT_ENTRY_SCRIPT),
+            "overlay_path": str(ROLLOUT_OVERLAY_SOURCE),
+            "overlay_sha256": _sha256_file(ROLLOUT_OVERLAY_SOURCE),
+            "semantics": (
+                "autoregressive_all_steps_mean_"
+                f"{args.rollout_context}_context_v1"
+            ),
+        }
     serialized = json.dumps(
         identity,
         sort_keys=True,
@@ -1909,12 +2021,91 @@ def _validate_reset_archive_namespace(namespace: Path) -> None:
             raise SystemExit(f"Reset archive path is not a directory: {path}")
 
 
+def _directory_content_manifest(root: Path) -> tuple[tuple[Any, ...], ...]:
+    """Return a deterministic, symlink-safe content manifest for one tree."""
+
+    entries: list[tuple[Any, ...]] = []
+    for directory, dirnames, filenames in os.walk(root, followlinks=False):
+        dirnames.sort()
+        filenames.sort()
+        base = Path(directory)
+        for name in (*dirnames, *filenames):
+            path = base / name
+            relative = path.relative_to(root).as_posix()
+            if path.is_symlink():
+                entries.append(("symlink", relative, os.readlink(path)))
+            elif path.is_dir():
+                entries.append(("directory", relative))
+            elif path.is_file():
+                entries.append(
+                    ("file", relative, path.stat().st_size, _sha256_file(path))
+                )
+            else:
+                raise OSError(f"Unsupported filesystem entry in reset tree: {path}")
+    return tuple(entries)
+
+
+_PORTABLE_DIRECTORY_RENAME_ERRNOS = {
+    errno.EACCES,
+    errno.EPERM,
+    errno.EXDEV,
+    getattr(errno, "ENOTSUP", errno.EPERM),
+    getattr(errno, "EOPNOTSUPP", errno.EPERM),
+}
+
+
+def _move_reset_tree(source: Path, destination: Path) -> str:
+    """Move a reset tree, with a verified copy fallback for cloud mounts.
+
+    Some dataset mounts allow ordinary file creation and deletion but reject
+    directory rename even within one filesystem.  ``CW_RESUME=reset`` remains
+    recoverable there by copying the complete tree, comparing every file hash
+    and symlink target, and deleting the source only after verification.
+    """
+
+    try:
+        os.replace(source, destination)
+        return "atomic_rename"
+    except OSError as exc:
+        if exc.errno not in _PORTABLE_DIRECTORY_RENAME_ERRNOS:
+            raise
+
+    source_manifest = _directory_content_manifest(source)
+    copied = False
+    try:
+        shutil.copytree(
+            source,
+            destination,
+            symlinks=True,
+            copy_function=shutil.copy2,
+        )
+        copied = True
+        if _directory_content_manifest(destination) != source_manifest:
+            raise OSError(
+                "Verified reset copy differs from its source: "
+                f"{source} -> {destination}"
+            )
+        shutil.rmtree(source)
+    except Exception:
+        # Remove an incomplete duplicate only while the original tree is
+        # still byte-complete. If source deletion partially failed, retain the
+        # verified archive so the reset never destroys the last full copy.
+        if copied and destination.exists() and source.exists():
+            try:
+                if _directory_content_manifest(source) == source_manifest:
+                    shutil.rmtree(destination)
+            except OSError:
+                pass
+        raise
+    return "verified_copy_then_delete"
+
+
 def _execute_run_reset(
     plan: RunResetPlan,
     *,
     identity_sha256: str,
 ) -> tuple[Path, ...]:
-    """Archive a run's old state with recoverable same-filesystem renames."""
+    """Archive a run's old state without assuming directory rename support."""
 
     if not plan.moves:
         print(
@@ -1949,15 +2140,15 @@ def _execute_run_reset(
         move.archive_namespace / reset_id / move.archive_relative
         for move in plan.moves
     )
-    moved: list[tuple[RunResetMove, Path]] = []
+    moved: list[tuple[RunResetMove, Path, str]] = []
     receipts: list[Path] = []
     try:
         for bundle in bundles:
             bundle.mkdir(parents=True, exist_ok=False)
         for move, destination in zip(plan.moves, destinations, strict=True):
             destination.parent.mkdir(parents=True, exist_ok=True)
-            os.replace(move.source, destination)
-            moved.append((move, destination))
+            archive_method = _move_reset_tree(move.source, destination)
+            moved.append((move, destination, archive_method))
 
         payload = {
             "schema_version": RESET_RECEIPT_SCHEMA,
@@ -1970,8 +2161,9 @@ def _execute_run_reset(
                     "kind": move.kind,
                     "source": str(move.source),
                     "archive": str(destination),
+                    "archive_method": archive_method,
                 }
-                for move, destination in moved
+                for move, destination, archive_method in moved
             ],
         }
         for bundle in bundles:
@@ -1989,9 +2181,9 @@ def _execute_run_reset(
             except OSError as cleanup_exc:
                 cleanup_failures.append(f"{receipt}: {cleanup_exc}")
         rollback_failures: list[str] = []
-        for move, destination in reversed(moved):
+        for move, destination, _archive_method in reversed(moved):
             try:
-                os.replace(destination, move.source)
+                _move_reset_tree(destination, move.source)
             except OSError as rollback_exc:
                 rollback_failures.append(
                     f"{destination} -> {move.source}: {rollback_exc}"
@@ -2010,8 +2202,11 @@ def _execute_run_reset(
             f"Could not archive reset state: {exc}. {'; '.join(details)}."
         ) from exc
 
-    for move, destination in moved:
-        print(f"[stablewm-train] reset archived {move.kind}: {destination}")
+    for move, destination, archive_method in moved:
+        print(
+            f"[stablewm-train] reset archived {move.kind} "
+            f"via {archive_method}: {destination}"
+        )
     return tuple(receipts)
 
 
@@ -2311,26 +2506,12 @@ def _effective_eval_epoch(
 
 
 def _benchmark_root_for_post_eval(args: argparse.Namespace) -> Path:
-    """Resolve the clean bundle used by the public Development ICL suite.
+    """Use the same HF snapshot as component training; CEM keeps its H5 root."""
 
-    The original H5 files remain the source for CEM.  ICL must instead name
-    the exported ContextWorld-v1 bundle explicitly, so a cloud job cannot
-    quietly fall back to the private ``context_world`` research tree.
-    """
-
-    root_value = args.benchmark_root
-    if not root_value and args.dataset_root:
-        root_value = str(
-            _absolute_path(args.dataset_root, label="--dataset-root")
-            / "ContextWorld-v1"
-        )
-    if not root_value:
-        raise SystemExit(
-            "Post-training ContextWorld ICL evaluation needs "
-            "--benchmark-root/CONTEXTWORLD_BENCHMARK_ROOT, or a "
-            "--dataset-root containing ContextWorld-v1."
-        )
-    return _absolute_path(root_value, label="--benchmark-root")
+    try:
+        return resolve_benchmark_root(args.benchmark_root, args.dataset_root)
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from exc
 
 
 def _post_eval_command(
@@ -2553,6 +2734,16 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default=Path(_env("CW_STABLEWM_PROFILE_CONFIG", str(DEFAULT_PROFILE_CONFIG))),
     )
     parser.add_argument(
+        "--rollout-context",
+        choices=("sliding", "expanding"),
+        default=_env("CW_ROLLOUT_CONTEXT", "sliding"),
+        help=(
+            "Autoregressive context retention policy. 'sliding' keeps the "
+            "last H states; 'expanding' keeps all H observed states and "
+            "appends predictions (env: CW_ROLLOUT_CONTEXT)."
+        ),
+    )
+    parser.add_argument(
         "--family",
         choices=sorted(contract["families"]),
         default=_env("CW_FAMILY", "lewm"),
@@ -2602,8 +2793,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--benchmark-root",
         default=_env("CONTEXTWORLD_BENCHMARK_ROOT"),
         help=(
-            "ContextWorld-v1 clean-export root. For benchmark component runs, "
-            "defaults to <dataset-root>/ContextWorld-v1."
+            "Native HF snapshot root shared by component training and ICL evaluation. "
+            "Defaults to <dataset-root>/ContextWorld-v3-hf when present, then "
+            "<checkout>/artifacts/releases/ContextWorld-v3-hf."
         ),
     )
     parser.add_argument(
@@ -2668,6 +2860,23 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--frameskip", type=int, default=_env_int("CW_FRAMESKIP"))
     parser.add_argument("--history-size", type=int, default=_env_int("CW_HISTORY_SIZE"))
     parser.add_argument("--num-preds", type=int, default=_env_int("CW_NUM_PREDS"))
+    parser.add_argument(
+        "--rollout-steps",
+        type=int,
+        default=int(_env("CW_ROLLOUT_STEPS", "1")),
+        help=(
+            "Number of differentiable autoregressive prediction steps "
+            "(env: CW_ROLLOUT_STEPS). Default 1 preserves native training."
+        ),
+    )
+    parser.add_argument(
+        "--rollout-artifact-root",
+        default=_env("CW_ROLLOUT_ARTIFACT_ROOT"),
+        help=(
+            "Optional absolute query-anchored rollout artifact root. The "
+            "registered component default is used when omitted."
+        ),
+    )
     parser.add_argument("--max-epochs", type=int, default=_env_int("CW_MAX_EPOCHS"))
     parser.add_argument("--devices", default=_env("CW_DEVICES"))
     parser.add_argument("--accelerator", default=_env("CW_ACCELERATOR"))
@@ -2956,6 +3165,7 @@ def main(argv: list[str] | None = None) -> int:
         raise SystemExit(f"Unknown family in profile contract: {args.family}")
     _validate_training_track(args)
     _validate_method(args, contract)
+    _rollout_recipe(args, contract)
     if args.resume == "reset" and args.eval_only:
         raise SystemExit(
             "CW_RESUME=reset cannot be combined with CW_EVAL_ONLY=1: reset "
@@ -3005,6 +3215,9 @@ def main(argv: list[str] | None = None) -> int:
         "CONTEXTWORLD_SPT_RESUME_CHECKPOINT",
         "CONTEXTWORLD_STABLEWM_BUNDLE",
         "CONTEXTWORLD_DATALOADER_START_METHOD",
+        "CONTEXTWORLD_ROLLOUT_TRAINER_SCRIPT",
+        "CONTEXTWORLD_ROLLOUT_FAMILY",
+        "CONTEXTWORLD_ROLLOUT_STEPS",
     ):
         environment.pop(internal_name, None)
     environment["STABLEWM_HOME"] = str(checkpoint_root)
@@ -3115,14 +3328,29 @@ def main(argv: list[str] | None = None) -> int:
                     family=args.family,
                     identity_sha256=training_identity["identity_sha256"],
                 )
-            train_command = [
-                sys.executable,
-                str(trainer_script),
-            ]
-            train_command.extend([
-                f"--config-name={profile['config_name']}",
-                *overrides,
-            ])
+            if args.rollout_steps > 1:
+                train_command = [
+                    sys.executable,
+                    str(ROLLOUT_ENTRY_SCRIPT),
+                    "--trainer-script",
+                    str(trainer_script),
+                    "--family",
+                    args.family,
+                    "--rollout-steps",
+                    str(args.rollout_steps),
+                    "--rollout-context",
+                    str(args.rollout_context),
+                    "--",
+                    f"--config-name={profile['config_name']}",
+                    *overrides,
+                ]
+            else:
+                train_command = [
+                    sys.executable,
+                    str(trainer_script),
+                    f"--config-name={profile['config_name']}",
+                    *overrides,
+                ]
         eval_command = (_post_eval_command(
             args,
             target=target,
@@ -3179,7 +3407,9 @@ def main(argv: list[str] | None = None) -> int:
     print(f"[stablewm-train] logger={args.logger} resume={args.resume}")
     print(
         f"[stablewm-train] mode={'eval-only' if args.eval_only else 'train'} "
-        f"training_track={args.training_track} method={args.method}"
+        f"training_track={args.training_track} method={args.method} "
+        f"rollout_steps={args.rollout_steps} "
+        f"rollout_context={args.rollout_context}"
     )
     for (
         run_name,

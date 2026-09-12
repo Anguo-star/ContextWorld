@@ -13,6 +13,8 @@
 #   CW_TASK=original   CW_ENV=tworoom   CW_FAMILY=prejepa
 #   CW_SEEDS=3072
 #   CW_METHOD=native|coja_v1   (optional; defaults to native)
+#   CW_ROLLOUT_STEPS=1|3|...|10 (optional; defaults to one-step training)
+#   CW_ROLLOUT_CONTEXT=sliding|expanding (optional; default sliding)
 #
 # Submit one seed per requeueable SLURM job or array task. Comma-separated
 # seeds remain available for non-SLURM serial sweeps.
@@ -84,7 +86,7 @@ fi
 # failure this section exists to prevent:
 #
 #   <root>/data/world_model/quentinll/          original LeWM open data
-#   <root>/data/world_model/ContextWorld-v1/    public benchmark bundle
+#   <root>/data/world_model/ContextWorld-v3-hf/ public HF benchmark snapshot
 #   <root>/data/world_model/context_world/      ContextWorld's own outputs
 #                             synthesis/          synthesized benchmark data
 #                             training/           checkpoints and run logs
@@ -160,7 +162,7 @@ export CW_METHOD
 # The clean Hugging Face export is a multi-table benchmark bundle, not one
 # raw StableWM table. run_stablewm_train.py turns it into a lazy registered
 # dataset view for current component training and passes the same root to all
-# public Development ICL post-evaluation. Public Test remains closed.
+# public Development ICL post-evaluation. Public Test is evaluated separately.
 NEEDS_BENCHMARK_ROOT=0
 if [ "$HISTORICAL_RELEASE" = "0" ] && \
    { [ "$POST_TRAIN_EVAL" = "1" ] || [ "$EVAL_ONLY" = "1" ] || \
@@ -168,10 +170,8 @@ if [ "$HISTORICAL_RELEASE" = "0" ] && \
        [ -z "${CW_DATASET:-}" ]; }; }; then
   NEEDS_BENCHMARK_ROOT=1
 fi
-if [ -z "${CONTEXTWORLD_BENCHMARK_ROOT:-}" ] && \
-   [ "$NEEDS_BENCHMARK_ROOT" = "1" ] && \
-   [ -n "${CONTEXTWORLD_DATASET_ROOT:-}" ]; then
-  CONTEXTWORLD_BENCHMARK_ROOT="$CONTEXTWORLD_DATASET_ROOT/ContextWorld-v1"
+if [ "$NEEDS_BENCHMARK_ROOT" = "1" ]; then
+  CONTEXTWORLD_BENCHMARK_ROOT="$("${PYTHON_BIN:-python}" -m contextworld.training.benchmark_root)"
 fi
 if [ -n "${CONTEXTWORLD_BENCHMARK_ROOT:-}" ]; then
   case "$CONTEXTWORLD_BENCHMARK_ROOT" in
@@ -187,8 +187,8 @@ if [ "$NEEDS_BENCHMARK_ROOT" = "1" ]; then
   if [ ! -f "${CONTEXTWORLD_BENCHMARK_ROOT:-}/task_registry.json" ] || \
      [ ! -f "${CONTEXTWORLD_BENCHMARK_ROOT:-}/manifest.jsonl" ] || \
      [ ! -f "${CONTEXTWORLD_BENCHMARK_ROOT:-}/manifest.sha256" ]; then
-    echo "[cloud-train] ContextWorld-v1 bundle is incomplete: ${CONTEXTWORLD_BENCHMARK_ROOT:-<unset>}" >&2
-    echo "[cloud-train] set CONTEXTWORLD_BENCHMARK_ROOT to the clean export root" >&2
+    echo "[cloud-train] HF benchmark bundle is incomplete: ${CONTEXTWORLD_BENCHMARK_ROOT:-<unset>}" >&2
+    echo "[cloud-train] set CONTEXTWORLD_BENCHMARK_ROOT to the complete ContextWorld-v3-hf snapshot" >&2
     exit 2
   fi
 fi
@@ -418,6 +418,7 @@ if [ "$HISTORICAL_RELEASE" = "0" ] && [ "$PRINT_ONLY" = "0" ]; then
 
   STABLEWM_SNAPSHOT_PARENT="$STABLEWM_HOME/.contextworld/stable-worldmodel"
   STABLEWM_SNAPSHOT="$STABLEWM_SNAPSHOT_PARENT/$STABLEWM_REF"
+  STABLEWM_SNAPSHOT_COMPLETE="$STABLEWM_SNAPSHOT/.contextworld_snapshot_complete_v1"
   mkdir -p "$STABLEWM_SNAPSHOT_PARENT"
   if ! command -v flock >/dev/null 2>&1; then
     echo "[cloud-train] flock is required to create the shared Stable-WorldModel snapshot safely" >&2
@@ -428,9 +429,43 @@ if [ "$HISTORICAL_RELEASE" = "0" ] && [ "$PRINT_ONLY" = "0" ]; then
     echo "[cloud-train] timed out waiting for Stable-WorldModel snapshot $STABLEWM_REF" >&2
     exit 2
   fi
-  if [ -e "$STABLEWM_SNAPSHOT" ] && [ -z "${CW_STABLEWM_REF:-}" ]; then
+  # Some managed dataset mounts allow ordinary file creation but reject a
+  # directory-level rename, even within the same parent.  Publish snapshots
+  # in place under the per-ref flock and make the completion receipt (written
+  # last) the visibility boundary.  A job never consumes a directory without
+  # that exact receipt.
+  if [ -e "$STABLEWM_SNAPSHOT" ] && \
+     { [ ! -f "$STABLEWM_SNAPSHOT_COMPLETE" ] || \
+       [ "$(sed -n '1p' "$STABLEWM_SNAPSHOT_COMPLETE" 2>/dev/null)" != "$STABLEWM_REF" ] || \
+       [[ ! "$(sed -n '2p' "$STABLEWM_SNAPSHOT_COMPLETE" 2>/dev/null)" =~ ^[0-9a-f]{64}$ ]]; }; then
+    # Migrate a complete snapshot produced by the preceding implementation
+    # instead of deleting a directory that another already-running job may
+    # still be reading. Only an exact ref/content receipt is eligible.
+    LEGACY_SNAPSHOT_REF="$(_stablewm_head "$STABLEWM_SNAPSHOT" || true)"
+    LEGACY_SNAPSHOT_SHA256="$(sed -n '1p' \
+      "$STABLEWM_SNAPSHOT/.contextworld_source_sha256" 2>/dev/null || true)"
+    if [ "$LEGACY_SNAPSHOT_REF" = "$STABLEWM_REF" ] && \
+       [[ "$LEGACY_SNAPSHOT_SHA256" =~ ^[0-9a-f]{64}$ ]] && \
+       [ -d "$STABLEWM_SNAPSHOT/stable_worldmodel" ] && \
+       [ -d "$STABLEWM_SNAPSHOT/scripts/train" ] && \
+       [ -d "$STABLEWM_SNAPSHOT/scripts/plan" ] && \
+       [ "$(_stablewm_source_sha256 "$STABLEWM_SNAPSHOT")" = \
+         "$LEGACY_SNAPSHOT_SHA256" ]; then
+      printf '%s\n%s\n' "$STABLEWM_REF" "$LEGACY_SNAPSHOT_SHA256" \
+        > "$STABLEWM_SNAPSHOT_COMPLETE"
+    else
+      rm -rf -- "$STABLEWM_SNAPSHOT"
+    fi
+  fi
+  if [ -e "$STABLEWM_SNAPSHOT" ]; then
+    STABLEWM_SNAPSHOT_SHA256="$(sed -n '2p' "$STABLEWM_SNAPSHOT_COMPLETE")"
     EXISTING_SOURCE_SHA256="$(_stablewm_source_sha256 "$STABLEWM_SNAPSHOT")"
-    if [ "$EXISTING_SOURCE_SHA256" != "$STABLEWM_SOURCE_SHA256" ]; then
+    if [ "$EXISTING_SOURCE_SHA256" != "$STABLEWM_SNAPSHOT_SHA256" ]; then
+      echo "[cloud-train] existing Stable-WorldModel snapshot content does not match its completion receipt: $STABLEWM_SNAPSHOT" >&2
+      exit 2
+    fi
+    if [ -z "${CW_STABLEWM_REF:-}" ] && \
+       [ "$EXISTING_SOURCE_SHA256" != "$STABLEWM_SOURCE_SHA256" ]; then
       echo "[cloud-train] live SWM files differ from the existing snapshot at ref $STABLEWM_REF; commit the source update before restarting" >&2
       exit 2
     fi
@@ -442,35 +477,40 @@ if [ "$HISTORICAL_RELEASE" = "0" ] && [ "$PRINT_ONLY" = "0" ]; then
       echo "[cloud-train] requested SWM ref $STABLEWM_REF is not materialized; live source is $OBSERVED_STABLEWM_HEAD" >&2
       exit 2
     fi
-    STABLEWM_SNAPSHOT_TMP="$(mktemp -d \
-      "$STABLEWM_SNAPSHOT_PARENT/.${STABLEWM_REF}.XXXXXX")"
+    mkdir -p "$STABLEWM_SNAPSHOT"
     COPY_ITEMS=(stable_worldmodel scripts)
     [ ! -f "$STABLEWM_LIVE_REPO/pyproject.toml" ] || \
       COPY_ITEMS+=(pyproject.toml)
     if ! tar -C "$STABLEWM_LIVE_REPO" \
+        --hard-dereference \
         --exclude='*/__pycache__' --exclude='*.pyc' \
         -cf - "${COPY_ITEMS[@]}" \
-        | tar -C "$STABLEWM_SNAPSHOT_TMP" -xf -; then
-      rm -rf -- "$STABLEWM_SNAPSHOT_TMP"
+        | tar -C "$STABLEWM_SNAPSHOT" -xf -; then
+      rm -rf -- "$STABLEWM_SNAPSHOT"
       echo "[cloud-train] failed to copy the Stable-WorldModel runtime snapshot" >&2
       exit 2
     fi
-    SNAPSHOT_SOURCE_SHA256="$(_stablewm_source_sha256 "$STABLEWM_SNAPSHOT_TMP")"
+    SNAPSHOT_SOURCE_SHA256="$(_stablewm_source_sha256 "$STABLEWM_SNAPSHOT")"
     CURRENT_SOURCE_SHA256="$(_stablewm_source_sha256 "$STABLEWM_LIVE_REPO")"
     if [ "$SNAPSHOT_SOURCE_SHA256" != "$STABLEWM_SOURCE_SHA256" ] || \
        [ "$CURRENT_SOURCE_SHA256" != "$STABLEWM_SOURCE_SHA256" ]; then
-      rm -rf -- "$STABLEWM_SNAPSHOT_TMP"
+      rm -rf -- "$STABLEWM_SNAPSHOT"
       echo "[cloud-train] Stable-WorldModel source changed while it was being snapshotted; restart the job" >&2
       exit 2
     fi
-    mkdir -p "$STABLEWM_SNAPSHOT_TMP/.git"
-    printf '%s\n' "$STABLEWM_REF" > "$STABLEWM_SNAPSHOT_TMP/.git/HEAD"
+    mkdir -p "$STABLEWM_SNAPSHOT/.git"
+    printf '%s\n' "$STABLEWM_REF" > "$STABLEWM_SNAPSHOT/.git/HEAD"
     printf '%s\n' "$STABLEWM_SOURCE_SHA256" \
-      > "$STABLEWM_SNAPSHOT_TMP/.contextworld_source_sha256"
-    mv -- "$STABLEWM_SNAPSHOT_TMP" "$STABLEWM_SNAPSHOT"
+      > "$STABLEWM_SNAPSHOT/.contextworld_source_sha256"
+    printf '%s\n%s\n' "$STABLEWM_REF" "$STABLEWM_SOURCE_SHA256" \
+      > "$STABLEWM_SNAPSHOT_COMPLETE"
+    STABLEWM_SNAPSHOT_SHA256="$STABLEWM_SOURCE_SHA256"
   fi
   SNAPSHOT_REF="$(_stablewm_head "$STABLEWM_SNAPSHOT" || true)"
   if [ "$SNAPSHOT_REF" != "$STABLEWM_REF" ] || \
+     [ ! -f "$STABLEWM_SNAPSHOT_COMPLETE" ] || \
+     [ "$(sed -n '1p' "$STABLEWM_SNAPSHOT_COMPLETE")" != "$STABLEWM_REF" ] || \
+     [ "$(sed -n '2p' "$STABLEWM_SNAPSHOT_COMPLETE")" != "$STABLEWM_SNAPSHOT_SHA256" ] || \
      [ ! -d "$STABLEWM_SNAPSHOT/stable_worldmodel" ] || \
      [ ! -d "$STABLEWM_SNAPSHOT/scripts/train" ] || \
      [ ! -d "$STABLEWM_SNAPSHOT/scripts/plan" ]; then
@@ -519,6 +559,8 @@ echo "[cloud-train] hf_cache=${HF_HUB_CACHE:-<default>} offline=${HF_HUB_OFFLINE
 echo "[cloud-train] logger=${CW_LOGGER:-none}"
 echo "[cloud-train] training_track=$CW_TRAINING_TRACK"
 echo "[cloud-train] method=$CW_METHOD"
+echo "[cloud-train] rollout_steps=${CW_ROLLOUT_STEPS:-1}"
+echo "[cloud-train] rollout_context=${CW_ROLLOUT_CONTEXT:-sliding}"
 echo "[cloud-train] post_train_eval=$POST_TRAIN_EVAL"
 echo "[cloud-train] eval_only=$EVAL_ONLY"
 echo "[cloud-train] eval_result_subdir=${CW_EVAL_RESULT_SUBDIR:-<default>}"

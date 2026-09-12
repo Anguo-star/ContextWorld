@@ -284,9 +284,13 @@ class LogicalGroupDataset:
 class RelationBatchSampler:
     """DDP-safe flat batches with equal original and paired exposure.
 
-    Each batch contains 64 unrelated original rows and 32 complete binary
-    relations when ``batch_size=128``. Relations are sharded as units, so no
-    train shuffle or distributed rank can separate their arms.
+    Relations are sharded as units, so no train shuffle or distributed rank
+    can separate their arms.  When half a batch is not divisible by the group
+    width, adjacent batches alternate the two nearest complete-group counts.
+    For ``batch_size=128`` ternary relations use 21, 21 and 22 groups across a
+    three-batch cycle (65/63, 65/63 and 62/66 original/paired rows), which is
+    exactly 50/50 over the cycle without breaking a relation or changing the
+    requested batch size.  Binary relations remain 64/64 in every batch.
     """
 
     def __init__(
@@ -312,13 +316,27 @@ class RelationBatchSampler:
         self.epoch = 0
         # Lightning advances ``batch_sampler.sampler`` at every epoch.
         self.sampler = self
-        if self.batch_size <= 0 or self.batch_size % 4:
-            raise ValueError("relation batch size must be divisible by four")
-        if self.relations.ndim != 2 or self.relations.size(1) != 2:
-            raise ValueError("COJA relation batches require binary relations")
-        if self.singles.numel() < self.batch_size // 2:
+        if self.batch_size <= 0 or self.batch_size % 2:
+            raise ValueError("relation batch size must be positive and even")
+        if self.relations.ndim != 2 or self.relations.size(1) < 2:
+            raise ValueError("COJA relation batches require at least two arms")
+        self.group_width = int(self.relations.size(1))
+        target_relations, remainder = divmod(
+            self.batch_size // 2, self.group_width
+        )
+        self._relation_pattern = tuple(
+            target_relations + (position >= self.group_width - remainder)
+            for position in range(self.group_width)
+        )
+        self._single_pattern = tuple(
+            self.batch_size - count * self.group_width
+            for count in self._relation_pattern
+        )
+        if min(self._relation_pattern) < 1:
+            raise ValueError("batch is too small for one complete relation")
+        if self.singles.numel() < max(self._single_pattern):
             raise ValueError("not enough original rows for one relation batch")
-        if self.relations.size(0) < self.batch_size // 4:
+        if self.relations.size(0) < max(self._relation_pattern):
             raise ValueError("not enough complete relations for one batch")
         if not 0 <= self.rank < self.world_size or self.world_size <= 0:
             raise ValueError("invalid distributed rank/world size")
@@ -350,18 +368,27 @@ class RelationBatchSampler:
         relation_order = torch.randperm(
             self.relations.size(0), generator=generator
         )
-        singles_per_batch = self.batch_size // 2
-        relations_per_batch = self.batch_size // 4
         for local_step in range(self._length):
             global_step = local_step * self.world_size + self.rank
+            cycle, position = divmod(global_step, self.group_width)
+            relations_per_batch = self._relation_pattern[position]
+            singles_per_batch = self._single_pattern[position]
+            relation_start = (
+                cycle * sum(self._relation_pattern)
+                + sum(self._relation_pattern[:position])
+            )
+            single_start = (
+                cycle * sum(self._single_pattern)
+                + sum(self._single_pattern[:position])
+            )
             single_positions = self._cyclic_take(
                 single_order,
-                global_step * singles_per_batch,
+                single_start,
                 singles_per_batch,
             )
             relation_positions = self._cyclic_take(
                 relation_order,
-                global_step * relations_per_batch,
+                relation_start,
                 relations_per_batch,
             )
             batch = self.singles[single_positions].tolist()

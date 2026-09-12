@@ -1,196 +1,213 @@
-# ContextWorld-v1 dataset guide
+# ContextWorld v3 HF dataset guide
 
-This document has two audiences. Dataset users should read **Bundle layout**
-and **Loading the data**. Repository maintainers who prepare a Hugging Face
-revision should also read **Building a distribution bundle**.
+This document has two audiences. Dataset users should read **Release layout**
+and **Downloading**. Repository maintainers who prepare the Hugging Face
+release candidate should also read **Building the release candidate**.
 
-`ContextWorld-v1` is the only ContextWorld-specific directory intended for
-distribution. It contains the Training, Development and Test splits for all
-nine components, together with task metadata and file-integrity manifests.
-Development is for model/recipe selection; Test is for final reporting only.
+The v3 release candidate lives at
+`artifacts/releases/ContextWorld-v3-hf` (the root of the future HF dataset
+repo). It merges the frozen **Training and Development** splits of all nine
+components with the frozen **Test** artifacts, byte-for-byte, so the sealed v3
+baseline
+(`contextworld_joint_scratch_v1_reference_results_freeze_v3`) and the repo's
+loader semantics are preserved exactly. Development is for model/recipe
+selection; Test is for final reporting only. This guide describes packaging
+and loading, not data generation (see
+[Data generation methodology](Data_Generation.md)).
 
-## How the payloads were produced
-
-This guide describes the **distribution bundle**: its layout, loading contract,
-and clean export. It is not the data-generation specification. The component
-payloads are first produced from continuous environment-simulator trajectories,
-then checked for causal continuity, pair construction, and split isolation.
-They are not generated or edited by an image-generation model.
-
-See [Data generation methodology](Data_Generation.md) for the common causal
-contract and the task-specific builders and configurations. The clean exporter
-described below copies approved Training, Development and Test artifacts into the
-public layout; it does not regenerate trajectories or change benchmark
-semantics.
-
-## Bundle layout
+## Release layout
 
 ```text
-ContextWorld-v1/
-├── README.md
-├── LICENSE
-├── DATA_LICENSE
-├── NOTICE
+ContextWorld-v3-hf/
+├── README.md               # rendered HF dataset card (see template below)
+├── LICENSE                 # code license (MIT)
+├── DATA_LICENSE            # synthetic data license (CC BY 4.0)
+├── NOTICE                  # attribution
 ├── VERSION.json
-├── task_registry.json
+├── task_registry.json      # entry point for software
 ├── manifest.jsonl
 ├── manifest.sha256
+├── inventory.json          # generated split/file inventory (no hardcoded counts)
 ├── normalizers/
-│   └── tworoom_original_train_s3072.json
-├── components/
-    ├── tworoom-speed/v1/{training,development}/
-    ├── tworoom-door/v1/{training,development}/
-    ├── tworoom-action-delay/v1/{training,development}/
-    ├── tworoom-portal-exit/v1/{training,development}/
-    ├── pusht-action-strength/v1/{training,development}/
-    ├── pusht-contact-friction/v1/{training,development}/
-    ├── pusht-motion-damping/v1/{training,development}/
-    ├── reacher-arm-mass/v1/{training,development}/
-    └── cube-gripper-carry/v1/{training,development}/
-└── artifacts/
-    ├── evaluation/...        frozen Test collections
-    └── synthesis/...         frozen Test Lance tables
+├── components/<component>/v1/{training,development}/   # frozen raw Training + Development
+│     (tworoom-speed, tworoom-door, tworoom-action-delay, tworoom-portal-exit,
+│      pusht-action-strength, pusht-contact-friction, pusht-motion-damping,
+│      reacher-arm-mass, cube-gripper-carry; legacy Development leftovers excluded)
+├── artifacts/evaluation/... and artifacts/synthesis/... # frozen Test, raw paths unchanged
+├── provenance/
+│   ├── ContextWorld-v1/{manifest.jsonl,manifest.sha256,task_registry.json}
+│   └── ContextWorld-v1-full/{manifest.jsonl,manifest.sha256,task_registry.json}
+└── reference/contextworld_joint_scratch_v1_reference_results_freeze_v3.json
 ```
 
-`task_registry.json` is the entry point for software. For each component it
-records the environment, capability class, history length, action dimension,
-payload layout, table members, sequence schema, Development selection rule,
-normalization information, and required runtime view.
+The `reference/` file is an exact copy of the sealed v3 freeze; verify it
+against SHA-256
+`01298ca407c4a72bdd9a1238879ae7109b1141a7cfdd2b25065cb0bdec87fef0`.
 
-`manifest.jsonl` records the relative path, byte size, SHA-256 digest,
-component, and split for every distributed file. `manifest.sha256` protects
-the manifest itself.
+## Downloading
+
+Files are distributed in their **native Lance/JSON form, byte-for-byte**. No
+conversion is applied, so a released revision reproduces the exact bytes the
+sealed v3 baseline and the repo loaders expect. This bundle does not claim
+`datasets.load_dataset()` compatibility, Parquet conversion, or dataset-viewer
+support. Its card sets `viewer: false` using the
+[official viewer configuration](https://huggingface.co/docs/hub/datasets-viewer-configure).
+A derived Parquet view, if ever needed, would be a separately
+versioned artifact and is unnecessary for this release.
+
+Download an immutable revision with `huggingface_hub` (official guides:
+[download files](https://huggingface.co/docs/huggingface_hub/guides/download),
+[dataset cards](https://huggingface.co/docs/hub/datasets-cards),
+[adding datasets](https://huggingface.co/docs/hub/datasets-adding), which
+explicitly permits non-`datasets`-library workflows):
+
+```bash
+export HF_DATASET_REPO='ORG/DATASET'        # replace with the published repository
+export HF_DATASET_REVISION='COMMIT_SHA'     # replace with its immutable revision
+python - <<'PY'
+import os
+from huggingface_hub import snapshot_download
+snapshot_download(
+    repo_id=os.environ["HF_DATASET_REPO"],
+    repo_type="dataset",
+    revision=os.environ["HF_DATASET_REVISION"],
+    local_dir="./ContextWorld-v3-hf",
+)
+PY
+```
+
+Then verify byte integrity offline with the repo script (see
+**Building the release candidate**): `--verify --output ./ContextWorld-v3-hf`
+must pass without network access.
 
 ## Loading the data
 
-Set the benchmark root to the extracted directory:
+The prepared local candidate and the downloaded snapshot use the same native
+files and relative paths. From this checkout, select the current candidate:
 
 ```bash
-export CONTEXTWORLD_BENCHMARK_ROOT=/absolute/path/ContextWorld-v1
+export CONTEXTWORLD_BENCHMARK_ROOT="$(pwd)/artifacts/releases/ContextWorld-v3-hf"
+```
+
+After downloading, point that same variable at the downloaded directory:
+
+```bash
+export CONTEXTWORLD_BENCHMARK_ROOT=/absolute/path/ContextWorld-v3-hf
 contextworld-benchmark info
 ```
 
+Training and post-training ICL evaluation share one root resolver. An explicit
+`--benchmark-root`/`CONTEXTWORLD_BENCHMARK_ROOT` takes priority. Otherwise they
+use `<CONTEXTWORLD_DATASET_ROOT>/ContextWorld-v3-hf` if present, then the local
+`artifacts/releases/ContextWorld-v3-hf` candidate. They never automatically
+select the legacy `ContextWorld-v1` directory. An explicit directory can have
+any name; no conversion or changes to the files inside it are required.
+
 For built-in Stable-WorldModel training, select a task and family through the
-ContextWorld launcher:
+ContextWorld launcher (do not set `CW_DATASET`; the launcher reads
+`task_registry.json` and builds a manifest-bound dataset request):
 
 ```text
 CW_TASK=action_strength
 CW_FAMILY=lewm
 CW_TRAINING_TRACK=joint_scratch_v1
-CONTEXTWORLD_BENCHMARK_ROOT=/absolute/path/ContextWorld-v1
+CONTEXTWORLD_BENCHMARK_ROOT=/absolute/path/ContextWorld-v3-hf
+CONTEXTWORLD_DATASET_ROOT=/absolute/path/data/world_model
 CW_CHECKPOINT_ROOT=/absolute/path/checkpoints/lewm-contextworld
 ```
 
-Do not set `CW_DATASET` when using the registered bundle. The launcher reads
-`task_registry.json`, selects the component's Training payload, and constructs
-a manifest-bound dataset request. This prevents an accidental path from
-silently selecting the wrong component or split.
+`CONTEXTWORLD_DATASET_ROOT` supplies the separately downloaded original
+environment H5 files for naive training, original/synthetic mixtures, and
+optional CEM evaluation. These files are not part of the ICL dataset snapshot.
 
-Another model family may read the registered Training payloads with its own
-loader. Development scoring is model-independent once the model implements
-`LatentWorldModelAdapter`; see the
-[external model adapter contract](External_Model_Adapter_Contract.md).
-
-After all method and recipe choices are fixed, the same adapter can run the
-public offline Test split:
+External models implement `LatentWorldModelAdapter`; see the
+[external model adapter contract](External_Model_Adapter_Contract.md). Score
+on **Development first** for all method/recipe/checkpoint selection:
 
 ```bash
 python -m contextworld.benchmarks.external_model_cli \
   --benchmark-root "$CONTEXTWORLD_BENCHMARK_ROOT" \
-  --evaluation-split test \
+  --evaluation-split development \
   --task contact_friction \
   --adapter your_package.module:YourAdapter \
   --checkpoint /path/to/checkpoint \
   --model-name your-model \
-  --output /path/to/test-result.json
+  --output /path/to/dev-result.json
 ```
 
-The output retains each task's frozen metrics and gates, and is labelled as an
-offline final report rather than a centrally verified hosted-scoreboard row.
-
-### Why some payloads use runtime views
-
-The nine components do not all share one physical table layout:
-
-- PushT action strength, contact friction, motion damping, Reacher arm mass,
-  and TwoRoom portal exit use sequence tables that also contain per-step
-  metadata. The registered view exposes the numeric model inputs without
-  changing the distributed files.
-- TwoRoom speed, door, and action delay contain multiple Lance tables. The
-  registry lists the members and deterministic balancing rule instead of
-  treating the split directory as one table.
-- Cube gripper carry stores blocked transitions with five raw actions per
-  model step. Its registered view presents the action block in the sequence
-  geometry expected by the model while preserving the original payload.
-
-These views adapt storage layout, not benchmark semantics. They do not invent
-frames, alter actions, or expose hidden simulator state.
+Only after all choices are frozen, run the public offline **Test** split once
+as the final report (same command with `--evaluation-split test`). Test
+output is an offline final report, not a hosted-scoreboard row.
 
 ## What the bundle does not contain
 
-The distribution intentionally excludes:
+The distribution intentionally excludes: model checkpoints and training logs;
+internal `score_receipts`; third-party
+source checkouts; original LeWM training datasets; and the original-environment
+datasets used for CEM evaluation (they stay outside the v3 release). Native
+raw storage only; no derived views are shipped.
 
-- model checkpoints, training logs, and experiment-tracker metadata;
-- historical Test model outputs and internal `score_receipts`;
-- third-party source checkouts;
-- original LeWM training datasets;
-- repository-maintenance records and failed-run artifacts.
+Some source-bound Test collections retain historical summary metadata, including
+Speed's `final_summary.json`. It is copied as source material and must not be
+read as the current v3 reference score table.
 
-Original environment training and CEM evaluation use separately distributed
-environment datasets. They are not part of `ContextWorld-v1`.
+## Building the release candidate
 
-## Building a distribution bundle
+For repository maintainers only; end users should download a published
+revision instead. Source data is never modified — the script only reads the
+frozen roots and writes a new candidate directory.
 
-This section is for repository maintainers. End users should download an
-already built bundle rather than run the exporter.
-
-The source root supplied here is the reviewed synthesis-artifact tree described
-in [Data generation methodology](Data_Generation.md). Running this exporter is
-therefore a packaging operation, not a substitute for synthesis or causal-data
-validation.
-
-First validate all registered source mappings without copying payloads:
+The candidate is built by `scripts/prepare_contextworld_hf_release.py`
+(8 workers by default). First review the plan without copying payloads:
 
 ```bash
-python scripts/export_contextworld_hf_clean.py \
-  --suite-export-root /absolute/path/to/source-artifacts \
-  --output /absolute/path/to/ContextWorld-v1
+python scripts/prepare_contextworld_hf_release.py \
+  --development-root /absolute/path/to/ContextWorld-v1 \
+  --test-root /absolute/path/to/ContextWorld-v1-full \
+  --output artifacts/releases/ContextWorld-v3-hf
 ```
 
-After reviewing the plan, add `--execute`. The destination must not already
-exist. The exporter:
-
-1. copies only registered Training, Development and Test files;
-2. rejects symbolic links and credential-like text;
-3. verifies every copied file against its source;
-4. writes the registry, component cards, and manifests;
-5. publishes the completed directory atomically.
-
-On a managed mount that permits file creation but not the final directory
-rename, add `--direct-write`. Direct mode still refuses an existing output
-directory and removes its own incomplete output after a failed copy.
-
-If payloads are unchanged and only generated documentation or registry
-metadata has changed, refresh them without copying the data again:
+Then build **once** with `--execute` (the script rejects an existing output
+directory). On a managed mount that rejects renaming populated directories,
+use `--execute --direct-write`; this still requires a new directory and rejects
+incomplete builds during verification. After building, verify offline byte hashes:
 
 ```bash
-python scripts/export_contextworld_hf_clean.py \
-  --output /absolute/path/to/ContextWorld-v1 \
-  --refresh-metadata
+python scripts/prepare_contextworld_hf_release.py \
+  --verify --output artifacts/releases/ContextWorld-v3-hf
+
+# With the repository's [eval] dependencies installed, read each task/split:
+python scripts/check_contextworld_hf_loading.py \
+  --benchmark-root artifacts/releases/ContextWorld-v3-hf
 ```
 
-Refresh mode verifies the existing manifest and confirms that every payload
-still has the same path, size, component, split, and provenance mapping before
-updating generated metadata.
+`--verify` re-checks every file against the recorded SHA-256 and works both
+locally and on a `snapshot_download` result.
 
-The current plan selects 9,187 files and 18,928,271,721 bytes (about 17.6 GiB).
-Use `--full-plan` only when the complete Lance member list is needed.
+**Do not** use the legacy `scripts/export_contextworld_hf_clean.py` (or its
+`--refresh-metadata` mode) to regenerate or refresh this v3 candidate: its
+clean-export config still contains obsolete Speed/Door Development readers
+and does not describe the merged v3 layout.
+
+### Dataset card
+
+`README.md` is rendered from
+[`templates/ContextWorld_HF_Dataset_Card.md`](templates/ContextWorld_HF_Dataset_Card.md)
+by substituting exactly three tokens: `{{BASELINE_ID}}`,
+`{{BASELINE_SHA256}}`, and `{{SPLIT_INVENTORY}}` (generated from
+`inventory.json`; no file counts or sizes are hardcoded). The card is
+metadata/documentation only and must stay factual.
 
 ## Publication status
 
-The distribution bundle has been assembled and validated locally. Publishing
-it as Public v1 still requires a stable Hugging Face revision, final citation
-and license metadata, a clean-environment loading check, and synchronization
-with the public reference-results package. Building the directory alone does
-not upload a dataset revision. Test is already part of the public offline
-contract; publication no longer assumes a hosted submission service.
+The sealed v3 baseline passed final acceptance on 2026-09-10; building this
+candidate is preparation only. The local candidate contains 4,757 payload files
+(20,489,896,395 bytes); all 4,785 distributed manifest entries passed hash
+verification, and the nine tasks passed 27 native split-loading checks.
+See the [local acceptance record](reference/contextworld_v3_hf_candidate_2026-09-11.json).
+Remaining release blockers are tracked in
+[ContextWorld_Public_v1_Release_Readiness.md](ContextWorld_Public_v1_Release_Readiness.md):
+the HF namespace/repo and immutable revision/URL are **not yet supplied**, and
+the post-upload download smoke test and the publication record remain pending.
+The publication record must bind the data revision, code revision, manifest
+checksum and frozen baseline. Building the directory does not upload anything.

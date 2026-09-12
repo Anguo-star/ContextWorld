@@ -53,7 +53,7 @@ methods:
   coja_v1:
     description: >-
       One-step conditional-joint training. A relation-aware batch sampler keeps
-      public same-query pairs together inside the native flat batch while retaining
+      public same-query groups together inside the native flat batch while retaining
       the registered 50/50 original/ContextWorld mixture. It adds no model
       parameter, encoder, adapter, head or inference change.
       This is a training/data-relation overlay, not a model family: every base
@@ -69,11 +69,26 @@ methods:
     upstream_config_group: conditional_joint
     note: >-
       The unified entry supports only components whose public bundle declares
-      an audited same-query pair identity. Other components fail closed until
-      their own relation semantics are wired and tested. A family whose
-      checkout does not expose loss.conditional_joint also fails closed;
-      ContextWorld never adds the loss family itself.
+      an audited same-query relation identity: a two-arm pair, or ActionDelay's
+      three-arm delay-0/4/8 triplet. Other components fail closed until their
+      own relation semantics are wired and tested. A family whose checkout does
+      not expose loss.conditional_joint also fails closed; ContextWorld never
+      adds the loss family itself. group_width is the arm count ContextWorld
+      renders into the checkout's own objective, which selects the matching
+      registered relation term.
     components:
+      action_delay:
+        group_width: 3
+        relation: public_same_query_delay_triplet_v1
+        payload_id: coarse
+        original_weight: 0.5
+        synthetic_weight: 0.5
+        note: >-
+          The coarse payload publishes 32 paired query shards as one Lance
+          member per (shard, delay) for delays 0, 4 and 8. Its three arms share
+          the query frame and the whole action sequence and differ only in the
+          visible history and the true next frame, so exactly the clip anchored
+          at raw step 0 forms the relation.
       action_strength:
         group_width: 2
         relation: public_pair_identity_v1
@@ -81,6 +96,12 @@ methods:
         original_weight: 0.5
         synthetic_weight: 0.5
       contact_friction:
+        group_width: 2
+        relation: public_pair_identity_v1
+        payload_id: data
+        original_weight: 0.5
+        synthetic_weight: 0.5
+      motion_damping:
         group_width: 2
         relation: public_pair_identity_v1
         payload_id: data
@@ -99,6 +120,25 @@ methods:
         original_weight: 0.5
         synthetic_weight: 0.5
 
+rollout_training:
+  description: >-
+    Differentiable autoregressive multi-step supervision. The launcher keeps
+    wm.num_preds=1, loads history_size + rollout_steps model tokens, feeds each
+    prediction into the next step without detach, and averages the native
+    prediction loss over all rollout steps. It is orthogonal to CW_METHOD:
+    native uses no pair metadata; coja_v1 retains its one-step relation term.
+    The default context is a fixed H-state sliding window. The experimental
+    expanding mode keeps the H observed states and appends prior predictions;
+    it is currently registered for LeWM and PLDM only.
+  families: [lewm, viswm, pldm, prejepa]
+  training_tracks: [joint_scratch_v1]
+  min_steps: 2
+  max_steps: 10
+  components:
+    motion_damping:
+      protocol: pusht_motion_damping_history3_query_anchored_rollout_k10_v1
+      default_artifact_root: artifacts/synthesis/pusht_motion_damping_h3_rollout_k10_v1
+
 families:
   lewm:
     entrypoint: scripts/train/lewm.py
@@ -116,6 +156,7 @@ families:
       frameskip: data.dataset.frameskip
       history_size: wm.history_size
       num_preds: wm.num_preds
+      sequence_length: data.dataset.num_steps
       embed_dim: embed_dim
   viswm:
     entrypoint: scripts/train/viswm.py
@@ -133,6 +174,7 @@ families:
       frameskip: data.dataset.frameskip
       history_size: wm.history_size
       num_preds: wm.num_preds
+      sequence_length: data.dataset.num_steps
       embed_dim: embed_dim
   pldm:
     entrypoint: scripts/train/pldm.py
@@ -150,6 +192,7 @@ families:
       frameskip: data.dataset.frameskip
       history_size: wm.history_size
       num_preds: wm.num_preds
+      sequence_length: data.dataset.num_steps
       embed_dim: wm.embed_dim
   prejepa:
     entrypoint: scripts/train/prejepa.py
@@ -175,6 +218,7 @@ families:
       frameskip: frameskip
       history_size: wm.history_size
       num_preds: wm.num_preds
+      sequence_length: n_steps
 
 common_keys:
   seed: seed

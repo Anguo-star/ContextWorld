@@ -206,21 +206,28 @@ def _document() -> str:
 
 
 def _reference_table(document: str) -> Table:
-    """Read the paper matrices and join their cells to the appendix decisions.
+    """Read the paper tables and join their cells to the appendix decisions.
 
-    Numerical checks consume the displayed wide-table cells. The appendix is
-    also checked for equality, so moving the detailed table cannot hide drift
-    in either representation.
+    The main document carries only the six-row ICL matrix.  The appendix owns
+    the seven-column ICL detail table (§5.1) and the 27-row CEM retention
+    table (§5.3), whose delta column must stay plain arithmetic on the two
+    displayed means.  Numerical checks consume the displayed cells.  The
+    returned rows keep the historical nine-column schema -- the two CEM
+    columns joined from the appendix CEM table -- so the per-row source
+    bindings below keep working unchanged.
     """
-    matrices = []
-    for metric in ("ICL", "CEM"):
-        begin = f"<!-- BEGIN CURRENT_REFERENCE_{metric}_MATRIX -->"
-        end = f"<!-- END CURRENT_REFERENCE_{metric}_MATRIX -->"
-        assert document.count(begin) == document.count(end) == 1
-        block = document.split(begin)[1].split(end)[0]
-        tables = _markdown_tables(block)
-        assert len(tables) == 1
-        matrices.append(tables[0])
+    icl_begin = "<!-- BEGIN CURRENT_REFERENCE_ICL_MATRIX -->"
+    icl_end = "<!-- END CURRENT_REFERENCE_ICL_MATRIX -->"
+    cem_begin = "<!-- BEGIN CURRENT_REFERENCE_CEM_MATRIX -->"
+    cem_end = "<!-- END CURRENT_REFERENCE_CEM_MATRIX -->"
+    assert document.count(icl_begin) == document.count(icl_end) == 1
+    # A CEM marker back in the main document is a layout regression: that
+    # table lives in the appendix now.
+    assert document.count(cem_begin) == document.count(cem_end) == 0
+
+    matrix_tables = _markdown_tables(document.split(icl_begin)[1].split(icl_end)[0])
+    assert len(matrix_tables) == 1
+    matrix_header, matrix_rows = matrix_tables[0]
 
     appendix = (ROOT / "docs/reference/Benchmark_Result_Provenance.md").read_text()
     details = [table for table in _tables(appendix)
@@ -228,50 +235,94 @@ def _reference_table(document: str) -> Table:
     assert len(details) == 1
     detail = details[0]
     assert len(detail.rows) == 27
+    assert len(detail.header) == 7, (
+        "the appendix detail table is ICL-only: expected seven columns, "
+        f"found {list(detail.header)}"
+    )
     labels = list(dict.fromkeys(row[1] for row in detail.rows))
     assert len(labels) == 9
     families = ("LeWM", "PLDM", "DINO-WM")
     recipes = ("原环境数据", "原环境 + 对应 ICL 数据")
+    expected_labels = [
+        label + ("（Dev）" if label in ("接触摩擦", "运动阻尼") else "")
+        for label in labels
+    ]
+    assert list(matrix_header) == ["模型", "训练数据", *expected_labels]
     expected_keys = {(family, recipe) for family in families for recipe in recipes}
-    indexed = []
-    for index, (header, rows) in enumerate(matrices):
-        expected_labels = [
-            label + ("（Dev）" if index == 0 and label in ("接触摩擦", "运动阻尼") else "")
-            for label in labels
-        ]
-        assert list(header) == ["模型", "训练数据", *expected_labels]
-        assert len(rows) == 6 and all(len(row) == 11 for row in rows)
-        assert {(row[0], row[1]) for row in rows} == expected_keys
-        indexed.append({(row[0], row[1]): row for row in rows})
+    assert len(matrix_rows) == 6 and all(len(row) == 11 for row in matrix_rows)
+    assert {(row[0], row[1]) for row in matrix_rows} == expected_keys
+    indexed = {(row[0], row[1]): row for row in matrix_rows}
 
-    def cell(metric: int, family: str, recipe: str, task: str) -> str:
+    def icl_cell(family: str, recipe: str, task: str) -> str:
         column = labels.index(task) + 2
-        value = indexed[metric][family, recipe][column]
+        value = indexed[family, recipe][column]
         if value == "—":
             return value
         match = re.fullmatch(r"(\d+\.\d+) ± (\d+\.\d+)([†‡]?)", value)
         assert match, f"malformed matrix value: {value!r}"
         mean, spread, suffix = match.groups()
-        value = f"{mean}% ± {spread}pp{suffix}"
-        if metric == 0 and "（Dev）" in matrices[0][0][column]:
-            value += "（Development）"
-        return value
+        cell = f"{mean}% ± {spread}pp{suffix}"
+        if "（Dev）" in matrix_header[column]:
+            cell += "（Development）"
+        return cell
+
+    # §5.3 CEM retention table: exactly 27 unique (model, component) rows.
+    assert appendix.count(cem_begin) == appendix.count(cem_end) == 1
+    cem_tables = _markdown_tables(appendix.split(cem_begin)[1].split(cem_end)[0])
+    assert len(cem_tables) == 1
+    cem_header, cem_rows = cem_tables[0]
+    assert list(cem_header) == [
+        "模型", "ICL 训练组件", "原环境任务",
+        "原环境数据 CEM", "ICL 配比 CEM", "变化（pp）",
+    ]
+    cem_by_key: dict[tuple[str, str], tuple[str, ...]] = {}
+    for row in cem_rows:
+        key = (row[0], row[1])
+        assert key not in cem_by_key, f"duplicate CEM retention row: {key}"
+        cem_by_key[key] = row
+    assert len(cem_by_key) == 27
+    assert set(cem_by_key) == {
+        (family, label) for family in families for label in labels
+    }
 
     joined = []
     for row in detail.rows:
         values = list(row)
         task, family = row[1:3]
-        for metric, recipe, column in ((0, recipes[0], 4), (0, recipes[1], 5),
-                                       (1, recipes[0], 7), (1, recipes[1], 8)):
-            values[column] = cell(metric, family, recipe, task)
+        for recipe, column in ((recipes[0], 4), (recipes[1], 5)):
+            values[column] = icl_cell(family, recipe, task)
             assert values[column] == row[column], (
                 f"matrix/appendix mismatch for {task}/{family}/{recipe}: "
                 f"{values[column]} != {row[column]}"
             )
+        cem_row = cem_by_key[family, task]
+        original_cem, trained_cem, delta = cem_row[3:6]
+        for cell in (original_cem, trained_cem):
+            assert re.fullmatch(r"(\d+\.\d+)% ± (\d+\.\d+)pp(†?)", cell), (
+                f"malformed CEM retention cell: {cell!r}"
+            )
+        # 变化（pp） is arithmetic on already frozen scores, never a new
+        # metric: it must equal post minus original up to display rounding
+        # (the two means are each rounded to two decimals).
+        assert re.fullmatch(r"[+-]\d+\.\d+", delta), f"malformed CEM delta: {delta!r}"
+        drift = abs(
+            float(delta)
+            - (_percentages(trained_cem)[0] - _percentages(original_cem)[0])
+        )
+        assert drift <= MEAN_ROUNDING, (
+            f"{task}/{family}: displayed CEM delta {delta}pp disagrees with "
+            f"{trained_cem} minus {original_cem} by {drift:.4f}pp"
+        )
+        values.extend((original_cem, trained_cem))
         joined.append(tuple(values))
+
     displayed = [table for table in _tables(document) if "训练数据" in table.header]
-    assert len(displayed) == 2
-    return Table(displayed[0].path, displayed[0].context, detail.header, tuple(joined))
+    assert len(displayed) == 1, (
+        "the main document must carry exactly one training-data matrix "
+        f"(the ICL matrix), found {len(displayed)}"
+    )
+    header = tuple(detail.header) + ("原始 CEM 起点", "训练后原任务 CEM")
+    return Table(displayed[0].path, displayed[0].context, header, tuple(joined))
 
 
 def _reference_row(component_id: str, family: str) -> tuple[Table, tuple[str, ...]]:
@@ -649,6 +700,106 @@ def test_documented_original_cem_matches_the_current_freeze(
     spread = _spread(cell)
     assert spread is not None
     assert abs(spread - statistics.stdev(values)) <= MEAN_ROUNDING
+
+
+# Appendix §5.3 owns the CEM retention table now; these names mirror the
+# renderer's environment identifiers.
+CEM_ENVIRONMENT_NAMES = {
+    "tworoom": "TwoRoom", "pusht": "PushT", "reacher": "Reacher", "cube": "Cube",
+}
+COMPONENT_ENVIRONMENT = {
+    "speed": "tworoom", "door": "tworoom", "portal_exit": "tworoom",
+    "action_delay": "tworoom", "action_strength": "pusht",
+    "contact_friction": "pusht", "motion_damping": "pusht",
+    "robot_arm_mass": "reacher", "cube_gripper_carry": "cube",
+}
+
+
+def _cem_retention_table() -> tuple[tuple[str, ...], tuple[tuple[str, ...], ...]]:
+    """Header and rows of the appendix §5.3 CEM retention table."""
+    appendix = (ROOT / "docs/reference/Benchmark_Result_Provenance.md").read_text(
+        encoding="utf-8"
+    )
+    begin = "<!-- BEGIN CURRENT_REFERENCE_CEM_MATRIX -->"
+    end = "<!-- END CURRENT_REFERENCE_CEM_MATRIX -->"
+    assert appendix.count(begin) == appendix.count(end) == 1, (
+        "the appendix must own exactly one CEM retention marker pair"
+    )
+    tables = _markdown_tables(appendix.split(begin)[1].split(end)[0])
+    assert len(tables) == 1
+    header, rows = tables[0]
+    assert list(header) == [
+        "模型", "ICL 训练组件", "原环境任务",
+        "原环境数据 CEM", "ICL 配比 CEM", "变化（pp）",
+    ]
+    return header, rows
+
+
+def test_cem_retention_table_has_27_unique_rows_with_valid_environments() -> None:
+    """One row per model/component; the environment column follows the registry."""
+    _, rows = _cem_retention_table()
+    label_to_component = {name: cid for cid, name in DISPLAY_NAMES.items()}
+    assert len(rows) == 27
+    keys = {(row[0], row[1]) for row in rows}
+    assert keys == {
+        (family, name)
+        for family in ("LeWM", "PLDM", "DINO-WM")
+        for name in label_to_component
+    }
+    for row in rows:
+        component_id = label_to_component[row[1]]
+        assert row[2] == CEM_ENVIRONMENT_NAMES[COMPONENT_ENVIRONMENT[component_id]], (
+            f"{component_id}: environment column {row[2]!r} does not match the "
+            f"registered original environment {COMPONENT_ENVIRONMENT[component_id]!r}"
+        )
+
+
+@pytest.mark.parametrize("row_key", CURRENT_ROW_KEYS)
+def test_documented_cem_delta_is_post_minus_original(row_key: tuple[str, str]) -> None:
+    """变化（pp） is the frozen post mean minus the frozen original mean.
+
+    The delta carries no gate or pass claim of its own; this only checks the
+    arithmetic on the already frozen per-seed scores, at display rounding
+    tolerance.
+    """
+    component_id, family = row_key
+    original_cells = _frozen_cells(component_id, family, "original_environment_only")
+    if original_cells:
+        original = [
+            row["original_cem_evidence"]["member"]["success_rate"] * 100
+            for row in original_cells
+        ]
+    else:
+        assert family == "DINO-WM"
+        environments = _dino_summary()["original_environment_cem"]["environments"]
+        original = [
+            value * 100
+            for value in environments[COMPONENT_ENVIRONMENT[component_id]][
+                "success_rate_by_training_seed"
+            ].values()
+        ]
+    trained = [
+        statistics.mean(
+            row["original_task_cem"]["success_rate_percent_by_eval_seed"].values()
+        )
+        for row in _frozen_cells(component_id, family, "post_component_training")
+        if row.get("original_task_cem")
+    ]
+    assert len(original) == len(trained) == 3, (
+        f"{row_key}: expected three frozen CEM seeds on both sides"
+    )
+
+    _, rows = _cem_retention_table()
+    label = DISPLAY_NAMES[component_id]
+    matched = [row for row in rows if row[0] == family and row[1] == label]
+    assert len(matched) == 1
+    delta = re.fullmatch(r"([+-]\d+\.\d+)", matched[0][5])
+    assert delta is not None, f"{row_key}: delta cell {matched[0][5]!r} is not signed"
+    expected = statistics.mean(trained) - statistics.mean(original)
+    assert abs(float(delta.group(1)) - expected) <= ROUNDING, (
+        f"{row_key}: document prints {delta.group(1)}pp but the frozen CEM "
+        f"means differ by {expected:.4f}pp"
+    )
 
 
 def test_dino_cem_cells_are_marked_non_frozen() -> None:

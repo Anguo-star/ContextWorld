@@ -13,6 +13,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -545,6 +546,10 @@ class TestTheCloudContract:
         (stablewm / "scripts/plan/eval_wm.py").write_text(
             "# evaluator\n", encoding="utf-8"
         )
+        os.link(
+            stablewm / "scripts/train/prejepa.py",
+            stablewm / "scripts/train/prejepa-linked.py",
+        )
 
         def git(*arguments: str) -> str:
             return subprocess.run(
@@ -580,9 +585,40 @@ class TestTheCloudContract:
             encoding="utf-8",
         )
         (no_git_bin / "git").chmod(0o755)
+        (no_git_bin / "mv").write_text(
+            "#!/usr/bin/env bash\necho 'mv must not be called' >&2\nexit 98\n",
+            encoding="utf-8",
+        )
+        (no_git_bin / "mv").chmod(0o755)
+        real_tar = shutil.which("tar")
+        assert real_tar is not None
+        extraction_observations = tmp_path / "tar-extraction-observations"
+        (no_git_bin / "tar").write_text(
+            "#!/usr/bin/env bash\n"
+            "destination=\n"
+            "previous=\n"
+            "for argument in \"$@\"; do\n"
+            "  if [ \"$previous\" = -C ]; then destination=$argument; previous=; continue; fi\n"
+            "  previous=$argument\n"
+            "done\n"
+            "case \" $* \" in\n"
+            "  *\" -xf - \"*)\n"
+            "    if [ -e \"$destination/.contextworld_snapshot_complete_v1\" ]; then\n"
+            "      echo 'completion receipt existed before snapshot extraction' >&2\n"
+            "      exit 97\n"
+            "    fi\n"
+            "    printf '%s\\n' \"$destination\" >> \"$TAR_EXTRACTION_RECEIPT_LOG\"\n"
+            "    ;;\n"
+            "esac\n"
+            "exec \"$REAL_TAR\" \"$@\"\n",
+            encoding="utf-8",
+        )
+        (no_git_bin / "tar").chmod(0o755)
         environment = {
             "PATH": f"{no_git_bin}:{os.environ['PATH']}",
             "HOME": str(tmp_path),
+            "REAL_TAR": real_tar,
+            "TAR_EXTRACTION_RECEIPT_LOG": str(extraction_observations),
             "CW_TASK": "speed",
             "CW_FAMILY": "prejepa",
             "CW_DATASET": str(dataset),
@@ -616,12 +652,49 @@ class TestTheCloudContract:
         assert (snapshot / ".git/HEAD").read_text(
             encoding="utf-8"
         ).strip() == frozen_ref
+        completion = (
+            snapshot / ".contextworld_snapshot_complete_v1"
+        ).read_text(encoding="utf-8").splitlines()
+        assert completion[0] == frozen_ref
+        assert len(completion[1]) == 64
+        assert extraction_observations.read_text(encoding="utf-8").splitlines() == [
+            str(snapshot)
+        ]
+        assert (
+            snapshot / "scripts/train/prejepa.py"
+        ).stat().st_ino != (
+            snapshot / "scripts/train/prejepa-linked.py"
+        ).stat().st_ino
         assert f"EFFECTIVE={snapshot}" in first.stdout
         assert f"REF={frozen_ref}" in first.stdout
         assert first.stdout.splitlines()[-2:] == [
             "ARG=--stablewm-repo",
             f"ARG={snapshot}",
         ]
+
+        # Snapshots made before the completion-receipt protocol deliberately
+        # have the same content but lack its final marker.  They must be
+        # migrated in place: the cloud mount may reject directory rename and
+        # another job may still be reading the tree.
+        trainer_inode = (snapshot / "scripts/train/prejepa.py").stat().st_ino
+        legacy_sentinel = snapshot / "legacy-snapshot-sentinel"
+        legacy_sentinel.write_text("keep this tree\n", encoding="utf-8")
+        (snapshot / ".contextworld_snapshot_complete_v1").unlink()
+        legacy = subprocess.run(
+            ["bash", str(SCRIPTS / "cloud_train.sh")],
+            cwd=ROOT,
+            env=environment,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+
+        assert legacy.returncode == 0, legacy.stdout + legacy.stderr
+        assert legacy_sentinel.read_text(encoding="utf-8") == "keep this tree\n"
+        assert (snapshot / "scripts/train/prejepa.py").stat().st_ino == trainer_inode
+        assert (
+            snapshot / ".contextworld_snapshot_complete_v1"
+        ).read_text(encoding="utf-8").splitlines()[0] == frozen_ref
 
         source.write_text("revision = 2\n", encoding="utf-8")
         git("add", ".")
@@ -679,8 +752,9 @@ class TestTheCloudContract:
 
         assert '[ "${CW_TASK:-}" != "original" ]' in text
 
+    @pytest.mark.parametrize("installed_hf_default", [False, True])
     def test_explicit_original_paths_work_without_an_artifact_root(
-        self, tmp_path: Path
+        self, tmp_path: Path, installed_hf_default: bool
     ) -> None:
         dataset = tmp_path / "tworoom.h5"
         with h5py.File(dataset, "w") as handle:
@@ -695,7 +769,9 @@ class TestTheCloudContract:
         (stablewm / "scripts/train/config/prejepa.yaml").write_text(
             "trainer:\n  max_epochs: 10\n", encoding="utf-8"
         )
-        benchmark_root = tmp_path / "ContextWorld-v1"
+        benchmark_root = tmp_path / (
+            "ContextWorld-v3-hf" if installed_hf_default else "ContextWorld-v1"
+        )
         benchmark_root.mkdir()
         for filename in ("task_registry.json", "manifest.jsonl", "manifest.sha256"):
             (benchmark_root / filename).write_text("{}\n", encoding="utf-8")
@@ -725,6 +801,10 @@ class TestTheCloudContract:
                 "PYTHON_BIN": sys.executable,
             }
         )
+
+        if installed_hf_default:
+            environment.pop("CONTEXTWORLD_BENCHMARK_ROOT")
+            environment["CONTEXTWORLD_DATASET_ROOT"] = str(tmp_path)
 
         completed = subprocess.run(
             ["bash", str(SCRIPTS / "cloud_train.sh")],

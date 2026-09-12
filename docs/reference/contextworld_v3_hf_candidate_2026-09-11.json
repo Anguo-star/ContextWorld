@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "record_id": "contextworld_v3_hf_candidate_2026-09-11",
+  "status": "local_candidate_verified_not_uploaded",
+  "date": "2026-09-11",
+  "candidate_path": "artifacts/releases/ContextWorld-v3-hf",
+  "dataset_version": "contextworld-v3-hf-rc1",
+  "baseline_id": "contextworld_joint_scratch_v1_reference_results_freeze_v3",
+  "baseline_sha256": "01298ca407c4a72bdd9a1238879ae7109b1141a7cfdd2b25065cb0bdec87fef0",
+  "baseline_modified": false,
+  "representation": "native_lance_snapshot",
+  "manifest_sha256": "882bd831d5cdeb1a6f8de8fd8ac18fa4b87bac864e2fe96f5b276e090dd0299e",
+  "payload_files": 4757,
+  "payload_bytes": 20489896395,
+  "manifest_files": 4785,
+  "component_count": 9,
+  "omitted_legacy_files": 614,
+  "hash_verification": "passed",
+  "loading": {
+    "status": "passed",
+    "scope": "local_existing_environment_loading_no_model_inference",
+    "component_count": 9,
+    "split_probe_count": 27,
+    "registry_contracts_preserved": true,
+    "training_view_count": 10,
+    "manifest_file_count": 4785
+  },
+  "checks": {
+    "packaging_tests": {
+      "passed": 18,
+      "skipped": 0
+    },
+    "release_document_tests": {
+      "passed": 5,
+      "skipped": 0
+    },
+    "hf_card_yaml": "passed",
+    "reference_tables": "match_freeze"
+  },
+  "commands": [
+    "python scripts/prepare_contextworld_hf_release.py --development-root /path/to/ContextWorld-v1 --test-root /path/to/ContextWorld-v1-full --output artifacts/releases/ContextWorld-v3-hf --execute --direct-write",
+    "python scripts/prepare_contextworld_hf_release.py --verify --output artifacts/releases/ContextWorld-v3-hf",
+    "python scripts/check_contextworld_hf_loading.py --benchmark-root artifacts/releases/ContextWorld-v3-hf",
+    "PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python -m pytest -q tests/test_hf_v3_release_package.py tests/test_public_v1_release_readiness.py"
+  ],
+  "evidence_files": {
+    "artifacts/releases/contextworld_v3_hf_build.json": {
+      "sha256": "2edee1f95147e27fd0b5f805d587e5f594870fa30e68f2e49c571a1fae1dadcf"
+    },
+    "artifacts/releases/contextworld_v3_hf_verify.json": {
+      "sha256": "46031ddb5fe504ac50b6801d8490e62469a44f31a91a0cebf05e5a8a039c7f5f"
+    },
+    "artifacts/releases/contextworld_v3_hf_loading_smoke.json": {
+      "sha256": "f13ae1c5f8577009e00032ac3ebd717af7df3bd257eaf7e04b7dcb865d7b0240"
+    }
+  },
+  "pending_publication": [
+    "HF dataset repository/namespace",
+    "Upload and immutable HF revision",
+    "Download that revision and verify hashes/readers",
+    "Record data revision, code revision and manifest identity"
+  ],
+  "limitations": [
+    "Loading checks use the existing local environment, not an external independent reproduction.",
+    "Model checkpoints, original environment datasets and historical raw model result archives are not shipped in this data package.",
+    "Bound historical Test summary metadata is retained as provenance, not promoted to current v3 scores."
+  ],
+  "new_training_runs": 0,
+  "model_inference_runs": 0
+}

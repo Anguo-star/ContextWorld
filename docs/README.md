@@ -8,12 +8,12 @@
 1. [项目首页](../README.md)：任务概览、安装和最短运行示例；
 2. [Benchmark 规范](ContextWorld_ICL_Benchmark.md)：数据、指标、九项任务、参考结果和报告规则；
 3. [数据生成方法](Data_Generation.md)：连续仿真、配对构造、拆分隔离和九项任务的生成来源；
-4. [ContextWorld-v1 数据集指南](HF_Dataset_Export.md)：分发目录、加载方式和字段入口；
+4. [HF 数据集指南](HF_Dataset_Export.md)：v3 发布候选目录、下载与加载方式；
 5. [外部模型 Adapter 规范](External_Model_Adapter_Contract.md)：接入新模型所需的统一接口；
 6. [Stable-WorldModel 训练](StableWM_Training.md)：内置 LeWM、PLDM 和 PreJEPA 的训练入口。
 
 九项任务在 Benchmark 规范中按隐藏动力学类型组织，而不是按环境数量组织。每项任务均
-报告自己的 ICL 与原任务规划结果，不计算跨任务总分。
+报告自己的 ICL 分数，不计算跨任务总分；原任务规划保持分析单列附录。
 
 ## 任务导航
 
@@ -38,13 +38,14 @@
 - `reference/`：第三方工程、运行环境和结果来源说明。
 
 这些材料用于复核已报告结果，不是新的排行榜。Training/Development 使用 `ContextWorld-v1`，
-Test 使用 `ContextWorld-v1-full`；历史结果目录不承担当前数据分发职责。
+Test 使用 `ContextWorld-v1-full`；发布候选 `ContextWorld-v3-hf` 汇集这两个冻结来源，
+保持所选数据字节与评分语义不变。历史结果目录不承担当前数据分发职责。
 
 ## 仓库维护与发布
 
-[Public v1 发布清单](ContextWorld_Public_v1_Release_Readiness.md) 记录稳定下载、许可证、
-干净环境复现和独立模型验证等发布条件。它面向维护者，不改变 Benchmark 规范中的任务、
-指标或参考结果。
+[v3 发布需求与验收](ContextWorld_Public_v1_Release_Readiness.md) 记录候选包、数据卡、
+文件校验和上传后固定 revision 的下载验证。独立外部复现与新增模型覆盖单独维护，
+不重开已封板的 baseline。
 
 目前 Training、Development 和 Test 数据包已在本地完成发布候选组装，但稳定的公开数据集
 修订尚未公布；Test 通过离线评分入口用于最终报告。

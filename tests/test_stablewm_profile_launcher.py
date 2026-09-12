@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import errno
 import json
 import sys
 from pathlib import Path
@@ -1036,6 +1037,116 @@ class TestTargetAndStorageSafety:
             family="prejepa",
             identity_sha256="new-recipe",
         ) is None
+
+    def test_resume_reset_falls_back_to_verified_copy_when_mount_rejects_rename(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        checkpoint_root = tmp_path / "checkpoint-root"
+        run_name = "motion_damping_lewm_rollout3_s14321"
+        checkpoint_dir = checkpoint_root / "checkpoints" / run_name
+        checkpoint_dir.mkdir(parents=True)
+        (checkpoint_dir / "identity.json").write_text(
+            '{"old": true}\n', encoding="utf-8"
+        )
+        (checkpoint_dir / "nested").mkdir()
+        (checkpoint_dir / "nested/weights.pt").write_bytes(b"old weights")
+
+        plan = launcher._plan_run_reset(
+            checkpoint_root,
+            run_name,
+            output_root=None,
+        )
+        real_replace = launcher.os.replace
+
+        def reject_directory_rename(source: object, destination: object) -> None:
+            if Path(source) == checkpoint_dir:
+                raise PermissionError(
+                    errno.EPERM,
+                    "cloud mount rejects directory rename",
+                    str(source),
+                )
+            real_replace(source, destination)
+
+        monkeypatch.setattr(launcher.os, "replace", reject_directory_rename)
+        receipts = launcher._execute_run_reset(
+            plan,
+            identity_sha256="new-recipe",
+        )
+
+        assert not checkpoint_dir.exists()
+        assert len(receipts) == 1
+        receipt = json.loads(receipts[0].read_text(encoding="utf-8"))
+        move = receipt["moves"][0]
+        assert move["archive_method"] == "verified_copy_then_delete"
+        archive = Path(move["archive"])
+        assert (archive / "identity.json").read_text(encoding="utf-8") == (
+            '{"old": true}\n'
+        )
+        assert (archive / "nested/weights.pt").read_bytes() == b"old weights"
+
+    def test_resume_reset_uses_verified_copy_for_every_tree_on_cloud_mount(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        checkpoint_root = tmp_path / "checkpoint-root"
+        output_root = tmp_path / "output-root"
+        run_name = "action_delay_prejepa_joint_scratch_v1_s3072"
+        checkpoint_dir = checkpoint_root / "checkpoints" / run_name
+        checkpoint_dir.mkdir(parents=True)
+        (checkpoint_dir / "weights_epoch_4.pt").write_bytes(b"old weights")
+        spt_run = checkpoint_root / "runs/20260829/120000/uuid"
+        spt_run.mkdir(parents=True)
+        (spt_run / launcher.SPT_RUN_MARKER_FILENAME).write_text(
+            json.dumps({
+                "schema_version": launcher.SPT_RUN_MARKER_SCHEMA,
+                "run_name": run_name,
+                "training_identity_sha256": "old-recipe",
+            }),
+            encoding="utf-8",
+        )
+        hydra_dir = output_root / run_name
+        hydra_dir.mkdir(parents=True)
+        (hydra_dir / "train.log").write_text("old log", encoding="utf-8")
+
+        plan = launcher._plan_run_reset(
+            checkpoint_root,
+            run_name,
+            output_root=output_root,
+        )
+        real_replace = launcher.os.replace
+
+        def reject_all_directory_renames(
+            source: object, destination: object
+        ) -> None:
+            if Path(source).is_dir():
+                raise PermissionError(
+                    errno.EPERM,
+                    "cloud mount rejects every directory rename",
+                    str(source),
+                )
+            real_replace(source, destination)
+
+        monkeypatch.setattr(
+            launcher.os, "replace", reject_all_directory_renames
+        )
+        receipts = launcher._execute_run_reset(
+            plan,
+            identity_sha256="new-recipe",
+        )
+
+        assert len(plan.moves) == 3
+        assert not checkpoint_dir.exists()
+        assert not spt_run.exists()
+        assert not hydra_dir.exists()
+        assert len(receipts) == 2
+        receipt = json.loads(receipts[0].read_text(encoding="utf-8"))
+        assert {move["archive_method"] for move in receipt["moves"]} == {
+            "verified_copy_then_delete"
+        }
+        assert all(Path(move["archive"]).is_dir() for move in receipt["moves"])
 
     def test_resume_reset_rejects_a_symlink_before_moving_other_state(
         self,
@@ -3527,8 +3638,10 @@ class TestTrainingMethodOverlay:
         assert sorted(profile["families"]) == sorted(self.FAMILIES)
         assert set(profile["families"]) <= set(contract["families"])
         assert sorted(profile["components"]) == [
+            "action_delay",
             "action_strength",
             "contact_friction",
+            "motion_damping",
             "portal_exit",
             "robot_arm_mass",
         ]
@@ -3581,6 +3694,36 @@ class TestTrainingMethodOverlay:
             "synthetic_weight": 0.5,
         }
 
+    def test_motion_damping_uses_the_same_public_pair_contract(self) -> None:
+        contract = launcher.load_profile_contract()
+        recipe = launcher.method_component_recipe(
+            contract,
+            "coja_v1",
+            "motion_damping",
+        )
+
+        assert recipe == {
+            "group_width": 2,
+            "relation": "public_pair_identity_v1",
+            "payload_id": "data",
+            "original_weight": 0.5,
+            "synthetic_weight": 0.5,
+        }
+
+    def test_action_delay_registers_the_public_delay_triplet_contract(self) -> None:
+        contract = launcher.load_profile_contract()
+        recipe = launcher.method_component_recipe(
+            contract,
+            "coja_v1",
+            "action_delay",
+        )
+
+        assert recipe["group_width"] == 3
+        assert recipe["relation"] == "public_same_query_delay_triplet_v1"
+        assert recipe["payload_id"] == "coarse"
+        assert recipe["original_weight"] == 0.5
+        assert recipe["synthetic_weight"] == 0.5
+
     @pytest.mark.parametrize("family", FAMILIES)
     def test_every_base_family_renders_the_same_registered_coja_keys(
         self,
@@ -3610,6 +3753,58 @@ class TestTrainingMethodOverlay:
         assert pairs["++trainer.use_distributed_sampler"] == "false"
 
     @pytest.mark.parametrize("family", FAMILIES)
+    def test_action_delay_renders_its_registered_ternary_group_width(
+        self,
+        stablewm_repo: Path,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+        family: str,
+    ) -> None:
+        monkeypatch.setattr(
+            launcher,
+            "describe_contextworld_dataset",
+            lambda uri: {
+                "component": "action_delay",
+                "history_length": 7,
+                "frameskip": 5,
+                "action_dimension": 2,
+                "conditional_joint": {
+                    "method": "coja_v1",
+                    "group_width": 3,
+                    "relation_kind": "public_same_query_delay_triplet_v1",
+                },
+            },
+        )
+        self._expose_conditional_joint(stablewm_repo, family)
+        contract = launcher.load_profile_contract()
+        args = self._component_args(
+            stablewm_repo, tmp_path, family, "action_delay"
+        )
+        target = launcher.Target(
+            label="action_delay",
+            dataset=f"{launcher.CONTEXTWORLD_DATASET_URI_PREFIX}action_delay",
+            data_group="tworoom",
+            history_size=7,
+            action_dim=2,
+            environment="tworoom",
+        )
+
+        launcher._validate_method(args, contract)
+        pairs = _pairs(
+            launcher.build_overrides(
+                args,
+                contract,
+                target,
+                run_name="run",
+                seed=3072,
+                stablewm_repo=stablewm_repo,
+            )
+        )
+
+        assert pairs["loss.conditional_joint.enabled"] == "true"
+        assert pairs["loss.conditional_joint.group_width"] == "3"
+
+    @pytest.mark.parametrize("family", FAMILIES)
     def test_coja_run_name_never_shares_the_native_run_directory(
         self,
         stablewm_repo: Path,
@@ -3635,13 +3830,13 @@ class TestTrainingMethodOverlay:
     ) -> None:
         contract = launcher.load_profile_contract()
         args = self._component_args(
-            stablewm_repo, tmp_path, family, "motion_damping"
+            stablewm_repo, tmp_path, family, "speed"
         )
 
         with pytest.raises(SystemExit) as failure:
             launcher._validate_method(args, contract)
 
-        assert "motion_damping" in str(failure.value)
+        assert "speed" in str(failure.value)
 
     @pytest.mark.parametrize("family", FAMILIES)
     def test_checkout_without_the_loss_interface_fails_closed(

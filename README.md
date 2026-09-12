@@ -28,9 +28,10 @@ JEPA、LeWM、PLDM、PreJEPA 以及其他 latent 世界模型都可以使用同�
 
 ## 数据与评测
 
-`ContextWorld-v1` 是 benchmark 数据的统一分发包，包含九项任务的 Training、Development
-和 Test 数据、任务注册表、组件说明和文件完整性清单。该数据包已在本地完成组装，但尚未
-公布稳定的公共下载版本。
+`ContextWorld-v3-hf` 是面向 Hugging Face 的发布候选目录，包含九项任务的 Training、
+Development 和 Test 数据、任务注册表、数据卡与文件完整性清单。它组合 v3 已冻结的
+`ContextWorld-v1` Training/Development 与 `ContextWorld-v1-full` Test，保留原始数据字节。
+稳定的公共下载地址与 revision 尚未发布。
 
 这些样本来自环境模拟器的连续真实轨迹：生成器改变待识别的隐藏规律，连续执行历史与
 查询动作，并保存模拟器产生的真实未来。图像不是由生成式模型合成或编辑的。配对规则、
@@ -40,17 +41,12 @@ Development 用于实现检查、模型开发、训练配方选择和消融；Te
 报告，不应反馈到调参或模型选择。两者均随数据包公开，并可用冻结评分器离线复现。当前不
 提供托管提交服务，因此离线 Test 结果不是由服务器集中验证的排行榜条目。
 
-ContextWorld 分别报告两项互补指标：
-
-- **ICL 正确率**：模型是否利用交互历史识别了隐藏规律；
-- **原任务 CEM**：使用组件数据训练后，模型原有的规划能力是否保持。
-
-两项指标不合成一个分数。模型可能学会隐藏规律但损害规划能力，也可能保持规划能力却
-没有学会目标规律。
+主表报告各项 **ICL 正确率**，衡量模型是否利用交互历史识别隐藏规律。
+原任务 CEM 在附录单列为规划能力保持分析，不进入 ICL 分数，也不替代隐藏规律下的规划评测。
 
 ## 快速开始
 
-以下命令使用本地 `ContextWorld-v1` 数据包，不会自动下载数据或模型检查点。
+以下命令使用本地 `ContextWorld-v3-hf` 候选包，不会自动下载数据或模型检查点。
 
 ```bash
 # Benchmark 配置和通用 Adapter 接口
@@ -62,7 +58,8 @@ pip install -e ".[eval]"
 # 内置 LeWM、PLDM 和 PreJEPA 集成
 pip install -e ".[stablewm]"
 
-export CONTEXTWORLD_BENCHMARK_ROOT=/path/to/ContextWorld-v1
+# 仓库内现有候选包；发布后改为 HF snapshot_download 的本地目录即可。
+export CONTEXTWORLD_BENCHMARK_ROOT="$(pwd)/artifacts/releases/ContextWorld-v3-hf"
 
 contextworld-benchmark info
 
@@ -116,7 +113,8 @@ contextworld-public-test-report verify --receipt public_test_report_<report_id>.
 
 ### 固定研究参考
 
-当前固定参考为 v3，覆盖七项 Test 与两项 Development 对照。验收证据与能力范围见
+**v3 已于 2026-09-11 正式封板**，作为根因分析、新方法与数据设计的固定研究基线，
+覆盖七项 Test 与两项 Development 对照。验收证据与能力范围见
 [最终验收记录](docs/reference/Baseline_Final_Acceptance_2026-09-10.md)。
 
 后续方法以
@@ -140,8 +138,10 @@ python -m contextworld.benchmarks.reference_decision single \
   --output reference_decision.json
 ```
 
-新方法追加独立结果并引用该 freeze ID。改变任务数据、主指标或门槛语义时建立新版本，
-不覆盖已有参考，也不以提高 baseline 分数作为封板条件。
+该 v3 冻结文件永久不改。新方法与新训练数据实验保存独立结果并引用该 freeze ID；
+改变评测数据、任务定义、评分合同、阈值或关键评分依赖时必须建立 benchmark 新版本，
+不得回写 v3 数字或重新封存以覆盖原身份。历史 provenance、稳定下载与外部独立复现
+作为单独的发布工作维护，不重开 baseline 验收。
 方法级判定使用同模块的 `method` 子命令，重复三次 `--input`；三个独立训练种子、不同
 检查点哈希及一致配方/adapter 身份必须齐全，且各自通过。旧单组件 scorer 的历史通过字段
 保留原义，当前结论以 `reference_decision` 为准。
@@ -159,7 +159,7 @@ rollout 接口转换为统一输入格式。评分器不要求解码器，也不
 
 - [Benchmark 规范](docs/ContextWorld_ICL_Benchmark.md)：任务、数据、指标、参考结果和报告规则；
 - [数据生成方法](docs/Data_Generation.md)：连续仿真、配对构造、拆分隔离和九项任务的生成来源；
-- [ContextWorld-v1 数据集指南](docs/HF_Dataset_Export.md)：分发目录、加载方式和维护者导出流程；
+- [HF 数据集指南](docs/HF_Dataset_Export.md)：v3 发布目录、加载方式和维护者打包流程；
 - [Stable-WorldModel 训练](docs/StableWM_Training.md)：内置参考模型的可复现训练入口；
 - [文档导航](docs/README.md)：公开指南、结果复现附录和历史协议。
 
@@ -168,9 +168,9 @@ rollout 接口转换为统一输入格式。评分器不要求解码器，也不
 
 ## 发布状态
 
-软件接口和九项任务的 Training/Development/Test 数据包已在本地完成发布候选组装。Public
-v1 正式发布仍需稳定的数据集修订、最终分发元数据和干净环境验证；Test 已进入公开离线
-评测合同，不再依赖维护方代跑模型。
+v3 研究基线已封板；HF 发布候选沿用该基线，发布准备不修改数据、评分或参考结果。
+正式发布需确定 HF 数据集仓库、上传后固定 revision，并完成从该 revision 下载与加载的
+验证。Test 使用公开离线评测合同；外部独立复现作为单独的证据工作记录。
 
 剩余发布条件见
-[Public v1 发布清单](docs/ContextWorld_Public_v1_Release_Readiness.md)。
+[v3 发布需求与验收](docs/ContextWorld_Public_v1_Release_Readiness.md)。

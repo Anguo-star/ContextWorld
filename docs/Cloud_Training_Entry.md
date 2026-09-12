@@ -31,7 +31,7 @@ checkpoint. The old LeWM/PLDM launchers remain available only when
 |---|---|
 | original environment, any family | current family profile |
 | benchmark component with an explicit `CW_DATASET` | current family profile |
-| benchmark component, any built-in family, no `CW_DATASET` | `joint_scratch_v1` runtime view over `ContextWorld-v1` |
+| benchmark component, any built-in family, no `CW_DATASET` | `joint_scratch_v1` runtime view over `ContextWorld-v3-hf` |
 | benchmark component, LeWM/PLDM, `CW_TRAINING_TRACK=historical_release` | frozen historical recipe |
 
 Huawei's `startup_cce.sh` may both export GUI custom parameters and repeat
@@ -53,7 +53,7 @@ Two independent public variables describe a run:
 
 A method is not a family. `coja_v1` adds no model parameter, encoder, adapter,
 head or inference change; it enables the checkout's own one-step
-conditional-joint loss keys and keeps publicly related Contact pairs together
+conditional-joint loss keys and keeps registered same-query groups together
 inside the family's native flat batch, over the same registered 50/50
 original/ContextWorld mixture. There is therefore no `lewm_coja` family value,
 and each family keeps its own run directory and immutable training identity —
@@ -65,7 +65,14 @@ Current support matrix (`CW_TRAINING_TRACK=joint_scratch_v1`):
 | `CW_METHOD` | `lewm` | `viswm` | `pldm` | `prejepa` | components |
 |---|---|---|---|---|---|
 | `native` | yes | yes | yes | yes | all nine benchmark components, and original tasks |
-| `coja_v1` | yes | yes | yes | yes | `contact_friction`, `robot_arm_mass` |
+| `coja_v1` | yes | yes | yes | yes | `action_strength`, `contact_friction`, `motion_damping`, `robot_arm_mass`, `portal_exit` (two-arm pairs), `action_delay` (three-arm delay triplet) |
+
+A component's relation width is registered, not chosen at run time.  The five
+pair components train on their `data` payload with `group_width=2`;
+`action_delay` trains on its `coarse` payload, whose 32 paired query shards
+publish delays 0, 4 and 8 of the same query, with `group_width=3`.  The
+checkout's own objective selects the matching registered relation term from
+that width — ContextWorld renders the width and the batch grouping only.
 
 Everything outside that matrix fails closed before training: another
 component, `CW_TASK=original`, `CW_TRAINING_TRACK=historical_release`, an
@@ -80,13 +87,53 @@ not in launcher code.
 # same base family choice, one extra orthogonal variable
 CW_TASK=contact_friction CW_FAMILY=pldm CW_METHOD=coja_v1 \
     CONTEXTWORLD_DATASET_ROOT=/abs/data/world_model \
-    CONTEXTWORLD_BENCHMARK_ROOT=/abs/data/world_model/ContextWorld-v1 \
+    CONTEXTWORLD_BENCHMARK_ROOT=/abs/data/world_model/ContextWorld-v3-hf \
     CW_CHECKPOINT_ROOT=/abs/checkpoints/pldm-contextworld-v1 \
     bash scripts/cloud_train.sh
 ```
 
 Swap `CW_FAMILY=pldm` for `lewm`, `viswm` or `prejepa` to run the same overlay on
 another base family; drop `CW_METHOD` to get the family's native objective.
+
+### Autoregressive multi-step training
+
+`CW_ROLLOUT_STEPS` is separate from `CW_NUM_PREDS`. The latter remains the
+upstream one-step target-offset setting and stays at `1`. When
+`CW_ROLLOUT_STEPS=K` with `K > 1`, the launcher loads `history + K` model
+frames, predicts horizons `h1` through `hK` autoregressively, feeds every
+prediction into the next step without detaching it, and averages the native
+prediction loss over all `K` horizons.
+
+The default `CW_ROLLOUT_CONTEXT=sliding` matches StableWM inference and keeps
+only the latest `H` states. For the memory-retention diagnostic,
+`CW_ROLLOUT_CONTEXT=expanding` keeps all `H` observed states and appends the
+previous predictions, so the predictor sees lengths `H, H+1, ..., H+K-1`.
+The launcher expands the trainable positional capacity accordingly and records
+that choice in the run name and training identity. This experimental mode is
+currently available for LeWM and PLDM; it does not change the frozen public
+History=3 evaluation protocol.
+
+The current registered rollout dataset covers `motion_damping` for
+`K=2..10` on `joint_scratch_v1`. It preserves the same 50/50 original and
+synthetic mixture. `CW_METHOD=native` does not expose pair identity to the
+trainer; `CW_METHOD=coja_v1` adds its one-step conditional-joint term while
+using the same multi-step prediction objective. Other components fail closed
+until they have their own audited multi-step data contract.
+
+```bash
+# Conditional-overlap native rollout; replace native with coja_v1 for COJA + rollout.
+CW_TASK=motion_damping CW_FAMILY=lewm CW_METHOD=native \
+    CW_ROLLOUT_STEPS=3 CW_ROLLOUT_CONTEXT=expanding CW_NUM_PREDS=1 \
+    CONTEXTWORLD_DATASET_ROOT=/abs/data/world_model \
+    CONTEXTWORLD_BENCHMARK_ROOT=/abs/data/world_model/ContextWorld-v3-hf \
+    CW_CHECKPOINT_ROOT=/abs/checkpoints/motion-rollout \
+    bash scripts/cloud_train.sh
+```
+
+The launcher validates the K=10 source artifact before training and selects
+the requested prefix. The default local artifact can be built with
+`scripts/build_pusht_motion_damping_rollout_k10.py`; an absent or altered
+artifact is reported before the trainer starts.
 
 `CW_FAMILY=viswm` selects the independent VIS-WM entry and its published
 VISReg defaults. LeWM remains prediction MSE + SIGReg and has no VISReg
@@ -189,7 +236,7 @@ overrides them.
 │   ├── pusht_expert_train.h5
 │   ├── reacher.h5
 │   └── ogbench/cube_single_expert.h5
-├── ContextWorld-v1/           clean benchmark bundle    <- CONTEXTWORLD_BENCHMARK_ROOT
+├── ContextWorld-v3-hf/       clean benchmark bundle    <- CONTEXTWORLD_BENCHMARK_ROOT
 │   ├── task_registry.json
 │   └── components/
 └── context_world/             optional historical archive <- CONTEXTWORLD_ARTIFACT_ROOT
@@ -204,6 +251,20 @@ also reads the clean bundle's Development payloads, while CEM keeps using the
 original data. The internal artifact tree is only for frozen LeWM/PLDM release
 reproduction. Original-data training without post-evaluation needs neither
 ContextWorld tree.
+
+Benchmark root resolution: an explicit `CONTEXTWORLD_BENCHMARK_ROOT` wins;
+otherwise the launcher uses `<CONTEXTWORLD_DATASET_ROOT>/ContextWorld-v3-hf`
+when that exists, then `<checkout>/artifacts/releases/ContextWorld-v3-hf`
+when that exists, and fails otherwise on the missing canonical bundle. Old
+`ContextWorld-v1` is never selected automatically, and an explicit root may
+use any directory name. From a local checkout the recommended value is
+`CONTEXTWORLD_BENCHMARK_ROOT="$(pwd)/artifacts/releases/ContextWorld-v3-hf"`;
+with an external snapshot download of the immutable HF revision, point it at
+`/absolute/path/to/ContextWorld-v3-hf`. Both keep the identical native
+Lance+JSON/NPZ layout, with no repacking or conversion.
+`CONTEXTWORLD_DATASET_ROOT` still names the original H5 root — required by
+naive training, the original/synthetic mixtures and CEM — not the ICL
+bundle.
 
 `CONTEXTWORLD_ARTIFACT_ROOT` is therefore only needed for a frozen historical
 release recipe. When it is needed, keep it explicit: inferring it from the
@@ -221,14 +282,16 @@ Then per run:
 | `CW_TASK` | *(required)* | one of the nine benchmark tasks, or `original` |
 | `CW_ENV` | — | with `CW_TASK=original`: `tworoom`, `pusht`, `reacher`, `cube` |
 | `CW_FAMILY` | `lewm` | base method family: `lewm`, `viswm`, `pldm` or `prejepa` |
-| `CW_METHOD` | `native` | training method overlay applied to that family: `native` or `coja_v1` (currently `contact_friction` and `robot_arm_mass` on `joint_scratch_v1`) |
+| `CW_METHOD` | `native` | training method overlay applied to that family: `native` or `coja_v1`; the checked-in profile is the authoritative component support matrix |
+| `CW_NUM_PREDS` | `1` | upstream target offset; keep this at `1` for autoregressive rollout training |
+| `CW_ROLLOUT_STEPS` | `1` | number of differentiable autoregressive prediction steps; `2..10` is currently registered for `motion_damping` on `joint_scratch_v1` |
 | `CW_TRAINING_TRACK` | `joint_scratch_v1` | current component comparison; use `historical_release` only to reproduce an old frozen LeWM/PLDM release |
 | `CW_SEEDS` | `3072` | one seed, or a comma-separated sequence such as `3072,3073,3074` |
 | `CW_MODE` | `preflight` | mode for the shell-backed tasks |
 | `CW_STAGE` | `paired` | `action_delay` only: `paired` or `curriculum` |
 | `CW_VARIANT` | recipe of record | override the launcher's variant |
 | `CW_DATASET` | — | optional exact-file override; omit it for the standard registered component view |
-| `CONTEXTWORLD_BENCHMARK_ROOT` | `<CONTEXTWORLD_DATASET_ROOT>/ContextWorld-v1` | clean export root used by current component training and every Development ICL suite |
+| `CONTEXTWORLD_BENCHMARK_ROOT` | `<CONTEXTWORLD_DATASET_ROOT>/ContextWorld-v3-hf` or `<checkout>/artifacts/releases/ContextWorld-v3-hf` | canonical ICL bundle used by current component training and every Development ICL suite; an explicit value wins (see benchmark root resolution above) |
 | `CW_COMPONENT_PAYLOAD` | task profile | optional registered payload override; Action Delay supports `coarse` or `full` |
 | `CW_MIX_ORIGINAL_WEIGHT`, `CW_MIX_SYNTHETIC_WEIGHT` | task profile | optional benchmark mixture override |
 | `CW_COMPONENT_EPOCH_SIZE` | balanced full coverage | optional virtual samples per training epoch |
@@ -236,7 +299,7 @@ Then per run:
 | `CW_CHECKPOINT_ROOT` | — | Stable-WorldModel cache/checkpoint root (`STABLEWM_HOME`) |
 | `CW_BATCH_SIZE` | 128 for cloud PreJEPA; family YAML otherwise | see below |
 | `CW_MAX_EPOCHS` | family YAML | training epochs |
-| `CW_NUM_WORKERS` | `2` per DDP process for any ContextWorld-v1 view; family YAML otherwise | data loader workers |
+| `CW_NUM_WORKERS` | `2` per DDP process for any ContextWorld-v3-hf view; family YAML otherwise | data loader workers |
 | `CW_DEVICES` | family YAML | Lightning devices (`auto`, integer, or Hydra value) |
 | `CW_LOGGER` | `none` | `wandb` or `swanlab` when the selected family trainer uses the common logger factory |
 | `CW_RESUME` | `auto` | `never`, `auto`, `required`, or `reset`; `reset` preserves the run name, archives its exact local state, and starts from epoch zero |
@@ -252,7 +315,7 @@ Arguments given to `cloud_train.sh` are parsed by the same public
 variables; an uncommon upstream Hydra setting can be passed with a repeated
 `--override KEY=VALUE` option.
 
-For a `ContextWorld-v1` training view, the launcher uses the multiprocessing
+For a `ContextWorld-v3-hf` training view, the launcher uses the multiprocessing
 `spawn` method and defaults to two workers in each DDP process. Worker counts
 are per process, not per job: on eight GPUs, `CW_NUM_WORKERS=16` would create
 up to 128 data-loading workers. Override the default only after measuring the
@@ -290,12 +353,14 @@ idempotently only when its request digest matches and every output file still
 has its recorded size and SHA-256.
 
 Use `CW_RESUME=reset` when a changed recipe must replace a failed attempt
-without changing its run name. Before training, the launcher moves that exact
-run's `checkpoints/<run>`, marker-bound StablePretraining UUID directories,
-and current `CW_OUTPUT/<run>` into timestamped, recoverable
-`.contextworld_reset_archive/` directories. Other runs and seeds are not
-changed. `CW_PRINT_ONLY=1` previews the reset without moving anything, and
-`reset` cannot be combined with `CW_EVAL_ONLY=1`.
+without changing its run name. Before training, the launcher archives that
+exact run's `checkpoints/<run>`, marker-bound StablePretraining UUID
+directories, and current `CW_OUTPUT/<run>` in timestamped, recoverable
+`.contextworld_reset_archive/` directories. On managed mounts that reject a
+directory rename, it copies the tree, verifies every file hash and symbolic
+link target, and removes the source only after verification. Other runs and
+seeds are not changed. `CW_PRINT_ONLY=1` previews the reset without changing
+files, and `reset` cannot be combined with `CW_EVAL_ONLY=1`.
 
 For PreJEPA, the CEM smoke uses the upstream planner with the checkpoint's
 declared history stream. Its Development ICL eligibility is checked separately;
@@ -319,7 +384,7 @@ the internal research tree used only by explicit historical reproduction. See
 # current joint-from-scratch component comparison; choose any built-in family
 CW_TASK=action_strength CW_FAMILY=lewm \
     CONTEXTWORLD_DATASET_ROOT=/abs/data/world_model \
-    CONTEXTWORLD_BENCHMARK_ROOT=/abs/data/world_model/ContextWorld-v1 \
+    CONTEXTWORLD_BENCHMARK_ROOT=/abs/data/world_model/ContextWorld-v3-hf \
     CW_CHECKPOINT_ROOT=/abs/checkpoints/lewm-contextworld-v1 \
     bash scripts/cloud_train.sh
 
