@@ -27,7 +27,7 @@
 | 需求 ID | 交付物 | 验收证据 | 状态 |
 |---|---|---|---|
 | R1 | 冻结基线完整（freeze v3 JSON 与离线校验命令） | 2026-09-10 最终验收；freeze JSON SHA-256 与上方一致 | 已通过 |
-| R2 | 候选目录 `artifacts/releases/ContextWorld-v3-hf`（合并冻结 Training/Development 与冻结 Test，原始文件字节不变） | 已构建：4,757 个数据文件、20,489,896,395 bytes；排除 614 个旧 Development 留档文件 | 已通过本地验收 |
+| R2 | 仓库外的候选目录 `<CONTEXTWORLD_DATASET_ROOT>/ContextWorld-v3-hf`（合并冻结 Training/Development 与冻结 Test，原始文件字节不变） | 已构建：4,757 个数据文件、20,489,896,395 bytes；排除 614 个旧 Development 留档文件 | 已通过本地验收 |
 | R3 | 离线字节校验与实际加载 | 全量 4,785 个分发文件 SHA-256 通过；9 项任务 × 3 划分读取通过，10 个 Training view 注册入口通过；9 项默认训练配方与后续 ICL 评测使用同一本地 HF 根目录 | 已通过本地验收 |
 | R4 | 数据卡与元数据准确（模板 token 由实际 inventory 替换；事实性引用；不虚构 DOI 或作者） | HF YAML 元数据解析通过，inventory 已实数渲染；`viewer: false`，明确使用 native snapshot 下载 | 已通过本地验收 |
 | R5 | 许可证与署名文件（`LICENSE`、`DATA_LICENSE`（CC BY 4.0）、`NOTICE`） | 三文件已复制并纳入全量哈希校验 | 已通过本地验收 |
@@ -36,6 +36,9 @@
 | R8 | 发布记录 | 数据 repo/revision、代码 revision、manifest SHA-256 与 v3 freeze ID 的对应关系 | 待上传后生成 |
 
 本地验收记录见 [HF 候选包验收](reference/contextworld_v3_hf_candidate_2026-09-11.json)。
+该历史记录保留当时构建路径；完整数据现存放在原 `data/world_model/ContextWorld-v3-hf`
+目录，仓内只保留代码、文档和小型验收记录。训练与评测均使用数据目录下的同一候选包。
+迁移后的全量校验见 [2026-09-13 迁移记录](reference/contextworld_v3_hf_relocation_2026-09-13.json)。
 候选 manifest SHA-256：`882bd831d5cdeb1a6f8de8fd8ac18fa4b87bac864e2fe96f5b276e090dd0299e`。
 截至 2026-09-12，19 项打包测试（含迁移目录后脱离原始源目录的校验）与 5 项发布文档测试通过；本次没有训练或模型评测。加载检查发生在当前环境，
 不冒充上传后的下载验证或外部独立复现。

@@ -108,15 +108,13 @@ training, or run evaluation.
 
 Benchmark root resolution: an explicit `CONTEXTWORLD_BENCHMARK_ROOT` (or
 `--benchmark-root`) wins; otherwise the launcher uses
-`<CONTEXTWORLD_DATASET_ROOT>/ContextWorld-v3-hf` when that exists, then
-`<checkout>/artifacts/releases/ContextWorld-v3-hf` when that exists, and
-fails otherwise on the missing canonical bundle. Old `ContextWorld-v1` is
-never selected automatically, and an explicit root may use any directory
-name. From a local checkout the recommended value is
-`CONTEXTWORLD_BENCHMARK_ROOT="$(pwd)/artifacts/releases/ContextWorld-v3-hf"`;
-with an external snapshot download of the immutable HF revision, point it at
-`/absolute/path/to/ContextWorld-v3-hf`. Both keep the identical native
-Lance+JSON/NPZ layout, with no repacking or conversion. The bundle does not
+`<CONTEXTWORLD_DATASET_ROOT>/ContextWorld-v3-hf`. Store the complete data outside
+the code checkout, under the existing `data/world_model` root. Missing configuration
+or an incomplete bundle is an error; neither repository staging nor old
+`ContextWorld-v1` is an automatic fallback. An explicit root may use any directory
+name. Local data and a downloaded immutable HF snapshot use the same setting:
+`CONTEXTWORLD_BENCHMARK_ROOT="$CONTEXTWORLD_DATASET_ROOT/ContextWorld-v3-hf"`.
+Both keep the identical native Lance+JSON/NPZ layout, with no conversion. The bundle does not
 replace the original H5 datasets: naive training, original/synthetic
 mixtures and CEM still read them below `CONTEXTWORLD_DATASET_ROOT`, which
 names the original-data root, not the ICL bundle.
@@ -260,8 +258,8 @@ CONTEXTWORLD_BENCHMARK_ROOT=/absolute/path/data/world_model/ContextWorld-v3-hf
 CW_CHECKPOINT_ROOT=/absolute/path/checkpoints/lewm-contextworld
 ```
 
-`CONTEXTWORLD_BENCHMARK_ROOT` may be omitted when the bundle resolves from
-one of the default locations above. The task profile supplies the history length, action
+`CONTEXTWORLD_BENCHMARK_ROOT` may be omitted when the bundle is at the
+default data-root location above. The task profile supplies the history length, action
 dimension, payload and mixture, so `CW_DATASET` is normally omitted.
 
 The default comparison view uses 50% original data and 50% synthetic component

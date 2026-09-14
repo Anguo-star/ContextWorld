@@ -7,20 +7,17 @@ from pathlib import Path
 
 
 HF_BUNDLE_DIRECTORY = "ContextWorld-v3-hf"
-CHECKOUT_ROOT = Path(__file__).resolve().parents[2]
 
 
 def resolve_benchmark_root(
     explicit: str | Path | None,
     dataset_root: str | Path | None,
-    *,
-    checkout_root: Path = CHECKOUT_ROOT,
 ) -> Path:
-    """Honor explicit paths, then the installed snapshot, then local staging.
+    """Honor explicit paths, then the snapshot under the external data root.
 
     An explicitly selected or installed but incomplete bundle must fail the
     caller's validation; it must never silently fall back to another dataset.
-    Legacy v1 directories are not automatically selected.
+    Legacy v1 directories and in-checkout staging are not automatic fallbacks.
     """
 
     def absolute(value: str | Path, label: str) -> Path:
@@ -31,21 +28,15 @@ def resolve_benchmark_root(
 
     if explicit:
         return absolute(explicit, "--benchmark-root/CONTEXTWORLD_BENCHMARK_ROOT")
-    installed = (
-        absolute(dataset_root, "--dataset-root/CONTEXTWORLD_DATASET_ROOT")
-        / HF_BUNDLE_DIRECTORY
-        if dataset_root else None
-    )
-    if installed is not None and installed.exists():
-        return installed
-    candidate = checkout_root / "artifacts/releases" / HF_BUNDLE_DIRECTORY
-    if candidate.exists():
-        return candidate.resolve()
-    if installed is not None:
-        return installed  # The caller reports the missing bundle at this path.
+    if dataset_root:
+        return (
+            absolute(dataset_root, "--dataset-root/CONTEXTWORLD_DATASET_ROOT")
+            / HF_BUNDLE_DIRECTORY
+        )  # The caller reports an incomplete bundle at this exact location.
     raise ValueError(
         "Set --benchmark-root/CONTEXTWORLD_BENCHMARK_ROOT to the downloaded "
-        "ContextWorld-v3-hf snapshot, or prepare artifacts/releases/ContextWorld-v3-hf."
+        "ContextWorld-v3-hf snapshot, or set --dataset-root/CONTEXTWORLD_DATASET_ROOT "
+        "to its parent data directory. Store the full dataset outside the code checkout."
     )
 
 

@@ -58,8 +58,9 @@ pip install -e ".[eval]"
 # 内置 LeWM、PLDM 和 PreJEPA 集成
 pip install -e ".[stablewm]"
 
-# 仓库内现有候选包；发布后改为 HF snapshot_download 的本地目录即可。
-export CONTEXTWORLD_BENCHMARK_ROOT="$(pwd)/artifacts/releases/ContextWorld-v3-hf"
+# 完整数据放在仓库外的原 data 目录；按实际挂载路径设置。
+export CONTEXTWORLD_DATASET_ROOT=/absolute/path/data/world_model
+export CONTEXTWORLD_BENCHMARK_ROOT="$CONTEXTWORLD_DATASET_ROOT/ContextWorld-v3-hf"
 
 contextworld-benchmark info
 

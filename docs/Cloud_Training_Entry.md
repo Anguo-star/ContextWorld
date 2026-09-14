@@ -254,14 +254,13 @@ ContextWorld tree.
 
 Benchmark root resolution: an explicit `CONTEXTWORLD_BENCHMARK_ROOT` wins;
 otherwise the launcher uses `<CONTEXTWORLD_DATASET_ROOT>/ContextWorld-v3-hf`
-when that exists, then `<checkout>/artifacts/releases/ContextWorld-v3-hf`
-when that exists, and fails otherwise on the missing canonical bundle. Old
-`ContextWorld-v1` is never selected automatically, and an explicit root may
-use any directory name. From a local checkout the recommended value is
-`CONTEXTWORLD_BENCHMARK_ROOT="$(pwd)/artifacts/releases/ContextWorld-v3-hf"`;
-with an external snapshot download of the immutable HF revision, point it at
-`/absolute/path/to/ContextWorld-v3-hf`. Both keep the identical native
-Lance+JSON/NPZ layout, with no repacking or conversion.
+and reports an incomplete bundle at that location. Keep the full data outside
+the code checkout, under the existing `data/world_model` root. The shell can
+still detect that data root from the cloud umbrella directory. Neither repository
+staging nor old `ContextWorld-v1` is an automatic fallback. An explicit root may
+use any directory name. Local data and a downloaded immutable HF snapshot use
+`CONTEXTWORLD_BENCHMARK_ROOT="$CONTEXTWORLD_DATASET_ROOT/ContextWorld-v3-hf"`
+with the same native Lance+JSON/NPZ layout and no conversion.
 `CONTEXTWORLD_DATASET_ROOT` still names the original H5 root — required by
 naive training, the original/synthetic mixtures and CEM — not the ICL
 bundle.
@@ -291,7 +290,7 @@ Then per run:
 | `CW_STAGE` | `paired` | `action_delay` only: `paired` or `curriculum` |
 | `CW_VARIANT` | recipe of record | override the launcher's variant |
 | `CW_DATASET` | — | optional exact-file override; omit it for the standard registered component view |
-| `CONTEXTWORLD_BENCHMARK_ROOT` | `<CONTEXTWORLD_DATASET_ROOT>/ContextWorld-v3-hf` or `<checkout>/artifacts/releases/ContextWorld-v3-hf` | canonical ICL bundle used by current component training and every Development ICL suite; an explicit value wins (see benchmark root resolution above) |
+| `CONTEXTWORLD_BENCHMARK_ROOT` | `<CONTEXTWORLD_DATASET_ROOT>/ContextWorld-v3-hf` | canonical ICL bundle outside the code checkout, shared by current component training and every Development ICL suite; an explicit value wins |
 | `CW_COMPONENT_PAYLOAD` | task profile | optional registered payload override; Action Delay supports `coarse` or `full` |
 | `CW_MIX_ORIGINAL_WEIGHT`, `CW_MIX_SYNTHETIC_WEIGHT` | task profile | optional benchmark mixture override |
 | `CW_COMPONENT_EPOCH_SIZE` | balanced full coverage | optional virtual samples per training epoch |

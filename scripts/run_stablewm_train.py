@@ -2794,8 +2794,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default=_env("CONTEXTWORLD_BENCHMARK_ROOT"),
         help=(
             "Native HF snapshot root shared by component training and ICL evaluation. "
-            "Defaults to <dataset-root>/ContextWorld-v3-hf when present, then "
-            "<checkout>/artifacts/releases/ContextWorld-v3-hf."
+            "Defaults to <dataset-root>/ContextWorld-v3-hf. "
+            "Keep the full dataset outside the code checkout."
         ),
     )
     parser.add_argument(

@@ -5,7 +5,8 @@ and **Downloading**. Repository maintainers who prepare the Hugging Face
 release candidate should also read **Building the release candidate**.
 
 The v3 release candidate lives at
-`artifacts/releases/ContextWorld-v3-hf` (the root of the future HF dataset
+`<CONTEXTWORLD_DATASET_ROOT>/ContextWorld-v3-hf`, outside the code checkout
+(the root of the future HF dataset
 repo). It merges the frozen **Training and Development** splits of all nine
 components with the frozen **Test** artifacts, byte-for-byte, so the sealed v3
 baseline
@@ -14,6 +15,11 @@ loader semantics are preserved exactly. Development is for model/recipe
 selection; Test is for final reporting only. This guide describes packaging
 and loading, not data generation (see
 [Data generation methodology](Data_Generation.md)).
+
+On the current development machine, the full candidate is stored at
+`/opt/huawei/explorer-env/dataset/ag_data/data/world_model/ContextWorld-v3-hf`.
+The repository holds release scripts, documentation and small verification
+records; the complete dataset belongs under the existing `data/world_model` root.
 
 ## Release layout
 
@@ -64,6 +70,8 @@ explicitly permits non-`datasets`-library workflows):
 ```bash
 export HF_DATASET_REPO='ORG/DATASET'        # replace with the published repository
 export HF_DATASET_REVISION='COMMIT_SHA'     # replace with its immutable revision
+export CONTEXTWORLD_DATASET_ROOT=/absolute/path/data/world_model
+export CONTEXTWORLD_BENCHMARK_ROOT="$CONTEXTWORLD_DATASET_ROOT/ContextWorld-v3-hf"
 python - <<'PY'
 import os
 from huggingface_hub import snapshot_download
@@ -71,36 +79,32 @@ snapshot_download(
     repo_id=os.environ["HF_DATASET_REPO"],
     repo_type="dataset",
     revision=os.environ["HF_DATASET_REVISION"],
-    local_dir="./ContextWorld-v3-hf",
+    local_dir=os.environ["CONTEXTWORLD_BENCHMARK_ROOT"],
 )
 PY
 ```
 
 Then verify byte integrity offline with the repo script (see
-**Building the release candidate**): `--verify --output ./ContextWorld-v3-hf`
+**Building the release candidate**): `--verify --output "$CONTEXTWORLD_BENCHMARK_ROOT"`
 must pass without network access.
 
 ## Loading the data
 
 The prepared local candidate and the downloaded snapshot use the same native
-files and relative paths. From this checkout, select the current candidate:
+files and relative paths. Set the data root to its actual location outside the
+code checkout, for both the current candidate and a future downloaded snapshot:
 
 ```bash
-export CONTEXTWORLD_BENCHMARK_ROOT="$(pwd)/artifacts/releases/ContextWorld-v3-hf"
-```
-
-After downloading, point that same variable at the downloaded directory:
-
-```bash
-export CONTEXTWORLD_BENCHMARK_ROOT=/absolute/path/ContextWorld-v3-hf
+export CONTEXTWORLD_DATASET_ROOT=/absolute/path/data/world_model
+export CONTEXTWORLD_BENCHMARK_ROOT="$CONTEXTWORLD_DATASET_ROOT/ContextWorld-v3-hf"
 contextworld-benchmark info
 ```
 
 Training and post-training ICL evaluation share one root resolver. An explicit
 `--benchmark-root`/`CONTEXTWORLD_BENCHMARK_ROOT` takes priority. Otherwise they
-use `<CONTEXTWORLD_DATASET_ROOT>/ContextWorld-v3-hf` if present, then the local
-`artifacts/releases/ContextWorld-v3-hf` candidate. They never automatically
-select the legacy `ContextWorld-v1` directory. An explicit directory can have
+use `<CONTEXTWORLD_DATASET_ROOT>/ContextWorld-v3-hf`. Missing configuration or
+an incomplete bundle is an error. They never automatically select in-repository
+staging or the legacy `ContextWorld-v1` directory. An explicit directory can have
 any name; no conversion or changes to the files inside it are required.
 
 For built-in Stable-WorldModel training, select a task and family through the
@@ -111,7 +115,7 @@ ContextWorld launcher (do not set `CW_DATASET`; the launcher reads
 CW_TASK=action_strength
 CW_FAMILY=lewm
 CW_TRAINING_TRACK=joint_scratch_v1
-CONTEXTWORLD_BENCHMARK_ROOT=/absolute/path/ContextWorld-v3-hf
+CONTEXTWORLD_BENCHMARK_ROOT=/absolute/path/data/world_model/ContextWorld-v3-hf
 CONTEXTWORLD_DATASET_ROOT=/absolute/path/data/world_model
 CW_CHECKPOINT_ROOT=/absolute/path/checkpoints/lewm-contextworld
 ```
@@ -161,10 +165,12 @@ The candidate is built by `scripts/prepare_contextworld_hf_release.py`
 (8 workers by default). First review the plan without copying payloads:
 
 ```bash
+export CONTEXTWORLD_DATASET_ROOT=/absolute/path/data/world_model
+export CONTEXTWORLD_BENCHMARK_ROOT="$CONTEXTWORLD_DATASET_ROOT/ContextWorld-v3-hf"
 python scripts/prepare_contextworld_hf_release.py \
-  --development-root /absolute/path/to/ContextWorld-v1 \
-  --test-root /absolute/path/to/ContextWorld-v1-full \
-  --output artifacts/releases/ContextWorld-v3-hf
+  --development-root "$CONTEXTWORLD_DATASET_ROOT/ContextWorld-v1" \
+  --test-root "$CONTEXTWORLD_DATASET_ROOT/ContextWorld-v1-full" \
+  --output "$CONTEXTWORLD_BENCHMARK_ROOT"
 ```
 
 Then build **once** with `--execute` (the script rejects an existing output
@@ -174,11 +180,11 @@ incomplete builds during verification. After building, verify offline byte hashe
 
 ```bash
 python scripts/prepare_contextworld_hf_release.py \
-  --verify --output artifacts/releases/ContextWorld-v3-hf
+  --verify --output "$CONTEXTWORLD_BENCHMARK_ROOT"
 
 # With the repository's [eval] dependencies installed, read each task/split:
 python scripts/check_contextworld_hf_loading.py \
-  --benchmark-root artifacts/releases/ContextWorld-v3-hf
+  --benchmark-root "$CONTEXTWORLD_BENCHMARK_ROOT"
 ```
 
 `--verify` re-checks every file against the recorded SHA-256 and works both
