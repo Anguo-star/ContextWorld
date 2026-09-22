@@ -667,6 +667,9 @@ def resolve_target(args: argparse.Namespace, contract: dict[str, Any]) -> Target
         raise SystemExit("Select exactly one target: --original-env or --component")
 
     explicit = args.dataset
+    model_inputs = getattr(args, "model_inputs", "native")
+    if model_inputs == "pixels_action" and args.family != "prejepa":
+        raise SystemExit("--model-inputs pixels_action currently selects the PreJEPA input profile")
     if args.original_env:
         environments = contract["original_environments"]
         if args.original_env not in environments:
@@ -690,8 +693,8 @@ def resolve_target(args: argparse.Namespace, contract: dict[str, Any]) -> Target
             history_size=args.history_size or contract["defaults"]["history_size"],
             action_dim=int(spec["action_dim"]),
             environment=args.original_env,
-            encoding_key=str(spec["encoding_key"]),
-            encoding_dim=int(spec["encoding_dim"]),
+            encoding_key=None if model_inputs == "pixels_action" else str(spec["encoding_key"]),
+            encoding_dim=None if model_inputs == "pixels_action" else int(spec["encoding_dim"]),
             original_env=args.original_env,
         )
 
@@ -1048,11 +1051,11 @@ def _validate_args(
         if (
             family == "prejepa"
             and target is not None
-            and target.original_env is None
+            and (target.original_env is None or target.encoding_key is None)
             and (normalized == "wm.encoding" or normalized.startswith("wm.encoding."))
         ):
             raise SystemExit(
-                "Benchmark PreJEPA fixes model inputs to pixels and action; "
+                "This PreJEPA profile fixes model inputs to pixels and action; "
                 "--override cannot add or replace wm.encoding streams."
             )
         if (
@@ -1321,10 +1324,9 @@ def build_overrides(
         _add(entries, common["hydra_run_dir"], output)
 
     if family == "prejepa":
-        if target.original_env is None:
-            # Benchmark components are evaluated with the frozen RGB/action
-            # ICL contract.  Remove the upstream default rather than mapping
-            # a component's privileged observation/proprio column into it.
+        if target.original_env is None or target.encoding_key is None:
+            # Components and explicitly matched original-data runs share
+            # the RGB/action predictor; remove the default state encoder.
             entries.append("~wm.encoding.proprio")
         # Original-environment DINO-WM keeps its upstream state-conditioned
         # recipe.  Reacher and Cube name that state column ``observation``.
@@ -2747,6 +2749,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--family",
         choices=sorted(contract["families"]),
         default=_env("CW_FAMILY", "lewm"),
+    )
+    parser.add_argument(
+        "--model-inputs", choices=("native", "pixels_action"),
+        default=_env("CW_MODEL_INPUTS", "native"),
+        help="PreJEPA original-data input profile; pixels_action matches the ICL predictor (env: CW_MODEL_INPUTS).",
     )
     parser.add_argument("--original-env", default=_env("CW_ENV"))
     parser.add_argument("--component", default=_env("CW_COMPONENT"))

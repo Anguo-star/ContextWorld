@@ -542,3 +542,17 @@ Some launchers refuse to run because their reference matrix is already frozen
 (`RuntimeError: The frozen reference matrix permits only its registered
 reproduction run`). That is the launcher's own governance, not a routing
 failure — the baseline in question has already been produced and published.
+
+## Image/action-only DINO-WM pretraining
+
+For a predictor that can be loaded directly into the current ICL model, use
+`CW_TASK=original`, `CW_FAMILY=prejepa`, and `CW_MODEL_INPUTS=pixels_action`.
+Select `CW_ENV=pusht`, `reacher`, `cube`, or `tworoom`. The visual backbone
+remains pretrained and frozen; the predictor and action encoder are trained
+without state inputs or state prediction loss. Omit `CW_INIT_CHECKPOINT`.
+
+The default `CW_MODEL_INPUTS=native` preserves the historical state-conditioned
+original-data recipe. Component ICL training already uses image/action inputs.
+Use a separate checkpoint root for these new original-data runs; the default
+original-data run name is `<environment>_prejepa_original_s<seed>` and does not
+include `CW_TRAINING_TRACK`. See the [cloud parameter template](../configs/training/dinowm_original_pixels_action.env.example).
