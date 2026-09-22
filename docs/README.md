@@ -15,6 +15,12 @@
 九项任务在 Benchmark 规范中按隐藏动力学类型组织，而不是按环境数量组织。每项任务均
 报告自己的 ICL 分数，不计算跨任务总分；原任务规划保持分析单列附录。
 
+## 后续研究结果
+
+[数据覆盖与初始化](research/Training_Data_and_Initialization.md)报告三模型六任务的36个训练配置，
+说明数据覆盖、初始化及条件响应的差异。它使用Development划分，不替换冻结v3的Test参考。
+表格来自同页链接的机器可读汇总；历史实验过程不作为阅读前提。
+
 ## 任务导航
 
 | 能力类型 | 任务 | 说明 | 机器配置 | 任务命令 |
@@ -49,3 +55,5 @@ Test 使用 `ContextWorld-v1-full`；发布候选 `ContextWorld-v3-hf` 汇集这
 
 目前 Training、Development 和 Test 数据包已在本地完成发布候选组装，但稳定的公开数据集
 修订尚未公布；Test 通过离线评分入口用于最终报告。
+
+Next dataset release: [expanded-training preparation and acceptance checklist](Expanded_Training_Release.md).

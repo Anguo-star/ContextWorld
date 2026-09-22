@@ -1,0 +1,226 @@
+{
+  "schema_version": "contextworld.release-plan.v1",
+  "status": "metadata_only_unpublished_candidate",
+  "proposed_version": "expanded-training-v1",
+  "payload_bytes_verified": false,
+  "registry_merge_verified": false,
+  "formal_baseline_accepted": false,
+  "evaluation_source_policy": "Frozen Development and Test; expanded Training only",
+  "sources": {
+    "ContextWorld-action-strength-32k-v1": {
+      "manifest_sha256": "9328c931a6891aaa37b32094e779eccc58de5bf893869dd0537635f687d047e3"
+    },
+    "ContextWorld-contact-friction-32k-v1": {
+      "manifest_sha256": "0fd65ad420367d1e3bd00ac0a9bee75f512ad7ee286e31fab34e43c1ee61f9bf"
+    },
+    "ContextWorld-cube-gripper-carry-10k-independent-v2": {
+      "manifest_sha256": "6e8d707857db9e50d0e21d0a0c4d12647a63a5f1ee25e3527af5b46759463baf"
+    },
+    "ContextWorld-motion-damping-32k-v1": {
+      "manifest_sha256": "b73d0fb88089a8d792a31e440e67841c1d7b623c7277b4b5e6dca0b165c3403d"
+    },
+    "ContextWorld-portal-exit-32k-coverage-v2": {
+      "manifest_sha256": "1cd7e84d63a9bd971737e951b7e56e2119281f3bfc5ae43ea7a741a05f63723e"
+    },
+    "ContextWorld-robot-arm-mass-32k-v1": {
+      "manifest_sha256": "3499b2f37c50b79ae8406edaebe4ba48f97744506b381f771b2d6c902804a58e"
+    },
+    "ContextWorld-v1": {
+      "manifest_sha256": "4c5b9cdc84006caeac2a9770501f943affe2b81e32d70c27ab504770b28a93c4"
+    },
+    "ContextWorld-v1-full": {
+      "manifest_sha256": "81eb29d8eeaefb91750187831b9120b9241c78b4903047cd4b720a186c7f6d97"
+    }
+  },
+  "tasks": [
+    {
+      "task": "speed",
+      "training_source": "ContextWorld-v1",
+      "training_status": "inherited",
+      "new_study_runs": 0,
+      "splits": {
+        "training": {
+          "files": 1536,
+          "bytes": 5901768277
+        },
+        "development": {
+          "files": 42,
+          "bytes": 3143801336
+        },
+        "test": {
+          "files": 6,
+          "bytes": 11192774
+        }
+      }
+    },
+    {
+      "task": "door",
+      "training_source": "ContextWorld-v1",
+      "training_status": "inherited",
+      "new_study_runs": 0,
+      "splits": {
+        "training": {
+          "files": 768,
+          "bytes": 261906350
+        },
+        "development": {
+          "files": 144,
+          "bytes": 27783405
+        },
+        "test": {
+          "files": 303,
+          "bytes": 17232280
+        }
+      }
+    },
+    {
+      "task": "action_delay",
+      "training_source": "ContextWorld-v1",
+      "training_status": "inherited",
+      "new_study_runs": 0,
+      "splits": {
+        "training": {
+          "files": 1344,
+          "bytes": 5763362372
+        },
+        "development": {
+          "files": 252,
+          "bytes": 487748851
+        },
+        "test": {
+          "files": 304,
+          "bytes": 103965941
+        }
+      }
+    },
+    {
+      "task": "action_strength",
+      "training_source": "ContextWorld-action-strength-32k-v1",
+      "training_status": "expanded",
+      "new_study_runs": 6,
+      "splits": {
+        "training": {
+          "files": 1156,
+          "bytes": 8286993991
+        },
+        "development": {
+          "files": 3,
+          "bytes": 64579503
+        },
+        "test": {
+          "files": 7,
+          "bytes": 67467739
+        }
+      }
+    },
+    {
+      "task": "contact_friction",
+      "training_source": "ContextWorld-contact-friction-32k-v1",
+      "training_status": "expanded",
+      "new_study_runs": 6,
+      "splits": {
+        "training": {
+          "files": 151,
+          "bytes": 3605507685
+        },
+        "development": {
+          "files": 3,
+          "bytes": 28113113
+        },
+        "test": {
+          "files": 3,
+          "bytes": 28204953
+        }
+      }
+    },
+    {
+      "task": "motion_damping",
+      "training_source": "ContextWorld-motion-damping-32k-v1",
+      "training_status": "expanded",
+      "new_study_runs": 6,
+      "splits": {
+        "training": {
+          "files": 580,
+          "bytes": 6765132781
+        },
+        "development": {
+          "files": 3,
+          "bytes": 56168329
+        },
+        "test": {
+          "files": 3,
+          "bytes": 56075721
+        }
+      }
+    },
+    {
+      "task": "robot_arm_mass",
+      "training_source": "ContextWorld-robot-arm-mass-32k-v1",
+      "training_status": "expanded",
+      "new_study_runs": 6,
+      "splits": {
+        "training": {
+          "files": 193,
+          "bytes": 11686044253
+        },
+        "development": {
+          "files": 3,
+          "bytes": 91191080
+        },
+        "test": {
+          "files": 3,
+          "bytes": 91317033
+        }
+      }
+    },
+    {
+      "task": "cube_gripper_carry",
+      "training_source": "ContextWorld-cube-gripper-carry-10k-independent-v2",
+      "training_status": "expanded",
+      "new_study_runs": 6,
+      "splits": {
+        "training": {
+          "files": 100,
+          "bytes": 794861580
+        },
+        "development": {
+          "files": 3,
+          "bytes": 20354755
+        },
+        "test": {
+          "files": 3,
+          "bytes": 20544003
+        }
+      }
+    },
+    {
+      "task": "portal_exit",
+      "training_source": "ContextWorld-portal-exit-32k-coverage-v2",
+      "training_status": "expanded",
+      "new_study_runs": 6,
+      "splits": {
+        "training": {
+          "files": 187,
+          "bytes": 6096385413
+        },
+        "development": {
+          "files": 3,
+          "bytes": 14068220
+        },
+        "test": {
+          "files": 3,
+          "bytes": 14009019
+        }
+      }
+    }
+  ],
+  "payload_files": 7106,
+  "payload_bytes": 53505780757,
+  "remaining_checks": [
+    "Read and hash every selected payload",
+    "Merge and validate task registry and normalizer references",
+    "Load every task and split from assembled package",
+    "Finalize reference results and acceptance scope",
+    "Verify licenses and card against assembled package"
+  ]
+}

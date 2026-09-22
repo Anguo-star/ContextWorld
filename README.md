@@ -7,6 +7,12 @@ ContextWorld 是用于评测 latent 世界模型上下文学习能力的 benchma
 评测直接在参评模型自己的 latent 空间中进行，不要求图像解码器或像素重建。因此，
 JEPA、LeWM、PLDM、PreJEPA 以及其他 latent 世界模型都可以使用同一套协议。
 
+## 从这里开始
+
+- [Benchmark规范](docs/ContextWorld_ICL_Benchmark.md)：任务、评分方法和冻结v3参考结果。
+- [数据与初始化研究](docs/research/Training_Data_and_Initialization.md)：三模型六任务的后续实验，单种子Development结果，与冻结基线分开报告。
+- [文档导航](docs/README.md)：数据生成、模型接入、训练和结果复现。
+
 ## 九项任务
 
 任务按模型需要识别的隐藏动力学类型组织。环境只是任务的物理载体，不构成类别权重。

@@ -217,3 +217,5 @@ the HF namespace/repo and immutable revision/URL are **not yet supplied**, and
 the post-upload download smoke test and the publication record remain pending.
 The publication record must bind the data revision, code revision, manifest
 checksum and frozen baseline. Building the directory does not upload anything.
+
+For the expanded-training candidate, see [next-release preparation](Expanded_Training_Release.md). That candidate is separate from this frozen v3 package and has not been uploaded.
