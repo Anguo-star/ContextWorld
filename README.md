@@ -9,8 +9,8 @@ JEPA、LeWM、PLDM、PreJEPA 以及其他 latent 世界模型都可以使用同�
 
 ## 从这里开始
 
-- [Benchmark规范](docs/ContextWorld_ICL_Benchmark.md)：任务、评分方法和冻结v3参考结果。
-- [数据与初始化研究](docs/research/Training_Data_and_Initialization.md)：三模型六任务的后续实验，单种子Development结果，与冻结基线分开报告。
+- **[ContextWorld 统一技术报告](docs/ContextWorld_ICL_Benchmark.md)**：任务、数据版本、评分协议、九任务三模型训练方式对比与主要发现。
+- [直接查看最新总表](docs/ContextWorld_ICL_Benchmark.md#training-comparison)：原始模型、ICL 从头训练、二阶段联合与冻结 Encoder；全部关键指标统一展示。
 - [文档导航](docs/README.md)：数据生成、模型接入、训练和结果复现。
 
 ## 九项任务
@@ -48,7 +48,7 @@ Development 用于实现检查、模型开发、训练配方选择和消融；Te
 提供托管提交服务，因此离线 Test 结果不是由服务器集中验证的排行榜条目。
 
 主表报告各项 **ICL 正确率**，衡量模型是否利用交互历史识别隐藏规律。
-原任务 CEM 在附录单列为规划能力保持分析，不进入 ICL 分数，也不替代隐藏规律下的规划评测。
+最新训练方式表同时报告原环境 CEM，用于规划能力保持分析；它不进入 ICL 分数，也不替代隐藏规律下的规划评测。冻结 v3 的完整 CEM 来源保留在复现附录。
 
 ## 快速开始
 
@@ -118,40 +118,19 @@ contextworld-public-test-report verify --receipt public_test_report_<report_id>.
 "sha256": "..."}`。入口核对任务、训练种子、检查点和源文件哈希，再按统一门槛重新判定；
 手填通过标志不能绕过检查。旧 v1 清单保留历史语义，不代表已经经过当前参考的准入核验。
 
-### 固定研究参考
+### 结果如何组织
 
-**v3 已于 2026-09-11 正式封板**，作为根因分析、新方法与数据设计的固定研究基线，
-覆盖七项 Test 与两项 Development 对照。验收证据与能力范围见
-[最终验收记录](docs/reference/Baseline_Final_Acceptance_2026-09-10.md)。
+[统一技术报告](docs/ContextWorld_ICL_Benchmark.md)区分两类结果：冻结 v3 保留既有数据、评分与三种子参考；较新的训练方式研究报告扩量数据、完整原始初始化和冻结 Encoder 的单种子 Development 结果。后者不覆盖前者，也不自动成为新的正式 Test 排行榜。
 
-后续方法以
-[`contextworld_joint_scratch_v1_reference_results_freeze_v3.json`](configs/benchmark/contextworld_joint_scratch_v1_reference_results_freeze_v3.json)
-为比较起点。该记录绑定逐单元源结果快照、主分数、门槛决策、数据选择、检查点与代码身份；
-历史运行时未自动记录的部分明确披露，新补评记录实际运行时。
+已有研究显示，固定数据和原始初始化时，冻结 Encoder 可明显改善部分任务，却使另一些任务退步。数据量、模型和表示更新方式需要分别检验；条件预测与原环境规划也可能不同步。具体分数、响应幅值、反例和解释边界均在技术报告维护。
 
 ```bash
-# 核对冻结来源、分数和门槛决策
-python scripts/freeze_current_reference_baseline.py verify
-
-# 核对主文档和 Development 表是否仍与冻结记录一致
+# 检查冻结参考与当前研究表分别是否和各自数据源一致
 python scripts/render_current_reference_tables.py --check
-
-# 运行固定正/负控制
-python scripts/verify_reference_capability_controls.py
-
-# 新方法使用同一判定器，原始评测 JSON 保持不变
-python -m contextworld.benchmarks.reference_decision single \
-  --component action_delay --split development --input result.json \
-  --output reference_decision.json
+python scripts/render_training_comparison.py --check
 ```
 
-该 v3 冻结文件永久不改。新方法与新训练数据实验保存独立结果并引用该 freeze ID；
-改变评测数据、任务定义、评分合同、阈值或关键评分依赖时必须建立 benchmark 新版本，
-不得回写 v3 数字或重新封存以覆盖原身份。历史 provenance、稳定下载与外部独立复现
-作为单独的发布工作维护，不重开 baseline 验收。
-方法级判定使用同模块的 `method` 子命令，重复三次 `--input`；三个独立训练种子、不同
-检查点哈希及一致配方/adapter 身份必须齐全，且各自通过。旧单组件 scorer 的历史通过字段
-保留原义，当前结论以 `reference_decision` 为准。
+固定 v3 的验收与复现细节见[参考结果附录](docs/reference/Benchmark_Result_Provenance.md)。新方法与新的训练数据使用独立结果身份；任务定义、评分合同或评测数据变化需建立新版本，不能回写冻结数字。
 
 ## 接入其他模型
 
@@ -164,7 +143,7 @@ rollout 接口转换为统一输入格式。评分器不要求解码器，也不
 
 ## 文档
 
-- [Benchmark 规范](docs/ContextWorld_ICL_Benchmark.md)：任务、数据、指标、参考结果和报告规则；
+- [统一技术报告](docs/ContextWorld_ICL_Benchmark.md)：任务、数据、全部结果、发现与报告规则；
 - [数据生成方法](docs/Data_Generation.md)：连续仿真、配对构造、拆分隔离和九项任务的生成来源；
 - [HF 数据集指南](docs/HF_Dataset_Export.md)：v3 发布目录、加载方式和维护者打包流程；
 - [Stable-WorldModel 训练](docs/StableWM_Training.md)：内置参考模型的可复现训练入口；

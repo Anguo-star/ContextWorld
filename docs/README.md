@@ -1,12 +1,11 @@
 # ContextWorld 文档导航
 
-文档按读者用途分为三层：公开使用、结果复现和仓库维护。运行 Training 或 Development
-评测只需要第一层文档；历史协议和维护记录不是使用 benchmark 的前置知识。
+**先读 [ContextWorld 统一技术报告](ContextWorld_ICL_Benchmark.md)。** 任务定义、数据版本、完整模型与训练方案对比、主要发现均在这一页维护。其他文档只承担数据、训练、接入和复现操作说明；历史协议不是使用 benchmark 的前置知识。
 
 ## 公开使用
 
 1. [项目首页](../README.md)：任务概览、安装和最短运行示例；
-2. [Benchmark 规范](ContextWorld_ICL_Benchmark.md)：数据、指标、九项任务、参考结果和报告规则；
+2. [统一技术报告](ContextWorld_ICL_Benchmark.md)：数据、指标、九任务最新总表、冻结参考和结果解释；
 3. [数据生成方法](Data_Generation.md)：连续仿真、配对构造、拆分隔离和九项任务的生成来源；
 4. [HF 数据集指南](HF_Dataset_Export.md)：v3 发布候选目录、下载与加载方式；
 5. [外部模型 Adapter 规范](External_Model_Adapter_Contract.md)：接入新模型所需的统一接口；
@@ -15,11 +14,7 @@
 九项任务在 Benchmark 规范中按隐藏动力学类型组织，而不是按环境数量组织。每项任务均
 报告自己的 ICL 分数，不计算跨任务总分；原任务规划保持分析单列附录。
 
-## 后续研究结果
-
-[数据覆盖与初始化](research/Training_Data_and_Initialization.md)报告三模型六任务的36个训练配置，
-说明数据覆盖、初始化及条件响应的差异。它使用Development划分，不替换冻结v3的Test参考。
-表格来自同页链接的机器可读汇总；历史实验过程不作为阅读前提。
+最新结果直接见[九任务训练方式比较](ContextWorld_ICL_Benchmark.md#training-comparison)。总览、完整指标和 Speed 分布结果由同一份 [JSON](research/data/icl_training_study_v2.json) 生成，也提供 [CSV](research/data/icl_training_study_v2.csv)。不再单独维护另一份当前研究报告。
 
 ## 任务导航
 
@@ -56,4 +51,4 @@ Test 使用 `ContextWorld-v1-full`；发布候选 `ContextWorld-v3-hf` 汇集这
 目前 Training、Development 和 Test 数据包已在本地完成发布候选组装，但稳定的公开数据集
 修订尚未公布；Test 通过离线评分入口用于最终报告。
 
-Next dataset release: [expanded-training preparation and acceptance checklist](Expanded_Training_Release.md).
+扩量训练数据的打包与发布准备见[发布说明](Expanded_Training_Release.md)。研究结果仍以统一技术报告为准。

@@ -28,9 +28,9 @@ Use Training for optimization, Development for model and recipe selection, and T
 
 ## Available evidence and limitations
 
-The accompanying study includes six tasks × three models × two initialization conditions, one training seed per condition. DINO-WM initialization involves parameter projection rather than a function-equivalent full checkpoint transfer. The study reports Development results, not full benchmark pass rates. The remaining three tasks were not rerun under this study.
+The [ContextWorld technical report](https://github.com/Anguo-star/ContextWorld/blob/main/docs/ContextWorld_ICL_Benchmark.md#training-comparison) is the single source for reported results and their interpretation. It includes all nine tasks with three-model native ICL scratch results and six-task LeWM/PLDM comparisons of full-model warmstart versus freezing the encoder. These are single-training-seed Development results; missing regimes are explicitly marked.
 
-Synthetic task coverage, model objective and initialization all affect results. The observations do not establish a universal data-scaling law or identify sample count as the sole cause of failure.
+New DINO-WM original models use only pixels and actions. Older projected-initialization results are retained separately and must not be presented as complete weight transfer from these new models. Changes in data coverage, representation updates and training initialization affect different tasks differently; the results do not establish sample count as the sole cause of failure or a universal scaling law.
 
 ## License and attribution
 

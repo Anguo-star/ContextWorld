@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate research tables from the published aggregate; --check detects drift."""
+"""Reproduce the archived 2026-09-21 tables; current report uses render_training_comparison.py."""
 import argparse,json,pathlib,re
 ROOT=pathlib.Path(__file__).resolve().parents[1]
 p=argparse.ArgumentParser(description=__doc__);p.add_argument('--check',action='store_true');args=p.parse_args()
@@ -19,7 +19,7 @@ def table(a,b,precision):
  return '\n'.join(lines)
 ref=['| 任务 | 原权重 ICL / CEM | 较小数据scratch ICL / CEM |','|---|---:|---:|']
 for r,(_,label) in zip(data['lewm_historical_reference'],tasks):ref.append(f"| {label} | {r['original_icl_percent']:.2f} / {r['original_cem_percent']:.2f} | {r['small_scratch_icl_percent']:.2f} / {r['small_scratch_cem_percent']:.2f} |")
-path=ROOT/'docs/research/Training_Data_and_Initialization.md';old=path.read_text();new=old
+path=ROOT/'docs/archive/Training_Data_and_Initialization_2026-09-21.md';old=path.read_text();new=old
 for name,value in [('RESULTS',table('icl_accuracy_percent','cem_success_rate_percent',2)),('RESPONSE',table('response_gain','normalized_response_error',3)),('REFERENCE','\n'.join(ref))]:
  pattern=f'<!-- BEGIN GENERATED {name} -->.*?<!-- END GENERATED {name} -->';new,count=re.subn(pattern,f'<!-- BEGIN GENERATED {name} -->\n{value}\n<!-- END GENERATED {name} -->',new,flags=re.S);assert count==1
 if args.check:

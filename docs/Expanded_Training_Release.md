@@ -2,23 +2,23 @@
 
 This is the preparation plan for the next ContextWorld dataset release. **It is not an uploaded release or an accepted replacement for the frozen v3 benchmark.** The proposed dataset version is `expanded-training-v1`; the final tag will be assigned after package validation.
 
-The [training study](research/Training_Data_and_Initialization.md) covers six tasks, three models and two initialization conditions: 36 runs, with one training seed per condition. DINO-WM uses projected initialization rather than function-equivalent warmstart. These Development results establish useful comparisons; they do not establish a nine-task, multi-seed Test baseline.
+Task definitions, all reported results, training regimes and scientific interpretation are maintained in the [ContextWorld technical report](ContextWorld_ICL_Benchmark.md#training-comparison). This page only describes dataset packaging and release checks. The current study includes native ICL scratch results for all nine tasks and encoder-freeze comparisons for six tasks; reported and unmeasured regimes are distinguished in the report.
 
 ## What is included
 
-| Task | Proposed Training data | New three-model initialization study |
-|---|---|---|
-| Action Strength | 32k pairs | Complete |
-| Contact Friction | 32k pairs | Complete |
-| Motion Damping | 32k pairs | Complete |
-| Robot Arm Mass | 32k pairs | Complete |
-| Cube Gripper Carry | 10k independent source episodes | Complete |
-| Portal Exit | 32k coverage expansion | Complete |
-| Speed | Inherited v3 data | Not rerun |
-| Action Delay | Inherited v3 data | Not rerun |
-| Door | Inherited v3 data | Not rerun |
+| Task | Proposed Training data |
+|---|---|
+| Action Strength | 32,768 pairs |
+| Contact Friction | 32,768 pairs |
+| Motion Damping | 32,768 pairs |
+| Robot Arm Mass | 32,768 pairs |
+| Cube Gripper Carry | 10,000 pairs from 10,000 independent source episodes |
+| Portal Exit | 32,768 pairs with expanded physical coverage |
+| Speed | Inherited v3 data |
+| Action Delay | Inherited v3 data |
+| Door | Inherited v3 data |
 
-Counts measure different sampling units and should not be treated as equal numbers of independent episodes. See the study's data coverage table. Development and Test are inherited from the frozen sources, not regenerated alongside expanded Training data. Existing v3 reference results remain attached to v3; they must not be relabeled as results from the new Training data.
+Counts measure different sampling units and should not be treated as equal numbers of independent episodes. Coverage definitions are in the technical report. Development and Test are inherited from frozen sources, not regenerated alongside expanded Training data. Existing v3 results remain attached to v3 and must not be relabeled as results from expanded Training data.
 
 ## Proposed Hugging Face layout
 
@@ -52,7 +52,7 @@ This reads manifests, checks expanded Training identities against the published 
 1. Assemble files under a new versioned root. Validate every selected file's size and SHA256, including Lance metadata and data fragments; reject truncated files.
 2. Merge task registries, preserve evaluation contracts and normalizers, and verify all references against the assembled package.
 3. Load each task and split with the released loader. Use Development for smoke evaluation; keep Test for final reporting under the chosen acceptance protocol.
-4. Decide the reference scope explicitly. A complete new nine-task baseline requires the missing task/model/initialization coverage and the declared seed and Test requirements. Alternatively, publish the data with the six-task exploratory study clearly labeled as such.
+4. Declare the reference scope: dataset version, tasks, models, training regimes, seeds and evaluation split. Publish only observed results under that scope; unmeasured experimental regimes need not be filled merely to make a rectangular table. Development research results must not be relabeled as final Test scores.
 5. Finalize the dataset card, attribution, version, download instructions and result identities. Retain v3 as a separate reproducible release.
 
-No HF upload is authorized by this preparation step. Publication is a separate action after the assembled package and its claims are ready.
+No dataset has been uploaded by this preparation procedure. A public release requires a validated package and a pinned download revision.

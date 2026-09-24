@@ -43,8 +43,11 @@ def test_cube_release_uses_the_five_part_benchmark_template() -> None:
     assert "源轨迹、动作模板、场景、配对内容和 query 画面互不重叠" in section
     assert "外部模型使用独立结果身份" in section
     assert "公开分发仍须补齐许可证和稳定下载地址" in section
-    assert "77.73%、79.10% 和 78.52%" in section
-    assert "186、183、185/300" in section
+    # The task card now describes frozen v3; earlier v4r1 recipe scores
+    # must not be required or reintroduced as the current reference.
+    assert "当前 v3 三训练种子结果" in section
+    assert "LeWM 50.00% ± 0.00pp" in section
+    assert "77.73%、79.10% 和 78.52%" not in section
 
 
 def test_cube_release_adds_suite_v2_without_rewriting_suite_v1() -> None:
