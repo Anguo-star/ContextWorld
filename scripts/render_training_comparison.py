@@ -33,6 +33,7 @@ DOC = REPO / "docs" / "ContextWorld_ICL_Benchmark.md"
 APPENDIX_DOC = REPO / "docs" / "reference" / "Benchmark_Result_Provenance.md"
 JSON_PATH = REPO / "docs" / "research" / "data" / "icl_training_study_v2.json"
 CSV_PATH = REPO / "docs" / "research" / "data" / "icl_training_study_v2.csv"
+DECISION_PATH = REPO / "docs" / "research" / "data" / "icl_action_selection_v1.json"
 
 TASK_ORDER = ["speed", "action_strength", "robot_arm_mass", "action_delay",
               "contact_friction", "motion_damping", "cube_gripper_carry", "door", "portal_exit"]
@@ -65,7 +66,7 @@ LEWM_STRENGTH_JOINT_IDS = ["action_strength/lewm/joint/scale_2k",
                            "action_strength/lewm/joint"]
 
 DETAIL_MARKERS = {task: "DETAIL_" + task.upper() for task in TASK_ORDER}
-MAIN_MARKERS = ["OVERVIEW"] + [DETAIL_MARKERS[t] for t in TASK_ORDER] + ["SCALING"]
+MAIN_MARKERS = ["OVERVIEW", "DECISION"] + [DETAIL_MARKERS[t] for t in TASK_ORDER] + ["SCALING"]
 APPENDIX_MARKERS = ["HISTORICAL"]
 MARKERS = MAIN_MARKERS + APPENDIX_MARKERS
 
@@ -474,8 +475,27 @@ def render_historical(rows):
     return "\n".join(_markdown_table(header, body))
 
 
+def render_decision():
+    """Simulator-based action selection is reported separately from latent scores."""
+    evidence = json.loads(DECISION_PATH.read_text(encoding="utf-8"))
+    header = ["模型", "方案", "动作 regret↓", "正确历史收益↑（95%区间）", "真实未来编码 regret↓"]
+    body = []
+    rows = sorted(evidence["rows"], key=lambda r: (
+        MODEL_ORDER.index(r["training_comparison_id"].split("/")[1]),
+        REGIME_ORDER.index(r["training_comparison_id"].split("/")[2])))
+    for row in rows:
+        _, model, regime = row["training_comparison_id"].split("/")
+        lo, hi = row["history_benefit_ci95"]
+        benefit = f"{row['history_benefit']:.3f} [{lo:.3f}, {hi:.3f}]"
+        body.append("| " + " | ".join([
+            MODEL_ZH[model], REGIME_ZH[regime], f3(row["correct_regret"]),
+            benefit, f3(row["encoded_true_future_regret"])]) + " |")
+    return "\n".join(_markdown_table(header, body))
+
+
 def build_blocks(rows):
     blocks = {"OVERVIEW": render_overview(rows),
+              "DECISION": render_decision(),
               "SCALING": render_scaling(rows),
               "HISTORICAL": render_historical(rows)}
     for task, marker in DETAIL_MARKERS.items():
