@@ -199,7 +199,8 @@ def test_public_document_uses_overview_and_task_detail_tables() -> None:
         current = [r for r in renderer.ordered_current(rows, task)
                    if any(st["n"] for st in renderer.display_stats(r)[0].values())]
         expected_labels = [
-            (renderer.MODEL_ZH[r["model"]], renderer.scheme_label(r)) for r in current
+            (renderer.MODEL_ZH[r["model"]], renderer.scheme_label(r))
+            for r in current for _ in range(4 if task == "speed" else 1)
         ]
         summary = [line for line in detail_body if len(line.split("|")) == len(lines[0].split("|"))]
         rendered = [(line.split("|")[1].strip(), line.split("|")[2].strip()) for line in summary]
@@ -208,13 +209,13 @@ def test_public_document_uses_overview_and_task_detail_tables() -> None:
         assert "n(ICL)" in lines[0] and "n(CEM)" in lines[0] and "CEM↑" in lines[0]
         assert "历史转换初始化" not in "\n".join(detail_body)
         assert "2k" not in "\n".join(detail_body) and "10k 独立来源" not in "\n".join(detail_body)
+        assert sum(line.startswith("| 模型") for line in lines) == 1
         if task == "speed":
-            track_rows = [line for line in detail_body if line not in summary]
-            assert len(track_rows) == 4 * len(current)  # four distributions, not four tasks
-            track_table_header = [line for line in lines if "速度分布" in line][0]
-            assert "CEM" not in track_table_header  # CEM is reported once, in the summary
+            assert len(detail_body) == 4 * len(current)
+            assert "评测条件" in lines[0]
             for label in ("低端外推", "高端外推", "未见速度插值", "训练中已见速度"):
-                assert label in "\n".join(track_rows)
+                assert label in "\n".join(detail_body)
+            assert "同组" in tasks
         if task in ("speed", "action_delay", "door"):
             assert "Joint↑" not in lines[0]  # Undefined metrics do not need empty columns
         if task == "action_delay":

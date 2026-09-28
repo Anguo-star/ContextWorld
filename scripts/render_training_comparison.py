@@ -351,13 +351,13 @@ def plain_stat(key, st):
 
 
 def _markdown_table(header, body):
-    align = ["---" if h in ("模型", "方案", "任务", "训练数据", "速度分布") else "---:" for h in header]
+    align = ["---" if h in ("模型", "方案", "任务", "训练数据", "评测条件") else "---:" for h in header]
     return ["| " + " | ".join(header) + " |", "| " + " | ".join(align) + " |"] + body
 
 
 def render_overview(rows):
     """Eleven model/scheme rows, with nine task cells (mean ICL / mean CEM)."""
-    header = ["模型", "方案"] + [TASK_ZH[t] for t in TASK_ORDER]
+    header = ["模型", "方案"] + [f"[{TASK_ZH[t]}](#task-{t.replace('_', '-')})" for t in TASK_ORDER]
     body = []
     for (model, regime), tasks in overview_groups(rows):
         cells = []
@@ -373,35 +373,37 @@ def render_overview(rows):
 
 
 def render_detail(task, rows):
-    """Per-task table of the current ordinary rows (plus Speed's four-track breakdown)."""
+    """One table per task; Speed conditions share the same original-environment CEM."""
     task_rows = ordered_current(rows, task)
     keys = [k for k in DISPLAY if not (k == "joint" and task in JOINT_NA_TASKS)
             and not (k == "history" and task == "speed")]
-    header = ["模型", "方案", "n(ICL)", "n(CEM)"] + [DISPLAY_LABEL[k] for k in keys]
+    header = (["模型", "方案"] + (["评测条件"] if task == "speed" else [])
+              + ["n(ICL)", "n(CEM)"] + [DISPLAY_LABEL[k] for k in keys])
     body = []
     for r in task_rows:
         metrics, agg = display_stats(r)
         if not any(st["n"] for st in metrics.values()):
             continue
+        if task == "speed":
+            # The overview uses unseen interpolation. Put it first and attach the
+            # shared CEM result to that row only; other conditions are not new CEM runs.
+            tracks = [SPEED_MAIN_TRACK] + [t for t in SPEED_TRACKS if t != SPEED_MAIN_TRACK]
+            for track in tracks:
+                st = with_response(agg["speed_tracks"].get(track) or {})
+                st["cem"] = agg["scores"]["cem"]
+                shared_cem = track != SPEED_MAIN_TRACK
+                body.append("| " + " | ".join(
+                    [MODEL_ZH[r["model"]], scheme_label(r), TRACK_ZH[track],
+                     str(st.get("main", {"n": 0})["n"]),
+                     "同组" if shared_cem else str(st["cem"]["n"])]
+                    + ["同组" if k == "cem" and shared_cem else stat_cell(r, k, st.get(k))
+                       for k in keys]) + " |")
+            continue
         body.append("| " + " | ".join(
             [MODEL_ZH[r["model"]], scheme_label(r), str(metrics["main"]["n"]),
              str(agg["scores"]["cem"]["n"])]
             + [stat_cell(r, k, metrics.get(k)) for k in keys]) + " |")
-    out = _markdown_table(header, body)
-    if task == "speed":
-        track_keys = [k for k in keys if k != "cem"]
-        track_header = ["模型", "方案", "速度分布", "n"] + [DISPLAY_LABEL[k] for k in track_keys]
-        track_body = []
-        for r in task_rows:
-            agg = aggregate(r)
-            for track in SPEED_TRACKS:
-                st = with_response(agg["speed_tracks"].get(track) or {})
-                track_body.append("| " + " | ".join(
-                    [MODEL_ZH[r["model"]], scheme_label(r), TRACK_ZH[track],
-                     str((st.get("main") or {"n": 0})["n"])]
-                    + [stat_cell(r, k, st.get(k)) for k in track_keys]) + " |")
-        out = out + [""] + _markdown_table(track_header, track_body)
-    return "\n".join(out)
+    return "\n".join(_markdown_table(header, body))
 
 
 def scale_label(row):

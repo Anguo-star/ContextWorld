@@ -298,19 +298,27 @@ def test_speed_four_tracks_are_distributions_not_tasks(rtc):
     assert metrics["main"]["mean"] == pytest.approx(95.0)  # main report = unseen interpolation
 
 
-def test_speed_detail_reports_tracks_separately_without_repeating_cem(rtc, published_rows):
+def test_speed_uses_one_condition_table_and_shares_original_cem(rtc, published_rows):
     text = rtc.render_detail("speed", published_rows)
     lines = [l for l in text.splitlines() if l.startswith("|")]
-    body = [l for l in lines[2:] if not l.startswith("| ---") and not l.startswith("| 模型")]
-    summary = [l for l in body if len(l.split("|")) == len(lines[0].split("|"))]
-    tracks = [l for l in body if l not in summary]
+    assert sum(l.startswith("| 模型") for l in lines) == 1
+    header = [c.strip() for c in lines[0].split("|")[1:-1]]
+    body = [[c.strip() for c in l.split("|")[1:-1]] for l in lines[2:]]
     current = rtc.ordered_current(published_rows, "speed")
-    assert len(summary) == len(current) == 11  # one row per scheme, not per distribution
-    assert len(tracks) == 4 * len(current)
-    assert sum("CEM↑" in l for l in lines) == 1  # CEM appears exactly once
-    for label in ("训练中已见速度", "未见速度插值", "低端外推", "高端外推"):
-        assert any(label in l for l in tracks)
-    # No seed ids leak into the rendered tables.
+    assert len(body) == 4 * len(current) == 44
+    ci, ni, mi = (header.index(k) for k in ("CEM↑", "n(CEM)", "主分↑"))
+    for i, row in enumerate(current):
+        group = body[4*i:4*i+4]
+        agg = rtc.aggregate(row)
+        assert group[0][2] == "未见速度插值"
+        assert {line[2] for line in group} == set(rtc.TRACK_ZH.values())
+        assert group[0][ci] == rtc.stat_cell(row, "cem", agg["scores"]["cem"])
+        assert group[0][ni] == str(agg["scores"]["cem"]["n"])
+        for line in group:
+            track = next(t for t, label in rtc.TRACK_ZH.items() if label == line[2])
+            assert line[mi] == rtc.stat_cell(row, "main", agg["speed_tracks"][track]["main"])
+        assert all(line[ci] == line[ni] == "同组" for line in group[1:])
+    assert "History↑" not in header and "Joint↑" not in header
     assert not any("3072" in l or "3073" in l for l in lines)
 
 
@@ -324,7 +332,10 @@ def test_each_measured_current_row_renders_in_its_own_task_detail(rtc, published
                   for l in text.splitlines()
                   if l.startswith("|") and len(l.split("|")) == width and "---" not in l
                   and not l.startswith("| 模型")]
-        assert labels == [(rtc.MODEL_ZH[r["model"]], rtc.scheme_label(r)) for r in current]
+        repeats = 4 if task == "speed" else 1
+        assert labels == [(rtc.MODEL_ZH[r["model"]], rtc.scheme_label(r))
+                          for r in current for _ in range(repeats)]
+        assert text.count("| 模型 |") == 1
         assert "历史转换初始化" not in text  # projected rows only live in the appendix
         assert "2k" not in text and "32k" not in text  # scale variants stay in SCALING
 
