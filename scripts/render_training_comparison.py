@@ -44,7 +44,7 @@ COLS = (["id", "task", "task_zh", "model", "regime", "measurement_status", "evid
          "training_dataset_manifest_sha256", "training_data_version", "training_history_length", "evaluation_history_tokens",
          "frozen_encoder_semantics", "initialization_mode", "init_weights_sha256",
          "checkpoint_sha256", "result_sha256", "metric_name", "evaluation_split",
-         "cem_reference_scope", "cem_evaluation_count", "cem_budget"] + ["score_" + k for k in ALL]
+         "cem_reference_scope", "cem_evaluation_count", "cem_budget", "comparison_variant", "training_pair_count"] + ["score_" + k for k in ALL]
         + [f"cem_seed{s}_percent" for s in range(42, 48)] + ["speed_tracks_present"])
 
 
@@ -74,8 +74,15 @@ def validate(doc):
         if rid in seen:
             raise Fail(f"duplicate row id {rid}")
         seen.add(rid)
-        if rid != f"{r['task']}/{r['model']}/{r['regime']}":
+        expected_id = f"{r['task']}/{r['model']}/{r['regime']}"
+        if r.get("comparison_variant"):
+            expected_id += "/" + r["comparison_variant"]
+        if rid != expected_id:
             raise Fail(f"id contradicts task/model/regime: {rid}")
+        variant = r.get("comparison_variant")
+        if variant and (variant not in ("scale_2k", "scale_8k") or
+                        r.get("training_pair_count") != {"scale_2k": 2048, "scale_8k": 8192}[variant]):
+            raise Fail(f"data scale contradicts comparison variant: {rid}")
         if r["measurement_status"] not in ("available", "not_measured"):
             raise Fail(f"bad measurement_status {rid}")
         for k, v in r["scores"].items():
@@ -121,6 +128,10 @@ def validate_csv(doc, rows):
     for r, c in zip(rows, body):
         if c[0] != r["id"] or c[1] != r["task"] or c[3] != r["model"] or c[4] != r["regime"]:
             raise Fail(f"CSV row identity mismatch near {c[0]}")
+        for key in ("comparison_variant", "training_pair_count"):
+            expected_value = "" if r.get(key) is None else str(r[key])
+            if c[COLS.index(key)] != expected_value:
+                raise Fail(f"CSV/JSON mismatch {key} in {r['id']}")
         for i, k in enumerate(ALL):
             jv, cv = r["scores"][k], c[COLS.index("score_" + k)]
             if jv is None:
@@ -144,7 +155,7 @@ def write_csv(rows):
                 (r.get("frozen_encoder_semantics") or {}).get("semantics"),
                 r["initialization_mode"], r["init_weights_sha256"], r["checkpoint_sha256"],
                 r["result_sha256"], r["metric_name"], r["evaluation_split"], r["cem_reference_scope"],
-                r["cem_evaluation_count"], r["cem_budget"],
+                r["cem_evaluation_count"], r["cem_budget"], r.get("comparison_variant"), r.get("training_pair_count"),
             ] + [r["scores"][k] for k in ALL]
               + [seeds.get(s) for s in range(42, 48)]
               + ["yes" if r.get("speed_tracks") else "no"])
@@ -154,7 +165,8 @@ def write_csv(rows):
 def table_records(rows):
     """Every declared configuration appears, with Speed distributions kept distinct."""
     selected = sorted(rows, key=lambda r: (TASK_ORDER.index(r["task"]),
-        MODEL_ORDER.index(r["model"]), tuple(REGIME_ZH).index(r["regime"])))
+        MODEL_ORDER.index(r["model"]), tuple(REGIME_ZH).index(r["regime"]),
+        r.get("training_pair_count") or 0))
     records = []
     for r in selected:
         tracks = r.get("speed_tracks") or {}
@@ -180,11 +192,12 @@ def data_label(r):
         return "原环境"
     if not r.get("training_data_version"):
         return "—"
-    version = r["training_data_version"]
-    if "10k-independent" in version:
-        return "混合 / 10k 独立来源"
-    if "32k" in version:
-        return "混合 / 32k"
+    count = r.get("training_pair_count")
+    if count is not None:
+        label = {2048: "2k", 8192: "8k", 10000: "10k 独立来源", 32768: "32k"}.get(count, f"{count:,}")
+        if r["task"] == "portal_exit" and "coverage-v2" in r["training_data_version"]:
+            label += " 覆盖扩展"
+        return "混合 / " + label
     return "混合 / 基础版"
 
 

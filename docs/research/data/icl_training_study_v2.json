@@ -4,21 +4,22 @@
   "description": "Sanitized public aggregate of the ContextWorld nine-task training study (original weights vs from-scratch vs two-stage joint/frozen). Scores are exact and unrounded; percent metrics except gain/alignment/nre.",
   "evidence_public": false,
   "evidence_note": "Raw artifacts (query files, per-episode metrics, run receipts) are not publicly distributed; only aggregated scores and hashes are published.",
-  "source_matrix_sha256": "a81ee2a45913bbfa12cf193e9e0cefcc24324d4c2b28c32eab6e5aa35d58b505",
+  "source_matrix_sha256": "6f9c5db488104f5ab85063d45eb79356ffa79360002fb21dde1b34b0f3ff8ec2",
   "source_matrix_schema": "contextworld.nine-task-training-matrix.v1",
   "counts": {
-    "matrix_rows": 105,
-    "exported_rows": 105,
-    "icl_scored_rows": 94,
+    "matrix_rows": 125,
+    "exported_rows": 125,
+    "icl_scored_rows": 114,
     "not_measured_rows": 11,
-    "measured_main_icl_rows_excluding_legacy_projected": 88,
+    "measured_main_icl_rows_excluding_legacy_projected": 108,
     "legacy_projected_reference_rows": 6,
     "h3_tail_diagnostic_rows": 2,
     "rows_with_speed_tracks": 11,
-    "h3_original_delay_reference_rows": 3
+    "h3_original_delay_reference_rows": 3,
+    "data_scale_comparison_rows": 20
   },
   "field_definitions": {
-    "id": "task/model/regime",
+    "id": "task/model/regime, with optional /scale_2k or /scale_8k for smaller-data comparisons.",
     "model": "lewm | pldm | dinowm",
     "regime": "original (published original weights) | scratch | joint (stage-2 joint) | frozen (stage-2 frozen encoder) | projected (legacy DINO projected init)",
     "measurement_status": "available = ICL Development scores exist; not_measured = absent",
@@ -38,7 +39,9 @@
     "cem_per_seed": "per-eval-seed CEM success rates with per-seed episode budget",
     "speed_tracks": "speed-task track breakdown (never pooled across tracks or horizons)",
     "training_data_version": "Named Training bundle used by the reported run; null if no bundle identity exists.",
-    "cem_evaluation_count": "Number of original-environment planning evaluations; historical reference protocol may differ."
+    "cem_evaluation_count": "Number of original-environment planning evaluations; historical reference protocol may differ.",
+    "comparison_variant": "Optional smaller training-data scale for a matched-regime comparison; null denotes the main study configuration.",
+    "training_pair_count": "Number of synthetic Training pairs for the six paired tasks, not the number of independent source episodes; null for original-only, unreported or other tasks."
   },
   "metric_definitions": {
     "units": "percent (0-100) for main, worst, history, switch, joint, calibrated, cem; dimensionless ratios for gain, alignment, nre",
@@ -144,7 +147,9 @@
       "training_code_sha256": null,
       "evaluation_stablewm_commit": "ad2bc44579f2b5b65c004fd2c9d8edc8ebaa43ce",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": null
     },
     {
       "id": "action_delay/lewm/scratch",
@@ -226,7 +231,9 @@
       "training_code_sha256": "9e49059000fb9b95ebcbcf9c3d52027115df5ce64a862cf251b2bb93914ded52",
       "evaluation_stablewm_commit": "c0e79230fa8baccc33c1615b5462f41f22eca0c7",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": null
     },
     {
       "id": "action_delay/lewm/joint",
@@ -270,7 +277,9 @@
       "training_code_sha256": null,
       "evaluation_stablewm_commit": null,
       "cem_evaluation_count": null,
-      "cem_budget": null
+      "cem_budget": null,
+      "comparison_variant": null,
+      "training_pair_count": null
     },
     {
       "id": "action_delay/lewm/frozen",
@@ -314,7 +323,9 @@
       "training_code_sha256": null,
       "evaluation_stablewm_commit": null,
       "cem_evaluation_count": null,
-      "cem_budget": null
+      "cem_budget": null,
+      "comparison_variant": null,
+      "training_pair_count": null
     },
     {
       "id": "action_delay/pldm/original",
@@ -398,7 +409,9 @@
       "training_code_sha256": null,
       "evaluation_stablewm_commit": "ad2bc44579f2b5b65c004fd2c9d8edc8ebaa43ce",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": null
     },
     {
       "id": "action_delay/pldm/scratch",
@@ -480,7 +493,9 @@
       "training_code_sha256": "2083d9d83d475f50e50cc9c7e9fa4f7a2c1477fd44208e62223d1950e7de9038",
       "evaluation_stablewm_commit": "6ab823fdc6921c95089992ed49c39e431e21ca4a",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": null
     },
     {
       "id": "action_delay/pldm/joint",
@@ -524,7 +539,9 @@
       "training_code_sha256": null,
       "evaluation_stablewm_commit": null,
       "cem_evaluation_count": null,
-      "cem_budget": null
+      "cem_budget": null,
+      "comparison_variant": null,
+      "training_pair_count": null
     },
     {
       "id": "action_delay/pldm/frozen",
@@ -568,7 +585,9 @@
       "training_code_sha256": null,
       "evaluation_stablewm_commit": null,
       "cem_evaluation_count": null,
-      "cem_budget": null
+      "cem_budget": null,
+      "comparison_variant": null,
+      "training_pair_count": null
     },
     {
       "id": "action_delay/dinowm/original",
@@ -652,7 +671,9 @@
       "training_code_sha256": null,
       "evaluation_stablewm_commit": null,
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": null
     },
     {
       "id": "action_delay/dinowm/scratch",
@@ -740,7 +761,9 @@
       "training_code_sha256": "16f911753b34887270f4e64555b77f1b229ebc53ed8688471162c1a7975cf9bd",
       "evaluation_stablewm_commit": "6ab823fdc6921c95089992ed49c39e431e21ca4a",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": null
     },
     {
       "id": "action_delay/dinowm/frozen",
@@ -784,7 +807,9 @@
       "training_code_sha256": null,
       "evaluation_stablewm_commit": null,
       "cem_evaluation_count": null,
-      "cem_budget": null
+      "cem_budget": null,
+      "comparison_variant": null,
+      "training_pair_count": null
     },
     {
       "id": "door/lewm/original",
@@ -866,7 +891,9 @@
       "training_code_sha256": null,
       "evaluation_stablewm_commit": "875e607fc08aa72eacb94d5d178127804134cc06",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": null
     },
     {
       "id": "door/lewm/scratch",
@@ -948,7 +975,9 @@
       "training_code_sha256": "9e49059000fb9b95ebcbcf9c3d52027115df5ce64a862cf251b2bb93914ded52",
       "evaluation_stablewm_commit": "e7295568848031f7fa3cd68f26e218d365c838d9",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": null
     },
     {
       "id": "door/lewm/joint",
@@ -1030,7 +1059,9 @@
       "training_code_sha256": "9e49059000fb9b95ebcbcf9c3d52027115df5ce64a862cf251b2bb93914ded52",
       "evaluation_stablewm_commit": null,
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": null
     },
     {
       "id": "door/lewm/frozen",
@@ -1119,7 +1150,9 @@
       "training_code_sha256": "9e49059000fb9b95ebcbcf9c3d52027115df5ce64a862cf251b2bb93914ded52",
       "evaluation_stablewm_commit": null,
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": null
     },
     {
       "id": "door/pldm/original",
@@ -1201,7 +1234,9 @@
       "training_code_sha256": null,
       "evaluation_stablewm_commit": "875e607fc08aa72eacb94d5d178127804134cc06",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": null
     },
     {
       "id": "door/pldm/scratch",
@@ -1283,7 +1318,9 @@
       "training_code_sha256": "2083d9d83d475f50e50cc9c7e9fa4f7a2c1477fd44208e62223d1950e7de9038",
       "evaluation_stablewm_commit": "6ab823fdc6921c95089992ed49c39e431e21ca4a",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": null
     },
     {
       "id": "door/pldm/joint",
@@ -1365,7 +1402,9 @@
       "training_code_sha256": "2083d9d83d475f50e50cc9c7e9fa4f7a2c1477fd44208e62223d1950e7de9038",
       "evaluation_stablewm_commit": null,
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": null
     },
     {
       "id": "door/pldm/frozen",
@@ -1454,7 +1493,9 @@
       "training_code_sha256": "2083d9d83d475f50e50cc9c7e9fa4f7a2c1477fd44208e62223d1950e7de9038",
       "evaluation_stablewm_commit": null,
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": null
     },
     {
       "id": "door/dinowm/original",
@@ -1542,7 +1583,9 @@
       "training_code_sha256": null,
       "evaluation_stablewm_commit": "1763bc582fc8ebb2f157859abbee979543dec1d1",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": null
     },
     {
       "id": "door/dinowm/scratch",
@@ -1630,7 +1673,9 @@
       "training_code_sha256": "dcfe1353f2931ae880802d047838afc9a704cccfbd2fac9ce6add979307fc317",
       "evaluation_stablewm_commit": "5396eb6677167eb3e6703d93e7521e9e7338a8fd",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": null
     },
     {
       "id": "door/dinowm/frozen",
@@ -1674,7 +1719,9 @@
       "training_code_sha256": null,
       "evaluation_stablewm_commit": null,
       "cem_evaluation_count": null,
-      "cem_budget": null
+      "cem_budget": null,
+      "comparison_variant": null,
+      "training_pair_count": null
     },
     {
       "id": "speed/lewm/original",
@@ -1801,7 +1848,9 @@
       "training_code_sha256": null,
       "evaluation_stablewm_commit": "875e607fc08aa72eacb94d5d178127804134cc06",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": null
     },
     {
       "id": "speed/lewm/scratch",
@@ -1928,7 +1977,9 @@
       "training_code_sha256": "9e49059000fb9b95ebcbcf9c3d52027115df5ce64a862cf251b2bb93914ded52",
       "evaluation_stablewm_commit": "6ab823fdc6921c95089992ed49c39e431e21ca4a",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": null
     },
     {
       "id": "speed/lewm/joint",
@@ -2055,7 +2106,9 @@
       "training_code_sha256": "9e49059000fb9b95ebcbcf9c3d52027115df5ce64a862cf251b2bb93914ded52",
       "evaluation_stablewm_commit": null,
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": null
     },
     {
       "id": "speed/lewm/frozen",
@@ -2189,7 +2242,9 @@
       "training_code_sha256": "9e49059000fb9b95ebcbcf9c3d52027115df5ce64a862cf251b2bb93914ded52",
       "evaluation_stablewm_commit": null,
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": null
     },
     {
       "id": "speed/pldm/original",
@@ -2316,7 +2371,9 @@
       "training_code_sha256": null,
       "evaluation_stablewm_commit": "875e607fc08aa72eacb94d5d178127804134cc06",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": null
     },
     {
       "id": "speed/pldm/scratch",
@@ -2443,7 +2500,9 @@
       "training_code_sha256": "2083d9d83d475f50e50cc9c7e9fa4f7a2c1477fd44208e62223d1950e7de9038",
       "evaluation_stablewm_commit": "c0e79230fa8baccc33c1615b5462f41f22eca0c7",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": null
     },
     {
       "id": "speed/pldm/joint",
@@ -2570,7 +2629,9 @@
       "training_code_sha256": "2083d9d83d475f50e50cc9c7e9fa4f7a2c1477fd44208e62223d1950e7de9038",
       "evaluation_stablewm_commit": null,
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": null
     },
     {
       "id": "speed/pldm/frozen",
@@ -2704,7 +2765,9 @@
       "training_code_sha256": "2083d9d83d475f50e50cc9c7e9fa4f7a2c1477fd44208e62223d1950e7de9038",
       "evaluation_stablewm_commit": null,
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": null
     },
     {
       "id": "speed/dinowm/original",
@@ -2837,7 +2900,9 @@
       "training_code_sha256": null,
       "evaluation_stablewm_commit": "1763bc582fc8ebb2f157859abbee979543dec1d1",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": null
     },
     {
       "id": "speed/dinowm/scratch",
@@ -2970,7 +3035,9 @@
       "training_code_sha256": "dcfe1353f2931ae880802d047838afc9a704cccfbd2fac9ce6add979307fc317",
       "evaluation_stablewm_commit": "5396eb6677167eb3e6703d93e7521e9e7338a8fd",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": null
     },
     {
       "id": "speed/dinowm/frozen",
@@ -3103,7 +3170,9 @@
       "training_code_sha256": "16f911753b34887270f4e64555b77f1b229ebc53ed8688471162c1a7975cf9bd",
       "evaluation_stablewm_commit": null,
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": null
     },
     {
       "id": "action_strength/lewm/original",
@@ -3185,7 +3254,9 @@
       "training_code_sha256": null,
       "evaluation_stablewm_commit": "875e607fc08aa72eacb94d5d178127804134cc06",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": null
     },
     {
       "id": "action_strength/lewm/scratch",
@@ -3267,7 +3338,9 @@
       "training_code_sha256": "9e49059000fb9b95ebcbcf9c3d52027115df5ce64a862cf251b2bb93914ded52",
       "evaluation_stablewm_commit": "c3dfc4431bfdba39ad05955752feca7939773103",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": 32768
     },
     {
       "id": "action_strength/lewm/joint",
@@ -3349,7 +3422,9 @@
       "training_code_sha256": "9e49059000fb9b95ebcbcf9c3d52027115df5ce64a862cf251b2bb93914ded52",
       "evaluation_stablewm_commit": "c34a107e787133468369e08f8f3efa2a43db67a2",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": 32768
     },
     {
       "id": "action_strength/lewm/frozen",
@@ -3437,7 +3512,9 @@
       "training_code_sha256": "9e49059000fb9b95ebcbcf9c3d52027115df5ce64a862cf251b2bb93914ded52",
       "evaluation_stablewm_commit": "1763bc582fc8ebb2f157859abbee979543dec1d1",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": 32768
     },
     {
       "id": "action_strength/pldm/original",
@@ -3519,7 +3596,9 @@
       "training_code_sha256": null,
       "evaluation_stablewm_commit": "875e607fc08aa72eacb94d5d178127804134cc06",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": null
     },
     {
       "id": "action_strength/pldm/scratch",
@@ -3601,7 +3680,9 @@
       "training_code_sha256": "2083d9d83d475f50e50cc9c7e9fa4f7a2c1477fd44208e62223d1950e7de9038",
       "evaluation_stablewm_commit": "c34a107e787133468369e08f8f3efa2a43db67a2",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": 32768
     },
     {
       "id": "action_strength/pldm/joint",
@@ -3683,7 +3764,9 @@
       "training_code_sha256": "2083d9d83d475f50e50cc9c7e9fa4f7a2c1477fd44208e62223d1950e7de9038",
       "evaluation_stablewm_commit": "c34a107e787133468369e08f8f3efa2a43db67a2",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": 32768
     },
     {
       "id": "action_strength/pldm/frozen",
@@ -3771,7 +3854,9 @@
       "training_code_sha256": "2083d9d83d475f50e50cc9c7e9fa4f7a2c1477fd44208e62223d1950e7de9038",
       "evaluation_stablewm_commit": "1763bc582fc8ebb2f157859abbee979543dec1d1",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": 32768
     },
     {
       "id": "action_strength/dinowm/original",
@@ -3859,7 +3944,9 @@
       "training_code_sha256": null,
       "evaluation_stablewm_commit": "1763bc582fc8ebb2f157859abbee979543dec1d1",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": null
     },
     {
       "id": "action_strength/dinowm/scratch",
@@ -3947,7 +4034,9 @@
       "training_code_sha256": "16f911753b34887270f4e64555b77f1b229ebc53ed8688471162c1a7975cf9bd",
       "evaluation_stablewm_commit": "c34a107e787133468369e08f8f3efa2a43db67a2",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": 32768
     },
     {
       "id": "action_strength/dinowm/frozen",
@@ -3991,7 +4080,9 @@
       "training_code_sha256": null,
       "evaluation_stablewm_commit": null,
       "cem_evaluation_count": null,
-      "cem_budget": null
+      "cem_budget": null,
+      "comparison_variant": null,
+      "training_pair_count": null
     },
     {
       "id": "action_strength/dinowm/projected",
@@ -4081,7 +4172,9 @@
       "training_code_sha256": "16f911753b34887270f4e64555b77f1b229ebc53ed8688471162c1a7975cf9bd",
       "evaluation_stablewm_commit": "c34a107e787133468369e08f8f3efa2a43db67a2",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": 32768
     },
     {
       "id": "contact_friction/lewm/original",
@@ -4163,7 +4256,9 @@
       "training_code_sha256": null,
       "evaluation_stablewm_commit": "875e607fc08aa72eacb94d5d178127804134cc06",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": null
     },
     {
       "id": "contact_friction/lewm/scratch",
@@ -4245,7 +4340,9 @@
       "training_code_sha256": "9e49059000fb9b95ebcbcf9c3d52027115df5ce64a862cf251b2bb93914ded52",
       "evaluation_stablewm_commit": "c3dfc4431bfdba39ad05955752feca7939773103",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": 32768
     },
     {
       "id": "contact_friction/lewm/joint",
@@ -4327,7 +4424,9 @@
       "training_code_sha256": "9e49059000fb9b95ebcbcf9c3d52027115df5ce64a862cf251b2bb93914ded52",
       "evaluation_stablewm_commit": "c3dfc4431bfdba39ad05955752feca7939773103",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": 32768
     },
     {
       "id": "contact_friction/lewm/frozen",
@@ -4415,7 +4514,9 @@
       "training_code_sha256": "9e49059000fb9b95ebcbcf9c3d52027115df5ce64a862cf251b2bb93914ded52",
       "evaluation_stablewm_commit": "1763bc582fc8ebb2f157859abbee979543dec1d1",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": 32768
     },
     {
       "id": "contact_friction/pldm/original",
@@ -4497,7 +4598,9 @@
       "training_code_sha256": null,
       "evaluation_stablewm_commit": "875e607fc08aa72eacb94d5d178127804134cc06",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": null
     },
     {
       "id": "contact_friction/pldm/scratch",
@@ -4579,7 +4682,9 @@
       "training_code_sha256": "2083d9d83d475f50e50cc9c7e9fa4f7a2c1477fd44208e62223d1950e7de9038",
       "evaluation_stablewm_commit": "c34a107e787133468369e08f8f3efa2a43db67a2",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": 32768
     },
     {
       "id": "contact_friction/pldm/joint",
@@ -4661,7 +4766,9 @@
       "training_code_sha256": "2083d9d83d475f50e50cc9c7e9fa4f7a2c1477fd44208e62223d1950e7de9038",
       "evaluation_stablewm_commit": "c34a107e787133468369e08f8f3efa2a43db67a2",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": 32768
     },
     {
       "id": "contact_friction/pldm/frozen",
@@ -4749,7 +4856,9 @@
       "training_code_sha256": "2083d9d83d475f50e50cc9c7e9fa4f7a2c1477fd44208e62223d1950e7de9038",
       "evaluation_stablewm_commit": "1763bc582fc8ebb2f157859abbee979543dec1d1",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": 32768
     },
     {
       "id": "contact_friction/dinowm/original",
@@ -4837,7 +4946,9 @@
       "training_code_sha256": null,
       "evaluation_stablewm_commit": "1763bc582fc8ebb2f157859abbee979543dec1d1",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": null
     },
     {
       "id": "contact_friction/dinowm/scratch",
@@ -4925,7 +5036,9 @@
       "training_code_sha256": "16f911753b34887270f4e64555b77f1b229ebc53ed8688471162c1a7975cf9bd",
       "evaluation_stablewm_commit": "c34a107e787133468369e08f8f3efa2a43db67a2",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": 32768
     },
     {
       "id": "contact_friction/dinowm/frozen",
@@ -4969,7 +5082,9 @@
       "training_code_sha256": null,
       "evaluation_stablewm_commit": null,
       "cem_evaluation_count": null,
-      "cem_budget": null
+      "cem_budget": null,
+      "comparison_variant": null,
+      "training_pair_count": null
     },
     {
       "id": "contact_friction/dinowm/projected",
@@ -5059,7 +5174,9 @@
       "training_code_sha256": "16f911753b34887270f4e64555b77f1b229ebc53ed8688471162c1a7975cf9bd",
       "evaluation_stablewm_commit": "c34a107e787133468369e08f8f3efa2a43db67a2",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": 32768
     },
     {
       "id": "motion_damping/lewm/original",
@@ -5141,7 +5258,9 @@
       "training_code_sha256": null,
       "evaluation_stablewm_commit": "875e607fc08aa72eacb94d5d178127804134cc06",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": null
     },
     {
       "id": "motion_damping/lewm/scratch",
@@ -5223,7 +5342,9 @@
       "training_code_sha256": "9e49059000fb9b95ebcbcf9c3d52027115df5ce64a862cf251b2bb93914ded52",
       "evaluation_stablewm_commit": "c3dfc4431bfdba39ad05955752feca7939773103",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": 32768
     },
     {
       "id": "motion_damping/lewm/joint",
@@ -5305,7 +5426,9 @@
       "training_code_sha256": "9e49059000fb9b95ebcbcf9c3d52027115df5ce64a862cf251b2bb93914ded52",
       "evaluation_stablewm_commit": "c3dfc4431bfdba39ad05955752feca7939773103",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": 32768
     },
     {
       "id": "motion_damping/lewm/frozen",
@@ -5393,7 +5516,9 @@
       "training_code_sha256": "9e49059000fb9b95ebcbcf9c3d52027115df5ce64a862cf251b2bb93914ded52",
       "evaluation_stablewm_commit": "1763bc582fc8ebb2f157859abbee979543dec1d1",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": 32768
     },
     {
       "id": "motion_damping/pldm/original",
@@ -5475,7 +5600,9 @@
       "training_code_sha256": null,
       "evaluation_stablewm_commit": "875e607fc08aa72eacb94d5d178127804134cc06",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": null
     },
     {
       "id": "motion_damping/pldm/scratch",
@@ -5557,7 +5684,9 @@
       "training_code_sha256": "2083d9d83d475f50e50cc9c7e9fa4f7a2c1477fd44208e62223d1950e7de9038",
       "evaluation_stablewm_commit": "c34a107e787133468369e08f8f3efa2a43db67a2",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": 32768
     },
     {
       "id": "motion_damping/pldm/joint",
@@ -5639,7 +5768,9 @@
       "training_code_sha256": "2083d9d83d475f50e50cc9c7e9fa4f7a2c1477fd44208e62223d1950e7de9038",
       "evaluation_stablewm_commit": "c34a107e787133468369e08f8f3efa2a43db67a2",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": 32768
     },
     {
       "id": "motion_damping/pldm/frozen",
@@ -5727,7 +5858,9 @@
       "training_code_sha256": "2083d9d83d475f50e50cc9c7e9fa4f7a2c1477fd44208e62223d1950e7de9038",
       "evaluation_stablewm_commit": "1763bc582fc8ebb2f157859abbee979543dec1d1",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": 32768
     },
     {
       "id": "motion_damping/dinowm/original",
@@ -5815,7 +5948,9 @@
       "training_code_sha256": null,
       "evaluation_stablewm_commit": "1763bc582fc8ebb2f157859abbee979543dec1d1",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": null
     },
     {
       "id": "motion_damping/dinowm/scratch",
@@ -5903,7 +6038,9 @@
       "training_code_sha256": "16f911753b34887270f4e64555b77f1b229ebc53ed8688471162c1a7975cf9bd",
       "evaluation_stablewm_commit": "c34a107e787133468369e08f8f3efa2a43db67a2",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": 32768
     },
     {
       "id": "motion_damping/dinowm/frozen",
@@ -5991,7 +6128,9 @@
       "training_code_sha256": "16f911753b34887270f4e64555b77f1b229ebc53ed8688471162c1a7975cf9bd",
       "evaluation_stablewm_commit": null,
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": 32768
     },
     {
       "id": "motion_damping/dinowm/projected",
@@ -6081,7 +6220,9 @@
       "training_code_sha256": "16f911753b34887270f4e64555b77f1b229ebc53ed8688471162c1a7975cf9bd",
       "evaluation_stablewm_commit": "c34a107e787133468369e08f8f3efa2a43db67a2",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": 32768
     },
     {
       "id": "robot_arm_mass/lewm/original",
@@ -6150,7 +6291,9 @@
       "training_code_sha256": null,
       "evaluation_stablewm_commit": "875e607fc08aa72eacb94d5d178127804134cc06",
       "cem_evaluation_count": 300,
-      "cem_budget": "3x100"
+      "cem_budget": "3x100",
+      "comparison_variant": null,
+      "training_pair_count": null
     },
     {
       "id": "robot_arm_mass/lewm/scratch",
@@ -6232,7 +6375,9 @@
       "training_code_sha256": "9e49059000fb9b95ebcbcf9c3d52027115df5ce64a862cf251b2bb93914ded52",
       "evaluation_stablewm_commit": "c3dfc4431bfdba39ad05955752feca7939773103",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": 32768
     },
     {
       "id": "robot_arm_mass/lewm/joint",
@@ -6314,7 +6459,9 @@
       "training_code_sha256": "9e49059000fb9b95ebcbcf9c3d52027115df5ce64a862cf251b2bb93914ded52",
       "evaluation_stablewm_commit": "c3dfc4431bfdba39ad05955752feca7939773103",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": 32768
     },
     {
       "id": "robot_arm_mass/lewm/frozen",
@@ -6402,7 +6549,9 @@
       "training_code_sha256": "9e49059000fb9b95ebcbcf9c3d52027115df5ce64a862cf251b2bb93914ded52",
       "evaluation_stablewm_commit": "1763bc582fc8ebb2f157859abbee979543dec1d1",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": 32768
     },
     {
       "id": "robot_arm_mass/pldm/original",
@@ -6471,7 +6620,9 @@
       "training_code_sha256": null,
       "evaluation_stablewm_commit": "875e607fc08aa72eacb94d5d178127804134cc06",
       "cem_evaluation_count": 300,
-      "cem_budget": "3x100"
+      "cem_budget": "3x100",
+      "comparison_variant": null,
+      "training_pair_count": null
     },
     {
       "id": "robot_arm_mass/pldm/scratch",
@@ -6553,7 +6704,9 @@
       "training_code_sha256": "2083d9d83d475f50e50cc9c7e9fa4f7a2c1477fd44208e62223d1950e7de9038",
       "evaluation_stablewm_commit": "c34a107e787133468369e08f8f3efa2a43db67a2",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": 32768
     },
     {
       "id": "robot_arm_mass/pldm/joint",
@@ -6635,7 +6788,9 @@
       "training_code_sha256": "2083d9d83d475f50e50cc9c7e9fa4f7a2c1477fd44208e62223d1950e7de9038",
       "evaluation_stablewm_commit": "c34a107e787133468369e08f8f3efa2a43db67a2",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": 32768
     },
     {
       "id": "robot_arm_mass/pldm/frozen",
@@ -6723,7 +6878,9 @@
       "training_code_sha256": "2083d9d83d475f50e50cc9c7e9fa4f7a2c1477fd44208e62223d1950e7de9038",
       "evaluation_stablewm_commit": "1763bc582fc8ebb2f157859abbee979543dec1d1",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": 32768
     },
     {
       "id": "robot_arm_mass/dinowm/original",
@@ -6811,7 +6968,9 @@
       "training_code_sha256": null,
       "evaluation_stablewm_commit": "1763bc582fc8ebb2f157859abbee979543dec1d1",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": null
     },
     {
       "id": "robot_arm_mass/dinowm/scratch",
@@ -6899,7 +7058,9 @@
       "training_code_sha256": "16f911753b34887270f4e64555b77f1b229ebc53ed8688471162c1a7975cf9bd",
       "evaluation_stablewm_commit": "c34a107e787133468369e08f8f3efa2a43db67a2",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": 32768
     },
     {
       "id": "robot_arm_mass/dinowm/frozen",
@@ -6943,7 +7104,9 @@
       "training_code_sha256": null,
       "evaluation_stablewm_commit": null,
       "cem_evaluation_count": null,
-      "cem_budget": null
+      "cem_budget": null,
+      "comparison_variant": null,
+      "training_pair_count": null
     },
     {
       "id": "robot_arm_mass/dinowm/projected",
@@ -7033,7 +7196,9 @@
       "training_code_sha256": "16f911753b34887270f4e64555b77f1b229ebc53ed8688471162c1a7975cf9bd",
       "evaluation_stablewm_commit": "c34a107e787133468369e08f8f3efa2a43db67a2",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": 32768
     },
     {
       "id": "cube_gripper_carry/lewm/original",
@@ -7086,7 +7251,9 @@
       "training_code_sha256": null,
       "evaluation_stablewm_commit": "875e607fc08aa72eacb94d5d178127804134cc06",
       "cem_evaluation_count": 300,
-      "cem_budget": "aggregate300"
+      "cem_budget": "aggregate300",
+      "comparison_variant": null,
+      "training_pair_count": null
     },
     {
       "id": "cube_gripper_carry/lewm/scratch",
@@ -7168,7 +7335,9 @@
       "training_code_sha256": "9e49059000fb9b95ebcbcf9c3d52027115df5ce64a862cf251b2bb93914ded52",
       "evaluation_stablewm_commit": "d4589819e2bf8218a84113d450c81e5a68722dc2",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": 10000
     },
     {
       "id": "cube_gripper_carry/lewm/joint",
@@ -7250,7 +7419,9 @@
       "training_code_sha256": "9e49059000fb9b95ebcbcf9c3d52027115df5ce64a862cf251b2bb93914ded52",
       "evaluation_stablewm_commit": "d4589819e2bf8218a84113d450c81e5a68722dc2",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": 10000
     },
     {
       "id": "cube_gripper_carry/lewm/frozen",
@@ -7338,7 +7509,9 @@
       "training_code_sha256": "9e49059000fb9b95ebcbcf9c3d52027115df5ce64a862cf251b2bb93914ded52",
       "evaluation_stablewm_commit": "1763bc582fc8ebb2f157859abbee979543dec1d1",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": 10000
     },
     {
       "id": "cube_gripper_carry/pldm/original",
@@ -7407,7 +7580,9 @@
       "training_code_sha256": null,
       "evaluation_stablewm_commit": "875e607fc08aa72eacb94d5d178127804134cc06",
       "cem_evaluation_count": 300,
-      "cem_budget": "3x100"
+      "cem_budget": "3x100",
+      "comparison_variant": null,
+      "training_pair_count": null
     },
     {
       "id": "cube_gripper_carry/pldm/scratch",
@@ -7489,7 +7664,9 @@
       "training_code_sha256": "2083d9d83d475f50e50cc9c7e9fa4f7a2c1477fd44208e62223d1950e7de9038",
       "evaluation_stablewm_commit": "c34a107e787133468369e08f8f3efa2a43db67a2",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": 10000
     },
     {
       "id": "cube_gripper_carry/pldm/joint",
@@ -7571,7 +7748,9 @@
       "training_code_sha256": "2083d9d83d475f50e50cc9c7e9fa4f7a2c1477fd44208e62223d1950e7de9038",
       "evaluation_stablewm_commit": "c34a107e787133468369e08f8f3efa2a43db67a2",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": 10000
     },
     {
       "id": "cube_gripper_carry/pldm/frozen",
@@ -7659,7 +7838,9 @@
       "training_code_sha256": "2083d9d83d475f50e50cc9c7e9fa4f7a2c1477fd44208e62223d1950e7de9038",
       "evaluation_stablewm_commit": "1763bc582fc8ebb2f157859abbee979543dec1d1",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": 10000
     },
     {
       "id": "cube_gripper_carry/dinowm/original",
@@ -7747,7 +7928,9 @@
       "training_code_sha256": null,
       "evaluation_stablewm_commit": "1763bc582fc8ebb2f157859abbee979543dec1d1",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": null
     },
     {
       "id": "cube_gripper_carry/dinowm/scratch",
@@ -7835,7 +8018,9 @@
       "training_code_sha256": "16f911753b34887270f4e64555b77f1b229ebc53ed8688471162c1a7975cf9bd",
       "evaluation_stablewm_commit": "c34a107e787133468369e08f8f3efa2a43db67a2",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": 10000
     },
     {
       "id": "cube_gripper_carry/dinowm/frozen",
@@ -7923,7 +8108,9 @@
       "training_code_sha256": "16f911753b34887270f4e64555b77f1b229ebc53ed8688471162c1a7975cf9bd",
       "evaluation_stablewm_commit": null,
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": 10000
     },
     {
       "id": "cube_gripper_carry/dinowm/projected",
@@ -8013,7 +8200,9 @@
       "training_code_sha256": "16f911753b34887270f4e64555b77f1b229ebc53ed8688471162c1a7975cf9bd",
       "evaluation_stablewm_commit": "c34a107e787133468369e08f8f3efa2a43db67a2",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": 10000
     },
     {
       "id": "portal_exit/lewm/original",
@@ -8095,7 +8284,9 @@
       "training_code_sha256": null,
       "evaluation_stablewm_commit": "875e607fc08aa72eacb94d5d178127804134cc06",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": null
     },
     {
       "id": "portal_exit/lewm/scratch",
@@ -8177,7 +8368,9 @@
       "training_code_sha256": "9e49059000fb9b95ebcbcf9c3d52027115df5ce64a862cf251b2bb93914ded52",
       "evaluation_stablewm_commit": "d4589819e2bf8218a84113d450c81e5a68722dc2",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": 32768
     },
     {
       "id": "portal_exit/lewm/joint",
@@ -8259,7 +8452,9 @@
       "training_code_sha256": "9e49059000fb9b95ebcbcf9c3d52027115df5ce64a862cf251b2bb93914ded52",
       "evaluation_stablewm_commit": "d4589819e2bf8218a84113d450c81e5a68722dc2",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": 32768
     },
     {
       "id": "portal_exit/lewm/frozen",
@@ -8347,7 +8542,9 @@
       "training_code_sha256": "9e49059000fb9b95ebcbcf9c3d52027115df5ce64a862cf251b2bb93914ded52",
       "evaluation_stablewm_commit": "1763bc582fc8ebb2f157859abbee979543dec1d1",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": 32768
     },
     {
       "id": "portal_exit/pldm/original",
@@ -8429,7 +8626,9 @@
       "training_code_sha256": null,
       "evaluation_stablewm_commit": "875e607fc08aa72eacb94d5d178127804134cc06",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": null
     },
     {
       "id": "portal_exit/pldm/scratch",
@@ -8511,7 +8710,9 @@
       "training_code_sha256": "2083d9d83d475f50e50cc9c7e9fa4f7a2c1477fd44208e62223d1950e7de9038",
       "evaluation_stablewm_commit": "c34a107e787133468369e08f8f3efa2a43db67a2",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": 32768
     },
     {
       "id": "portal_exit/pldm/joint",
@@ -8593,7 +8794,9 @@
       "training_code_sha256": "2083d9d83d475f50e50cc9c7e9fa4f7a2c1477fd44208e62223d1950e7de9038",
       "evaluation_stablewm_commit": "c34a107e787133468369e08f8f3efa2a43db67a2",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": 32768
     },
     {
       "id": "portal_exit/pldm/frozen",
@@ -8681,7 +8884,9 @@
       "training_code_sha256": "2083d9d83d475f50e50cc9c7e9fa4f7a2c1477fd44208e62223d1950e7de9038",
       "evaluation_stablewm_commit": "1763bc582fc8ebb2f157859abbee979543dec1d1",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": 32768
     },
     {
       "id": "portal_exit/dinowm/original",
@@ -8769,7 +8974,9 @@
       "training_code_sha256": null,
       "evaluation_stablewm_commit": "1763bc582fc8ebb2f157859abbee979543dec1d1",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": null
     },
     {
       "id": "portal_exit/dinowm/scratch",
@@ -8857,7 +9064,9 @@
       "training_code_sha256": "16f911753b34887270f4e64555b77f1b229ebc53ed8688471162c1a7975cf9bd",
       "evaluation_stablewm_commit": "c34a107e787133468369e08f8f3efa2a43db67a2",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": 32768
     },
     {
       "id": "portal_exit/dinowm/frozen",
@@ -8901,7 +9110,9 @@
       "training_code_sha256": null,
       "evaluation_stablewm_commit": null,
       "cem_evaluation_count": null,
-      "cem_budget": null
+      "cem_budget": null,
+      "comparison_variant": null,
+      "training_pair_count": null
     },
     {
       "id": "portal_exit/dinowm/projected",
@@ -8991,7 +9202,1725 @@
       "training_code_sha256": "16f911753b34887270f4e64555b77f1b229ebc53ed8688471162c1a7975cf9bd",
       "evaluation_stablewm_commit": "c34a107e787133468369e08f8f3efa2a43db67a2",
       "cem_evaluation_count": 300,
-      "cem_budget": "6x50"
+      "cem_budget": "6x50",
+      "comparison_variant": null,
+      "training_pair_count": 32768
+    },
+    {
+      "id": "action_strength/lewm/scratch/scale_2k",
+      "task": "action_strength",
+      "task_zh": "推手移动幅度",
+      "model": "lewm",
+      "regime": "scratch",
+      "measurement_status": "available",
+      "evidence_kind": "icl_development",
+      "comparability_notes": null,
+      "training_seed": 3072,
+      "training_epochs": 10,
+      "training_dataset_id": "pusht-action-strength",
+      "training_dataset_manifest_sha256": "46f5cdb8028b3cfca0d2885ee1f4bc2f2ea17a5df72f529d3d3648c191867bc1",
+      "training_history_length": 3,
+      "evaluation_history_tokens": 3,
+      "input_protocol": {
+        "action_block_raw_steps": 5,
+        "action_dim": 2,
+        "decoder_required": false,
+        "future_action_blocks": 5,
+        "history_tokens": 3,
+        "native_target_encoder": true
+      },
+      "frozen_encoder_semantics": null,
+      "initialization_mode": null,
+      "init_weights_sha256": null,
+      "checkpoint_sha256": "789ecf6060ccf0148c9527f7342864c0601269a10826ba3db146225be731626f",
+      "result_sha256": "6ab24e2c54cc87ae71e010877a0826b8e18279ae318097af8a2fcbca4bb623c6",
+      "metric_name": "correct_future_rate",
+      "evaluation_split": "development",
+      "scores": {
+        "main": 50.0,
+        "worst": 5.46875,
+        "history": 49.609375,
+        "switch": 45.703125,
+        "joint": 0.0,
+        "gain": 9.795521320147234e-05,
+        "alignment": 0.0497752426477304,
+        "nre": 0.9998079624027316,
+        "calibrated": 45.703125,
+        "cem": 78.33333333333333
+      },
+      "cem_reference_scope": "original_environment",
+      "cem_per_seed": [
+        {
+          "eval_seed": 42,
+          "budget_episodes": 50,
+          "success_rate_percent": 78.0
+        },
+        {
+          "eval_seed": 43,
+          "budget_episodes": 50,
+          "success_rate_percent": 84.0
+        },
+        {
+          "eval_seed": 44,
+          "budget_episodes": 50,
+          "success_rate_percent": 68.0
+        },
+        {
+          "eval_seed": 45,
+          "budget_episodes": 50,
+          "success_rate_percent": 76.0
+        },
+        {
+          "eval_seed": 46,
+          "budget_episodes": 50,
+          "success_rate_percent": 82.0
+        },
+        {
+          "eval_seed": 47,
+          "budget_episodes": 50,
+          "success_rate_percent": 82.0
+        }
+      ],
+      "speed_tracks": null,
+      "training_data_version": "ContextWorld-v1",
+      "training_code_sha256": "9e49059000fb9b95ebcbcf9c3d52027115df5ce64a862cf251b2bb93914ded52",
+      "evaluation_stablewm_commit": "c0e79230fa8baccc33c1615b5462f41f22eca0c7",
+      "cem_evaluation_count": 300,
+      "cem_budget": "6x50",
+      "comparison_variant": "scale_2k",
+      "training_pair_count": 2048
+    },
+    {
+      "id": "action_strength/pldm/scratch/scale_2k",
+      "task": "action_strength",
+      "task_zh": "推手移动幅度",
+      "model": "pldm",
+      "regime": "scratch",
+      "measurement_status": "available",
+      "evidence_kind": "icl_development",
+      "comparability_notes": null,
+      "training_seed": 3072,
+      "training_epochs": 10,
+      "training_dataset_id": "pusht-action-strength",
+      "training_dataset_manifest_sha256": "46f5cdb8028b3cfca0d2885ee1f4bc2f2ea17a5df72f529d3d3648c191867bc1",
+      "training_history_length": 3,
+      "evaluation_history_tokens": 3,
+      "input_protocol": {
+        "action_block_raw_steps": 5,
+        "action_dim": 2,
+        "decoder_required": false,
+        "future_action_blocks": 5,
+        "history_tokens": 3,
+        "native_target_encoder": true
+      },
+      "frozen_encoder_semantics": null,
+      "initialization_mode": null,
+      "init_weights_sha256": null,
+      "checkpoint_sha256": "c768e37b926d86455b1b96a74a91875fcf54fbb5ed912d1f076360421d8decd8",
+      "result_sha256": "f01dd68adbe068c86e813a9e6381bf69e27c006913a95e02f00a1bcc508810c8",
+      "metric_name": "correct_future_rate",
+      "evaluation_split": "development",
+      "scores": {
+        "main": 50.0,
+        "worst": 47.65625,
+        "history": 50.5859375,
+        "switch": 49.609375,
+        "joint": 0.0,
+        "gain": -2.4318350050168495e-05,
+        "alignment": -0.0005723784202535389,
+        "nre": 1.0018537385358643,
+        "calibrated": 46.875,
+        "cem": 60.0
+      },
+      "cem_reference_scope": "original_environment",
+      "cem_per_seed": [
+        {
+          "eval_seed": 42,
+          "budget_episodes": 50,
+          "success_rate_percent": 60.0
+        },
+        {
+          "eval_seed": 43,
+          "budget_episodes": 50,
+          "success_rate_percent": 66.0
+        },
+        {
+          "eval_seed": 44,
+          "budget_episodes": 50,
+          "success_rate_percent": 56.00000000000001
+        },
+        {
+          "eval_seed": 45,
+          "budget_episodes": 50,
+          "success_rate_percent": 68.0
+        },
+        {
+          "eval_seed": 46,
+          "budget_episodes": 50,
+          "success_rate_percent": 62.0
+        },
+        {
+          "eval_seed": 47,
+          "budget_episodes": 50,
+          "success_rate_percent": 48.0
+        }
+      ],
+      "speed_tracks": null,
+      "training_data_version": "ContextWorld-v1",
+      "training_code_sha256": "2083d9d83d475f50e50cc9c7e9fa4f7a2c1477fd44208e62223d1950e7de9038",
+      "evaluation_stablewm_commit": "6ab823fdc6921c95089992ed49c39e431e21ca4a",
+      "cem_evaluation_count": 300,
+      "cem_budget": "6x50",
+      "comparison_variant": "scale_2k",
+      "training_pair_count": 2048
+    },
+    {
+      "id": "action_strength/dinowm/scratch/scale_2k",
+      "task": "action_strength",
+      "task_zh": "推手移动幅度",
+      "model": "dinowm",
+      "regime": "scratch",
+      "measurement_status": "available",
+      "evidence_kind": "icl_development",
+      "comparability_notes": "Historical 2k scores and checkpoint identity are preserved in frozen evaluation snapshots; overwritten training metadata is not reused.",
+      "training_seed": 3072,
+      "training_epochs": 10,
+      "training_dataset_id": "pusht-action-strength",
+      "training_dataset_manifest_sha256": null,
+      "training_history_length": 3,
+      "evaluation_history_tokens": 3,
+      "input_protocol": {
+        "action_block_raw_steps": 5,
+        "action_dim": 2,
+        "decoder_required": false,
+        "future_action_blocks": 5,
+        "history_tokens": 3,
+        "native_target_encoder": true
+      },
+      "frozen_encoder_semantics": {
+        "policy": "native_frozen_dino_backbone",
+        "modules": [
+          "encoder"
+        ],
+        "semantics": "pretrained_visual_encoder_frozen_predictor_trainable"
+      },
+      "initialization_mode": "scratch",
+      "init_weights_sha256": null,
+      "checkpoint_sha256": "4001e65cd242262f9543d13dd6b982a62f3f47095659c66ae37d3b78094202e3",
+      "result_sha256": "0eb960f0b44c017ebf9c1ca942c9e6eb8801179e5344c83b12b55b1224b225fd",
+      "metric_name": "correct_future_rate",
+      "evaluation_split": "development",
+      "scores": {
+        "main": 89.84375,
+        "worst": 87.5,
+        "history": 96.09375,
+        "switch": 99.21875,
+        "joint": 77.34375,
+        "gain": 0.48930340583892606,
+        "alignment": 0.6585408571291882,
+        "nre": 0.5734592227831627,
+        "calibrated": 94.921875,
+        "cem": 76.0
+      },
+      "cem_reference_scope": "original_environment",
+      "cem_per_seed": [
+        {
+          "eval_seed": 42,
+          "budget_episodes": 50,
+          "success_rate_percent": 82.0
+        },
+        {
+          "eval_seed": 43,
+          "budget_episodes": 50,
+          "success_rate_percent": 72.0
+        },
+        {
+          "eval_seed": 44,
+          "budget_episodes": 50,
+          "success_rate_percent": 78.0
+        },
+        {
+          "eval_seed": 45,
+          "budget_episodes": 50,
+          "success_rate_percent": 82.0
+        },
+        {
+          "eval_seed": 46,
+          "budget_episodes": 50,
+          "success_rate_percent": 80.0
+        },
+        {
+          "eval_seed": 47,
+          "budget_episodes": 50,
+          "success_rate_percent": 62.0
+        }
+      ],
+      "speed_tracks": null,
+      "training_data_version": "ContextWorld-v1",
+      "training_code_sha256": null,
+      "evaluation_stablewm_commit": "6ab823fdc6921c95089992ed49c39e431e21ca4a",
+      "cem_evaluation_count": 300,
+      "cem_budget": "6x50",
+      "comparison_variant": "scale_2k",
+      "training_pair_count": 2048
+    },
+    {
+      "id": "contact_friction/lewm/scratch/scale_8k",
+      "task": "contact_friction",
+      "task_zh": "接触摩擦",
+      "model": "lewm",
+      "regime": "scratch",
+      "measurement_status": "available",
+      "evidence_kind": "icl_development",
+      "comparability_notes": null,
+      "training_seed": 3072,
+      "training_epochs": 10,
+      "training_dataset_id": "pusht-contact-friction",
+      "training_dataset_manifest_sha256": "46f5cdb8028b3cfca0d2885ee1f4bc2f2ea17a5df72f529d3d3648c191867bc1",
+      "training_history_length": 3,
+      "evaluation_history_tokens": 3,
+      "input_protocol": {
+        "action_block_raw_steps": 5,
+        "action_dim": 2,
+        "decoder_required": false,
+        "future_action_blocks": 5,
+        "history_tokens": 3,
+        "native_target_encoder": true
+      },
+      "frozen_encoder_semantics": null,
+      "initialization_mode": null,
+      "init_weights_sha256": null,
+      "checkpoint_sha256": "c20b42bdf760ba4105e8567ca73bd7618c34e9421da7ed9fae559dfe945e0249",
+      "result_sha256": "d2990b3c2e54686553433554ab0153b94bbbd86f07d649b52041123089151b2e",
+      "metric_name": "correct_future_rate",
+      "evaluation_split": "development",
+      "scores": {
+        "main": 50.0,
+        "worst": 46.484375,
+        "history": 51.5625,
+        "switch": 50.0,
+        "joint": 0.0,
+        "gain": 0.00022982665520560177,
+        "alignment": 0.013501209570886139,
+        "nre": 0.9998301180341513,
+        "calibrated": 48.828125,
+        "cem": 74.0
+      },
+      "cem_reference_scope": "original_environment",
+      "cem_per_seed": [
+        {
+          "eval_seed": 42,
+          "budget_episodes": 50,
+          "success_rate_percent": 78.0
+        },
+        {
+          "eval_seed": 43,
+          "budget_episodes": 50,
+          "success_rate_percent": 76.0
+        },
+        {
+          "eval_seed": 44,
+          "budget_episodes": 50,
+          "success_rate_percent": 76.0
+        },
+        {
+          "eval_seed": 45,
+          "budget_episodes": 50,
+          "success_rate_percent": 74.0
+        },
+        {
+          "eval_seed": 46,
+          "budget_episodes": 50,
+          "success_rate_percent": 70.0
+        },
+        {
+          "eval_seed": 47,
+          "budget_episodes": 50,
+          "success_rate_percent": 70.0
+        }
+      ],
+      "speed_tracks": null,
+      "training_data_version": "ContextWorld-v1",
+      "training_code_sha256": "9e49059000fb9b95ebcbcf9c3d52027115df5ce64a862cf251b2bb93914ded52",
+      "evaluation_stablewm_commit": "c0e79230fa8baccc33c1615b5462f41f22eca0c7",
+      "cem_evaluation_count": 300,
+      "cem_budget": "6x50",
+      "comparison_variant": "scale_8k",
+      "training_pair_count": 8192
+    },
+    {
+      "id": "contact_friction/pldm/scratch/scale_8k",
+      "task": "contact_friction",
+      "task_zh": "接触摩擦",
+      "model": "pldm",
+      "regime": "scratch",
+      "measurement_status": "available",
+      "evidence_kind": "icl_development",
+      "comparability_notes": null,
+      "training_seed": 3072,
+      "training_epochs": 10,
+      "training_dataset_id": "pusht-contact-friction",
+      "training_dataset_manifest_sha256": "46f5cdb8028b3cfca0d2885ee1f4bc2f2ea17a5df72f529d3d3648c191867bc1",
+      "training_history_length": 3,
+      "evaluation_history_tokens": 3,
+      "input_protocol": {
+        "action_block_raw_steps": 5,
+        "action_dim": 2,
+        "decoder_required": false,
+        "future_action_blocks": 5,
+        "history_tokens": 3,
+        "native_target_encoder": true
+      },
+      "frozen_encoder_semantics": null,
+      "initialization_mode": null,
+      "init_weights_sha256": null,
+      "checkpoint_sha256": "010fe950a55d2a3bed031c840d6e18b0b5ba64b041f8a4fb4ee033f41545fada",
+      "result_sha256": "948fcf50a7c47453e88a7c04866b9cb0de2052dacbf55a22f38d02eaa8eedc6f",
+      "metric_name": "correct_future_rate",
+      "evaluation_split": "development",
+      "scores": {
+        "main": 50.1953125,
+        "worst": 45.3125,
+        "history": 50.390625,
+        "switch": 50.0,
+        "joint": 0.390625,
+        "gain": 0.007236270998013033,
+        "alignment": 0.09571301497846547,
+        "nre": 0.9912433978805211,
+        "calibrated": 47.265625,
+        "cem": 64.66666666666666
+      },
+      "cem_reference_scope": "original_environment",
+      "cem_per_seed": [
+        {
+          "eval_seed": 42,
+          "budget_episodes": 50,
+          "success_rate_percent": 72.0
+        },
+        {
+          "eval_seed": 43,
+          "budget_episodes": 50,
+          "success_rate_percent": 68.0
+        },
+        {
+          "eval_seed": 44,
+          "budget_episodes": 50,
+          "success_rate_percent": 57.99999999999999
+        },
+        {
+          "eval_seed": 45,
+          "budget_episodes": 50,
+          "success_rate_percent": 62.0
+        },
+        {
+          "eval_seed": 46,
+          "budget_episodes": 50,
+          "success_rate_percent": 70.0
+        },
+        {
+          "eval_seed": 47,
+          "budget_episodes": 50,
+          "success_rate_percent": 57.99999999999999
+        }
+      ],
+      "speed_tracks": null,
+      "training_data_version": "ContextWorld-v1",
+      "training_code_sha256": "2083d9d83d475f50e50cc9c7e9fa4f7a2c1477fd44208e62223d1950e7de9038",
+      "evaluation_stablewm_commit": "6ab823fdc6921c95089992ed49c39e431e21ca4a",
+      "cem_evaluation_count": 300,
+      "cem_budget": "6x50",
+      "comparison_variant": "scale_8k",
+      "training_pair_count": 8192
+    },
+    {
+      "id": "contact_friction/dinowm/scratch/scale_8k",
+      "task": "contact_friction",
+      "task_zh": "接触摩擦",
+      "model": "dinowm",
+      "regime": "scratch",
+      "measurement_status": "available",
+      "evidence_kind": "icl_development",
+      "comparability_notes": null,
+      "training_seed": 3072,
+      "training_epochs": 10,
+      "training_dataset_id": "pusht-contact-friction",
+      "training_dataset_manifest_sha256": "46f5cdb8028b3cfca0d2885ee1f4bc2f2ea17a5df72f529d3d3648c191867bc1",
+      "training_history_length": 3,
+      "evaluation_history_tokens": 3,
+      "input_protocol": {
+        "action_block_raw_steps": 5,
+        "action_dim": 2,
+        "decoder_required": false,
+        "future_action_blocks": 5,
+        "history_tokens": 3,
+        "native_target_encoder": true
+      },
+      "frozen_encoder_semantics": {
+        "policy": "native_frozen_dino_backbone",
+        "modules": [
+          "encoder"
+        ],
+        "semantics": "pretrained_visual_encoder_frozen_predictor_trainable"
+      },
+      "initialization_mode": null,
+      "init_weights_sha256": null,
+      "checkpoint_sha256": "0e61d31887b0d8f4bc70890d34bbd7ed0a64b88a64feb970d7e0fcf97c496aa7",
+      "result_sha256": "a0254c9938983dfbad145deff0f3d749dbfb5f85b6d3f038f81e4169b637d69f",
+      "metric_name": "correct_future_rate",
+      "evaluation_split": "development",
+      "scores": {
+        "main": 49.609375,
+        "worst": 36.328125,
+        "history": 47.8515625,
+        "switch": 45.3125,
+        "joint": 1.5625,
+        "gain": -0.003759535811967188,
+        "alignment": -0.028415170752965308,
+        "nre": 1.0250243052758943,
+        "calibrated": 30.078125,
+        "cem": 24.666666666666668
+      },
+      "cem_reference_scope": "original_environment",
+      "cem_per_seed": [
+        {
+          "eval_seed": 42,
+          "budget_episodes": 50,
+          "success_rate_percent": 28.000000000000004
+        },
+        {
+          "eval_seed": 43,
+          "budget_episodes": 50,
+          "success_rate_percent": 22.0
+        },
+        {
+          "eval_seed": 44,
+          "budget_episodes": 50,
+          "success_rate_percent": 26.0
+        },
+        {
+          "eval_seed": 45,
+          "budget_episodes": 50,
+          "success_rate_percent": 32.0
+        },
+        {
+          "eval_seed": 46,
+          "budget_episodes": 50,
+          "success_rate_percent": 26.0
+        },
+        {
+          "eval_seed": 47,
+          "budget_episodes": 50,
+          "success_rate_percent": 14.000000000000002
+        }
+      ],
+      "speed_tracks": null,
+      "training_data_version": "ContextWorld-v1",
+      "training_code_sha256": "dcfe1353f2931ae880802d047838afc9a704cccfbd2fac9ce6add979307fc317",
+      "evaluation_stablewm_commit": "5396eb6677167eb3e6703d93e7521e9e7338a8fd",
+      "cem_evaluation_count": 300,
+      "cem_budget": "6x50",
+      "comparison_variant": "scale_8k",
+      "training_pair_count": 8192
+    },
+    {
+      "id": "motion_damping/lewm/scratch/scale_8k",
+      "task": "motion_damping",
+      "task_zh": "运动阻尼",
+      "model": "lewm",
+      "regime": "scratch",
+      "measurement_status": "available",
+      "evidence_kind": "icl_development",
+      "comparability_notes": null,
+      "training_seed": 3072,
+      "training_epochs": 10,
+      "training_dataset_id": "pusht-motion-damping",
+      "training_dataset_manifest_sha256": "46f5cdb8028b3cfca0d2885ee1f4bc2f2ea17a5df72f529d3d3648c191867bc1",
+      "training_history_length": 3,
+      "evaluation_history_tokens": 3,
+      "input_protocol": {
+        "action_block_raw_steps": 5,
+        "action_dim": 2,
+        "decoder_required": false,
+        "future_action_blocks": 5,
+        "history_tokens": 3,
+        "native_target_encoder": true
+      },
+      "frozen_encoder_semantics": null,
+      "initialization_mode": null,
+      "init_weights_sha256": null,
+      "checkpoint_sha256": "e1aa3256b1b844d445487388223b042f3967fb271c1ba369416b72c89dd90eda",
+      "result_sha256": "c553ab85410f446211effcd97416cca9f7dfeacf65d2cd7045e145e6a51c32c3",
+      "metric_name": "correct_future_rate",
+      "evaluation_split": "development",
+      "scores": {
+        "main": 50.0,
+        "worst": 27.734375,
+        "history": 50.390625,
+        "switch": 49.609375,
+        "joint": 0.0,
+        "gain": 0.0017341933587680072,
+        "alignment": 0.06510100259977929,
+        "nre": 0.9972412232110562,
+        "calibrated": 35.546875,
+        "cem": 80.0
+      },
+      "cem_reference_scope": "original_environment",
+      "cem_per_seed": [
+        {
+          "eval_seed": 42,
+          "budget_episodes": 50,
+          "success_rate_percent": 88.0
+        },
+        {
+          "eval_seed": 43,
+          "budget_episodes": 50,
+          "success_rate_percent": 74.0
+        },
+        {
+          "eval_seed": 44,
+          "budget_episodes": 50,
+          "success_rate_percent": 78.0
+        },
+        {
+          "eval_seed": 45,
+          "budget_episodes": 50,
+          "success_rate_percent": 84.0
+        },
+        {
+          "eval_seed": 46,
+          "budget_episodes": 50,
+          "success_rate_percent": 76.0
+        },
+        {
+          "eval_seed": 47,
+          "budget_episodes": 50,
+          "success_rate_percent": 80.0
+        }
+      ],
+      "speed_tracks": null,
+      "training_data_version": "ContextWorld-v1",
+      "training_code_sha256": "9e49059000fb9b95ebcbcf9c3d52027115df5ce64a862cf251b2bb93914ded52",
+      "evaluation_stablewm_commit": "34c55affcc8ec35c24b8a70c37421e90001ad264",
+      "cem_evaluation_count": 300,
+      "cem_budget": "6x50",
+      "comparison_variant": "scale_8k",
+      "training_pair_count": 8192
+    },
+    {
+      "id": "motion_damping/pldm/scratch/scale_8k",
+      "task": "motion_damping",
+      "task_zh": "运动阻尼",
+      "model": "pldm",
+      "regime": "scratch",
+      "measurement_status": "available",
+      "evidence_kind": "icl_development",
+      "comparability_notes": null,
+      "training_seed": 3072,
+      "training_epochs": 10,
+      "training_dataset_id": "pusht-motion-damping",
+      "training_dataset_manifest_sha256": "46f5cdb8028b3cfca0d2885ee1f4bc2f2ea17a5df72f529d3d3648c191867bc1",
+      "training_history_length": 3,
+      "evaluation_history_tokens": 3,
+      "input_protocol": {
+        "action_block_raw_steps": 5,
+        "action_dim": 2,
+        "decoder_required": false,
+        "future_action_blocks": 5,
+        "history_tokens": 3,
+        "native_target_encoder": true
+      },
+      "frozen_encoder_semantics": null,
+      "initialization_mode": null,
+      "init_weights_sha256": null,
+      "checkpoint_sha256": "e912956d88e11655fcf6687ee2378db5d44c68986f10086efeec477c1ab97505",
+      "result_sha256": "fe0130b28ecd9c8d2dde500efd47d2b31aab3d212ff35557281f49da2aa6e303",
+      "metric_name": "correct_future_rate",
+      "evaluation_split": "development",
+      "scores": {
+        "main": 54.296875,
+        "worst": 50.0,
+        "history": 53.125,
+        "switch": 55.46875,
+        "joint": 7.421875,
+        "gain": 0.2182523295333049,
+        "alignment": 0.17603902476573982,
+        "nre": 2.1005873607847856,
+        "calibrated": 33.984375,
+        "cem": 62.66666666666667
+      },
+      "cem_reference_scope": "original_environment",
+      "cem_per_seed": [
+        {
+          "eval_seed": 42,
+          "budget_episodes": 50,
+          "success_rate_percent": 76.0
+        },
+        {
+          "eval_seed": 43,
+          "budget_episodes": 50,
+          "success_rate_percent": 60.0
+        },
+        {
+          "eval_seed": 44,
+          "budget_episodes": 50,
+          "success_rate_percent": 64.0
+        },
+        {
+          "eval_seed": 45,
+          "budget_episodes": 50,
+          "success_rate_percent": 56.00000000000001
+        },
+        {
+          "eval_seed": 46,
+          "budget_episodes": 50,
+          "success_rate_percent": 64.0
+        },
+        {
+          "eval_seed": 47,
+          "budget_episodes": 50,
+          "success_rate_percent": 56.00000000000001
+        }
+      ],
+      "speed_tracks": null,
+      "training_data_version": "ContextWorld-v1",
+      "training_code_sha256": "2083d9d83d475f50e50cc9c7e9fa4f7a2c1477fd44208e62223d1950e7de9038",
+      "evaluation_stablewm_commit": "6ab823fdc6921c95089992ed49c39e431e21ca4a",
+      "cem_evaluation_count": 300,
+      "cem_budget": "6x50",
+      "comparison_variant": "scale_8k",
+      "training_pair_count": 8192
+    },
+    {
+      "id": "motion_damping/dinowm/scratch/scale_8k",
+      "task": "motion_damping",
+      "task_zh": "运动阻尼",
+      "model": "dinowm",
+      "regime": "scratch",
+      "measurement_status": "available",
+      "evidence_kind": "icl_development",
+      "comparability_notes": null,
+      "training_seed": 3072,
+      "training_epochs": 10,
+      "training_dataset_id": "pusht-motion-damping",
+      "training_dataset_manifest_sha256": "46f5cdb8028b3cfca0d2885ee1f4bc2f2ea17a5df72f529d3d3648c191867bc1",
+      "training_history_length": 3,
+      "evaluation_history_tokens": 3,
+      "input_protocol": {
+        "action_block_raw_steps": 5,
+        "action_dim": 2,
+        "decoder_required": false,
+        "future_action_blocks": 5,
+        "history_tokens": 3,
+        "native_target_encoder": true
+      },
+      "frozen_encoder_semantics": {
+        "policy": "native_frozen_dino_backbone",
+        "modules": [
+          "encoder"
+        ],
+        "semantics": "pretrained_visual_encoder_frozen_predictor_trainable"
+      },
+      "initialization_mode": null,
+      "init_weights_sha256": null,
+      "checkpoint_sha256": "11a6d4b82ccb0960f3fc86c4e511a5b9f7038b2a7a86ec4cd89e418b9cef2e2f",
+      "result_sha256": "57e768c078406e3c9b8fe1141cbf9cfd91a4ec6b3bdac704e3df1fc84b8f03a5",
+      "metric_name": "correct_future_rate",
+      "evaluation_split": "development",
+      "scores": {
+        "main": 50.0,
+        "worst": 20.3125,
+        "history": 48.828125,
+        "switch": 51.171875,
+        "joint": 0.390625,
+        "gain": 0.00272715490765318,
+        "alignment": 0.020177844838827827,
+        "nre": 1.012812809209624,
+        "calibrated": 34.375,
+        "cem": 25.0
+      },
+      "cem_reference_scope": "original_environment",
+      "cem_per_seed": [
+        {
+          "eval_seed": 42,
+          "budget_episodes": 50,
+          "success_rate_percent": 20.0
+        },
+        {
+          "eval_seed": 43,
+          "budget_episodes": 50,
+          "success_rate_percent": 24.0
+        },
+        {
+          "eval_seed": 44,
+          "budget_episodes": 50,
+          "success_rate_percent": 34.0
+        },
+        {
+          "eval_seed": 45,
+          "budget_episodes": 50,
+          "success_rate_percent": 28.000000000000004
+        },
+        {
+          "eval_seed": 46,
+          "budget_episodes": 50,
+          "success_rate_percent": 24.0
+        },
+        {
+          "eval_seed": 47,
+          "budget_episodes": 50,
+          "success_rate_percent": 20.0
+        }
+      ],
+      "speed_tracks": null,
+      "training_data_version": "ContextWorld-v1",
+      "training_code_sha256": "dcfe1353f2931ae880802d047838afc9a704cccfbd2fac9ce6add979307fc317",
+      "evaluation_stablewm_commit": "5396eb6677167eb3e6703d93e7521e9e7338a8fd",
+      "cem_evaluation_count": 300,
+      "cem_budget": "6x50",
+      "comparison_variant": "scale_8k",
+      "training_pair_count": 8192
+    },
+    {
+      "id": "robot_arm_mass/lewm/scratch/scale_2k",
+      "task": "robot_arm_mass",
+      "task_zh": "机械臂质量",
+      "model": "lewm",
+      "regime": "scratch",
+      "measurement_status": "available",
+      "evidence_kind": "icl_development",
+      "comparability_notes": null,
+      "training_seed": 3072,
+      "training_epochs": 10,
+      "training_dataset_id": "reacher-arm-mass",
+      "training_dataset_manifest_sha256": "46f5cdb8028b3cfca0d2885ee1f4bc2f2ea17a5df72f529d3d3648c191867bc1",
+      "training_history_length": 3,
+      "evaluation_history_tokens": 3,
+      "input_protocol": {
+        "action_block_raw_steps": 5,
+        "action_dim": 2,
+        "decoder_required": false,
+        "future_action_blocks": 5,
+        "history_tokens": 3,
+        "native_target_encoder": true
+      },
+      "frozen_encoder_semantics": null,
+      "initialization_mode": null,
+      "init_weights_sha256": null,
+      "checkpoint_sha256": "150d23723edbf08d11f0372b40b17c03fc52e615154823074380df9807d7ff21",
+      "result_sha256": "1ab7b146327d0b89224f6a391ee1c596112e362662f3e91e36f2f75c40e70d0c",
+      "metric_name": "correct_future_rate",
+      "evaluation_split": "development",
+      "scores": {
+        "main": 84.765625,
+        "worst": 79.296875,
+        "history": 87.6953125,
+        "switch": 97.65625,
+        "joint": 66.796875,
+        "gain": 1.0006116228276307,
+        "alignment": 0.9353786469693776,
+        "nre": 0.14311966489522493,
+        "calibrated": 93.75,
+        "cem": 58.0
+      },
+      "cem_reference_scope": "original_environment",
+      "cem_per_seed": [
+        {
+          "eval_seed": 42,
+          "budget_episodes": 50,
+          "success_rate_percent": 48.0
+        },
+        {
+          "eval_seed": 43,
+          "budget_episodes": 50,
+          "success_rate_percent": 56.00000000000001
+        },
+        {
+          "eval_seed": 44,
+          "budget_episodes": 50,
+          "success_rate_percent": 54.0
+        },
+        {
+          "eval_seed": 45,
+          "budget_episodes": 50,
+          "success_rate_percent": 62.0
+        },
+        {
+          "eval_seed": 46,
+          "budget_episodes": 50,
+          "success_rate_percent": 72.0
+        },
+        {
+          "eval_seed": 47,
+          "budget_episodes": 50,
+          "success_rate_percent": 56.00000000000001
+        }
+      ],
+      "speed_tracks": null,
+      "training_data_version": "ContextWorld-v1",
+      "training_code_sha256": "9e49059000fb9b95ebcbcf9c3d52027115df5ce64a862cf251b2bb93914ded52",
+      "evaluation_stablewm_commit": "34c55affcc8ec35c24b8a70c37421e90001ad264",
+      "cem_evaluation_count": 300,
+      "cem_budget": "6x50",
+      "comparison_variant": "scale_2k",
+      "training_pair_count": 2048
+    },
+    {
+      "id": "robot_arm_mass/pldm/scratch/scale_2k",
+      "task": "robot_arm_mass",
+      "task_zh": "机械臂质量",
+      "model": "pldm",
+      "regime": "scratch",
+      "measurement_status": "available",
+      "evidence_kind": "icl_development",
+      "comparability_notes": null,
+      "training_seed": 3072,
+      "training_epochs": 10,
+      "training_dataset_id": "reacher-arm-mass",
+      "training_dataset_manifest_sha256": "46f5cdb8028b3cfca0d2885ee1f4bc2f2ea17a5df72f529d3d3648c191867bc1",
+      "training_history_length": 3,
+      "evaluation_history_tokens": 3,
+      "input_protocol": {
+        "action_block_raw_steps": 5,
+        "action_dim": 2,
+        "decoder_required": false,
+        "future_action_blocks": 5,
+        "history_tokens": 3,
+        "native_target_encoder": true
+      },
+      "frozen_encoder_semantics": null,
+      "initialization_mode": null,
+      "init_weights_sha256": null,
+      "checkpoint_sha256": "2d099b978b2d989b3256b7b9f21e24fa6250e2ee054d9ac0fcc23b9e116060fa",
+      "result_sha256": "0726467de93642e88e94a11ec17ceda96ff45f30992dc37252d7bb1b0c3b363b",
+      "metric_name": "correct_future_rate",
+      "evaluation_split": "development",
+      "scores": {
+        "main": 52.5390625,
+        "worst": 51.953125,
+        "history": 56.640625,
+        "switch": 56.25,
+        "joint": 6.640625,
+        "gain": 0.12980741396048326,
+        "alignment": 0.2347485662792597,
+        "nre": 1.0461539228049632,
+        "calibrated": 40.625,
+        "cem": 45.666666666666664
+      },
+      "cem_reference_scope": "original_environment",
+      "cem_per_seed": [
+        {
+          "eval_seed": 42,
+          "budget_episodes": 50,
+          "success_rate_percent": 40.0
+        },
+        {
+          "eval_seed": 43,
+          "budget_episodes": 50,
+          "success_rate_percent": 42.0
+        },
+        {
+          "eval_seed": 44,
+          "budget_episodes": 50,
+          "success_rate_percent": 42.0
+        },
+        {
+          "eval_seed": 45,
+          "budget_episodes": 50,
+          "success_rate_percent": 57.99999999999999
+        },
+        {
+          "eval_seed": 46,
+          "budget_episodes": 50,
+          "success_rate_percent": 38.0
+        },
+        {
+          "eval_seed": 47,
+          "budget_episodes": 50,
+          "success_rate_percent": 54.0
+        }
+      ],
+      "speed_tracks": null,
+      "training_data_version": "ContextWorld-v1",
+      "training_code_sha256": "2083d9d83d475f50e50cc9c7e9fa4f7a2c1477fd44208e62223d1950e7de9038",
+      "evaluation_stablewm_commit": "e7295568848031f7fa3cd68f26e218d365c838d9",
+      "cem_evaluation_count": 300,
+      "cem_budget": "6x50",
+      "comparison_variant": "scale_2k",
+      "training_pair_count": 2048
+    },
+    {
+      "id": "robot_arm_mass/dinowm/scratch/scale_2k",
+      "task": "robot_arm_mass",
+      "task_zh": "机械臂质量",
+      "model": "dinowm",
+      "regime": "scratch",
+      "measurement_status": "available",
+      "evidence_kind": "icl_development",
+      "comparability_notes": null,
+      "training_seed": 3072,
+      "training_epochs": 10,
+      "training_dataset_id": "reacher-arm-mass",
+      "training_dataset_manifest_sha256": "46f5cdb8028b3cfca0d2885ee1f4bc2f2ea17a5df72f529d3d3648c191867bc1",
+      "training_history_length": 3,
+      "evaluation_history_tokens": 3,
+      "input_protocol": {
+        "action_block_raw_steps": 5,
+        "action_dim": 2,
+        "decoder_required": false,
+        "future_action_blocks": 5,
+        "history_tokens": 3,
+        "native_target_encoder": true
+      },
+      "frozen_encoder_semantics": {
+        "policy": "native_frozen_dino_backbone",
+        "modules": [
+          "encoder"
+        ],
+        "semantics": "pretrained_visual_encoder_frozen_predictor_trainable"
+      },
+      "initialization_mode": null,
+      "init_weights_sha256": null,
+      "checkpoint_sha256": "b5cc3a07e64a8ae217a46aae9b00cefda94cf9e82611eb52a5b91381acf23a0a",
+      "result_sha256": "1123f85664532f356979ec221b14e6d3b2463bbfd1c0daab29ff032afa3bad55",
+      "metric_name": "correct_future_rate",
+      "evaluation_split": "development",
+      "scores": {
+        "main": 50.5859375,
+        "worst": 40.234375,
+        "history": 53.515625,
+        "switch": 58.59375,
+        "joint": 1.171875,
+        "gain": 0.003975627121163153,
+        "alignment": 0.042200046511750605,
+        "nre": 1.0009240945624582,
+        "calibrated": 44.53125,
+        "cem": 54.333333333333336
+      },
+      "cem_reference_scope": "original_environment",
+      "cem_per_seed": [
+        {
+          "eval_seed": 42,
+          "budget_episodes": 50,
+          "success_rate_percent": 48.0
+        },
+        {
+          "eval_seed": 43,
+          "budget_episodes": 50,
+          "success_rate_percent": 48.0
+        },
+        {
+          "eval_seed": 44,
+          "budget_episodes": 50,
+          "success_rate_percent": 54.0
+        },
+        {
+          "eval_seed": 45,
+          "budget_episodes": 50,
+          "success_rate_percent": 57.99999999999999
+        },
+        {
+          "eval_seed": 46,
+          "budget_episodes": 50,
+          "success_rate_percent": 56.00000000000001
+        },
+        {
+          "eval_seed": 47,
+          "budget_episodes": 50,
+          "success_rate_percent": 62.0
+        }
+      ],
+      "speed_tracks": null,
+      "training_data_version": "ContextWorld-v1",
+      "training_code_sha256": "dcfe1353f2931ae880802d047838afc9a704cccfbd2fac9ce6add979307fc317",
+      "evaluation_stablewm_commit": "5396eb6677167eb3e6703d93e7521e9e7338a8fd",
+      "cem_evaluation_count": 300,
+      "cem_budget": "6x50",
+      "comparison_variant": "scale_2k",
+      "training_pair_count": 2048
+    },
+    {
+      "id": "cube_gripper_carry/lewm/scratch/scale_2k",
+      "task": "cube_gripper_carry",
+      "task_zh": "Cube 夹爪携带",
+      "model": "lewm",
+      "regime": "scratch",
+      "measurement_status": "available",
+      "evidence_kind": "icl_development",
+      "comparability_notes": null,
+      "training_seed": 3072,
+      "training_epochs": 10,
+      "training_dataset_id": "cube-gripper-carry",
+      "training_dataset_manifest_sha256": "46f5cdb8028b3cfca0d2885ee1f4bc2f2ea17a5df72f529d3d3648c191867bc1",
+      "training_history_length": 3,
+      "evaluation_history_tokens": 3,
+      "input_protocol": {
+        "action_block_raw_steps": 5,
+        "action_dim": 5,
+        "decoder_required": false,
+        "future_action_blocks": 5,
+        "history_tokens": 3,
+        "native_target_encoder": true
+      },
+      "frozen_encoder_semantics": null,
+      "initialization_mode": null,
+      "init_weights_sha256": null,
+      "checkpoint_sha256": "e38fa85f896ba36346efd7b70271637a815731a92b5476f3e73c431312f79109",
+      "result_sha256": "b1420851d534333da279a87d0cb05181785adf5e21c8af5d0eee396e4664921f",
+      "metric_name": "correct_future_rate",
+      "evaluation_split": "development",
+      "scores": {
+        "main": 50.0,
+        "worst": 49.21875,
+        "history": 49.8046875,
+        "switch": 48.4375,
+        "joint": 0.0,
+        "gain": -0.00025501189098941157,
+        "alignment": -0.024637385235442164,
+        "nre": 1.0006171588463313,
+        "calibrated": 46.875,
+        "cem": 61.66666666666667
+      },
+      "cem_reference_scope": "original_environment",
+      "cem_per_seed": [
+        {
+          "eval_seed": 42,
+          "budget_episodes": 50,
+          "success_rate_percent": 60.0
+        },
+        {
+          "eval_seed": 43,
+          "budget_episodes": 50,
+          "success_rate_percent": 80.0
+        },
+        {
+          "eval_seed": 44,
+          "budget_episodes": 50,
+          "success_rate_percent": 56.00000000000001
+        },
+        {
+          "eval_seed": 45,
+          "budget_episodes": 50,
+          "success_rate_percent": 56.00000000000001
+        },
+        {
+          "eval_seed": 46,
+          "budget_episodes": 50,
+          "success_rate_percent": 62.0
+        },
+        {
+          "eval_seed": 47,
+          "budget_episodes": 50,
+          "success_rate_percent": 56.00000000000001
+        }
+      ],
+      "speed_tracks": null,
+      "training_data_version": "ContextWorld-v1",
+      "training_code_sha256": "9e49059000fb9b95ebcbcf9c3d52027115df5ce64a862cf251b2bb93914ded52",
+      "evaluation_stablewm_commit": "34c55affcc8ec35c24b8a70c37421e90001ad264",
+      "cem_evaluation_count": 300,
+      "cem_budget": "6x50",
+      "comparison_variant": "scale_2k",
+      "training_pair_count": 2048
+    },
+    {
+      "id": "cube_gripper_carry/pldm/scratch/scale_2k",
+      "task": "cube_gripper_carry",
+      "task_zh": "Cube 夹爪携带",
+      "model": "pldm",
+      "regime": "scratch",
+      "measurement_status": "available",
+      "evidence_kind": "icl_development",
+      "comparability_notes": null,
+      "training_seed": 3072,
+      "training_epochs": 10,
+      "training_dataset_id": "cube-gripper-carry",
+      "training_dataset_manifest_sha256": "46f5cdb8028b3cfca0d2885ee1f4bc2f2ea17a5df72f529d3d3648c191867bc1",
+      "training_history_length": 3,
+      "evaluation_history_tokens": 3,
+      "input_protocol": {
+        "action_block_raw_steps": 5,
+        "action_dim": 5,
+        "decoder_required": false,
+        "future_action_blocks": 5,
+        "history_tokens": 3,
+        "native_target_encoder": true
+      },
+      "frozen_encoder_semantics": null,
+      "initialization_mode": null,
+      "init_weights_sha256": null,
+      "checkpoint_sha256": "81612a9956906f2b0ef00e208ff5900c687a51debcaa8f5070d2d1900912b253",
+      "result_sha256": "faa21f128604557f5f847afcb2a361691554e5ddbc3305e48cd1e845b1e96798",
+      "metric_name": "correct_future_rate",
+      "evaluation_split": "development",
+      "scores": {
+        "main": 50.0,
+        "worst": 48.046875,
+        "history": 50.5859375,
+        "switch": 53.515625,
+        "joint": 0.0,
+        "gain": 0.000230698980717213,
+        "alignment": 0.008560394913322285,
+        "nre": 1.0002648814799517,
+        "calibrated": 52.34375,
+        "cem": 60.0
+      },
+      "cem_reference_scope": "original_environment",
+      "cem_per_seed": [
+        {
+          "eval_seed": 42,
+          "budget_episodes": 50,
+          "success_rate_percent": 60.0
+        },
+        {
+          "eval_seed": 43,
+          "budget_episodes": 50,
+          "success_rate_percent": 78.0
+        },
+        {
+          "eval_seed": 44,
+          "budget_episodes": 50,
+          "success_rate_percent": 54.0
+        },
+        {
+          "eval_seed": 45,
+          "budget_episodes": 50,
+          "success_rate_percent": 56.00000000000001
+        },
+        {
+          "eval_seed": 46,
+          "budget_episodes": 50,
+          "success_rate_percent": 62.0
+        },
+        {
+          "eval_seed": 47,
+          "budget_episodes": 50,
+          "success_rate_percent": 50.0
+        }
+      ],
+      "speed_tracks": null,
+      "training_data_version": "ContextWorld-v1",
+      "training_code_sha256": "2083d9d83d475f50e50cc9c7e9fa4f7a2c1477fd44208e62223d1950e7de9038",
+      "evaluation_stablewm_commit": "e7295568848031f7fa3cd68f26e218d365c838d9",
+      "cem_evaluation_count": 300,
+      "cem_budget": "6x50",
+      "comparison_variant": "scale_2k",
+      "training_pair_count": 2048
+    },
+    {
+      "id": "cube_gripper_carry/dinowm/scratch/scale_2k",
+      "task": "cube_gripper_carry",
+      "task_zh": "Cube 夹爪携带",
+      "model": "dinowm",
+      "regime": "scratch",
+      "measurement_status": "available",
+      "evidence_kind": "icl_development",
+      "comparability_notes": null,
+      "training_seed": 3072,
+      "training_epochs": 10,
+      "training_dataset_id": "cube-gripper-carry",
+      "training_dataset_manifest_sha256": "46f5cdb8028b3cfca0d2885ee1f4bc2f2ea17a5df72f529d3d3648c191867bc1",
+      "training_history_length": 3,
+      "evaluation_history_tokens": 3,
+      "input_protocol": {
+        "action_block_raw_steps": 5,
+        "action_dim": 5,
+        "decoder_required": false,
+        "future_action_blocks": 5,
+        "history_tokens": 3,
+        "native_target_encoder": true
+      },
+      "frozen_encoder_semantics": {
+        "policy": "native_frozen_dino_backbone",
+        "modules": [
+          "encoder"
+        ],
+        "semantics": "pretrained_visual_encoder_frozen_predictor_trainable"
+      },
+      "initialization_mode": null,
+      "init_weights_sha256": null,
+      "checkpoint_sha256": "ed330cff63fe7dc5325d8fa7c3c88eda59c311164f4dfb40f1b61dc779e4bb6a",
+      "result_sha256": "69d5da4cdd46a02f0a70b6d0f03c5f03b79e64a1936c91adab1bfb1df4e01945",
+      "metric_name": "correct_future_rate",
+      "evaluation_split": "development",
+      "scores": {
+        "main": 50.1953125,
+        "worst": 30.078125,
+        "history": 56.25,
+        "switch": 75.0,
+        "joint": 0.0,
+        "gain": 0.0032183153316912108,
+        "alignment": 0.081447874991312,
+        "nre": 0.9951247100073335,
+        "calibrated": 65.625,
+        "cem": 72.0
+      },
+      "cem_reference_scope": "original_environment",
+      "cem_per_seed": [
+        {
+          "eval_seed": 42,
+          "budget_episodes": 50,
+          "success_rate_percent": 72.0
+        },
+        {
+          "eval_seed": 43,
+          "budget_episodes": 50,
+          "success_rate_percent": 86.0
+        },
+        {
+          "eval_seed": 44,
+          "budget_episodes": 50,
+          "success_rate_percent": 64.0
+        },
+        {
+          "eval_seed": 45,
+          "budget_episodes": 50,
+          "success_rate_percent": 66.0
+        },
+        {
+          "eval_seed": 46,
+          "budget_episodes": 50,
+          "success_rate_percent": 76.0
+        },
+        {
+          "eval_seed": 47,
+          "budget_episodes": 50,
+          "success_rate_percent": 68.0
+        }
+      ],
+      "speed_tracks": null,
+      "training_data_version": "ContextWorld-v1",
+      "training_code_sha256": "dcfe1353f2931ae880802d047838afc9a704cccfbd2fac9ce6add979307fc317",
+      "evaluation_stablewm_commit": "5396eb6677167eb3e6703d93e7521e9e7338a8fd",
+      "cem_evaluation_count": 300,
+      "cem_budget": "6x50",
+      "comparison_variant": "scale_2k",
+      "training_pair_count": 2048
+    },
+    {
+      "id": "portal_exit/lewm/scratch/scale_2k",
+      "task": "portal_exit",
+      "task_zh": "传送门出口",
+      "model": "lewm",
+      "regime": "scratch",
+      "measurement_status": "available",
+      "evidence_kind": "icl_development",
+      "comparability_notes": null,
+      "training_seed": 3072,
+      "training_epochs": 10,
+      "training_dataset_id": "tworoom-portal-exit",
+      "training_dataset_manifest_sha256": "46f5cdb8028b3cfca0d2885ee1f4bc2f2ea17a5df72f529d3d3648c191867bc1",
+      "training_history_length": 3,
+      "evaluation_history_tokens": 3,
+      "input_protocol": {
+        "action_block_raw_steps": 5,
+        "action_dim": 2,
+        "decoder_required": false,
+        "future_action_blocks": 5,
+        "history_tokens": 3,
+        "native_target_encoder": true
+      },
+      "frozen_encoder_semantics": null,
+      "initialization_mode": null,
+      "init_weights_sha256": null,
+      "checkpoint_sha256": "cef052a4d616daaff91239163a7e2644421d77b789d6a7628d39cbaf5903ceb6",
+      "result_sha256": "420ea3ff07cdaeff35b424221921cea321e9153a026da184214fbb363d9d68b7",
+      "metric_name": "correct_future_rate",
+      "evaluation_split": "development",
+      "scores": {
+        "main": 50.9765625,
+        "worst": 48.828125,
+        "history": 69.53125,
+        "switch": 100.0,
+        "joint": 1.171875,
+        "gain": 0.03769616791275379,
+        "alignment": 0.8107077556408532,
+        "nre": 0.9267697142631983,
+        "calibrated": 100.0,
+        "cem": 98.33333333333333
+      },
+      "cem_reference_scope": "original_environment",
+      "cem_per_seed": [
+        {
+          "eval_seed": 42,
+          "budget_episodes": 50,
+          "success_rate_percent": 96.0
+        },
+        {
+          "eval_seed": 43,
+          "budget_episodes": 50,
+          "success_rate_percent": 98.0
+        },
+        {
+          "eval_seed": 44,
+          "budget_episodes": 50,
+          "success_rate_percent": 98.0
+        },
+        {
+          "eval_seed": 45,
+          "budget_episodes": 50,
+          "success_rate_percent": 100.0
+        },
+        {
+          "eval_seed": 46,
+          "budget_episodes": 50,
+          "success_rate_percent": 100.0
+        },
+        {
+          "eval_seed": 47,
+          "budget_episodes": 50,
+          "success_rate_percent": 98.0
+        }
+      ],
+      "speed_tracks": null,
+      "training_data_version": "ContextWorld-v1",
+      "training_code_sha256": "9e49059000fb9b95ebcbcf9c3d52027115df5ce64a862cf251b2bb93914ded52",
+      "evaluation_stablewm_commit": "34c55affcc8ec35c24b8a70c37421e90001ad264",
+      "cem_evaluation_count": 300,
+      "cem_budget": "6x50",
+      "comparison_variant": "scale_2k",
+      "training_pair_count": 2048
+    },
+    {
+      "id": "portal_exit/pldm/scratch/scale_2k",
+      "task": "portal_exit",
+      "task_zh": "传送门出口",
+      "model": "pldm",
+      "regime": "scratch",
+      "measurement_status": "available",
+      "evidence_kind": "icl_development",
+      "comparability_notes": null,
+      "training_seed": 3072,
+      "training_epochs": 10,
+      "training_dataset_id": "tworoom-portal-exit",
+      "training_dataset_manifest_sha256": "46f5cdb8028b3cfca0d2885ee1f4bc2f2ea17a5df72f529d3d3648c191867bc1",
+      "training_history_length": 3,
+      "evaluation_history_tokens": 3,
+      "input_protocol": {
+        "action_block_raw_steps": 5,
+        "action_dim": 2,
+        "decoder_required": false,
+        "future_action_blocks": 5,
+        "history_tokens": 3,
+        "native_target_encoder": true
+      },
+      "frozen_encoder_semantics": null,
+      "initialization_mode": null,
+      "init_weights_sha256": null,
+      "checkpoint_sha256": "30f642b674c063a82fd396d488211187f25742e0df6a31f4b6071851ceafb380",
+      "result_sha256": "bf2517fdeff64ac74d1a75f813ffc0169c8f957fe14559694e6b0a6caf40a5a8",
+      "metric_name": "correct_future_rate",
+      "evaluation_split": "development",
+      "scores": {
+        "main": 67.3828125,
+        "worst": 59.375,
+        "history": 75.390625,
+        "switch": 100.0,
+        "joint": 33.984375,
+        "gain": 0.6464596281139763,
+        "alignment": 0.9676173867428112,
+        "nre": 0.15343069251633804,
+        "calibrated": 100.0,
+        "cem": 92.33333333333333
+      },
+      "cem_reference_scope": "original_environment",
+      "cem_per_seed": [
+        {
+          "eval_seed": 42,
+          "budget_episodes": 50,
+          "success_rate_percent": 88.0
+        },
+        {
+          "eval_seed": 43,
+          "budget_episodes": 50,
+          "success_rate_percent": 90.0
+        },
+        {
+          "eval_seed": 44,
+          "budget_episodes": 50,
+          "success_rate_percent": 98.0
+        },
+        {
+          "eval_seed": 45,
+          "budget_episodes": 50,
+          "success_rate_percent": 88.0
+        },
+        {
+          "eval_seed": 46,
+          "budget_episodes": 50,
+          "success_rate_percent": 98.0
+        },
+        {
+          "eval_seed": 47,
+          "budget_episodes": 50,
+          "success_rate_percent": 92.0
+        }
+      ],
+      "speed_tracks": null,
+      "training_data_version": "ContextWorld-v1",
+      "training_code_sha256": "2083d9d83d475f50e50cc9c7e9fa4f7a2c1477fd44208e62223d1950e7de9038",
+      "evaluation_stablewm_commit": "e7295568848031f7fa3cd68f26e218d365c838d9",
+      "cem_evaluation_count": 300,
+      "cem_budget": "6x50",
+      "comparison_variant": "scale_2k",
+      "training_pair_count": 2048
+    },
+    {
+      "id": "portal_exit/dinowm/scratch/scale_2k",
+      "task": "portal_exit",
+      "task_zh": "传送门出口",
+      "model": "dinowm",
+      "regime": "scratch",
+      "measurement_status": "available",
+      "evidence_kind": "icl_development",
+      "comparability_notes": null,
+      "training_seed": 3072,
+      "training_epochs": 10,
+      "training_dataset_id": "tworoom-portal-exit",
+      "training_dataset_manifest_sha256": "46f5cdb8028b3cfca0d2885ee1f4bc2f2ea17a5df72f529d3d3648c191867bc1",
+      "training_history_length": 3,
+      "evaluation_history_tokens": 3,
+      "input_protocol": {
+        "action_block_raw_steps": 5,
+        "action_dim": 2,
+        "decoder_required": false,
+        "future_action_blocks": 5,
+        "history_tokens": 3,
+        "native_target_encoder": true
+      },
+      "frozen_encoder_semantics": {
+        "policy": "native_frozen_dino_backbone",
+        "modules": [
+          "encoder"
+        ],
+        "semantics": "pretrained_visual_encoder_frozen_predictor_trainable"
+      },
+      "initialization_mode": null,
+      "init_weights_sha256": null,
+      "checkpoint_sha256": "77eaccfcb5b6339d6ecc30341a67280e7a4bc4f55d566984f1c0afcb75d1c84f",
+      "result_sha256": "b264a5164619fbbe27903c18a7d9f72659235513b0b1911099178109c7cbf2e8",
+      "metric_name": "correct_future_rate",
+      "evaluation_split": "development",
+      "scores": {
+        "main": 99.21875,
+        "worst": 98.4375,
+        "history": 100.0,
+        "switch": 100.0,
+        "joint": 98.4375,
+        "gain": 0.3538326700771139,
+        "alignment": 0.6704090148542895,
+        "nre": 0.5708930015334935,
+        "calibrated": 100.0,
+        "cem": 99.33333333333333
+      },
+      "cem_reference_scope": "original_environment",
+      "cem_per_seed": [
+        {
+          "eval_seed": 42,
+          "budget_episodes": 50,
+          "success_rate_percent": 100.0
+        },
+        {
+          "eval_seed": 43,
+          "budget_episodes": 50,
+          "success_rate_percent": 100.0
+        },
+        {
+          "eval_seed": 44,
+          "budget_episodes": 50,
+          "success_rate_percent": 98.0
+        },
+        {
+          "eval_seed": 45,
+          "budget_episodes": 50,
+          "success_rate_percent": 100.0
+        },
+        {
+          "eval_seed": 46,
+          "budget_episodes": 50,
+          "success_rate_percent": 98.0
+        },
+        {
+          "eval_seed": 47,
+          "budget_episodes": 50,
+          "success_rate_percent": 100.0
+        }
+      ],
+      "speed_tracks": null,
+      "training_data_version": "ContextWorld-v1",
+      "training_code_sha256": "dcfe1353f2931ae880802d047838afc9a704cccfbd2fac9ce6add979307fc317",
+      "evaluation_stablewm_commit": "5396eb6677167eb3e6703d93e7521e9e7338a8fd",
+      "cem_evaluation_count": 300,
+      "cem_budget": "6x50",
+      "comparison_variant": "scale_2k",
+      "training_pair_count": 2048
+    },
+    {
+      "id": "action_strength/lewm/joint/scale_2k",
+      "task": "action_strength",
+      "task_zh": "推手移动幅度",
+      "model": "lewm",
+      "regime": "joint",
+      "measurement_status": "available",
+      "evidence_kind": "icl_development",
+      "comparability_notes": null,
+      "training_seed": 3072,
+      "training_epochs": 10,
+      "training_dataset_id": "pusht-action-strength",
+      "training_dataset_manifest_sha256": "4c5b9cdc84006caeac2a9770501f943affe2b81e32d70c27ab504770b28a93c4",
+      "training_history_length": 3,
+      "evaluation_history_tokens": 3,
+      "input_protocol": {
+        "action_block_raw_steps": 5,
+        "action_dim": 2,
+        "decoder_required": false,
+        "future_action_blocks": 5,
+        "history_tokens": 3,
+        "native_target_encoder": true
+      },
+      "frozen_encoder_semantics": null,
+      "initialization_mode": "warmstart",
+      "init_weights_sha256": "9f13b2c28bb909338047e08d62bf6eb16ea3616cb53e57cfa9b5072b43db1c59",
+      "checkpoint_sha256": "d2a9b7f8fec6aeada4647f830c7bba462d3298353a9055620a0a950623df9864",
+      "result_sha256": "b083b9129c328d8acf0c66fd3c7ab3e30839263e448d51a447555e7e586baa35",
+      "metric_name": "correct_future_rate",
+      "evaluation_split": "development",
+      "scores": {
+        "main": 55.6640625,
+        "worst": 14.453125,
+        "history": 80.078125,
+        "switch": 94.921875,
+        "joint": 8.59375,
+        "gain": 0.14413295616556704,
+        "alignment": 0.45907584008233365,
+        "nre": 0.8103070283710542,
+        "calibrated": 85.15625,
+        "cem": 86.0
+      },
+      "cem_reference_scope": "original_environment",
+      "cem_per_seed": [
+        {
+          "eval_seed": 42,
+          "budget_episodes": 50,
+          "success_rate_percent": 82.0
+        },
+        {
+          "eval_seed": 43,
+          "budget_episodes": 50,
+          "success_rate_percent": 90.0
+        },
+        {
+          "eval_seed": 44,
+          "budget_episodes": 50,
+          "success_rate_percent": 84.0
+        },
+        {
+          "eval_seed": 45,
+          "budget_episodes": 50,
+          "success_rate_percent": 84.0
+        },
+        {
+          "eval_seed": 46,
+          "budget_episodes": 50,
+          "success_rate_percent": 88.0
+        },
+        {
+          "eval_seed": 47,
+          "budget_episodes": 50,
+          "success_rate_percent": 88.0
+        }
+      ],
+      "speed_tracks": null,
+      "training_data_version": "ContextWorld-v1",
+      "training_code_sha256": "9e49059000fb9b95ebcbcf9c3d52027115df5ce64a862cf251b2bb93914ded52",
+      "evaluation_stablewm_commit": "c34a107e787133468369e08f8f3efa2a43db67a2",
+      "cem_evaluation_count": 300,
+      "cem_budget": "6x50",
+      "comparison_variant": "scale_2k",
+      "training_pair_count": 2048
+    },
+    {
+      "id": "action_strength/lewm/joint/scale_8k",
+      "task": "action_strength",
+      "task_zh": "推手移动幅度",
+      "model": "lewm",
+      "regime": "joint",
+      "measurement_status": "available",
+      "evidence_kind": "icl_development",
+      "comparability_notes": null,
+      "training_seed": 3072,
+      "training_epochs": 10,
+      "training_dataset_id": "pusht-action-strength",
+      "training_dataset_manifest_sha256": "10063c015337128eda3d1995cb2ae572da21aae1d9cb35f7a36b3a51efef15e5",
+      "training_history_length": 3,
+      "evaluation_history_tokens": 3,
+      "input_protocol": {
+        "action_block_raw_steps": 5,
+        "action_dim": 2,
+        "decoder_required": false,
+        "future_action_blocks": 5,
+        "history_tokens": 3,
+        "native_target_encoder": true
+      },
+      "frozen_encoder_semantics": null,
+      "initialization_mode": "warmstart",
+      "init_weights_sha256": "9f13b2c28bb909338047e08d62bf6eb16ea3616cb53e57cfa9b5072b43db1c59",
+      "checkpoint_sha256": "2a6e3b1847a47cc679e7c3d1e91f817f1bb98b17df2a2b4f12096999600d536b",
+      "result_sha256": "5331653b975944152aac99efa639687753336f067769e6d9fd1c3cc5129ad2db",
+      "metric_name": "correct_future_rate",
+      "evaluation_split": "development",
+      "scores": {
+        "main": 82.421875,
+        "worst": 66.796875,
+        "history": 95.5078125,
+        "switch": 100.0,
+        "joint": 61.71875,
+        "gain": 0.5762420303854331,
+        "alignment": 0.7823950998508298,
+        "nre": 0.3899633248533618,
+        "calibrated": 95.3125,
+        "cem": 85.33333333333333
+      },
+      "cem_reference_scope": "original_environment",
+      "cem_per_seed": [
+        {
+          "eval_seed": 42,
+          "budget_episodes": 50,
+          "success_rate_percent": 84.0
+        },
+        {
+          "eval_seed": 43,
+          "budget_episodes": 50,
+          "success_rate_percent": 80.0
+        },
+        {
+          "eval_seed": 44,
+          "budget_episodes": 50,
+          "success_rate_percent": 86.0
+        },
+        {
+          "eval_seed": 45,
+          "budget_episodes": 50,
+          "success_rate_percent": 92.0
+        },
+        {
+          "eval_seed": 46,
+          "budget_episodes": 50,
+          "success_rate_percent": 82.0
+        },
+        {
+          "eval_seed": 47,
+          "budget_episodes": 50,
+          "success_rate_percent": 88.0
+        }
+      ],
+      "speed_tracks": null,
+      "training_data_version": "ContextWorld-action-strength-8k-v1",
+      "training_code_sha256": "9e49059000fb9b95ebcbcf9c3d52027115df5ce64a862cf251b2bb93914ded52",
+      "evaluation_stablewm_commit": "c34a107e787133468369e08f8f3efa2a43db67a2",
+      "cem_evaluation_count": 300,
+      "cem_budget": "6x50",
+      "comparison_variant": "scale_8k",
+      "training_pair_count": 8192
     }
   ]
 }

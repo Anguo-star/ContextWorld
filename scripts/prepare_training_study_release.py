@@ -18,7 +18,7 @@ def main():
     study = json.loads((REPO / 'docs/research/data/icl_training_study_v2.json').read_text())
     bundles = {}
     for row in study['rows']:
-        if not row.get('training_data_version') or row['regime'] == 'original':
+        if not row.get('training_data_version') or row['regime'] == 'original' or row.get('comparison_variant'):
             continue
         # The three inherited tasks use the base release selection below.
         # Historical whole-bundle hashes also cover older Development layouts;
@@ -58,7 +58,7 @@ def main():
         for split, name, rows in [('training', bundle, train), ('development', 'ContextWorld-v1', dev), ('test', 'ContextWorld-v1-full', test)]:
             stats[split] = {'files': len(rows), 'bytes': sum(r['bytes'] for r in rows)}
             selected.extend(dict(r, source_bundle=name) for r in rows)
-        tasks.append({'task': task, 'training_source': bundle, 'training_status': 'expanded' if bundle != 'ContextWorld-v1' else 'inherited', 'reported_icl_training_runs': sum(row['task'] == task and row['regime'] in ('scratch', 'joint', 'frozen') and row['measurement_status'] == 'available' for row in study['rows']), 'splits': stats})
+        tasks.append({'task': task, 'training_source': bundle, 'training_status': 'expanded' if bundle != 'ContextWorld-v1' else 'inherited', 'reported_icl_training_runs': sum(row['task'] == task and row['regime'] in ('scratch', 'joint', 'frozen') and row['measurement_status'] == 'available' and not row.get('comparison_variant') for row in study['rows']), 'splits': stats})
     if len({r['path'] for r in selected}) != len(selected):
         raise ValueError('Destination paths collide')
     report = {
