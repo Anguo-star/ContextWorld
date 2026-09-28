@@ -34,6 +34,7 @@ APPENDIX_DOC = REPO / "docs" / "reference" / "Benchmark_Result_Provenance.md"
 JSON_PATH = REPO / "docs" / "research" / "data" / "icl_training_study_v2.json"
 CSV_PATH = REPO / "docs" / "research" / "data" / "icl_training_study_v2.csv"
 DECISION_PATH = REPO / "docs" / "research" / "data" / "icl_action_selection_v1.json"
+CURVES_PATH = REPO / "docs" / "research" / "data" / "icl_training_dynamics_v1.json"
 
 TASK_ORDER = ["speed", "action_strength", "robot_arm_mass", "action_delay",
               "contact_friction", "motion_damping", "cube_gripper_carry", "door", "portal_exit"]
@@ -66,7 +67,7 @@ LEWM_STRENGTH_JOINT_IDS = ["action_strength/lewm/joint/scale_2k",
                            "action_strength/lewm/joint"]
 
 DETAIL_MARKERS = {task: "DETAIL_" + task.upper() for task in TASK_ORDER}
-MAIN_MARKERS = ["OVERVIEW", "DECISION"] + [DETAIL_MARKERS[t] for t in TASK_ORDER] + ["SCALING"]
+MAIN_MARKERS = ["OVERVIEW", "DECISION", "CURVES"] + [DETAIL_MARKERS[t] for t in TASK_ORDER] + ["SCALING"]
 APPENDIX_MARKERS = ["HISTORICAL"]
 MARKERS = MAIN_MARKERS + APPENDIX_MARKERS
 
@@ -493,9 +494,31 @@ def render_decision():
     return "\n".join(_markdown_table(header, body))
 
 
+def render_curves():
+    """Keep diagnostic re-evaluations separate from archived benchmark scores."""
+    evidence = json.loads(CURVES_PATH.read_text(encoding="utf-8"))
+    indexed = {(r["training_comparison_id"], r["epoch"], r["split"]): r
+               for r in evidence["rows"]}
+    header = ["任务", "方案", "Epoch", "训练主分↑", "Dev 主分↑",
+              "训练响应分↑", "Dev 响应分↑", "Dev Gain≈1"]
+    body = []
+    for task in ("action_strength", "motion_damping"):
+        for regime in ("joint", "frozen"):
+            for epoch in evidence["epochs"]:
+                rid = f"{task}/pldm/{regime}"
+                train, dev = (indexed[rid, epoch, split] for split in ("training", "development"))
+                body.append("| " + " | ".join([
+                    TASK_ZH[task], REGIME_ZH[regime], str(epoch),
+                    f2(train["main_percent"]), f2(dev["main_percent"]),
+                    f2(train["response_score"]), f2(dev["response_score"]),
+                    f3(dev["gain"])]) + " |")
+    return "\n".join(_markdown_table(header, body))
+
+
 def build_blocks(rows):
     blocks = {"OVERVIEW": render_overview(rows),
               "DECISION": render_decision(),
+              "CURVES": render_curves(),
               "SCALING": render_scaling(rows),
               "HISTORICAL": render_historical(rows)}
     for task, marker in DETAIL_MARKERS.items():

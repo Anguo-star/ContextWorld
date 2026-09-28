@@ -523,3 +523,23 @@ def test_existing_decision_evidence_matches_comparison_checkpoints(published_row
         assert row["history_benefit"] == pytest.approx(row["swapped_regret"] - row["correct_regret"])
         lo, hi = row["history_benefit_ci95"]
         assert lo <= row["history_benefit"] <= hi
+
+
+def test_diagnostic_curves_keep_score_semantics_and_checkpoint_identity(published_rows):
+    evidence = json.loads((ROOT / "docs/research/data/icl_training_dynamics_v1.json").read_text())
+    indexed = {r["id"]: r for r in published_rows}
+    rows = evidence["rows"]
+    assert len(rows) == 16
+    assert len({(r["training_comparison_id"], r["epoch"], r["split"]) for r in rows}) == 16
+    for row in rows:
+        assert row["pair_count"] == (64 if row["split"] == "training" else 256)
+        assert row["response_score"] == pytest.approx(100 * (1 - row["nre"]))
+        assert row["amplitude_error"] + row["orthogonal_error"] == pytest.approx(row["nre"])
+        assert row["orthogonal_error"] >= -1e-10
+        if row["epoch"] == 10:
+            source = indexed[row["training_comparison_id"]]
+            assert row["checkpoint_sha256"] in {r["checkpoint_sha256"] for r in source["replicates"]}
+        if row["epoch"] == 10 and row["split"] == "development":
+            archived = indexed[row["training_comparison_id"]]["scores"]
+            assert row["difference_from_published"]["main_percentage_points"] == pytest.approx(
+                row["main_percent"] - archived["main"])
