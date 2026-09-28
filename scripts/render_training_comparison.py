@@ -50,7 +50,7 @@ PCT = ["main", "worst", "history", "switch", "joint", "calibrated", "cem"]
 RATIO = ["gain", "alignment", "nre"]
 ALL = ["main", "worst", "history", "switch", "joint", "gain", "alignment", "nre", "calibrated", "cem"]
 # Response is a display transform, not an additional evaluator output or gate.
-DISPLAY = ["main", "response"] + ALL[1:]
+DISPLAY = ["main", "response"] + [k for k in ALL[1:] if k != "nre"]
 EXPORTED = ALL + ["response"]
 SPEED_TRACKS = ["seen_for_multi", "unseen_interpolation", "extrapolation_low", "extrapolation_high"]
 SPEED_MAIN_TRACK = "unseen_interpolation"
@@ -58,8 +58,6 @@ TRACK_ZH = {"seen_for_multi": "训练中已见速度", "unseen_interpolation": "
             "extrapolation_low": "低端外推", "extrapolation_high": "高端外推"}
 # Tasks that never define the Joint contrast.
 JOINT_NA_TASKS = ("speed", "action_delay", "door")
-# Chance level of the main score per task (everything else is a binary hidden condition).
-CHANCE = {"speed": 1.0 / 3.0, "action_delay": 1.0 / 6.0}
 SCALING_TASKS = ["action_strength", "contact_friction", "motion_damping",
                  "robot_arm_mass", "cube_gripper_carry", "portal_exit"]
 LEWM_STRENGTH_JOINT_IDS = ["action_strength/lewm/joint/scale_2k",
@@ -85,7 +83,7 @@ OVERVIEW_GROUPS = [(model, regime) for model in MODEL_ORDER for regime in REGIME
                    if not (model == "dinowm" and regime == "joint")]
 METRIC_HDR = ["主分↑", "最弱条件↑", "History↑", "Switch↑", "Joint↑", "Gain≈1",
               "Alignment↑", "NRE↓", "CalResp↑", "CEM↑"]
-DISPLAY_HDR = ["主分↑", "响应分↑"] + METRIC_HDR[1:-2] + ["优于零响应↑", "CEM↑"]
+DISPLAY_LABEL = dict(zip(ALL, METRIC_HDR)) | {"response": "响应分↑", "calibrated": "优于零响应↑"}
 
 
 class Fail(Exception):
@@ -172,22 +170,6 @@ def display_stats(row):
             metrics["cem"] = agg["scores"]["cem"]
             return with_response(metrics), agg
     return with_response(agg["scores"]), agg
-
-
-def chance(task):
-    return CHANCE.get(task, 0.5)
-
-
-def icl_average(means):
-    """Chance-corrected nine-task ICL average, or None unless all nine means exist.
-
-    ``100/9 * sum((mean/100 - chance) / (1 - chance))`` with chance 1/3 for Speed,
-    1/6 for Delay and 1/2 elsewhere; values are never clipped.
-    """
-    if any(means.get(t) is None for t in TASK_ORDER):
-        return None
-    return 100.0 / len(TASK_ORDER) * sum(
-        (means[t] / 100.0 - chance(t)) / (1.0 - chance(t)) for t in TASK_ORDER)
 
 
 def is_current_ordinary(row):
@@ -374,39 +356,41 @@ def _markdown_table(header, body):
 
 
 def render_overview(rows):
-    """Eleven horizontal rows: model x scheme, nine task cells (meanICL / meanCEM), ICL Avg."""
-    header = ["模型", "方案"] + [TASK_ZH[t] for t in TASK_ORDER] + ["ICL Avg.↑"]
+    """Eleven model/scheme rows, with nine task cells (mean ICL / mean CEM)."""
+    header = ["模型", "方案"] + [TASK_ZH[t] for t in TASK_ORDER]
     body = []
     for (model, regime), tasks in overview_groups(rows):
-        cells, means = [], {}
+        cells = []
         for t in TASK_ORDER:
             metrics, agg = display_stats(tasks[t])
-            means[t] = metrics["main"]["mean"]
             icl = f2(metrics["main"]["mean"])
             if t == "action_delay" and regime == "original" and icl != "—":
                 icl += "†"
             cem = f2(agg["scores"]["cem"]["mean"])
             cells.append("—" if icl == "—" and cem == "—" else f"{icl} / {cem}")
-        # Originals are excluded from the average: their Delay reference is H3, not H7.
-        average = "—" if regime == "original" else f2(icl_average(means))
-        body.append("| " + " | ".join([MODEL_ZH[model], REGIME_ZH[regime]] + cells + [average]) + " |")
+        body.append("| " + " | ".join([MODEL_ZH[model], REGIME_ZH[regime]] + cells) + " |")
     return "\n".join(_markdown_table(header, body))
 
 
 def render_detail(task, rows):
     """Per-task table of the current ordinary rows (plus Speed's four-track breakdown)."""
     task_rows = ordered_current(rows, task)
-    header = ["模型", "方案", "n(ICL)", "n(CEM)"] + DISPLAY_HDR
+    keys = [k for k in DISPLAY if not (k == "joint" and task in JOINT_NA_TASKS)
+            and not (k == "history" and task == "speed")]
+    header = ["模型", "方案", "n(ICL)", "n(CEM)"] + [DISPLAY_LABEL[k] for k in keys]
     body = []
     for r in task_rows:
         metrics, agg = display_stats(r)
+        if not any(st["n"] for st in metrics.values()):
+            continue
         body.append("| " + " | ".join(
             [MODEL_ZH[r["model"]], scheme_label(r), str(metrics["main"]["n"]),
              str(agg["scores"]["cem"]["n"])]
-            + [stat_cell(r, k, metrics.get(k)) for k in DISPLAY]) + " |")
+            + [stat_cell(r, k, metrics.get(k)) for k in keys]) + " |")
     out = _markdown_table(header, body)
     if task == "speed":
-        track_header = ["模型", "方案", "速度分布", "n"] + [h for h in DISPLAY_HDR if h not in ("CEM↑", "Joint↑")]
+        track_keys = [k for k in keys if k != "cem"]
+        track_header = ["模型", "方案", "速度分布", "n"] + [DISPLAY_LABEL[k] for k in track_keys]
         track_body = []
         for r in task_rows:
             agg = aggregate(r)
@@ -415,7 +399,7 @@ def render_detail(task, rows):
                 track_body.append("| " + " | ".join(
                     [MODEL_ZH[r["model"]], scheme_label(r), TRACK_ZH[track],
                      str((st.get("main") or {"n": 0})["n"])]
-                    + [stat_cell(r, k, st.get(k)) for k in DISPLAY if k not in ("cem", "joint")]) + " |")
+                    + [stat_cell(r, k, st.get(k)) for k in track_keys]) + " |")
         out = out + [""] + _markdown_table(track_header, track_body)
     return "\n".join(out)
 
@@ -450,14 +434,14 @@ def scaling_rows(rows):
 
 
 def render_scaling(rows):
-    header = ["任务", "模型", "方案", "训练数据", "n", "ICL 主分↑", "响应分↑", "Joint↑", "Gain≈1", "NRE↓", "CEM↑"]
+    header = ["任务", "模型", "方案", "训练数据", "n", "ICL 主分↑", "响应分↑", "Joint↑", "Gain≈1", "CEM↑"]
     body = []
     for r in scaling_rows(rows):
         metrics, agg = display_stats(r)
         body.append("| " + " | ".join(
             [TASK_ZH[r["task"]], MODEL_ZH[r["model"]], REGIME_ZH[r["regime"]], scale_label(r),
              f"{metrics['main']['n']}/{agg['scores']['cem']['n']}", stat_cell(r, "main", metrics["main"])]
-            + [stat_cell(r, k, metrics[k]) for k in ("response", "joint", "gain", "nre", "cem")]) + " |")
+            + [stat_cell(r, k, metrics[k]) for k in ("response", "joint", "gain", "cem")]) + " |")
     return "\n".join(_markdown_table(header, body))
 
 

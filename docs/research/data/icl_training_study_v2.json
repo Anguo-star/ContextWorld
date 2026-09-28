@@ -61,7 +61,6 @@
     "nre": "Task-protocol normalized squared response error. The shared paired kernel divides summed squared response error by summed squared target response, not the arithmetic mean of per-pair ratios. Ideal 0; zero history response has error 1.",
     "calibrated": "Fraction of pairs with NRE<1, in percent; displayed as better-than-zero response rate. Does not imply accurate response amplitude. Existing source field retained.",
     "cem": "Original-environment planning success percentage. Current runs use 6 eval seeds x50; historical original references may use 3x100 or aggregate-only 300 episodes. See per-row budgets.",
-    "icl_average": "Descriptive nine-task macro mean after chance correction: (100/9)*sum((mean_main_percent/100-c)/(1-c)); c=1/3 for speed,1/6 for action_delay,1/2 otherwise. No clipping; only complete comparable nine-task configurations. Speed uses unseen_interpolation once. H3 original Delay is excluded. Never mixes CEM or latent response metrics.",
     "response": "Derived display score: 100*(1-nre), without clipping; NRE is already a squared error ratio. Units are points, not a success percentage. Computed from stored NRE in the renderer/CSV; source scores and evaluator outputs are unchanged. Mean=100*(1-mean_NRE), sample SD=100*SD_NRE, count=count_NRE; missing remains missing."
   },
   "evaluation_split": "ICL scores use Development; CEM separately evaluates original-environment planning.",

@@ -11,7 +11,7 @@
 5. [外部模型 Adapter 规范](External_Model_Adapter_Contract.md)：接入新模型所需的统一接口；
 6. [Stable-WorldModel 训练](StableWM_Training.md)：内置 LeWM、PLDM 和 PreJEPA 的训练入口。
 
-九项任务按隐藏动力学类型组织，各自报告 ICL 分数。主表按任务横向展示 ICL / CEM，并提供经随机水平归一化的 ICL Avg.；该平均分不合并 CEM 或响应诊断指标。
+九项任务按隐藏动力学类型组织。主表按任务横向展示 ICL / CEM，任务详情报告条件响应与历史利用等诊断指标。
 
 最新结果直接见[九任务主表](ContextWorld_ICL_Benchmark.md#training-comparison)。各任务详情展开完整指标、标准差和重复数；Speed 分布与数据扩量分别展示。全部可用的同配置训练重复参与汇总，表格由同一份 [JSON](research/data/icl_training_study_v2.json) 生成，并提供汇总 [CSV](research/data/icl_training_study_v2.csv)。
 

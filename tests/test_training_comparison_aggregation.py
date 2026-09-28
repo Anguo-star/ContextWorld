@@ -272,34 +272,13 @@ def _scaling_fixture(*replacements):
     return list(by_id.values())
 
 
-def test_icl_average_requires_all_nine_tasks_and_never_clips(rtc):
-    means = {task: 50.0 for task in rtc.TASK_ORDER}
-    # Chance differs per task: only Speed (1/3) and Delay (1/6) move off 0.5.
-    assert rtc.icl_average(means) == pytest.approx(
-        100.0 / 9 * ((0.5 - 1 / 3) / (2 / 3) + (0.5 - 1 / 6) / (5 / 6)))
-    assert rtc.icl_average({t: 100.0 for t in rtc.TASK_ORDER}) == pytest.approx(100.0)
-    # Below-chance means stay negative instead of being clipped to zero.
-    below_chance = 100.0 / 9 * sum((0.0 - rtc.chance(t)) / (1.0 - rtc.chance(t)) for t in rtc.TASK_ORDER)
-    assert below_chance < 0
-    assert rtc.icl_average({t: 0.0 for t in rtc.TASK_ORDER}) == pytest.approx(below_chance)
-    missing = dict(means)
-    missing["door"] = None
-    assert rtc.icl_average(missing) is None
-
-
-def test_overview_excludes_originals_from_the_average_but_keeps_cells(rtc, published_rows):
+def test_overview_reports_all_nine_tasks_without_a_composite_score(rtc, published_rows):
     text = rtc.render_overview(published_rows)
     lines = [l for l in text.splitlines() if l.startswith("|")][2:]
     assert len(lines) == 11
-    assert all(len(l.split("|")) == 14 for l in lines)
-    for line, (model, regime) in zip(lines, rtc.OVERVIEW_GROUPS):
-        average = line.split("|")[-2].strip()
-        if regime == "original":
-            # H3 Delay originals are not H7-comparable, so no average is computed.
-            assert average == "—"
-    assert "†" in "\n".join(lines)  # the reported H3 Delay references stay flagged
-    scratch = [l for l, (m, r) in zip(lines, rtc.OVERVIEW_GROUPS) if r == "scratch"]
-    assert scratch and all(l.split("|")[-2].strip() not in ("—", "") for l in scratch)
+    assert all(len(l.split("|")) == 13 for l in lines)
+    assert "ICL Avg" not in text
+    assert "†" in "\n".join(lines)
     assert "历史转换初始化" not in text
 
 
@@ -323,8 +302,8 @@ def test_speed_detail_reports_tracks_separately_without_repeating_cem(rtc, publi
     text = rtc.render_detail("speed", published_rows)
     lines = [l for l in text.splitlines() if l.startswith("|")]
     body = [l for l in lines[2:] if not l.startswith("| ---") and not l.startswith("| 模型")]
-    summary = [l for l in body if len(l.split("|")) == 17]
-    tracks = [l for l in body if len(l.split("|")) == 15]
+    summary = [l for l in body if len(l.split("|")) == len(lines[0].split("|"))]
+    tracks = [l for l in body if l not in summary]
     current = rtc.ordered_current(published_rows, "speed")
     assert len(summary) == len(current) == 11  # one row per scheme, not per distribution
     assert len(tracks) == 4 * len(current)
@@ -335,14 +314,15 @@ def test_speed_detail_reports_tracks_separately_without_repeating_cem(rtc, publi
     assert not any("3072" in l or "3073" in l for l in lines)
 
 
-def test_each_current_row_renders_in_its_own_task_detail(rtc, published_rows):
+def test_each_measured_current_row_renders_in_its_own_task_detail(rtc, published_rows):
     for task in rtc.TASK_ORDER:
         current = rtc.ordered_current(published_rows, task)
-        assert len(current) == 11
+        current = [r for r in current if any(st["n"] for st in rtc.display_stats(r)[0].values())]
         text = rtc.render_detail(task, published_rows)
+        width = len(text.splitlines()[0].split("|"))
         labels = [(l.split("|")[1].strip(), l.split("|")[2].strip())
                   for l in text.splitlines()
-                  if l.startswith("|") and len(l.split("|")) == 17 and "---" not in l
+                  if l.startswith("|") and len(l.split("|")) == width and "---" not in l
                   and not l.startswith("| 模型")]
         assert labels == [(rtc.MODEL_ZH[r["model"]], rtc.scheme_label(r)) for r in current]
         assert "历史转换初始化" not in text  # projected rows only live in the appendix

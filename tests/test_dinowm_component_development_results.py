@@ -135,7 +135,7 @@ def test_public_document_uses_overview_and_task_detail_tables() -> None:
     distribution) straight from the representative rows.  The published study
     now carries per-training-run ``replicates``, so the renderer aggregates
     instead: a horizontal overview (model x scheme, one ``ICL / CEM`` cell per
-    task, chance-corrected ICL 平均 only when all nine tasks are present and
+    task, without a composite score, and
     comparable), one detail block per task with n(ICL)/n(CEM) and mean ± SD,
     a scaling block, and an appendix-only historical block.  This test pins
     that structure to the source JSON and the renderer itself.
@@ -166,11 +166,12 @@ def test_public_document_uses_overview_and_task_detail_tables() -> None:
     assert "JSON" in section and "CSV" in section
     assert "排队" not in section
 
-    # Overview: eleven model x scheme rows, nine task cells plus ICL 平均, no seed column.
+    # Overview: eleven model x scheme rows, nine task cells, no composite score or seed column.
     overview = _table_lines(document, "OVERVIEW")
     body = _body_rows(overview)
     assert len(body) == 11
-    assert all(len(line.split("|")) == 14 for line in body)  # 12 columns
+    assert all(len(line.split("|")) == 13 for line in body)  # 11 columns
+    assert "ICL Avg" not in overview[0]
     for task in renderer.TASK_ORDER:
         assert renderer.TASK_ZH[task] in overview[0]
     pairs = [(line.split("|")[1].strip(), line.split("|")[2].strip()) for line in body]
@@ -180,15 +181,14 @@ def test_public_document_uses_overview_and_task_detail_tables() -> None:
     ]
     groups = dict(renderer.overview_groups(rows))
     for line, (model, regime) in zip(body, renderer.OVERVIEW_GROUPS):
-        means = {}
-        for task in renderer.TASK_ORDER:
+        cells = [cell.strip() for cell in line.split("|")[3:-1]]
+        for cell, task in zip(cells, renderer.TASK_ORDER):
             metrics, agg = renderer.display_stats(groups[(model, regime)][task])
-            means[task] = metrics["main"]["mean"]
-        expected = "—" if regime == "original" else renderer.f2(renderer.icl_average(means))
-        assert line.split("|")[-2].strip() == expected, (model, regime)
-        if regime == "original":
-            continue  # H3 Delay originals never enter the chance-corrected average
-        assert expected == "—" or re.fullmatch(r"-?\d+\.\d\d", expected)
+            icl = renderer.f2(metrics["main"]["mean"])
+            if task == "action_delay" and regime == "original" and icl != "—":
+                icl += "†"
+            cem = renderer.f2(agg["scores"]["cem"]["mean"])
+            assert cell == ("—" if icl == cem == "—" else f"{icl} / {cem}")
     assert "†" in "\n".join(body)  # H3 Delay original reference stays flagged
     assert "历史转换初始化" not in "\n".join(body)
 
@@ -196,28 +196,30 @@ def test_public_document_uses_overview_and_task_detail_tables() -> None:
     for task, marker in renderer.DETAIL_MARKERS.items():
         lines = _table_lines(document, marker)
         detail_body = _body_rows(lines)
-        current = renderer.ordered_current(rows, task)
+        current = [r for r in renderer.ordered_current(rows, task)
+                   if any(st["n"] for st in renderer.display_stats(r)[0].values())]
         expected_labels = [
             (renderer.MODEL_ZH[r["model"]], renderer.scheme_label(r)) for r in current
         ]
-        summary = [line for line in detail_body if len(line.split("|")) == 17]
+        summary = [line for line in detail_body if len(line.split("|")) == len(lines[0].split("|"))]
         rendered = [(line.split("|")[1].strip(), line.split("|")[2].strip()) for line in summary]
         assert rendered == expected_labels, task
+        assert "NRE↓" not in lines[0] and "响应分↑" in lines[0]
         assert "n(ICL)" in lines[0] and "n(CEM)" in lines[0] and "CEM↑" in lines[0]
         assert "历史转换初始化" not in "\n".join(detail_body)
         assert "2k" not in "\n".join(detail_body) and "10k 独立来源" not in "\n".join(detail_body)
         if task == "speed":
-            track_rows = [line for line in detail_body if len(line.split("|")) == 15]
+            track_rows = [line for line in detail_body if line not in summary]
             assert len(track_rows) == 4 * len(current)  # four distributions, not four tasks
             track_table_header = [line for line in lines if "速度分布" in line][0]
             assert "CEM" not in track_table_header  # CEM is reported once, in the summary
             for label in ("低端外推", "高端外推", "未见速度插值", "训练中已见速度"):
                 assert label in "\n".join(track_rows)
         if task in ("speed", "action_delay", "door"):
-            assert "N/A" in "\n".join(detail_body)  # Joint is undefined for these tasks
+            assert "Joint↑" not in lines[0]  # Undefined metrics do not need empty columns
         if task == "action_delay":
             assert "原始模型†" in "\n".join(detail_body)
-    assert "（未报告）" in tasks and "（仅 CEM）" in tasks
+    assert "（未报告）" not in tasks and "（仅 CEM）" in tasks
 
     # Scaling: six small-vs-large Scratch comparisons plus the LeWM strength Joint ladder.
     scaling = _body_rows(_table_lines(document, "SCALING"))

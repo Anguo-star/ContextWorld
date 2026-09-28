@@ -40,7 +40,7 @@ def test_cube_task_card_defines_current_data_and_links_unified_results() -> None
     assert "authorized_not_generated_not_opened_not_read_not_scored" not in document
     assert "四类动作模板在每个划分中严格均衡" in section
     assert "源轨迹、动作模板、场景、配对内容和 query 画面互不重叠" in section
-    assert "外部模型使用独立结果身份" in section
+    assert "新结果应引用明确的数据版本、训练方案和评测划分" in document
     assert "10,000 个独立来源 episode" in section
     assert "##### 基线表现" not in section
     assert "### 5.2 主结果表" in document
