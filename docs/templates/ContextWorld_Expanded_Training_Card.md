@@ -28,7 +28,7 @@ Use Training for optimization, Development for model and recipe selection, and T
 
 ## Available evidence and limitations
 
-The [ContextWorld technical report](https://github.com/Anguo-star/ContextWorld/blob/main/docs/ContextWorld_ICL_Benchmark.md#training-comparison) is the single source for reported results and their interpretation. It includes all nine tasks with three-model native ICL scratch results and six-task LeWM/PLDM comparisons of full-model warmstart versus freezing the encoder. These are single-training-seed Development results; missing regimes are explicitly marked.
+The [ContextWorld technical report](https://github.com/Anguo-star/ContextWorld/blob/main/docs/ContextWorld_ICL_Benchmark.md#training-comparison) is the single source for reported results and their interpretation. It includes all nine tasks with three-model native ICL scratch results and eight-task LeWM/PLDM comparisons of full-model warmstart versus freezing the encoder. It also reports DINO-WM full predictor warmstarts for Speed, Motion Damping and Cube Carry. These are single-training-seed Development results; missing regimes are explicitly marked.
 
 New DINO-WM original models use only pixels and actions. Older projected-initialization results are retained separately and must not be presented as complete weight transfer from these new models. Changes in data coverage, representation updates and training initialization affect different tasks differently; the results do not establish sample count as the sole cause of failure or a universal scaling law.
 

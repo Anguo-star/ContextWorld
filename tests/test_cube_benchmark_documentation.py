@@ -24,7 +24,7 @@ def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def test_cube_release_uses_the_five_part_benchmark_template() -> None:
+def test_cube_task_card_defines_current_data_and_links_unified_results() -> None:
     document = PUBLIC_DOCUMENT.read_text(encoding="utf-8")
     heading = "#### 6.3.3 Cube 夹爪携带规则"
     start = document.index(heading)
@@ -35,18 +35,15 @@ def test_cube_release_uses_the_five_part_benchmark_template() -> None:
         "任务目标",
         "数据构成",
         "评测方法",
-        "基线表现",
         "适用范围",
     ]
     assert "authorized_not_generated_not_opened_not_read_not_scored" not in document
     assert "四类动作模板在每个划分中严格均衡" in section
     assert "源轨迹、动作模板、场景、配对内容和 query 画面互不重叠" in section
     assert "外部模型使用独立结果身份" in section
-    assert "公开分发仍须补齐许可证和稳定下载地址" in section
-    # The task card now describes frozen v3; earlier v4r1 recipe scores
-    # must not be required or reintroduced as the current reference.
-    assert "当前 v3 三训练种子结果" in section
-    assert "LeWM 50.00% ± 0.00pp" in section
+    assert "10,000 个独立来源 episode" in section
+    assert "##### 基线表现" not in section
+    assert "全部模型分数统一见 §5.2" in document
     assert "77.73%、79.10% 和 78.52%" not in section
 
 

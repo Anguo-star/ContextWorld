@@ -12,9 +12,9 @@
 6. [Stable-WorldModel 训练](StableWM_Training.md)：内置 LeWM、PLDM 和 PreJEPA 的训练入口。
 
 九项任务在 Benchmark 规范中按隐藏动力学类型组织，而不是按环境数量组织。每项任务均
-报告自己的 ICL 分数，不计算跨任务总分；原任务规划保持分析单列附录。
+报告自己的 ICL 分数，不计算跨任务总分；原环境 CEM 与 ICL 指标在同一统计表中展示。
 
-最新结果直接见[九任务训练方式比较](ContextWorld_ICL_Benchmark.md#training-comparison)。总览、完整指标和 Speed 分布结果由同一份 [JSON](research/data/icl_training_study_v2.json) 生成，也提供 [CSV](research/data/icl_training_study_v2.csv)。不再单独维护另一份当前研究报告。
+最新结果直接见[九任务训练方式比较](ContextWorld_ICL_Benchmark.md#training-comparison)。全部训练方案、完整指标和 Speed 分布统一列在一张表中，由同一份 [JSON](research/data/icl_training_study_v2.json) 生成，也提供 [CSV](research/data/icl_training_study_v2.csv)。表格同时标注数据规模、训练种子及未报告项。
 
 ## 任务导航
 

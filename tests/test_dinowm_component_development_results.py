@@ -84,7 +84,7 @@ def test_public_document_reports_all_nine_component_states() -> None:
 
     assert "public_test_accessed=false" not in document
     assert "Public Test 没有打开" not in document
-    assert re.search(r"历史[^。]{0,50}Test[^。]{0,50}(文件|结果|工件)", document)
+    assert "Development" in document and "冻结参考附录" in document
     for label in (
         "速度",
         "门通行规则",
@@ -99,40 +99,31 @@ def test_public_document_reports_all_nine_component_states() -> None:
         assert f"| {label} |" in document
 
 
-def test_public_document_uses_model_recipe_matrices() -> None:
+def test_public_document_uses_one_complete_training_table() -> None:
     document = BENCHMARK.read_text(encoding="utf-8")
-    start = document.index("## 5. 参考结果")
+    start = document.index("## 5. 模型与训练方案比较")
     end = document.index("\n## 6. 任务说明", start)
     section = document[start:end]
-
-    appendix = (ROOT / "docs/reference/Benchmark_Result_Provenance.md").read_text(
-        encoding="utf-8"
-    )
-
-    # The main document keeps only the six-row ICL matrix; the CEM retention
-    # table moved to the appendix (§5.3 原任务规划能力保持（CEM）).
-    assert section.count("<!-- BEGIN CURRENT_REFERENCE_ICL_MATRIX -->") == 1
-    assert section.count("<!-- BEGIN CURRENT_REFERENCE_CEM_MATRIX -->") == 0
-    assert section.count("<!-- END CURRENT_REFERENCE_CEM_MATRIX -->") == 0
-    assert section.count("| 模型 | 训练数据 |") == 1
+    appendix = (ROOT / "docs/reference/Benchmark_Result_Provenance.md").read_text()
+    assert section.count("<!-- BEGIN TRAINING_COMPARISON_FULL -->") == 1
+    assert "<details>" not in section
+    assert "CURRENT_REFERENCE_ICL_MATRIX" not in section
+    assert appendix.count("<!-- BEGIN CURRENT_REFERENCE_ICL_MATRIX -->") == 1
     assert appendix.count("<!-- BEGIN CURRENT_REFERENCE_CEM_MATRIX -->") == 1
-    assert appendix.count("<!-- END CURRENT_REFERENCE_CEM_MATRIX -->") == 1
-    assert "| 能力类型 | 任务 | 模型 |" not in section
-    assert "不同能力列对应不同检查点" in section
-    assert "不是对同一检查点继续微调" in section
-    assert "### 5.3 DINO-WM / PreJEPA" not in section
-    assert "Development" in section and "Public Test" in section
-    # The mid-training phrasing ("尚未训练" / "无可评分的 epoch-10 检查点") is
-    # deliberately gone: DINO-WM now has all nine components at three seeds, so
-    # a document still claiming otherwise would be stale.  What §5 must keep is
-    # the pointer to its machine-readable source, plus the superseded records
-    # kept for provenance.
-    assert (
-        "contextworld_joint_scratch_v1_reference_results_freeze_v3.json" in section
-    )
-    assert "archive/" in section
-    assert "尚未训练" not in section
-    assert "无可评分的 epoch-10 检查点" not in section
+    assert section.count("| 任务 | 模型 | 种子 | 训练数据 |") == 1
+    source = json.loads((ROOT / "docs/research/data/icl_training_study_v2.json").read_text())
+    body = section.split("<!-- BEGIN TRAINING_COMPARISON_FULL -->")[1].split("<!-- END TRAINING_COMPARISON_FULL -->")[0]
+    table_lines = [line for line in body.splitlines() if line.startswith("|")]
+    expected = sum(len(r.get("speed_tracks") or {}) or 1 for r in source["rows"])
+    assert len(table_lines) - 2 == expected
+    assert all(len(line.split("|")) == 18 for line in table_lines)
+    for column in ("最弱条件", "History", "Switch", "Joint", "Gain", "Alignment", "NRE", "CalResp", "CEM"):
+        assert column in table_lines[0]
+    assert "（未报告）" in body and "N/A" in body
+    assert "历史转换初始化‡" in body
+    assert "低端外推" in body and "高端外推" in body
+    assert "JSON" in section and "CSV" in section
+    assert "排队" not in section
 
 
 def test_dinowm_development_snapshot_is_marked_superseded() -> None:

@@ -2,7 +2,7 @@
 
 This is the preparation plan for the next ContextWorld dataset release. **It is not an uploaded release or an accepted replacement for the frozen v3 benchmark.** The proposed dataset version is `expanded-training-v1`; the final tag will be assigned after package validation.
 
-Task definitions, all reported results, training regimes and scientific interpretation are maintained in the [ContextWorld technical report](ContextWorld_ICL_Benchmark.md#training-comparison). This page only describes dataset packaging and release checks. The current study includes native ICL scratch results for all nine tasks and encoder-freeze comparisons for six tasks; reported and unmeasured regimes are distinguished in the report.
+Task definitions, all reported results, training regimes and scientific interpretation are maintained in the [ContextWorld technical report](ContextWorld_ICL_Benchmark.md#training-comparison). This page only describes dataset packaging and release checks. The current study includes native ICL scratch results for all nine tasks and encoder-freeze comparisons for eight tasks; reported and unmeasured regimes are distinguished in the report.
 
 ## What is included
 

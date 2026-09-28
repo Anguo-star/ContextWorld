@@ -3,7 +3,7 @@
 published docs/research/data/icl_training_study_v2.json (and validate its CSV twin).
 
 Usage:
-  python3 scripts/render_training_comparison.py           # regenerate CSV + update the four blocks
+  python3 scripts/render_training_comparison.py           # regenerate CSV + update the unified table
   python3 scripts/render_training_comparison.py --check   # validate only, never mutate
 
 Errors (non-zero exit) on: missing/duplicate markers, duplicate row ids, id/task/model/regime
@@ -38,7 +38,7 @@ ALL = ["main", "worst", "history", "switch", "joint", "gain", "alignment", "nre"
 SPEED_TRACKS = ["seen_for_multi", "unseen_interpolation", "extrapolation_low", "extrapolation_high"]
 TRACK_ZH = {"seen_for_multi": "训练中已见速度", "unseen_interpolation": "未见速度插值",
             "extrapolation_low": "低端外推", "extrapolation_high": "高端外推"}
-MARKERS = ["OVERVIEW", "METRICS", "SPEED", "LEGACY"]
+MARKERS = ["FULL"]
 COLS = (["id", "task", "task_zh", "model", "regime", "measurement_status", "evidence_kind",
          "training_seed", "training_epochs", "training_dataset_id",
          "training_dataset_manifest_sha256", "training_data_version", "training_history_length", "evaluation_history_tokens",
@@ -100,6 +100,11 @@ def validate(doc):
                     raise Fail(f"CEM per-seed mean != aggregate in {rid}: {m} vs {agg}")
         if r["measurement_status"] == "not_measured" and r["scores"]["main"] is not None:
             raise Fail(f"not_measured row carries main score: {rid}")
+    expected = {f"{t}/{m}/{reg}" for t in TASK_ORDER for m in MODEL_ORDER
+                for reg in (("original", "scratch", "frozen") if m == "dinowm"
+                            else ("original", "scratch", "joint", "frozen"))}
+    if not expected <= seen:
+        raise Fail(f"missing declared configurations: {sorted(expected - seen)}")
     return rows
 
 
@@ -127,7 +132,7 @@ def validate_csv(doc, rows):
 
 def write_csv(rows):
     with open(CSV_PATH, "w", newline="") as f:
-        w = csv.writer(f)
+        w = csv.writer(f, lineterminator="\n")
         w.writerow(COLS)
         for r in rows:
             seeds = {s["eval_seed"]: s["success_rate_percent"] for s in (r.get("cem_per_seed") or [])}
@@ -145,112 +150,65 @@ def write_csv(rows):
               + ["yes" if r.get("speed_tracks") else "no"])
 
 
-def cell(r, regime):
-    """overview cell: main / CEM, 2 decimals; — when absent; † marks H3 delay references."""
-    if r["model"] == "dinowm" and regime == "joint":
-        return "N/A"
-    s = r["scores"]
-    if s["main"] is None and s["cem"] is None:
-        return "—"
-    dagger = "†" if (r["task"] == "action_delay" and regime == "original") else ""
-    return f"{f2(s['main'])} / {f2(s['cem'])}{dagger}"
 
-
-def render_overview(rows):
-    idx = {(r["task"], r["model"], r["regime"]): r for r in rows}
-    out = ["| 任务 | 模型 | 原始模型 | ICL 从头 | 二阶段联合 | 二阶段冻结 Encoder | DINO 历史转换 |",
-           "|---|---|---:|---:|---:|---:|---:|"]
-    for t in TASK_ORDER:
-        for m in MODEL_ORDER:
-            cells = []
-            for reg in ("original", "scratch", "joint", "frozen", "projected"):
-                r = idx.get((t, m, reg))
-                cells.append(cell(r, reg) if r else ("N/A" if (m == "dinowm" and reg == "joint") else "—"))
-            out.append(f"| {TASK_ZH[t]} | {MODEL_ZH[m]} | " + " | ".join(cells) + " |")
-    out += ["",
-            "单元格为主指标 / CEM（百分比，2 位小数）；未评测为 —。DINO-WM 无二阶段联合训练（N/A）；"
-            "DINO-WM 从新的纯图像与动作原始权重开始的完整二阶段结果尚未报告（—）。",
-            "†：动作延迟的原始参考来自 H3 原始模型（DINO 为原生 CEM 参考，LeWM/PLDM 为尾部投影诊断），"
-            "与原生 H7 评测不可直接比较。旧 DINO 投影列为历史参考，非 pixels+action 原始权重完整 warmstart。"]
-    return "\n".join(out)
-
-
-def render_metrics(rows):
-    hdr = ["任务", "模型", "训练设定", "主分↑", "最弱条件↑", "History↑", "Switch↑", "Joint↑",
-           "Gain≈1", "Alignment↑", "NRE↓", "CalResp↑", "CEM↑"]
-    out = ["| " + " | ".join(hdr) + " |",
-           "|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|"]
-    selected = [
-        r for r in rows
-        if r["regime"] != "projected"
-        and (r["measurement_status"] == "available"
-             or (r["task"] == "action_delay" and r["model"] == "dinowm"
-                 and r["regime"] == "original"))  # CEM-only H3 reference row
-    ]
-    selected.sort(key=lambda r: (TASK_ORDER.index(r["task"]), MODEL_ORDER.index(r["model"]),
-                                 ("original", "scratch", "joint", "frozen").index(r["regime"])))
-    if len(selected) != 78:
-        raise Fail(f"metrics table expected 78 rows, got {len(selected)}")
+def table_records(rows):
+    """Every declared configuration appears, with Speed distributions kept distinct."""
+    selected = sorted(rows, key=lambda r: (TASK_ORDER.index(r["task"]),
+        MODEL_ORDER.index(r["model"]), tuple(REGIME_ZH).index(r["regime"])))
+    records = []
     for r in selected:
-        s = r["scores"]
-        if r["task"] == "action_delay" and r["regime"] == "original":
-            label = "原始（H3 尾部投影†）" if r["model"] != "dinowm" else "原始（H3，仅 CEM†）"
+        tracks = r.get("speed_tracks") or {}
+        if tracks:
+            if set(tracks) != set(SPEED_TRACKS):
+                raise Fail(f"incomplete Speed distributions in {r['id']}")
+            for track in SPEED_TRACKS:
+                records.append((r, TRACK_ZH[track], dict(tracks[track], cem=r["scores"]["cem"])))
         else:
-            label = REGIME_ZH[r["regime"]]
-        out.append("| " + " | ".join([
-            TASK_ZH[r["task"]], MODEL_ZH[r["model"]], label,
-            f2(s["main"]), f2(s["worst"]), f2(s["history"]), f2(s["switch"]), f2(s["joint"]),
-            f3(s["gain"]), f3(s["alignment"]), f3(s["nre"]), f2(s["calibrated"]), f2(s["cem"]),
-        ]) + " |")
-    out += ["",
-            "百分比指标保留 2 位小数；增益/对齐/NRE 为无量纲比值，保留 3 位小数；— 表示该行未产出该项。"
-            "仅收录已测得主 ICL 分数的行（77 行）加 1 行 DINO-WM 动作延迟 H3 原始模型 CEM 参考；"
-            "两行 H3 尾部投影诊断行以 † 标注，与原生 H7 行不可直接比较。ICL 使用 Development；CEM 是原环境规划结果。"]
-    return "\n".join(out)
+            condition = "六个响应组" if r["task"] == "action_delay" else "两种隐藏条件"
+            if r["task"] == "speed":
+                condition = "未报告"
+            if r["task"] == "action_delay" and r["training_history_length"] == 3:
+                condition = "H3 参考†"
+            records.append((r, condition, r["scores"]))
+    if {r["id"] for r, _, _ in records} != {r["id"] for r in rows}:
+        raise Fail("unified table omitted configurations")
+    return records
 
 
-def render_speed(rows):
-    out = ["| 模型 | 训练设定 | 速度分布 | 主分↑ | 最弱条件↑ | History↑ | Switch↑ | Gain≈1 | Alignment↑ | NRE↓ | CalResp↑ |",
-           "|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|"]
-    n = 0
-    for m in MODEL_ORDER:
-        for reg in ("original", "scratch"):
-            r = next(x for x in rows if (x["task"], x["model"], x["regime"]) == ("speed", m, reg))
-            tracks = r.get("speed_tracks") or {}
-            for tr in SPEED_TRACKS:
-                if tr not in tracks:
-                    raise Fail(f"missing speed track {tr} for {r['id']}")
-                t = tracks[tr]
-                out.append("| " + " | ".join([
-                    MODEL_ZH[m], REGIME_ZH[reg], TRACK_ZH[tr],
-                    f2(t["main"]), f2(t["worst"]), f2(t["history"]), f2(t["switch"]),
-                    f3(t["gain"]), f3(t["alignment"]), f3(t["nre"]), f2(t["calibrated"]),
-                ]) + " |")
-                n += 1
-    if n != 24:
-        raise Fail(f"speed table expected 24 rows, got {n}")
-    out += ["",
-            "速度任务按四个分轨分别报告（6 个已观测的 模型×训练设定 × 4 轨 = 24 行）；"
-            "不同速度分布与预测 horizon 不合并、不平均。"]
-    return "\n".join(out)
+def data_label(r):
+    if r["regime"] == "original":
+        return "原环境"
+    if not r.get("training_data_version"):
+        return "—"
+    version = r["training_data_version"]
+    if "10k-independent" in version:
+        return "混合 / 10k 独立来源"
+    if "32k" in version:
+        return "混合 / 32k"
+    return "混合 / 基础版"
 
 
-def render_legacy(rows):
-    out = ["| 任务 | 模型 | 主分↑ | 最弱条件↑ | History↑ | Switch↑ | Joint↑ | Gain≈1 | Alignment↑ | NRE↓ | CalResp↑ | CEM↑ |",
-           "|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|"]
-    legacy = [r for r in rows if r["regime"] == "projected"]
-    if len(legacy) != 6:
-        raise Fail(f"legacy table expected 6 rows, got {len(legacy)}")
-    for r in sorted(legacy, key=lambda x: TASK_ORDER.index(x["task"])):
-        s = r["scores"]
-        out.append("| " + " | ".join([
-            TASK_ZH[r["task"]], MODEL_ZH[r["model"]],
-            f2(s["main"]), f2(s["worst"]), f2(s["history"]), f2(s["switch"]), f2(s["joint"]),
-            f3(s["gain"]), f3(s["alignment"]), f3(s["nre"]), f2(s["calibrated"]), f2(s["cem"]),
-        ]) + " |")
-    out += ["",
-            "以上 6 行为历史来源：旧 DINO-WM 投影初始化参考（仅覆盖 6 个任务），"
-            "不是新的 pixels+action 原始权重完整 warmstart，不得当作 DINO 原始权重迁移成绩引用。"]
+def metric_cell(r, key, value):
+    if value is not None:
+        return f3(value) if key in RATIO else f2(value)
+    if key == "joint" and r["task"] in ("speed", "action_delay", "door"):
+        return "N/A"
+    return "—"
+
+
+def render_full(rows):
+    hdr = ["任务", "模型", "种子", "训练数据", "训练方案", "评测条件", "主分↑", "最弱条件↑",
+           "History↑", "Switch↑", "Joint↑", "Gain≈1", "Alignment↑", "NRE↓", "CalResp↑", "CEM↑"]
+    out = ["| " + " | ".join(hdr) + " |",
+           "|" + "---|" * 6 + "---:|" * len(ALL)]
+    for r, condition, scores in table_records(rows):
+        label = REGIME_ZH[r["regime"]]
+        if r["regime"] == "projected":
+            label += "‡"
+        if r["measurement_status"] == "not_measured":
+            label += "（仅 CEM）" if r["scores"]["cem"] is not None else "（未报告）"
+        out.append("| " + " | ".join([TASK_ZH[r["task"]], MODEL_ZH[r["model"]], str(r["training_seed"]) if r["training_seed"] is not None else "—",
+            data_label(r), label, condition] + [metric_cell(r, k, scores[k]) for k in ALL]) + " |")
     return "\n".join(out)
 
 
@@ -278,8 +236,7 @@ def main():
 
     doc = json.loads(JSON_PATH.read_text(encoding="utf-8"))
     rows = validate(doc)
-    blocks = {"OVERVIEW": render_overview(rows), "METRICS": render_metrics(rows),
-              "SPEED": render_speed(rows), "LEGACY": render_legacy(rows)}
+    blocks = {"FULL": render_full(rows)}
 
     if not args.check:
         write_csv(rows)
@@ -298,7 +255,7 @@ def main():
         for m in MARKERS:
             if extract(text, m).strip() != blocks[m].strip():
                 raise Fail(f"--check: block {m} is stale or does not match published JSON")
-        print(f"OK: {len(rows)} rows validated; JSON/CSV consistent; all 4 blocks up to date")
+        print(f"OK: {len(rows)} rows validated; JSON/CSV consistent; the unified table is complete and up to date")
         return
 
     new = text
@@ -306,7 +263,7 @@ def main():
         new = splice(new, m, blocks[m])
     if new != text:
         DOC.write_text(new, encoding="utf-8")
-        print("updated 4 blocks in", DOC)
+        print("updated unified table in", DOC)
     else:
         print("no changes needed")
     print(f"CSV written: {CSV_PATH}")

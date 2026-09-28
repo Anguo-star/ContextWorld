@@ -148,7 +148,9 @@ def render(freeze: dict, document: str, appendix: str) -> tuple[str, str]:
             "CURRENT_REFERENCE_CEM_MATRIX moved to the appendix section "
             "5.3 原任务规划能力保持（CEM）; it must not appear in the main document"
         )
-    document = replace_marker(document, ICL_MATRIX_BEGIN, ICL_MATRIX_END, icl_matrix)
+    if ICL_MATRIX_BEGIN in document or ICL_MATRIX_END in document:
+        raise ValueError("Frozen reference matrix belongs in the provenance appendix")
+    appendix = replace_marker(appendix, ICL_MATRIX_BEGIN, ICL_MATRIX_END, icl_matrix)
 
     # §5.1 detail is ICL-only now; the CEM retention table owns its columns
     # in appendix section 5.3.

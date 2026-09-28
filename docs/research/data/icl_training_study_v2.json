@@ -1,20 +1,20 @@
 {
   "schema_version": "contextworld.icl-training-study.v2",
-  "date": "2026-09-24",
+  "date": "2026-09-27",
   "description": "Sanitized public aggregate of the ContextWorld nine-task training study (original weights vs from-scratch vs two-stage joint/frozen). Scores are exact and unrounded; percent metrics except gain/alignment/nre.",
   "evidence_public": false,
   "evidence_note": "Raw artifacts (query files, per-episode metrics, run receipts) are not publicly distributed; only aggregated scores and hashes are published.",
-  "source_matrix_sha256": "ee8badeb68febcfa0e25022bda9e8e54d76691a7666f12b74c58936a53327c06",
+  "source_matrix_sha256": "a81ee2a45913bbfa12cf193e9e0cefcc24324d4c2b28c32eab6e5aa35d58b505",
   "source_matrix_schema": "contextworld.nine-task-training-matrix.v1",
   "counts": {
     "matrix_rows": 105,
     "exported_rows": 105,
-    "icl_scored_rows": 83,
-    "not_measured_rows": 22,
-    "measured_main_icl_rows_excluding_legacy_projected": 77,
+    "icl_scored_rows": 94,
+    "not_measured_rows": 11,
+    "measured_main_icl_rows_excluding_legacy_projected": 88,
     "legacy_projected_reference_rows": 6,
     "h3_tail_diagnostic_rows": 2,
-    "rows_with_speed_tracks": 6,
+    "rows_with_speed_tracks": 11,
     "h3_original_delay_reference_rows": 3
   },
   "field_definitions": {
@@ -24,13 +24,13 @@
     "measurement_status": "available = ICL Development scores exist; not_measured = absent",
     "evidence_kind": "icl_development | cem_reference_only | none",
     "comparability_notes": "provenance caveats: h3_tail_delay_reference, legacy_projected_initialization, dino_original_delay_cem_only",
-    "training_seed": "3073 for original rows, 3072 for all retrained rows",
+    "training_seed": "Actual training seed for each row; original models use 3073, most ICL runs use 3072, and the new DINO full warmstarts use 3073.",
     "training_epochs": "trainer max epochs when known from the training run (10)",
     "training_dataset_id / training_dataset_manifest_sha256": "training dataset contract identity",
     "training_history_length": "history length in the training dataset contract",
     "evaluation_history_tokens": "history tokens used by the evaluation adapter",
     "input_protocol": "adapter protocol (action dim, blocks, history tokens); no file paths",
-    "frozen_encoder_semantics": "encoder freezing policy for stage-2 frozen runs",
+    "frozen_encoder_semantics": "Encoder freezing policy, either explicitly selected or native to the DINO model.",
     "checkpoint_sha256": "SHA256 of the evaluated checkpoint weights",
     "init_weights_sha256": "SHA256 of warmstart initialization weights (stage-2 rows)",
     "result_sha256": "SHA256 of the ICL result JSON",
@@ -59,7 +59,7 @@
     "CEM measures original-environment planning for every row, not planning under the task hidden conditions. Current evaluations use 6 seeds x50; some original LeWM/PLDM references use historical 3x100 or aggregate-only 300-episode evidence.",
     "DINO-WM original rows are newly retrained pixels+action original models (frozen DINO encoder) with native-input original-environment CEM; action_delay lacks H7 ICL.",
     "Do not read DINO legacy projected rows as pixels+action original-weight warmstart results.",
-    "Stage-2 DINO rows: joint does not exist (N/A); frozen was not yet measured at export time."
+    "DINO full pixels/action warmstarts are reported under frozen for Speed, Motion Damping and Cube Carry. The encoder is natively frozen; these runs use training seed 3073, versus 3072 for scratch."
   ],
   "rows": [
     {
@@ -956,43 +956,81 @@
       "task_zh": "门通行规则",
       "model": "lewm",
       "regime": "joint",
-      "measurement_status": "not_measured",
-      "evidence_kind": "none",
+      "measurement_status": "available",
+      "evidence_kind": "icl_development",
       "comparability_notes": null,
-      "training_seed": null,
-      "training_epochs": null,
-      "training_dataset_id": null,
-      "training_dataset_manifest_sha256": null,
-      "training_history_length": null,
-      "evaluation_history_tokens": null,
-      "input_protocol": null,
-      "frozen_encoder_semantics": null,
-      "initialization_mode": null,
-      "init_weights_sha256": null,
-      "checkpoint_sha256": null,
-      "result_sha256": null,
-      "metric_name": null,
-      "evaluation_split": null,
-      "scores": {
-        "main": null,
-        "worst": null,
-        "history": null,
-        "switch": null,
-        "joint": null,
-        "gain": null,
-        "alignment": null,
-        "nre": null,
-        "calibrated": null,
-        "cem": null
+      "training_seed": 3072,
+      "training_epochs": 10,
+      "training_dataset_id": "tworoom-door",
+      "training_dataset_manifest_sha256": "4c5b9cdc84006caeac2a9770501f943affe2b81e32d70c27ab504770b28a93c4",
+      "training_history_length": 3,
+      "evaluation_history_tokens": 3,
+      "input_protocol": {
+        "action_block_raw_steps": 5,
+        "action_dim": 2,
+        "decoder_required": false,
+        "future_action_blocks": 5,
+        "history_tokens": 3,
+        "native_target_encoder": true
       },
-      "cem_reference_scope": null,
-      "cem_per_seed": null,
+      "frozen_encoder_semantics": null,
+      "initialization_mode": "warmstart",
+      "init_weights_sha256": "53103e123ce03c2fcd8889cbf39a92d1bbd998f2b067342203e38962b2c5c519",
+      "checkpoint_sha256": "9e0555addfd914bd1d305dd854ee88cc4d4d18e016bf2663a5bad38e4f7f5def",
+      "result_sha256": "6bcb9071e9ce9ff32c857eb154f77d3bcd86ccee132db353471da464a8000a91",
+      "metric_name": "same_history_two_target_accuracy",
+      "evaluation_split": "development",
+      "scores": {
+        "main": 100.0,
+        "worst": 100.0,
+        "history": 100.0,
+        "switch": 100.0,
+        "joint": null,
+        "gain": 0.9198150885934331,
+        "alignment": 0.9770934968740118,
+        "nre": 0.046563839034534676,
+        "calibrated": 100.0,
+        "cem": 97.66666666666667
+      },
+      "cem_reference_scope": "original_environment",
+      "cem_per_seed": [
+        {
+          "eval_seed": 42,
+          "budget_episodes": 50,
+          "success_rate_percent": 98.0
+        },
+        {
+          "eval_seed": 43,
+          "budget_episodes": 50,
+          "success_rate_percent": 100.0
+        },
+        {
+          "eval_seed": 44,
+          "budget_episodes": 50,
+          "success_rate_percent": 98.0
+        },
+        {
+          "eval_seed": 45,
+          "budget_episodes": 50,
+          "success_rate_percent": 96.0
+        },
+        {
+          "eval_seed": 46,
+          "budget_episodes": 50,
+          "success_rate_percent": 94.0
+        },
+        {
+          "eval_seed": 47,
+          "budget_episodes": 50,
+          "success_rate_percent": 100.0
+        }
+      ],
       "speed_tracks": null,
-      "training_data_version": null,
-      "training_code_sha256": null,
+      "training_data_version": "ContextWorld-v1",
+      "training_code_sha256": "9e49059000fb9b95ebcbcf9c3d52027115df5ce64a862cf251b2bb93914ded52",
       "evaluation_stablewm_commit": null,
-      "cem_evaluation_count": null,
-      "cem_budget": null
+      "cem_evaluation_count": 300,
+      "cem_budget": "6x50"
     },
     {
       "id": "door/lewm/frozen",
@@ -1000,43 +1038,88 @@
       "task_zh": "门通行规则",
       "model": "lewm",
       "regime": "frozen",
-      "measurement_status": "not_measured",
-      "evidence_kind": "none",
+      "measurement_status": "available",
+      "evidence_kind": "icl_development",
       "comparability_notes": null,
-      "training_seed": null,
-      "training_epochs": null,
-      "training_dataset_id": null,
-      "training_dataset_manifest_sha256": null,
-      "training_history_length": null,
-      "evaluation_history_tokens": null,
-      "input_protocol": null,
-      "frozen_encoder_semantics": null,
-      "initialization_mode": null,
-      "init_weights_sha256": null,
-      "checkpoint_sha256": null,
-      "result_sha256": null,
-      "metric_name": null,
-      "evaluation_split": null,
-      "scores": {
-        "main": null,
-        "worst": null,
-        "history": null,
-        "switch": null,
-        "joint": null,
-        "gain": null,
-        "alignment": null,
-        "nre": null,
-        "calibrated": null,
-        "cem": null
+      "training_seed": 3072,
+      "training_epochs": 10,
+      "training_dataset_id": "tworoom-door",
+      "training_dataset_manifest_sha256": "4c5b9cdc84006caeac2a9770501f943affe2b81e32d70c27ab504770b28a93c4",
+      "training_history_length": 3,
+      "evaluation_history_tokens": 3,
+      "input_protocol": {
+        "action_block_raw_steps": 5,
+        "action_dim": 2,
+        "decoder_required": false,
+        "future_action_blocks": 5,
+        "history_tokens": 3,
+        "native_target_encoder": true
       },
-      "cem_reference_scope": null,
-      "cem_per_seed": null,
+      "frozen_encoder_semantics": {
+        "policy": "freeze_encoder_v1",
+        "modules": [
+          "encoder"
+        ],
+        "semantics": "full_model_warmstart_encoder_only_frozen",
+        "train_behavior": "eval_mode_every_training_batch_including_buffers"
+      },
+      "initialization_mode": "warmstart",
+      "init_weights_sha256": "53103e123ce03c2fcd8889cbf39a92d1bbd998f2b067342203e38962b2c5c519",
+      "checkpoint_sha256": "d13d077363c681cfc3d9e586d07ce51625ca0ad61edcb5fe63ec0d565f6fce29",
+      "result_sha256": "df66b9e45d3d5cbecdd1d92cb1bb57857b0468d85c90f53c24c0cacce4d978ad",
+      "metric_name": "same_history_two_target_accuracy",
+      "evaluation_split": "development",
+      "scores": {
+        "main": 100.0,
+        "worst": 100.0,
+        "history": 100.0,
+        "switch": 100.0,
+        "joint": null,
+        "gain": 0.9792215883445772,
+        "alignment": 0.9819034097130481,
+        "nre": 0.036101787748611246,
+        "calibrated": 100.0,
+        "cem": 94.0
+      },
+      "cem_reference_scope": "original_environment",
+      "cem_per_seed": [
+        {
+          "eval_seed": 42,
+          "budget_episodes": 50,
+          "success_rate_percent": 92.0
+        },
+        {
+          "eval_seed": 43,
+          "budget_episodes": 50,
+          "success_rate_percent": 92.0
+        },
+        {
+          "eval_seed": 44,
+          "budget_episodes": 50,
+          "success_rate_percent": 94.0
+        },
+        {
+          "eval_seed": 45,
+          "budget_episodes": 50,
+          "success_rate_percent": 96.0
+        },
+        {
+          "eval_seed": 46,
+          "budget_episodes": 50,
+          "success_rate_percent": 94.0
+        },
+        {
+          "eval_seed": 47,
+          "budget_episodes": 50,
+          "success_rate_percent": 96.0
+        }
+      ],
       "speed_tracks": null,
-      "training_data_version": null,
-      "training_code_sha256": null,
+      "training_data_version": "ContextWorld-v1",
+      "training_code_sha256": "9e49059000fb9b95ebcbcf9c3d52027115df5ce64a862cf251b2bb93914ded52",
       "evaluation_stablewm_commit": null,
-      "cem_evaluation_count": null,
-      "cem_budget": null
+      "cem_evaluation_count": 300,
+      "cem_budget": "6x50"
     },
     {
       "id": "door/pldm/original",
@@ -1208,43 +1291,81 @@
       "task_zh": "门通行规则",
       "model": "pldm",
       "regime": "joint",
-      "measurement_status": "not_measured",
-      "evidence_kind": "none",
+      "measurement_status": "available",
+      "evidence_kind": "icl_development",
       "comparability_notes": null,
-      "training_seed": null,
-      "training_epochs": null,
-      "training_dataset_id": null,
-      "training_dataset_manifest_sha256": null,
-      "training_history_length": null,
-      "evaluation_history_tokens": null,
-      "input_protocol": null,
-      "frozen_encoder_semantics": null,
-      "initialization_mode": null,
-      "init_weights_sha256": null,
-      "checkpoint_sha256": null,
-      "result_sha256": null,
-      "metric_name": null,
-      "evaluation_split": null,
-      "scores": {
-        "main": null,
-        "worst": null,
-        "history": null,
-        "switch": null,
-        "joint": null,
-        "gain": null,
-        "alignment": null,
-        "nre": null,
-        "calibrated": null,
-        "cem": null
+      "training_seed": 3072,
+      "training_epochs": 10,
+      "training_dataset_id": "tworoom-door",
+      "training_dataset_manifest_sha256": "4c5b9cdc84006caeac2a9770501f943affe2b81e32d70c27ab504770b28a93c4",
+      "training_history_length": 3,
+      "evaluation_history_tokens": 3,
+      "input_protocol": {
+        "action_block_raw_steps": 5,
+        "action_dim": 2,
+        "decoder_required": false,
+        "future_action_blocks": 5,
+        "history_tokens": 3,
+        "native_target_encoder": true
       },
-      "cem_reference_scope": null,
-      "cem_per_seed": null,
+      "frozen_encoder_semantics": null,
+      "initialization_mode": "warmstart",
+      "init_weights_sha256": "ae5f3709e0b10f8e56202a82db177d48f9d0a5780665c67b559d28b15914a4fd",
+      "checkpoint_sha256": "7b56c1b8906b37851a0224b6c6394392fe79176bef529e54177cba1ecd471849",
+      "result_sha256": "c119da1c8cc94be954b01892dfeea433c155e93b5c83961dd65be74e702262ee",
+      "metric_name": "same_history_two_target_accuracy",
+      "evaluation_split": "development",
+      "scores": {
+        "main": 100.0,
+        "worst": 100.0,
+        "history": 100.0,
+        "switch": 100.0,
+        "joint": null,
+        "gain": 0.9931444367486315,
+        "alignment": 0.9865973328420892,
+        "nre": 0.027027252797937423,
+        "calibrated": 100.0,
+        "cem": 99.33333333333333
+      },
+      "cem_reference_scope": "original_environment",
+      "cem_per_seed": [
+        {
+          "eval_seed": 42,
+          "budget_episodes": 50,
+          "success_rate_percent": 98.0
+        },
+        {
+          "eval_seed": 43,
+          "budget_episodes": 50,
+          "success_rate_percent": 100.0
+        },
+        {
+          "eval_seed": 44,
+          "budget_episodes": 50,
+          "success_rate_percent": 100.0
+        },
+        {
+          "eval_seed": 45,
+          "budget_episodes": 50,
+          "success_rate_percent": 100.0
+        },
+        {
+          "eval_seed": 46,
+          "budget_episodes": 50,
+          "success_rate_percent": 98.0
+        },
+        {
+          "eval_seed": 47,
+          "budget_episodes": 50,
+          "success_rate_percent": 100.0
+        }
+      ],
       "speed_tracks": null,
-      "training_data_version": null,
-      "training_code_sha256": null,
+      "training_data_version": "ContextWorld-v1",
+      "training_code_sha256": "2083d9d83d475f50e50cc9c7e9fa4f7a2c1477fd44208e62223d1950e7de9038",
       "evaluation_stablewm_commit": null,
-      "cem_evaluation_count": null,
-      "cem_budget": null
+      "cem_evaluation_count": 300,
+      "cem_budget": "6x50"
     },
     {
       "id": "door/pldm/frozen",
@@ -1252,43 +1373,88 @@
       "task_zh": "门通行规则",
       "model": "pldm",
       "regime": "frozen",
-      "measurement_status": "not_measured",
-      "evidence_kind": "none",
+      "measurement_status": "available",
+      "evidence_kind": "icl_development",
       "comparability_notes": null,
-      "training_seed": null,
-      "training_epochs": null,
-      "training_dataset_id": null,
-      "training_dataset_manifest_sha256": null,
-      "training_history_length": null,
-      "evaluation_history_tokens": null,
-      "input_protocol": null,
-      "frozen_encoder_semantics": null,
-      "initialization_mode": null,
-      "init_weights_sha256": null,
-      "checkpoint_sha256": null,
-      "result_sha256": null,
-      "metric_name": null,
-      "evaluation_split": null,
-      "scores": {
-        "main": null,
-        "worst": null,
-        "history": null,
-        "switch": null,
-        "joint": null,
-        "gain": null,
-        "alignment": null,
-        "nre": null,
-        "calibrated": null,
-        "cem": null
+      "training_seed": 3072,
+      "training_epochs": 10,
+      "training_dataset_id": "tworoom-door",
+      "training_dataset_manifest_sha256": "4c5b9cdc84006caeac2a9770501f943affe2b81e32d70c27ab504770b28a93c4",
+      "training_history_length": 3,
+      "evaluation_history_tokens": 3,
+      "input_protocol": {
+        "action_block_raw_steps": 5,
+        "action_dim": 2,
+        "decoder_required": false,
+        "future_action_blocks": 5,
+        "history_tokens": 3,
+        "native_target_encoder": true
       },
-      "cem_reference_scope": null,
-      "cem_per_seed": null,
+      "frozen_encoder_semantics": {
+        "policy": "freeze_encoder_v1",
+        "modules": [
+          "encoder"
+        ],
+        "semantics": "full_model_warmstart_encoder_only_frozen",
+        "train_behavior": "eval_mode_every_training_batch_including_buffers"
+      },
+      "initialization_mode": "warmstart",
+      "init_weights_sha256": "ae5f3709e0b10f8e56202a82db177d48f9d0a5780665c67b559d28b15914a4fd",
+      "checkpoint_sha256": "44e49cf4f7b5210ca49f0a9e837e9c5a5804c92f71f7517b81cb7235b80141e9",
+      "result_sha256": "5e651370ddb6bc9453c89566f1eecb86107760648c6e29ff18afd34314eac287",
+      "metric_name": "same_history_two_target_accuracy",
+      "evaluation_split": "development",
+      "scores": {
+        "main": 100.0,
+        "worst": 100.0,
+        "history": 100.0,
+        "switch": 100.0,
+        "joint": null,
+        "gain": 1.007129514648728,
+        "alignment": 0.9765489088707456,
+        "nre": 0.04935155070717708,
+        "calibrated": 100.0,
+        "cem": 98.66666666666667
+      },
+      "cem_reference_scope": "original_environment",
+      "cem_per_seed": [
+        {
+          "eval_seed": 42,
+          "budget_episodes": 50,
+          "success_rate_percent": 98.0
+        },
+        {
+          "eval_seed": 43,
+          "budget_episodes": 50,
+          "success_rate_percent": 100.0
+        },
+        {
+          "eval_seed": 44,
+          "budget_episodes": 50,
+          "success_rate_percent": 100.0
+        },
+        {
+          "eval_seed": 45,
+          "budget_episodes": 50,
+          "success_rate_percent": 98.0
+        },
+        {
+          "eval_seed": 46,
+          "budget_episodes": 50,
+          "success_rate_percent": 96.0
+        },
+        {
+          "eval_seed": 47,
+          "budget_episodes": 50,
+          "success_rate_percent": 100.0
+        }
+      ],
       "speed_tracks": null,
-      "training_data_version": null,
-      "training_code_sha256": null,
+      "training_data_version": "ContextWorld-v1",
+      "training_code_sha256": "2083d9d83d475f50e50cc9c7e9fa4f7a2c1477fd44208e62223d1950e7de9038",
       "evaluation_stablewm_commit": null,
-      "cem_evaluation_count": null,
-      "cem_budget": null
+      "cem_evaluation_count": 300,
+      "cem_budget": "6x50"
     },
     {
       "id": "door/dinowm/original",
@@ -1770,43 +1936,126 @@
       "task_zh": "速度",
       "model": "lewm",
       "regime": "joint",
-      "measurement_status": "not_measured",
-      "evidence_kind": "none",
+      "measurement_status": "available",
+      "evidence_kind": "icl_development",
       "comparability_notes": null,
-      "training_seed": null,
-      "training_epochs": null,
-      "training_dataset_id": null,
-      "training_dataset_manifest_sha256": null,
-      "training_history_length": null,
-      "evaluation_history_tokens": null,
-      "input_protocol": null,
-      "frozen_encoder_semantics": null,
-      "initialization_mode": null,
-      "init_weights_sha256": null,
-      "checkpoint_sha256": null,
-      "result_sha256": null,
-      "metric_name": null,
-      "evaluation_split": null,
-      "scores": {
-        "main": null,
-        "worst": null,
-        "history": null,
-        "switch": null,
-        "joint": null,
-        "gain": null,
-        "alignment": null,
-        "nre": null,
-        "calibrated": null,
-        "cem": null
+      "training_seed": 3072,
+      "training_epochs": 10,
+      "training_dataset_id": "tworoom-speed",
+      "training_dataset_manifest_sha256": "4c5b9cdc84006caeac2a9770501f943affe2b81e32d70c27ab504770b28a93c4",
+      "training_history_length": 3,
+      "evaluation_history_tokens": 3,
+      "input_protocol": {
+        "action_block_raw_steps": 5,
+        "action_dim": 2,
+        "decoder_required": false,
+        "future_action_blocks": 5,
+        "history_tokens": 3,
+        "native_target_encoder": true
       },
-      "cem_reference_scope": null,
-      "cem_per_seed": null,
-      "speed_tracks": null,
-      "training_data_version": null,
-      "training_code_sha256": null,
+      "frozen_encoder_semantics": null,
+      "initialization_mode": "warmstart",
+      "init_weights_sha256": "53103e123ce03c2fcd8889cbf39a92d1bbd998f2b067342203e38962b2c5c519",
+      "checkpoint_sha256": "a629bb0f6147660239e1c57e8e0dff0e6aea3c9e829fe1acafec1902cd0b57d9",
+      "result_sha256": "e37df6b9a5080eea175ae8a23b06873e45bef87b166aa9887718e45758b608a7",
+      "metric_name": "reference_speed_balanced_strict_query_win_rate_vs_every_other",
+      "evaluation_split": "development",
+      "scores": {
+        "main": 96.66666666666667,
+        "worst": 93.33333333333333,
+        "history": 96.66666666666667,
+        "switch": 100.0,
+        "joint": null,
+        "gain": 0.9635397036346954,
+        "alignment": 0.9722663217053849,
+        "nre": 0.05505006732135016,
+        "calibrated": 100.0,
+        "cem": 97.0
+      },
+      "cem_reference_scope": "original_environment",
+      "cem_per_seed": [
+        {
+          "eval_seed": 42,
+          "budget_episodes": 50,
+          "success_rate_percent": 96.0
+        },
+        {
+          "eval_seed": 43,
+          "budget_episodes": 50,
+          "success_rate_percent": 98.0
+        },
+        {
+          "eval_seed": 44,
+          "budget_episodes": 50,
+          "success_rate_percent": 100.0
+        },
+        {
+          "eval_seed": 45,
+          "budget_episodes": 50,
+          "success_rate_percent": 92.0
+        },
+        {
+          "eval_seed": 46,
+          "budget_episodes": 50,
+          "success_rate_percent": 96.0
+        },
+        {
+          "eval_seed": 47,
+          "budget_episodes": 50,
+          "success_rate_percent": 100.0
+        }
+      ],
+      "speed_tracks": {
+        "seen_for_multi": {
+          "main": 97.66666666666667,
+          "worst": 95.33333333333334,
+          "history": 97.66666666666667,
+          "switch": 100.0,
+          "joint": null,
+          "gain": 0.9592477553491856,
+          "alignment": 0.9728632764584335,
+          "nre": 0.05370974212333932,
+          "calibrated": 100.0
+        },
+        "unseen_interpolation": {
+          "main": 96.66666666666667,
+          "worst": 93.33333333333333,
+          "history": 96.66666666666667,
+          "switch": 100.0,
+          "joint": null,
+          "gain": 0.9635397036346954,
+          "alignment": 0.9722663217053849,
+          "nre": 0.05505006732135016,
+          "calibrated": 100.0
+        },
+        "extrapolation_low": {
+          "main": 26.833333333333332,
+          "worst": 3.6666666666666665,
+          "history": 26.833333333333332,
+          "switch": 97.88888888888889,
+          "joint": null,
+          "gain": 0.29069443523217614,
+          "alignment": 0.7913085075227722,
+          "nre": 0.5535638881067584,
+          "calibrated": 93.55555555555556
+        },
+        "extrapolation_high": {
+          "main": 32.166666666666664,
+          "worst": 2.3333333333333335,
+          "history": 32.166666666666664,
+          "switch": 100.0,
+          "joint": null,
+          "gain": 0.2233594110927152,
+          "alignment": 0.8579383105239925,
+          "nre": 0.62106037010434,
+          "calibrated": 100.0
+        }
+      },
+      "training_data_version": "ContextWorld-v1",
+      "training_code_sha256": "9e49059000fb9b95ebcbcf9c3d52027115df5ce64a862cf251b2bb93914ded52",
       "evaluation_stablewm_commit": null,
-      "cem_evaluation_count": null,
-      "cem_budget": null
+      "cem_evaluation_count": 300,
+      "cem_budget": "6x50"
     },
     {
       "id": "speed/lewm/frozen",
@@ -1814,43 +2063,133 @@
       "task_zh": "速度",
       "model": "lewm",
       "regime": "frozen",
-      "measurement_status": "not_measured",
-      "evidence_kind": "none",
+      "measurement_status": "available",
+      "evidence_kind": "icl_development",
       "comparability_notes": null,
-      "training_seed": null,
-      "training_epochs": null,
-      "training_dataset_id": null,
-      "training_dataset_manifest_sha256": null,
-      "training_history_length": null,
-      "evaluation_history_tokens": null,
-      "input_protocol": null,
-      "frozen_encoder_semantics": null,
-      "initialization_mode": null,
-      "init_weights_sha256": null,
-      "checkpoint_sha256": null,
-      "result_sha256": null,
-      "metric_name": null,
-      "evaluation_split": null,
-      "scores": {
-        "main": null,
-        "worst": null,
-        "history": null,
-        "switch": null,
-        "joint": null,
-        "gain": null,
-        "alignment": null,
-        "nre": null,
-        "calibrated": null,
-        "cem": null
+      "training_seed": 3072,
+      "training_epochs": 10,
+      "training_dataset_id": "tworoom-speed",
+      "training_dataset_manifest_sha256": "4c5b9cdc84006caeac2a9770501f943affe2b81e32d70c27ab504770b28a93c4",
+      "training_history_length": 3,
+      "evaluation_history_tokens": 3,
+      "input_protocol": {
+        "action_block_raw_steps": 5,
+        "action_dim": 2,
+        "decoder_required": false,
+        "future_action_blocks": 5,
+        "history_tokens": 3,
+        "native_target_encoder": true
       },
-      "cem_reference_scope": null,
-      "cem_per_seed": null,
-      "speed_tracks": null,
-      "training_data_version": null,
-      "training_code_sha256": null,
+      "frozen_encoder_semantics": {
+        "policy": "freeze_encoder_v1",
+        "modules": [
+          "encoder"
+        ],
+        "semantics": "full_model_warmstart_encoder_only_frozen",
+        "train_behavior": "eval_mode_every_training_batch_including_buffers"
+      },
+      "initialization_mode": "warmstart",
+      "init_weights_sha256": "53103e123ce03c2fcd8889cbf39a92d1bbd998f2b067342203e38962b2c5c519",
+      "checkpoint_sha256": "a381515ca1d4dfabcecf512402dc691b63b9a4b17896cecfaffa59d42b3f9130",
+      "result_sha256": "d2b6536eadb7e0e932d7deb092544c16212946f11ff938876bb33ef0d5627bc8",
+      "metric_name": "reference_speed_balanced_strict_query_win_rate_vs_every_other",
+      "evaluation_split": "development",
+      "scores": {
+        "main": 98.55555555555556,
+        "worst": 97.33333333333334,
+        "history": 98.55555555555556,
+        "switch": 100.0,
+        "joint": null,
+        "gain": 0.9837275611272202,
+        "alignment": 0.9849636650768921,
+        "nre": 0.030036504382738007,
+        "calibrated": 100.0,
+        "cem": 95.0
+      },
+      "cem_reference_scope": "original_environment",
+      "cem_per_seed": [
+        {
+          "eval_seed": 42,
+          "budget_episodes": 50,
+          "success_rate_percent": 92.0
+        },
+        {
+          "eval_seed": 43,
+          "budget_episodes": 50,
+          "success_rate_percent": 94.0
+        },
+        {
+          "eval_seed": 44,
+          "budget_episodes": 50,
+          "success_rate_percent": 98.0
+        },
+        {
+          "eval_seed": 45,
+          "budget_episodes": 50,
+          "success_rate_percent": 92.0
+        },
+        {
+          "eval_seed": 46,
+          "budget_episodes": 50,
+          "success_rate_percent": 94.0
+        },
+        {
+          "eval_seed": 47,
+          "budget_episodes": 50,
+          "success_rate_percent": 100.0
+        }
+      ],
+      "speed_tracks": {
+        "seen_for_multi": {
+          "main": 99.33333333333333,
+          "worst": 98.66666666666667,
+          "history": 99.33333333333333,
+          "switch": 100.0,
+          "joint": null,
+          "gain": 0.9778895677873205,
+          "alignment": 0.9867371566425637,
+          "nre": 0.026368242178891204,
+          "calibrated": 100.0
+        },
+        "unseen_interpolation": {
+          "main": 98.55555555555556,
+          "worst": 97.33333333333334,
+          "history": 98.55555555555556,
+          "switch": 100.0,
+          "joint": null,
+          "gain": 0.9837275611272202,
+          "alignment": 0.9849636650768921,
+          "nre": 0.030036504382738007,
+          "calibrated": 100.0
+        },
+        "extrapolation_low": {
+          "main": 28.499999999999996,
+          "worst": 4.666666666666667,
+          "history": 28.499999999999996,
+          "switch": 91.3888888888889,
+          "joint": null,
+          "gain": 0.2596656022958375,
+          "alignment": 0.7128150693212854,
+          "nre": 0.6133700720072809,
+          "calibrated": 83.66666666666667
+        },
+        "extrapolation_high": {
+          "main": 32.58333333333333,
+          "worst": 0.6666666666666667,
+          "history": 32.58333333333333,
+          "switch": 100.0,
+          "joint": null,
+          "gain": 0.23636246377482176,
+          "alignment": 0.8279376007062348,
+          "nre": 0.6087758596682554,
+          "calibrated": 99.94444444444444
+        }
+      },
+      "training_data_version": "ContextWorld-v1",
+      "training_code_sha256": "9e49059000fb9b95ebcbcf9c3d52027115df5ce64a862cf251b2bb93914ded52",
       "evaluation_stablewm_commit": null,
-      "cem_evaluation_count": null,
-      "cem_budget": null
+      "cem_evaluation_count": 300,
+      "cem_budget": "6x50"
     },
     {
       "id": "speed/pldm/original",
@@ -2112,43 +2451,126 @@
       "task_zh": "速度",
       "model": "pldm",
       "regime": "joint",
-      "measurement_status": "not_measured",
-      "evidence_kind": "none",
+      "measurement_status": "available",
+      "evidence_kind": "icl_development",
       "comparability_notes": null,
-      "training_seed": null,
-      "training_epochs": null,
-      "training_dataset_id": null,
-      "training_dataset_manifest_sha256": null,
-      "training_history_length": null,
-      "evaluation_history_tokens": null,
-      "input_protocol": null,
-      "frozen_encoder_semantics": null,
-      "initialization_mode": null,
-      "init_weights_sha256": null,
-      "checkpoint_sha256": null,
-      "result_sha256": null,
-      "metric_name": null,
-      "evaluation_split": null,
-      "scores": {
-        "main": null,
-        "worst": null,
-        "history": null,
-        "switch": null,
-        "joint": null,
-        "gain": null,
-        "alignment": null,
-        "nre": null,
-        "calibrated": null,
-        "cem": null
+      "training_seed": 3072,
+      "training_epochs": 10,
+      "training_dataset_id": "tworoom-speed",
+      "training_dataset_manifest_sha256": "4c5b9cdc84006caeac2a9770501f943affe2b81e32d70c27ab504770b28a93c4",
+      "training_history_length": 3,
+      "evaluation_history_tokens": 3,
+      "input_protocol": {
+        "action_block_raw_steps": 5,
+        "action_dim": 2,
+        "decoder_required": false,
+        "future_action_blocks": 5,
+        "history_tokens": 3,
+        "native_target_encoder": true
       },
-      "cem_reference_scope": null,
-      "cem_per_seed": null,
-      "speed_tracks": null,
-      "training_data_version": null,
-      "training_code_sha256": null,
+      "frozen_encoder_semantics": null,
+      "initialization_mode": "warmstart",
+      "init_weights_sha256": "ae5f3709e0b10f8e56202a82db177d48f9d0a5780665c67b559d28b15914a4fd",
+      "checkpoint_sha256": "7e86f9b3f885ef513836c806d9b7e23728e35a53625bccacbc5ce1708e2ae389",
+      "result_sha256": "dd3175f6b2fe1f6096e481f77802be52963c2a2166ed16bf588e8de8f57214c4",
+      "metric_name": "reference_speed_balanced_strict_query_win_rate_vs_every_other",
+      "evaluation_split": "development",
+      "scores": {
+        "main": 98.88888888888889,
+        "worst": 98.0,
+        "history": 98.88888888888889,
+        "switch": 100.0,
+        "joint": null,
+        "gain": 0.9852102997302153,
+        "alignment": 0.9772207035412905,
+        "nre": 0.04599791679459515,
+        "calibrated": 100.0,
+        "cem": 96.33333333333333
+      },
+      "cem_reference_scope": "original_environment",
+      "cem_per_seed": [
+        {
+          "eval_seed": 42,
+          "budget_episodes": 50,
+          "success_rate_percent": 94.0
+        },
+        {
+          "eval_seed": 43,
+          "budget_episodes": 50,
+          "success_rate_percent": 98.0
+        },
+        {
+          "eval_seed": 44,
+          "budget_episodes": 50,
+          "success_rate_percent": 100.0
+        },
+        {
+          "eval_seed": 45,
+          "budget_episodes": 50,
+          "success_rate_percent": 92.0
+        },
+        {
+          "eval_seed": 46,
+          "budget_episodes": 50,
+          "success_rate_percent": 96.0
+        },
+        {
+          "eval_seed": 47,
+          "budget_episodes": 50,
+          "success_rate_percent": 98.0
+        }
+      ],
+      "speed_tracks": {
+        "seen_for_multi": {
+          "main": 99.55555555555556,
+          "worst": 98.66666666666667,
+          "history": 99.55555555555556,
+          "switch": 100.0,
+          "joint": null,
+          "gain": 0.9614585271181303,
+          "alignment": 0.9784929578897199,
+          "nre": 0.04256832659206087,
+          "calibrated": 100.0
+        },
+        "unseen_interpolation": {
+          "main": 98.88888888888889,
+          "worst": 98.0,
+          "history": 98.88888888888889,
+          "switch": 100.0,
+          "joint": null,
+          "gain": 0.9852102997302153,
+          "alignment": 0.9772207035412905,
+          "nre": 0.04599791679459515,
+          "calibrated": 100.0
+        },
+        "extrapolation_low": {
+          "main": 26.749999999999996,
+          "worst": 4.333333333333334,
+          "history": 26.749999999999996,
+          "switch": 93.7222222222222,
+          "joint": null,
+          "gain": 0.3157678894825624,
+          "alignment": 0.7311054537868392,
+          "nre": 0.5550059001284932,
+          "calibrated": 85.11111111111111
+        },
+        "extrapolation_high": {
+          "main": 37.583333333333336,
+          "worst": 1.0,
+          "history": 37.583333333333336,
+          "switch": 100.0,
+          "joint": null,
+          "gain": 0.3484229420404758,
+          "alignment": 0.9065279553583109,
+          "nre": 0.4508781246568416,
+          "calibrated": 100.0
+        }
+      },
+      "training_data_version": "ContextWorld-v1",
+      "training_code_sha256": "2083d9d83d475f50e50cc9c7e9fa4f7a2c1477fd44208e62223d1950e7de9038",
       "evaluation_stablewm_commit": null,
-      "cem_evaluation_count": null,
-      "cem_budget": null
+      "cem_evaluation_count": 300,
+      "cem_budget": "6x50"
     },
     {
       "id": "speed/pldm/frozen",
@@ -2156,43 +2578,133 @@
       "task_zh": "速度",
       "model": "pldm",
       "regime": "frozen",
-      "measurement_status": "not_measured",
-      "evidence_kind": "none",
+      "measurement_status": "available",
+      "evidence_kind": "icl_development",
       "comparability_notes": null,
-      "training_seed": null,
-      "training_epochs": null,
-      "training_dataset_id": null,
-      "training_dataset_manifest_sha256": null,
-      "training_history_length": null,
-      "evaluation_history_tokens": null,
-      "input_protocol": null,
-      "frozen_encoder_semantics": null,
-      "initialization_mode": null,
-      "init_weights_sha256": null,
-      "checkpoint_sha256": null,
-      "result_sha256": null,
-      "metric_name": null,
-      "evaluation_split": null,
-      "scores": {
-        "main": null,
-        "worst": null,
-        "history": null,
-        "switch": null,
-        "joint": null,
-        "gain": null,
-        "alignment": null,
-        "nre": null,
-        "calibrated": null,
-        "cem": null
+      "training_seed": 3072,
+      "training_epochs": 10,
+      "training_dataset_id": "tworoom-speed",
+      "training_dataset_manifest_sha256": "4c5b9cdc84006caeac2a9770501f943affe2b81e32d70c27ab504770b28a93c4",
+      "training_history_length": 3,
+      "evaluation_history_tokens": 3,
+      "input_protocol": {
+        "action_block_raw_steps": 5,
+        "action_dim": 2,
+        "decoder_required": false,
+        "future_action_blocks": 5,
+        "history_tokens": 3,
+        "native_target_encoder": true
       },
-      "cem_reference_scope": null,
-      "cem_per_seed": null,
-      "speed_tracks": null,
-      "training_data_version": null,
-      "training_code_sha256": null,
+      "frozen_encoder_semantics": {
+        "policy": "freeze_encoder_v1",
+        "modules": [
+          "encoder"
+        ],
+        "semantics": "full_model_warmstart_encoder_only_frozen",
+        "train_behavior": "eval_mode_every_training_batch_including_buffers"
+      },
+      "initialization_mode": "warmstart",
+      "init_weights_sha256": "ae5f3709e0b10f8e56202a82db177d48f9d0a5780665c67b559d28b15914a4fd",
+      "checkpoint_sha256": "94ec9c74cff5adcd947c7a4b02d2b42a9697cd4a293b77f8d27c2d975bb8a1e0",
+      "result_sha256": "46d33e26ceb0e4ffa289b1fa0dcdf111126756d2a62410df88c86fe043519217",
+      "metric_name": "reference_speed_balanced_strict_query_win_rate_vs_every_other",
+      "evaluation_split": "development",
+      "scores": {
+        "main": 95.55555555555557,
+        "worst": 93.0,
+        "history": 95.55555555555557,
+        "switch": 100.0,
+        "joint": null,
+        "gain": 0.9533238296315393,
+        "alignment": 0.9672158514640541,
+        "nre": 0.06483283917791433,
+        "calibrated": 98.55555555555556,
+        "cem": 98.0
+      },
+      "cem_reference_scope": "original_environment",
+      "cem_per_seed": [
+        {
+          "eval_seed": 42,
+          "budget_episodes": 50,
+          "success_rate_percent": 98.0
+        },
+        {
+          "eval_seed": 43,
+          "budget_episodes": 50,
+          "success_rate_percent": 96.0
+        },
+        {
+          "eval_seed": 44,
+          "budget_episodes": 50,
+          "success_rate_percent": 100.0
+        },
+        {
+          "eval_seed": 45,
+          "budget_episodes": 50,
+          "success_rate_percent": 96.0
+        },
+        {
+          "eval_seed": 46,
+          "budget_episodes": 50,
+          "success_rate_percent": 98.0
+        },
+        {
+          "eval_seed": 47,
+          "budget_episodes": 50,
+          "success_rate_percent": 100.0
+        }
+      ],
+      "speed_tracks": {
+        "seen_for_multi": {
+          "main": 96.77777777777777,
+          "worst": 96.0,
+          "history": 96.77777777777777,
+          "switch": 100.0,
+          "joint": null,
+          "gain": 0.9338080669226069,
+          "alignment": 0.9696776580979989,
+          "nre": 0.05976971375525973,
+          "calibrated": 98.77777777777777
+        },
+        "unseen_interpolation": {
+          "main": 95.55555555555557,
+          "worst": 93.0,
+          "history": 95.55555555555557,
+          "switch": 100.0,
+          "joint": null,
+          "gain": 0.9533238296315393,
+          "alignment": 0.9672158514640541,
+          "nre": 0.06483283917791433,
+          "calibrated": 98.55555555555556
+        },
+        "extrapolation_low": {
+          "main": 27.666666666666668,
+          "worst": 2.666666666666667,
+          "history": 27.666666666666668,
+          "switch": 90.11111111111111,
+          "joint": null,
+          "gain": 0.28409452324492795,
+          "alignment": 0.6987376519926607,
+          "nre": 0.5971203082488309,
+          "calibrated": 77.94444444444444
+        },
+        "extrapolation_high": {
+          "main": 29.833333333333336,
+          "worst": 1.3333333333333335,
+          "history": 29.833333333333336,
+          "switch": 99.94444444444446,
+          "joint": null,
+          "gain": 0.3212136350043031,
+          "alignment": 0.8709867186483106,
+          "nre": 0.49358086294023634,
+          "calibrated": 99.8888888888889
+        }
+      },
+      "training_data_version": "ContextWorld-v1",
+      "training_code_sha256": "2083d9d83d475f50e50cc9c7e9fa4f7a2c1477fd44208e62223d1950e7de9038",
       "evaluation_stablewm_commit": null,
-      "cem_evaluation_count": null,
-      "cem_budget": null
+      "cem_evaluation_count": 300,
+      "cem_budget": "6x50"
     },
     {
       "id": "speed/dinowm/original",
@@ -2466,43 +2978,132 @@
       "task_zh": "速度",
       "model": "dinowm",
       "regime": "frozen",
-      "measurement_status": "not_measured",
-      "evidence_kind": "none",
+      "measurement_status": "available",
+      "evidence_kind": "icl_development",
       "comparability_notes": null,
-      "training_seed": null,
-      "training_epochs": null,
-      "training_dataset_id": null,
-      "training_dataset_manifest_sha256": null,
-      "training_history_length": null,
-      "evaluation_history_tokens": null,
-      "input_protocol": null,
-      "frozen_encoder_semantics": null,
-      "initialization_mode": null,
-      "init_weights_sha256": null,
-      "checkpoint_sha256": null,
-      "result_sha256": null,
-      "metric_name": null,
-      "evaluation_split": null,
-      "scores": {
-        "main": null,
-        "worst": null,
-        "history": null,
-        "switch": null,
-        "joint": null,
-        "gain": null,
-        "alignment": null,
-        "nre": null,
-        "calibrated": null,
-        "cem": null
+      "training_seed": 3073,
+      "training_epochs": 10,
+      "training_dataset_id": "tworoom-speed",
+      "training_dataset_manifest_sha256": "4c5b9cdc84006caeac2a9770501f943affe2b81e32d70c27ab504770b28a93c4",
+      "training_history_length": 3,
+      "evaluation_history_tokens": 3,
+      "input_protocol": {
+        "action_block_raw_steps": 5,
+        "action_dim": 2,
+        "decoder_required": false,
+        "future_action_blocks": 5,
+        "history_tokens": 3,
+        "native_target_encoder": true
       },
-      "cem_reference_scope": null,
-      "cem_per_seed": null,
-      "speed_tracks": null,
-      "training_data_version": null,
-      "training_code_sha256": null,
+      "frozen_encoder_semantics": {
+        "policy": "native_frozen_dino_backbone",
+        "modules": [
+          "encoder"
+        ],
+        "semantics": "pretrained_visual_encoder_frozen_predictor_trainable"
+      },
+      "initialization_mode": "warmstart",
+      "init_weights_sha256": "20fe17831fac40bcb77f750104c5790626a218b3932778d02e88d91d9b4be23e",
+      "checkpoint_sha256": "80f4f495b7dc11ba9e9e825528a08ba572521db1365855c76bad9c52ad4007d9",
+      "result_sha256": "d137db4b67d212459abd4ff0efe8764b0d16b9e8134e60cf26da62195f33ab76",
+      "metric_name": "reference_speed_balanced_strict_query_win_rate_vs_every_other",
+      "evaluation_split": "development",
+      "scores": {
+        "main": 86.0,
+        "worst": 66.66666666666666,
+        "history": 86.0,
+        "switch": 99.77777777777777,
+        "joint": null,
+        "gain": 0.5050531929814578,
+        "alignment": 0.778524566716577,
+        "nre": 0.410745811532073,
+        "calibrated": 99.55555555555556,
+        "cem": 100.0
+      },
+      "cem_reference_scope": "original_environment",
+      "cem_per_seed": [
+        {
+          "eval_seed": 42,
+          "budget_episodes": 50,
+          "success_rate_percent": 100.0
+        },
+        {
+          "eval_seed": 43,
+          "budget_episodes": 50,
+          "success_rate_percent": 100.0
+        },
+        {
+          "eval_seed": 44,
+          "budget_episodes": 50,
+          "success_rate_percent": 100.0
+        },
+        {
+          "eval_seed": 45,
+          "budget_episodes": 50,
+          "success_rate_percent": 100.0
+        },
+        {
+          "eval_seed": 46,
+          "budget_episodes": 50,
+          "success_rate_percent": 100.0
+        },
+        {
+          "eval_seed": 47,
+          "budget_episodes": 50,
+          "success_rate_percent": 100.0
+        }
+      ],
+      "speed_tracks": {
+        "seen_for_multi": {
+          "main": 89.55555555555556,
+          "worst": 73.0,
+          "history": 89.55555555555556,
+          "switch": 99.77777777777779,
+          "joint": null,
+          "gain": 0.509420586905276,
+          "alignment": 0.7863821538296376,
+          "nre": 0.40080733635844223,
+          "calibrated": 99.44444444444444
+        },
+        "unseen_interpolation": {
+          "main": 86.0,
+          "worst": 66.66666666666666,
+          "history": 86.0,
+          "switch": 99.77777777777777,
+          "joint": null,
+          "gain": 0.5050531929814578,
+          "alignment": 0.778524566716577,
+          "nre": 0.410745811532073,
+          "calibrated": 99.55555555555556
+        },
+        "extrapolation_low": {
+          "main": 27.833333333333332,
+          "worst": 4.666666666666667,
+          "history": 27.833333333333332,
+          "switch": 89.8888888888889,
+          "joint": null,
+          "gain": 0.08845103722475119,
+          "alignment": 0.3476925643031923,
+          "nre": 0.8878144303671479,
+          "calibrated": 83.11111111111111
+        },
+        "extrapolation_high": {
+          "main": 35.083333333333336,
+          "worst": 7.000000000000001,
+          "history": 35.083333333333336,
+          "switch": 97.5,
+          "joint": null,
+          "gain": 0.2233702378194829,
+          "alignment": 0.5002366986261321,
+          "nre": 0.7526477525725349,
+          "calibrated": 89.72222222222223
+        }
+      },
+      "training_data_version": "ContextWorld-v1",
+      "training_code_sha256": "16f911753b34887270f4e64555b77f1b229ebc53ed8688471162c1a7975cf9bd",
       "evaluation_stablewm_commit": null,
-      "cem_evaluation_count": null,
-      "cem_budget": null
+      "cem_evaluation_count": 300,
+      "cem_budget": "6x50"
     },
     {
       "id": "action_strength/lewm/original",
@@ -5310,43 +5911,87 @@
       "task_zh": "运动阻尼",
       "model": "dinowm",
       "regime": "frozen",
-      "measurement_status": "not_measured",
-      "evidence_kind": "none",
+      "measurement_status": "available",
+      "evidence_kind": "icl_development",
       "comparability_notes": null,
-      "training_seed": null,
-      "training_epochs": null,
-      "training_dataset_id": null,
-      "training_dataset_manifest_sha256": null,
-      "training_history_length": null,
-      "evaluation_history_tokens": null,
-      "input_protocol": null,
-      "frozen_encoder_semantics": null,
-      "initialization_mode": null,
-      "init_weights_sha256": null,
-      "checkpoint_sha256": null,
-      "result_sha256": null,
-      "metric_name": null,
-      "evaluation_split": null,
-      "scores": {
-        "main": null,
-        "worst": null,
-        "history": null,
-        "switch": null,
-        "joint": null,
-        "gain": null,
-        "alignment": null,
-        "nre": null,
-        "calibrated": null,
-        "cem": null
+      "training_seed": 3073,
+      "training_epochs": 10,
+      "training_dataset_id": "pusht-motion-damping",
+      "training_dataset_manifest_sha256": "b73d0fb88089a8d792a31e440e67841c1d7b623c7277b4b5e6dca0b165c3403d",
+      "training_history_length": 3,
+      "evaluation_history_tokens": 3,
+      "input_protocol": {
+        "action_block_raw_steps": 5,
+        "action_dim": 2,
+        "decoder_required": false,
+        "future_action_blocks": 5,
+        "history_tokens": 3,
+        "native_target_encoder": true
       },
-      "cem_reference_scope": null,
-      "cem_per_seed": null,
+      "frozen_encoder_semantics": {
+        "policy": "native_frozen_dino_backbone",
+        "modules": [
+          "encoder"
+        ],
+        "semantics": "pretrained_visual_encoder_frozen_predictor_trainable"
+      },
+      "initialization_mode": "warmstart",
+      "init_weights_sha256": "d6656af4ba7a6f514e4384c518a43cc2931dd574bd5125d83f4c4cdbeec29886",
+      "checkpoint_sha256": "05603ddd7243332be89f50408152bbf837ea98848ed0268209cc8cfe82043346",
+      "result_sha256": "f33a9d7965b56d23528f3bc196cc685e4739fb10791038dc63d3fca48a892d45",
+      "metric_name": "correct_future_rate",
+      "evaluation_split": "development",
+      "scores": {
+        "main": 57.6171875,
+        "worst": 49.21875,
+        "history": 65.625,
+        "switch": 77.734375,
+        "joint": 10.15625,
+        "gain": 0.036567020705407946,
+        "alignment": 0.09257336917143788,
+        "nre": 1.0828955658588284,
+        "calibrated": 51.171875,
+        "cem": 76.0
+      },
+      "cem_reference_scope": "original_environment",
+      "cem_per_seed": [
+        {
+          "eval_seed": 42,
+          "budget_episodes": 50,
+          "success_rate_percent": 76.0
+        },
+        {
+          "eval_seed": 43,
+          "budget_episodes": 50,
+          "success_rate_percent": 76.0
+        },
+        {
+          "eval_seed": 44,
+          "budget_episodes": 50,
+          "success_rate_percent": 78.0
+        },
+        {
+          "eval_seed": 45,
+          "budget_episodes": 50,
+          "success_rate_percent": 88.0
+        },
+        {
+          "eval_seed": 46,
+          "budget_episodes": 50,
+          "success_rate_percent": 78.0
+        },
+        {
+          "eval_seed": 47,
+          "budget_episodes": 50,
+          "success_rate_percent": 60.0
+        }
+      ],
       "speed_tracks": null,
-      "training_data_version": null,
-      "training_code_sha256": null,
+      "training_data_version": "ContextWorld-motion-damping-32k-v1",
+      "training_code_sha256": "16f911753b34887270f4e64555b77f1b229ebc53ed8688471162c1a7975cf9bd",
       "evaluation_stablewm_commit": null,
-      "cem_evaluation_count": null,
-      "cem_budget": null
+      "cem_evaluation_count": 300,
+      "cem_budget": "6x50"
     },
     {
       "id": "motion_damping/dinowm/projected",
@@ -7198,43 +7843,87 @@
       "task_zh": "Cube 夹爪携带",
       "model": "dinowm",
       "regime": "frozen",
-      "measurement_status": "not_measured",
-      "evidence_kind": "none",
+      "measurement_status": "available",
+      "evidence_kind": "icl_development",
       "comparability_notes": null,
-      "training_seed": null,
-      "training_epochs": null,
-      "training_dataset_id": null,
-      "training_dataset_manifest_sha256": null,
-      "training_history_length": null,
-      "evaluation_history_tokens": null,
-      "input_protocol": null,
-      "frozen_encoder_semantics": null,
-      "initialization_mode": null,
-      "init_weights_sha256": null,
-      "checkpoint_sha256": null,
-      "result_sha256": null,
-      "metric_name": null,
-      "evaluation_split": null,
-      "scores": {
-        "main": null,
-        "worst": null,
-        "history": null,
-        "switch": null,
-        "joint": null,
-        "gain": null,
-        "alignment": null,
-        "nre": null,
-        "calibrated": null,
-        "cem": null
+      "training_seed": 3073,
+      "training_epochs": 10,
+      "training_dataset_id": "cube-gripper-carry",
+      "training_dataset_manifest_sha256": "6e8d707857db9e50d0e21d0a0c4d12647a63a5f1ee25e3527af5b46759463baf",
+      "training_history_length": 3,
+      "evaluation_history_tokens": 3,
+      "input_protocol": {
+        "action_block_raw_steps": 5,
+        "action_dim": 5,
+        "decoder_required": false,
+        "future_action_blocks": 5,
+        "history_tokens": 3,
+        "native_target_encoder": true
       },
-      "cem_reference_scope": null,
-      "cem_per_seed": null,
+      "frozen_encoder_semantics": {
+        "policy": "native_frozen_dino_backbone",
+        "modules": [
+          "encoder"
+        ],
+        "semantics": "pretrained_visual_encoder_frozen_predictor_trainable"
+      },
+      "initialization_mode": "warmstart",
+      "init_weights_sha256": "dcb65a10f6328290cf74b25b4044bd8c5b26569eb49af27fc221bfef25923780",
+      "checkpoint_sha256": "009ae0366585b9d449a9999218f5a0d1dd738c35349e8ad94b66c822227a2442",
+      "result_sha256": "ee80ee11ab26876acc56a374483783e129287b2d68c18ad0b817c786ee2d2f4f",
+      "metric_name": "correct_future_rate",
+      "evaluation_split": "development",
+      "scores": {
+        "main": 62.3046875,
+        "worst": 55.078125,
+        "history": 82.03125,
+        "switch": 94.53125,
+        "joint": 19.53125,
+        "gain": 0.10904507440360717,
+        "alignment": 0.3592440475166509,
+        "nre": 0.8740466129893176,
+        "calibrated": 89.84375,
+        "cem": 73.66666666666667
+      },
+      "cem_reference_scope": "original_environment",
+      "cem_per_seed": [
+        {
+          "eval_seed": 42,
+          "budget_episodes": 50,
+          "success_rate_percent": 76.0
+        },
+        {
+          "eval_seed": 43,
+          "budget_episodes": 50,
+          "success_rate_percent": 82.0
+        },
+        {
+          "eval_seed": 44,
+          "budget_episodes": 50,
+          "success_rate_percent": 66.0
+        },
+        {
+          "eval_seed": 45,
+          "budget_episodes": 50,
+          "success_rate_percent": 66.0
+        },
+        {
+          "eval_seed": 46,
+          "budget_episodes": 50,
+          "success_rate_percent": 74.0
+        },
+        {
+          "eval_seed": 47,
+          "budget_episodes": 50,
+          "success_rate_percent": 78.0
+        }
+      ],
       "speed_tracks": null,
-      "training_data_version": null,
-      "training_code_sha256": null,
+      "training_data_version": "ContextWorld-cube-gripper-carry-10k-independent-v2",
+      "training_code_sha256": "16f911753b34887270f4e64555b77f1b229ebc53ed8688471162c1a7975cf9bd",
       "evaluation_stablewm_commit": null,
-      "cem_evaluation_count": null,
-      "cem_budget": null
+      "cem_evaluation_count": 300,
+      "cem_budget": "6x50"
     },
     {
       "id": "cube_gripper_carry/dinowm/projected",

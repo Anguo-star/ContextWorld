@@ -208,7 +208,7 @@ def _document() -> str:
 def _reference_table(document: str) -> Table:
     """Read the paper tables and join their cells to the appendix decisions.
 
-    The main document carries only the six-row ICL matrix.  The appendix owns
+    The appendix preserves the frozen six-row ICL matrix and owns
     the seven-column ICL detail table (§5.1) and the 27-row CEM retention
     table (§5.3), whose delta column must stay plain arithmetic on the two
     displayed means.  Numerical checks consume the displayed cells.  The
@@ -220,12 +220,14 @@ def _reference_table(document: str) -> Table:
     icl_end = "<!-- END CURRENT_REFERENCE_ICL_MATRIX -->"
     cem_begin = "<!-- BEGIN CURRENT_REFERENCE_CEM_MATRIX -->"
     cem_end = "<!-- END CURRENT_REFERENCE_CEM_MATRIX -->"
-    assert document.count(icl_begin) == document.count(icl_end) == 1
+    appendix = (ROOT / "docs/reference/Benchmark_Result_Provenance.md").read_text()
+    assert document.count(icl_begin) == document.count(icl_end) == 0
+    assert appendix.count(icl_begin) == appendix.count(icl_end) == 1
     # A CEM marker back in the main document is a layout regression: that
     # table lives in the appendix now.
     assert document.count(cem_begin) == document.count(cem_end) == 0
 
-    matrix_tables = _markdown_tables(document.split(icl_begin)[1].split(icl_end)[0])
+    matrix_tables = _markdown_tables(appendix.split(icl_begin)[1].split(icl_end)[0])
     assert len(matrix_tables) == 1
     matrix_header, matrix_rows = matrix_tables[0]
 
@@ -318,8 +320,8 @@ def _reference_table(document: str) -> Table:
 
     displayed = [table for table in _tables(document) if "训练数据" in table.header]
     assert len(displayed) == 1, (
-        "the main document must carry exactly one training-data matrix "
-        f"(the ICL matrix), found {len(displayed)}"
+        "the main document must carry exactly one complete training comparison "
+        f"table, found {len(displayed)}"
     )
     header = tuple(detail.header) + ("原始 CEM 起点", "训练后原任务 CEM")
     return Table(displayed[0].path, displayed[0].context, header, tuple(joined))
