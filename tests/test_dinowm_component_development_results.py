@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
+import importlib.util
 import json
 from pathlib import Path
 import re
-from statistics import mean, stdev
 
 import pytest
 
@@ -16,6 +16,11 @@ RESULTS = (
     / "configs/benchmark/contextworld_dinowm_component_development_results_v1.json"
 )
 BENCHMARK = ROOT / "docs/ContextWorld_ICL_Benchmark.md"
+APPENDIX = ROOT / "docs/reference/Benchmark_Result_Provenance.md"
+SOURCE = ROOT / "docs/research/data/icl_training_study_v2.json"
+RENDERER = ROOT / "scripts/render_training_comparison.py"
+
+_SEPARATOR_LINE = re.compile(r"^\|(\s*:?-{3,}:?\s*\|)+$")
 
 ROUNDING = 0.005 + 1e-9
 PERCENT = re.compile(r"(\d+(?:\.\d+)?)%")
@@ -99,31 +104,135 @@ def test_public_document_reports_all_nine_component_states() -> None:
         assert f"| {label} |" in document
 
 
-def test_public_document_uses_one_complete_training_table() -> None:
+def _load_renderer():
+    spec = importlib.util.spec_from_file_location("render_training_comparison_layout", RENDERER)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def _table_lines(text: str, marker: str) -> list[str]:
+    begin, end = f"<!-- BEGIN TRAINING_COMPARISON_{marker} -->", f"<!-- END TRAINING_COMPARISON_{marker} -->"
+    body = text.split(begin)[1].split(end)[0]
+    return [line for line in body.splitlines() if line.startswith("|")]
+
+
+def _body_rows(lines: list[str]) -> list[str]:
+    """Table lines without the header/separator rows of each rendered table."""
+    return [
+        line
+        for i, line in enumerate(lines)
+        if not _SEPARATOR_LINE.match(line)
+        and not (i + 1 < len(lines) and _SEPARATOR_LINE.match(lines[i + 1]))
+    ]
+
+
+def test_public_document_uses_overview_and_task_detail_tables() -> None:
+    """The comparison section is an 11-row overview plus per-task detail blocks.
+
+    The old layout rendered one 158-line unified table (one line per Speed
+    distribution) straight from the representative rows.  The published study
+    now carries per-training-run ``replicates``, so the renderer aggregates
+    instead: a horizontal overview (model x scheme, one ``ICL / CEM`` cell per
+    task, chance-corrected ICL 平均 only when all nine tasks are present and
+    comparable), one detail block per task with n(ICL)/n(CEM) and mean ± SD,
+    a scaling block, and an appendix-only historical block.  This test pins
+    that structure to the source JSON and the renderer itself.
+    """
     document = BENCHMARK.read_text(encoding="utf-8")
+    appendix = APPENDIX.read_text(encoding="utf-8")
+    source = json.loads(SOURCE.read_text(encoding="utf-8"))
+    rows = source["rows"]
+    renderer = _load_renderer()
+
+    # The single unified table is gone; each block appears exactly once in its owning doc.
+    assert "TRAINING_COMPARISON_FULL" not in document
+    for marker in renderer.MAIN_MARKERS:
+        assert document.count(f"<!-- BEGIN TRAINING_COMPARISON_{marker} -->") == 1, marker
+    assert document.count("<!-- BEGIN TRAINING_COMPARISON_HISTORICAL -->") == 0
+    assert appendix.count("<!-- BEGIN TRAINING_COMPARISON_HISTORICAL -->") == 1
+    assert appendix.count("<!-- BEGIN CURRENT_REFERENCE_ICL_MATRIX -->") == 1
+    assert appendix.count("<!-- BEGIN CURRENT_REFERENCE_CEM_MATRIX -->") == 1
+
     start = document.index("## 5. 模型与训练方案比较")
     end = document.index("\n## 6. 任务说明", start)
     section = document[start:end]
-    appendix = (ROOT / "docs/reference/Benchmark_Result_Provenance.md").read_text()
-    assert section.count("<!-- BEGIN TRAINING_COMPARISON_FULL -->") == 1
-    assert "<details>" not in section
-    assert "CURRENT_REFERENCE_ICL_MATRIX" not in section
-    assert appendix.count("<!-- BEGIN CURRENT_REFERENCE_ICL_MATRIX -->") == 1
-    assert appendix.count("<!-- BEGIN CURRENT_REFERENCE_CEM_MATRIX -->") == 1
-    assert section.count("| 任务 | 模型 | 种子 | 训练数据 |") == 1
-    source = json.loads((ROOT / "docs/research/data/icl_training_study_v2.json").read_text())
-    body = section.split("<!-- BEGIN TRAINING_COMPARISON_FULL -->")[1].split("<!-- END TRAINING_COMPARISON_FULL -->")[0]
-    table_lines = [line for line in body.splitlines() if line.startswith("|")]
-    expected = sum(len(r.get("speed_tracks") or {}) or 1 for r in source["rows"])
-    assert len(table_lines) - 2 == expected
-    assert all(len(line.split("|")) == 18 for line in table_lines)
-    for column in ("最弱条件", "History", "Switch", "Joint", "Gain", "Alignment", "NRE", "CalResp", "CEM"):
-        assert column in table_lines[0]
-    assert "（未报告）" in body and "N/A" in body
-    assert "历史转换初始化‡" in body
-    assert "低端外推" in body and "高端外推" in body
+    tasks = document[end:document.index("\n## 7. 接入与复现", end)]
+    assert section.count("<!-- BEGIN TRAINING_COMPARISON_OVERVIEW -->") == 1
+    assert section.count("<!-- BEGIN TRAINING_COMPARISON_SCALING -->") == 1
+    for marker in renderer.DETAIL_MARKERS.values():
+        assert tasks.count(f"<!-- BEGIN TRAINING_COMPARISON_{marker} -->") == 1, marker
     assert "JSON" in section and "CSV" in section
     assert "排队" not in section
+
+    # Overview: eleven model x scheme rows, nine task cells plus ICL 平均, no seed column.
+    overview = _table_lines(document, "OVERVIEW")
+    body = _body_rows(overview)
+    assert len(body) == 11
+    assert all(len(line.split("|")) == 14 for line in body)  # 12 columns
+    for task in renderer.TASK_ORDER:
+        assert renderer.TASK_ZH[task] in overview[0]
+    pairs = [(line.split("|")[1].strip(), line.split("|")[2].strip()) for line in body]
+    assert pairs == [
+        (renderer.MODEL_ZH[model], renderer.REGIME_ZH[regime])
+        for model, regime in renderer.OVERVIEW_GROUPS
+    ]
+    groups = dict(renderer.overview_groups(rows))
+    for line, (model, regime) in zip(body, renderer.OVERVIEW_GROUPS):
+        means = {}
+        for task in renderer.TASK_ORDER:
+            metrics, agg = renderer.display_stats(groups[(model, regime)][task])
+            means[task] = metrics["main"]["mean"]
+        expected = "—" if regime == "original" else renderer.f2(renderer.icl_average(means))
+        assert line.split("|")[-2].strip() == expected, (model, regime)
+        if regime == "original":
+            continue  # H3 Delay originals never enter the chance-corrected average
+        assert expected == "—" or re.fullmatch(r"-?\d+\.\d\d", expected)
+    assert "†" in "\n".join(body)  # H3 Delay original reference stays flagged
+    assert "历史转换初始化" not in "\n".join(body)
+
+    # Detail blocks: every current ordinary row of the task, nothing else.
+    for task, marker in renderer.DETAIL_MARKERS.items():
+        lines = _table_lines(document, marker)
+        detail_body = _body_rows(lines)
+        current = renderer.ordered_current(rows, task)
+        expected_labels = [
+            (renderer.MODEL_ZH[r["model"]], renderer.scheme_label(r)) for r in current
+        ]
+        summary = [line for line in detail_body if len(line.split("|")) == 16]
+        rendered = [(line.split("|")[1].strip(), line.split("|")[2].strip()) for line in summary]
+        assert rendered == expected_labels, task
+        assert "n(ICL)" in lines[0] and "n(CEM)" in lines[0] and "CEM↑" in lines[0]
+        assert "历史转换初始化" not in "\n".join(detail_body)
+        assert "2k" not in "\n".join(detail_body) and "10k 独立来源" not in "\n".join(detail_body)
+        if task == "speed":
+            track_rows = [line for line in detail_body if len(line.split("|")) == 14]
+            assert len(track_rows) == 4 * len(current)  # four distributions, not four tasks
+            track_table_header = [line for line in lines if "速度分布" in line][0]
+            assert "CEM" not in track_table_header  # CEM is reported once, in the summary
+            for label in ("低端外推", "高端外推", "未见速度插值", "训练中已见速度"):
+                assert label in "\n".join(track_rows)
+        if task in ("speed", "action_delay", "door"):
+            assert "N/A" in "\n".join(detail_body)  # Joint is undefined for these tasks
+        if task == "action_delay":
+            assert "原始模型†" in "\n".join(detail_body)
+    assert "（未报告）" in tasks and "（仅 CEM）" in tasks
+
+    # Scaling: six small-vs-large Scratch comparisons plus the LeWM strength Joint ladder.
+    scaling = _body_rows(_table_lines(document, "SCALING"))
+    assert len(scaling) == len(renderer.scaling_rows(rows))
+    assert len(scaling) == 39
+    scaling_text = "\n".join(scaling)
+    assert "10k 独立来源" in scaling_text and "32k 覆盖扩展" in scaling_text
+    assert "二阶段冻结" not in scaling_text and "历史转换初始化" not in scaling_text
+
+    # Historical projected rows live only in the provenance appendix.
+    historical = _body_rows(_table_lines(appendix, "HISTORICAL"))
+    assert len(historical) == sum(1 for r in rows if r["regime"] == "projected")
+    assert len(historical) == 6
+    assert all("DINO-WM" in line and "历史转换初始化" in line for line in historical)
+    assert "ICL 从头" not in "\n".join(historical)
 
 
 def test_dinowm_development_snapshot_is_marked_superseded() -> None:

@@ -43,7 +43,8 @@ def test_cube_task_card_defines_current_data_and_links_unified_results() -> None
     assert "外部模型使用独立结果身份" in section
     assert "10,000 个独立来源 episode" in section
     assert "##### 基线表现" not in section
-    assert "全部模型分数统一见 §5.2" in document
+    assert "### 5.2 主结果表" in document
+    assert "<!-- BEGIN TRAINING_COMPARISON_DETAIL_CUBE_GRIPPER_CARRY -->" in section
     assert "77.73%、79.10% 和 78.52%" not in section
 
 
