@@ -323,8 +323,8 @@ def test_speed_detail_reports_tracks_separately_without_repeating_cem(rtc, publi
     text = rtc.render_detail("speed", published_rows)
     lines = [l for l in text.splitlines() if l.startswith("|")]
     body = [l for l in lines[2:] if not l.startswith("| ---") and not l.startswith("| 模型")]
-    summary = [l for l in body if len(l.split("|")) == 16]
-    tracks = [l for l in body if len(l.split("|")) == 14]
+    summary = [l for l in body if len(l.split("|")) == 17]
+    tracks = [l for l in body if len(l.split("|")) == 15]
     current = rtc.ordered_current(published_rows, "speed")
     assert len(summary) == len(current) == 11  # one row per scheme, not per distribution
     assert len(tracks) == 4 * len(current)
@@ -342,7 +342,7 @@ def test_each_current_row_renders_in_its_own_task_detail(rtc, published_rows):
         text = rtc.render_detail(task, published_rows)
         labels = [(l.split("|")[1].strip(), l.split("|")[2].strip())
                   for l in text.splitlines()
-                  if l.startswith("|") and len(l.split("|")) == 16 and "---" not in l
+                  if l.startswith("|") and len(l.split("|")) == 17 and "---" not in l
                   and not l.startswith("| 模型")]
         assert labels == [(rtc.MODEL_ZH[r["model"]], rtc.scheme_label(r)) for r in current]
         assert "历史转换初始化" not in text  # projected rows only live in the appendix
@@ -498,3 +498,28 @@ def test_stored_statistics_must_agree_with_training_runs(rtc):
     doc["rows"][0]["statistics"]["scores"]["main"]["mean"] += 1
     with pytest.raises(rtc.Fail, match="stored statistics"):
         rtc.validate(doc)
+
+
+def test_response_score_preserves_negative_values_missingness_and_repeat_spread(rtc):
+    # These NRE values correspond to perfect, zero, and worse-than-zero responses.
+    nre = rtc.stats([0.0, 1.0, 2.0, None])
+    transformed = rtc.with_response({"nre": nre})["response"]
+    assert transformed == {"mean": 0.0, "std": 100.0, "n": 3}
+    assert rtc.with_response({"nre": rtc.stats([1.521])})["response"]["mean"] == pytest.approx(-52.1)
+    assert rtc.with_response({})["response"] == {"mean": None, "std": None, "n": 0}
+    # NRE already uses squared error; 0.25 must map to 75, not 93.75.
+    assert rtc.with_response({"nre": rtc.stats([0.25])})["response"] == {"mean": 75.0, "std": None, "n": 1}
+    assert nre == {"mean": 1.0, "std": 1.0, "n": 3}  # original statistics stay unchanged
+
+
+def test_existing_decision_evidence_matches_comparison_checkpoints(published_rows):
+    evidence = json.loads((ROOT / "docs/research/data/icl_action_selection_v1.json").read_text())
+    indexed = {r["id"]: r for r in published_rows}
+    assert evidence["pair_count"] == 256 and evidence["candidate_count"] == 21
+    for row in evidence["rows"]:
+        source = indexed[row["training_comparison_id"]]
+        rep = next(r for r in source["replicates"] if r["checkpoint_sha256"] == row["checkpoint_sha256"])
+        assert row["main_percent"] == pytest.approx(rep["scores"]["main"])
+        assert row["history_benefit"] == pytest.approx(row["swapped_regret"] - row["correct_regret"])
+        lo, hi = row["history_benefit_ci95"]
+        assert lo <= row["history_benefit"] <= hi

@@ -200,14 +200,14 @@ def test_public_document_uses_overview_and_task_detail_tables() -> None:
         expected_labels = [
             (renderer.MODEL_ZH[r["model"]], renderer.scheme_label(r)) for r in current
         ]
-        summary = [line for line in detail_body if len(line.split("|")) == 16]
+        summary = [line for line in detail_body if len(line.split("|")) == 17]
         rendered = [(line.split("|")[1].strip(), line.split("|")[2].strip()) for line in summary]
         assert rendered == expected_labels, task
         assert "n(ICL)" in lines[0] and "n(CEM)" in lines[0] and "CEM↑" in lines[0]
         assert "历史转换初始化" not in "\n".join(detail_body)
         assert "2k" not in "\n".join(detail_body) and "10k 独立来源" not in "\n".join(detail_body)
         if task == "speed":
-            track_rows = [line for line in detail_body if len(line.split("|")) == 14]
+            track_rows = [line for line in detail_body if len(line.split("|")) == 15]
             assert len(track_rows) == 4 * len(current)  # four distributions, not four tasks
             track_table_header = [line for line in lines if "速度分布" in line][0]
             assert "CEM" not in track_table_header  # CEM is reported once, in the summary

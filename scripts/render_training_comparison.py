@@ -47,6 +47,9 @@ REGIME_ZH = {"original": "原始模型", "scratch": "ICL 从头", "joint": "二�
 PCT = ["main", "worst", "history", "switch", "joint", "calibrated", "cem"]
 RATIO = ["gain", "alignment", "nre"]
 ALL = ["main", "worst", "history", "switch", "joint", "gain", "alignment", "nre", "calibrated", "cem"]
+# Response is a display transform, not an additional evaluator output or gate.
+DISPLAY = ["main", "response"] + ALL[1:]
+EXPORTED = ALL + ["response"]
 SPEED_TRACKS = ["seen_for_multi", "unseen_interpolation", "extrapolation_low", "extrapolation_high"]
 SPEED_MAIN_TRACK = "unseen_interpolation"
 TRACK_ZH = {"seen_for_multi": "训练中已见速度", "unseen_interpolation": "未见速度插值",
@@ -73,13 +76,14 @@ def marker_doc(marker):
 
 CSV_COLS = (["id", "task", "model", "regime", "training_data_version", "training_pair_count",
              "n_icl", "n_cem", "training_seeds"]
-            + [f"score_{m}_{k}" for m in ALL for k in ("mean", "std", "n")]
+            + [f"score_{m}_{k}" for m in EXPORTED for k in ("mean", "std", "n")]
             + ["speed_tracks_json"])
 
 OVERVIEW_GROUPS = [(model, regime) for model in MODEL_ORDER for regime in REGIME_ORDER
                    if not (model == "dinowm" and regime == "joint")]
 METRIC_HDR = ["主分↑", "最弱条件↑", "History↑", "Switch↑", "Joint↑", "Gain≈1",
               "Alignment↑", "NRE↓", "CalResp↑", "CEM↑"]
+DISPLAY_HDR = ["主分↑", "响应分↑"] + METRIC_HDR[1:-2] + ["优于零响应↑", "CEM↑"]
 
 
 class Fail(Exception):
@@ -138,10 +142,24 @@ def aggregate(row):
             "from_replicates": from_reps}
 
 
+def with_response(metrics):
+    """Add 100*(1-NRE) without clipping or changing the source statistics.
+
+    This affine transform preserves the contributing runs and scales sample SD
+    by 100. NRE is already a squared error ratio; do not square it again.
+    """
+    nre = metrics.get("nre") or {"mean": None, "std": None, "n": 0}
+    return {**metrics, "response": {
+        "mean": None if nre["mean"] is None else 100.0 * (1.0 - nre["mean"]),
+        "std": None if nre["std"] is None else 100.0 * nre["std"],
+        "n": nre["n"],
+    }}
+
+
 def display_stats(row):
     """Per-metric stats used for the main report; Speed reports unseen_interpolation.
 
-    Returns ``(metrics, agg)`` where ``metrics`` maps all ten metric names to stats
+    Returns ``(metrics, agg)`` where ``metrics`` maps the source metrics plus the derived response score to stats
     (the Speed row borrows them from the unseen-interpolation track plus row CEM).
     """
     agg = aggregate(row)
@@ -150,8 +168,8 @@ def display_stats(row):
         if track:
             metrics = dict(track)
             metrics["cem"] = agg["scores"]["cem"]
-            return metrics, agg
-    return agg["scores"], agg
+            return with_response(metrics), agg
+    return with_response(agg["scores"]), agg
 
 
 def chance(task):
@@ -376,26 +394,26 @@ def render_overview(rows):
 def render_detail(task, rows):
     """Per-task table of the current ordinary rows (plus Speed's four-track breakdown)."""
     task_rows = ordered_current(rows, task)
-    header = ["模型", "方案", "n(ICL)", "n(CEM)"] + METRIC_HDR
+    header = ["模型", "方案", "n(ICL)", "n(CEM)"] + DISPLAY_HDR
     body = []
     for r in task_rows:
         metrics, agg = display_stats(r)
         body.append("| " + " | ".join(
             [MODEL_ZH[r["model"]], scheme_label(r), str(metrics["main"]["n"]),
              str(agg["scores"]["cem"]["n"])]
-            + [stat_cell(r, k, metrics.get(k)) for k in ALL]) + " |")
+            + [stat_cell(r, k, metrics.get(k)) for k in DISPLAY]) + " |")
     out = _markdown_table(header, body)
     if task == "speed":
-        track_header = ["模型", "方案", "速度分布", "n"] + [h for h in METRIC_HDR if h not in ("CEM↑", "Joint↑")]
+        track_header = ["模型", "方案", "速度分布", "n"] + [h for h in DISPLAY_HDR if h not in ("CEM↑", "Joint↑")]
         track_body = []
         for r in task_rows:
             agg = aggregate(r)
             for track in SPEED_TRACKS:
-                st = agg["speed_tracks"].get(track) or {}
+                st = with_response(agg["speed_tracks"].get(track) or {})
                 track_body.append("| " + " | ".join(
                     [MODEL_ZH[r["model"]], scheme_label(r), TRACK_ZH[track],
                      str((st.get("main") or {"n": 0})["n"])]
-                    + [stat_cell(r, k, st.get(k)) for k in ALL if k not in ("cem", "joint")]) + " |")
+                    + [stat_cell(r, k, st.get(k)) for k in DISPLAY if k not in ("cem", "joint")]) + " |")
         out = out + [""] + _markdown_table(track_header, track_body)
     return "\n".join(out)
 
@@ -430,14 +448,14 @@ def scaling_rows(rows):
 
 
 def render_scaling(rows):
-    header = ["任务", "模型", "方案", "训练数据", "n", "ICL 主分↑", "Joint↑", "Gain≈1", "NRE↓", "CEM↑"]
+    header = ["任务", "模型", "方案", "训练数据", "n", "ICL 主分↑", "响应分↑", "Joint↑", "Gain≈1", "NRE↓", "CEM↑"]
     body = []
     for r in scaling_rows(rows):
         metrics, agg = display_stats(r)
         body.append("| " + " | ".join(
             [TASK_ZH[r["task"]], MODEL_ZH[r["model"]], REGIME_ZH[r["regime"]], scale_label(r),
              f"{metrics['main']['n']}/{agg['scores']['cem']['n']}", stat_cell(r, "main", metrics["main"])]
-            + [stat_cell(r, k, agg["scores"][k]) for k in ("joint", "gain", "nre", "cem")]) + " |")
+            + [stat_cell(r, k, metrics[k]) for k in ("response", "joint", "gain", "nre", "cem")]) + " |")
     return "\n".join(_markdown_table(header, body))
 
 
@@ -481,8 +499,9 @@ def write_csv(rows):
             cells = [r["id"], r["task"], r["model"], r["regime"],
                      r.get("training_data_version"), r.get("training_pair_count"),
                      metrics["main"]["n"], agg["scores"]["cem"]["n"], _seeds_field(agg)]
-            for m in ALL:
-                st = agg["scores"][m]
+            exported = with_response(agg["scores"])
+            for m in EXPORTED:
+                st = exported[m]
                 cells += [st["mean"], st["std"], st["n"]]
             cells.append(json.dumps(agg["speed_tracks"], sort_keys=True,
                                     ensure_ascii=False, separators=(",", ":"))
@@ -539,8 +558,9 @@ def validate_csv(doc, rows):
             raise Fail(f"CSV/JSON mismatch replicate counts in {rid}")
         if c[CSV_COLS.index("training_seeds")] != _seeds_field(agg):
             raise Fail(f"CSV/JSON mismatch training_seeds in {rid}")
-        for m in ALL:
-            st = agg["scores"][m]
+        exported = with_response(agg["scores"])
+        for m in EXPORTED:
+            st = exported[m]
             mean_c, std_c, n_c = (c[CSV_COLS.index(f"score_{m}_{k}")] for k in ("mean", "std", "n"))
             if n_c != str(st["n"]):
                 raise Fail(f"CSV/JSON mismatch score_{m}_n in {rid}")

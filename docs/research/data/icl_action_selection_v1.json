@@ -1,0 +1,73 @@
+{
+  "task": "action_strength",
+  "panel_manifest_sha256": "a0d4fb5c24fb1be0eecb353da5c0fec5749115791757e0467d9bfe927b03fc4b",
+  "pair_count": 256,
+  "candidate_count": 21,
+  "action_horizon_raw_steps": 5,
+  "scope": "fixed-direction amplitude candidates and shared low-condition goal; not closed-loop CEM",
+  "optimizer_steps": 0,
+  "schema_version": "contextworld.action-selection-summary.v1",
+  "evaluation_split": "development",
+  "source_summary_sha256": "b88b88a106a54538610c6985bcb23258ba9e70780fe02d7c60a19976150ff06f",
+  "availability": "Summary export of existing measurements; candidate panel and per-query costs are not yet distributed in this repository.",
+  "protocol": {
+    "candidate_amplitudes": "21 uniform values from 0 to 1 along the original query direction",
+    "goal": "low-condition original-action future, shared by both conditions",
+    "history_control": "other-condition real history with matched query state and executed actions; no no-history measurement",
+    "physical_cost": "joint Euclidean norm of agent position error, block position error, and 40 times periodic block-angle error; pixel-equivalent units",
+    "regret": "chosen true cost minus minimum true cost among these 21 candidates in the same condition",
+    "history_benefit": "swapped-history regret minus correct-history regret",
+    "bootstrap_unit": "query pair; 10000 resamples; interval is across queries conditional on these checkpoints, not a training-seed confidence interval"
+  },
+  "rows": [
+    {
+      "training_comparison_id": "action_strength/lewm/scratch",
+      "checkpoint_sha256": "aa296d32cdd20bf817545f7feb027f4bdc5cd87ee99547bb990c433e8915bed1",
+      "costs_sha256": "9dd65dc4db28e9126b7a9fc922b287e2931f72dc5dadf1efe757a11c976668b9",
+      "native_icl_source_sha256": "2a6256281a1e0d4c6b51bbd3555b3564c4db5114cb47ac7c790cd19109359214",
+      "main_percent": 50.78125,
+      "correct_regret": 13.461281946897635,
+      "swapped_regret": 13.939316868536762,
+      "history_benefit": 0.4780349216391251,
+      "history_benefit_ci95": [
+        0.1804250750300968,
+        0.7321464013631801
+      ],
+      "encoded_true_future_regret": 0.1839224712291172,
+      "reversal_ranking_percent": 51.47152036559167
+    },
+    {
+      "training_comparison_id": "action_strength/lewm/joint",
+      "checkpoint_sha256": "e7c8fcb342c330beca0f7c7aff6582145a2039dd97797785651e7b63e9dd2ce2",
+      "costs_sha256": "16c8eb2346381a638ff0f385bf6c7c441dd259b69033eccb3981f569b6938c77",
+      "native_icl_source_sha256": "bb6cf741b74dadc32cece1b05982090c3e94ab4eff6985b89ac6bc8318da14c7",
+      "main_percent": 90.8203125,
+      "correct_regret": 5.831432267772491,
+      "swapped_regret": 21.29639853363146,
+      "history_benefit": 15.464966265858974,
+      "history_benefit_ci95": [
+        14.228077452590686,
+        16.731733192546056
+      ],
+      "encoded_true_future_regret": 0.11610031984469132,
+      "reversal_ranking_percent": 90.28623960114037
+    },
+    {
+      "training_comparison_id": "action_strength/dinowm/scratch",
+      "checkpoint_sha256": "2508fa27309d4c01ab86e03ec375572af084f5ea1e87eb43a6961197fc165c7d",
+      "costs_sha256": "75ee5a3394ca92e75e9442e3ff881a09403b1c132cbba241bedc38dd21d34e98",
+      "native_icl_source_sha256": "881a04ffa5bbc7e3cea00d760c003b02348c7f44fa30d48261f806823243d5d1",
+      "main_percent": 96.09375,
+      "correct_regret": 2.8657331087814475,
+      "swapped_regret": 21.998492430917807,
+      "history_benefit": 19.13275932213636,
+      "history_benefit_ci95": [
+        17.93767221872613,
+        20.375955645601255
+      ],
+      "encoded_true_future_regret": 0.0960736983900069,
+      "reversal_ranking_percent": 94.024546855557
+    }
+  ],
+  "history_independent_oracle_regret_lower_bound": 6.618079297817013
+}
