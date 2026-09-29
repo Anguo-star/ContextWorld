@@ -31,7 +31,7 @@ def test_cube_task_card_defines_current_data_and_links_unified_results() -> None
     end = document.index("\n### 6.4 隐藏结构转移规则", start)
     section = document[start:end]
 
-    assert re.findall(r"^##### (.+)$", section, flags=re.MULTILINE) == [
+    assert re.findall(r"^\*\*(任务目标|数据构成|评测方法|适用范围)。\*\*", section, flags=re.MULTILINE) == [
         "任务目标",
         "数据构成",
         "评测方法",
