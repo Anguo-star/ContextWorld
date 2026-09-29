@@ -36,6 +36,7 @@ CSV_PATH = REPO / "docs" / "research" / "data" / "icl_training_study_v2.csv"
 DECISION_PATH = REPO / "docs" / "research" / "data" / "icl_action_selection_v1.json"
 CURVES_PATH = REPO / "docs" / "research" / "data" / "icl_training_dynamics_v1.json"
 SPEED_DECISION_PATH = REPO / "docs" / "research" / "data" / "speed_action_selection_v1.json"
+SPEED_CEM_PATH = REPO / "docs" / "research" / "data" / "speed_cem_initial_evidence_v1.json"
 
 TASK_ORDER = ["speed", "action_strength", "robot_arm_mass", "action_delay",
               "contact_friction", "motion_damping", "cube_gripper_carry", "door", "portal_exit"]
@@ -66,7 +67,7 @@ LEWM_STRENGTH_JOINT_IDS = ["action_strength/lewm/joint/scale_2k",
                            "action_strength/lewm/joint"]
 
 DETAIL_MARKERS = {task: "DETAIL_" + task.upper() for task in TASK_ORDER}
-MAIN_MARKERS = ["OVERVIEW", "DECISION", "SPEED_DECISION", "CURVES"] + [DETAIL_MARKERS[t] for t in TASK_ORDER] + ["SCALING"]
+MAIN_MARKERS = ["OVERVIEW", "DECISION", "SPEED_DECISION", "SPEED_CEM", "CURVES"] + [DETAIL_MARKERS[t] for t in TASK_ORDER] + ["SCALING"]
 APPENDIX_MARKERS = ["HISTORICAL"]
 MARKERS = MAIN_MARKERS + APPENDIX_MARKERS
 
@@ -508,6 +509,26 @@ def render_speed_decision():
     return "\n".join(_markdown_table(header, body))
 
 
+def render_speed_cem():
+    """Report a paired pilot separately from full benchmark scores."""
+    evidence = json.loads(SPEED_CEM_PATH.read_text(encoding="utf-8"))
+    indexed = {(r["speed"], r["arm"]): r for r in evidence["rows"]}
+    expected = {(v, a) for v in (3.4, 4.8, 6.9) for a in ("T0", "T1")}
+    if len(indexed) != len(evidence["rows"]) or set(indexed) != expected:
+        raise Fail("Speed CEM pilot must contain three speeds × two schemes")
+    header = ["真实速度", "方案", "成功率↑（正确 / 错误初始历史）",
+              "执行步数↓（正确 / 错误）", "最终距离↓（正确 / 错误，px）"]
+    body = []
+    for speed, arm in sorted(expected):
+        r = indexed[speed, arm]
+        body.append("| " + " | ".join([
+            f"{speed:g}", arm,
+            f"{r['success_percent']:.2f} / {r['wrong_success_percent']:.2f}",
+            f"{r['steps']:.2f} / {r['wrong_steps']:.2f}",
+            f"{r['final_distance']:.2f} / {r['wrong_final_distance']:.2f}"]) + " |")
+    return "\n".join(_markdown_table(header, body))
+
+
 def render_curves():
     """Keep diagnostic re-evaluations separate from archived benchmark scores."""
     evidence = json.loads(CURVES_PATH.read_text(encoding="utf-8"))
@@ -533,6 +554,7 @@ def build_blocks(rows):
     blocks = {"OVERVIEW": render_overview(rows),
               "DECISION": render_decision(),
               "SPEED_DECISION": render_speed_decision(),
+              "SPEED_CEM": render_speed_cem(),
               "CURVES": render_curves(),
               "SCALING": render_scaling(rows),
               "HISTORICAL": render_historical(rows)}

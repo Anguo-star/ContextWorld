@@ -151,3 +151,23 @@ python scripts/build_speed_action_selection.py \
 ```
 
 模型评分入口为 `scripts/eval_speed_action_selection.py`，汇总入口为 `scripts/summarize_speed_action_selection.py`；各入口的 `--help` 列出检查点、数据位置与并行参数。评分保存所有候选成本，检查权重未变，并将缓存历史编码的计算与原生 Adapter 对照。汇总对同一场景的速度条件等权平均，以场景为 bootstrap 单位；不同速度分布不合并。完整协议与结果见[速度动作选择结果](research/data/speed_action_selection_v1.json)，解释见[技术报告 §5.5](ContextWorld_ICL_Benchmark.md#55-条件预测与动作选择)。
+
+<a id="speed-cem"></a>
+
+## 速度任务的闭环规划数据
+
+闭环数据复用上节未见速度插值的全部 300 个 Development 场景和三种速度（3.4、4.8、6.9），共 900 个物理条件。目标采用场景原有的远距离目标，与当前状态相距 72–112 px；各速度共享目标。它不同于单动作块实验中的近距离目标，也不是从原始 H5 按 25 步偏移抽出的目标。
+
+构造器逐步重放查询前的 10 个真实动作，验证三帧历史及当前状态。它不在查询处重置模拟器。所有场景都保留，不按模型分数筛选；状态可见的控制器仅用于验证可达性，不参与模型评分。当前 900 个条件的状态与图像均精确重放，全部可在 50 步内达到原环境的 16 px 成功半径，所需步数为 7–29。
+
+```bash
+python scripts/build_speed_cem_panel.py \
+  --source-panel /path/to/speed-action-selection-v1 \
+  --stable-repo /path/to/stable-worldmodel \
+  --stable-ref 6ab823fdc6921c95089992ed49c39e431e21ca4a \
+  --output /path/to/speed-cem-v1
+```
+
+`scripts/eval_speed_cem_panel.py` 接收已有检查点、查询 ID、真实速度索引与初始历史索引。正确与错误历史仅在首次规划时不同；后续规划使用各自实际执行产生的连续历史。入口从固定上游版本读取原 CEM 配置：300 个候选、30 轮、30 个精英，规划与执行均为 5 个动作块，每块 5 步，总预算 50 步。动作归一化与环境裁剪沿用原实现，权重在评测前后保持不变。
+
+`scripts/summarize_speed_cem_panel.py` 对同一场景的两种错误初始历史等权平均，再跨场景汇总。完整数据集与小规模模型试验的覆盖范围分别报告；试验不能代替全部 300 场景的正式成绩。
