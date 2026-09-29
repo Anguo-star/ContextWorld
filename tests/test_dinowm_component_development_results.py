@@ -228,7 +228,7 @@ def test_public_document_uses_overview_and_task_detail_tables() -> None:
     assert len(scaling) == 39
     scaling_text = "\n".join(scaling)
     assert "10k 独立来源" in scaling_text and "32k 覆盖扩展" in scaling_text
-    assert "二阶段冻结" not in scaling_text and "历史转换初始化" not in scaling_text
+    assert renderer.REGIME_ZH["frozen"] not in scaling_text and "历史转换初始化" not in scaling_text
 
     # Historical projected rows live only in the provenance appendix.
     historical = _body_rows(_table_lines(appendix, "HISTORICAL"))
