@@ -1,13 +1,15 @@
 # ContextWorld 数据生成方法
 
-本文说明 `ContextWorld-v1` 中九项能力任务的 Training、Development 和 Test 数据如何产生，以及
-这些数据如何进入公开分发包。目标是让读者能够判断样本是否真正来自连续物理过程、隐藏
+本文说明九项能力任务的 Training、Development 和 Test 数据如何产生，以及
+这些数据如何进入分发包。目标是让读者能够判断样本是否真正来自连续物理过程、隐藏
 规律是否可能由无关线索泄漏，并找到每项任务对应的实现入口。任务定义、评分与参考结果见
 [Benchmark 规范](ContextWorld_ICL_Benchmark.md)，目录和加载方式见
 [ContextWorld-v1 数据集指南](HF_Dataset_Export.md)。
 
-Test 使用已经冻结且与 Training/Development 隔离的模拟器轨迹，现在随数据包公开用于离线
-最终报告。本文解释共同生成原则；冻结配置和 manifest 给出每项 Test 的精确数据身份。
+当前结果使用扩量后的 Training 与固定的 Development / Test；扩量没有重新生成评测数据。
+各任务现用规模见[技术报告 §2](ContextWorld_ICL_Benchmark.md#2-数据与划分)，打包状态见
+[发布说明](Expanded_Training_Release.md)。Test 与 Training / Development 隔离，用于离线最终报告；
+稳定公共下载版本尚未公布。配置与 manifest 记录各数据版本的精确身份。
 
 ## 从隐藏规律到公开数据包
 
@@ -61,9 +63,10 @@ query 画面、query 动作和允许比较的可观测状态一致，只让历�
 生成 seed、场景或动作 profile；各任务还检查 query 图像、pair 内容和任务相关模板的交集
 为零。具体隔离键因环境而异，但不会只依赖目录名来声明拆分独立。
 
-速度任务是公开 Development 的例外。Speed Development 比较完整 H3 历史与
-current-frame-only 消融，是 history-utility 诊断；它不是多数任务采用的 matched formal
-scoring 构造，不产生正式通过判定。速度的正式能力判定来自封存协议中的严格历史比较。
+当前 Speed Development 使用结构配对：不同速度共享当前状态和查询动作，评分要求正确速度的
+历史预测优于该组其余全部历史。四种速度分布分别评测，每个参考速度有 300 个查询。
+早期的 288 个 history-utility case 不是当前主表的数据来源；完整历史与单帧输入的差值
+仅作为补充诊断，不代替严格历史比较。Development 成绩与 Test 成绩始终分别报告。
 
 ## 模型可见字段与审计字段
 
@@ -75,14 +78,15 @@ query 匹配，却不能成为模型识别标签的捷径。
 
 ## 九项组件的生成入口
 
-下表中的路径是当前仓库真实存在的构造器或冻结配置。它们记录每项组件的来源，不表示存在
+下表记录各任务的基础训练构造器和当前 Development 来源，不表示存在
 一个适用于所有环境的一键重建命令；不同模拟器需要各自的上游环境数据与依赖。公共用户
-通常直接下载 `ContextWorld-v1`，只有复核数据来源时才需要这些入口。
+可用数据包的加载方式见数据集指南；复核或重新生成数据时使用这些入口。
+表内六项配对任务列出基础 Training 数量，当前扩量规模另见技术报告 §2，不能将两者混用。
 
 | 任务 | 环境与隐藏变量 | H | Training / Development 构造 | 构造器与配置 | `ContextWorld-v1` 输出 | 主要泄漏控制 |
 |---|---|---:|---|---|---|---|
-| 速度 | TwoRoom；移动速度 | 3 | Training 覆盖 32 档速度；Development 为 288 个 history-utility case | `scripts/collect_tworoom_synthesis_shard.py`；`configs/synthesis/tworoom_speed_full_v1.yaml` | `components/tworoom-speed/v1/{training,development}/data` | 训练与开发速度、seed group 和 reset 几何分离；Development 不冒充 matched 正式分数 |
-| 门通行规则 | TwoRoom；门可通过或被阻挡 | 3 | passable / blocked 连续轨迹配对；Training 96 个门位置，Development 16 个位置、288 对 | `scripts/build_tworoom_hidden_passage_h3_training_data.py`；`configs/benchmark/tworoom_hidden_passage_h3_training_data_v1.yaml` | `components/tworoom-door/v1/{training,development}/data` | 门位置与 episode 跨 split 分离；两个方向分别审计 |
+| 速度 | TwoRoom；移动速度 | 3 | Training 覆盖 32 档速度；Development 为四种分布，每个参考速度 300 个查询 | `scripts/collect_tworoom_synthesis_shard.py`；`configs/synthesis/tworoom_speed_full_v1.yaml`；`configs/benchmark/tworoom_speed_dev_structural_parity_v1.yaml` | `components/tworoom-speed/v1/{training,development}/data` | 同一查询下匹配当前状态与动作；划分间几何与查询隔离，已见速度组允许参数值重合 |
+| 门通行规则 | TwoRoom；门可通过或被阻挡 | 3 | 连续轨迹配对；Training 96 个门位置，Development 16 个位置、300 个查询场景 | `scripts/build_tworoom_hidden_passage_h3_training_data.py`；`configs/benchmark/tworoom_hidden_passage_h3_dev_structural_parity_v1.yaml` | `components/tworoom-door/v1/{training,development}/data` | 门位置与 episode 跨 split 分离；两个方向分别审计 |
 | 动作延迟 | TwoRoom；动作生效延迟 0–10 | 7 | `coarse` 提供差异明显的配对条件；`full` 覆盖 0–10 并作为登记的 Development payload | `scripts/build_tworoom_action_delay_h7_paired_training_data.py`；`scripts/build_tworoom_action_delay_h7_training_data.py`；`configs/benchmark/tworoom_action_delay_h7_core_training_data_v3.yaml` | `components/tworoom-action-delay/v1/{training,development}/{coarse,full}` | H=7 保留延迟响应历史；profile、query 与 split 独立 |
 | 推手移动幅度 | PushT；动作增益 60 / 140 | 3 | 从原始 replay 状态和动作构造低/高增益 matched pair；2,048 / 256 对 | `scripts/build_pusht_replay_matched_hidden_actuation_h3.py`；`configs/benchmark/pusht_action_strength_icl_release_v1.yaml` | `components/pusht-action-strength/v1/{training,development}/data.lance` | pair 的 query 状态、画面和动作一致；源 episode 分区独立 |
 | 接触摩擦 | PushT；摩擦系数 0.05 / 0.80 | 3 | 接触响应 matched pair；8,192 / 256 对 | `scripts/build_pusht_contact_friction_h3_data.py`；`configs/benchmark/pusht_contact_friction_icl_release_v1.yaml` | `components/pusht-contact-friction/v1/{training,development}/data.lance` | query 完整状态容差、真实未来差异与 RGB 可辨识性审计 |
