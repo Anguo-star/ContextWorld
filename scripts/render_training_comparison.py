@@ -37,6 +37,7 @@ DECISION_PATH = REPO / "docs" / "research" / "data" / "icl_action_selection_v1.j
 CURVES_PATH = REPO / "docs" / "research" / "data" / "icl_training_dynamics_v1.json"
 SPEED_DECISION_PATH = REPO / "docs" / "research" / "data" / "speed_action_selection_v1.json"
 SPEED_CEM_PATH = REPO / "docs" / "research" / "data" / "speed_cem_initial_evidence_v1.json"
+SPEED_PROBE_PATH = REPO / "docs" / "research" / "data" / "speed_planning_horizon_probe_v1.json"
 
 TASK_ORDER = ["speed", "action_strength", "robot_arm_mass", "action_delay",
               "contact_friction", "motion_damping", "cube_gripper_carry", "door", "portal_exit"]
@@ -67,7 +68,7 @@ LEWM_STRENGTH_JOINT_IDS = ["action_strength/lewm/joint/scale_2k",
                            "action_strength/lewm/joint"]
 
 DETAIL_MARKERS = {task: "DETAIL_" + task.upper() for task in TASK_ORDER}
-MAIN_MARKERS = ["OVERVIEW", "DECISION", "SPEED_DECISION", "SPEED_CEM", "CURVES"] + [DETAIL_MARKERS[t] for t in TASK_ORDER] + ["SCALING"]
+MAIN_MARKERS = ["OVERVIEW", "DECISION", "SPEED_DECISION", "SPEED_CEM", "SPEED_PROBE", "CURVES"] + [DETAIL_MARKERS[t] for t in TASK_ORDER] + ["SCALING"]
 APPENDIX_MARKERS = ["HISTORICAL"]
 MARKERS = MAIN_MARKERS + APPENDIX_MARKERS
 
@@ -529,6 +530,30 @@ def render_speed_cem():
     return "\n".join(_markdown_table(header, body))
 
 
+def render_speed_probe():
+    """Separate prediction accuracy, response recovery and physical choice."""
+    evidence = json.loads(SPEED_PROBE_PATH.read_text(encoding="utf-8"))
+    indexed = {(r["scheme"], r["arm"], r["raw_steps"]): r for r in evidence["rows"]}
+    names = {"structured": "固定方向", "issued": "原始命令",
+             "clipped": "裁剪输入", "small": "缩小动作"}
+    expected = {(s, a, t) for s in ("T0", "T1") for a in names for t in (5, 10, 15, 20, 25)}
+    if len(indexed) != len(evidence["rows"]) or set(indexed) != expected:
+        raise Fail("Speed rollout probe must contain two schemes × four arms × five depths")
+    header = ["方案", "动作条件", "预测误差比↓（5 → 25 步）", "响应分↑（5 → 25 步）",
+              "动作 regret↓（25 步，px）", "真实未来编码 regret↓（25 步，px）",
+              "候选最优距离↓（25 步，px）"]
+    body = []
+    for scheme in ("T0", "T1"):
+        for arm, label in names.items():
+            first, last = (indexed[scheme, arm, t] for t in (5, 25))
+            body.append("| " + " | ".join([
+                scheme, label,
+                f"{first['prediction_error_ratio']:.3f} → {last['prediction_error_ratio']:.3f}",
+                f"{first['response_score']:.2f} → {last['response_score']:.2f}",
+                f3(last['regret']), f3(last['encoded_regret']), f3(last['oracle_distance'])]) + " |")
+    return "\n".join(_markdown_table(header, body))
+
+
 def render_curves():
     """Keep diagnostic re-evaluations separate from archived benchmark scores."""
     evidence = json.loads(CURVES_PATH.read_text(encoding="utf-8"))
@@ -555,6 +580,7 @@ def build_blocks(rows):
               "DECISION": render_decision(),
               "SPEED_DECISION": render_speed_decision(),
               "SPEED_CEM": render_speed_cem(),
+              "SPEED_PROBE": render_speed_probe(),
               "CURVES": render_curves(),
               "SCALING": render_scaling(rows),
               "HISTORICAL": render_historical(rows)}
