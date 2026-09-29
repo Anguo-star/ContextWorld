@@ -38,6 +38,7 @@ CURVES_PATH = REPO / "docs" / "research" / "data" / "icl_training_dynamics_v1.js
 SPEED_DECISION_PATH = REPO / "docs" / "research" / "data" / "speed_action_selection_v1.json"
 SPEED_CEM_PATH = REPO / "docs" / "research" / "data" / "speed_cem_initial_evidence_v1.json"
 SPEED_PROBE_PATH = REPO / "docs" / "research" / "data" / "speed_planning_horizon_probe_v1.json"
+SPEED_TIMED_PATH = REPO / "docs" / "research" / "data" / "speed_timed_arrival_v1.json"
 
 TASK_ORDER = ["speed", "action_strength", "robot_arm_mass", "action_delay",
               "contact_friction", "motion_damping", "cube_gripper_carry", "door", "portal_exit"]
@@ -68,7 +69,7 @@ LEWM_STRENGTH_JOINT_IDS = ["action_strength/lewm/joint/scale_2k",
                            "action_strength/lewm/joint"]
 
 DETAIL_MARKERS = {task: "DETAIL_" + task.upper() for task in TASK_ORDER}
-MAIN_MARKERS = ["OVERVIEW", "DECISION", "SPEED_DECISION", "SPEED_CEM", "SPEED_PROBE", "CURVES"] + [DETAIL_MARKERS[t] for t in TASK_ORDER] + ["SCALING"]
+MAIN_MARKERS = ["OVERVIEW", "DECISION", "SPEED_DECISION", "SPEED_CEM", "SPEED_PROBE", "SPEED_TIMED", "CURVES"] + [DETAIL_MARKERS[t] for t in TASK_ORDER] + ["SCALING"]
 APPENDIX_MARKERS = ["HISTORICAL"]
 MARKERS = MAIN_MARKERS + APPENDIX_MARKERS
 
@@ -554,6 +555,25 @@ def render_speed_probe():
     return "\n".join(_markdown_table(header, body))
 
 
+def render_speed_timed():
+    evidence = json.loads(SPEED_TIMED_PATH.read_text(encoding="utf-8"))
+    indexed = {r["scheme"]: r for r in evidence["rows"]}
+    if len(indexed) != len(evidence["rows"]) or set(indexed) != {"T0", "T1"}:
+        raise Fail("Timed-arrival diagnostic requires both frozen LeWM checkpoints")
+    header = ["方案", "终点误差↓（正确 / 错配，px）", "正确历史收益↑（px，95%区间）",
+              "成功率↑（正确 / 错配，%）", "碰撞率↓（正确 / 错配，%）"]
+    body = []
+    for scheme in ("T0", "T1"):
+        r = indexed[scheme]
+        lo, hi = r["history_distance_benefit_ci95"]
+        body.append("| " + " | ".join([
+            scheme, f"{r['correct_distance']:.2f} / {r['wrong_distance']:.2f}",
+            f"{r['history_distance_benefit']:.2f} [{lo:.2f}, {hi:.2f}]",
+            f"{r['correct_success_percent']:.2f} / {r['wrong_success_percent']:.2f}",
+            f"{r['correct_contact_percent']:.2f} / {r['wrong_contact_percent']:.2f}"]) + " |")
+    return "\n".join(_markdown_table(header, body))
+
+
 def render_curves():
     """Keep diagnostic re-evaluations separate from archived benchmark scores."""
     evidence = json.loads(CURVES_PATH.read_text(encoding="utf-8"))
@@ -581,6 +601,7 @@ def build_blocks(rows):
               "SPEED_DECISION": render_speed_decision(),
               "SPEED_CEM": render_speed_cem(),
               "SPEED_PROBE": render_speed_probe(),
+              "SPEED_TIMED": render_speed_timed(),
               "CURVES": render_curves(),
               "SCALING": render_scaling(rows),
               "HISTORICAL": render_historical(rows)}

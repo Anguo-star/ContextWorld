@@ -1,0 +1,386 @@
+{
+  "schema": "contextworld.speed_timed_arrival.results.v1",
+  "protocol": {
+    "schema": "contextworld.speed_timed_arrival.v1",
+    "evaluation_split": "development",
+    "selection": "index0 in each of seeds42-47, six preselected scenes retained",
+    "speeds": [
+      3.4,
+      4.8,
+      6.9
+    ],
+    "goal_distance_px": 32,
+    "goal_rule": "toward original shared scene goal",
+    "deadline_raw_steps": 25,
+    "terminal_tolerance_px": 2,
+    "success": "terminal distance<=2 and no contact",
+    "contact_rule": "native next position differs from collision-free transition by >1e-4",
+    "normalization": {
+      "mean": [
+        0.0031402341986976924,
+        -0.051594576296864605
+      ],
+      "std": [
+        0.867571689163936,
+        0.8688840167517821
+      ]
+    },
+    "stable_ref": "6ab823fdc6921c95089992ed49c39e431e21ca4a",
+    "source_manifest_sha256": "29ac2a03c66883d0acd1175eb78119da7c4b1e0c253268f28229211d1ba871f5",
+    "cem": {
+      "num_samples": 300,
+      "n_steps": 30,
+      "topk": 30,
+      "var_scale": 1.0,
+      "horizon": 5,
+      "action_block": 5,
+      "history_len": 3
+    },
+    "action_handling": "full native action sequence; future model inputs clip raw commands then normalize",
+    "objective": "native latent goal MSE; contact checked only in execution scoring",
+    "evidence": "one25stepplan; no feedback before deadline; all history controls share query and goal",
+    "oracle_scope": "all collision-free common open-loop action sequences, including randomized mixtures",
+    "oracle_actions_provided_to_planner": false,
+    "first_entry_termination_ignored": true,
+    "no_training": true,
+    "test_payload_accessed": false
+  },
+  "validation": {
+    "scenes": 6,
+    "speed_conditions": 18,
+    "oracle_success_percent": 100.0,
+    "oracle_terminal_error_max": 0.00014734808064531535,
+    "controls_contact_free": true,
+    "history_pixels_exact": true,
+    "history_replay_max_error": 0.0,
+    "optimal_shared_mean_error": 7.777777468716658,
+    "history_blind_success_ceiling_percent": 33.333333333333336
+  },
+  "panel_sha256": "799193f928a5658a1b634ca315cbdce9437f5fc118fe47a83d7f33447ab52ff1",
+  "scenes": 6,
+  "correct_trials_per_model": 18,
+  "wrong_trials_per_model": 36,
+  "unique_cem_plans_per_model": 18,
+  "models": {
+    "T0": {
+      "adapter_id": "stable_worldmodel_lewm_v1",
+      "adapter_class": "contextworld.benchmarks.adapters.StableWorldModelLeWMAdapter",
+      "checkpoint": "/opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-tworooms/ckpt/tworoom_lewm_baseline_seed3073/tworoom_lewm_baseline_seed3073_weights.ckpt",
+      "checkpoint_sha256": "53103e123ce03c2fcd8889cbf39a92d1bbd998f2b067342203e38962b2c5c519",
+      "stable_worldmodel_repo": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/lewm-contextworld-v1/.contextworld/stable-worldmodel/6ab823fdc6921c95089992ed49c39e431e21ca4a",
+      "stable_worldmodel_commit": "6ab823fdc6921c95089992ed49c39e431e21ca4a",
+      "device": "cpu",
+      "protocol": {
+        "history_tokens": 3,
+        "action_block_raw_steps": 5,
+        "action_dim": 2,
+        "future_action_blocks": 5,
+        "native_target_encoder": true,
+        "decoder_required": false
+      },
+      "model_class": "stable_worldmodel.wm.lewm.lewm.LeWM",
+      "parameters": 18034478
+    },
+    "T1": {
+      "adapter_id": "stable_worldmodel_lewm_v1",
+      "adapter_class": "contextworld.benchmarks.adapters.StableWorldModelLeWMAdapter",
+      "checkpoint": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/lewm-contextworld-v1/checkpoints/speed_lewm_joint_scratch_v1_s3072/weights_epoch_10.pt",
+      "checkpoint_sha256": "bf8aab90eb010c87650a2733a8075a0975d4c7b4c107d5c2c41f899589d763c2",
+      "stable_worldmodel_repo": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/lewm-contextworld-v1/.contextworld/stable-worldmodel/6ab823fdc6921c95089992ed49c39e431e21ca4a",
+      "stable_worldmodel_commit": "6ab823fdc6921c95089992ed49c39e431e21ca4a",
+      "device": "cpu",
+      "protocol": {
+        "history_tokens": 3,
+        "action_block_raw_steps": 5,
+        "action_dim": 2,
+        "future_action_blocks": 5,
+        "native_target_encoder": true,
+        "decoder_required": false
+      },
+      "model_class": "stable_worldmodel.wm.lewm.lewm.LeWM",
+      "parameters": 18034478
+    }
+  },
+  "rows": [
+    {
+      "scheme": "T0",
+      "correct_distance": 8.791211773951849,
+      "correct_success_percent": 5.5555555555555545,
+      "correct_endpoint_percent": 16.666666666666664,
+      "correct_contact_percent": 33.333333333333336,
+      "wrong_distance": 9.581531736585829,
+      "wrong_success_percent": 5.5555555555555545,
+      "wrong_endpoint_percent": 8.333333333333332,
+      "wrong_contact_percent": 27.777777777777775,
+      "history_distance_benefit": 0.7903199626339806,
+      "history_success_gain_pp": 0.0,
+      "history_distance_benefit_ci95": [
+        0.04131614168484976,
+        1.6665248771508532
+      ],
+      "history_success_gain_pp_ci95": [
+        -8.333333333333332,
+        8.333333333333332
+      ]
+    },
+    {
+      "scheme": "T1",
+      "correct_distance": 8.01932423396243,
+      "correct_success_percent": 0.0,
+      "correct_endpoint_percent": 5.5555555555555545,
+      "correct_contact_percent": 38.88888888888888,
+      "wrong_distance": 19.96363713343938,
+      "wrong_success_percent": 5.5555555555555545,
+      "wrong_endpoint_percent": 5.5555555555555545,
+      "wrong_contact_percent": 33.333333333333336,
+      "history_distance_benefit": 11.94431289947695,
+      "history_success_gain_pp": -5.5555555555555545,
+      "history_distance_benefit_ci95": [
+        10.263195359044603,
+        14.162005220022465
+      ],
+      "history_success_gain_pp_ci95": [
+        -11.111111111111109,
+        0.0
+      ]
+    }
+  ],
+  "per_scene": [
+    {
+      "query_id": "twms-9e2fb2898d2a9700",
+      "scheme": "T0",
+      "correct_distance": 7.536075830459595,
+      "correct_success_percent": 0.0,
+      "correct_endpoint_percent": 0.0,
+      "correct_contact_percent": 0.0,
+      "wrong_distance": 8.586638371149698,
+      "wrong_success_percent": 0.0,
+      "wrong_endpoint_percent": 0.0,
+      "wrong_contact_percent": 0.0,
+      "history_distance_benefit": 1.0505625406901036,
+      "history_success_gain_pp": 0.0
+    },
+    {
+      "query_id": "twms-0c7324de43c9ee31",
+      "scheme": "T0",
+      "correct_distance": 9.95572805404663,
+      "correct_success_percent": 0.0,
+      "correct_endpoint_percent": 0.0,
+      "correct_contact_percent": 0.0,
+      "wrong_distance": 9.745931645234426,
+      "wrong_success_percent": 16.666666666666664,
+      "wrong_endpoint_percent": 16.666666666666664,
+      "wrong_contact_percent": 0.0,
+      "history_distance_benefit": -0.2097964088122044,
+      "history_success_gain_pp": -16.666666666666664
+    },
+    {
+      "query_id": "twms-5550b596bead226c",
+      "scheme": "T0",
+      "correct_distance": 7.696306049823761,
+      "correct_success_percent": 0.0,
+      "correct_endpoint_percent": 33.33333333333333,
+      "correct_contact_percent": 100.0,
+      "wrong_distance": 10.469985604286194,
+      "wrong_success_percent": 0.0,
+      "wrong_endpoint_percent": 16.666666666666664,
+      "wrong_contact_percent": 100.0,
+      "history_distance_benefit": 2.773679554462433,
+      "history_success_gain_pp": 0.0
+    },
+    {
+      "query_id": "twms-705a33bd9bd05143",
+      "scheme": "T0",
+      "correct_distance": 7.954776843388875,
+      "correct_success_percent": 33.33333333333333,
+      "correct_endpoint_percent": 33.33333333333333,
+      "correct_contact_percent": 0.0,
+      "wrong_distance": 8.829091250896454,
+      "wrong_success_percent": 16.666666666666664,
+      "wrong_endpoint_percent": 16.666666666666664,
+      "wrong_contact_percent": 0.0,
+      "history_distance_benefit": 0.8743144075075788,
+      "history_success_gain_pp": 16.666666666666664
+    },
+    {
+      "query_id": "twms-514c5d8f697b0cca",
+      "scheme": "T0",
+      "correct_distance": 9.49141494433085,
+      "correct_success_percent": 0.0,
+      "correct_endpoint_percent": 33.33333333333333,
+      "correct_contact_percent": 100.0,
+      "wrong_distance": 10.16758910814921,
+      "wrong_success_percent": 0.0,
+      "wrong_endpoint_percent": 0.0,
+      "wrong_contact_percent": 66.66666666666666,
+      "history_distance_benefit": 0.6761741638183594,
+      "history_success_gain_pp": 0.0
+    },
+    {
+      "query_id": "twms-1c17ab18a0db8a3d",
+      "scheme": "T0",
+      "correct_distance": 10.112968921661377,
+      "correct_success_percent": 0.0,
+      "correct_endpoint_percent": 0.0,
+      "correct_contact_percent": 0.0,
+      "wrong_distance": 9.68995443979899,
+      "wrong_success_percent": 0.0,
+      "wrong_endpoint_percent": 0.0,
+      "wrong_contact_percent": 0.0,
+      "history_distance_benefit": -0.42301448186238666,
+      "history_success_gain_pp": 0.0
+    },
+    {
+      "query_id": "twms-9e2fb2898d2a9700",
+      "scheme": "T1",
+      "correct_distance": 4.508154551188151,
+      "correct_success_percent": 0.0,
+      "correct_endpoint_percent": 0.0,
+      "correct_contact_percent": 33.33333333333333,
+      "wrong_distance": 16.983818372090656,
+      "wrong_success_percent": 0.0,
+      "wrong_endpoint_percent": 0.0,
+      "wrong_contact_percent": 33.33333333333333,
+      "history_distance_benefit": 12.475663820902504,
+      "history_success_gain_pp": 0.0
+    },
+    {
+      "query_id": "twms-0c7324de43c9ee31",
+      "scheme": "T1",
+      "correct_distance": 15.06922467549642,
+      "correct_success_percent": 0.0,
+      "correct_endpoint_percent": 0.0,
+      "correct_contact_percent": 33.33333333333333,
+      "wrong_distance": 24.805561065673828,
+      "wrong_success_percent": 0.0,
+      "wrong_endpoint_percent": 0.0,
+      "wrong_contact_percent": 33.33333333333333,
+      "history_distance_benefit": 9.736336390177408,
+      "history_success_gain_pp": 0.0
+    },
+    {
+      "query_id": "twms-5550b596bead226c",
+      "scheme": "T1",
+      "correct_distance": 3.3311391522487006,
+      "correct_success_percent": 0.0,
+      "correct_endpoint_percent": 33.33333333333333,
+      "correct_contact_percent": 66.66666666666666,
+      "wrong_distance": 19.911842505137127,
+      "wrong_success_percent": 0.0,
+      "wrong_endpoint_percent": 0.0,
+      "wrong_contact_percent": 100.0,
+      "history_distance_benefit": 16.580703352888428,
+      "history_success_gain_pp": 0.0
+    },
+    {
+      "query_id": "twms-705a33bd9bd05143",
+      "scheme": "T1",
+      "correct_distance": 6.317378520965576,
+      "correct_success_percent": 0.0,
+      "correct_endpoint_percent": 0.0,
+      "correct_contact_percent": 33.33333333333333,
+      "wrong_distance": 19.335299571355183,
+      "wrong_success_percent": 0.0,
+      "wrong_endpoint_percent": 0.0,
+      "wrong_contact_percent": 33.33333333333333,
+      "history_distance_benefit": 13.017921050389607,
+      "history_success_gain_pp": 0.0
+    },
+    {
+      "query_id": "twms-514c5d8f697b0cca",
+      "scheme": "T1",
+      "correct_distance": 10.87184206644694,
+      "correct_success_percent": 0.0,
+      "correct_endpoint_percent": 0.0,
+      "correct_contact_percent": 33.33333333333333,
+      "wrong_distance": 20.64742483695348,
+      "wrong_success_percent": 16.666666666666664,
+      "wrong_endpoint_percent": 16.666666666666664,
+      "wrong_contact_percent": 0.0,
+      "history_distance_benefit": 9.77558277050654,
+      "history_success_gain_pp": -16.666666666666664
+    },
+    {
+      "query_id": "twms-1c17ab18a0db8a3d",
+      "scheme": "T1",
+      "correct_distance": 8.018206437428793,
+      "correct_success_percent": 0.0,
+      "correct_endpoint_percent": 0.0,
+      "correct_contact_percent": 33.33333333333333,
+      "wrong_distance": 18.097876449426014,
+      "wrong_success_percent": 16.666666666666664,
+      "wrong_endpoint_percent": 16.666666666666664,
+      "wrong_contact_percent": 0.0,
+      "history_distance_benefit": 10.079670011997221,
+      "history_success_gain_pp": -16.666666666666664
+    }
+  ],
+  "model_comparison": {
+    "correct_distance": {
+      "t1_minus_t0": -0.7718875399894181,
+      "ci95": [
+        -3.086389526724814,
+        1.9330388704935715
+      ]
+    },
+    "correct_success_percent": {
+      "t1_minus_t0": -5.5555555555555545,
+      "ci95": [
+        -16.666666666666664,
+        0.0
+      ]
+    }
+  },
+  "inputs": [
+    {
+      "path": "T0/twms-9e2fb2898d2a9700.json",
+      "sha256": "07014b13ee2c20f6db9f09514a877117a32a3139d342544fd17407d74034225f"
+    },
+    {
+      "path": "T0/twms-0c7324de43c9ee31.json",
+      "sha256": "3e767437b72843757d528c576b70bb7f41d0049534a59922cdec20565346b836"
+    },
+    {
+      "path": "T0/twms-5550b596bead226c.json",
+      "sha256": "9d77f2c48aa834e343e042f1e029fe8194a4b9b8717e21adce2686e882bb5f67"
+    },
+    {
+      "path": "T0/twms-705a33bd9bd05143.json",
+      "sha256": "0880dd33622d091095373ee557682919b8c68c402911d3fe55f21244aa00f959"
+    },
+    {
+      "path": "T0/twms-514c5d8f697b0cca.json",
+      "sha256": "c106cd42e19f1e58af4f5fe8b5cd9278c54f7481cd4abfed6d63c0440d5381cb"
+    },
+    {
+      "path": "T0/twms-1c17ab18a0db8a3d.json",
+      "sha256": "08b0fb270cb8a34e6a55c78eda9347d7f985b8909f97dff39258b2ab76a7df0d"
+    },
+    {
+      "path": "T1/twms-9e2fb2898d2a9700.json",
+      "sha256": "78c7eae6a8d36fafe21f0bb2cc9d713003094f5695332b73adee123260f234c7"
+    },
+    {
+      "path": "T1/twms-0c7324de43c9ee31.json",
+      "sha256": "b8647763a67f7ab14befc37204fca6af9feec9c7c1460a372825c4da95c4d98c"
+    },
+    {
+      "path": "T1/twms-5550b596bead226c.json",
+      "sha256": "b11f74cf5e5fd152e66a39b673cc85f7ab6bbebad9936f8226e5e9aa8a435476"
+    },
+    {
+      "path": "T1/twms-705a33bd9bd05143.json",
+      "sha256": "cb32f6ba845b210c44e25b3a11a44b1166ba527161199f2b8b7344d1ab27ad98"
+    },
+    {
+      "path": "T1/twms-514c5d8f697b0cca.json",
+      "sha256": "95dea5433d7be80c92579ee954d0be90af510b0ce7b6bb05ae6d31862212cf95"
+    },
+    {
+      "path": "T1/twms-1c17ab18a0db8a3d.json",
+      "sha256": "1e6c2104f0879fdcc2a6b324e12e8b3e7cf51b6f3a949c99b45b83f6c0844b68"
+    }
+  ],
+  "statistics": "average speed/history conditions within scene, then average scenes; 10000 paired bootstrap resamples over 6 scenes",
+  "interpretation": "single 25-step plan with terminal 2px tolerance and no contact; distinct from original 50-step first-entry CEM"
+}

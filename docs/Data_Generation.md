@@ -152,6 +152,28 @@ python scripts/build_speed_action_selection.py \
 
 模型评分入口为 `scripts/eval_speed_action_selection.py`，汇总入口为 `scripts/summarize_speed_action_selection.py`；各入口的 `--help` 列出检查点、数据位置与并行参数。评分保存所有候选成本，检查权重未变，并将缓存历史编码的计算与原生 Adapter 对照。汇总对同一场景的速度条件等权平均，以场景为 bootstrap 单位；不同速度分布不合并。完整协议与结果见[速度动作选择结果](research/data/speed_action_selection_v1.json)，解释见[技术报告 §5.5](ContextWorld_ICL_Benchmark.md#55-条件预测与动作选择)。
 
+<a id="speed-timed-arrival"></a>
+
+## 速度任务的定时精确到达数据
+
+这项诊断检验历史中的速度信息能否帮助 CEM 完成精确到达。它使用六个固定 Development 场景（评测种子 42–47 各取索引 0）、三档原有速度 3.4、4.8、6.9，以及原有连续真实历史。不同速度共享当前状态、目标图像和任务要求。目标沿原场景目标方向设在当前状态外 32 px；全部场景保留，不按模型得分筛选。
+
+模型一次规划并执行 25 个物理步。成功要求第 25 步的目标距离不超过 2 px，且执行期间不碰墙或边界。进入目标附近后仍执行到截止时刻，不采用原闭环评测的“首次进入 16 px 区域即结束”。接触通过真实下一位置与自由运动 `位置 + 速度 × 裁剪后动作` 的差异检测，数值容差为 `1e-4`。
+
+**先验证任务，再评测模型。** 构造器从原初始状态逐步重放历史，核对每张历史图像与查询状态；随后验证每种速度均有无碰撞精确到达的控制。对不使用历史、所有速度共用的任意无反馈动作序列，无碰撞时终点必为 `查询位置 + 速度 × 累计动作`。由此可计算最佳共用控制的平均误差及成功率上限。目标容差区间在三档速度下互不重叠，因此同一计划最多让一档速度成功。不碰撞要求排除了借助边界饱和把不同速度的轨迹压到同一状态的捷径。该保证依赖固定截止时间、无反馈和不碰撞要求，不适用于原闭环任务。
+
+```bash
+python scripts/build_speed_timed_arrival.py \
+  --source-panel /path/to/speed-cem-v1 \
+  --stable-repo /path/to/stable-worldmodel \
+  --stable-ref 6ab823fdc6921c95089992ed49c39e431e21ca4a \
+  --output /path/to/speed-timed-arrival-v1
+```
+
+模型入口为 `scripts/eval_speed_timed_arrival.py`，使用已有检查点和查询 ID。CEM 保留原搜索预算与完整动作序列：300 个候选、30 轮、30 个精英、5 个动作块、每块 5 步。预测器接收与环境一致的裁剪后未来动作，再使用原归一化；优化目标仍为原生 latent 目标距离，碰撞在真实执行后计入评分。模拟器状态、速度值和验证控制均不进入预测器，也不用于初始化 CEM。
+
+同一检查点、场景和随机种子分别根据三种真实历史生成计划，再将每条计划在三档真实速度下执行。这得到每模型 18 次匹配历史、36 次错配历史的结果；只需 18 次 CEM 搜索，因为同一历史下的计划不读取真实速度。汇总入口 `scripts/summarize_speed_timed_arrival.py` 先在场景内平均条件，再平均六个场景，以场景作配对 bootstrap 单位。结果、检查点和数据身份见[定时到达结果](research/data/speed_timed_arrival_v1.json)。
+
 <a id="speed-cem"></a>
 
 ## 速度任务的闭环规划数据
