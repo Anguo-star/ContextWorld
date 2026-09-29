@@ -35,6 +35,7 @@ JSON_PATH = REPO / "docs" / "research" / "data" / "icl_training_study_v2.json"
 CSV_PATH = REPO / "docs" / "research" / "data" / "icl_training_study_v2.csv"
 DECISION_PATH = REPO / "docs" / "research" / "data" / "icl_action_selection_v1.json"
 CURVES_PATH = REPO / "docs" / "research" / "data" / "icl_training_dynamics_v1.json"
+SPEED_DECISION_PATH = REPO / "docs" / "research" / "data" / "speed_action_selection_v1.json"
 
 TASK_ORDER = ["speed", "action_strength", "robot_arm_mass", "action_delay",
               "contact_friction", "motion_damping", "cube_gripper_carry", "door", "portal_exit"]
@@ -65,7 +66,7 @@ LEWM_STRENGTH_JOINT_IDS = ["action_strength/lewm/joint/scale_2k",
                            "action_strength/lewm/joint"]
 
 DETAIL_MARKERS = {task: "DETAIL_" + task.upper() for task in TASK_ORDER}
-MAIN_MARKERS = ["OVERVIEW", "DECISION", "CURVES"] + [DETAIL_MARKERS[t] for t in TASK_ORDER] + ["SCALING"]
+MAIN_MARKERS = ["OVERVIEW", "DECISION", "SPEED_DECISION", "CURVES"] + [DETAIL_MARKERS[t] for t in TASK_ORDER] + ["SCALING"]
 APPENDIX_MARKERS = ["HISTORICAL"]
 MARKERS = MAIN_MARKERS + APPENDIX_MARKERS
 
@@ -351,7 +352,7 @@ def plain_stat(key, st):
 
 
 def _markdown_table(header, body):
-    align = ["---" if h in ("模型", "方案", "任务", "训练数据", "评测条件") else "---:" for h in header]
+    align = ["---" if h in ("模型", "方案", "任务", "训练数据", "评测条件", "速度分布") else "---:" for h in header]
     return ["| " + " | ".join(header) + " |", "| " + " | ".join(align) + " |"] + body
 
 
@@ -480,6 +481,33 @@ def render_decision():
     return "\n".join(_markdown_table(header, body))
 
 
+def render_speed_decision():
+    """Keep speed distributions separate in the physical decision diagnostic."""
+    evidence = json.loads(SPEED_DECISION_PATH.read_text(encoding="utf-8"))
+    names = {"seen_for_multi": "训练中已见速度",
+             "unseen_interpolation": "未见速度插值",
+             "extrapolation_low": "低端外推",
+             "extrapolation_high": "高端外推"}
+    indexed = {(r["track"], r["scheme"]): r for r in evidence["rows"]}
+    expected = {(t, s) for t in names for s in ("T0", "T1")}
+    if len(indexed) != len(evidence["rows"]) or set(indexed) != expected:
+        raise Fail("Speed decision table must contain four tracks × two schemes")
+    header = ["速度分布", "方案", "动作 regret↓", "正确历史收益↑（95%区间）",
+              "真实未来编码 regret↓"]
+    body = []
+    for track, label in names.items():
+        for scheme in ("T0", "T1"):
+            row = indexed[track, scheme]
+            metrics = row["metrics"]
+            benefit = metrics["history_benefit"]
+            lo, hi = benefit["ci95"]
+            body.append("| " + " | ".join([
+                label, scheme, f3(metrics["correct_regret"]["mean"]),
+                f"{benefit['mean']:.4f} [{lo:.4f}, {hi:.4f}]",
+                f3(metrics["encoded_true_regret"]["mean"])]) + " |")
+    return "\n".join(_markdown_table(header, body))
+
+
 def render_curves():
     """Keep diagnostic re-evaluations separate from archived benchmark scores."""
     evidence = json.loads(CURVES_PATH.read_text(encoding="utf-8"))
@@ -504,6 +532,7 @@ def render_curves():
 def build_blocks(rows):
     blocks = {"OVERVIEW": render_overview(rows),
               "DECISION": render_decision(),
+              "SPEED_DECISION": render_speed_decision(),
               "CURVES": render_curves(),
               "SCALING": render_scaling(rows),
               "HISTORICAL": render_historical(rows)}

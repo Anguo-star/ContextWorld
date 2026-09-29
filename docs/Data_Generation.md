@@ -127,3 +127,23 @@ Training、Development 和 Test 工件映射到公共目录。`scripts/export_co
 因此，数据生成与数据分发是两件事：前者决定物理轨迹和因果对照，后者只发布已冻结的
 Training/Development/Test 字节。重新运行 exporter 不能替代生成审计，也不会生成新的
 测试数据。
+
+<a id="speed-action-selection"></a>
+
+## 速度任务的候选动作评测数据
+
+这套 Development 诊断复用速度任务的全部场景和连续真实历史，为每个查询新增固定候选及其仿真后果。四种速度分布各包含 300 个场景，分别报告；它不改变原任务的训练数据或评分。
+
+每个场景内，不同速度共享当前状态、目标与 31 个候选。候选将原查询的 5 步动作乘以 0–1.5、间隔 0.05 的幅度；目标固定为该分布中最慢速度执行原动作后的终点。候选后果由相同 TwoRoom 模拟器逐步执行，实际代价是终点到目标的欧氏距离。模型只接收图像和动作；状态与速度仅用于生成、校验和物理评分。
+
+构造器保留全部场景，不按模型得分筛选。它检查原始 15 步轨迹的状态和图像能否完整重放、不同速度的当前状态及已执行动作是否相同、零动作是否保持当前画面、原动作候选是否复现原目标。生成完成后记录逐文件哈希、候选最优代价，以及所有速度必须共用一个候选时的 regret 下界。
+
+```bash
+python scripts/build_speed_action_selection.py \
+  --benchmark-root /path/to/ContextWorld-v1 \
+  --stable-repo /path/to/stable-worldmodel \
+  --stable-ref 6ab823fdc6921c95089992ed49c39e431e21ca4a \
+  --output /path/to/speed-action-selection-v1
+```
+
+模型评分入口为 `scripts/eval_speed_action_selection.py`，汇总入口为 `scripts/summarize_speed_action_selection.py`；各入口的 `--help` 列出检查点、数据位置与并行参数。评分保存所有候选成本，检查权重未变，并将缓存历史编码的计算与原生 Adapter 对照。汇总对同一场景的速度条件等权平均，以场景为 bootstrap 单位；不同速度分布不合并。完整协议与结果见[速度动作选择结果](research/data/speed_action_selection_v1.json)，解释见[技术报告 §5.5](ContextWorld_ICL_Benchmark.md#55-条件预测与动作选择)。
