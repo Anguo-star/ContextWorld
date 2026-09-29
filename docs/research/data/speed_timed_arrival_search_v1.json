@@ -1,0 +1,2606 @@
+{
+  "schema": "contextworld.speed_timed_arrival.search_diagnosis.v1",
+  "protocol": {
+    "name": "speed_timed_arrival_search_diagnosis_v1",
+    "evaluation_split": "development",
+    "source": "speed_timed_arrival_v1",
+    "scope": "All six existing scenes, both LeWM checkpoints, three correct-history speed conditions each; no new search or training.",
+    "candidates": [
+      "exact saved CEM final mean, clipped to execution range",
+      "previously verified speed-aware constant control"
+    ],
+    "scoring": "Rescore exact commands with the same native final-step GoalMSE (sum). Also encode simulator terminal frames to separate prediction from representation-based cost.",
+    "controls": "Privileged speed is used only to construct a diagnostic reference; no new score is attributed to the original CEM.",
+    "comparison": "Per condition: physical terminal distance, contacts, predicted cost ordering, encoded-true-future cost ordering. A lower reference predicted cost exhibits a search gap relative to this candidate; the opposite ordering with worse CEM physical distance exhibits pairwise model-cost misranking. Neither proves a global exclusive root cause.",
+    "tolerance": {
+      "atol": 1e-05,
+      "rtol": 1e-05
+    },
+    "preserved": "Existing task, checkpoints, plans, scores, goals, 25-step horizon and 2px/no-contact success criterion unchanged."
+  },
+  "panel_sha256": "799193f928a5658a1b634ca315cbdce9437f5fc118fe47a83d7f33447ab52ff1",
+  "checkpoint_sha256": {
+    "T0": "53103e123ce03c2fcd8889cbf39a92d1bbd998f2b067342203e38962b2c5c519",
+    "T1": "bf8aab90eb010c87650a2733a8075a0975d4c7b4c107d5c2c41f899589d763c2"
+  },
+  "rows": [
+    {
+      "scheme": "T0",
+      "conditions": 18,
+      "search_gap_count": 5,
+      "model_cost_misranking_count": 13,
+      "tied_cost_count": 0,
+      "encoded_true_reference_preference_count": 18,
+      "collision_free_cem_count": 12,
+      "collision_free_misranking_count": 9,
+      "cem_distance": 8.791211773951849,
+      "reference_distance_max": 0.00014734808064531535,
+      "cem_success_count": 1,
+      "reference_success_count": 18,
+      "two_candidate_distance": 8.107022232337235,
+      "two_candidate_success_count": 5,
+      "native_cost_check_max_difference": 1.52587890625e-05
+    },
+    {
+      "scheme": "T1",
+      "conditions": 18,
+      "search_gap_count": 2,
+      "model_cost_misranking_count": 16,
+      "tied_cost_count": 0,
+      "encoded_true_reference_preference_count": 18,
+      "collision_free_cem_count": 11,
+      "collision_free_misranking_count": 9,
+      "cem_distance": 8.019324233962429,
+      "reference_distance_max": 0.00014734808064531535,
+      "cem_success_count": 0,
+      "reference_success_count": 18,
+      "two_candidate_distance": 7.0388690211394636,
+      "two_candidate_success_count": 2,
+      "native_cost_check_max_difference": 7.62939453125e-06
+    }
+  ],
+  "per_condition": [
+    {
+      "scheme": "T0",
+      "query_id": "twms-9e2fb2898d2a9700",
+      "speed_index": 0,
+      "speed": 3.4,
+      "predicted_preference": "cem",
+      "encoded_true_preference": "reference",
+      "physical_reference_better": true,
+      "public_native_cost_max_difference": 1.52587890625e-05,
+      "candidates": {
+        "cem": {
+          "predicted_goal_cost_by_step": [
+            196.606201171875,
+            184.06320190429688,
+            221.37083435058594,
+            76.5782470703125,
+            4.023348331451416
+          ],
+          "native_terminal_goal_cost": 4.023348331451416,
+          "encoded_true_goal_cost_by_step": [
+            270.64044189453125,
+            250.08721923828125,
+            283.92144775390625,
+            182.54656982421875,
+            79.81477355957031
+          ],
+          "prediction_squared_error_by_step": [
+            12.604145050048828,
+            12.06287956237793,
+            12.30654525756836,
+            35.43170928955078,
+            77.82624816894531
+          ],
+          "terminal_distance": 11.271198272705078,
+          "success": false,
+          "contact_steps": []
+        },
+        "reference": {
+          "predicted_goal_cost_by_step": [
+            270.0946350097656,
+            117.82759094238281,
+            15.154989242553711,
+            37.33509826660156,
+            244.73806762695312
+          ],
+          "native_terminal_goal_cost": 244.73805236816406,
+          "encoded_true_goal_cost_by_step": [
+            315.82916259765625,
+            209.90390014648438,
+            111.17914581298828,
+            31.026729583740234,
+            0.02398379147052765
+          ],
+          "prediction_squared_error_by_step": [
+            5.724890232086182,
+            21.552743911743164,
+            54.53293991088867,
+            118.42507934570312,
+            243.07740783691406
+          ],
+          "terminal_distance": 0.00014734808064531535,
+          "success": true,
+          "contact_steps": []
+        }
+      }
+    },
+    {
+      "scheme": "T0",
+      "query_id": "twms-9e2fb2898d2a9700",
+      "speed_index": 1,
+      "speed": 4.8,
+      "predicted_preference": "cem",
+      "encoded_true_preference": "reference",
+      "physical_reference_better": true,
+      "public_native_cost_max_difference": 0.0,
+      "candidates": {
+        "cem": {
+          "predicted_goal_cost_by_step": [
+            80.15357971191406,
+            38.44114685058594,
+            97.34129333496094,
+            32.232383728027344,
+            2.567941188812256
+          ],
+          "native_terminal_goal_cost": 2.567941188812256,
+          "encoded_true_goal_cost_by_step": [
+            92.9580078125,
+            45.51328659057617,
+            97.00969696044922,
+            38.09355163574219,
+            2.9250593185424805
+          ],
+          "prediction_squared_error_by_step": [
+            2.3294837474823,
+            2.28251576423645,
+            2.3724727630615234,
+            3.327752113342285,
+            5.072637557983398
+          ],
+          "terminal_distance": 2.6097419261932373,
+          "success": false,
+          "contact_steps": []
+        },
+        "reference": {
+          "predicted_goal_cost_by_step": [
+            311.91094970703125,
+            197.24868774414062,
+            94.03285217285156,
+            23.714900970458984,
+            9.345645904541016
+          ],
+          "native_terminal_goal_cost": 9.345645904541016,
+          "encoded_true_goal_cost_by_step": [
+            315.82916259765625,
+            209.90390014648438,
+            111.17914581298828,
+            31.026729583740234,
+            0.02398379147052765
+          ],
+          "prediction_squared_error_by_step": [
+            1.1965742111206055,
+            2.0390520095825195,
+            4.059713840484619,
+            5.574909210205078,
+            9.37958812713623
+          ],
+          "terminal_distance": 0.00014734808064531535,
+          "success": true,
+          "contact_steps": []
+        }
+      }
+    },
+    {
+      "scheme": "T0",
+      "query_id": "twms-9e2fb2898d2a9700",
+      "speed_index": 2,
+      "speed": 6.9,
+      "predicted_preference": "cem",
+      "encoded_true_preference": "reference",
+      "physical_reference_better": true,
+      "public_native_cost_max_difference": 3.814697265625e-06,
+      "candidates": {
+        "cem": {
+          "predicted_goal_cost_by_step": [
+            224.958740234375,
+            179.4014892578125,
+            225.1566162109375,
+            173.99472045898438,
+            3.6276471614837646
+          ],
+          "native_terminal_goal_cost": 3.6276471614837646,
+          "encoded_true_goal_cost_by_step": [
+            148.60472106933594,
+            108.50396728515625,
+            216.61187744140625,
+            160.3793182373047,
+            89.82254791259766
+          ],
+          "prediction_squared_error_by_step": [
+            21.022960662841797,
+            15.805889129638672,
+            10.542855262756348,
+            8.343744277954102,
+            81.55442810058594
+          ],
+          "terminal_distance": 8.727287292480469,
+          "success": false,
+          "contact_steps": []
+        },
+        "reference": {
+          "predicted_goal_cost_by_step": [
+            339.1856689453125,
+            253.9510498046875,
+            172.14381408691406,
+            100.85533142089844,
+            46.234134674072266
+          ],
+          "native_terminal_goal_cost": 46.23413848876953,
+          "encoded_true_goal_cost_by_step": [
+            315.82916259765625,
+            209.90390014648438,
+            111.17914581298828,
+            31.026729583740234,
+            0.02398379147052765
+          ],
+          "prediction_squared_error_by_step": [
+            1.8032097816467285,
+            5.12561559677124,
+            12.615234375,
+            26.28142738342285,
+            46.94190216064453
+          ],
+          "terminal_distance": 0.00014734808064531535,
+          "success": true,
+          "contact_steps": []
+        }
+      }
+    },
+    {
+      "scheme": "T0",
+      "query_id": "twms-0c7324de43c9ee31",
+      "speed_index": 0,
+      "speed": 3.4,
+      "predicted_preference": "cem",
+      "encoded_true_preference": "reference",
+      "physical_reference_better": true,
+      "public_native_cost_max_difference": 2.384185791015625e-07,
+      "candidates": {
+        "cem": {
+          "predicted_goal_cost_by_step": [
+            403.4292297363281,
+            403.9493408203125,
+            322.3871154785156,
+            129.19793701171875,
+            2.459334373474121
+          ],
+          "native_terminal_goal_cost": 2.459334135055542,
+          "encoded_true_goal_cost_by_step": [
+            450.7608947753906,
+            433.3912658691406,
+            371.2364807128906,
+            196.72674560546875,
+            80.95574951171875
+          ],
+          "prediction_squared_error_by_step": [
+            5.841628074645996,
+            15.858867645263672,
+            21.252887725830078,
+            44.685028076171875,
+            90.40670776367188
+          ],
+          "terminal_distance": 8.230388641357422,
+          "success": false,
+          "contact_steps": []
+        },
+        "reference": {
+          "predicted_goal_cost_by_step": [
+            403.8348388671875,
+            187.09011840820312,
+            28.671039581298828,
+            11.849494934082031,
+            117.01168060302734
+          ],
+          "native_terminal_goal_cost": 117.01168060302734,
+          "encoded_true_goal_cost_by_step": [
+            449.46868896484375,
+            286.10430908203125,
+            139.54737854003906,
+            35.3135986328125,
+            0.0474364198744297
+          ],
+          "prediction_squared_error_by_step": [
+            4.538210391998291,
+            16.210872650146484,
+            48.004966735839844,
+            83.05633544921875,
+            118.57898712158203
+          ],
+          "terminal_distance": 0.00014475757780019194,
+          "success": true,
+          "contact_steps": []
+        }
+      }
+    },
+    {
+      "scheme": "T0",
+      "query_id": "twms-0c7324de43c9ee31",
+      "speed_index": 1,
+      "speed": 4.8,
+      "predicted_preference": "reference",
+      "encoded_true_preference": "reference",
+      "physical_reference_better": true,
+      "public_native_cost_max_difference": 0.0,
+      "candidates": {
+        "cem": {
+          "predicted_goal_cost_by_step": [
+            301.37469482421875,
+            266.23046875,
+            234.24667358398438,
+            6.157754898071289,
+            17.768577575683594
+          ],
+          "native_terminal_goal_cost": 17.768577575683594,
+          "encoded_true_goal_cost_by_step": [
+            303.70660400390625,
+            252.85513305664062,
+            222.0846405029297,
+            4.015278339385986,
+            17.048141479492188
+          ],
+          "prediction_squared_error_by_step": [
+            2.1517560482025146,
+            2.756601333618164,
+            2.403423309326172,
+            2.6501102447509766,
+            1.4575142860412598
+          ],
+          "terminal_distance": 6.441737651824951,
+          "success": false,
+          "contact_steps": []
+        },
+        "reference": {
+          "predicted_goal_cost_by_step": [
+            465.8740539550781,
+            316.44854736328125,
+            161.0072021484375,
+            45.47157287597656,
+            1.160771369934082
+          ],
+          "native_terminal_goal_cost": 1.160771369934082,
+          "encoded_true_goal_cost_by_step": [
+            449.46868896484375,
+            286.10430908203125,
+            139.54737854003906,
+            35.3135986328125,
+            0.0474364198744297
+          ],
+          "prediction_squared_error_by_step": [
+            1.4052627086639404,
+            2.753133773803711,
+            2.359957456588745,
+            1.8992940187454224,
+            1.282222032546997
+          ],
+          "terminal_distance": 0.00014475757780019194,
+          "success": true,
+          "contact_steps": []
+        }
+      }
+    },
+    {
+      "scheme": "T0",
+      "query_id": "twms-0c7324de43c9ee31",
+      "speed_index": 2,
+      "speed": 6.9,
+      "predicted_preference": "cem",
+      "encoded_true_preference": "reference",
+      "physical_reference_better": true,
+      "public_native_cost_max_difference": 2.384185791015625e-07,
+      "candidates": {
+        "cem": {
+          "predicted_goal_cost_by_step": [
+            477.71319580078125,
+            519.75537109375,
+            238.8377685546875,
+            85.82256317138672,
+            2.4359288215637207
+          ],
+          "native_terminal_goal_cost": 2.4359290599823,
+          "encoded_true_goal_cost_by_step": [
+            424.4878234863281,
+            488.52117919921875,
+            214.11251831054688,
+            85.10616302490234,
+            114.58338928222656
+          ],
+          "prediction_squared_error_by_step": [
+            8.459647178649902,
+            25.363853454589844,
+            51.268104553222656,
+            64.49308776855469,
+            96.16482543945312
+          ],
+          "terminal_distance": 15.19505786895752,
+          "success": false,
+          "contact_steps": []
+        },
+        "reference": {
+          "predicted_goal_cost_by_step": [
+            502.50006103515625,
+            405.13702392578125,
+            297.0968322753906,
+            188.32313537597656,
+            93.7159423828125
+          ],
+          "native_terminal_goal_cost": 93.7159423828125,
+          "encoded_true_goal_cost_by_step": [
+            449.46868896484375,
+            286.10430908203125,
+            139.54737854003906,
+            35.3135986328125,
+            0.0474364198744297
+          ],
+          "prediction_squared_error_by_step": [
+            3.585236072540283,
+            17.358821868896484,
+            38.59644317626953,
+            67.99629211425781,
+            93.06361389160156
+          ],
+          "terminal_distance": 0.00014475757780019194,
+          "success": true,
+          "contact_steps": []
+        }
+      }
+    },
+    {
+      "scheme": "T0",
+      "query_id": "twms-5550b596bead226c",
+      "speed_index": 0,
+      "speed": 3.4,
+      "predicted_preference": "cem",
+      "encoded_true_preference": "reference",
+      "physical_reference_better": true,
+      "public_native_cost_max_difference": 1.9073486328125e-06,
+      "candidates": {
+        "cem": {
+          "predicted_goal_cost_by_step": [
+            493.66253662109375,
+            511.7330322265625,
+            477.0758361816406,
+            498.89129638671875,
+            27.797447204589844
+          ],
+          "native_terminal_goal_cost": 27.79744529724121,
+          "encoded_true_goal_cost_by_step": [
+            458.8352966308594,
+            528.0960693359375,
+            475.49774169921875,
+            459.24554443359375,
+            120.60121154785156
+          ],
+          "prediction_squared_error_by_step": [
+            43.96345138549805,
+            30.895511627197266,
+            64.14466094970703,
+            76.70443725585938,
+            184.29830932617188
+          ],
+          "terminal_distance": 7.91835880279541,
+          "success": false,
+          "contact_steps": [
+            10,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            19,
+            20
+          ]
+        },
+        "reference": {
+          "predicted_goal_cost_by_step": [
+            298.9580383300781,
+            111.5059585571289,
+            9.85819149017334,
+            23.6656494140625,
+            137.01405334472656
+          ],
+          "native_terminal_goal_cost": 137.01405334472656,
+          "encoded_true_goal_cost_by_step": [
+            365.33203125,
+            238.6687469482422,
+            113.70672607421875,
+            27.286823272705078,
+            0.007987003773450851
+          ],
+          "prediction_squared_error_by_step": [
+            8.399649620056152,
+            37.49433898925781,
+            67.95186614990234,
+            91.07577514648438,
+            136.4575958251953
+          ],
+          "terminal_distance": 3.0517578125e-05,
+          "success": true,
+          "contact_steps": []
+        }
+      }
+    },
+    {
+      "scheme": "T0",
+      "query_id": "twms-5550b596bead226c",
+      "speed_index": 1,
+      "speed": 4.8,
+      "predicted_preference": "reference",
+      "encoded_true_preference": "reference",
+      "physical_reference_better": true,
+      "public_native_cost_max_difference": 0.0,
+      "candidates": {
+        "cem": {
+          "predicted_goal_cost_by_step": [
+            423.732666015625,
+            523.1981811523438,
+            472.60028076171875,
+            491.26739501953125,
+            5.402525901794434
+          ],
+          "native_terminal_goal_cost": 5.402525901794434,
+          "encoded_true_goal_cost_by_step": [
+            422.8741455078125,
+            514.0889892578125,
+            455.44219970703125,
+            457.5205383300781,
+            0.5150473117828369
+          ],
+          "prediction_squared_error_by_step": [
+            2.3215208053588867,
+            2.008650302886963,
+            2.8926522731781006,
+            3.855825424194336,
+            4.122236251831055
+          ],
+          "terminal_distance": 0.5106634497642517,
+          "success": false,
+          "contact_steps": [
+            9,
+            10,
+            11,
+            12,
+            14,
+            16,
+            17,
+            18,
+            19,
+            20
+          ]
+        },
+        "reference": {
+          "predicted_goal_cost_by_step": [
+            351.09735107421875,
+            216.75173950195312,
+            92.8262939453125,
+            19.944778442382812,
+            3.997541666030884
+          ],
+          "native_terminal_goal_cost": 3.997541666030884,
+          "encoded_true_goal_cost_by_step": [
+            365.33203125,
+            238.6687469482422,
+            113.70672607421875,
+            27.286823272705078,
+            0.007987003773450851
+          ],
+          "prediction_squared_error_by_step": [
+            1.0054821968078613,
+            1.8073930740356445,
+            2.9824533462524414,
+            2.872725486755371,
+            3.988525152206421
+          ],
+          "terminal_distance": 3.0517578125e-05,
+          "success": true,
+          "contact_steps": []
+        }
+      }
+    },
+    {
+      "scheme": "T0",
+      "query_id": "twms-5550b596bead226c",
+      "speed_index": 2,
+      "speed": 6.9,
+      "predicted_preference": "cem",
+      "encoded_true_preference": "reference",
+      "physical_reference_better": true,
+      "public_native_cost_max_difference": 0.0,
+      "candidates": {
+        "cem": {
+          "predicted_goal_cost_by_step": [
+            300.0750427246094,
+            495.08428955078125,
+            487.75213623046875,
+            482.16845703125,
+            2.5812902450561523
+          ],
+          "native_terminal_goal_cost": 2.5812902450561523,
+          "encoded_true_goal_cost_by_step": [
+            284.100341796875,
+            522.9287109375,
+            453.159912109375,
+            540.2208862304688,
+            252.0277557373047
+          ],
+          "prediction_squared_error_by_step": [
+            22.298839569091797,
+            9.542928695678711,
+            46.89854431152344,
+            69.73965454101562,
+            227.46453857421875
+          ],
+          "terminal_distance": 14.659895896911621,
+          "success": false,
+          "contact_steps": [
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            17,
+            18,
+            19
+          ]
+        },
+        "reference": {
+          "predicted_goal_cost_by_step": [
+            386.54461669921875,
+            303.4022216796875,
+            207.00967407226562,
+            118.79959106445312,
+            53.75524139404297
+          ],
+          "native_terminal_goal_cost": 53.75524139404297,
+          "encoded_true_goal_cost_by_step": [
+            365.33203125,
+            238.6687469482422,
+            113.70672607421875,
+            27.286823272705078,
+            0.007987003773450851
+          ],
+          "prediction_squared_error_by_step": [
+            5.179403305053711,
+            13.288540840148926,
+            26.528018951416016,
+            42.106449127197266,
+            53.629600524902344
+          ],
+          "terminal_distance": 3.0517578125e-05,
+          "success": true,
+          "contact_steps": []
+        }
+      }
+    },
+    {
+      "scheme": "T0",
+      "query_id": "twms-705a33bd9bd05143",
+      "speed_index": 0,
+      "speed": 3.4,
+      "predicted_preference": "cem",
+      "encoded_true_preference": "reference",
+      "physical_reference_better": true,
+      "public_native_cost_max_difference": 1.52587890625e-05,
+      "candidates": {
+        "cem": {
+          "predicted_goal_cost_by_step": [
+            315.5624084472656,
+            154.93600463867188,
+            131.38912963867188,
+            143.8306427001953,
+            14.249135971069336
+          ],
+          "native_terminal_goal_cost": 14.249135971069336,
+          "encoded_true_goal_cost_by_step": [
+            355.0286865234375,
+            207.85939025878906,
+            168.97451782226562,
+            90.86392211914062,
+            53.02544403076172
+          ],
+          "prediction_squared_error_by_step": [
+            7.544121265411377,
+            58.428993225097656,
+            68.49705505371094,
+            139.81845092773438,
+            94.87484741210938
+          ],
+          "terminal_distance": 9.420114517211914,
+          "success": false,
+          "contact_steps": []
+        },
+        "reference": {
+          "predicted_goal_cost_by_step": [
+            290.55987548828125,
+            129.7605438232422,
+            16.819061279296875,
+            23.118717193603516,
+            165.4281005859375
+          ],
+          "native_terminal_goal_cost": 165.42811584472656,
+          "encoded_true_goal_cost_by_step": [
+            323.1048889160156,
+            217.33062744140625,
+            114.40846252441406,
+            32.57406997680664,
+            0.02202763967216015
+          ],
+          "prediction_squared_error_by_step": [
+            4.60443115234375,
+            18.686511993408203,
+            52.34123992919922,
+            101.09140014648438,
+            165.3298797607422
+          ],
+          "terminal_distance": 0.00014734808064531535,
+          "success": true,
+          "contact_steps": []
+        }
+      }
+    },
+    {
+      "scheme": "T0",
+      "query_id": "twms-705a33bd9bd05143",
+      "speed_index": 1,
+      "speed": 4.8,
+      "predicted_preference": "reference",
+      "encoded_true_preference": "reference",
+      "physical_reference_better": true,
+      "public_native_cost_max_difference": 0.0,
+      "candidates": {
+        "cem": {
+          "predicted_goal_cost_by_step": [
+            419.0704650878906,
+            234.6414794921875,
+            156.45474243164062,
+            41.90632247924805,
+            6.487002849578857
+          ],
+          "native_terminal_goal_cost": 6.487002849578857,
+          "encoded_true_goal_cost_by_step": [
+            414.92437744140625,
+            235.9828643798828,
+            159.22406005859375,
+            43.92198944091797,
+            6.279364585876465
+          ],
+          "prediction_squared_error_by_step": [
+            1.2477343082427979,
+            1.4953818321228027,
+            1.5314667224884033,
+            2.4216561317443848,
+            3.230351209640503
+          ],
+          "terminal_distance": 1.9880173206329346,
+          "success": true,
+          "contact_steps": []
+        },
+        "reference": {
+          "predicted_goal_cost_by_step": [
+            334.8092041015625,
+            218.1785888671875,
+            105.6181640625,
+            26.530757904052734,
+            4.263308048248291
+          ],
+          "native_terminal_goal_cost": 4.263308048248291,
+          "encoded_true_goal_cost_by_step": [
+            323.1048889160156,
+            217.33062744140625,
+            114.40846252441406,
+            32.57406997680664,
+            0.02202763967216015
+          ],
+          "prediction_squared_error_by_step": [
+            1.4108343124389648,
+            1.3353185653686523,
+            2.270845413208008,
+            3.5051074028015137,
+            4.555584907531738
+          ],
+          "terminal_distance": 0.00014734808064531535,
+          "success": true,
+          "contact_steps": []
+        }
+      }
+    },
+    {
+      "scheme": "T0",
+      "query_id": "twms-705a33bd9bd05143",
+      "speed_index": 2,
+      "speed": 6.9,
+      "predicted_preference": "cem",
+      "encoded_true_preference": "reference",
+      "physical_reference_better": true,
+      "public_native_cost_max_difference": 3.814697265625e-06,
+      "candidates": {
+        "cem": {
+          "predicted_goal_cost_by_step": [
+            441.5390625,
+            230.55770874023438,
+            262.0759582519531,
+            128.90960693359375,
+            2.034531831741333
+          ],
+          "native_terminal_goal_cost": 2.034532070159912,
+          "encoded_true_goal_cost_by_step": [
+            443.06683349609375,
+            215.36019897460938,
+            200.82415771484375,
+            47.339847564697266,
+            114.66015625
+          ],
+          "prediction_squared_error_by_step": [
+            3.6040282249450684,
+            52.99225997924805,
+            7.542666435241699,
+            30.663576126098633,
+            117.42947387695312
+          ],
+          "terminal_distance": 12.456198692321777,
+          "success": false,
+          "contact_steps": []
+        },
+        "reference": {
+          "predicted_goal_cost_by_step": [
+            363.03564453125,
+            281.5837707519531,
+            196.38815307617188,
+            117.5031509399414,
+            54.287315368652344
+          ],
+          "native_terminal_goal_cost": 54.28731155395508,
+          "encoded_true_goal_cost_by_step": [
+            323.1048889160156,
+            217.33062744140625,
+            114.40846252441406,
+            32.57406997680664,
+            0.02202763967216015
+          ],
+          "prediction_squared_error_by_step": [
+            2.5465586185455322,
+            6.110145568847656,
+            14.370080947875977,
+            29.91825294494629,
+            55.08380126953125
+          ],
+          "terminal_distance": 0.00014734808064531535,
+          "success": true,
+          "contact_steps": []
+        }
+      }
+    },
+    {
+      "scheme": "T0",
+      "query_id": "twms-514c5d8f697b0cca",
+      "speed_index": 0,
+      "speed": 3.4,
+      "predicted_preference": "cem",
+      "encoded_true_preference": "reference",
+      "physical_reference_better": true,
+      "public_native_cost_max_difference": 1.52587890625e-05,
+      "candidates": {
+        "cem": {
+          "predicted_goal_cost_by_step": [
+            535.720458984375,
+            524.6700439453125,
+            537.4775390625,
+            413.6886291503906,
+            1.456007480621338
+          ],
+          "native_terminal_goal_cost": 1.456007480621338,
+          "encoded_true_goal_cost_by_step": [
+            535.000732421875,
+            556.288330078125,
+            549.188720703125,
+            503.8257141113281,
+            273.3948974609375
+          ],
+          "prediction_squared_error_by_step": [
+            2.424243927001953,
+            6.468754291534424,
+            4.559492588043213,
+            77.05729675292969,
+            271.2246398925781
+          ],
+          "terminal_distance": 15.968170166015625,
+          "success": false,
+          "contact_steps": [
+            11,
+            14,
+            15
+          ]
+        },
+        "reference": {
+          "predicted_goal_cost_by_step": [
+            393.80303955078125,
+            188.43014526367188,
+            17.25395965576172,
+            39.142677307128906,
+            235.79086303710938
+          ],
+          "native_terminal_goal_cost": 235.7908477783203,
+          "encoded_true_goal_cost_by_step": [
+            435.7066650390625,
+            327.0497131347656,
+            183.92254638671875,
+            51.56700134277344,
+            0.015200255438685417
+          ],
+          "prediction_squared_error_by_step": [
+            15.333751678466797,
+            49.20380401611328,
+            110.57929229736328,
+            165.80197143554688,
+            235.2630615234375
+          ],
+          "terminal_distance": 0.00014252885011956096,
+          "success": true,
+          "contact_steps": []
+        }
+      }
+    },
+    {
+      "scheme": "T0",
+      "query_id": "twms-514c5d8f697b0cca",
+      "speed_index": 1,
+      "speed": 4.8,
+      "predicted_preference": "reference",
+      "encoded_true_preference": "reference",
+      "physical_reference_better": true,
+      "public_native_cost_max_difference": 0.0,
+      "candidates": {
+        "cem": {
+          "predicted_goal_cost_by_step": [
+            468.7580871582031,
+            497.0799560546875,
+            417.1314697265625,
+            179.45147705078125,
+            14.285804748535156
+          ],
+          "native_terminal_goal_cost": 14.285804748535156,
+          "encoded_true_goal_cost_by_step": [
+            487.29766845703125,
+            521.4708251953125,
+            448.8443603515625,
+            220.43447875976562,
+            1.6384721994400024
+          ],
+          "prediction_squared_error_by_step": [
+            4.246530532836914,
+            9.155485153198242,
+            6.024288654327393,
+            8.831144332885742,
+            9.752664566040039
+          ],
+          "terminal_distance": 0.97117018699646,
+          "success": false,
+          "contact_steps": [
+            10
+          ]
+        },
+        "reference": {
+          "predicted_goal_cost_by_step": [
+            431.863037109375,
+            313.91766357421875,
+            153.02041625976562,
+            30.539505004882812,
+            4.420470714569092
+          ],
+          "native_terminal_goal_cost": 4.420470714569092,
+          "encoded_true_goal_cost_by_step": [
+            435.7066650390625,
+            327.0497131347656,
+            183.92254638671875,
+            51.56700134277344,
+            0.015200255438685417
+          ],
+          "prediction_squared_error_by_step": [
+            2.2173056602478027,
+            3.7608277797698975,
+            5.001840591430664,
+            5.236784934997559,
+            4.502451419830322
+          ],
+          "terminal_distance": 0.00014252885011956096,
+          "success": true,
+          "contact_steps": []
+        }
+      }
+    },
+    {
+      "scheme": "T0",
+      "query_id": "twms-514c5d8f697b0cca",
+      "speed_index": 2,
+      "speed": 6.9,
+      "predicted_preference": "cem",
+      "encoded_true_preference": "reference",
+      "physical_reference_better": true,
+      "public_native_cost_max_difference": 7.62939453125e-06,
+      "candidates": {
+        "cem": {
+          "predicted_goal_cost_by_step": [
+            513.9827880859375,
+            483.6011962890625,
+            353.48394775390625,
+            118.93192291259766,
+            2.963667392730713
+          ],
+          "native_terminal_goal_cost": 2.963667392730713,
+          "encoded_true_goal_cost_by_step": [
+            504.7679443359375,
+            497.2049560546875,
+            286.6997375488281,
+            26.185775756835938,
+            168.7769012451172
+          ],
+          "prediction_squared_error_by_step": [
+            5.3080668449401855,
+            2.828158378601074,
+            6.632561683654785,
+            53.30492401123047,
+            156.48236083984375
+          ],
+          "terminal_distance": 11.534904479980469,
+          "success": false,
+          "contact_steps": [
+            2,
+            3,
+            4
+          ]
+        },
+        "reference": {
+          "predicted_goal_cost_by_step": [
+            453.9927978515625,
+            387.064453125,
+            289.34661865234375,
+            174.42181396484375,
+            74.10968780517578
+          ],
+          "native_terminal_goal_cost": 74.10968017578125,
+          "encoded_true_goal_cost_by_step": [
+            435.7066650390625,
+            327.0497131347656,
+            183.92254638671875,
+            51.56700134277344,
+            0.015200255438685417
+          ],
+          "prediction_squared_error_by_step": [
+            3.480318546295166,
+            8.099953651428223,
+            18.193218231201172,
+            42.29936218261719,
+            73.38055419921875
+          ],
+          "terminal_distance": 0.00014252885011956096,
+          "success": true,
+          "contact_steps": []
+        }
+      }
+    },
+    {
+      "scheme": "T0",
+      "query_id": "twms-1c17ab18a0db8a3d",
+      "speed_index": 0,
+      "speed": 3.4,
+      "predicted_preference": "cem",
+      "encoded_true_preference": "reference",
+      "physical_reference_better": true,
+      "public_native_cost_max_difference": 3.814697265625e-06,
+      "candidates": {
+        "cem": {
+          "predicted_goal_cost_by_step": [
+            281.5509948730469,
+            370.9476623535156,
+            281.68072509765625,
+            91.60487365722656,
+            2.8555757999420166
+          ],
+          "native_terminal_goal_cost": 2.8555757999420166,
+          "encoded_true_goal_cost_by_step": [
+            274.66070556640625,
+            318.60052490234375,
+            250.88136291503906,
+            116.41356658935547,
+            17.745601654052734
+          ],
+          "prediction_squared_error_by_step": [
+            8.206151962280273,
+            19.019947052001953,
+            14.850350379943848,
+            12.804838180541992,
+            29.17847442626953
+          ],
+          "terminal_distance": 7.018211841583252,
+          "success": false,
+          "contact_steps": []
+        },
+        "reference": {
+          "predicted_goal_cost_by_step": [
+            178.43516540527344,
+            71.67325592041016,
+            10.030617713928223,
+            7.852568626403809,
+            61.44984436035156
+          ],
+          "native_terminal_goal_cost": 61.4498405456543,
+          "encoded_true_goal_cost_by_step": [
+            217.63351440429688,
+            128.5829620361328,
+            59.91761016845703,
+            14.444524765014648,
+            0.05832333490252495
+          ],
+          "prediction_squared_error_by_step": [
+            5.975133895874023,
+            13.819234848022461,
+            26.44184684753418,
+            41.53676223754883,
+            63.64797592163086
+          ],
+          "terminal_distance": 3.0517578125e-05,
+          "success": true,
+          "contact_steps": []
+        }
+      }
+    },
+    {
+      "scheme": "T0",
+      "query_id": "twms-1c17ab18a0db8a3d",
+      "speed_index": 1,
+      "speed": 4.8,
+      "predicted_preference": "reference",
+      "encoded_true_preference": "reference",
+      "physical_reference_better": true,
+      "public_native_cost_max_difference": 5.960464477539063e-08,
+      "candidates": {
+        "cem": {
+          "predicted_goal_cost_by_step": [
+            311.0589904785156,
+            311.37542724609375,
+            256.26409912109375,
+            102.98725128173828,
+            2.4836947917938232
+          ],
+          "native_terminal_goal_cost": 2.4836947917938232,
+          "encoded_true_goal_cost_by_step": [
+            311.788330078125,
+            302.52691650390625,
+            230.223388671875,
+            89.57426452636719,
+            3.1044957637786865
+          ],
+          "prediction_squared_error_by_step": [
+            1.2937705516815186,
+            1.0924708843231201,
+            1.7566301822662354,
+            1.9653935432434082,
+            2.270883083343506
+          ],
+          "terminal_distance": 2.4043188095092773,
+          "success": false,
+          "contact_steps": []
+        },
+        "reference": {
+          "predicted_goal_cost_by_step": [
+            217.71188354492188,
+            132.31356811523438,
+            62.4839973449707,
+            16.853656768798828,
+            0.9727499485015869
+          ],
+          "native_terminal_goal_cost": 0.9727498888969421,
+          "encoded_true_goal_cost_by_step": [
+            217.63351440429688,
+            128.5829620361328,
+            59.91761016845703,
+            14.444524765014648,
+            0.05832333490252495
+          ],
+          "prediction_squared_error_by_step": [
+            1.3180460929870605,
+            0.8341054916381836,
+            0.9257054924964905,
+            1.0858891010284424,
+            0.954568088054657
+          ],
+          "terminal_distance": 3.0517578125e-05,
+          "success": true,
+          "contact_steps": []
+        }
+      }
+    },
+    {
+      "scheme": "T0",
+      "query_id": "twms-1c17ab18a0db8a3d",
+      "speed_index": 2,
+      "speed": 6.9,
+      "predicted_preference": "cem",
+      "encoded_true_preference": "reference",
+      "physical_reference_better": true,
+      "public_native_cost_max_difference": 9.5367431640625e-07,
+      "candidates": {
+        "cem": {
+          "predicted_goal_cost_by_step": [
+            209.29513549804688,
+            210.10418701171875,
+            86.68565368652344,
+            105.58511352539062,
+            13.21739673614502
+          ],
+          "native_terminal_goal_cost": 13.217395782470703,
+          "encoded_true_goal_cost_by_step": [
+            231.81336975097656,
+            215.67190551757812,
+            105.40757751464844,
+            151.58978271484375,
+            144.20037841796875
+          ],
+          "prediction_squared_error_by_step": [
+            25.990406036376953,
+            30.529705047607422,
+            58.15632629394531,
+            63.437355041503906,
+            91.98623657226562
+          ],
+          "terminal_distance": 20.9163761138916,
+          "success": false,
+          "contact_steps": []
+        },
+        "reference": {
+          "predicted_goal_cost_by_step": [
+            248.50100708007812,
+            186.5900421142578,
+            128.65496826171875,
+            78.5548095703125,
+            39.17707824707031
+          ],
+          "native_terminal_goal_cost": 39.17707824707031,
+          "encoded_true_goal_cost_by_step": [
+            217.63351440429688,
+            128.5829620361328,
+            59.91761016845703,
+            14.444524765014648,
+            0.05832333490252495
+          ],
+          "prediction_squared_error_by_step": [
+            2.491848945617676,
+            7.773824691772461,
+            16.557209014892578,
+            28.194307327270508,
+            38.44445037841797
+          ],
+          "terminal_distance": 3.0517578125e-05,
+          "success": true,
+          "contact_steps": []
+        }
+      }
+    },
+    {
+      "scheme": "T1",
+      "query_id": "twms-9e2fb2898d2a9700",
+      "speed_index": 0,
+      "speed": 3.4,
+      "predicted_preference": "cem",
+      "encoded_true_preference": "reference",
+      "physical_reference_better": true,
+      "public_native_cost_max_difference": 0.0,
+      "candidates": {
+        "cem": {
+          "predicted_goal_cost_by_step": [
+            239.63287353515625,
+            229.49945068359375,
+            104.95331573486328,
+            19.633848190307617,
+            20.534984588623047
+          ],
+          "native_terminal_goal_cost": 20.534984588623047,
+          "encoded_true_goal_cost_by_step": [
+            258.22418212890625,
+            256.6270751953125,
+            125.95294189453125,
+            14.282819747924805,
+            6.351186752319336
+          ],
+          "prediction_squared_error_by_step": [
+            6.375057220458984,
+            8.679964065551758,
+            10.072368621826172,
+            11.007591247558594,
+            12.830291748046875
+          ],
+          "terminal_distance": 2.4202399253845215,
+          "success": false,
+          "contact_steps": []
+        },
+        "reference": {
+          "predicted_goal_cost_by_step": [
+            357.6402587890625,
+            241.06130981445312,
+            110.99888610839844,
+            26.796052932739258,
+            24.201251983642578
+          ],
+          "native_terminal_goal_cost": 24.201251983642578,
+          "encoded_true_goal_cost_by_step": [
+            364.06341552734375,
+            259.0797119140625,
+            134.98660278320312,
+            37.88249588012695,
+            0.0059195333160459995
+          ],
+          "prediction_squared_error_by_step": [
+            5.246494293212891,
+            7.445520401000977,
+            10.605422973632812,
+            15.641555786132812,
+            24.20740509033203
+          ],
+          "terminal_distance": 0.00014734808064531535,
+          "success": true,
+          "contact_steps": []
+        }
+      }
+    },
+    {
+      "scheme": "T1",
+      "query_id": "twms-9e2fb2898d2a9700",
+      "speed_index": 1,
+      "speed": 4.8,
+      "predicted_preference": "cem",
+      "encoded_true_preference": "reference",
+      "physical_reference_better": true,
+      "public_native_cost_max_difference": 0.0,
+      "candidates": {
+        "cem": {
+          "predicted_goal_cost_by_step": [
+            251.98190307617188,
+            187.9431915283203,
+            139.04766845703125,
+            92.04121398925781,
+            11.868906021118164
+          ],
+          "native_terminal_goal_cost": 11.868906021118164,
+          "encoded_true_goal_cost_by_step": [
+            281.7474670410156,
+            225.25509643554688,
+            126.27439880371094,
+            91.62374114990234,
+            10.949387550354004
+          ],
+          "prediction_squared_error_by_step": [
+            5.7996978759765625,
+            8.342697143554688,
+            24.514739990234375,
+            24.229732513427734,
+            29.923423767089844
+          ],
+          "terminal_distance": 3.382382869720459,
+          "success": false,
+          "contact_steps": []
+        },
+        "reference": {
+          "predicted_goal_cost_by_step": [
+            352.64434814453125,
+            227.49063110351562,
+            91.75189208984375,
+            15.899897575378418,
+            51.96136474609375
+          ],
+          "native_terminal_goal_cost": 51.96136474609375,
+          "encoded_true_goal_cost_by_step": [
+            364.06341552734375,
+            259.0797119140625,
+            134.98660278320312,
+            37.88249588012695,
+            0.0059195333160459995
+          ],
+          "prediction_squared_error_by_step": [
+            5.237292766571045,
+            7.970185279846191,
+            14.385334014892578,
+            27.872901916503906,
+            52.072349548339844
+          ],
+          "terminal_distance": 0.00014734808064531535,
+          "success": true,
+          "contact_steps": []
+        }
+      }
+    },
+    {
+      "scheme": "T1",
+      "query_id": "twms-9e2fb2898d2a9700",
+      "speed_index": 2,
+      "speed": 6.9,
+      "predicted_preference": "cem",
+      "encoded_true_preference": "reference",
+      "physical_reference_better": true,
+      "public_native_cost_max_difference": 9.5367431640625e-07,
+      "candidates": {
+        "cem": {
+          "predicted_goal_cost_by_step": [
+            672.8433837890625,
+            460.7455139160156,
+            119.19380950927734,
+            17.22760009765625,
+            9.537205696105957
+          ],
+          "native_terminal_goal_cost": 9.537206649780273,
+          "encoded_true_goal_cost_by_step": [
+            612.3303833007812,
+            400.12249755859375,
+            24.68994140625,
+            55.090972900390625,
+            67.53064727783203
+          ],
+          "prediction_squared_error_by_step": [
+            9.71022891998291,
+            19.49182891845703,
+            49.055458068847656,
+            58.667930603027344,
+            64.99293518066406
+          ],
+          "terminal_distance": 7.721840858459473,
+          "success": false,
+          "contact_steps": [
+            3,
+            4,
+            7
+          ]
+        },
+        "reference": {
+          "predicted_goal_cost_by_step": [
+            354.27117919921875,
+            231.61099243164062,
+            99.36178588867188,
+            20.21858024597168,
+            39.05403137207031
+          ],
+          "native_terminal_goal_cost": 39.05403137207031,
+          "encoded_true_goal_cost_by_step": [
+            364.06341552734375,
+            259.0797119140625,
+            134.98660278320312,
+            37.88249588012695,
+            0.0059195333160459995
+          ],
+          "prediction_squared_error_by_step": [
+            5.462771415710449,
+            8.432692527770996,
+            13.747976303100586,
+            23.17488670349121,
+            39.13414001464844
+          ],
+          "terminal_distance": 0.00014734808064531535,
+          "success": true,
+          "contact_steps": []
+        }
+      }
+    },
+    {
+      "scheme": "T1",
+      "query_id": "twms-0c7324de43c9ee31",
+      "speed_index": 0,
+      "speed": 3.4,
+      "predicted_preference": "cem",
+      "encoded_true_preference": "reference",
+      "physical_reference_better": true,
+      "public_native_cost_max_difference": 0.0,
+      "candidates": {
+        "cem": {
+          "predicted_goal_cost_by_step": [
+            308.7550048828125,
+            259.7110595703125,
+            165.56448364257812,
+            46.4788703918457,
+            13.41262435913086
+          ],
+          "native_terminal_goal_cost": 13.41262435913086,
+          "encoded_true_goal_cost_by_step": [
+            221.74815368652344,
+            198.93972778320312,
+            71.50468444824219,
+            94.80514526367188,
+            188.40777587890625
+          ],
+          "prediction_squared_error_by_step": [
+            18.376686096191406,
+            55.4713134765625,
+            61.816017150878906,
+            136.5334014892578,
+            178.1588134765625
+          ],
+          "terminal_distance": 14.01161003112793,
+          "success": false,
+          "contact_steps": []
+        },
+        "reference": {
+          "predicted_goal_cost_by_step": [
+            391.9708251953125,
+            339.08349609375,
+            256.034912109375,
+            159.15956115722656,
+            80.57099914550781
+          ],
+          "native_terminal_goal_cost": 80.57099914550781,
+          "encoded_true_goal_cost_by_step": [
+            353.642333984375,
+            266.2933349609375,
+            152.61346435546875,
+            46.40717315673828,
+            0.005711475387215614
+          ],
+          "prediction_squared_error_by_step": [
+            7.062383651733398,
+            15.895532608032227,
+            28.63931655883789,
+            48.49674987792969,
+            80.4311294555664
+          ],
+          "terminal_distance": 0.00014475757780019194,
+          "success": true,
+          "contact_steps": []
+        }
+      }
+    },
+    {
+      "scheme": "T1",
+      "query_id": "twms-0c7324de43c9ee31",
+      "speed_index": 1,
+      "speed": 4.8,
+      "predicted_preference": "cem",
+      "encoded_true_preference": "reference",
+      "physical_reference_better": true,
+      "public_native_cost_max_difference": 7.62939453125e-06,
+      "candidates": {
+        "cem": {
+          "predicted_goal_cost_by_step": [
+            238.4254150390625,
+            293.3661193847656,
+            102.31809997558594,
+            107.31709289550781,
+            15.486870765686035
+          ],
+          "native_terminal_goal_cost": 15.486870765686035,
+          "encoded_true_goal_cost_by_step": [
+            140.36532592773438,
+            320.8250427246094,
+            103.63079833984375,
+            209.38027954101562,
+            199.01718139648438
+          ],
+          "prediction_squared_error_by_step": [
+            36.178375244140625,
+            108.34400177001953,
+            113.73712921142578,
+            161.64541625976562,
+            192.8696746826172
+          ],
+          "terminal_distance": 14.547491073608398,
+          "success": false,
+          "contact_steps": []
+        },
+        "reference": {
+          "predicted_goal_cost_by_step": [
+            386.39434814453125,
+            337.5425720214844,
+            262.05499267578125,
+            173.94119262695312,
+            99.84760284423828
+          ],
+          "native_terminal_goal_cost": 99.84761047363281,
+          "encoded_true_goal_cost_by_step": [
+            353.642333984375,
+            266.2933349609375,
+            152.61346435546875,
+            46.40717315673828,
+            0.005711475387215614
+          ],
+          "prediction_squared_error_by_step": [
+            6.690781593322754,
+            15.797407150268555,
+            31.45564842224121,
+            57.179100036621094,
+            99.78793334960938
+          ],
+          "terminal_distance": 0.00014475757780019194,
+          "success": true,
+          "contact_steps": []
+        }
+      }
+    },
+    {
+      "scheme": "T1",
+      "query_id": "twms-0c7324de43c9ee31",
+      "speed_index": 2,
+      "speed": 6.9,
+      "predicted_preference": "cem",
+      "encoded_true_preference": "reference",
+      "physical_reference_better": true,
+      "public_native_cost_max_difference": 9.5367431640625e-07,
+      "candidates": {
+        "cem": {
+          "predicted_goal_cost_by_step": [
+            495.9521484375,
+            507.499267578125,
+            347.7291259765625,
+            250.7184600830078,
+            13.688596725463867
+          ],
+          "native_terminal_goal_cost": 13.68859577178955,
+          "encoded_true_goal_cost_by_step": [
+            439.589111328125,
+            452.7969970703125,
+            270.96978759765625,
+            82.88835144042969,
+            254.54010009765625
+          ],
+          "prediction_squared_error_by_step": [
+            20.565473556518555,
+            48.701698303222656,
+            77.98828887939453,
+            85.01476287841797,
+            257.6968994140625
+          ],
+          "terminal_distance": 16.64857292175293,
+          "success": false,
+          "contact_steps": [
+            3,
+            4,
+            5,
+            6,
+            8,
+            9
+          ]
+        },
+        "reference": {
+          "predicted_goal_cost_by_step": [
+            386.5051574707031,
+            337.13018798828125,
+            258.981201171875,
+            165.52890014648438,
+            89.17262268066406
+          ],
+          "native_terminal_goal_cost": 89.17262268066406,
+          "encoded_true_goal_cost_by_step": [
+            353.642333984375,
+            266.2933349609375,
+            152.61346435546875,
+            46.40717315673828,
+            0.005711475387215614
+          ],
+          "prediction_squared_error_by_step": [
+            6.463976860046387,
+            14.833486557006836,
+            29.636455535888672,
+            52.0516357421875,
+            89.06849670410156
+          ],
+          "terminal_distance": 0.00014475757780019194,
+          "success": true,
+          "contact_steps": []
+        }
+      }
+    },
+    {
+      "scheme": "T1",
+      "query_id": "twms-5550b596bead226c",
+      "speed_index": 0,
+      "speed": 3.4,
+      "predicted_preference": "cem",
+      "encoded_true_preference": "reference",
+      "physical_reference_better": true,
+      "public_native_cost_max_difference": 1.9073486328125e-06,
+      "candidates": {
+        "cem": {
+          "predicted_goal_cost_by_step": [
+            376.8081970214844,
+            393.298583984375,
+            357.7767333984375,
+            51.232749938964844,
+            14.953046798706055
+          ],
+          "native_terminal_goal_cost": 14.953046798706055,
+          "encoded_true_goal_cost_by_step": [
+            349.6267395019531,
+            383.4828186035156,
+            369.2948913574219,
+            21.602497100830078,
+            45.25543212890625
+          ],
+          "prediction_squared_error_by_step": [
+            18.47100067138672,
+            54.59006881713867,
+            80.40518188476562,
+            25.376293182373047,
+            24.70136260986328
+          ],
+          "terminal_distance": 5.394606113433838,
+          "success": false,
+          "contact_steps": []
+        },
+        "reference": {
+          "predicted_goal_cost_by_step": [
+            412.70050048828125,
+            369.86944580078125,
+            256.0024108886719,
+            115.652099609375,
+            22.595321655273438
+          ],
+          "native_terminal_goal_cost": 22.59532356262207,
+          "encoded_true_goal_cost_by_step": [
+            379.69244384765625,
+            333.5328063964844,
+            204.2332000732422,
+            58.25715637207031,
+            0.0043205562978982925
+          ],
+          "prediction_squared_error_by_step": [
+            9.756412506103516,
+            15.276992797851562,
+            18.406278610229492,
+            20.858139038085938,
+            22.643352508544922
+          ],
+          "terminal_distance": 3.0517578125e-05,
+          "success": true,
+          "contact_steps": []
+        }
+      }
+    },
+    {
+      "scheme": "T1",
+      "query_id": "twms-5550b596bead226c",
+      "speed_index": 1,
+      "speed": 4.8,
+      "predicted_preference": "cem",
+      "encoded_true_preference": "reference",
+      "physical_reference_better": true,
+      "public_native_cost_max_difference": 0.0,
+      "candidates": {
+        "cem": {
+          "predicted_goal_cost_by_step": [
+            402.45111083984375,
+            453.732666015625,
+            398.2474365234375,
+            421.8237609863281,
+            10.650613784790039
+          ],
+          "native_terminal_goal_cost": 10.650613784790039,
+          "encoded_true_goal_cost_by_step": [
+            383.33154296875,
+            448.6110534667969,
+            383.1090087890625,
+            398.60589599609375,
+            0.12108290940523148
+          ],
+          "prediction_squared_error_by_step": [
+            15.889982223510742,
+            5.242122650146484,
+            11.542716979980469,
+            9.328750610351562,
+            10.013039588928223
+          ],
+          "terminal_distance": 0.2490808516740799,
+          "success": false,
+          "contact_steps": [
+            6,
+            7,
+            9,
+            10,
+            11,
+            12,
+            13,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20
+          ]
+        },
+        "reference": {
+          "predicted_goal_cost_by_step": [
+            411.3262939453125,
+            356.41876220703125,
+            214.84564208984375,
+            92.13777923583984,
+            16.44583511352539
+          ],
+          "native_terminal_goal_cost": 16.44583511352539,
+          "encoded_true_goal_cost_by_step": [
+            379.69244384765625,
+            333.5328063964844,
+            204.2332000732422,
+            58.25715637207031,
+            0.0043205562978982925
+          ],
+          "prediction_squared_error_by_step": [
+            6.962432861328125,
+            10.33447265625,
+            11.547731399536133,
+            14.847232818603516,
+            16.476900100708008
+          ],
+          "terminal_distance": 3.0517578125e-05,
+          "success": true,
+          "contact_steps": []
+        }
+      }
+    },
+    {
+      "scheme": "T1",
+      "query_id": "twms-5550b596bead226c",
+      "speed_index": 2,
+      "speed": 6.9,
+      "predicted_preference": "cem",
+      "encoded_true_preference": "reference",
+      "physical_reference_better": true,
+      "public_native_cost_max_difference": 3.814697265625e-06,
+      "candidates": {
+        "cem": {
+          "predicted_goal_cost_by_step": [
+            282.7052001953125,
+            418.5614013671875,
+            429.787353515625,
+            514.7265014648438,
+            20.149457931518555
+          ],
+          "native_terminal_goal_cost": 20.149457931518555,
+          "encoded_true_goal_cost_by_step": [
+            312.11724853515625,
+            394.3930969238281,
+            401.4095458984375,
+            487.373291015625,
+            40.7469367980957
+          ],
+          "prediction_squared_error_by_step": [
+            15.596698760986328,
+            10.471830368041992,
+            9.176966667175293,
+            7.441884517669678,
+            88.6787109375
+          ],
+          "terminal_distance": 4.349730491638184,
+          "success": false,
+          "contact_steps": [
+            6,
+            7,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20
+          ]
+        },
+        "reference": {
+          "predicted_goal_cost_by_step": [
+            410.6539306640625,
+            359.19830322265625,
+            243.8944091796875,
+            123.1663589477539,
+            36.91352081298828
+          ],
+          "native_terminal_goal_cost": 36.913516998291016,
+          "encoded_true_goal_cost_by_step": [
+            379.69244384765625,
+            333.5328063964844,
+            204.2332000732422,
+            58.25715637207031,
+            0.0043205562978982925
+          ],
+          "prediction_squared_error_by_step": [
+            8.051897048950195,
+            11.986371994018555,
+            16.197864532470703,
+            24.393463134765625,
+            37.00621032714844
+          ],
+          "terminal_distance": 3.0517578125e-05,
+          "success": true,
+          "contact_steps": []
+        }
+      }
+    },
+    {
+      "scheme": "T1",
+      "query_id": "twms-705a33bd9bd05143",
+      "speed_index": 0,
+      "speed": 3.4,
+      "predicted_preference": "reference",
+      "encoded_true_preference": "reference",
+      "physical_reference_better": true,
+      "public_native_cost_max_difference": 0.0,
+      "candidates": {
+        "cem": {
+          "predicted_goal_cost_by_step": [
+            299.46368408203125,
+            170.46681213378906,
+            62.818321228027344,
+            134.23284912109375,
+            9.913049697875977
+          ],
+          "native_terminal_goal_cost": 9.913049697875977,
+          "encoded_true_goal_cost_by_step": [
+            254.9521484375,
+            111.27335357666016,
+            20.320894241333008,
+            125.55780029296875,
+            33.52019119262695
+          ],
+          "prediction_squared_error_by_step": [
+            6.703455924987793,
+            13.375375747680664,
+            16.89395523071289,
+            19.035797119140625,
+            20.643054962158203
+          ],
+          "terminal_distance": 5.714476585388184,
+          "success": false,
+          "contact_steps": []
+        },
+        "reference": {
+          "predicted_goal_cost_by_step": [
+            376.8880615234375,
+            268.8797607421875,
+            144.245361328125,
+            50.888206481933594,
+            9.833215713500977
+          ],
+          "native_terminal_goal_cost": 9.833215713500977,
+          "encoded_true_goal_cost_by_step": [
+            343.51605224609375,
+            232.59817504882812,
+            123.544677734375,
+            33.55168151855469,
+            0.0027609143871814013
+          ],
+          "prediction_squared_error_by_step": [
+            5.28427791595459,
+            6.48601770401001,
+            6.319697380065918,
+            7.786622047424316,
+            9.896625518798828
+          ],
+          "terminal_distance": 0.00014734808064531535,
+          "success": true,
+          "contact_steps": []
+        }
+      }
+    },
+    {
+      "scheme": "T1",
+      "query_id": "twms-705a33bd9bd05143",
+      "speed_index": 1,
+      "speed": 4.8,
+      "predicted_preference": "cem",
+      "encoded_true_preference": "reference",
+      "physical_reference_better": true,
+      "public_native_cost_max_difference": 9.5367431640625e-07,
+      "candidates": {
+        "cem": {
+          "predicted_goal_cost_by_step": [
+            477.7708740234375,
+            317.55670166015625,
+            240.21669006347656,
+            156.12506103515625,
+            9.008432388305664
+          ],
+          "native_terminal_goal_cost": 9.008431434631348,
+          "encoded_true_goal_cost_by_step": [
+            430.703369140625,
+            289.09356689453125,
+            195.356689453125,
+            119.73136901855469,
+            32.246498107910156
+          ],
+          "prediction_squared_error_by_step": [
+            14.31736946105957,
+            6.030699729919434,
+            6.863258361816406,
+            14.330395698547363,
+            23.289880752563477
+          ],
+          "terminal_distance": 5.720185279846191,
+          "success": false,
+          "contact_steps": []
+        },
+        "reference": {
+          "predicted_goal_cost_by_step": [
+            369.06561279296875,
+            256.84423828125,
+            127.78272247314453,
+            35.21152114868164,
+            12.226133346557617
+          ],
+          "native_terminal_goal_cost": 12.226134300231934,
+          "encoded_true_goal_cost_by_step": [
+            343.51605224609375,
+            232.59817504882812,
+            123.544677734375,
+            33.55168151855469,
+            0.0027609143871814013
+          ],
+          "prediction_squared_error_by_step": [
+            4.866147041320801,
+            5.304782867431641,
+            5.065081596374512,
+            6.341629981994629,
+            12.304376602172852
+          ],
+          "terminal_distance": 0.00014734808064531535,
+          "success": true,
+          "contact_steps": []
+        }
+      }
+    },
+    {
+      "scheme": "T1",
+      "query_id": "twms-705a33bd9bd05143",
+      "speed_index": 2,
+      "speed": 6.9,
+      "predicted_preference": "cem",
+      "encoded_true_preference": "reference",
+      "physical_reference_better": true,
+      "public_native_cost_max_difference": 9.5367431640625e-07,
+      "candidates": {
+        "cem": {
+          "predicted_goal_cost_by_step": [
+            579.3598022460938,
+            619.1494140625,
+            550.3858642578125,
+            282.38360595703125,
+            8.597654342651367
+          ],
+          "native_terminal_goal_cost": 8.597654342651367,
+          "encoded_true_goal_cost_by_step": [
+            525.8702392578125,
+            540.97265625,
+            470.8915710449219,
+            187.59832763671875,
+            65.826904296875
+          ],
+          "prediction_squared_error_by_step": [
+            14.89306640625,
+            9.502144813537598,
+            13.177936553955078,
+            21.40546226501465,
+            48.905967712402344
+          ],
+          "terminal_distance": 7.5174736976623535,
+          "success": false,
+          "contact_steps": [
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14
+          ]
+        },
+        "reference": {
+          "predicted_goal_cost_by_step": [
+            364.13641357421875,
+            253.6114501953125,
+            125.54536437988281,
+            39.07114028930664,
+            15.15197467803955
+          ],
+          "native_terminal_goal_cost": 15.151975631713867,
+          "encoded_true_goal_cost_by_step": [
+            343.51605224609375,
+            232.59817504882812,
+            123.544677734375,
+            33.55168151855469,
+            0.0027609143871814013
+          ],
+          "prediction_squared_error_by_step": [
+            5.203540802001953,
+            6.300583362579346,
+            7.042520999908447,
+            9.089609146118164,
+            15.231411933898926
+          ],
+          "terminal_distance": 0.00014734808064531535,
+          "success": true,
+          "contact_steps": []
+        }
+      }
+    },
+    {
+      "scheme": "T1",
+      "query_id": "twms-514c5d8f697b0cca",
+      "speed_index": 0,
+      "speed": 3.4,
+      "predicted_preference": "cem",
+      "encoded_true_preference": "reference",
+      "physical_reference_better": true,
+      "public_native_cost_max_difference": 3.814697265625e-06,
+      "candidates": {
+        "cem": {
+          "predicted_goal_cost_by_step": [
+            430.31951904296875,
+            347.71881103515625,
+            203.31150817871094,
+            49.101417541503906,
+            18.247081756591797
+          ],
+          "native_terminal_goal_cost": 18.247081756591797,
+          "encoded_true_goal_cost_by_step": [
+            382.3205261230469,
+            275.47100830078125,
+            121.36418914794922,
+            17.141380310058594,
+            110.33799743652344
+          ],
+          "prediction_squared_error_by_step": [
+            5.819660663604736,
+            10.326689720153809,
+            30.437923431396484,
+            58.583641052246094,
+            82.896728515625
+          ],
+          "terminal_distance": 10.594103813171387,
+          "success": false,
+          "contact_steps": []
+        },
+        "reference": {
+          "predicted_goal_cost_by_step": [
+            431.3350830078125,
+            366.505615234375,
+            262.059814453125,
+            141.58946228027344,
+            47.30962371826172
+          ],
+          "native_terminal_goal_cost": 47.309627532958984,
+          "encoded_true_goal_cost_by_step": [
+            387.1505432128906,
+            303.643310546875,
+            170.77484130859375,
+            47.707794189453125,
+            0.003062955103814602
+          ],
+          "prediction_squared_error_by_step": [
+            5.696484088897705,
+            8.092130661010742,
+            15.376169204711914,
+            29.56591033935547,
+            47.35765838623047
+          ],
+          "terminal_distance": 0.00014252885011956096,
+          "success": true,
+          "contact_steps": []
+        }
+      }
+    },
+    {
+      "scheme": "T1",
+      "query_id": "twms-514c5d8f697b0cca",
+      "speed_index": 1,
+      "speed": 4.8,
+      "predicted_preference": "cem",
+      "encoded_true_preference": "reference",
+      "physical_reference_better": true,
+      "public_native_cost_max_difference": 3.814697265625e-06,
+      "candidates": {
+        "cem": {
+          "predicted_goal_cost_by_step": [
+            425.0806884765625,
+            411.1885986328125,
+            178.2048797607422,
+            98.97087097167969,
+            13.965618133544922
+          ],
+          "native_terminal_goal_cost": 13.965619087219238,
+          "encoded_true_goal_cost_by_step": [
+            359.7762451171875,
+            345.8387451171875,
+            109.92594146728516,
+            21.819782257080078,
+            73.26272583007812
+          ],
+          "prediction_squared_error_by_step": [
+            8.79356575012207,
+            15.757281303405762,
+            26.782676696777344,
+            32.36283874511719,
+            58.62223434448242
+          ],
+          "terminal_distance": 8.218162536621094,
+          "success": false,
+          "contact_steps": []
+        },
+        "reference": {
+          "predicted_goal_cost_by_step": [
+            435.54864501953125,
+            365.191162109375,
+            241.21954345703125,
+            115.82284545898438,
+            29.163822174072266
+          ],
+          "native_terminal_goal_cost": 29.16382598876953,
+          "encoded_true_goal_cost_by_step": [
+            387.1505432128906,
+            303.643310546875,
+            170.77484130859375,
+            47.707794189453125,
+            0.003062955103814602
+          ],
+          "prediction_squared_error_by_step": [
+            6.368712425231934,
+            8.388054847717285,
+            11.854724884033203,
+            19.548728942871094,
+            29.274593353271484
+          ],
+          "terminal_distance": 0.00014252885011956096,
+          "success": true,
+          "contact_steps": []
+        }
+      }
+    },
+    {
+      "scheme": "T1",
+      "query_id": "twms-514c5d8f697b0cca",
+      "speed_index": 2,
+      "speed": 6.9,
+      "predicted_preference": "cem",
+      "encoded_true_preference": "reference",
+      "physical_reference_better": true,
+      "public_native_cost_max_difference": 0.0,
+      "candidates": {
+        "cem": {
+          "predicted_goal_cost_by_step": [
+            572.1453857421875,
+            545.6016845703125,
+            309.2506103515625,
+            201.40687561035156,
+            10.126975059509277
+          ],
+          "native_terminal_goal_cost": 10.126975059509277,
+          "encoded_true_goal_cost_by_step": [
+            518.81787109375,
+            498.2643737792969,
+            159.43109130859375,
+            155.296630859375,
+            172.65243530273438
+          ],
+          "prediction_squared_error_by_step": [
+            11.069417953491211,
+            17.26749038696289,
+            38.94520568847656,
+            106.37863159179688,
+            194.4649658203125
+          ],
+          "terminal_distance": 13.80325984954834,
+          "success": false,
+          "contact_steps": [
+            4,
+            5
+          ]
+        },
+        "reference": {
+          "predicted_goal_cost_by_step": [
+            445.482177734375,
+            387.80487060546875,
+            297.23712158203125,
+            190.206298828125,
+            92.89370727539062
+          ],
+          "native_terminal_goal_cost": 92.89370727539062,
+          "encoded_true_goal_cost_by_step": [
+            387.1505432128906,
+            303.643310546875,
+            170.77484130859375,
+            47.707794189453125,
+            0.003062955103814602
+          ],
+          "prediction_squared_error_by_step": [
+            7.795897960662842,
+            13.02377986907959,
+            26.86505126953125,
+            55.21235656738281,
+            92.91366577148438
+          ],
+          "terminal_distance": 0.00014252885011956096,
+          "success": true,
+          "contact_steps": []
+        }
+      }
+    },
+    {
+      "scheme": "T1",
+      "query_id": "twms-1c17ab18a0db8a3d",
+      "speed_index": 0,
+      "speed": 3.4,
+      "predicted_preference": "cem",
+      "encoded_true_preference": "reference",
+      "physical_reference_better": true,
+      "public_native_cost_max_difference": 0.0,
+      "candidates": {
+        "cem": {
+          "predicted_goal_cost_by_step": [
+            321.651123046875,
+            263.7767639160156,
+            233.66851806640625,
+            163.56689453125,
+            9.580645561218262
+          ],
+          "native_terminal_goal_cost": 9.580645561218262,
+          "encoded_true_goal_cost_by_step": [
+            325.20452880859375,
+            244.6524658203125,
+            205.01791381835938,
+            114.8907699584961,
+            15.202268600463867
+          ],
+          "prediction_squared_error_by_step": [
+            4.762372970581055,
+            5.164375305175781,
+            5.764009475708008,
+            9.947360038757324,
+            32.69130325317383
+          ],
+          "terminal_distance": 4.028829097747803,
+          "success": false,
+          "contact_steps": []
+        },
+        "reference": {
+          "predicted_goal_cost_by_step": [
+            317.3468017578125,
+            242.37596130371094,
+            163.0291748046875,
+            81.01185607910156,
+            25.06302261352539
+          ],
+          "native_terminal_goal_cost": 25.06302261352539,
+          "encoded_true_goal_cost_by_step": [
+            314.7236328125,
+            223.37548828125,
+            122.69015502929688,
+            36.89668655395508,
+            0.003740111831575632
+          ],
+          "prediction_squared_error_by_step": [
+            4.436474800109863,
+            4.750975131988525,
+            6.674343109130859,
+            12.115102767944336,
+            24.840890884399414
+          ],
+          "terminal_distance": 3.0517578125e-05,
+          "success": true,
+          "contact_steps": []
+        }
+      }
+    },
+    {
+      "scheme": "T1",
+      "query_id": "twms-1c17ab18a0db8a3d",
+      "speed_index": 1,
+      "speed": 4.8,
+      "predicted_preference": "reference",
+      "encoded_true_preference": "reference",
+      "physical_reference_better": true,
+      "public_native_cost_max_difference": 3.814697265625e-06,
+      "candidates": {
+        "cem": {
+          "predicted_goal_cost_by_step": [
+            207.487548828125,
+            204.2322235107422,
+            135.94088745117188,
+            41.64207077026367,
+            43.09583282470703
+          ],
+          "native_terminal_goal_cost": 43.0958366394043,
+          "encoded_true_goal_cost_by_step": [
+            150.67214965820312,
+            173.57017517089844,
+            80.74663543701172,
+            15.779581069946289,
+            116.80452728271484
+          ],
+          "prediction_squared_error_by_step": [
+            9.108436584472656,
+            26.851404190063477,
+            17.4543399810791,
+            30.001155853271484,
+            75.25611877441406
+          ],
+          "terminal_distance": 11.933895111083984,
+          "success": false,
+          "contact_steps": []
+        },
+        "reference": {
+          "predicted_goal_cost_by_step": [
+            315.91204833984375,
+            244.54605102539062,
+            170.8253173828125,
+            92.22462463378906,
+            35.466102600097656
+          ],
+          "native_terminal_goal_cost": 35.466102600097656,
+          "encoded_true_goal_cost_by_step": [
+            314.7236328125,
+            223.37548828125,
+            122.69015502929688,
+            36.89668655395508,
+            0.003740111831575632
+          ],
+          "prediction_squared_error_by_step": [
+            4.439549446105957,
+            4.975865364074707,
+            8.225459098815918,
+            16.163272857666016,
+            35.1738166809082
+          ],
+          "terminal_distance": 3.0517578125e-05,
+          "success": true,
+          "contact_steps": []
+        }
+      }
+    },
+    {
+      "scheme": "T1",
+      "query_id": "twms-1c17ab18a0db8a3d",
+      "speed_index": 2,
+      "speed": 6.9,
+      "predicted_preference": "cem",
+      "encoded_true_preference": "reference",
+      "physical_reference_better": true,
+      "public_native_cost_max_difference": 1.9073486328125e-06,
+      "candidates": {
+        "cem": {
+          "predicted_goal_cost_by_step": [
+            299.22509765625,
+            463.3971862792969,
+            511.8648681640625,
+            181.24343872070312,
+            16.1640625
+          ],
+          "native_terminal_goal_cost": 16.164064407348633,
+          "encoded_true_goal_cost_by_step": [
+            294.5635070800781,
+            466.48712158203125,
+            507.5107727050781,
+            128.3898162841797,
+            59.06696701049805
+          ],
+          "prediction_squared_error_by_step": [
+            7.163910388946533,
+            6.100574016571045,
+            6.319320201873779,
+            11.204645156860352,
+            50.09797668457031
+          ],
+          "terminal_distance": 8.09189510345459,
+          "success": false,
+          "contact_steps": [
+            15
+          ]
+        },
+        "reference": {
+          "predicted_goal_cost_by_step": [
+            317.91131591796875,
+            248.58299255371094,
+            179.1153564453125,
+            103.31637573242188,
+            46.008567810058594
+          ],
+          "native_terminal_goal_cost": 46.008567810058594,
+          "encoded_true_goal_cost_by_step": [
+            314.7236328125,
+            223.37548828125,
+            122.69015502929688,
+            36.89668655395508,
+            0.003740111831575632
+          ],
+          "prediction_squared_error_by_step": [
+            4.544732570648193,
+            5.407661437988281,
+            10.320237159729004,
+            20.845611572265625,
+            45.651676177978516
+          ],
+          "terminal_distance": 3.0517578125e-05,
+          "success": true,
+          "contact_steps": []
+        }
+      }
+    }
+  ],
+  "inputs": [
+    {
+      "path": "T0/twms-9e2fb2898d2a9700.json",
+      "sha256": "a398bca1864e6d04bb6b123373de07905236e7bef4cb208bb27fc0d97362a828",
+      "saved_plan_sha256": "07014b13ee2c20f6db9f09514a877117a32a3139d342544fd17407d74034225f"
+    },
+    {
+      "path": "T0/twms-0c7324de43c9ee31.json",
+      "sha256": "040ad832057c9759539f2610aadeec595a2011bfcf925780e5f11dcc12461589",
+      "saved_plan_sha256": "3e767437b72843757d528c576b70bb7f41d0049534a59922cdec20565346b836"
+    },
+    {
+      "path": "T0/twms-5550b596bead226c.json",
+      "sha256": "ab10592b62373f1b26ccdbaec68cd96914fa784fcbb23c177f7c3dee8adc8ce1",
+      "saved_plan_sha256": "9d77f2c48aa834e343e042f1e029fe8194a4b9b8717e21adce2686e882bb5f67"
+    },
+    {
+      "path": "T0/twms-705a33bd9bd05143.json",
+      "sha256": "52c50a3be40295d6e978f2fa237e4eeba205fb3476e855e6cd07f4c24e56903a",
+      "saved_plan_sha256": "0880dd33622d091095373ee557682919b8c68c402911d3fe55f21244aa00f959"
+    },
+    {
+      "path": "T0/twms-514c5d8f697b0cca.json",
+      "sha256": "fc6af141ea3f7c7aaff303eb8b34e62f95598a3dcd2853d2e86a96008c105f3a",
+      "saved_plan_sha256": "c106cd42e19f1e58af4f5fe8b5cd9278c54f7481cd4abfed6d63c0440d5381cb"
+    },
+    {
+      "path": "T0/twms-1c17ab18a0db8a3d.json",
+      "sha256": "615b8a4ad39188da74b1594f1bdb46479128ef490a3e1231ef5e1c2c827e584f",
+      "saved_plan_sha256": "08b0fb270cb8a34e6a55c78eda9347d7f985b8909f97dff39258b2ab76a7df0d"
+    },
+    {
+      "path": "T1/twms-9e2fb2898d2a9700.json",
+      "sha256": "e1bf5cd79ff69334136f73bb6cbbe0ccf5e9000ba27c0b8091676a493ed429b5",
+      "saved_plan_sha256": "78c7eae6a8d36fafe21f0bb2cc9d713003094f5695332b73adee123260f234c7"
+    },
+    {
+      "path": "T1/twms-0c7324de43c9ee31.json",
+      "sha256": "00330818551299ae57ab2ebee09fa274ff37d9d0df0702f51125ee486f6e2dc5",
+      "saved_plan_sha256": "b8647763a67f7ab14befc37204fca6af9feec9c7c1460a372825c4da95c4d98c"
+    },
+    {
+      "path": "T1/twms-5550b596bead226c.json",
+      "sha256": "6d7a44b2d8e2b35f13d501a0691016c69be4f6cc248e94ae3667fa15ddb1e91d",
+      "saved_plan_sha256": "b11f74cf5e5fd152e66a39b673cc85f7ab6bbebad9936f8226e5e9aa8a435476"
+    },
+    {
+      "path": "T1/twms-705a33bd9bd05143.json",
+      "sha256": "9de9dc574593499caca4a97b60973df5d67a6d783aceb184ce639db32df49ea2",
+      "saved_plan_sha256": "cb32f6ba845b210c44e25b3a11a44b1166ba527161199f2b8b7344d1ab27ad98"
+    },
+    {
+      "path": "T1/twms-514c5d8f697b0cca.json",
+      "sha256": "613c815a467920c58584b41d68b7f32e8af3806f354288f955266e0e4e5a5e28",
+      "saved_plan_sha256": "95dea5433d7be80c92579ee954d0be90af510b0ce7b6bb05ae6d31862212cf95"
+    },
+    {
+      "path": "T1/twms-1c17ab18a0db8a3d.json",
+      "sha256": "251940e45eeb6e7523ad5bb9c0e8aaf81c95ee42bedbb169722923ff1e4c38e9",
+      "saved_plan_sha256": "1e6c2104f0879fdcc2a6b324e12e8b3e7cf51b6f3a949c99b45b83f6c0844b68"
+    }
+  ],
+  "inference": "Pairwise evidence for search gap or predicted-cost misranking; no global optimality or exclusive root-cause claim.",
+  "aggregation": "Equal weighting of three speeds within each of six scenes. Counts are descriptive, not independent significance tests."
+}

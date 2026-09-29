@@ -39,6 +39,7 @@ SPEED_DECISION_PATH = REPO / "docs" / "research" / "data" / "speed_action_select
 SPEED_CEM_PATH = REPO / "docs" / "research" / "data" / "speed_cem_initial_evidence_v1.json"
 SPEED_PROBE_PATH = REPO / "docs" / "research" / "data" / "speed_planning_horizon_probe_v1.json"
 SPEED_TIMED_PATH = REPO / "docs" / "research" / "data" / "speed_timed_arrival_v1.json"
+SPEED_SEARCH_PATH = REPO / "docs" / "research" / "data" / "speed_timed_arrival_search_v1.json"
 
 TASK_ORDER = ["speed", "action_strength", "robot_arm_mass", "action_delay",
               "contact_friction", "motion_damping", "cube_gripper_carry", "door", "portal_exit"]
@@ -69,7 +70,7 @@ LEWM_STRENGTH_JOINT_IDS = ["action_strength/lewm/joint/scale_2k",
                            "action_strength/lewm/joint"]
 
 DETAIL_MARKERS = {task: "DETAIL_" + task.upper() for task in TASK_ORDER}
-MAIN_MARKERS = ["OVERVIEW", "DECISION", "SPEED_DECISION", "SPEED_CEM", "SPEED_PROBE", "SPEED_TIMED", "CURVES"] + [DETAIL_MARKERS[t] for t in TASK_ORDER] + ["SCALING"]
+MAIN_MARKERS = ["OVERVIEW", "DECISION", "SPEED_DECISION", "SPEED_CEM", "SPEED_PROBE", "SPEED_TIMED", "SPEED_SEARCH", "CURVES"] + [DETAIL_MARKERS[t] for t in TASK_ORDER] + ["SCALING"]
 APPENDIX_MARKERS = ["HISTORICAL"]
 MARKERS = MAIN_MARKERS + APPENDIX_MARKERS
 
@@ -574,6 +575,25 @@ def render_speed_timed():
     return "\n".join(_markdown_table(header, body))
 
 
+def render_speed_search():
+    evidence = json.loads(SPEED_SEARCH_PATH.read_text(encoding="utf-8"))
+    indexed = {r["scheme"]: r for r in evidence["rows"]}
+    if len(indexed) != len(evidence["rows"]) or set(indexed) != {"T0", "T1"}:
+        raise Fail("Search diagnosis requires both frozen LeWM checkpoints")
+    header = ["方案", "预测代价偏好可达控制（搜索差距）", "预测代价偏好 CEM（动作错排）",
+              "真实未来编码偏好可达控制"]
+    body = []
+    for scheme in ("T0", "T1"):
+        r = indexed[scheme]
+        n = r['conditions']
+        if n != 18 or r['search_gap_count']+r['model_cost_misranking_count']+r['tied_cost_count'] != n:
+            raise Fail("Incomplete pairwise search diagnosis")
+        body.append("| " + " | ".join([scheme]+[
+            f"{r[k]} / {n}" for k in ('search_gap_count', 'model_cost_misranking_count',
+                                      'encoded_true_reference_preference_count')]) + " |")
+    return "\n".join(_markdown_table(header, body))
+
+
 def render_curves():
     """Keep diagnostic re-evaluations separate from archived benchmark scores."""
     evidence = json.loads(CURVES_PATH.read_text(encoding="utf-8"))
@@ -602,6 +622,7 @@ def build_blocks(rows):
               "SPEED_CEM": render_speed_cem(),
               "SPEED_PROBE": render_speed_probe(),
               "SPEED_TIMED": render_speed_timed(),
+              "SPEED_SEARCH": render_speed_search(),
               "CURVES": render_curves(),
               "SCALING": render_scaling(rows),
               "HISTORICAL": render_historical(rows)}

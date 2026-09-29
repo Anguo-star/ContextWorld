@@ -174,6 +174,10 @@ python scripts/build_speed_timed_arrival.py \
 
 同一检查点、场景和随机种子分别根据三种真实历史生成计划，再将每条计划在三档真实速度下执行。这得到每模型 18 次匹配历史、36 次错配历史的结果；只需 18 次 CEM 搜索，因为同一历史下的计划不读取真实速度。汇总入口 `scripts/summarize_speed_timed_arrival.py` 先在场景内平均条件，再平均六个场景，以场景作配对 bootstrap 单位。结果、检查点和数据身份见[定时到达结果](research/data/speed_timed_arrival_v1.json)。
 
+**区分搜索与预测误差。** `scripts/diagnose_speed_timed_arrival.py` 读取同一数据面板、检查点和已保存的 CEM 结果，只重放与评分，不训练或重新搜索。对每个正确历史条件，比较实际执行动作与使用真实速度构造的可达恒定控制；分别保存原生预测代价、真实未来编码代价、物理终点误差和碰撞。真实速度仅用于诊断控制，不进入模型输入。这里重新计算最终执行动作的代价，不使用 CEM 日志中的精英平均代价。
+
+逐条件结果由 `scripts/summarize_speed_search_diagnosis.py` 汇总；输入按 `T0/<query_id>.json`、`T1/<query_id>.json` 保存，`protocol.json` 固定候选规则及数值平局容差。汇总核对原计划、数据与权重身份，并分别统计搜索差距和动作错排；同场景的三个条件仅作描述性计数，不当作独立显著性证据。[动作评分诊断结果](research/data/speed_timed_arrival_search_v1.json)包含协议与逐条件测量。该诊断不改变原 CEM 成绩，也不代表可部署的速度未知控制器。
+
 <a id="speed-cem"></a>
 
 ## 速度任务的闭环规划数据
