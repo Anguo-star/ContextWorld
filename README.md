@@ -10,7 +10,7 @@ JEPA、LeWM、PLDM、PreJEPA 以及其他 latent 世界模型都可以使用同�
 ## 从这里开始
 
 - **[ContextWorld 统一技术报告](docs/ContextWorld_ICL_Benchmark.md)**：任务、数据版本、评分协议、九任务三模型训练方式对比与主要发现。
-- [直接查看最新总表](docs/ContextWorld_ICL_Benchmark.md#training-comparison)：按任务横向比较原始模型、ICL 从头训练，以及原始权重初始化（含冻结 Encoder 对照）的 ICL / CEM。
+- [直接查看最新总表](docs/ContextWorld_ICL_Benchmark.md#training-comparison)：按任务横向比较 T0–T3 四种训练方案的 ICL / CEM；表前说明各方案的数据来源、配比、初始化与训练预算。
 - [文档导航](docs/README.md)：数据生成、模型接入、训练和结果复现。
 
 ## 九项任务

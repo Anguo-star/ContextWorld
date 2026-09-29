@@ -219,7 +219,7 @@ def test_public_document_uses_overview_and_task_detail_tables() -> None:
         if task in ("speed", "action_delay", "door"):
             assert "Joint↑" not in lines[0]  # Undefined metrics do not need empty columns
         if task == "action_delay":
-            assert "原始模型†" in "\n".join(detail_body)
+            assert renderer.REGIME_ZH["original"] + "†" in "\n".join(detail_body)
     assert "（未报告）" not in tasks and "（仅 CEM）" in tasks
 
     # Scaling: six small-vs-large Scratch comparisons plus the LeWM strength Joint ladder.
@@ -235,7 +235,7 @@ def test_public_document_uses_overview_and_task_detail_tables() -> None:
     assert len(historical) == sum(1 for r in rows if r["regime"] == "projected")
     assert len(historical) == 6
     assert all("DINO-WM" in line and "历史转换初始化" in line for line in historical)
-    assert "ICL 从头" not in "\n".join(historical)
+    assert renderer.REGIME_ZH["scratch"] not in "\n".join(historical)
 
 
 def test_dinowm_development_snapshot_is_marked_superseded() -> None:

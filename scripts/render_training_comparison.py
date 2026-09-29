@@ -44,7 +44,7 @@ TASK_ZH = {"action_delay": "动作延迟", "action_strength": "推手移动幅�
 MODEL_ORDER = ["lewm", "pldm", "dinowm"]
 MODEL_ZH = {"lewm": "LeWM", "pldm": "PLDM", "dinowm": "DINO-WM"}
 REGIME_ORDER = ["original", "scratch", "joint", "frozen"]
-REGIME_ZH = {"original": "原始模型", "scratch": "ICL 从头", "joint": "原始权重初始化", "frozen": "原始权重初始化（冻结 Encoder）",
+REGIME_ZH = {"original": "T0", "scratch": "T1", "joint": "T2", "frozen": "T3",
              "projected": "历史转换初始化"}
 PCT = ["main", "worst", "history", "switch", "joint", "calibrated", "cem"]
 RATIO = ["gain", "alignment", "nre"]
