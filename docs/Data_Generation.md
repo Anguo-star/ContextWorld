@@ -152,6 +152,18 @@ python scripts/build_speed_action_selection.py \
 
 模型评分入口为 `scripts/eval_speed_action_selection.py`，汇总入口为 `scripts/summarize_speed_action_selection.py`；各入口的 `--help` 列出检查点、数据位置与并行参数。评分保存所有候选成本，检查权重未变，并将缓存历史编码的计算与原生 Adapter 对照。汇总对同一场景的速度条件等权平均，以场景为 bootstrap 单位；不同速度分布不合并。完整协议与结果见[速度动作选择结果](research/data/speed_action_selection_v1.json)，解释见[技术报告 §5.5](ContextWorld_ICL_Benchmark.md#55-条件预测与动作选择)。
 
+<a id="complete-prediction"></a>
+
+## 完整预测误差的复算
+
+这项诊断复用已有模型输出，不生成新的评测场景。Strength 使用原查询动作的 256 对逐样本误差，Speed 使用四类分布各 300 个原查询动作预测；多步诊断使用已有六个场景、四种动作条件及 5–25 步的全部预测。数据划分均为 Development。缺少逐样本记录的原始 LeWM Strength 使用 `scripts/eval_strength_native_panel.py` 补充一次冻结权重推理，只评价原查询动作，不搜索候选。
+
+`scripts/complete_prediction_metrics.py` 将正确历史的完整误差拆成条件响应误差与共同偏差，并计算错配历史误差。每个场景的条件和候选等权；先累计各场景的误差与条件均值参照能量，再求比。这种汇总按目标分离能量隐式加权，不等于逐场景误差比的平均。零分离候选仍保留在误差总量中并报告数量，分母整体为零时不定义比值。历史误差下降在 K 个等权条件下等于 `2K/(K−1) × Gain`，因此不是新增独立的历史利用证据。
+
+汇总入口为 `scripts/summarize_complete_prediction.py`，参数指定 Speed 单步目录、多步目录、Strength 记录清单和诊断协议；各入口的 `--help` 提供完整接口。结果包含逐场景能量及输入哈希。Strength 清单每行指定方案 ID、记录文件、权重身份和推理凭据，避免凭目录名称推断模型。bootstrap 每次整簇重采样场景，保留其全部条件、候选和时域；比较训练方案或时域时使用相同的重采样索引。
+
+随时域比较时，同时报告预测平方误差和参照能量的增长倍数，避免把分母增长解释为预测变准。各时域的真实未来不同，误差增长本身也不能单独归因于自回归误差累积。定义及结果见[完整预测诊断](ContextWorld_ICL_Benchmark.md#complete-prediction)，数值见[结果 JSON](research/data/icl_complete_prediction_v1.json)。原任务成绩保持独立。
+
 <a id="speed-timed-arrival"></a>
 
 ## 速度任务的定时精确到达数据

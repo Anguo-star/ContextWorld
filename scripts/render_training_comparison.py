@@ -40,6 +40,7 @@ SPEED_CEM_PATH = REPO / "docs" / "research" / "data" / "speed_cem_initial_eviden
 SPEED_PROBE_PATH = REPO / "docs" / "research" / "data" / "speed_planning_horizon_probe_v1.json"
 SPEED_TIMED_PATH = REPO / "docs" / "research" / "data" / "speed_timed_arrival_v1.json"
 SPEED_SEARCH_PATH = REPO / "docs" / "research" / "data" / "speed_timed_arrival_search_v1.json"
+COMPLETE_PREDICTION_PATH = REPO / "docs" / "research" / "data" / "icl_complete_prediction_v1.json"
 
 TASK_ORDER = ["speed", "action_strength", "robot_arm_mass", "action_delay",
               "contact_friction", "motion_damping", "cube_gripper_carry", "door", "portal_exit"]
@@ -70,7 +71,7 @@ LEWM_STRENGTH_JOINT_IDS = ["action_strength/lewm/joint/scale_2k",
                            "action_strength/lewm/joint"]
 
 DETAIL_MARKERS = {task: "DETAIL_" + task.upper() for task in TASK_ORDER}
-MAIN_MARKERS = ["OVERVIEW", "DECISION", "SPEED_DECISION", "SPEED_CEM", "SPEED_PROBE", "SPEED_TIMED", "SPEED_SEARCH", "CURVES"] + [DETAIL_MARKERS[t] for t in TASK_ORDER] + ["SCALING"]
+MAIN_MARKERS = ["OVERVIEW", "DECISION", "SPEED_DECISION", "SPEED_CEM", "SPEED_PROBE", "SPEED_TIMED", "SPEED_SEARCH", "PRED_STRENGTH", "PRED_SPEED", "PRED_HORIZON", "CURVES"] + [DETAIL_MARKERS[t] for t in TASK_ORDER] + ["SCALING"]
 APPENDIX_MARKERS = ["HISTORICAL"]
 MARKERS = MAIN_MARKERS + APPENDIX_MARKERS
 
@@ -594,6 +595,53 @@ def render_speed_search():
     return "\n".join(_markdown_table(header, body))
 
 
+def render_complete_prediction(dataset):
+    evidence = json.loads(COMPLETE_PREDICTION_PATH.read_text(encoding="utf-8"))
+    selected = [r for r in evidence['rows'] if r['dataset'] == dataset]
+    speed = dataset == 'speed_native'
+    track_names = dict(seen_for_multi='训练中已见速度', unseen_interpolation='未见速度插值',
+                       extrapolation_low='低端外推', extrapolation_high='高端外推')
+    if speed:
+        indexed = {(r['track'],r['scheme']): r for r in selected}
+        keys = [(t,s) for t in track_names for s in ('T0','T1')]
+    else:
+        indexed = {(r['model'],r['scheme']): r for r in selected}
+        keys = [(m,s) for m in ('lewm','pldm','dinowm') for s in
+                (('T0','T1') if m=='dinowm' else ('T0','T1','T2','T3'))]
+    if set(indexed) != set(keys) or len(selected) != len(keys):
+        raise Fail('Incomplete native-action prediction comparison')
+    header = ['评测条件' if speed else '模型','方案','完整误差↓（95%区间）',
+              '响应误差↓','共同偏差↓','历史误差下降↑']
+    body = []
+    for key in keys:
+        r = indexed[key]
+        lo,hi = r['ci95']['complete_error']
+        label = track_names[key[0]] if speed else {'lewm':'LeWM','pldm':'PLDM','dinowm':'DINO-WM'}[key[0]]
+        body.append('| '+' | '.join([label,key[1],f"{r['complete_error']:.3f} [{lo:.3f}, {hi:.3f}]"]+
+                    [f3(r[k]) for k in ('response_error','common_bias_error','history_error_reduction')])+' |')
+    return '\n'.join(_markdown_table(header,body))
+
+
+def render_prediction_horizon():
+    evidence = json.loads(COMPLETE_PREDICTION_PATH.read_text(encoding="utf-8"))
+    indexed = {(r['scheme'],r['arm'],r['raw_steps']):r for r in evidence['rows'] if r['dataset']=='speed_horizon'}
+    contrasts = {(r['scheme'],r['arm']):r for r in evidence['contrasts']
+                 if r['dataset']=='speed_horizon' and 'energy_growth' in r}
+    header = ['方案','动作条件','完整误差↓（5 → 25 步）',
+              '预测平方误差倍数（25/5 步，95%区间）','参照能量倍数（25/5 步）']
+    body=[]
+    for scheme in ('T0','T1'):
+        for arm,label in dict(structured='固定方向',issued='原始命令',clipped='裁剪输入',small='缩小动作').items():
+            first,last = (indexed[scheme,arm,t] for t in (5,25))
+            growth = contrasts[scheme,arm]['energy_growth']
+            g=growth['complete_energy'];lo,hi=g['ci95']
+            body.append('| '+' | '.join([scheme,label,
+                f"{first['complete_error']:.3f} → {last['complete_error']:.3f}",
+                f"{g['after_over_before']:.2f} [{lo:.2f}, {hi:.2f}]",
+                f"{growth['baseline_energy']['after_over_before']:.2f}"])+' |')
+    return '\n'.join(_markdown_table(header,body))
+
+
 def render_curves():
     """Keep diagnostic re-evaluations separate from archived benchmark scores."""
     evidence = json.loads(CURVES_PATH.read_text(encoding="utf-8"))
@@ -623,6 +671,9 @@ def build_blocks(rows):
               "SPEED_PROBE": render_speed_probe(),
               "SPEED_TIMED": render_speed_timed(),
               "SPEED_SEARCH": render_speed_search(),
+              "PRED_STRENGTH": render_complete_prediction("strength_native"),
+              "PRED_SPEED": render_complete_prediction("speed_native"),
+              "PRED_HORIZON": render_prediction_horizon(),
               "CURVES": render_curves(),
               "SCALING": render_scaling(rows),
               "HISTORICAL": render_historical(rows)}
