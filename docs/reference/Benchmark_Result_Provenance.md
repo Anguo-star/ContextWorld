@@ -351,10 +351,10 @@ LeWM 与 PLDM 各自的九项组件、三个训练种子共 27 个单元用的�
 
 以下 Development 结果来自旧原环境 predictor 的参数转换。该 predictor 的原生输入包含额外状态，转换初始化不等同于重新训练的 `pixels+action` 模型完整初始化，因此不进入当前主表。它们保留为历史方法对照，不改写上方冻结 v3 的参考成绩。
 
-每行汇总相同配置下可用的训练重复；指标定义与当前[主报告](../ContextWorld_ICL_Benchmark.md#4-评测指标)一致，CEM 仍为原环境规划。
+每行汇总相同配置下可用的训练重复；指标沿用主报告的[历史指标定义](../ContextWorld_ICL_Benchmark.md#44-历史指标与机制诊断)，不采用新多步分数。CEM 仍为原环境规划。
 
 <!-- BEGIN TRAINING_COMPARISON_HISTORICAL -->
-| 任务 | 模型 | 方案 | n(ICL) | n(CEM) | 主分↑ | 最弱条件↑ | History↑ | Switch↑ | Joint↑ | Gain≈1 | Alignment↑ | NRE↓ | CalResp↑ | CEM↑ |
+| 任务 | 模型 | 方案 | n(ICL) | n(CEM) | 旧选择分↑ | 最弱条件↑ | History↑ | Switch↑ | Joint↑ | Gain≈1 | Alignment↑ | NRE↓ | CalResp↑ | CEM↑ |
 | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | 推手移动幅度 | DINO-WM | 历史转换初始化‡ | 1 | 1 | 97.46 | 95.70 | 98.24 | 99.61 | 92.97 | 0.627 | 0.757 | 0.432 | 96.48 | 78.00 |
 | 机械臂质量 | DINO-WM | 历史转换初始化‡ | 1 | 1 | 79.88 | 74.61 | 90.62 | 94.92 | 57.81 | 0.294 | 0.595 | 0.656 | 92.19 | 75.33 |

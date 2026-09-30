@@ -2,6 +2,7 @@
 """Render aggregated training-comparison blocks in docs/ContextWorld_ICL_Benchmark.md
 (and the historical appendix in docs/reference/Benchmark_Result_Provenance.md) from the
 published docs/research/data/icl_training_study_v2.json, and maintain its aggregated CSV twin.
+The primary multi-step blocks use multistep_prediction_v1.json; legacy numbers remain separate.
 
 Every published row stays a separate record: distinct ids, training recipes, data versions,
 or data scales never merge.  When a row carries ``replicates`` -- per-training-run dicts that
@@ -72,7 +73,8 @@ LEWM_STRENGTH_JOINT_IDS = ["action_strength/lewm/joint/scale_2k",
                            "action_strength/lewm/joint"]
 
 DETAIL_MARKERS = {task: "DETAIL_" + task.upper() for task in TASK_ORDER}
-MAIN_MARKERS = ["CROSS_TASK_VALIDITY", "CROSS_TASK_ERRORS", "CROSS_TASK_MODELS", "OVERVIEW", "DECISION", "SPEED_DECISION", "SPEED_CEM", "SPEED_PROBE", "SPEED_TIMED", "SPEED_SEARCH", "SPEED_REFRESH", "PRED_STRENGTH", "PRED_SPEED", "PRED_HORIZON", "CURVES"] + [DETAIL_MARKERS[t] for t in TASK_ORDER] + ["SCALING"]
+MULTISTEP_MARKERS = ["MULTISTEP_OVERVIEW", "CEM_OVERVIEW"] + ["MULTISTEP_" + t.upper() for t in TASK_ORDER]
+MAIN_MARKERS = MULTISTEP_MARKERS + ["CROSS_TASK_VALIDITY", "CROSS_TASK_ERRORS", "CROSS_TASK_MODELS", "OVERVIEW", "DECISION", "SPEED_DECISION", "SPEED_CEM", "SPEED_PROBE", "SPEED_TIMED", "SPEED_SEARCH", "SPEED_REFRESH", "PRED_STRENGTH", "PRED_SPEED", "PRED_HORIZON", "CURVES"] + [DETAIL_MARKERS[t] for t in TASK_ORDER] + ["SCALING"]
 APPENDIX_MARKERS = ["HISTORICAL"]
 MARKERS = MAIN_MARKERS + APPENDIX_MARKERS
 
@@ -88,7 +90,7 @@ CSV_COLS = (["id", "task", "model", "regime", "training_data_version", "training
 
 OVERVIEW_GROUPS = [(model, regime) for model in MODEL_ORDER for regime in REGIME_ORDER
                    if not (model == "dinowm" and regime == "joint")]
-METRIC_HDR = ["主分↑", "最弱条件↑", "History↑", "Switch↑", "Joint↑", "Gain≈1",
+METRIC_HDR = ["旧选择分↑", "最弱条件↑", "History↑", "Switch↑", "Joint↑", "Gain≈1",
               "Alignment↑", "NRE↓", "CalResp↑", "CEM↑"]
 DISPLAY_LABEL = dict(zip(ALL, METRIC_HDR)) | {"response": "响应分↑", "calibrated": "优于零响应↑"}
 
@@ -443,7 +445,7 @@ def scaling_rows(rows):
 
 
 def render_scaling(rows):
-    header = ["任务", "模型", "方案", "训练数据", "n", "ICL 主分↑", "响应分↑", "Joint↑", "Gain≈1", "CEM↑"]
+    header = ["任务", "模型", "方案", "训练数据", "n", "旧选择分↑", "响应分↑", "Joint↑", "Gain≈1", "CEM↑"]
     body = []
     for r in scaling_rows(rows):
         metrics, agg = display_stats(r)
@@ -669,7 +671,7 @@ def render_curves():
     evidence = json.loads(CURVES_PATH.read_text(encoding="utf-8"))
     indexed = {(r["training_comparison_id"], r["epoch"], r["split"]): r
                for r in evidence["rows"]}
-    header = ["任务", "方案", "Epoch", "训练主分↑", "Dev 主分↑",
+    header = ["任务", "方案", "Epoch", "训练选择分↑", "Dev 选择分↑",
               "训练响应分↑", "Dev 响应分↑", "Dev Gain≈1"]
     body = []
     for task in ("action_strength", "motion_damping"):
@@ -714,6 +716,38 @@ def render_cross_task_tables():
     return {'CROSS_TASK_VALIDITY':'\n'.join(validity),'CROSS_TASK_ERRORS':'\n'.join(errors),'CROSS_TASK_MODELS':'\n'.join(detail)}
 
 
+
+def render_multistep_primary():
+    data=json.loads((REPO/'docs/research/data/multistep_prediction_v1.json').read_text())
+    indexed={(r['task'],r['family'],r['regime']):r for r in data['rows']}
+    if len(indexed)!=len(data['rows']):raise Fail('Duplicate multi-step score row')
+    def get(task,family,regime):return indexed.get((task,family,regime))
+    header=['模型','方案']+[f'[{TASK_ZH[t]}](#task-{t.replace("_","-")})' for t in TASK_ORDER]
+    body=[]
+    for family,regime in OVERVIEW_GROUPS:
+        cells=[f2(get(t,family,regime)['score']) if get(t,family,regime) else '—' for t in TASK_ORDER]
+        body.append('| '+' | '.join([MODEL_ZH[family],REGIME_ZH[regime],*cells])+' |')
+    blocks={'MULTISTEP_OVERVIEW':'\n'.join(_markdown_table(header,body))}
+    for task in TASK_ORDER:
+        header=['模型','方案','多步完整预测分↑','95% 区间','训练重复数']
+        body=[]
+        for family,regime in OVERVIEW_GROUPS:
+            r=get(task,family,regime)
+            if r:
+                body.append('| '+' | '.join([MODEL_ZH[family],REGIME_ZH[regime],f2(r['score']),f"[{f2(r['ci95'][0])}, {f2(r['ci95'][1])}]",str(r['training_repetitions'])])+' |')
+        blocks['MULTISTEP_'+task.upper()]='\n'.join(_markdown_table(header,body))
+    return blocks
+
+
+def render_cem_overview(rows):
+    header=['模型','方案']+[TASK_ZH[t] for t in TASK_ORDER]
+    body=[]
+    for (family,regime),tasks in overview_groups(rows):
+        cells=[f2(display_stats(tasks[t])[1]['scores']['cem']['mean']) for t in TASK_ORDER]
+        body.append('| '+' | '.join([MODEL_ZH[family],REGIME_ZH[regime],*cells])+' |')
+    return '\n'.join(_markdown_table(header,body))
+
+
 def build_blocks(rows):
     blocks = {"OVERVIEW": render_overview(rows),
               "DECISION": render_decision(),
@@ -730,6 +764,8 @@ def build_blocks(rows):
               "SCALING": render_scaling(rows),
               "HISTORICAL": render_historical(rows)}
     blocks.update(render_cross_task_tables())
+    blocks.update(render_multistep_primary())
+    blocks["CEM_OVERVIEW"] = render_cem_overview(rows)
     for task, marker in DETAIL_MARKERS.items():
         blocks[marker] = render_detail(task, rows)
     return blocks

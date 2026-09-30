@@ -48,10 +48,10 @@ def encode_unique(adapter,*images):
     z=adapter.encode_pixels(np.stack([v[1] for v in frames.values()]),batch_size=16)
     return [z[ids].reshape(*shape,z.shape[-1]) for ids,shape in zip(inverse,shapes)]
 
-def predict_all(adapter,history,target,raw,family,batch_size=8):
+def predict_all(adapter,history,target,raw,family,batch_size=8,modes=('free','full','current','past')):
     """Cache visual encoding; compare free/full/current/past H-length inputs."""
     import torch
-    hsize=history.shape[1];nout=target.shape[1];allout={m:[] for m in ('free','full','current','past')}
+    hsize=history.shape[1];nout=target.shape[1];allout={m:[] for m in modes}
     model=adapter.model
     if family=='dinowm':
         assert tuple(model.extra_encoders)==('action',), 'Extra state stream is not allowed'
@@ -87,7 +87,7 @@ def costs_summary(cost,physical):
     return dict(matched_cost=correct.mean(0).tolist(),matched_regret=(correct-oracle).mean(0).tolist(),
         wrong_history_cost=wrong.mean(0).tolist(),history_benefit=(wrong-correct).mean(0).tolist(),selected_indices=choice.tolist())
 
-def evaluate(adapter,data,family,canonical):
+def evaluate(adapter,data,family,canonical,modes=('free','full','current','past')):
     pix=data['history_pixels'];K,H=pix.shape[:2];C,T=data['candidate_actions'].shape[:2]
     assert data['future_pixels'].shape[:3]==(K,C,T)
     assert data['context_actions'].shape[:2]==(K,H-1)
@@ -96,7 +96,7 @@ def evaluate(adapter,data,family,canonical):
     h,y,g=encode_unique(adapter,pix,data['future_pixels'],data['goal_pixels'][None]);g=g[0]
     hh=np.repeat(h,C,axis=0)
     raw=np.concatenate([np.repeat(data['context_actions'],C,axis=0),np.tile(data['candidate_actions'],(K,1,1,1))],1)
-    out=predict_all(adapter,hh,y.reshape(K*C,T,-1),raw,family)
+    out=predict_all(adapter,hh,y.reshape(K*C,T,-1),raw,family,modes=modes)
     assert all(np.array_equal(v[:,0],out['free'][:,0]) for v in out.values())
     checks=[]
     if canonical:
@@ -110,7 +110,7 @@ def evaluate(adapter,data,family,canonical):
         checks.append(dict(mode='free',max_abs=float(abs(delta).max()),relative_l2=float(np.linalg.norm(delta)/max(np.linalg.norm(native),1e-12))))
         assert checks[-1]['max_abs']<3e-4 and checks[-1]['relative_l2']<3e-5,checks[-1]
         sequence=np.concatenate([np.repeat(pix[:,None],C,axis=1),data['future_pixels']],2).reshape(K*C,H+T,224,224,3)
-        for t in (1,T-1):
+        for t in ((1,T-1) if 'full' in out else ()):
             native=adapter.rollout_latents(sequence[indices,t:t+H],raw[indices,t:t+H],batch_size=2)[:,0]
             z=out['full'][indices,t];delta=z-native
             check=dict(mode='full',depth=t+1,max_abs=float(abs(delta).max()),relative_l2=float(np.linalg.norm(delta)/max(np.linalg.norm(native),1e-12)))
@@ -138,7 +138,10 @@ def main():
     p.add_argument('--panel',type=Path,required=True);p.add_argument('--output',type=Path,required=True);p.add_argument('--threads',type=int,default=2)
     p.add_argument('--shard',type=int,default=0);p.add_argument('--shards',type=int,default=1)
     p.add_argument('--device',default='cpu')
-    a=p.parse_args();faulthandler.dump_traceback_later(120,repeat=True);a.output.mkdir(parents=True,exist_ok=True)
+    p.add_argument('--modes',nargs='+',choices=('free','full','current','past'),default=['free','full','current','past'])
+    a=p.parse_args();
+    if 'free' not in a.modes:p.error('--modes must include free')
+    faulthandler.dump_traceback_later(120,repeat=True);a.output.mkdir(parents=True,exist_ok=True)
     import torch
     torch.set_num_threads(a.threads);torch.set_num_interop_threads(1);torch.manual_seed(20260930)
     spec=next(x for x in json.loads(a.models.read_text()) if x['id']==a.id)
@@ -153,16 +156,18 @@ def main():
         outpath=a.output/(path.stem+'.json')
         if outpath.exists():
             old=json.loads(outpath.read_text());assert old['checkpoint_sha256']==spec['checkpoint_sha256'] and old['source_sha256']==sha(path)
+            if not set(a.modes).issubset(old['modes']):
+                raise ValueError('Existing output lacks requested modes; use a separate output directory')
             rows.append(old);continue
         with np.load(path,allow_pickle=False) as f:data={k:f[k] for k in f.files}
-        values,arrays=evaluate(adapter,data,spec['family'],i in (0,len(entries)-1))
+        values,arrays=evaluate(adapter,data,spec['family'],i in (0,len(entries)-1),modes=a.modes)
         arraypath=outpath.with_suffix('.npz');np.savez_compressed(arraypath,**arrays)
         row=dict(scene_id=entry.get('scene_id',entry.get('pair_id',entry.get('query_id',path.stem))),model_id=a.id,
             checkpoint_sha256=spec['checkpoint_sha256'],source_sha256=sha(path),array_sha256=sha(arraypath),**values)
         write(outpath,row);rows.append(row);print(a.id,i+1,'/',len(entries),flush=True)
     after=adapter.frozen_state_hash();assert before==after
     write(a.output/('receipt.json' if a.shards==1 else f'shard{a.shard}_receipt.json'),dict(model=adapter.metadata,model_id=a.id,panel_sha256=sha(a.panel/'manifest.json'),
-        state_hash_before=before,state_hash_after=after,scenes=len(rows),no_training=True,new_searches=0,
+        state_hash_before=before,state_hash_after=after,scenes=len(rows),no_training=True,new_searches=0,modes=a.modes,
         privileged_refresh_is_not_planning=True,entry_hashes={p.name:sha(p) for p in a.output.glob('*.json') if 'receipt' not in p.name}))
 
 if __name__=='__main__':main()

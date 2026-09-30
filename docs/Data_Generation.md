@@ -6,7 +6,7 @@
 [Benchmark 规范](ContextWorld_ICL_Benchmark.md)，目录和加载方式见
 [ContextWorld-v1 数据集指南](HF_Dataset_Export.md)。
 
-当前结果使用扩量后的 Training 与固定的 Development / Test；扩量没有重新生成评测数据。
+当前训练比较使用扩量后的 Training 与固定的 Development / Test。多步预测另从固定 Development 子集扩展未来候选，原评测数据字节不变。
 各任务现用规模见[技术报告 §2](ContextWorld_ICL_Benchmark.md#2-数据与划分)，打包状态见
 [发布说明](Expanded_Training_Release.md)。Test 与 Training / Development 隔离，用于离线最终报告；
 稳定公共下载版本尚未公布。配置与 manifest 记录各数据版本的精确身份。
@@ -63,7 +63,7 @@ query 画面、query 动作和允许比较的可观测状态一致，只让历�
 生成 seed、场景或动作 profile；各任务还检查 query 图像、pair 内容和任务相关模板的交集
 为零。具体隔离键因环境而异，但不会只依赖目录名来声明拆分独立。
 
-当前 Speed Development 使用结构配对：不同速度共享当前状态和查询动作，评分要求正确速度的
+旧一步协议的 Speed Development 使用结构配对：不同速度共享当前状态和查询动作，评分要求正确速度的
 历史预测优于该组其余全部历史。四种速度分布分别评测，每个参考速度有 300 个查询。
 早期的 288 个 history-utility case 不是当前主表的数据来源；完整历史与单帧输入的差值
 仅作为补充诊断，不代替严格历史比较。Development 成绩与 Test 成绩始终分别报告。
@@ -136,7 +136,7 @@ Training/Development/Test 字节。重新运行 exporter 不能替代生成审�
 
 ## 九任务的动作选择与多步预测诊断
 
-这套数据用于检查“历史是否帮助选对动作”，与冻结的一步 ICL 评测分别报告。它从现有 Development 查询扩展未来候选，不增加训练样本，不访问 Test，也不改变隐藏参数。覆盖 134 个源场景：Speed 六个，其余八项各 16 个；Delay 的上下方向、Cube 的四种动作模板分别平衡。全部源场景保留，不能按模型成绩筛选。
+这套数据同时用于完整多步预测评分和动作选择诊断，与冻结的一步 ICL 评测分别报告。它从现有 Development 查询扩展未来候选，不增加训练样本，不访问 Test，也不改变隐藏参数。覆盖 134 个源场景：Speed 六个，其余八项各 16 个；Delay 的上下方向、Cube 的四种动作模板分别平衡。全部源场景保留，不能按模型成绩筛选。
 
 ### 候选、目标与真实代价
 
@@ -173,20 +173,34 @@ Training/Development/Test 字节。重新运行 exporter 不能替代生成审�
 
 ### 冻结权重评测与误差定位
 
-`models.json` 为每个检查点登记 `id`、`task`、`family`、`regime`、`checkpoint`、`checkpoint_sha256`、`stable_repo`、`stable_ref`。`family` 使用 `lewm`、`pldm` 或 `dinowm`；路径由使用者指定。评测入口：
+`models.json` 为每个检查点登记 `id`、`task`、`family`、`regime`、`training_seed`、`checkpoint`、`checkpoint_sha256`、`stable_repo`、`stable_ref`。`family` 使用 `lewm`、`pldm` 或 `dinowm`；路径由使用者指定。评测入口：
 
 ```bash
 python scripts/diagnose_cross_task_decisions.py \
   --models /path/to/models.json --id action_strength/lewm/scratch \
   --panel /path/to/panels/action_strength \
-  --output /path/to/results/action_strength/lewm/scratch --device cuda
+  --output /path/to/results/action_strength/lewm/scratch --device cuda --modes free
 ```
+
+主分仅使用 `free` 自由推演，初始真实历史之后不补充真实观测。对登记的每个检查点运行推理后，执行：
+
+```bash
+python scripts/multistep_prediction_score.py \
+  --models /path/to/models.json --results-root /path/to/results \
+  --panels-root /path/to/panels --output /path/to/multistep.json
+```
+
+评分器先在源场景内平均条件、候选和五个时刻的完整误差，以及真实未来相对条件均值的误差；再分别跨场景求和，计算 `100 × (1 − 完整误差 / 均值参照误差)`。它不平均逐场景的比值。各检查点先独立归一化，再等权平均同配置训练重复。场景 bootstrap 在全部训练重复间使用同一组重采样索引，区间表示给定检查点的场景不确定性，训练标准差另外记录。
+
+分数可以为负，没有有限下界；参照为零则不能定义分数，不填零或删除困难样本。结果保存逐场景分子、分母、逐时刻能量、检查点与数据哈希，以及完整覆盖情况。[多步结果 JSON](research/data/multistep_prediction_v1.json) 和 [CSV](research/data/multistep_prediction_v1.csv) 对应技术报告主表。该结果覆盖 134 个场景、136 个检查点×任务单元，不是完整 Development / Test 成绩。
+
+**补充诊断。** 需要定位误差时，使用单独输出目录并选择 `--modes free full current past`。这些分支不会增加新的主指标。
 
 程序比较自由推演、全部窗口使用真实观测、仅替换最新观测、仅替换更早观测四种输入。替换只作用于本次调用，后续仍从各分支自己的预测构造窗口；部分替换不再是连续真实轨迹，只作敏感性分析。输入不会包含本次待预测的目标帧，但替换观测属于开放环规划时未知的未来信息，不能计入规划成绩。直接编码真实未来的动作选择另列，用于检验 latent 目标代价与物理代价是否一致。
 
-评测检查参数未改变、首步四分支完全一致，以及缓存预测与原生 Adapter 的一致性。为避免精度模式制造差异，使用 float32、关闭 TF32，并同时检查最大绝对误差与相对 L2 误差。Delay 五步诊断不改变其原生三步评测合同：原生支持的前三步做自由推演一致性检查，第五步的真实输入对照另与原生单步调用核对。
+评测检查参数未改变、缓存预测与原生 Adapter 的一致性；启用观测替换时，另检查首步各分支完全一致。为避免精度模式制造差异，使用 float32、关闭 TF32，并同时检查最大绝对误差与相对 L2 误差。Delay 五步诊断不改变其原生三步评测合同：原生支持的前三步做自由推演一致性检查，第五步的真实输入对照另与原生单步调用核对。
 
-将 `models.json`、`panels/<task>`、`results/<task>/<family>/<regime>` 放在同一根目录后，运行：
+将含四种分支的 `models.json`、`panels/<task>`、`results/<task>/<family>/<regime>` 放在同一根目录后，可另行汇总机制诊断：
 
 ```bash
 python scripts/summarize_cross_task_decisions.py \

@@ -306,7 +306,7 @@ def test_speed_uses_one_condition_table_and_shares_original_cem(rtc, published_r
     body = [[c.strip() for c in l.split("|")[1:-1]] for l in lines[2:]]
     current = rtc.ordered_current(published_rows, "speed")
     assert len(body) == 4 * len(current) == 44
-    ci, ni, mi = (header.index(k) for k in ("CEM↑", "n(CEM)", "主分↑"))
+    ci, ni, mi = (header.index(k) for k in ("CEM↑", "n(CEM)", "旧选择分↑"))
     for i, row in enumerate(current):
         group = body[4*i:4*i+4]
         agg = rtc.aggregate(row)
