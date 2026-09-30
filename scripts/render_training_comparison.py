@@ -72,7 +72,7 @@ LEWM_STRENGTH_JOINT_IDS = ["action_strength/lewm/joint/scale_2k",
                            "action_strength/lewm/joint"]
 
 DETAIL_MARKERS = {task: "DETAIL_" + task.upper() for task in TASK_ORDER}
-MAIN_MARKERS = ["OVERVIEW", "DECISION", "SPEED_DECISION", "SPEED_CEM", "SPEED_PROBE", "SPEED_TIMED", "SPEED_SEARCH", "SPEED_REFRESH", "PRED_STRENGTH", "PRED_SPEED", "PRED_HORIZON", "CURVES"] + [DETAIL_MARKERS[t] for t in TASK_ORDER] + ["SCALING"]
+MAIN_MARKERS = ["CROSS_TASK_VALIDITY", "CROSS_TASK_ERRORS", "CROSS_TASK_MODELS", "OVERVIEW", "DECISION", "SPEED_DECISION", "SPEED_CEM", "SPEED_PROBE", "SPEED_TIMED", "SPEED_SEARCH", "SPEED_REFRESH", "PRED_STRENGTH", "PRED_SPEED", "PRED_HORIZON", "CURVES"] + [DETAIL_MARKERS[t] for t in TASK_ORDER] + ["SCALING"]
 APPENDIX_MARKERS = ["HISTORICAL"]
 MARKERS = MAIN_MARKERS + APPENDIX_MARKERS
 
@@ -685,6 +685,35 @@ def render_curves():
     return "\n".join(_markdown_table(header, body))
 
 
+
+def render_cross_task_tables():
+    evidence = json.loads((REPO / 'docs/research/data/cross_task_decision_v1.json').read_text())
+    tasks = {t['task']: t for t in evidence['tasks']}
+    models = {(m['task'], m['family'], m['regime']): m for m in evidence['models']}
+    assert set(tasks) == set(TASK_ORDER) and len(models) == 70
+    validity = ['| 任务 | 场景 | 单位 | 候选最优误差（25 步）↓ | 决策差距 G：5 / 15 / 25 步 |', '|---|---:|---|---:|---|']
+    errors = ['| 任务 | LeWM | PLDM | DINO-WM |', '|---|---:|---:|---:|']
+    detail = ['| 任务 | 模型 | T0 regret↓ | T1 regret↓ | T3 regret↓ | T1 历史收益↑ [95% CI] | T1 真实未来编码 regret↓ |', '|---|---|---:|---:|---:|---:|---:|']
+    for task in TASK_ORDER:
+        t=tasks[task]; scale=1000 if t['units']=='m' else 1
+        unit='mm' if scale==1000 else ('px 等效' if t['units']=='px-equivalent' else 'px')
+        fmt=lambda x: f'{scale*x:.3f}'
+        validity.append('| ' + ' | '.join([TASK_ZH[task],str(t['scenes']),unit,fmt(t['mean_oracle_cost'][-1]),' / '.join(fmt(t['mean_decision_gap'][i]) for i in (0,2,4))]) + ' |')
+        cells=[TASK_ZH[task]]
+        for family in MODEL_ORDER:
+            m=models[(task,family,'scratch')];h=m['horizons'][-1]
+            ci=h['modes']['full']['prediction_error_ratio_ci']
+            cells.append(f"{100*ci['mean']:.1f}% [{100*ci['ci95'][0]:.1f}, {100*ci['ci95'][1]:.1f}]")
+            values=[]
+            for regime in ('original','scratch','frozen'):
+                v=models.get((task,family,regime))
+                values.append(fmt(v['horizons'][-1]['modes']['free']['regret']['mean']) if v else '—')
+            b=h['modes']['free']['history_benefit']
+            detail.append('| ' + ' | '.join([TASK_ZH[task],MODEL_ZH[family],*values,f"{fmt(b['mean'])} [{fmt(b['ci95'][0])}, {fmt(b['ci95'][1])}]",fmt(h['true_future_encoded_regret']['mean'])]) + ' |')
+        errors.append('| ' + ' | '.join(cells) + ' |')
+    return {'CROSS_TASK_VALIDITY':'\n'.join(validity),'CROSS_TASK_ERRORS':'\n'.join(errors),'CROSS_TASK_MODELS':'\n'.join(detail)}
+
+
 def build_blocks(rows):
     blocks = {"OVERVIEW": render_overview(rows),
               "DECISION": render_decision(),
@@ -700,6 +729,7 @@ def build_blocks(rows):
               "CURVES": render_curves(),
               "SCALING": render_scaling(rows),
               "HISTORICAL": render_historical(rows)}
+    blocks.update(render_cross_task_tables())
     for task, marker in DETAIL_MARKERS.items():
         blocks[marker] = render_detail(task, rows)
     return blocks

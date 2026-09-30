@@ -134,6 +134,71 @@ Training/Development/Test 字节。重新运行 exporter 不能替代生成审�
 
 <a id="speed-action-selection"></a>
 
+## 九任务的动作选择与多步预测诊断
+
+这套数据用于检查“历史是否帮助选对动作”，与冻结的一步 ICL 评测分别报告。它从现有 Development 查询扩展未来候选，不增加训练样本，不访问 Test，也不改变隐藏参数。覆盖 134 个源场景：Speed 六个，其余八项各 16 个；Delay 的上下方向、Cube 的四种动作模板分别平衡。全部源场景保留，不能按模型成绩筛选。
+
+### 候选、目标与真实代价
+
+所有隐藏条件共用候选集合与目标。生成器从源初始状态重放完整真实历史，然后连续执行每个候选，保持接触状态、速度和待生效动作队列。每个候选长五个动作块，每块五个物理步；在第 5、10、15、20、25 步保存图像、物理状态与代价。
+
+基础候选包括原查询动作的幅值、持续时间、停止和反向变体。Speed 另含指向共同目标的控制；Portal 加入出口方向的横向修正；Door 加入对齐与穿越动作；Damping 加入接触干预；Cube 加入夹爪控制。候选按模拟器裁剪规则限制在合法范围内。目标通常取条件 0 原查询五步后的未来；Speed 使用距离 32 px 的目标，Delay 使用延迟 0 的十五步未来。各条件仍共享同一目标。
+
+| 环境 / 任务 | 真实代价 | 汇报单位 |
+|---|---|---|
+| TwoRoom 的 Speed、Delay、Door、Portal | 智能体到目标的欧氏距离 | px |
+| PushT 的 Strength、Friction、Damping | 推手与方块的位置误差，加上乘以 40 的环绕角度误差，共同取欧氏范数 | px 等效 |
+| Reacher Mass | 末端位置到目标的欧氏距离 | 原始结果为 m，报告为 mm |
+| Cube Carry | 方块位置距离与末端位置距离之和 | 原始结果为 m，报告为 mm |
+
+固定时刻代价使“提前经过、随后越过目标”的动作仍受到惩罚。记录只包含五个动作块末端，不能据此声称逐物理步无碰撞、无越界或持续稳定。模拟器最优候选与最佳共用候选的差距仅证明这个有限集合内的决策区分度；不能代替全局可达性或全动作空间规划。接触、绕行或制动覆盖不足时，应先完善评测数据，再解释模型差异。
+
+### 图像、状态与模型输入校验
+
+面板校验要求各条件当前图像完全相同、历史动作一致、候选与目标共用、代价有限非负。原查询候选的未来与源轨迹核对；Delay 核对全部 11 个延迟、三个已有未来时刻及待执行队列。Cube 的诊断历史、目标和候选未来全部由同一模拟器与 JPEG95 编码重新生成：受控物体位置与源轨迹在 $10^{-6}$ m 内一致，新面板当前图像与原查询候选的重放结果精确一致。这是单独的诊断数据，不覆盖冻结的 Cube 图像。
+
+每个场景保存一个 NPZ，不允许 pickle 对象：
+
+| 字段 | 形状 / 含义 |
+|---|---|
+| `history_pixels` | `[K,H,224,224,3]`；各条件的连续真实图像，uint8 |
+| `context_actions` | `[K,H-1,5,A]`；真实历史动作 |
+| `candidate_actions` | `[C,5,5,A]`；共用未来候选 |
+| `future_pixels` / `future_states` | `[K,C,5,...]`；模拟器真实未来 |
+| `goal_pixels` / `goal_state` | 各条件共用的目标 |
+| `physical_cost` | `[K,C,5]`；真实物理代价 |
+| `conditions` / `physical_steps` | 审计标签与五个评分时刻，不作为模型输入 |
+
+`manifest.json` 给出任务、固定动作归一化、逐场景路径与 SHA-256。`H=7` 用于 Delay，其余为 3；`A` 为任务动作维度。物理状态、隐藏参数和真实未来仅供模拟器与评分器使用，原生预测只接收图像和动作。
+
+### 冻结权重评测与误差定位
+
+`models.json` 为每个检查点登记 `id`、`task`、`family`、`regime`、`checkpoint`、`checkpoint_sha256`、`stable_repo`、`stable_ref`。`family` 使用 `lewm`、`pldm` 或 `dinowm`；路径由使用者指定。评测入口：
+
+```bash
+python scripts/diagnose_cross_task_decisions.py \
+  --models /path/to/models.json --id action_strength/lewm/scratch \
+  --panel /path/to/panels/action_strength \
+  --output /path/to/results/action_strength/lewm/scratch --device cuda
+```
+
+程序比较自由推演、全部窗口使用真实观测、仅替换最新观测、仅替换更早观测四种输入。替换只作用于本次调用，后续仍从各分支自己的预测构造窗口；部分替换不再是连续真实轨迹，只作敏感性分析。输入不会包含本次待预测的目标帧，但替换观测属于开放环规划时未知的未来信息，不能计入规划成绩。直接编码真实未来的动作选择另列，用于检验 latent 目标代价与物理代价是否一致。
+
+评测检查参数未改变、首步四分支完全一致，以及缓存预测与原生 Adapter 的一致性。为避免精度模式制造差异，使用 float32、关闭 TF32，并同时检查最大绝对误差与相对 L2 误差。Delay 五步诊断不改变其原生三步评测合同：原生支持的前三步做自由推演一致性检查，第五步的真实输入对照另与原生单步调用核对。
+
+将 `models.json`、`panels/<task>`、`results/<task>/<family>/<regime>` 放在同一根目录后，运行：
+
+```bash
+python scripts/summarize_cross_task_decisions.py \
+  --root /path/to/diagnosis --output /path/to/summary.json
+```
+
+汇总验证面板、逐查询结果和数组哈希。物理代价先在源场景内等权平均条件，再平均场景；预测误差比先累计分子、分母再相除。95% 区间整簇重采样源场景 4,000 次，种子为 20260930，不将候选或隐藏条件当作独立重复。完整结果与限制见[技术报告](ContextWorld_ICL_Benchmark.md#cross-task-decisions)及[JSON](research/data/cross_task_decision_v1.json)、[CSV](research/data/cross_task_decision_v1.csv)。这些汇总与文件身份已公开；原始面板和全部权重尚未稳定分发，不宣称仅凭汇总即可完整复现。
+
+
+<details>
+<summary>单任务实验的生成与复算细节：Speed 规划及完整预测</summary>
+
 ## 速度任务的候选动作评测数据
 
 这套 Development 诊断复用速度任务的全部场景和连续真实历史，为每个查询新增固定候选及其仿真后果。四种速度分布各包含 300 个场景，分别报告；它不改变原任务的训练数据或评分。
@@ -253,3 +318,5 @@ python scripts/build_speed_cem_panel.py \
 生成入口为 `scripts/probe_speed_planning.py build`：`--cem-panel` 指向闭环数据，`--candidate-panel` 指向单动作块数据，`--pilot-root` 指向归档闭环结果；`--query-id` 选择每个评测种子中索引为 0 的场景。另需提供 `--stable-repo`、`--stable-ref` 与 `--output`。上游固定版本与上述闭环数据相同。
 
 评分使用同脚本的 `evaluate` 子命令，传入生成目录 `--panel`、查询 ID、已有检查点及其 SHA-256；汇总入口为 `scripts/summarize_speed_planning_probe.py --root <结果目录> --output <JSON>`。目录中 `panel/` 保存场景，`T0/`、`T1/` 保存模型输出。评分抽查缓存预测与原生五个动作块的 rollout 的一致性，并检查权重未变；汇总再次检查原始命令与裁剪输入的真实未来完全相同。物理 regret 先在场景内平均速度条件，再跨场景平均；裁剪差值的区间以场景为配对重采样单位。汇总还比较“按速度分别选最优动作”与“所有速度共用一个最优动作”，检查真实未来有差异时，决策是否也需要区分速度。这里的代价取固定时刻终点，不能直接作为执行途中首次进入目标区的闭环成功率。定义、逐场景统计与文件身份见[诊断结果](research/data/speed_planning_horizon_probe_v1.json)。
+
+</details>
