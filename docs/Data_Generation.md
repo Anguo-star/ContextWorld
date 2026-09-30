@@ -6,7 +6,7 @@
 [Benchmark 规范](ContextWorld_ICL_Benchmark.md)，目录和加载方式见
 [ContextWorld-v1 数据集指南](HF_Dataset_Export.md)。
 
-当前训练比较使用扩量后的 Training 与固定的 Development / Test。多步预测另从固定 Development 子集扩展未来候选，原评测数据字节不变。
+当前训练比较使用扩量后的 Training 与固定的 Development / Test。多步预测从九任务主分布的注册 Development 查询扩展未来候选，原评测数据字节不变。
 各任务现用规模见[技术报告 §2](ContextWorld_ICL_Benchmark.md#2-数据与划分)，打包状态见
 [发布说明](Expanded_Training_Release.md)。Test 与 Training / Development 隔离，用于离线最终报告；
 稳定公共下载版本尚未公布。配置与 manifest 记录各数据版本的精确身份。
@@ -136,13 +136,27 @@ Training/Development/Test 字节。重新运行 exporter 不能替代生成审�
 
 ## 九任务的动作选择与多步预测诊断
 
-这套数据同时用于完整多步预测评分和动作选择诊断，与冻结的一步 ICL 评测分别报告。它从现有 Development 查询扩展未来候选，不增加训练样本，不访问 Test，也不改变隐藏参数。覆盖 134 个源场景：Speed 六个，其余八项各 16 个；Delay 的上下方向、Cube 的四种动作模板分别平衡。全部源场景保留，不能按模型成绩筛选。
+多步数据从现有 Development 查询扩展未来候选，不增加训练样本，不访问 Test，也不改变隐藏参数。当前版本覆盖九任务主分布的全部注册源查询，共 2,436 个；Speed 仅覆盖未见速度插值。它与原一步评测分别报告，不覆盖原数据。
+
+| 任务 | 源场景 | 隐藏条件 | 区间重采样单位 |
+|---|---:|---:|---|
+| 速度（未见插值） | 300 | 3 档 | 源查询 |
+| 推手移动幅度 | 256 | 2 档 | 243 个来源 episode |
+| 机械臂质量 | 256 | 2 档 | 源查询 |
+| 动作延迟 | 300 | 11 档 | 源查询，保留全部延迟 |
+| 接触摩擦 | 256 | 2 档 | 源查询 |
+| 运动阻尼 | 256 | 2 档 | 128 组前向／镜像来源 |
+| Cube 夹爪携带 | 256 | 2 档 | 256 个来源 episode |
+| 门通行规则 | 300 | 2 档 | 源查询，保留两种规则 |
+| 传送门出口 | 256 | 2 档 | 源查询 |
+
+所有源场景保留，不按模型成绩或目标可达性筛选。当前完整覆盖结果使用 `multistep_development_coverage_v2` 数据版本。最初 134 场景子集的公式与候选规则不变，原结果保存在 `multistep_prediction_v1.json`；扩展后逐项检查这 134 个场景的历史、动作与真实未来未变。新的置信区间将已知同源窗口和镜像样本成组抽样，不更改点估计的等权规则。
 
 ### 候选、目标与真实代价
 
 所有隐藏条件共用候选集合与目标。生成器从源初始状态重放完整真实历史，然后连续执行每个候选，保持接触状态、速度和待生效动作队列。每个候选长五个动作块，每块五个物理步；在第 5、10、15、20、25 步保存图像、物理状态与代价。
 
-基础候选包括原查询动作的幅值、持续时间、停止和反向变体。Speed 另含指向共同目标的控制；Portal 加入出口方向的横向修正；Door 加入对齐与穿越动作；Damping 加入接触干预；Cube 加入夹爪控制。候选按模拟器裁剪规则限制在合法范围内。目标通常取条件 0 原查询五步后的未来；Speed 使用距离 32 px 的目标，Delay 使用延迟 0 的十五步未来。各条件仍共享同一目标。
+基础候选包括原查询动作的幅值、持续时间、停止和反向变体。Speed 另含指向共同目标的控制；Portal 加入出口方向的横向修正；Door 加入对齐与穿越动作；Damping 加入接触干预；Cube 加入夹爪控制。候选按模拟器裁剪规则限制在合法范围内。目标通常取条件 0 原查询五步后的未来；Speed 使用距离 32 px 的目标，Delay 使用延迟 0 的十五步未来，Door 使用可通行规则的十五步未来。各条件仍共享同一目标。
 
 | 环境 / 任务 | 真实代价 | 汇报单位 |
 |---|---|---|
@@ -179,7 +193,7 @@ Training/Development/Test 字节。重新运行 exporter 不能替代生成审�
 python scripts/diagnose_cross_task_decisions.py \
   --models /path/to/models.json --id action_strength/lewm/scratch \
   --panel /path/to/panels/action_strength \
-  --output /path/to/results/action_strength/lewm/scratch --device cuda --modes free
+  --output /path/to/results/action_strength/lewm/scratch --device cuda --modes free full
 ```
 
 主分仅使用 `free` 自由推演，初始真实历史之后不补充真实观测。对登记的每个检查点运行推理后，执行：
@@ -187,14 +201,17 @@ python scripts/diagnose_cross_task_decisions.py \
 ```bash
 python scripts/multistep_prediction_score.py \
   --models /path/to/models.json --results-root /path/to/results \
-  --panels-root /path/to/panels --output /path/to/multistep.json
+  --panels-root /path/to/panels --output /path/to/multistep.json \
+  --split-query-records
 ```
 
-评分器先在源场景内平均条件、候选和五个时刻的完整误差，以及真实未来相对条件均值的误差；再分别跨场景求和，计算 `100 × (1 − 完整误差 / 均值参照误差)`。它不平均逐场景的比值。各检查点先独立归一化，再等权平均同配置训练重复。场景 bootstrap 在全部训练重复间使用同一组重采样索引，区间表示给定检查点的场景不确定性，训练标准差另外记录。
+评分器先在源场景内平均条件、候选和五个时刻的完整误差，以及真实未来相对条件均值的误差；再分别跨场景求和，计算 `100 × (1 − 完整误差 / 均值参照误差)`。它不平均逐场景的比值。各检查点先独立归一化，再等权平均同配置训练重复。bootstrap 按上表中的来源单位整组重采样 4,000 次，种子为 20260930，在全部训练重复间使用同一组索引。区间表示给定检查点的来源抽样不确定性，训练标准差另外记录。
 
-分数可以为负，没有有限下界；参照为零则不能定义分数，不填零或删除困难样本。结果保存逐场景分子、分母、逐时刻能量、检查点与数据哈希，以及完整覆盖情况。[多步结果 JSON](research/data/multistep_prediction_v1.json) 和 [CSV](research/data/multistep_prediction_v1.csv) 对应技术报告主表。该结果覆盖 134 个场景、136 个检查点×任务单元，不是完整 Development / Test 成绩。
+分数可以为负，没有有限下界；参照为零则不能定义分数，不填零或删除困难样本。[结果 JSON](research/data/multistep_prediction_coverage_v2.json) 和 [CSV](research/data/multistep_prediction_coverage_v2.csv) 对应技术报告主表，包含 136 个检查点×任务单元与 86 个汇总组合。逐查询能量保存于[压缩 JSON](research/data/multistep_prediction_coverage_v2_queries.json.gz)，按运行 ID 索引，主 JSON 记录其 SHA-256。每条查询保存完整误差、参照误差、五时刻能量和来源组；检查点及面板身份保留在运行记录中。
 
-**补充诊断。** 需要定位误差时，使用单独输出目录并选择 `--modes free full current past`。这些分支不会增加新的主指标。
+**误差随深度的对照。** `--modes free full` 同时运行自由推演和真实观测输入；`full` 只影响诊断，主分始终只读 `free`。首个预测时刻必须一致，随后用模拟器真实历史替换预测窗口，不提供待预测目标帧。两分支在全部五个时刻共用同一个整段未来参照分母，因此曲线变化反映误差变化，不会混入分母随深度的变化。逐时刻曲线和自由误差减真实输入误差的配对区间记录在 `error_diagnostics`。该差值同时受到状态修正与动力学证据更新的影响，不作可相加的因果归因。
+
+**其他观测替换诊断。** 需要进一步区分最新与过去观测时，使用单独输出目录并选择 `--modes free full current past`。这些分支不会增加新的主指标。
 
 程序比较自由推演、全部窗口使用真实观测、仅替换最新观测、仅替换更早观测四种输入。替换只作用于本次调用，后续仍从各分支自己的预测构造窗口；部分替换不再是连续真实轨迹，只作敏感性分析。输入不会包含本次待预测的目标帧，但替换观测属于开放环规划时未知的未来信息，不能计入规划成绩。直接编码真实未来的动作选择另列，用于检验 latent 目标代价与物理代价是否一致。
 

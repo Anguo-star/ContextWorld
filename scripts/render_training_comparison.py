@@ -2,7 +2,7 @@
 """Render aggregated training-comparison blocks in docs/ContextWorld_ICL_Benchmark.md
 (and the historical appendix in docs/reference/Benchmark_Result_Provenance.md) from the
 published docs/research/data/icl_training_study_v2.json, and maintain its aggregated CSV twin.
-The primary multi-step blocks use multistep_prediction_v1.json; legacy numbers remain separate.
+The primary multi-step blocks use multistep_prediction_coverage_v2.json; legacy numbers remain separate.
 
 Every published row stays a separate record: distinct ids, training recipes, data versions,
 or data scales never merge.  When a row carries ``replicates`` -- per-training-run dicts that
@@ -73,7 +73,9 @@ LEWM_STRENGTH_JOINT_IDS = ["action_strength/lewm/joint/scale_2k",
                            "action_strength/lewm/joint"]
 
 DETAIL_MARKERS = {task: "DETAIL_" + task.upper() for task in TASK_ORDER}
-MULTISTEP_MARKERS = ["MULTISTEP_OVERVIEW", "CEM_OVERVIEW"] + ["MULTISTEP_" + t.upper() for t in TASK_ORDER]
+MULTISTEP_MARKERS = (["MULTISTEP_OVERVIEW", "CEM_OVERVIEW"]
+                     + ["MULTISTEP_" + t.upper() for t in TASK_ORDER]
+                     + ["MULTISTEP_ERROR_" + t.upper() for t in TASK_ORDER])
 MAIN_MARKERS = MULTISTEP_MARKERS + ["CROSS_TASK_VALIDITY", "CROSS_TASK_ERRORS", "CROSS_TASK_MODELS", "OVERVIEW", "DECISION", "SPEED_DECISION", "SPEED_CEM", "SPEED_PROBE", "SPEED_TIMED", "SPEED_SEARCH", "SPEED_REFRESH", "PRED_STRENGTH", "PRED_SPEED", "PRED_HORIZON", "CURVES"] + [DETAIL_MARKERS[t] for t in TASK_ORDER] + ["SCALING"]
 APPENDIX_MARKERS = ["HISTORICAL"]
 MARKERS = MAIN_MARKERS + APPENDIX_MARKERS
@@ -718,7 +720,7 @@ def render_cross_task_tables():
 
 
 def render_multistep_primary():
-    data=json.loads((REPO/'docs/research/data/multistep_prediction_v1.json').read_text())
+    data=json.loads((REPO/'docs/research/data/multistep_prediction_coverage_v2.json').read_text())
     indexed={(r['task'],r['family'],r['regime']):r for r in data['rows']}
     if len(indexed)!=len(data['rows']):raise Fail('Duplicate multi-step score row')
     def get(task,family,regime):return indexed.get((task,family,regime))
@@ -736,6 +738,17 @@ def render_multistep_primary():
             if r:
                 body.append('| '+' | '.join([MODEL_ZH[family],REGIME_ZH[regime],f2(r['score']),f"[{f2(r['ci95'][0])}, {f2(r['ci95'][1])}]",str(r['training_repetitions'])])+' |')
         blocks['MULTISTEP_'+task.upper()]='\n'.join(_markdown_table(header,body))
+        header=['模型','方案','5 步误差','25 步自由误差','25 步真实输入误差','25 步差值 [95% 区间]']
+        body=[]
+        for family,regime in OVERVIEW_GROUPS:
+            r=get(task,family,regime)
+            if not r or 'error_diagnostics' not in r:
+                continue
+            d=r['error_diagnostics'];gap=d['feedback_gap']
+            body.append('| '+' | '.join([MODEL_ZH[family],REGIME_ZH[regime],
+                f2(d['free']['mean'][0]),f2(d['free']['mean'][-1]),f2(d['real_input']['mean'][-1]),
+                f"{f2(gap['mean'][-1])} [{f2(gap['ci95'][-1][0])}, {f2(gap['ci95'][-1][1])}]"])+' |')
+        blocks['MULTISTEP_ERROR_'+task.upper()]='\n'.join(_markdown_table(header,body))
     return blocks
 
 

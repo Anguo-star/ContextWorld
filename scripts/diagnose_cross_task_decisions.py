@@ -1,6 +1,6 @@
 """Frozen, task-neutral candidate ranking and autoregressive diagnostics."""
 from __future__ import annotations
-import argparse, hashlib, importlib, json, os, sys, faulthandler, time
+import argparse, hashlib, importlib, io, json, os, sys, faulthandler, time
 from pathlib import Path
 import numpy as np
 
@@ -141,7 +141,8 @@ def main():
     p.add_argument('--modes',nargs='+',choices=('free','full','current','past'),default=['free','full','current','past'])
     a=p.parse_args();
     if 'free' not in a.modes:p.error('--modes must include free')
-    faulthandler.dump_traceback_later(120,repeat=True);a.output.mkdir(parents=True,exist_ok=True)
+    # Keep crash traces without periodically interrupting long, healthy native calls.
+    faulthandler.enable();a.output.mkdir(parents=True,exist_ok=True)
     import torch
     torch.set_num_threads(a.threads);torch.set_num_interop_threads(1);torch.manual_seed(20260930)
     spec=next(x for x in json.loads(a.models.read_text()) if x['id']==a.id)
@@ -152,18 +153,21 @@ def main():
     rows=[]
     for i,entry in enumerate(entries):
         if i%a.shards!=a.shard:continue
-        path=a.panel/entry['path'];assert sha(path)==entry['sha256']
+        path=a.panel/entry['path']
+        # Decode exactly the bytes whose identity was verified, not a second file read.
+        source_bytes=path.read_bytes();source_sha=hashlib.sha256(source_bytes).hexdigest()
+        assert source_sha==entry['sha256']
         outpath=a.output/(path.stem+'.json')
         if outpath.exists():
-            old=json.loads(outpath.read_text());assert old['checkpoint_sha256']==spec['checkpoint_sha256'] and old['source_sha256']==sha(path)
+            old=json.loads(outpath.read_text());assert old['checkpoint_sha256']==spec['checkpoint_sha256'] and old['source_sha256']==source_sha
             if not set(a.modes).issubset(old['modes']):
                 raise ValueError('Existing output lacks requested modes; use a separate output directory')
             rows.append(old);continue
-        with np.load(path,allow_pickle=False) as f:data={k:f[k] for k in f.files}
+        with np.load(io.BytesIO(source_bytes),allow_pickle=False) as f:data={k:f[k] for k in f.files}
         values,arrays=evaluate(adapter,data,spec['family'],i in (0,len(entries)-1),modes=a.modes)
         arraypath=outpath.with_suffix('.npz');np.savez_compressed(arraypath,**arrays)
         row=dict(scene_id=entry.get('scene_id',entry.get('pair_id',entry.get('query_id',path.stem))),model_id=a.id,
-            checkpoint_sha256=spec['checkpoint_sha256'],source_sha256=sha(path),array_sha256=sha(arraypath),**values)
+            checkpoint_sha256=spec['checkpoint_sha256'],source_sha256=source_sha,array_sha256=sha(arraypath),**values)
         write(outpath,row);rows.append(row);print(a.id,i+1,'/',len(entries),flush=True)
     after=adapter.frozen_state_hash();assert before==after
     write(a.output/('receipt.json' if a.shards==1 else f'shard{a.shard}_receipt.json'),dict(model=adapter.metadata,model_id=a.id,panel_sha256=sha(a.panel/'manifest.json'),

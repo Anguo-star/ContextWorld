@@ -66,6 +66,58 @@ def test_repetitions_are_averaged_after_per_checkpoint_normalization():
 
 def test_primary_uses_free_predictions_never_teacher_forced_future():
     z=arrays();record=from_arrays(np.zeros_like(z),z)
-    record['modes']['full']={'prediction_error_sum':[0.]*5}
+    record['modes']['full']={'prediction_error_sum':[2.,0.,0.,0.,0.]}
     q=query_energies(record)
     assert score(q['numerator'],q['denominator'])==0
+
+
+def test_feedback_diagnostic_keeps_one_denominator_across_depths():
+    # Increasing physical separation must not hide a growing free error.
+    base=dict(task='speed',family='lewm',regime='scratch',panel_sha256='p',
+              id='a',training_seed=1,checkpoint_sha256='a',queries=[dict(
+              query_id='q',numerator=3.,denominator=10.,
+              horizon_numerators=[1.,2.,3.,4.,5.],
+              horizon_denominators=[1.,2.,5.,12.,30.],
+              real_input_horizon_numerators=[1.,1.,1.,1.,1.])])
+    r=aggregate_runs([base]);d=r['error_diagnostics']
+    assert d['free']['mean']==pytest.approx([.1,.2,.3,.4,.5])
+    assert d['feedback_gap']['mean']==pytest.approx([0.,.1,.2,.3,.4])
+    assert r['score']==pytest.approx(70)
+
+
+def test_real_observation_diagnostic_does_not_replace_primary_score():
+    z=arrays();record=from_arrays(np.zeros_like(z),z)
+    record['modes']['full']={'prediction_error_sum':[2.,0.,0.,0.,0.]}
+    q=query_energies(record)
+    assert q['real_input_horizon_numerators']==[1.,0.,0.,0.,0.]
+    assert score(q['numerator'],q['denominator'])==0
+
+
+def test_inconsistent_first_step_refresh_is_rejected():
+    z=arrays();record=from_arrays(np.zeros_like(z),z)
+    record['modes']['full']={'prediction_error_sum':[0.]*5}
+    with pytest.raises(ValueError,match='first steps'):
+        query_energies(record)
+
+
+def test_compressed_query_records_roundtrip_without_mutating_payload(tmp_path):
+    import gzip,json
+    from multistep_prediction_score import write_outputs,sha
+    p=dict(runs=[dict(id='r',queries=[dict(query_id='q',numerator=2.)])],rows=[])
+    out=tmp_path/'scores.json';write_outputs(p,out,split_queries=True)
+    saved=json.loads(out.read_text());ref=saved['query_records']
+    data=tmp_path/ref['path']
+    assert sha(data)==ref['sha256']
+    assert json.loads(gzip.decompress(data.read_bytes()))=={'r':p['runs'][0]['queries']}
+    assert 'queries' in p['runs'][0] and 'queries' not in saved['runs'][0]
+
+
+def test_shared_source_queries_are_bootstrapped_together():
+    # Two mirror views of a single source must never become two independent draws.
+    queries=[dict(query_id='a',bootstrap_cluster='same-source',numerator=1.,denominator=1.),
+             dict(query_id='b',bootstrap_cluster='same-source',numerator=0.,denominator=1.)]
+    run=dict(task='motion_damping',family='lewm',regime='scratch',panel_sha256='p',
+             id='a',training_seed=1,checkpoint_sha256='a',queries=queries)
+    r=aggregate_runs([run])
+    assert r['score']==50 and r['bootstrap_clusters']==1
+    assert r['ci95']==[50.,50.]

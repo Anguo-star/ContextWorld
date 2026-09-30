@@ -13,7 +13,7 @@
 
 九项任务按隐藏动力学类型组织。主表只展示多步完整预测分，任务子表报告区间和训练重复数；CEM 与历史选择、响应指标折叠单列。
 
-最新结果见[九任务主表](ContextWorld_ICL_Benchmark.md#training-comparison)。当前范围是 134 个固定 Development 场景，尚非完整基准。相同配置的全部可用训练重复参与汇总，[JSON](research/data/multistep_prediction_v1.json) 与 [CSV](research/data/multistep_prediction_v1.csv) 提供逐次与汇总结果。旧完整 Development 结果在技术报告的历史表中保留。
+最新结果见[九任务主表](ContextWorld_ICL_Benchmark.md#training-comparison)。当前覆盖九任务主分布的 2,436 个 Development 场景；Speed 限于未见速度插值，Test 尚未评测。相同配置的全部可用训练重复参与汇总，[JSON](research/data/multistep_prediction_coverage_v2.json) 与 [CSV](research/data/multistep_prediction_coverage_v2.csv) 提供逐次与汇总结果。旧完整 Development 结果在技术报告的历史表中保留。
 
 ## 任务导航
 
@@ -46,7 +46,7 @@ Test 来源为 `ContextWorld-v1-full`；`ContextWorld-v3-hf` 是汇集这些冻�
 
 [v3 发布需求与验收](ContextWorld_Public_v1_Release_Readiness.md) 记录候选包、数据卡、
 文件校验和上传后固定 revision 的下载验证。独立外部复现与新增模型覆盖单独维护，
-不重开已封板的 baseline。
+不修改已冻结的历史基线。
 
 目前 Training、Development 和 Test 数据包已在本地完成发布候选组装，但稳定的公开数据集
 修订尚未公布；Test 通过离线评分入口用于最终报告。
@@ -65,3 +65,5 @@ Test 来源为 `ContextWorld-v1-full`；`ContextWorld-v3-hf` 是汇集这些冻�
 - 更新时同步检查表头、图例、公式、正文、链接及配套数据指南；当前数据与历史版本明确区分，删去重复解释与内部简称，保留复现所需信息。
 - 新增实验先说明它与已有评测的关系；显式交代样本数、分母与配对单位，不混用成功数、成功率和重复次数。已有说明准确时直接引用，避免每次更新都重复堆叠背景与限制。
 - 补充诊断增加时，按待回答的问题重组原章节，先给发现和阅读导航，再给对照与完整表格；不在末尾逐轮追加实验记录。不同分母的误差比必须明确命名，诊断性真实信息替换不计作模型规划成绩。
+
+新增评分或数据分布先标明验证阶段与覆盖范围；不得因表格完整而称为正式冻结基准。根因对照固定场景、动作、目标表示和误差分母，并说明干预同时改变了哪些信息。
