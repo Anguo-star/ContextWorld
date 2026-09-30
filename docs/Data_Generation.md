@@ -150,7 +150,7 @@ python scripts/build_speed_action_selection.py \
   --output /path/to/speed-action-selection-v1
 ```
 
-模型评分入口为 `scripts/eval_speed_action_selection.py`，汇总入口为 `scripts/summarize_speed_action_selection.py`；各入口的 `--help` 列出检查点、数据位置与并行参数。评分保存所有候选成本，检查权重未变，并将缓存历史编码的计算与原生 Adapter 对照。汇总对同一场景的速度条件等权平均，以场景为 bootstrap 单位；不同速度分布不合并。完整协议与结果见[速度动作选择结果](research/data/speed_action_selection_v1.json)，解释见[技术报告 §5.5](ContextWorld_ICL_Benchmark.md#55-条件预测与动作选择)。
+模型评分入口为 `scripts/eval_speed_action_selection.py`，汇总入口为 `scripts/summarize_speed_action_selection.py`；各入口的 `--help` 列出检查点、数据位置与并行参数。评分保存所有候选成本，检查权重未变，并将缓存历史编码的计算与原生 Adapter 对照。汇总对同一场景的速度条件等权平均，以场景为 bootstrap 单位；不同速度分布不合并。完整协议与结果见[速度动作选择结果](research/data/speed_action_selection_v1.json)，解释见[技术报告 §5.5](ContextWorld_ICL_Benchmark.md#55-预测准确性与动作选择)。
 
 <a id="complete-prediction"></a>
 
@@ -189,6 +189,31 @@ python scripts/build_speed_timed_arrival.py \
 **区分搜索与预测误差。** `scripts/diagnose_speed_timed_arrival.py` 读取同一数据面板、检查点和已保存的 CEM 结果，只重放与评分，不训练或重新搜索。对每个正确历史条件，比较实际执行动作与使用真实速度构造的可达恒定控制；分别保存原生预测代价、真实未来编码代价、物理终点误差和碰撞。真实速度仅用于诊断控制，不进入模型输入。这里重新计算最终执行动作的代价，不使用 CEM 日志中的精英平均代价。
 
 逐条件结果由 `scripts/summarize_speed_search_diagnosis.py` 汇总；输入按 `T0/<query_id>.json`、`T1/<query_id>.json` 保存，`protocol.json` 固定候选规则及数值平局容差。汇总核对原计划、数据与权重身份，并分别统计搜索差距和动作错排；同场景的三个条件仅作描述性计数，不当作独立显著性证据。[动作评分诊断结果](research/data/speed_timed_arrival_search_v1.json)包含协议与逐条件测量。该诊断不改变原 CEM 成绩，也不代表可部署的速度未知控制器。
+
+<a id="speed-rollout-refresh"></a>
+
+## 真实观测与自回归输入的对照
+
+这项诊断不生成新场景，也不重新训练或搜索。它复用定时到达面板、两模型已保存的 CEM 计划及可达恒定控制，在每个 5 步动作块末保存真实图像。每个模型覆盖六个场景、三种速度、两条动作序列。
+
+`scripts/diagnose_speed_rollout_refresh.py` 比较自由推演、仅替换当前 latent、仅替换过去两帧 latent、全部三帧使用真实编码四种输入。第 t 次预测使用真实帧序列的 `[t:t+3]` 和从这些帧出发的动作块，不使用待预测的下一帧。部分替换仅作用于当次调用，下一次仍从该分支自己的预测序列构造窗口。完整替换是连续真实历史下的一步预测；部分替换不是连续真实轨迹，只作敏感性分析。所有替换均读取开放环规划时未知的未来图像，不计入模型规划成绩。
+
+运行时，先将[结果 JSON](research/data/speed_rollout_refresh_v1.json)的 `protocol` 字段保存为 `protocol.json`，再对每个检查点与场景调用：
+
+```bash
+python scripts/diagnose_speed_rollout_refresh.py \
+  --panel /path/to/speed-timed-arrival/panel \
+  --saved-plan /path/to/speed-timed-arrival/T1/QUERY_ID.json \
+  --previous-diagnosis /path/to/search-diagnosis/T1/QUERY_ID.json \
+  --checkpoint /path/to/checkpoint.pt --expected-sha256 CHECKPOINT_SHA256 \
+  --stable-repo /path/to/stable-worldmodel \
+  --stable-ref 6ab823fdc6921c95089992ed49c39e431e21ca4a \
+  --protocol /path/to/refresh/protocol.json --output /path/to/refresh/T1
+```
+
+输出保存逐条件、逐候选、逐时域预测数组与凭据。程序核对仿真轨迹和既有记录一致、自由推演与原生 Adapter 一致、所有分支首步相同，并检查权重未变。像素速度估计器按已知渲染规则定位红色智能体，以两段实际位移对动作累计量做最小二乘估计；估计时不读取隐藏速度或物理状态，只在评分时比较真值。它检验该面板的图像历史是否含可辨识信息，不评价原生 encoder 是否已提取该信息。
+
+`scripts/summarize_speed_rollout_refresh.py` 接收 `--root`（含 T0、T1 输出及协议）、`--source-root`（定时到达）、`--previous-root`（候选评分对照）和 `--output`。汇总先在场景内等权平均速度和候选，再累计误差求比；不平均逐条件比值。配对 bootstrap 整簇抽取六个场景，10,000 次、种子 20260930。误差比使用同一检查点、同一时域的自由推演作分母，不混同于条件均值参照或静态参照；另外报告两候选各自的误差比和无碰撞子集的排序。解释见[技术报告](ContextWorld_ICL_Benchmark.md#speed-rollout-refresh)。
 
 <a id="speed-cem"></a>
 

@@ -40,6 +40,7 @@ SPEED_CEM_PATH = REPO / "docs" / "research" / "data" / "speed_cem_initial_eviden
 SPEED_PROBE_PATH = REPO / "docs" / "research" / "data" / "speed_planning_horizon_probe_v1.json"
 SPEED_TIMED_PATH = REPO / "docs" / "research" / "data" / "speed_timed_arrival_v1.json"
 SPEED_SEARCH_PATH = REPO / "docs" / "research" / "data" / "speed_timed_arrival_search_v1.json"
+SPEED_REFRESH_PATH = REPO / "docs" / "research" / "data" / "speed_rollout_refresh_v1.json"
 COMPLETE_PREDICTION_PATH = REPO / "docs" / "research" / "data" / "icl_complete_prediction_v1.json"
 
 TASK_ORDER = ["speed", "action_strength", "robot_arm_mass", "action_delay",
@@ -71,7 +72,7 @@ LEWM_STRENGTH_JOINT_IDS = ["action_strength/lewm/joint/scale_2k",
                            "action_strength/lewm/joint"]
 
 DETAIL_MARKERS = {task: "DETAIL_" + task.upper() for task in TASK_ORDER}
-MAIN_MARKERS = ["OVERVIEW", "DECISION", "SPEED_DECISION", "SPEED_CEM", "SPEED_PROBE", "SPEED_TIMED", "SPEED_SEARCH", "PRED_STRENGTH", "PRED_SPEED", "PRED_HORIZON", "CURVES"] + [DETAIL_MARKERS[t] for t in TASK_ORDER] + ["SCALING"]
+MAIN_MARKERS = ["OVERVIEW", "DECISION", "SPEED_DECISION", "SPEED_CEM", "SPEED_PROBE", "SPEED_TIMED", "SPEED_SEARCH", "SPEED_REFRESH", "PRED_STRENGTH", "PRED_SPEED", "PRED_HORIZON", "CURVES"] + [DETAIL_MARKERS[t] for t in TASK_ORDER] + ["SCALING"]
 APPENDIX_MARKERS = ["HISTORICAL"]
 MARKERS = MAIN_MARKERS + APPENDIX_MARKERS
 
@@ -542,7 +543,7 @@ def render_speed_probe():
     expected = {(s, a, t) for s in ("T0", "T1") for a in names for t in (5, 10, 15, 20, 25)}
     if len(indexed) != len(evidence["rows"]) or set(indexed) != expected:
         raise Fail("Speed rollout probe must contain two schemes × four arms × five depths")
-    header = ["方案", "动作条件", "预测误差比↓（5 → 25 步）", "响应分↑（5 → 25 步）",
+    header = ["方案", "动作条件", "静态参照误差比↓（5 → 25 步）", "响应分↑（5 → 25 步）",
               "动作 regret↓（25 步，px）", "真实未来编码 regret↓（25 步，px）",
               "候选最优距离↓（25 步，px）"]
     body = []
@@ -595,6 +596,27 @@ def render_speed_search():
     return "\n".join(_markdown_table(header, body))
 
 
+def render_speed_refresh():
+    evidence = json.loads(SPEED_REFRESH_PATH.read_text(encoding="utf-8"))
+    indexed = {(r['scheme'],r['mode']):r for r in evidence['rows']}
+    labels = dict(free='自由推演', current='补入真实当前帧', past='补入真实过去两帧', full='补入真实三帧')
+    expected={(s,m) for s in ('T0','T1') for m in labels}
+    if set(indexed)!=expected or len(evidence['rows'])!=len(expected):
+        raise Fail('Incomplete rollout refresh comparison')
+    header=['方案','预测输入','末步误差 / 自由推演↓（%，95%区间）','正确偏好可达动作↑（条件数）']
+    body=[]
+    for s in ('T0','T1'):
+        for m,label in labels.items():
+            r=indexed[s,m]; e=r['error_relative_to_free_by_depth'][-1]
+            if r['conditions']!=18 or sum(r['terminal_preference_counts'].values())!=18:
+                raise Fail('Expected 18 matched-history comparisons')
+            lo,hi=e['ci95']
+            body.append('| '+' | '.join([s,label,
+                f"{100*e['value']:.1f} [{100*lo:.1f}, {100*hi:.1f}]",
+                f"{r['terminal_preference_counts']['reference']} / 18"])+' |')
+    return '\n'.join(_markdown_table(header,body))
+
+
 def render_complete_prediction(dataset):
     evidence = json.loads(COMPLETE_PREDICTION_PATH.read_text(encoding="utf-8"))
     selected = [r for r in evidence['rows'] if r['dataset'] == dataset]
@@ -610,7 +632,7 @@ def render_complete_prediction(dataset):
                 (('T0','T1') if m=='dinowm' else ('T0','T1','T2','T3'))]
     if set(indexed) != set(keys) or len(selected) != len(keys):
         raise Fail('Incomplete native-action prediction comparison')
-    header = ['评测条件' if speed else '模型','方案','完整误差↓（95%区间）',
+    header = ['评测条件' if speed else '模型','方案','完整误差比↓（95%区间）',
               '响应误差↓','共同偏差↓','历史误差下降↑']
     body = []
     for key in keys:
@@ -627,7 +649,7 @@ def render_prediction_horizon():
     indexed = {(r['scheme'],r['arm'],r['raw_steps']):r for r in evidence['rows'] if r['dataset']=='speed_horizon'}
     contrasts = {(r['scheme'],r['arm']):r for r in evidence['contrasts']
                  if r['dataset']=='speed_horizon' and 'energy_growth' in r}
-    header = ['方案','动作条件','完整误差↓（5 → 25 步）',
+    header = ['方案','动作条件','完整误差比↓（5 → 25 步）',
               '预测平方误差倍数（25/5 步，95%区间）','参照能量倍数（25/5 步）']
     body=[]
     for scheme in ('T0','T1'):
@@ -671,6 +693,7 @@ def build_blocks(rows):
               "SPEED_PROBE": render_speed_probe(),
               "SPEED_TIMED": render_speed_timed(),
               "SPEED_SEARCH": render_speed_search(),
+              "SPEED_REFRESH": render_speed_refresh(),
               "PRED_STRENGTH": render_complete_prediction("strength_native"),
               "PRED_SPEED": render_complete_prediction("speed_native"),
               "PRED_HORIZON": render_prediction_horizon(),
