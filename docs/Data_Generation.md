@@ -6,12 +6,11 @@
 [Benchmark 规范](ContextWorld_ICL_Benchmark.md)，目录和加载方式见
 [ContextWorld-v1 数据集指南](HF_Dataset_Export.md)。
 
-当前训练比较使用扩量后的 Training 与固定的 Development / Test。多步预测从九任务主分布的注册 Development 查询扩展未来候选，原评测数据字节不变。
-各任务现用规模见[技术报告 §2](ContextWorld_ICL_Benchmark.md#2-数据与划分)，打包状态见
-[发布说明](Expanded_Training_Release.md)。Test 与 Training / Development 隔离，用于离线最终报告；
-稳定公共下载版本尚未公布。配置与 manifest 记录各数据版本的精确身份。
+当前训练比较使用扩量后的 Training 与固定的 Development / Test。多步预测从九任务主分布的注册 Development 查询扩展未来候选，原评测数据字节不变。各任务规模见[技术报告 §2](ContextWorld_ICL_Benchmark.md#2-数据与划分)。
 
-## 从隐藏规律到公开数据包
+Training、Development 和 Test 已在本地组装为发布候选，但稳定公共下载地址与固定 revision 尚未公布；因此公开汇总可检查，外部端到端复现暂不可用。Test 与其他划分隔离，仅用于离线最终报告。配置与 manifest 记录各数据版本身份，打包进度见[发布说明](Expanded_Training_Release.md)。
+
+## 从隐藏规律到本地发布候选
 
 九项任务共享同一条构造链：
 
@@ -28,12 +27,13 @@
         ↓
 冻结的组件工件
         ↓
-ContextWorld-v1 clean export
+冻结组件的 clean export 候选
 ```
 
 生成器改变速度、延迟、质量、接触属性或结构转移规则，然后让真实环境模拟器执行动作。
 保存的图像和真实未来均由模拟器渲染，不由图像生成模型合成、补帧或编辑。clean exporter
-只把已经审计的文件复制到公共目录并生成 manifest；它不会重新仿真，也不会改变样本语义。
+只把已经审计的文件复制到候选目录并生成 manifest；它不会重新仿真，也不会改变样本语义。
+当前候选尚未发布为带固定 revision 的公共下载包。
 
 ## 连续因果轨迹
 
@@ -79,8 +79,7 @@ query 匹配，却不能成为模型识别标签的捷径。
 ## 九项组件的生成入口
 
 下表记录各任务的基础训练构造器和当前 Development 来源，不表示存在
-一个适用于所有环境的一键重建命令；不同模拟器需要各自的上游环境数据与依赖。公共用户
-可用数据包的加载方式见数据集指南；复核或重新生成数据时使用这些入口。
+一个适用于所有环境的一键重建命令；不同模拟器需要各自的上游环境数据与依赖。数据包格式与加载方式见数据集指南；复核或重新生成数据时使用这些入口。
 表内六项配对任务列出基础 Training 数量，当前扩量规模另见技术报告 §2，不能将两者混用。
 
 | 任务 | 环境与隐藏变量 | H | Training / Development 构造 | 构造器与配置 | `ContextWorld-v1` 输出 | 主要泄漏控制 |
@@ -123,14 +122,21 @@ profile 不跨 split 复用。对长度为 5 的 probe `p`，每个扰动必须�
 5. **文件完整性**：发布配置与 manifest 固定文件路径、大小和 SHA-256。
 
 通过组件级检查后，`configs/benchmark/contextworld_hf_clean_export_v1.yaml` 把明确登记的
-Training、Development 和 Test 工件映射到公共目录。`scripts/export_contextworld_hf_clean.py`
+Training、Development 和 Test 工件映射到 clean export 候选目录。`scripts/export_contextworld_hf_clean.py`
 拒绝符号链接、凭据样文本、未登记目录和已有目标，复制后重新校验每个文件，并生成
 `task_registry.json`、`manifest.jsonl` 与 `manifest.sha256`。原始环境数据、模型检查点、
 训练日志、上游源码、历史模型输出和内部 Test `score_receipts` 均不进入 clean export。
 
-因此，数据生成与数据分发是两件事：前者决定物理轨迹和因果对照，后者只发布已冻结的
+因此，数据生成与数据分发是两件事：前者决定物理轨迹和因果对照，后者只收录已冻结的
 Training/Development/Test 字节。重新运行 exporter 不能替代生成审计，也不会生成新的
 测试数据。
+
+## 诊断数据的补充复现
+
+多步主分覆盖九项任务共 2,436 个 Development 场景，Speed 仅含未见速度插值。下方展开项记录候选动作、模型输入校验及逐查询复算；这些诊断不改变主分。完整面板与全部权重尚无稳定公开下载，当前汇总不能替代端到端复现。
+
+<details>
+<summary>动作选择、模型输入校验与预测误差复算（展开）</summary>
 
 <a id="speed-action-selection"></a>
 
@@ -227,7 +233,10 @@ python scripts/summarize_cross_task_decisions.py \
 汇总验证面板、逐查询结果和数组哈希。物理代价先在源场景内等权平均条件，再平均场景；预测误差比先累计分子、分母再相除。95% 区间整簇重采样源场景 4,000 次，种子为 20260930，不将候选或隐藏条件当作独立重复。完整结果与限制见[技术报告](ContextWorld_ICL_Benchmark.md#cross-task-decisions)及[JSON](research/data/cross_task_decision_v1.json)、[CSV](research/data/cross_task_decision_v1.csv)。这些汇总与文件身份已公开；原始面板和全部权重尚未稳定分发，不宣称仅凭汇总即可完整复现。
 
 
-### 历史对照与物理校准
+
+</details>
+
+## 历史对照与物理校准
 
 这两项验证直接复用上述多步面板与冻结检查点，不生成新轨迹、不访问 Test，也不修改已有主分。
 
@@ -273,8 +282,38 @@ python scripts/summarize_icl_measurement_validation.py \
 汇总对正确／错误历史及物理读出使用同一来源重采样，并检查主分与已有结果一致。可下载的 [JSON](research/data/icl_measurement_validation_v1.json) 与 [CSV](research/data/icl_measurement_validation_v1.csv) 保存全部训练方案、配对区间和五时刻历史收益。数据构造的独立检查见[面板验证结果](research/data/icl_measurement_panel_v1.json)；历史图像不同只证明输入存在差异，不作为充分辨识的证明。
 
 
+## 物理目标分解与画布范围诊断
+
+该诊断复用冻结的逐场景 latent 缓存和原三折读出，不运行世界模型推理，也不改变主分。固定范围为九任务的 DINO-WM T1 检查点，以及三项 PushT 的 LeWM / PLDM T3 检查点，共 15 项。具体检查点身份随[协议与结果](research/data/icl_observable_targets_v1.json)提供。
+
+PushT 用相同折分、每来源 32 帧的采样、正则及特征变换重建原读出；全量结果必须与原记录一致后才能分解。其他任务直接复用原记录的逐坐标误差。推手单独报告 x、y；方块联合报告 x、y、$40\sin\theta$、$40\cos\theta$；Cube 的末端与方块分开。各物体的 MSE 按坐标数加权后必须恢复原总 MSE。
+
+画布判定仅适用于 PushT：坐标中心必须在闭区间 [0,512] 内。固定场景、候选和时刻后，只有全部隐藏条件的两个物体都满足条件，才保留整个配对单元。它是几何范围检查，不证明无遮挡或单帧可辨识。报告全部、画布内和其余配对单元的覆盖与误差；不删除原查询。子集 RMSE 先在每场景的选中单元内平均，再在有选中单元的场景间等权平均，空子集显式计数。子集误差贡献则使用原全部单元作分母，两部分之和必须恢复原全量 MSE；不能用不同分母的子集 RMSE 直接作根因占比分解。
+
+条件差异能量逐坐标计算 $\sum_{q,k,c,t}(y_{qkct}-\bar y_{qct})^2$，报告子集占原总能量的比例。条件方差为零的查询仍计入误差分子；只有总条件方差为零时，归一化读数才为空。区间按来源组重采样 1,000 次，种子 20261108；不同物理单位不合并。
+
+```bash
+python -m scripts.diagnose_observable_targets \
+  --task contact_friction \
+  --reference-result /path/to/physical/contact_friction/dinowm/scratch/s3072.json \
+  --features-dir /path/to/features/contact_friction/dinowm/scratch/s3072 \
+  --panels-dir /path/to/panels/contact_friction \
+  --seed 20261007 --bootstrap-reps 1000 \
+  --output /path/to/diagnostic/results/contact_friction/dinowm/scratch/s3072.json
+
+# 非 PushT 任务只需 --task、--reference-result 和 --output；
+# 全部结果齐备后，使用同目录下的 models.json 与 protocol.json 汇总。
+python -m scripts.summarize_observable_targets \
+  --root /path/to/diagnostic \
+  --output-prefix /path/to/icl_observable_targets_v1
+```
+
+诊断中的校准误差与预测读出误差并列报告，不相减后称为纯模型误差；按画布条件分组也不代表新模型成绩。现有数据与主分保持原样，新生成规则需另设版本并重新验证历史证据、可见后果及完整配对覆盖。
+
+## Speed 单任务诊断复算
+
 <details>
-<summary>单任务实验的生成与复算细节：Speed 规划及完整预测</summary>
+<summary>实验生成与复算细节（展开）</summary>
 
 ## 速度任务的候选动作评测数据
 
