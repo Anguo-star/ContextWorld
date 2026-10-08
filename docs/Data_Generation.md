@@ -227,6 +227,52 @@ python scripts/summarize_cross_task_decisions.py \
 汇总验证面板、逐查询结果和数组哈希。物理代价先在源场景内等权平均条件，再平均场景；预测误差比先累计分子、分母再相除。95% 区间整簇重采样源场景 4,000 次，种子为 20260930，不将候选或隐藏条件当作独立重复。完整结果与限制见[技术报告](ContextWorld_ICL_Benchmark.md#cross-task-decisions)及[JSON](research/data/cross_task_decision_v1.json)、[CSV](research/data/cross_task_decision_v1.csv)。这些汇总与文件身份已公开；原始面板和全部权重尚未稳定分发，不宣称仅凭汇总即可完整复现。
 
 
+### 历史对照与物理校准
+
+这两项验证直接复用上述多步面板与冻结检查点，不生成新轨迹、不访问 Test，也不修改已有主分。
+
+`validate_history_conditioning.py` 对每种真实历史各推演一次，计算“输入历史 × 真实未来条件”的完整误差矩阵。匹配项组成正确历史误差，所有非匹配项等权组成错误历史误差；多条件任务不只选择一组任意交换。每个源场景保留全部动作和时刻。误差先跨场景累计再除以主分参照，训练重复等权平均，来源组配对 bootstrap 4,000 次（种子 20260930）。同条件未来无法区分的动作仍保留。
+
+```bash
+python scripts/validate_history_conditioning.py \
+  --models /path/to/models.json --id action_strength/lewm/scratch \
+  --panel /path/to/panels/action_strength \
+  --output /path/to/validation/results/action_strength/lewm/scratch \
+  --device cuda
+
+python scripts/validate_physical_readout.py \
+  --features-dir /path/to/validation/results/action_strength/lewm/scratch \
+  --panels-dir /path/to/panels/action_strength --task action_strength \
+  --output /path/to/validation/physical/action_strength/lewm/scratch.json \
+  --seed 20261007 --bootstrap-reps 1000
+```
+
+物理读出使用与区间统计相同的来源组，按种子 20261007 确定性地分为三折。每折只在其他两折的真实未来 latent 上拟合带截距的 ridge 回归；特征标准化也只使用拟合折。每来源最多均匀取 32 帧，正则系数为 0.001，按平均平方损失定义。DINO-WM 先固定池化为 4×4 个 patch 区域；超过 512 维的特征再用固定稀疏随机投影降至 512 维，种子 20261007。LeWM / PLDM 保留原生向量。这些变换仅供辅助读出，不改变主分所用的完整 latent。
+
+| 任务环境 | 校准目标 | RMSE 单位 |
+|---|---|---|
+| TwoRoom | 智能体 x、y 坐标 | px |
+| PushT | 推手及方块的 x、y，另加 $40\sin\theta$、$40\cos\theta$ | px 等效 |
+| Reacher Mass | 末端 x、y 坐标 | mm |
+| Cube | 末端与方块的 x、y、z 坐标 | mm |
+
+RMSE 是全部指定坐标分量的均方误差再开方，不是物体欧氏距离的均值。每场景先平均条件、候选、时刻和坐标，再跨场景平均；来源组只影响折分及区间，不改变场景等权的点估计。归一化 RMSE 先累计场景 MSE，再除以同一物理坐标的条件方差之和、最后开方，不能平均逐场景比值。零条件方差的场景仍保留误差分子；总方差为零则该比值无定义。
+
+物理坐标来自模拟器，并非都能从单帧图像恢复。PushT 扩展轨迹存在离屏推手，已找到图像完全相同而坐标不同的反例；因此相关物理读出不能直接作为准确度排名。可见性检查入口为 `scripts/check_physical_visibility.py --panels-root /path/to/panels --output /path/to/visibility.json`，结果见[物理可见性检查](research/data/icl_physical_visibility_v1.json)。检查不删除任何原查询，也不更改主分。
+
+每折分别评价未参与拟合的真实 latent 和预测 latent，并保存逐场景误差。真实 latent 的校准误差是对读出质量的检查，不是不可约误差下界；不能把预测误差减去它后称为纯模型误差。该校准使用 Development 的物理标注，不等于只输入图像和动作的世界模型获得了这些标注，也不构成无需校准的公共物理评分。
+
+全部检查点完成后，将登记文件放到 `validation/models.json`，使用相同 ID 的结果目录汇总：
+
+```bash
+python scripts/summarize_icl_measurement_validation.py \
+  --root /path/to/validation --panels-root /path/to/panels \
+  --output /path/to/measurement_validation.json
+```
+
+汇总对正确／错误历史及物理读出使用同一来源重采样，并检查主分与已有结果一致。可下载的 [JSON](research/data/icl_measurement_validation_v1.json) 与 [CSV](research/data/icl_measurement_validation_v1.csv) 保存全部训练方案、配对区间和五时刻历史收益。数据构造的独立检查见[面板验证结果](research/data/icl_measurement_panel_v1.json)；历史图像不同只证明输入存在差异，不作为充分辨识的证明。
+
+
 <details>
 <summary>单任务实验的生成与复算细节：Speed 规划及完整预测</summary>
 
@@ -246,7 +292,7 @@ python scripts/build_speed_action_selection.py \
   --output /path/to/speed-action-selection-v1
 ```
 
-模型评分入口为 `scripts/eval_speed_action_selection.py`，汇总入口为 `scripts/summarize_speed_action_selection.py`；各入口的 `--help` 列出检查点、数据位置与并行参数。评分保存所有候选成本，检查权重未变，并将缓存历史编码的计算与原生 Adapter 对照。汇总对同一场景的速度条件等权平均，以场景为 bootstrap 单位；不同速度分布不合并。完整协议与结果见[速度动作选择结果](research/data/speed_action_selection_v1.json)，解释见[技术报告 §5.5](ContextWorld_ICL_Benchmark.md#55-预测准确性与动作选择)。
+模型评分入口为 `scripts/eval_speed_action_selection.py`，汇总入口为 `scripts/summarize_speed_action_selection.py`；各入口的 `--help` 列出检查点、数据位置与并行参数。评分保存所有候选成本，检查权重未变，并将缓存历史编码的计算与原生 Adapter 对照。汇总对同一场景的速度条件等权平均，以场景为 bootstrap 单位；不同速度分布不合并。完整协议与结果见[速度动作选择结果](research/data/speed_action_selection_v1.json)，解释见[技术报告 §5.5](ContextWorld_ICL_Benchmark.md#55-预测误差与动作选择)。
 
 <a id="complete-prediction"></a>
 

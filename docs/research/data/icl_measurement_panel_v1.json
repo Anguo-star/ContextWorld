@@ -1,0 +1,1653 @@
+{
+  "schema": "contextworld.icl_measurement_panel_validation.v1",
+  "scope": {
+    "panels_root": "/tmp/cw-multistep-coverage-20260930/panels",
+    "tasks": [
+      "speed",
+      "action_strength",
+      "robot_arm_mass",
+      "action_delay",
+      "contact_friction",
+      "motion_damping",
+      "cube_gripper_carry",
+      "door",
+      "portal_exit"
+    ],
+    "task_count": 9,
+    "scene_count": 2436,
+    "expected_scene_count": 2436,
+    "evaluation_split": "development",
+    "no_training": true,
+    "test_payload_accessed": false,
+    "model_free": true,
+    "cpu_only": true
+  },
+  "tasks": {
+    "speed": {
+      "task": "speed",
+      "family": "tworoom",
+      "physical_coordinate_spec": {
+        "family": "tworoom",
+        "names": [
+          "agent_x_px",
+          "agent_y_px"
+        ],
+        "units": "px",
+        "mapping": "TwoRoom future_states[..., :2] (agent xy)"
+      },
+      "scene_count": 300,
+      "source_group_count": 300,
+      "source_group_fields": [
+        "source_sha256"
+      ],
+      "conditions_seen": [
+        "3.4",
+        "4.8",
+        "6.9"
+      ],
+      "candidate_counts_seen": [
+        24,
+        26
+      ],
+      "horizons": [
+        5,
+        10,
+        15,
+        20,
+        25
+      ],
+      "current_image": {
+        "bitwise_equal_scenes": 300,
+        "all_scenes_equal": true
+      },
+      "context_actions": {
+        "bitwise_equal_scenes": 300,
+        "all_scenes_equal": true
+      },
+      "historical_pixels": {
+        "condition_difference_scenes": 300,
+        "all_scenes_have_a_historical_difference": true,
+        "frame_indices_excluding_current": [
+          0,
+          1
+        ],
+        "frame_difference_scene_counts": [
+          0,
+          300
+        ],
+        "frame_total_condition_comparisons": [
+          600,
+          600
+        ]
+      },
+      "physical_separability": {
+        "horizons": [
+          5,
+          10,
+          15,
+          20,
+          25
+        ],
+        "separable_pair_fraction_by_horizon": [
+          0.9605263157894737,
+          0.9605263157894737,
+          0.9596052631578947,
+          0.9519298245614035,
+          0.9338596491228071
+        ],
+        "separable_pair_count_by_horizon": [
+          21900,
+          21900,
+          21879,
+          21704,
+          21292
+        ],
+        "zero_or_below_tolerance_pair_count_by_horizon": [
+          900,
+          900,
+          921,
+          1096,
+          1508
+        ],
+        "pair_count_per_horizon": [
+          22800,
+          22800,
+          22800,
+          22800,
+          22800
+        ],
+        "pairwise_squared_distance_sum_by_horizon": [
+          1396882.0635297801,
+          5464847.760372335,
+          10957705.1402555,
+          16340665.13150046,
+          20316870.499719214
+        ],
+        "pairwise_squared_distance_mean_by_horizon": [
+          61.26675717235878,
+          239.68630527948838,
+          480.60110264278507,
+          716.6958391008974,
+          891.0908113911936
+        ],
+        "condition_mean_reference_energy_by_horizon": [
+          465627.3545099263,
+          1821615.9201241108,
+          3652568.380085165,
+          5446888.377166821,
+          6772290.16657307
+        ],
+        "tolerance_squared": 1e-08,
+        "future_source": "all stored true future_states/finger_positions for every candidate and horizon; no candidate or zero-action row filtered",
+        "zero_rows_retained": true,
+        "scene_equal_weight_mean_fraction_by_horizon": [
+          0.960470085470083,
+          0.960470085470083,
+          0.9595655270655247,
+          0.9519266381766361,
+          0.9338746438746428
+        ]
+      },
+      "zero_action": {
+        "candidate_rows_detected": 300,
+        "candidate_rows_total": 7600,
+        "retained_in_separability_denominator": true
+      },
+      "integrity": {
+        "manifest_hash_mismatch_scenes": [],
+        "passed": true
+      }
+    },
+    "action_strength": {
+      "task": "action_strength",
+      "family": "pusht",
+      "physical_coordinate_spec": {
+        "family": "pusht",
+        "names": [
+          "pusher_x_px",
+          "pusher_y_px",
+          "block_x_px",
+          "block_y_px",
+          "block_angle_sin_px_equivalent",
+          "block_angle_cos_px_equivalent"
+        ],
+        "units": "px-equivalent",
+        "mapping": "7-vector: state[:4] + 40*sin/cos(state[4]); 12-vector: state[0:2] + state[6:8] + 40*sin/cos(state[10])"
+      },
+      "scene_count": 256,
+      "source_group_count": 243,
+      "source_group_fields": [
+        "bootstrap_cluster"
+      ],
+      "conditions_seen": [
+        "140.0",
+        "60.0"
+      ],
+      "candidate_counts_seen": [
+        11
+      ],
+      "horizons": [
+        5,
+        10,
+        15,
+        20,
+        25
+      ],
+      "current_image": {
+        "bitwise_equal_scenes": 256,
+        "all_scenes_equal": true
+      },
+      "context_actions": {
+        "bitwise_equal_scenes": 256,
+        "all_scenes_equal": true
+      },
+      "historical_pixels": {
+        "condition_difference_scenes": 256,
+        "all_scenes_have_a_historical_difference": true,
+        "frame_indices_excluding_current": [
+          0,
+          1
+        ],
+        "frame_difference_scene_counts": [
+          0,
+          256
+        ],
+        "frame_total_condition_comparisons": [
+          256,
+          256
+        ]
+      },
+      "physical_separability": {
+        "horizons": [
+          5,
+          10,
+          15,
+          20,
+          25
+        ],
+        "separable_pair_fraction_by_horizon": [
+          0.9090909090909091,
+          0.9090909090909091,
+          0.9090909090909091,
+          0.9090909090909091,
+          0.9090909090909091
+        ],
+        "separable_pair_count_by_horizon": [
+          2560,
+          2560,
+          2560,
+          2560,
+          2560
+        ],
+        "zero_or_below_tolerance_pair_count_by_horizon": [
+          256,
+          256,
+          256,
+          256,
+          256
+        ],
+        "pair_count_per_horizon": [
+          2816,
+          2816,
+          2816,
+          2816,
+          2816
+        ],
+        "pairwise_squared_distance_sum_by_horizon": [
+          4378385.159061276,
+          14778940.096238103,
+          29855893.020122234,
+          48711395.104926914,
+          70151284.36890602
+        ],
+        "pairwise_squared_distance_mean_by_horizon": [
+          1554.8242752348283,
+          5248.203159175463,
+          10602.234737259316,
+          17298.08064805643,
+          24911.67768782174
+        ],
+        "condition_mean_reference_energy_by_horizon": [
+          2189192.5795306377,
+          7389470.048119051,
+          14927946.510061117,
+          24355697.552463457,
+          35075642.18445302
+        ],
+        "tolerance_squared": 1e-08,
+        "future_source": "all stored true future_states/finger_positions for every candidate and horizon; no candidate or zero-action row filtered",
+        "zero_rows_retained": true,
+        "scene_equal_weight_mean_fraction_by_horizon": [
+          0.909090909090907,
+          0.909090909090907,
+          0.909090909090907,
+          0.909090909090907,
+          0.909090909090907
+        ]
+      },
+      "zero_action": {
+        "candidate_rows_detected": 256,
+        "candidate_rows_total": 2816,
+        "retained_in_separability_denominator": true
+      },
+      "integrity": {
+        "manifest_hash_mismatch_scenes": [],
+        "passed": true
+      }
+    },
+    "robot_arm_mass": {
+      "task": "robot_arm_mass",
+      "family": "mass",
+      "physical_coordinate_spec": {
+        "family": "mass",
+        "names": [
+          "finger_x_mm",
+          "finger_y_mm"
+        ],
+        "units": "mm",
+        "mapping": "finger_positions * 1000"
+      },
+      "scene_count": 256,
+      "source_group_count": 256,
+      "source_group_fields": [
+        "scene_id_fallback"
+      ],
+      "conditions_seen": [
+        "heavier",
+        "lighter"
+      ],
+      "candidate_counts_seen": [
+        11
+      ],
+      "horizons": [
+        5,
+        10,
+        15,
+        20,
+        25
+      ],
+      "current_image": {
+        "bitwise_equal_scenes": 256,
+        "all_scenes_equal": true
+      },
+      "context_actions": {
+        "bitwise_equal_scenes": 256,
+        "all_scenes_equal": true
+      },
+      "historical_pixels": {
+        "condition_difference_scenes": 256,
+        "all_scenes_have_a_historical_difference": true,
+        "frame_indices_excluding_current": [
+          0,
+          1
+        ],
+        "frame_difference_scene_counts": [
+          0,
+          256
+        ],
+        "frame_total_condition_comparisons": [
+          256,
+          256
+        ]
+      },
+      "physical_separability": {
+        "horizons": [
+          5,
+          10,
+          15,
+          20,
+          25
+        ],
+        "separable_pair_fraction_by_horizon": [
+          1.0,
+          1.0,
+          0.9996448863636364,
+          0.9996448863636364,
+          0.9996448863636364
+        ],
+        "separable_pair_count_by_horizon": [
+          2816,
+          2816,
+          2815,
+          2815,
+          2815
+        ],
+        "zero_or_below_tolerance_pair_count_by_horizon": [
+          0,
+          0,
+          1,
+          1,
+          1
+        ],
+        "pair_count_per_horizon": [
+          2816,
+          2816,
+          2816,
+          2816,
+          2816
+        ],
+        "pairwise_squared_distance_sum_by_horizon": [
+          218473.99694459536,
+          649916.726417843,
+          756667.2351001569,
+          767225.5196496281,
+          761204.5376540109
+        ],
+        "pairwise_squared_distance_mean_by_horizon": [
+          77.58309550589324,
+          230.79429205179085,
+          268.70285337363526,
+          272.45224419375995,
+          270.3141113828164
+        ],
+        "condition_mean_reference_energy_by_horizon": [
+          109236.99847229768,
+          324958.3632089215,
+          378333.61755007843,
+          383612.75982481404,
+          380602.2688270054
+        ],
+        "tolerance_squared": 1e-08,
+        "future_source": "all stored true future_states/finger_positions for every candidate and horizon; no candidate or zero-action row filtered",
+        "zero_rows_retained": true,
+        "scene_equal_weight_mean_fraction_by_horizon": [
+          1.0,
+          1.0,
+          0.9996448863636364,
+          0.9996448863636364,
+          0.9996448863636364
+        ]
+      },
+      "zero_action": {
+        "candidate_rows_detected": 256,
+        "candidate_rows_total": 2816,
+        "retained_in_separability_denominator": true
+      },
+      "integrity": {
+        "manifest_hash_mismatch_scenes": [],
+        "passed": true
+      }
+    },
+    "action_delay": {
+      "task": "action_delay",
+      "family": "tworoom",
+      "physical_coordinate_spec": {
+        "family": "tworoom",
+        "names": [
+          "agent_x_px",
+          "agent_y_px"
+        ],
+        "units": "px",
+        "mapping": "TwoRoom future_states[..., :2] (agent xy)"
+      },
+      "scene_count": 300,
+      "source_group_count": 300,
+      "source_group_fields": [
+        "source_sha256"
+      ],
+      "conditions_seen": [
+        "0",
+        "1",
+        "10",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "9"
+      ],
+      "candidate_counts_seen": [
+        13
+      ],
+      "horizons": [
+        5,
+        10,
+        15,
+        20,
+        25
+      ],
+      "current_image": {
+        "bitwise_equal_scenes": 300,
+        "all_scenes_equal": true
+      },
+      "context_actions": {
+        "bitwise_equal_scenes": 300,
+        "all_scenes_equal": true
+      },
+      "historical_pixels": {
+        "condition_difference_scenes": 300,
+        "all_scenes_have_a_historical_difference": true,
+        "frame_indices_excluding_current": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "frame_difference_scene_counts": [
+          0,
+          300,
+          300,
+          300,
+          300,
+          0
+        ],
+        "frame_total_condition_comparisons": [
+          3000,
+          3000,
+          3000,
+          3000,
+          3000,
+          3000
+        ]
+      },
+      "physical_separability": {
+        "horizons": [
+          5,
+          10,
+          15,
+          20,
+          25
+        ],
+        "separable_pair_fraction_by_horizon": [
+          0.5593659673659673,
+          0.7942331002331002,
+          0.7647272727272727,
+          0.6141771561771562,
+          0.4793006993006993
+        ],
+        "separable_pair_count_by_horizon": [
+          119984,
+          170363,
+          164034,
+          131741,
+          102810
+        ],
+        "zero_or_below_tolerance_pair_count_by_horizon": [
+          94516,
+          44137,
+          50466,
+          82759,
+          111690
+        ],
+        "pair_count_per_horizon": [
+          214500,
+          214500,
+          214500,
+          214500,
+          214500
+        ],
+        "pairwise_squared_distance_sum_by_horizon": [
+          18826588.5,
+          54381846.5,
+          50286686.5,
+          39217174.0,
+          25983946.875
+        ],
+        "pairwise_squared_distance_mean_by_horizon": [
+          87.76964335664336,
+          253.5284219114219,
+          234.4367668997669,
+          182.83064801864802,
+          121.13728146853147
+        ],
+        "condition_mean_reference_energy_by_horizon": [
+          1711508.045454553,
+          4943804.2272727145,
+          4571516.9545454485,
+          3565197.636363631,
+          2362176.988636365
+        ],
+        "tolerance_squared": 1e-08,
+        "future_source": "all stored true future_states/finger_positions for every candidate and horizon; no candidate or zero-action row filtered",
+        "zero_rows_retained": true,
+        "scene_equal_weight_mean_fraction_by_horizon": [
+          0.5593659673659679,
+          0.7942331002331025,
+          0.7647272727272717,
+          0.6141771561771568,
+          0.47930069930069974
+        ]
+      },
+      "zero_action": {
+        "candidate_rows_detected": 300,
+        "candidate_rows_total": 3900,
+        "retained_in_separability_denominator": true
+      },
+      "integrity": {
+        "manifest_hash_mismatch_scenes": [],
+        "passed": true
+      },
+      "pending_queue": {
+        "present": true,
+        "scene_count": 300,
+        "padded_queue_value_equal_scenes": 300,
+        "queue_length_equal_scenes": 0,
+        "active_queue_different_scenes": 300,
+        "lengths_observed": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "interpretation": "A shared query xy/current image is not a complete Markov state here: the pending action queue is hidden simulator state, and delay plus dynamics jointly determine its evolution.",
+        "do_not_equate_shared_xy_with_full_markov_state": true
+      }
+    },
+    "contact_friction": {
+      "task": "contact_friction",
+      "family": "pusht",
+      "physical_coordinate_spec": {
+        "family": "pusht",
+        "names": [
+          "pusher_x_px",
+          "pusher_y_px",
+          "block_x_px",
+          "block_y_px",
+          "block_angle_sin_px_equivalent",
+          "block_angle_cos_px_equivalent"
+        ],
+        "units": "px-equivalent",
+        "mapping": "7-vector: state[:4] + 40*sin/cos(state[4]); 12-vector: state[0:2] + state[6:8] + 40*sin/cos(state[10])"
+      },
+      "scene_count": 256,
+      "source_group_count": 256,
+      "source_group_fields": [
+        "pair_id"
+      ],
+      "conditions_seen": [
+        "high_friction",
+        "low_friction"
+      ],
+      "candidate_counts_seen": [
+        11
+      ],
+      "horizons": [
+        5,
+        10,
+        15,
+        20,
+        25
+      ],
+      "current_image": {
+        "bitwise_equal_scenes": 256,
+        "all_scenes_equal": true
+      },
+      "context_actions": {
+        "bitwise_equal_scenes": 256,
+        "all_scenes_equal": true
+      },
+      "historical_pixels": {
+        "condition_difference_scenes": 256,
+        "all_scenes_have_a_historical_difference": true,
+        "frame_indices_excluding_current": [
+          0,
+          1
+        ],
+        "frame_difference_scene_counts": [
+          0,
+          256
+        ],
+        "frame_total_condition_comparisons": [
+          256,
+          256
+        ]
+      },
+      "physical_separability": {
+        "horizons": [
+          5,
+          10,
+          15,
+          20,
+          25
+        ],
+        "separable_pair_fraction_by_horizon": [
+          0.7272727272727273,
+          0.8181818181818182,
+          0.8181818181818182,
+          0.8181818181818182,
+          0.8181818181818182
+        ],
+        "separable_pair_count_by_horizon": [
+          2048,
+          2304,
+          2304,
+          2304,
+          2304
+        ],
+        "zero_or_below_tolerance_pair_count_by_horizon": [
+          768,
+          512,
+          512,
+          512,
+          512
+        ],
+        "pair_count_per_horizon": [
+          2816,
+          2816,
+          2816,
+          2816,
+          2816
+        ],
+        "pairwise_squared_distance_sum_by_horizon": [
+          554130.1895910176,
+          5251561.372997448,
+          12165264.315365987,
+          17087677.43165091,
+          19438329.231443696
+        ],
+        "pairwise_squared_distance_mean_by_horizon": [
+          196.77918664453748,
+          1864.9010557519346,
+          4320.051248354399,
+          6068.067269762397,
+          6902.8157782115395
+        ],
+        "condition_mean_reference_energy_by_horizon": [
+          277065.0947955088,
+          2625780.686498725,
+          6082632.1576829925,
+          8543838.715825453,
+          9719164.615721848
+        ],
+        "tolerance_squared": 1e-08,
+        "future_source": "all stored true future_states/finger_positions for every candidate and horizon; no candidate or zero-action row filtered",
+        "zero_rows_retained": true,
+        "scene_equal_weight_mean_fraction_by_horizon": [
+          0.7272727272727268,
+          0.8181818181818148,
+          0.8181818181818148,
+          0.8181818181818148,
+          0.8181818181818148
+        ]
+      },
+      "zero_action": {
+        "candidate_rows_detected": 256,
+        "candidate_rows_total": 2816,
+        "retained_in_separability_denominator": true
+      },
+      "integrity": {
+        "manifest_hash_mismatch_scenes": [],
+        "passed": true
+      }
+    },
+    "motion_damping": {
+      "task": "motion_damping",
+      "family": "pusht",
+      "physical_coordinate_spec": {
+        "family": "pusht",
+        "names": [
+          "pusher_x_px",
+          "pusher_y_px",
+          "block_x_px",
+          "block_y_px",
+          "block_angle_sin_px_equivalent",
+          "block_angle_cos_px_equivalent"
+        ],
+        "units": "px-equivalent",
+        "mapping": "7-vector: state[:4] + 40*sin/cos(state[4]); 12-vector: state[0:2] + state[6:8] + 40*sin/cos(state[10])"
+      },
+      "scene_count": 256,
+      "source_group_count": 128,
+      "source_group_fields": [
+        "bootstrap_cluster"
+      ],
+      "conditions_seen": [
+        "faster_decay",
+        "no_extra_decay"
+      ],
+      "candidate_counts_seen": [
+        11
+      ],
+      "horizons": [
+        5,
+        10,
+        15,
+        20,
+        25
+      ],
+      "current_image": {
+        "bitwise_equal_scenes": 256,
+        "all_scenes_equal": true
+      },
+      "context_actions": {
+        "bitwise_equal_scenes": 256,
+        "all_scenes_equal": true
+      },
+      "historical_pixels": {
+        "condition_difference_scenes": 256,
+        "all_scenes_have_a_historical_difference": true,
+        "frame_indices_excluding_current": [
+          0,
+          1
+        ],
+        "frame_difference_scene_counts": [
+          256,
+          256
+        ],
+        "frame_total_condition_comparisons": [
+          256,
+          256
+        ]
+      },
+      "physical_separability": {
+        "horizons": [
+          5,
+          10,
+          15,
+          20,
+          25
+        ],
+        "separable_pair_fraction_by_horizon": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "separable_pair_count_by_horizon": [
+          2816,
+          2816,
+          2816,
+          2816,
+          2816
+        ],
+        "zero_or_below_tolerance_pair_count_by_horizon": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "pair_count_per_horizon": [
+          2816,
+          2816,
+          2816,
+          2816,
+          2816
+        ],
+        "pairwise_squared_distance_sum_by_horizon": [
+          106889.57788752856,
+          3593282.82520949,
+          15254286.565837603,
+          30255165.926023036,
+          46088618.3130905
+        ],
+        "pairwise_squared_distance_mean_by_horizon": [
+          37.95794669301441,
+          1276.0237305431428,
+          5417.005172527558,
+          10744.021990775225,
+          16366.696844137252
+        ],
+        "condition_mean_reference_energy_by_horizon": [
+          53444.78894376427,
+          1796641.412604745,
+          7627143.282918802,
+          15127582.963011518,
+          23044309.156545255
+        ],
+        "tolerance_squared": 1e-08,
+        "future_source": "all stored true future_states/finger_positions for every candidate and horizon; no candidate or zero-action row filtered",
+        "zero_rows_retained": true,
+        "scene_equal_weight_mean_fraction_by_horizon": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "zero_action": {
+        "candidate_rows_detected": 256,
+        "candidate_rows_total": 2816,
+        "retained_in_separability_denominator": true
+      },
+      "integrity": {
+        "manifest_hash_mismatch_scenes": [],
+        "passed": true
+      }
+    },
+    "cube_gripper_carry": {
+      "task": "cube_gripper_carry",
+      "family": "cube",
+      "physical_coordinate_spec": {
+        "family": "cube",
+        "names": [
+          "effector_x_mm",
+          "effector_y_mm",
+          "effector_z_mm",
+          "cube_x_mm",
+          "cube_y_mm",
+          "cube_z_mm"
+        ],
+        "units": "mm",
+        "mapping": "future_states[..., [0,1,6]] + future_states[..., 2:5], then *1000"
+      },
+      "scene_count": 256,
+      "source_group_count": 256,
+      "source_group_fields": [
+        "bootstrap_cluster"
+      ],
+      "conditions_seen": [
+        "can_hold",
+        "cannot_hold"
+      ],
+      "candidate_counts_seen": [
+        14
+      ],
+      "horizons": [
+        5,
+        10,
+        15,
+        20,
+        25
+      ],
+      "current_image": {
+        "bitwise_equal_scenes": 256,
+        "all_scenes_equal": true
+      },
+      "context_actions": {
+        "bitwise_equal_scenes": 256,
+        "all_scenes_equal": true
+      },
+      "historical_pixels": {
+        "condition_difference_scenes": 256,
+        "all_scenes_have_a_historical_difference": true,
+        "frame_indices_excluding_current": [
+          0,
+          1
+        ],
+        "frame_difference_scene_counts": [
+          0,
+          256
+        ],
+        "frame_total_condition_comparisons": [
+          256,
+          256
+        ]
+      },
+      "physical_separability": {
+        "horizons": [
+          5,
+          10,
+          15,
+          20,
+          25
+        ],
+        "separable_pair_fraction_by_horizon": [
+          0.9285714285714286,
+          0.8571428571428571,
+          0.9285714285714286,
+          0.9285714285714286,
+          0.9285714285714286
+        ],
+        "separable_pair_count_by_horizon": [
+          3328,
+          3072,
+          3328,
+          3328,
+          3328
+        ],
+        "zero_or_below_tolerance_pair_count_by_horizon": [
+          256,
+          512,
+          256,
+          256,
+          256
+        ],
+        "pair_count_per_horizon": [
+          3584,
+          3584,
+          3584,
+          3584,
+          3584
+        ],
+        "pairwise_squared_distance_sum_by_horizon": [
+          670688.1712022629,
+          2398218.3157084566,
+          5182590.418749567,
+          8861213.43884046,
+          13271496.326257747
+        ],
+        "pairwise_squared_distance_mean_by_horizon": [
+          187.1339763399171,
+          669.1457354097256,
+          1446.0352730886068,
+          2472.4367853907534,
+          3702.984466031737
+        ],
+        "condition_mean_reference_energy_by_horizon": [
+          335344.08560113143,
+          1199109.1578542283,
+          2591295.209374783,
+          4430606.719420231,
+          6635748.163128873
+        ],
+        "tolerance_squared": 1e-08,
+        "future_source": "all stored true future_states/finger_positions for every candidate and horizon; no candidate or zero-action row filtered",
+        "zero_rows_retained": true,
+        "scene_equal_weight_mean_fraction_by_horizon": [
+          0.9285714285714236,
+          0.8571428571428596,
+          0.9285714285714236,
+          0.9285714285714236,
+          0.9285714285714236
+        ]
+      },
+      "zero_action": {
+        "candidate_rows_detected": 256,
+        "candidate_rows_total": 3584,
+        "retained_in_separability_denominator": true
+      },
+      "integrity": {
+        "manifest_hash_mismatch_scenes": [],
+        "passed": true
+      }
+    },
+    "door": {
+      "task": "door",
+      "family": "tworoom",
+      "physical_coordinate_spec": {
+        "family": "tworoom",
+        "names": [
+          "agent_x_px",
+          "agent_y_px"
+        ],
+        "units": "px",
+        "mapping": "TwoRoom future_states[..., :2] (agent xy)"
+      },
+      "scene_count": 300,
+      "source_group_count": 300,
+      "source_group_fields": [
+        "source_sha256"
+      ],
+      "conditions_seen": [
+        "rule_blocked",
+        "rule_passable"
+      ],
+      "candidate_counts_seen": [
+        12
+      ],
+      "horizons": [
+        5,
+        10,
+        15,
+        20,
+        25
+      ],
+      "current_image": {
+        "bitwise_equal_scenes": 300,
+        "all_scenes_equal": true
+      },
+      "context_actions": {
+        "bitwise_equal_scenes": 300,
+        "all_scenes_equal": true
+      },
+      "historical_pixels": {
+        "condition_difference_scenes": 300,
+        "all_scenes_have_a_historical_difference": true,
+        "frame_indices_excluding_current": [
+          0,
+          1
+        ],
+        "frame_difference_scene_counts": [
+          0,
+          300
+        ],
+        "frame_total_condition_comparisons": [
+          300,
+          300
+        ]
+      },
+      "physical_separability": {
+        "horizons": [
+          5,
+          10,
+          15,
+          20,
+          25
+        ],
+        "separable_pair_fraction_by_horizon": [
+          0.75,
+          0.8333333333333334,
+          0.8333333333333334,
+          0.8333333333333334,
+          0.8333333333333334
+        ],
+        "separable_pair_count_by_horizon": [
+          2700,
+          3000,
+          3000,
+          3000,
+          3000
+        ],
+        "zero_or_below_tolerance_pair_count_by_horizon": [
+          900,
+          600,
+          600,
+          600,
+          600
+        ],
+        "pair_count_per_horizon": [
+          3600,
+          3600,
+          3600,
+          3600,
+          3600
+        ],
+        "pairwise_squared_distance_sum_by_horizon": [
+          1546875.0,
+          5250000.0,
+          10734375.0,
+          17250000.0,
+          18312900.0
+        ],
+        "pairwise_squared_distance_mean_by_horizon": [
+          429.6875,
+          1458.3333333333333,
+          2981.7708333333335,
+          4791.666666666667,
+          5086.916666666667
+        ],
+        "condition_mean_reference_energy_by_horizon": [
+          773437.5,
+          2625000.0,
+          5367187.5,
+          8625000.0,
+          9156450.0
+        ],
+        "tolerance_squared": 1e-08,
+        "future_source": "all stored true future_states/finger_positions for every candidate and horizon; no candidate or zero-action row filtered",
+        "zero_rows_retained": true,
+        "scene_equal_weight_mean_fraction_by_horizon": [
+          0.75,
+          0.833333333333337,
+          0.833333333333337,
+          0.833333333333337,
+          0.833333333333337
+        ]
+      },
+      "zero_action": {
+        "candidate_rows_detected": 300,
+        "candidate_rows_total": 3600,
+        "retained_in_separability_denominator": true
+      },
+      "integrity": {
+        "manifest_hash_mismatch_scenes": [],
+        "passed": true
+      }
+    },
+    "portal_exit": {
+      "task": "portal_exit",
+      "family": "tworoom",
+      "physical_coordinate_spec": {
+        "family": "tworoom",
+        "names": [
+          "agent_x_px",
+          "agent_y_px"
+        ],
+        "units": "px",
+        "mapping": "TwoRoom future_states[..., :2] (agent xy)"
+      },
+      "scene_count": 256,
+      "source_group_count": 256,
+      "source_group_fields": [
+        "source_sha256"
+      ],
+      "conditions_seen": [
+        "farther_from_border",
+        "near_border"
+      ],
+      "candidate_counts_seen": [
+        19
+      ],
+      "horizons": [
+        5,
+        10,
+        15,
+        20,
+        25
+      ],
+      "current_image": {
+        "bitwise_equal_scenes": 256,
+        "all_scenes_equal": true
+      },
+      "context_actions": {
+        "bitwise_equal_scenes": 256,
+        "all_scenes_equal": true
+      },
+      "historical_pixels": {
+        "condition_difference_scenes": 256,
+        "all_scenes_have_a_historical_difference": true,
+        "frame_indices_excluding_current": [
+          0,
+          1
+        ],
+        "frame_difference_scene_counts": [
+          0,
+          256
+        ],
+        "frame_total_condition_comparisons": [
+          256,
+          256
+        ]
+      },
+      "physical_separability": {
+        "horizons": [
+          5,
+          10,
+          15,
+          20,
+          25
+        ],
+        "separable_pair_fraction_by_horizon": [
+          0.8421052631578947,
+          0.7894736842105263,
+          0.7894736842105263,
+          0.7894736842105263,
+          0.7894736842105263
+        ],
+        "separable_pair_count_by_horizon": [
+          4096,
+          3840,
+          3840,
+          3840,
+          3840
+        ],
+        "zero_or_below_tolerance_pair_count_by_horizon": [
+          768,
+          1024,
+          1024,
+          1024,
+          1024
+        ],
+        "pair_count_per_horizon": [
+          4864,
+          4864,
+          4864,
+          4864,
+          4864
+        ],
+        "pairwise_squared_distance_sum_by_horizon": [
+          921600.0,
+          842526.0,
+          842526.0,
+          842526.0,
+          842526.0
+        ],
+        "pairwise_squared_distance_mean_by_horizon": [
+          189.47368421052633,
+          173.21669407894737,
+          173.21669407894737,
+          173.21669407894737,
+          173.21669407894737
+        ],
+        "condition_mean_reference_energy_by_horizon": [
+          460800.0,
+          421263.0,
+          421263.0,
+          421263.0,
+          421263.0
+        ],
+        "tolerance_squared": 1e-08,
+        "future_source": "all stored true future_states/finger_positions for every candidate and horizon; no candidate or zero-action row filtered",
+        "zero_rows_retained": true,
+        "scene_equal_weight_mean_fraction_by_horizon": [
+          0.8421052631578919,
+          0.7894736842105226,
+          0.7894736842105226,
+          0.7894736842105226,
+          0.7894736842105226
+        ]
+      },
+      "zero_action": {
+        "candidate_rows_detected": 256,
+        "candidate_rows_total": 4864,
+        "retained_in_separability_denominator": true
+      },
+      "integrity": {
+        "manifest_hash_mismatch_scenes": [],
+        "passed": true
+      }
+    }
+  },
+  "global_checks": {
+    "all_current_images_equal": true,
+    "all_context_actions_equal": true,
+    "all_scenes_have_historical_pixel_difference": true,
+    "all_manifest_hashes_match": true
+  },
+  "algebraic_self_test": {
+    "passed": true,
+    "horizons": [
+      5,
+      10
+    ],
+    "reference_energy": [
+      2.0,
+      8.0
+    ],
+    "ideal_oracle": {
+      "matched_error": [
+        0.0,
+        0.0
+      ],
+      "wrong_history_error": [
+        8.0,
+        32.0
+      ],
+      "score": [
+        100.0,
+        100.0
+      ],
+      "history_advantage": [
+        8.0,
+        32.0
+      ]
+    },
+    "condition_mean_blind": {
+      "matched_error": [
+        2.0,
+        8.0
+      ],
+      "wrong_history_error": [
+        2.0,
+        8.0
+      ],
+      "score": [
+        0.0,
+        0.0
+      ],
+      "history_advantage": [
+        0.0,
+        0.0
+      ]
+    },
+    "checks": {
+      "ideal_oracle_error_zero": true,
+      "ideal_oracle_score_100": true,
+      "condition_mean_reference_matches_blind_error": true,
+      "condition_mean_blind_score_zero": true,
+      "condition_mean_blind_history_advantage_zero": true
+    },
+    "definitions": {
+      "score": "100 * (1 - matched_error / condition_mean_reference_energy)",
+      "history_advantage": "mean all-other-history error - matched-history error"
+    }
+  },
+  "documentation": {
+    "documents_checked": [
+      "/tmp/cw-icl-validity-20261007-repo/docs/ContextWorld_ICL_Benchmark.md",
+      "/tmp/cw-icl-validity-20261007-repo/docs/Data_Generation.md"
+    ],
+    "checks": {
+      "model_receives_images_and_actions": true,
+      "shared_current_query_and_different_history_response": true,
+      "history_must_have_measurable_physical_response": true,
+      "source_query_is_a_sampling_unit": true,
+      "development_scope_and_test_separation": true
+    },
+    "passed": true,
+    "interpretation": "Source IDs and condition labels are used here only for provenance and scoring metadata. The intended model-visible evidence is image/action history; this document check cannot rule out an unintended pixel-level identifier, and historical pixel difference alone is not sufficient identifiability."
+  },
+  "history_sufficiency_evidence": {
+    "scope": "Repository protocol/source-document audit only; no Training or Test payload is read and no new decoder, model, or data is run.",
+    "current_panel_claim": "For all nine tasks, matched query/context checks plus historical pixel differences are construction evidence only. They do not establish sufficient or generalized history identifiability.",
+    "prior_direct_history_decoder_tasks": [
+      "contact_friction",
+      "cube_gripper_carry",
+      "motion_damping",
+      "speed"
+    ],
+    "prior_development_response_tasks": [
+      "action_delay",
+      "action_strength",
+      "contact_friction",
+      "cube_gripper_carry",
+      "door",
+      "motion_damping",
+      "portal_exit",
+      "robot_arm_mass",
+      "speed"
+    ],
+    "current_panel_construction_only_tasks": [
+      "speed",
+      "action_strength",
+      "robot_arm_mass",
+      "action_delay",
+      "contact_friction",
+      "motion_damping",
+      "cube_gripper_carry",
+      "door",
+      "portal_exit"
+    ],
+    "tasks": {
+      "speed": {
+        "current_panel_evidence_level": "construction_guarantee_only",
+        "current_panel_decoder_run": false,
+        "current_panel_history_pixel_difference_is_sufficient": false,
+        "prior_evidence_level": "direct_observable_inversion_and_development_response",
+        "prior_evidence_is_documented": true,
+        "prior_evidence_applies_to_current_panel": false,
+        "prior_evidence_supports": "A prior Speed protocol contains a fixed observable readout and a Development history-separation result.",
+        "references": [
+          {
+            "path": "scripts/analyze_tworoom_speed_isolated_v2.py",
+            "present": true,
+            "role": "fixed context-state speed recovery and query/input audit"
+          },
+          {
+            "path": "scripts/diagnose_speed_rollout_refresh.py",
+            "present": true,
+            "role": "model-visible RGB velocity readout diagnostic"
+          },
+          {
+            "path": "docs/protocols/TwoRoom_SpeedFull_Data_Protocol.md",
+            "present": true,
+            "role": "prior Development E1 history-separation record"
+          }
+        ],
+        "source_id_or_condition_label_used_as_history_evidence": false
+      },
+      "action_strength": {
+        "current_panel_evidence_level": "construction_guarantee_only",
+        "current_panel_decoder_run": false,
+        "current_panel_history_pixel_difference_is_sufficient": false,
+        "prior_evidence_level": "development_model_history_response_without_dedicated_decoder",
+        "prior_evidence_is_documented": true,
+        "prior_evidence_applies_to_current_panel": false,
+        "prior_evidence_supports": "Prior Development model response metrics exist, while the cited protocol does not provide a current-panel RGB-only decoder result.",
+        "references": [
+          {
+            "path": "docs/ContextWorld_ICL_Benchmark.md",
+            "present": true,
+            "role": "Training-to-Development history/switch/response table"
+          },
+          {
+            "path": "docs/Data_Generation.md",
+            "present": true,
+            "role": "matched query and physical-response construction contract"
+          }
+        ],
+        "source_id_or_condition_label_used_as_history_evidence": false
+      },
+      "robot_arm_mass": {
+        "current_panel_evidence_level": "construction_guarantee_only",
+        "current_panel_decoder_run": false,
+        "current_panel_history_pixel_difference_is_sufficient": false,
+        "prior_evidence_level": "development_model_history_response_without_dedicated_decoder",
+        "prior_evidence_is_documented": true,
+        "prior_evidence_applies_to_current_panel": false,
+        "prior_evidence_supports": "Prior Development model response metrics and causal construction audits exist; they are not a decoder trained for this panel.",
+        "references": [
+          {
+            "path": "docs/ContextWorld_ICL_Benchmark.md",
+            "present": true,
+            "role": "Training-to-Development history/switch/response table"
+          },
+          {
+            "path": "scripts/audit_reacher_arm_mass_h3.py",
+            "present": true,
+            "role": "query-state/history/future causal construction audit"
+          },
+          {
+            "path": "docs/Data_Generation.md",
+            "present": true,
+            "role": "matched query and split-isolation contract"
+          }
+        ],
+        "source_id_or_condition_label_used_as_history_evidence": false
+      },
+      "action_delay": {
+        "current_panel_evidence_level": "construction_guarantee_only",
+        "current_panel_decoder_run": false,
+        "current_panel_history_pixel_difference_is_sufficient": false,
+        "prior_evidence_level": "development_model_history_response_and_analytic_physical_grouping",
+        "prior_evidence_is_documented": true,
+        "prior_evidence_applies_to_current_panel": false,
+        "prior_evidence_supports": "Prior delay analyses document Development response and the analytic one-step 5--10 physical equivalence; they do not prove exact recovery of every queue state from the current panel.",
+        "references": [
+          {
+            "path": "scripts/analyze_tworoom_action_delay_h3.py",
+            "present": true,
+            "role": "history-selection and physical-response grouping analysis"
+          },
+          {
+            "path": "scripts/analyze_tworoom_action_delay_h3_multistep.py",
+            "present": true,
+            "role": "horizon-wise Development history response analysis"
+          },
+          {
+            "path": "docs/ContextWorld_ICL_Benchmark.md",
+            "present": true,
+            "role": "Development history-selection and delay-group limits"
+          },
+          {
+            "path": "docs/Data_Generation.md",
+            "present": true,
+            "role": "History=7 causal-chain and split-isolation contract"
+          }
+        ],
+        "source_id_or_condition_label_used_as_history_evidence": false
+      },
+      "contact_friction": {
+        "current_panel_evidence_level": "construction_guarantee_only",
+        "current_panel_decoder_run": false,
+        "current_panel_history_pixel_difference_is_sufficient": false,
+        "prior_evidence_level": "training_fit_development_rgb_history_decoder_protocol",
+        "prior_evidence_is_documented": true,
+        "prior_evidence_applies_to_current_panel": false,
+        "prior_evidence_supports": "The repository specifies a held-out RGB/history observability audit for this task; this checker does not rerun or import its numbers.",
+        "references": [
+          {
+            "path": "scripts/audit_pusht_contact_friction_rgb_identifiability.py",
+            "present": true,
+            "role": "RGB-only Training-fit / Development-evaluated decoder audit"
+          },
+          {
+            "path": "scripts/audit_pusht_contact_friction_history_identifiability.py",
+            "present": true,
+            "role": "visible-history versus current-frame audit"
+          },
+          {
+            "path": "docs/Data_Generation.md",
+            "present": true,
+            "role": "RGB identifiability and matched-response contract"
+          }
+        ],
+        "source_id_or_condition_label_used_as_history_evidence": false
+      },
+      "motion_damping": {
+        "current_panel_evidence_level": "construction_guarantee_only",
+        "current_panel_decoder_run": false,
+        "current_panel_history_pixel_difference_is_sufficient": false,
+        "prior_evidence_level": "training_fit_development_rgb_history_decoder_protocol",
+        "prior_evidence_is_documented": true,
+        "prior_evidence_applies_to_current_panel": false,
+        "prior_evidence_supports": "The repository specifies a held-out RGB history readout and a Development diagnostic; this checker does not rerun or import its numbers.",
+        "references": [
+          {
+            "path": "scripts/audit_pusht_motion_damping_history_identifiability.py",
+            "present": true,
+            "role": "fixed RGB block-motion-ratio Training/Development audit"
+          },
+          {
+            "path": "scripts/diagnose_pusht_motion_damping_training_signal.py",
+            "present": true,
+            "role": "visible-history audit upper bound and Development diagnostics"
+          },
+          {
+            "path": "docs/Data_Generation.md",
+            "present": true,
+            "role": "matched-response and no-static-start-shortcut contract"
+          }
+        ],
+        "source_id_or_condition_label_used_as_history_evidence": false
+      },
+      "cube_gripper_carry": {
+        "current_panel_evidence_level": "construction_guarantee_only",
+        "current_panel_decoder_run": false,
+        "current_panel_history_pixel_difference_is_sufficient": false,
+        "prior_evidence_level": "frozen_rgb_history_probe_and_development_response",
+        "prior_evidence_is_documented": true,
+        "prior_evidence_applies_to_current_panel": false,
+        "prior_evidence_supports": "A frozen RGB-history probe and prior Development response record are documented, with their own data-readiness scope.",
+        "references": [
+          {
+            "path": "docs/protocols/Cube_Gripper_Carry_History3_Development_v4_Protocol.md",
+            "present": true,
+            "role": "pre-registered Training-fit / Development RGB-history probe"
+          },
+          {
+            "path": "docs/protocols/Cube_Gripper_Carry_History3_v4r1_Pre_Public_Handoff.md",
+            "present": true,
+            "role": "v4r1 Development history and response record"
+          },
+          {
+            "path": "docs/ContextWorld_ICL_Benchmark.md",
+            "present": true,
+            "role": "Development history/switch/response table"
+          }
+        ],
+        "source_id_or_condition_label_used_as_history_evidence": false
+      },
+      "door": {
+        "current_panel_evidence_level": "construction_guarantee_only",
+        "current_panel_decoder_run": false,
+        "current_panel_history_pixel_difference_is_sufficient": false,
+        "prior_evidence_level": "analytic_history_probe_and_development_model_response",
+        "prior_evidence_is_documented": true,
+        "prior_evidence_applies_to_current_panel": false,
+        "prior_evidence_supports": "The door protocol analytically constructs a collision/through-door history probe and prior Development response is recorded.",
+        "references": [
+          {
+            "path": "docs/protocols/TwoRoom_History3_Hidden_Passage_Feasibility_v1.md",
+            "present": true,
+            "role": "continuous probe trajectory and history/query separation contract"
+          },
+          {
+            "path": "docs/ContextWorld_ICL_Benchmark.md",
+            "present": true,
+            "role": "Development history/switch/response table"
+          },
+          {
+            "path": "docs/Data_Generation.md",
+            "present": true,
+            "role": "matched counterfactual and static-start leakage controls"
+          }
+        ],
+        "source_id_or_condition_label_used_as_history_evidence": false
+      },
+      "portal_exit": {
+        "current_panel_evidence_level": "construction_guarantee_only",
+        "current_panel_decoder_run": false,
+        "current_panel_history_pixel_difference_is_sufficient": false,
+        "prior_evidence_level": "analytic_trajectory_probe_and_development_model_response",
+        "prior_evidence_is_documented": true,
+        "prior_evidence_applies_to_current_panel": false,
+        "prior_evidence_supports": "The portal protocol has a causal trajectory/replay audit and prior Development response metrics; it is not a decoder result for this panel.",
+        "references": [
+          {
+            "path": "scripts/audit_tworoom_portal_exit_h3.py",
+            "present": true,
+            "role": "query equality, future-gap, and deterministic replay audit"
+          },
+          {
+            "path": "docs/ContextWorld_ICL_Benchmark.md",
+            "present": true,
+            "role": "Development history/switch/response table"
+          },
+          {
+            "path": "docs/Data_Generation.md",
+            "present": true,
+            "role": "shared query and split-isolation contract"
+          }
+        ],
+        "source_id_or_condition_label_used_as_history_evidence": false
+      }
+    },
+    "checks": {
+      "all_nine_current_panels_construction_only": true,
+      "history_pixel_difference_not_called_sufficient": true,
+      "source_ids_and_condition_labels_not_history_evidence": true,
+      "all_referenced_protocol_or_script_files_present": true,
+      "no_new_decoder_or_model_run": true
+    },
+    "interpretation": "Prior decoder or Training-to-Development response records are useful external evidence about those earlier protocols. They are reported separately and cannot promote the present 2,436-scene panel beyond construction validity; source IDs, pair IDs, and condition labels remain provenance/scoring metadata only."
+  },
+  "scientific_interpretation": {
+    "supported": "The frozen Development panels implement a shared-present, shared-context-actions history contrast and retain condition separability measurements at each horizon.",
+    "not_supported": "Historical pixel differences do not by themselves prove that the hidden condition is sufficiently identifiable or that a world model will recover it or generalize. The physical readout is a fixed model-free validity diagnostic, not a model capability score; prior protocol/model evidence is listed separately and does not upgrade the current panel's construction-only claim."
+  }
+}
