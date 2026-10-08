@@ -13,7 +13,7 @@
 
 九项任务按隐藏动力学类型组织。主表只展示多步完整预测分，任务子表报告区间和训练重复数；CEM 与历史选择、响应指标折叠单列。
 
-最新结果见[九任务主表](ContextWorld_ICL_Benchmark.md#training-comparison)。当前覆盖九任务主分布的 2,436 个 Development 场景；Speed 限于未见速度插值，Test 尚未评测。相同配置的全部可用训练重复参与汇总，[JSON](research/data/multistep_prediction_coverage_v2.json) 与 [CSV](research/data/multistep_prediction_coverage_v2.csv) 提供逐次与汇总结果。公开汇总可检查，但数据面板与权重尚无稳定下载 revision，外部端到端复现尚不可用。评分边界与 PushT 可观测性限制见[主分解释范围与辅助物理读出](ContextWorld_ICL_Benchmark.md#main-score-interpretation-and-auxiliary-physical-readout)。
+最新结果见[九任务主表](ContextWorld_ICL_Benchmark.md#training-comparison)。当前覆盖九任务主分布的 2,436 个 Development 场景；Speed 限于未见速度插值，Test 尚未评测。相同配置的全部可用训练重复参与汇总，[JSON](research/data/multistep_prediction_coverage_v2.json) 与 [CSV](research/data/multistep_prediction_coverage_v2.csv) 提供逐次与汇总结果。公开汇总可检查，但数据面板与权重尚无稳定下载 revision，外部端到端复现尚不可用。评分边界与 PushT 画布内轨迹的测量验证见[主分解释范围与辅助物理读出](ContextWorld_ICL_Benchmark.md#main-score-interpretation-and-auxiliary-physical-readout)。
 
 ## 任务导航
 

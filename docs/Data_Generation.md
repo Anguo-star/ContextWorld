@@ -310,6 +310,51 @@ python -m scripts.summarize_observable_targets \
 
 诊断中的校准误差与预测读出误差并列报告，不相减后称为纯模型误差；按画布条件分组也不代表新模型成绩。现有数据与主分保持原样，新生成规则需另设版本并重新验证历史证据、可见后果及完整配对覆盖。
 
+## PushT 画布内多步轨迹
+
+`visible_future_development_v1` 用于检验离屏问题修正后的预测测量方法，覆盖推手移动幅度、接触摩擦和运动阻尼。它保留每项任务原有的 256 个 Development 来源、查询前历史、当前状态、隐藏参数和来源组，仅重新生成查询后的动作与真实未来。它改变了未来动作分布，因此与原多步面板分版本报告，不替换九任务主表。
+
+**动作构造。** 从原有 11 个候选动作出发，分别按 `1, 0.75, 0.5, 0.25, 0.125, 0.0625, 0` 缩放，选取能够满足画布条件的最大系数。同一候选在全部隐藏条件下使用完全相同的动作。连续重放历史后再执行未来，查询点不重置；25 个原始仿真步均检查推手和方块完整碰撞形状的外接边界，要求位于 512×512 画布的 `[2,510]` 范围内。每 5 步保存一帧，共五个未来时刻。
+
+缩放后按完整 float32 动作字节去重。模型输入使用唯一候选轴，11 个原候选与缩放系数、唯一候选的映射另行保存；条件、唯一候选和时刻先在来源内等权平均，再汇总来源。无可行缩放时保留来源和失败记录，不将其静默剔除，也不把失败集合报告为已通过的画布内数据。零条件差异的动作仍保留，接触与自由衰减用作数据诊断，不按模型成绩筛选。
+
+**校验范围。** `check_visible_future_panel.py` 检查来源覆盖、历史与目标身份、动作映射、逐步状态、完整形状边界和生成器的连续重放记录；它不另行重跑全部物理仿真。条件信号用两条件真实坐标的距离衡量：先对来源内的唯一候选与五个时刻平均，再对来源等权平均，以免候选数变化造成虚假差异。推手使用平面位置距离，方块使用位置及半径 40 px 的角度弦长合成距离。另搜索精确同图像但物理坐标相差超过两个渲染像素的反例；未发现反例不等于证明无遮挡或充分可辨识。
+
+三个任务使用与原轨迹匹配的环境版本：Strength 与 Friction 为 `6ab823fdc6921c95089992ed49c39e431e21ca4a`，Damping 为 `875e607fc08aa72eacb94d5d178127804134cc06`。Damping 的方块几何必须保持原版本，不能用更改后的环境代替。生成还需原 Development 数据、来源合成记录与旧多步面板；这些输入尚无稳定公共下载，命令用于说明本地复现接口。
+
+```bash
+python scripts/builder_visible_strength.py \
+  --contextworld-root /path/to/ContextWorld \
+  --stable-worldmodel-root /path/to/stable-worldmodel-at-source-ref \
+  --payload-root /path/to/ContextWorld-v1 \
+  --legacy-panel-manifest /path/to/old-panels/action_strength/manifest.json \
+  --output /path/to/new-panels/action_strength --workers 2
+
+python scripts/builder_visible_contact_damping.py \
+  --task contact_friction \
+  --stable-repo /path/to/stable-worldmodel \
+  --stable-ref 6ab823fdc6921c95089992ed49c39e431e21ca4a \
+  --bundle /path/to/ContextWorld-v1 \
+  --artifacts-root /path/to/ContextWorld/artifacts \
+  --legacy-panel-root /path/to/old-panels/contact_friction \
+  --output /path/to/new-panels/contact_friction --workers 16
+
+python scripts/builder_visible_contact_damping.py \
+  --task motion_damping \
+  --stable-repo /path/to/stable-worldmodel \
+  --stable-ref 875e607fc08aa72eacb94d5d178127804134cc06 \
+  --bundle /path/to/ContextWorld-v1 \
+  --artifacts-root /path/to/ContextWorld/artifacts \
+  --legacy-panel-root /path/to/old-panels/motion_damping \
+  --output /path/to/new-panels/motion_damping --workers 16
+
+python scripts/check_visible_future_panel.py \
+  --panel-root /path/to/new-panels --legacy-root /path/to/old-panels \
+  --output /path/to/visible_validation.json
+```
+
+已有检查点使用同一套完整预测误差和正确／错误历史对照，参数保持冻结。辅助物理读出在新真实未来上重新按来源组交叉拟合，配置沿用前述设置；真实 latent 的校准误差与预测 latent 的读出误差分别报告，二者不能相减解释为纯模型误差。新旧面板的得分变化也不能当作模型进步。结果见技术报告的[测量范围与验证](ContextWorld_ICL_Benchmark.md#main-score-interpretation-and-auxiliary-physical-readout)。
+
 ## Speed 单任务诊断复算
 
 <details>

@@ -44,7 +44,7 @@ Development 用于实现检查、模型开发、训练配方选择和消融；Te
 包尚无稳定公开下载地址或固定 revision，因此外部读者目前不能从稳定公开工件端到端复现。
 当前不提供托管提交服务，离线 Test 结果也不是服务器集中验证的排行榜条目。
 
-主文档用一个预测指标概览九任务、三模型和各训练方案，任务详情提供区间与训练重复数。当前多步结果覆盖九任务主分布的 2,436 个 Development 场景；Speed 限于未见速度插值，尚未评测 Test。已有完整 Development 的选择率、响应指标及原环境 CEM 在历史表中保留；两种评分不混合排名。 [主分解释范围与辅助物理读出](docs/ContextWorld_ICL_Benchmark.md#main-score-interpretation-and-auxiliary-physical-readout)说明历史对照的解释范围、辅助坐标读出与 PushT 的单帧可观测性限制。
+主文档用一个预测指标概览九任务、三模型和各训练方案，任务详情提供区间与训练重复数。当前多步结果覆盖九任务主分布的 2,436 个 Development 场景；Speed 限于未见速度插值，尚未评测 Test。已有完整 Development 的选择率、响应指标及原环境 CEM 在历史表中保留；两种评分不混合排名。 [主分解释范围与辅助物理读出](docs/ContextWorld_ICL_Benchmark.md#main-score-interpretation-and-auxiliary-physical-readout)区分历史利用与预测准确性，并报告 PushT 画布内轨迹的独立验证；辅助坐标读出仍需单独检查校准误差。
 
 ## 快速开始
 
