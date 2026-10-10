@@ -336,7 +336,7 @@ LeWM / PLDM 在八项任务上的 T2 / T3 使用相同任务数据、混合比�
 
 **多步诊断补充了判别表看不到的信息。** Speed 插值中，LeWM 的 T0 / T1 / T3 完整误差比分别为 1.498 / 0.363 / 0.144，PLDM 为 3.377 / 0.520 / 0.302。对 DINO-WM，同一冻结视觉表示下，Strength 的 T0→T1 为 3.300→1.996，Door 为 4.233→1.329：自身表示中的误差减小，但仍高于条件均值参照。LeWM / PLDM 的跨方案比较还包含表示变化，不能直接换算为物理误差改善。
 
-这些是固定检查点上的能力差异与误差现象。[同初始化的 LeWM 四任务对照](ICL_Metric_Study.md#matched-encoder-contrast)显示：单种子 Development 中，冻结 Encoder 后 Friction、Cube、Strength 的原生 latent 响应 NRE 降低，Mass 则升高；Friction 的多步完整误差并未随原协议主分一起改善。该对照固定了训练数据，但目标 projector 仍可训练，表示几何与预测器优化轨迹同时变化，不能归因于单一模块；详见[跨表示空间的核对](ICL_Metric_Study.md#conditional-map-boundary)。
+这些是固定检查点上的能力差异与误差现象。[同初始化的 LeWM 四任务对照](ICL_Metric_Study.md#matched-encoder-contrast)显示：在这组 Development 对照中，T3 相比 T2 的 Friction、Cube、Strength 原生 latent 响应 NRE 降低，Mass 则升高；Friction 的多步完整误差并未随原协议主分一起改善。该对照固定了训练数据，但目标 projector 仍可训练，表示几何与预测器优化轨迹同时变化，不能归因于单一模块；详见[跨表示空间的核对](ICL_Metric_Study.md#conditional-map-boundary)。
 
 ### 5.4 训练数据规模对照
 

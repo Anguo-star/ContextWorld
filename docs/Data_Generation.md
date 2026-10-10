@@ -865,6 +865,43 @@ python scripts/analyze_conditional_map.py --source "$RESULTS" --models "$MODELS"
 
 上述命令需要前节的本地模型清单、配对面板和检查点；[公开结果 JSON](research/data/conditional_map_v1/summary.json)与 [CSV](research/data/conditional_map_v1/summary.csv)用于核对数值和来源，不包含模型权重。
 
+<a id="fixed-target-training-control"></a>
+
+## 固定目标表示的完整训练对照
+
+这项对照检验：原环境训练得到的表示保持不变时，混合数据训练能否使模型获得条件响应。先比较 LeWM 的 Friction 与 Mass；两者在已有 T2／T3 中变化方向相反。它是研究对照，完成前不加入 benchmark 成绩表。
+
+| 设置 | 固定目标对照 |
+|---|---|
+| 初始化 | 与对应 T3 相同的原环境 T0 全模型权重，重新建立优化器 |
+| 固定模块 | Encoder 与目标 projector，包括 BatchNorm 缓冲区；训练时保持这两个模块为 eval 模式 |
+| 更新模块 | 动作编码器、预测器与预测输出投影；保留其原生训练模式 |
+| 数据与预算 | 对应 T3 的 32k Training 数据，原环境／合成数据 50%／50%；8 GPU、每卡 batch 128、累积 1、10 epochs、种子 3072 |
+| 训练目标 | 保存的 T3 原生配置及固定版本训练入口；不增加响应加权损失 |
+| 评价 | 固定的 512 对 Training 诊断查询与全部 256 对 Development 查询；不读取 Test |
+
+执行入口从参考运行读取 `config.json` 与 `contextworld_training_identity_v1.json`，复用原生数据加载、损失、优化器和调度器。路径与日志输出独立设置；不覆盖已有权重。每轮记录实际优化步数，核对固定模块的参数和缓冲区始终等于 T0。短启动验证使用 `--smoke-max-steps`，其结果不算完整训练成绩。
+
+```bash
+python scripts/run_lewm_fixed_visual_native_v1.py \
+  --reference-run /path/to/task_T3_run \
+  --stablewm-repo /path/to/pinned_stable_worldmodel \
+  --output-root /path/to/new_control \
+  --run-name task_lewm_fixed_target_s3072 --freeze-scope visual
+```
+
+完成后，以第 10 epoch 为主要终点，第 1、5 epoch 仅用于观察学习过程。评价程序要求 T0 与新检查点的 Encoder／projector 张量及同图目标编码一致；匹配与错配历史必须同时替换历史图像和历史动作，当前状态与查询动作保持不变。条件响应 NRE、完整误差 E/B、历史收益 G 使用同一个 T0 目标空间与分母；Development 差值区间按来源组配对重采样。
+
+```bash
+python scripts/evaluate_fixed_target_control.py \
+  --task contact_friction --checkpoint /path/to/weights_epoch_10.pt \
+  --stablewm-repo /path/to/pinned_stable_worldmodel --stable-ref <ref> \
+  --models /path/to/models.json --panels /path/to/native_panels \
+  --device cuda:0 --output /path/to/evaluation
+```
+
+另一任务使用 `robot_arm_mass`。Training 诊断是固定子集，不代表全量训练误差；结果只说明当前表示、模型、数据及预算下能学到多少。此设计与[256 步响应加权干预](#response-intervention)的起点、目标和预算不同，不能合并为同一实验。
+
 <a id="response-intervention"></a>
 
 ## 固定表示下的响应损失干预

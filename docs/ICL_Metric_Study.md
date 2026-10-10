@@ -609,9 +609,9 @@ Speed 的固定 Training 均值参照 MAE 为 1.211；三模型的固定线性�
 
 <a id="matched-encoder-contrast"></a>
 
-### 4.9 相同初始化下，冻结 Encoder 改变了什么
+### 4.9 相同初始化下，更新与冻结 Encoder 的训练结果
 
-**单种子 Development 对照中，冻结 Encoder 对原生 latent 响应的作用随任务反转。** LeWM 的 Friction、Cube、Strength 在 T3 的响应 NRE 低于 T2；Mass 则升高。四组对照均从各任务相同的 T0 权重出发，使用相同的混合 Training 数据、训练种子 3072 和 10 个第二阶段 epoch；T2 更新 Encoder，T3 固定 Encoder，目标 projector 等其余原生模块仍参与训练。逐张量核对确认，四项 T3 的 198 个 Encoder 参数张量均与 T0 完全一致，T2 的对应张量均不同于 T0。因此比较的是**完整训练策略的效果**，不是单独替换 Encoder 的消融。
+**在这组 Development 对照中，T3 相比 T2 的原生 latent 响应变化随任务反转。** LeWM 的 Friction、Cube、Strength 在 T3 的响应 NRE 低于 T2；Mass 则升高。四组对照均从各任务相同的 T0 权重出发，使用相同的混合 Training 数据、训练种子 3072 和 10 个第二阶段 epoch；T2 更新 Encoder，T3 固定 Encoder，目标 projector 等其余原生模块仍参与训练。逐张量核对确认，四项 T3 的 198 个 Encoder 参数张量均与 T0 完全一致，T2 的对应张量均不同于 T0。因此比较的是**完整训练策略的效果**，不是单独替换 Encoder 的消融。
 
 表中的成对数值依次为 T2 → T3。目标方差、历史读出与原生一步响应使用各任务全部 256 个配对 Development 查询；多步 E/B 引用另行发布的扩展 Development 动作面板，不与一步查询合并计算。历史线性读出只在 Training 的 512 对查询上拟合，表中报告 Development 的平衡分类准确率（随机参照为 50%）；隐藏条件标签只用于拟合读出器，不输入世界模型。目标条件差异占比是同一检查点内“配对条件间目标 latent 方差／全部查询目标 latent 方差”，以百分数表示；它消除了整体缩放，却仍取决于 Encoder 的表示几何。原生响应 NRE 越低越好，0 为准确条件差，1 为零响应；多步完整误差比 E/B 越低越好，1 为条件均值参照。**不同检查点的 latent 原始距离不可直接比较，表中无量纲读数也不能解释为共同物理误差。**
 
@@ -641,9 +641,11 @@ Friction、Cube、Strength 的 T3 目标条件差异占比上升、响应 NRE �
 | 接触摩擦 | 1.004 / 0.998 / 0.448 | 0.934 [0.915, 0.953] |
 | 机械臂质量 | 0.980 / 0.039 / 0.338 | 0.384 [0.359, 0.411] |
 
-这条线性映射连 Development 的**真实目标差**都未能准确还原，故不再用它比较两个模型的预测输出。它的失败只限定了这种 Training 预算下的线性桥接方式，不能证明某个 Encoder 丢失了物理信息，也不能排除非线性映射。T3 的原生响应 NRE 在两项任务中均低于 T0，说明第二阶段训练改变了模型行为；projector、动作编码器和预测器都可能参与，现有权重不能分离各自贡献。要检验预测器能否在**固定目标空间**中学到条件响应，下一步需从同一 T0 出发，同时固定 Encoder 与 projector，再以相同数据和更新预算训练预测模块；本节没有进行这项新训练。
+这条线性映射连 Development 的**真实目标差**都未能准确还原，故不再用它比较两个模型的预测输出。它的失败只限定了这种 Training 预算下的线性桥接方式，不能证明某个 Encoder 丢失了物理信息，也不能排除非线性映射。T3 的原生响应 NRE 在两项任务中均低于 T0，说明第二阶段训练改变了模型行为；projector、动作编码器和预测器都可能参与，现有权重不能分离各自贡献。要判断第二阶段能否在**不改变目标表示**的条件下学会响应，需要从同一 T0 出发，同时固定 Encoder 与 projector。其余原生模块（动作编码器、预测器及预测输出投影）继续训练，数据、损失、优化器、批量和 10 epoch 预算与 T3 对齐。这样可以在同一个目标空间中比较训练前后，而不是依赖跨空间映射。
 
 [结果 JSON](research/data/conditional_map_v1/summary.json)、[简表 CSV](research/data/conditional_map_v1/summary.csv)记录检查点、面板与区间；[计算方法](Data_Generation.md#conditional-map-boundary)说明只使用 Training / Development，不读取 Test。
+
+**待验证的完整训练对照。** Friction 和 Mass 在 T2／T3 中呈相反方向，适合作为首组对照。上述实验从原环境 T0 开始，保留完整原生训练目标；它不同于 [§4.8](#response-intervention) 从已有 T1 开始、只运行 256 次更新的响应加权实验。评价同时报告 Training 与 Development 的条件响应 NRE、完整误差 E/B 和匹配历史收益，检查学习是否迁移。成功只能说明该固定表示支持这些预测模块在当前数据和预算下获得能力；失败仍需区分表示、优化和覆盖。与 T3 的差异检验的是固定 Encoder 时进一步固定 projector 的训练策略作用，不能单独证明某个模块是唯一根因。[实验方法](Data_Generation.md#fixed-target-training-control)给出设置与复现入口；完成前不纳入成绩表。
 
 <a id="physical-readout-methods"></a>
 
