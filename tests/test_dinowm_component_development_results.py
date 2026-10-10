@@ -17,6 +17,7 @@ RESULTS = (
 )
 BENCHMARK = ROOT / "docs/ContextWorld_ICL_Benchmark.md"
 APPENDIX = ROOT / "docs/reference/Benchmark_Result_Provenance.md"
+EXPANDED = ROOT / "docs/reference/ContextWorld_Expanded_Training_Results.md"
 SOURCE = ROOT / "docs/research/data/icl_training_study_v2.json"
 RENDERER = ROOT / "scripts/render_training_comparison.py"
 
@@ -131,17 +132,12 @@ def _body_rows(lines: list[str]) -> list[str]:
 def test_public_document_uses_overview_and_task_detail_tables() -> None:
     """The comparison section is an 11-row overview plus per-task detail blocks.
 
-    The old layout rendered one 158-line unified table (one line per Speed
-    distribution) straight from the representative rows.  The published study
-    now carries per-training-run ``replicates``, so the renderer aggregates
-    instead: a horizontal overview (model x scheme, one ``ICL / CEM`` cell per
-    task, without a composite score, and
-    comparable), one detail block per task with n(ICL)/n(CEM) and mean ± SD,
-    a scaling block, and an appendix-only historical block.  This test pins
-    that structure to the source JSON and the renderer itself.
+    The public report keeps one task-score overview. Detailed metrics, CEM,
+    scaling, and multi-step tables live in a separate results appendix.
     """
     document = BENCHMARK.read_text(encoding="utf-8")
     appendix = APPENDIX.read_text(encoding="utf-8")
+    expanded = EXPANDED.read_text(encoding="utf-8")
     source = json.loads(SOURCE.read_text(encoding="utf-8"))
     rows = source["rows"]
     renderer = _load_renderer()
@@ -149,7 +145,8 @@ def test_public_document_uses_overview_and_task_detail_tables() -> None:
     # The single unified table is gone; each block appears exactly once in its owning doc.
     assert "TRAINING_COMPARISON_FULL" not in document
     for marker in renderer.MAIN_MARKERS:
-        assert document.count(f"<!-- BEGIN TRAINING_COMPARISON_{marker} -->") == 1, marker
+        owner = renderer.marker_doc(marker).read_text(encoding="utf-8")
+        assert owner.count(f"<!-- BEGIN TRAINING_COMPARISON_{marker} -->") == 1, marker
     assert document.count("<!-- BEGIN TRAINING_COMPARISON_HISTORICAL -->") == 0
     assert appendix.count("<!-- BEGIN TRAINING_COMPARISON_HISTORICAL -->") == 1
     assert appendix.count("<!-- BEGIN CURRENT_REFERENCE_ICL_MATRIX -->") == 1
@@ -159,10 +156,10 @@ def test_public_document_uses_overview_and_task_detail_tables() -> None:
     end = document.index("\n## 6. 任务说明", start)
     section = document[start:end]
     tasks = document[end:document.index("\n## 7. 接入与复现", end)]
-    assert section.count("<!-- BEGIN TRAINING_COMPARISON_OVERVIEW -->") == 1
-    assert section.count("<!-- BEGIN TRAINING_COMPARISON_SCALING -->") == 1
+    assert document.count("<!-- BEGIN TRAINING_COMPARISON_OVERVIEW -->") == 1
+    assert expanded.count("<!-- BEGIN TRAINING_COMPARISON_SCALING -->") == 1
     for marker in renderer.DETAIL_MARKERS.values():
-        assert tasks.count(f"<!-- BEGIN TRAINING_COMPARISON_{marker} -->") == 1, marker
+        assert expanded.count(f"<!-- BEGIN TRAINING_COMPARISON_{marker} -->") == 1, marker
     assert "JSON" in section and "CSV" in section
     assert "排队" not in section
 
@@ -187,14 +184,14 @@ def test_public_document_uses_overview_and_task_detail_tables() -> None:
             icl = renderer.f2(metrics["main"]["mean"])
             if task == "action_delay" and regime == "original" and icl != "—":
                 icl += "†"
-            cem = renderer.f2(agg["scores"]["cem"]["mean"])
-            assert cell == ("—" if icl == cem == "—" else f"{icl} / {cem}")
+            n = metrics["main"]["n"]
+            assert cell == ("—" if icl == "—" else f"{icl} (n={n})")
     assert "†" in "\n".join(body)  # H3 Delay original reference stays flagged
     assert "历史转换初始化" not in "\n".join(body)
 
     # Detail blocks: every current ordinary row of the task, nothing else.
     for task, marker in renderer.DETAIL_MARKERS.items():
-        lines = _table_lines(document, marker)
+        lines = _table_lines(expanded, marker)
         detail_body = _body_rows(lines)
         current = [r for r in renderer.ordered_current(rows, task)
                    if any(st["n"] for st in renderer.display_stats(r)[0].values())]
@@ -215,15 +212,15 @@ def test_public_document_uses_overview_and_task_detail_tables() -> None:
             assert "评测条件" in lines[0]
             for label in ("低端外推", "高端外推", "未见速度插值", "训练中已见速度"):
                 assert label in "\n".join(detail_body)
-            assert "同组" in tasks
+            assert "同组" in expanded
         if task in ("speed", "action_delay", "door"):
             assert "Joint↑" not in lines[0]  # Undefined metrics do not need empty columns
         if task == "action_delay":
             assert renderer.REGIME_ZH["original"] + "†" in "\n".join(detail_body)
-    assert "（未报告）" not in tasks and "（仅 CEM）" in tasks
+    assert "（未报告）" not in expanded and "（仅 CEM）" in expanded
 
     # Scaling: six small-vs-large Scratch comparisons plus the LeWM strength Joint ladder.
-    scaling = _body_rows(_table_lines(document, "SCALING"))
+    scaling = _body_rows(_table_lines(expanded, "SCALING"))
     assert len(scaling) == len(renderer.scaling_rows(rows))
     assert len(scaling) == 39
     scaling_text = "\n".join(scaling)

@@ -7,7 +7,7 @@ ContextWorld 评测世界模型能否从最近几步真实交互中识别隐藏�
 ## 从这里开始
 
 - **[ContextWorld 统一技术报告](docs/ContextWorld_ICL_Benchmark.md)**：任务、数据版本、评分协议、九任务三模型训练方式对比与主要发现。
-- [直接查看最新总表](docs/ContextWorld_ICL_Benchmark.md#training-comparison)：按任务横向比较 T0–T3 四种训练方案的多步完整预测分；表前说明各方案的数据来源、配比、初始化与训练预算。
+- [直接查看训练对照表](docs/ContextWorld_ICL_Benchmark.md#training-comparison)：按任务横向比较 T0–T3 的原协议主指标与训练重复数；[多步预测和原环境 CEM](docs/reference/ContextWorld_Expanded_Training_Results.md)分别列在结果附录。
 - [文档导航](docs/README.md)：数据生成、模型接入、训练和结果复现。
 
 ## 九项任务
@@ -44,7 +44,7 @@ Development 用于实现检查、模型开发、训练配方选择和消融；Te
 包尚无稳定公开下载地址或固定 revision，因此外部读者目前不能从稳定公开工件端到端复现。
 当前不提供托管提交服务，离线 Test 结果也不是服务器集中验证的排行榜条目。
 
-主文档用一个预测指标概览九任务、三模型和各训练方案，任务详情提供区间与训练重复数。当前多步结果覆盖九任务主分布的 2,436 个 Development 场景；Speed 限于未见速度插值，尚未评测 Test。已有完整 Development 的选择率、响应指标及原环境 CEM 在历史表中保留；两种评分不混合排名。 [主分解释范围与辅助物理读出](docs/ContextWorld_ICL_Benchmark.md#main-score-interpretation-and-auxiliary-physical-readout)区分历史利用与预测准确性，并报告 PushT 画布内轨迹的独立验证；辅助坐标读出仍需单独检查校准误差。
+主报告用九项任务各自的原协议主指标展示三种模型与训练方案；[结果附录](docs/reference/ContextWorld_Expanded_Training_Results.md)保留训练重复、响应、多步预测及原环境 CEM 的完整数值。多步诊断覆盖九任务主分布的 2,436 个 Development 场景；Speed 限于未见速度插值，尚未评测 Test。预测层面的历史利用不等于动作选择收益；[指标研究](docs/ICL_Metric_Study.md)单独记录物理读出和决策诊断。
 
 ## 快速开始
 
@@ -116,7 +116,7 @@ contextworld-public-test-report verify --receipt public_test_report_<report_id>.
 
 ### 结果如何组织
 
-[统一技术报告](docs/ContextWorld_ICL_Benchmark.md)区分两类结果：冻结 v3 保留既有数据、评分与三种子参考；较新的训练方式研究报告扩量数据、完整原始初始化和冻结 Encoder 的 Development 结果，并按各配置可用的训练重复汇总。后者不覆盖前者，也不自动成为新的正式 Test 排行榜。
+[主报告](docs/ContextWorld_ICL_Benchmark.md)区分两类结果：冻结 v3 保留既有数据、评分与三种子参考；较新的训练方式研究报告扩量数据、完整原始初始化和冻结 Encoder 的 Development 结果，并按各配置可用的训练重复汇总。后者不覆盖前者，也不自动成为新的正式 Test 排行榜。[完整明细](docs/reference/ContextWorld_Expanded_Training_Results.md)单独保存。
 
 已有研究显示，固定数据和原始初始化时，冻结 Encoder 可明显改善部分任务，却使另一些任务退步。数据量、模型和表示更新方式需要分别检验；条件预测与原环境规划也可能不同步。具体分数、响应幅值、反例和解释边界均在技术报告维护。
 
@@ -139,7 +139,7 @@ rollout 接口转换为统一输入格式。评分器不要求解码器，也不
 
 ## 文档
 
-- [统一技术报告](docs/ContextWorld_ICL_Benchmark.md)：任务、数据、全部结果、发现与报告规则；
+- [主报告](docs/ContextWorld_ICL_Benchmark.md)：任务、数据、训练对照、发现与报告规则；[结果附录](docs/reference/ContextWorld_Expanded_Training_Results.md)保存完整数值；
 - [数据生成方法](docs/Data_Generation.md)：连续仿真、配对构造、拆分隔离和九项任务的生成来源；
 - [HF 数据集指南](docs/HF_Dataset_Export.md)：v3 发布目录、加载方式和维护者打包流程；
 - [Stable-WorldModel 训练](docs/StableWM_Training.md)：内置参考模型的可复现训练入口；

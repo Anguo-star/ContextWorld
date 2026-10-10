@@ -37,9 +37,9 @@ RTC = _load_renderer()
 
 @pytest.fixture(autouse=True)
 def _restore_renderer_paths():
-    saved = (RTC.DOC, RTC.APPENDIX_DOC, RTC.JSON_PATH, RTC.CSV_PATH)
+    saved = (RTC.DOC, RTC.APPENDIX_DOC, RTC.RESULTS_DOC, RTC.JSON_PATH, RTC.CSV_PATH)
     yield
-    RTC.DOC, RTC.APPENDIX_DOC, RTC.JSON_PATH, RTC.CSV_PATH = saved
+    RTC.DOC, RTC.APPENDIX_DOC, RTC.RESULTS_DOC, RTC.JSON_PATH, RTC.CSV_PATH = saved
 
 
 
@@ -306,7 +306,7 @@ def test_speed_uses_one_condition_table_and_shares_original_cem(rtc, published_r
     body = [[c.strip() for c in l.split("|")[1:-1]] for l in lines[2:]]
     current = rtc.ordered_current(published_rows, "speed")
     assert len(body) == 4 * len(current) == 44
-    ci, ni, mi = (header.index(k) for k in ("CEM↑", "n(CEM)", "旧选择分↑"))
+    ci, ni, mi = (header.index(k) for k in ("CEM↑", "n(CEM)", "任务主指标↑"))
     for i, row in enumerate(current):
         group = body[4*i:4*i+4]
         agg = rtc.aggregate(row)
@@ -367,15 +367,19 @@ def _sandbox(rtc, tmp_path, doc=None):
         json.dumps(study), encoding="utf-8")
     main_doc = sandbox / "docs" / "ContextWorld_ICL_Benchmark.md"
     appendix_doc = sandbox / "docs" / "reference" / "Benchmark_Result_Provenance.md"
+    results_doc = sandbox / "docs" / "reference" / "ContextWorld_Expanded_Training_Results.md"
     markers = [f"<!-- BEGIN TRAINING_COMPARISON_{m} -->\nplaceholder {m}\n<!-- END TRAINING_COMPARISON_{m} -->"
-               for m in rtc.MAIN_MARKERS]
+               for m in rtc.MAIN_MARKERS if m not in rtc.STUDY_MARKERS and m not in rtc.RESULTS_MARKERS]
+    result_markers = [f"<!-- BEGIN TRAINING_COMPARISON_{m} -->\nplaceholder {m}\n<!-- END TRAINING_COMPARISON_{m} -->"
+                      for m in rtc.RESULTS_MARKERS]
     appendix_markers = [f"<!-- BEGIN TRAINING_COMPARISON_{m} -->\nplaceholder {m}\n<!-- END TRAINING_COMPARISON_{m} -->"
                         for m in rtc.APPENDIX_MARKERS]
     main_doc.write_text("\n".join(markers) + "\n", encoding="utf-8")
+    results_doc.write_text("\n".join(result_markers) + "\n", encoding="utf-8")
     appendix_doc.write_text("\n".join(appendix_markers) + "\n", encoding="utf-8")
     csv_path = sandbox / "docs" / "research" / "data" / "icl_training_study_v2.csv"
-    saved = (rtc.DOC, rtc.APPENDIX_DOC, rtc.JSON_PATH, rtc.CSV_PATH)
-    rtc.DOC, rtc.APPENDIX_DOC = main_doc, appendix_doc
+    saved = (rtc.DOC, rtc.APPENDIX_DOC, rtc.RESULTS_DOC, rtc.JSON_PATH, rtc.CSV_PATH)
+    rtc.DOC, rtc.APPENDIX_DOC, rtc.RESULTS_DOC = main_doc, appendix_doc, results_doc
     rtc.JSON_PATH = sandbox / "docs" / "research" / "data" / "icl_training_study_v2.json"
     rtc.CSV_PATH = csv_path
     return sandbox, saved
@@ -451,9 +455,9 @@ def test_pipeline_writes_aggregated_csv_and_check_revalidates(rtc, tmp_path):
 def test_check_mode_requires_every_marker(rtc, tmp_path):
     _sandbox(rtc, tmp_path)
     _run(rtc)
-    text = rtc.DOC.read_text(encoding="utf-8").replace(
+    text = rtc.RESULTS_DOC.read_text(encoding="utf-8").replace(
         "<!-- BEGIN TRAINING_COMPARISON_SCALING -->", "")
-    rtc.DOC.write_text(text, encoding="utf-8")
+    rtc.RESULTS_DOC.write_text(text, encoding="utf-8")
     with pytest.raises(rtc.Fail, match="marker SCALING"):
         _run(rtc, "--check")
 

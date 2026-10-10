@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Render aggregated training-comparison blocks in docs/ContextWorld_ICL_Benchmark.md
+"""Render aggregated training-comparison blocks in the benchmark report and result appendix
 (and the historical appendix in docs/reference/Benchmark_Result_Provenance.md) from the
 published docs/research/data/icl_training_study_v2.json, and maintain its aggregated CSV twin.
 Supplementary multi-step tables use multistep_prediction_coverage_v2.json; task scores remain separate.
@@ -33,6 +33,7 @@ REPO = Path(__file__).resolve().parents[1]
 DOC = REPO / "docs" / "ContextWorld_ICL_Benchmark.md"
 STUDY_DOC = REPO / "docs" / "ICL_Metric_Study.md"
 APPENDIX_DOC = REPO / "docs" / "reference" / "Benchmark_Result_Provenance.md"
+RESULTS_DOC = REPO / "docs" / "reference" / "ContextWorld_Expanded_Training_Results.md"
 JSON_PATH = REPO / "docs" / "research" / "data" / "icl_training_study_v2.json"
 CSV_PATH = REPO / "docs" / "research" / "data" / "icl_training_study_v2.csv"
 DECISION_PATH = REPO / "docs" / "research" / "data" / "icl_action_selection_v1.json"
@@ -83,13 +84,16 @@ MARKERS = MAIN_MARKERS + APPENDIX_MARKERS
 
 
 STUDY_MARKERS = ['CROSS_TASK_VALIDITY', 'CROSS_TASK_ERRORS', 'CROSS_TASK_MODELS', 'PRED_STRENGTH', 'PRED_SPEED', 'DECISION', 'SPEED_DECISION', 'SPEED_CEM', 'SPEED_TIMED', 'SPEED_SEARCH', 'SPEED_REFRESH', 'SPEED_PROBE', 'PRED_HORIZON']
+RESULTS_MARKERS = [m for m in MAIN_MARKERS if m not in STUDY_MARKERS and m != "OVERVIEW"]
 
 
 def marker_doc(marker):
     """Return the benchmark, measurement study, or historical appendix owning a block."""
     if marker in APPENDIX_MARKERS:
         return APPENDIX_DOC
-    return STUDY_DOC if marker in STUDY_MARKERS else DOC
+    if marker in STUDY_MARKERS:
+        return STUDY_DOC
+    return RESULTS_DOC if marker in RESULTS_MARKERS else DOC
 
 CSV_COLS = (["id", "task", "model", "regime", "training_data_version", "training_pair_count",
              "n_icl", "n_cem", "training_seeds"]
@@ -373,7 +377,7 @@ def _markdown_table(header, body):
 
 
 def render_overview(rows):
-    """Eleven model/scheme rows, with nine task cells (mean ICL / mean CEM)."""
+    """Eleven model/scheme rows, with nine task main scores and per-cell training n."""
     header = ["模型", "方案"] + [f"[{TASK_ZH[t]}](#task-{t.replace('_', '-')})" for t in TASK_ORDER]
     body = []
     for (model, regime), tasks in overview_groups(rows):
@@ -383,8 +387,8 @@ def render_overview(rows):
             icl = f2(metrics["main"]["mean"])
             if t == "action_delay" and regime == "original" and icl != "—":
                 icl += "†"
-            cem = f2(agg["scores"]["cem"]["mean"])
-            cells.append("—" if icl == "—" and cem == "—" else f"{icl} / {cem}")
+            n = metrics["main"]["n"]
+            cells.append("—" if icl == "—" else f"{icl} (n={n})")
         body.append("| " + " | ".join([MODEL_ZH[model], REGIME_ZH[regime]] + cells) + " |")
     return "\n".join(_markdown_table(header, body))
 

@@ -319,12 +319,10 @@ def _reference_table(document: str) -> Table:
         joined.append(tuple(values))
 
     displayed = [table for table in _tables(document) if "训练数据" in table.header]
-    assert len(displayed) == 1, (
-        "the main document must carry exactly one complete training comparison "
-        f"table, found {len(displayed)}"
-    )
+    assert len(displayed) == 0, "the frozen v3 comparison belongs only in its appendix"
+    assert document.count("<!-- BEGIN TRAINING_COMPARISON_OVERVIEW -->") == 1
     header = tuple(detail.header) + ("原始 CEM 起点", "训练后原任务 CEM")
-    return Table(displayed[0].path, displayed[0].context, header, tuple(joined))
+    return Table(detail.path, detail.context, header, tuple(joined))
 
 
 def _reference_row(component_id: str, family: str) -> tuple[Table, tuple[str, ...]]:

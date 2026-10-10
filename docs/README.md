@@ -1,17 +1,17 @@
 # ContextWorld 文档导航
 
-**先读 [ContextWorld 统一技术报告](ContextWorld_ICL_Benchmark.md)。** 任务定义、数据版本、完整模型与训练方案对比、主要发现均在这一页维护。指标研究独立维护，其他指南承担数据、训练、接入和复现操作说明；历史协议不是使用 benchmark 的前置知识。
+**先读 [ContextWorld 主报告](ContextWorld_ICL_Benchmark.md)。** 它说明任务、数据、评分与训练对照；[结果附录](reference/ContextWorld_Expanded_Training_Results.md)保存完整数值，冻结 v3 另见[参考附录](reference/Benchmark_Result_Provenance.md)。
 
 ## 公开使用
 
 1. [项目首页](../README.md)：任务概览、安装和最短运行示例；
-2. [统一技术报告](ContextWorld_ICL_Benchmark.md)：当前数据、指标、九任务总表与任务子表、采用的评分协议、结果解释与适用边界；
+2. [主报告](ContextWorld_ICL_Benchmark.md)：数据、指标、九任务训练对照、评分协议、结果解释与适用边界；[结果附录](reference/ContextWorld_Expanded_Training_Results.md)保存任务明细与补充诊断；
 3. [数据生成方法](Data_Generation.md)：连续仿真、配对构造、拆分隔离和九项任务的生成来源；
 4. [HF 数据集指南](HF_Dataset_Export.md)：数据包格式与加载方式；稳定公共下载尚未发布；
 5. [外部模型 Adapter 规范](External_Model_Adapter_Contract.md)：接入新模型所需的统一接口；
 6. [Stable-WorldModel 训练](StableWM_Training.md)：内置 LeWM、PLDM 和 PreJEPA 的训练入口。
 
-九项任务按隐藏动力学类型组织。主表保留任务主指标与原环境 CEM；每项任务的核心表并列主指标、匹配历史胜率、响应 NRE、多步完整误差比 E/B、区间与训练重复数。完整诊断折叠保留。正确／错误历史对照用于解释历史作用，不将辨别、预测与规划混成一个总分。
+九项任务按隐藏动力学类型组织。主表只列各任务的原协议主指标和训练重复数；附录分别列出匹配历史胜率、响应 NRE、多步完整误差比 E/B 与原环境 CEM。正确／错误历史对照用于解释历史作用，不将辨别、预测与规划混成一个总分。
 
 任务成绩与补充诊断见[九任务总表](ContextWorld_ICL_Benchmark.md#training-comparison)。补充多步评测覆盖九任务主分布的 2,436 个 Development 场景；Speed 限于未见速度插值，Test 尚未评测。相同配置的全部可用训练重复参与汇总，[JSON](research/data/multistep_prediction_coverage_v2.json) 与 [CSV](research/data/multistep_prediction_coverage_v2.csv) 提供逐次与汇总结果。公开汇总可检查，但数据面板与权重尚无稳定下载 revision，外部端到端复现尚不可用。指标计算、正反例、物理校准和规划诊断见[ICL 评测指标研究](ICL_Metric_Study.md)。
 
