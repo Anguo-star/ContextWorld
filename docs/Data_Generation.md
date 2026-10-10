@@ -706,3 +706,28 @@ OPENBLAS_NUM_THREADS=1 python scripts/analyze_delay_train_development.py --check
 ### 训练过程诊断的样本与数值复现
 
 训练样本在推理前抽取，每对的当前图像与查询动作匹配。训练集成员资格按原生划分规则重建，未按逐批日志确认曝光次数。第 10 epoch 的诊断复测与归档主分最多相差 512 次判断中的 2 次，NRE 差异小于 0.002；差异原因尚未隔离。九任务主表引用归档成绩，本节使用同一次诊断评测所得的第 5、10 epoch 结果。
+
+
+<a id="delay-native-objective"></a>
+
+## Delay 原生视觉预测目标诊断
+
+使用 [训练集与 Development 对照](#delay-train-development)已经提取的 Training 查询，以及同一模型清单。三个模型分别运行独立进程；各自使用 T1 种子 3072。四个房间／方向层各取清单中最先出现的四个来源查询，不按预测结果选择。每个查询包含全部 11 种延迟、七个真实历史帧及首个真实未来帧。
+
+```bash
+python scripts/diagnose_delay_native_objective.py \
+  --models "$MODELS_JSON" --id action_delay/dinowm/scratch/s3072 \
+  --panel "$DELAY_SPLIT_PANEL" --output "$DELAY_OBJECTIVE_RUN/dinowm" \
+  --device cuda:0 --scenes-per-stratum 4
+```
+
+将模型 ID 与输出目录分别替换为 LeWM、PLDM 对应条目。脚本缓存原生视觉表示，使用原动作标准化与完整预测路径计算七个位置的视觉 MSE。编码器、视觉投影及动作编码器不参与求导；只计算主预测器梯度，不执行优化器。最终位置必须与原生 Adapter 的首端点预测一致。
+
+损失在 float64 中中心化并汇总，模型前向及反向为 float32，关闭 dropout 与 TF32。梯度分解残差同时按整体梯度和组件范数和报告，防止近抵消造成的比值误读；验算要求组件归一化残差不超过 1e-3、逐参数最大绝对残差不超过 1e-5。它们是计算一致性容差，不是模型能力门槛。源 JSON 保存逐查询损失、梯度统计、切分与检查点身份；输入面板和全部权重尚无稳定公共下载。
+
+从公开三份源 JSON 重建汇总与文档表，无需 GPU：
+
+```bash
+python scripts/analyze_delay_native_objective.py
+python scripts/analyze_delay_native_objective.py --check
+```
