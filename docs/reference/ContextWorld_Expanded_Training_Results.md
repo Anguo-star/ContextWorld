@@ -157,10 +157,18 @@ CEM 不参与 ICL 主分，只衡量原环境规划能力保持。该表复用�
 
 </details>
 
+<a id="rollout-error-diagnostic"></a>
+
+## 端点误差与真实观测替换
+
+各任务折叠表比较同一检查点、场景和动作下的**自由推演**与**真实观测替换**。前者把预测反馈为后续输入；后者每次预测前只提供截至该时刻的真实历史，不提供尚未发生的未来。替换分支仅用于定位误差，不计入自由推演的 E/B。
+
+第 5、25 个物理步的端点误差均除以该检查点在五个评分时刻上的**整段参照平均能量 B**，并非分别以端点能量归一化。因此可在同一行比较误差随递推的变化，但端点读数不能直接等同于整段 E/B。表中的差值为自由推演误差减真实输入误差，允许正负；替换同时纠正当前状态并刷新历史中的动力学证据，不是可相加的因果误差占比。
+
 
 <a id="九任务明细"></a>
 
-## 6. 任务说明
+## 九任务明细
 
 **每项任务先给一张核心对比表**，展示同一模型各训练方案的主指标、History、响应 NRE、多步 E/B 和 CEM。更详细的响应指标、Speed 分布以及自由／真实输入对照折叠保留。数据、训练与评分定义分别见 §2、§5.1、§4。
 
@@ -264,7 +272,7 @@ CEM 不参与 ICL 主分，只衡量原环境规划能力保持。该表复用�
 <details>
 <summary>多步诊断：自由推演与真实观测替换</summary>
 
-端点误差共用整段参照 B，真实输入分支仅作诊断；定义见 [§5.5](#rollout-error-diagnostic)。差值为自由误差减真实输入误差，不解释为因果占比。
+端点误差共用整段参照 B，真实输入分支仅作诊断；定义见[端点误差与真实观测替换](#rollout-error-diagnostic)。差值为自由误差减真实输入误差，不解释为因果占比。
 
 <!-- BEGIN TRAINING_COMPARISON_MULTISTEP_ERROR_SPEED -->
 | 模型 | 方案 | 第 5 步误差比↓ | 第 25 步自由误差比↓ | 第 25 步真实输入误差比↓ | 自由−真实输入 [95% 区间] |
@@ -342,7 +350,7 @@ CEM 不参与 ICL 主分，只衡量原环境规划能力保持。该表复用�
 <details>
 <summary>多步诊断：自由推演与真实观测替换</summary>
 
-端点误差共用整段参照 B，真实输入分支仅作诊断；定义见 [§5.5](#rollout-error-diagnostic)。差值为自由误差减真实输入误差，不解释为因果占比。
+端点误差共用整段参照 B，真实输入分支仅作诊断；定义见[端点误差与真实观测替换](#rollout-error-diagnostic)。差值为自由误差减真实输入误差，不解释为因果占比。
 
 <!-- BEGIN TRAINING_COMPARISON_MULTISTEP_ERROR_ACTION_STRENGTH -->
 | 模型 | 方案 | 第 5 步误差比↓ | 第 25 步自由误差比↓ | 第 25 步真实输入误差比↓ | 自由−真实输入 [95% 区间] |
@@ -420,7 +428,7 @@ latent 响应。
 <details>
 <summary>多步诊断：自由推演与真实观测替换</summary>
 
-端点误差共用整段参照 B，真实输入分支仅作诊断；定义见 [§5.5](#rollout-error-diagnostic)。差值为自由误差减真实输入误差，不解释为因果占比。
+端点误差共用整段参照 B，真实输入分支仅作诊断；定义见[端点误差与真实观测替换](#rollout-error-diagnostic)。差值为自由误差减真实输入误差，不解释为因果占比。
 
 <!-- BEGIN TRAINING_COMPARISON_MULTISTEP_ERROR_ROBOT_ARM_MASS -->
 | 模型 | 方案 | 第 5 步误差比↓ | 第 25 步自由误差比↓ | 第 25 步真实输入误差比↓ | 自由−真实输入 [95% 区间] |
@@ -501,7 +509,7 @@ latent 响应。
 <details>
 <summary>多步诊断：自由推演与真实观测替换</summary>
 
-端点误差共用整段参照 B，真实输入分支仅作诊断；定义见 [§5.5](#rollout-error-diagnostic)。差值为自由误差减真实输入误差，不解释为因果占比。
+端点误差共用整段参照 B，真实输入分支仅作诊断；定义见[端点误差与真实观测替换](#rollout-error-diagnostic)。差值为自由误差减真实输入误差，不解释为因果占比。
 
 <!-- BEGIN TRAINING_COMPARISON_MULTISTEP_ERROR_ACTION_DELAY -->
 | 模型 | 方案 | 第 5 步误差比↓ | 第 25 步自由误差比↓ | 第 25 步真实输入误差比↓ | 自由−真实输入 [95% 区间] |
@@ -573,7 +581,7 @@ latent 响应。
 <details>
 <summary>多步诊断：自由推演与真实观测替换</summary>
 
-端点误差共用整段参照 B，真实输入分支仅作诊断；定义见 [§5.5](#rollout-error-diagnostic)。差值为自由误差减真实输入误差，不解释为因果占比。
+端点误差共用整段参照 B，真实输入分支仅作诊断；定义见[端点误差与真实观测替换](#rollout-error-diagnostic)。差值为自由误差减真实输入误差，不解释为因果占比。
 
 <!-- BEGIN TRAINING_COMPARISON_MULTISTEP_ERROR_CONTACT_FRICTION -->
 | 模型 | 方案 | 第 5 步误差比↓ | 第 25 步自由误差比↓ | 第 25 步真实输入误差比↓ | 自由−真实输入 [95% 区间] |
@@ -651,7 +659,7 @@ latent 响应。
 <details>
 <summary>多步诊断：自由推演与真实观测替换</summary>
 
-端点误差共用整段参照 B，真实输入分支仅作诊断；定义见 [§5.5](#rollout-error-diagnostic)。差值为自由误差减真实输入误差，不解释为因果占比。
+端点误差共用整段参照 B，真实输入分支仅作诊断；定义见[端点误差与真实观测替换](#rollout-error-diagnostic)。差值为自由误差减真实输入误差，不解释为因果占比。
 
 <!-- BEGIN TRAINING_COMPARISON_MULTISTEP_ERROR_MOTION_DAMPING -->
 | 模型 | 方案 | 第 5 步误差比↓ | 第 25 步自由误差比↓ | 第 25 步真实输入误差比↓ | 自由−真实输入 [95% 区间] |
@@ -730,7 +738,7 @@ latent 响应。
 <details>
 <summary>多步诊断：自由推演与真实观测替换</summary>
 
-端点误差共用整段参照 B，真实输入分支仅作诊断；定义见 [§5.5](#rollout-error-diagnostic)。差值为自由误差减真实输入误差，不解释为因果占比。
+端点误差共用整段参照 B，真实输入分支仅作诊断；定义见[端点误差与真实观测替换](#rollout-error-diagnostic)。差值为自由误差减真实输入误差，不解释为因果占比。
 
 <!-- BEGIN TRAINING_COMPARISON_MULTISTEP_ERROR_CUBE_GRIPPER_CARRY -->
 | 模型 | 方案 | 第 5 步误差比↓ | 第 25 步自由误差比↓ | 第 25 步真实输入误差比↓ | 自由−真实输入 [95% 区间] |
@@ -810,7 +818,7 @@ latent 响应。
 <details>
 <summary>多步诊断：自由推演与真实观测替换</summary>
 
-端点误差共用整段参照 B，真实输入分支仅作诊断；定义见 [§5.5](#rollout-error-diagnostic)。差值为自由误差减真实输入误差，不解释为因果占比。
+端点误差共用整段参照 B，真实输入分支仅作诊断；定义见[端点误差与真实观测替换](#rollout-error-diagnostic)。差值为自由误差减真实输入误差，不解释为因果占比。
 
 <!-- BEGIN TRAINING_COMPARISON_MULTISTEP_ERROR_DOOR -->
 | 模型 | 方案 | 第 5 步误差比↓ | 第 25 步自由误差比↓ | 第 25 步真实输入误差比↓ | 自由−真实输入 [95% 区间] |
@@ -887,7 +895,7 @@ bootstrap 区间和 latent 响应。
 <details>
 <summary>多步诊断：自由推演与真实观测替换</summary>
 
-端点误差共用整段参照 B，真实输入分支仅作诊断；定义见 [§5.5](#rollout-error-diagnostic)。差值为自由误差减真实输入误差，不解释为因果占比。
+端点误差共用整段参照 B，真实输入分支仅作诊断；定义见[端点误差与真实观测替换](#rollout-error-diagnostic)。差值为自由误差减真实输入误差，不解释为因果占比。
 
 <!-- BEGIN TRAINING_COMPARISON_MULTISTEP_ERROR_PORTAL_EXIT -->
 | 模型 | 方案 | 第 5 步误差比↓ | 第 25 步自由误差比↓ | 第 25 步真实输入误差比↓ | 自由−真实输入 [95% 区间] |
