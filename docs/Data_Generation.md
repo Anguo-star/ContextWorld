@@ -825,3 +825,48 @@ python scripts/analyze_cross_task_mechanism.py --check
 ```
 
 [汇总 JSON](research/data/cross_task_mechanism_v1.json)与 [CSV](research/data/cross_task_mechanism_v1.csv)链接所用来源记录和哈希；公开记录可用于复算汇总。参考读出只检验固定方法能否识别规律，局部梯度只描述所选检查点的视觉损失。它们不能替代世界模型的多步成绩，也不单独证明某种训练策略造成了失败。
+
+
+<a id="response-intervention"></a>
+
+## 固定表示下的响应损失干预
+
+这项短实验检验响应目标的相对权重是否限制条件预测，结果见[指标研究](ICL_Metric_Study.md#response-intervention)。它使用四个已有 T1 检查点：LeWM 的 Friction、Cube、Mass，以及 DINO-WM 的 Delay。每项的两臂从同一权重独立开始，固定 Encoder、视觉投影、动作编码器与目标表示，只更新主预测器及其输出映射（如有 `pred_proj`）。全程使用 `eval` 模式关闭 dropout，但保留预测器梯度；不包含完整训练的 JEPA/SIGREG 等其他正则项或 DINO-WM 的动作流预测损失。
+
+**数据与监督。** 复用九任务诊断的 Training／Development 原生表示缓存；三项 LeWM 各取 512 对 Training 查询、全部 256 对 Development，Delay 取 128 个 Training 查询、全部 300 个 Development，每查询保留 11 种延迟。训练面板未按结果筛选，完整保留每个查询的全部条件。每组当前图像和动作一致，历史按各自条件变化。模型只读取图像表示与动作，条件标签不作为模型输入。原生监督使用移位后的历史及最终查询目标，分别覆盖 H3 的第 5／10／15 物理步和 H7 的第 5 至 35 步。最终查询均为当前状态五步后的预测。
+
+**两臂损失。** 对每个查询，沿条件维度中心化最后位置的预测误差；不在不同查询之间中心化。记全部原生位置的平均视觉 MSE 为 $L_{\mathrm{visual}}$，最后位置中心化误差为 $L_{\mathrm{response}}$，其中保留原生位置权重 $1/H$。令 $L_{\mathrm{rest}}=L_{\mathrm{visual}}-L_{\mathrm{response}}$，则两臂为
+
+$$
+L_{\mathrm{control}}=L_{\mathrm{rest}}+L_{\mathrm{response}},\qquad
+L_{\mathrm{weighted}}=\frac{L_{\mathrm{rest}}+\lambda L_{\mathrm{response}}}{c}.
+$$
+
+$L_{\mathrm{rest}}$ 包含查询共同误差和其他监督位置的全部误差。按 `SHA256(20261010:source_group)` 排序选择 16 个不同 Training 来源，每来源取清单中首个查询。先分别平均两项对预测器的梯度向量，再确定
+
+$$
+\lambda=\max\left(1,\frac{\|g_{\mathrm{rest}}\|}{\|g_{\mathrm{response}}\|}\right),\qquad
+c=\frac{\|g_{\mathrm{rest}}+\lambda g_{\mathrm{response}}\|}{\|g_{\mathrm{rest}}+g_{\mathrm{response}}\|}.
+$$
+
+两系数随后固定；零梯度、非有限系数或 $\lambda>10^6$ 时停止，不根据 Development 调整。$c$ 只匹配这批校准查询的初始平均梯度范数，不保证 AdamW 的参数更新幅度一致，实际首步更新范数另行记录。响应梯度很小时会产生很大的 $\lambda$；这是该干预的强度，不能解释为最优训练权重。
+
+**更新预算。** 两臂使用相同随机种子 `20261010` 和查询排列，执行 256 次更新，每次累积 8 个完整查询。AdamW 的 `betas=(0.9,0.999)`、`eps=1e-8`、全局梯度裁剪为 1；LeWM 学习率为 `1e-5`、weight decay 为 `0.001`，DINO-WM 分别为 `1e-4`、`0`。两臂均重置优化器状态。在第 0、64、256 步评测完整 Training／Development，不选择表现最好的步数，不读取 Test。原检查点不覆盖，冻结模块状态逐次核对。
+
+**统计。** 查询响应 NRE 为中心化误差之和除以目标条件能量之和；完整查询误差包含响应与共同误差，除以同一初始检查点的 Development 端点 MSE。两臂比较以第 256 步为预先确定的终点。按来源组配对 bootstrap 4,000 次，种子为 `20261010`，每次共用抽样组，并重算 NRE 及初始 MSE 分母。区间只描述固定检查点上的场景差异。逐查询记录保留共同误差与错配历史误差；后者直接由同一查询的预测与目标距离矩阵的非对角项平均得到，因为条件间当前状态与动作相同。
+
+运行示例：
+
+```bash
+python scripts/run_predictor_response_intervention.py \
+  --models /path/to/models.json \
+  --id contact_friction/lewm/scratch/s3072 \
+  --panel-root /path/to/native_panels \
+  --readout-root /path/to/native_readouts \
+  --locked-protocol docs/research/data/response_intervention_v1/sources/protocol.json \
+  --device cuda:0 --output /path/to/new_result
+
+python scripts/analyze_response_intervention.py --check
+```
+
+其余模型 ID 见[实验配置](research/data/response_intervention_v1/sources/protocol.json)。模型清单、权重与缓存仍需本地准备；公开 JSON 保存完整逐查询结果，可在 CPU 上重算汇总，不等于所有原始资产已具备公共下载。该实验只检验固定表示和有限更新预算下的目标分配，不单独证明表示充分、原训练的唯一根因或长期泛化改善。

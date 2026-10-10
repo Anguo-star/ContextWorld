@@ -1,0 +1,1033 @@
+{
+  "schema": "contextworld.response_intervention_input_inventory.v1",
+  "cells": [
+    {
+      "task": "contact_friction",
+      "family": "lewm",
+      "model_id": "contact_friction/lewm/scratch/s3072",
+      "checkpoint": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/lewm-contextworld-v1/checkpoints/contact_friction_lewm_num32k_init_form_scratch_s3072/weights_epoch_10.pt",
+      "checkpoint_sha256": "35d3be0df20fce7a073710549de0487f5816db55e1c2608848dcd4fe8ec597b0",
+      "training_config": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/lewm-contextworld-v1/checkpoints/contact_friction_lewm_num32k_init_form_scratch_s3072/config.yaml",
+      "original_optimizer": {
+        "type": "AdamW",
+        "lr": 5e-05,
+        "weight_decay": 0.001
+      },
+      "predictor_dropout": 0.1,
+      "original_max_epochs": 10,
+      "readout_result": "/tmp/cw-cross-task-mechanism-20261010/readout/contact_friction/lewm/scratch/s3072/result.json",
+      "readout_program_sha256": "9498947f33d7c7d8b9ad84bad048d8f9eab3640e37c797c2255b02a863ca4ff5",
+      "panel_manifest_sha256": "a797ea7288cf22785e0af8add6c9d1da2a3a29a224bc8036f2d1adc866fef3be",
+      "native_cache": {
+        "training": {
+          "path": "/tmp/cw-cross-task-mechanism-20261010/readout/contact_friction/lewm/scratch/s3072/training_native.npz",
+          "sha256": "2847166b2939d88576e98f9b69d2e7cfe20cb2c465bb510835be2f95ae9415e4",
+          "shape": [
+            1024,
+            3,
+            192
+          ],
+          "future_shape": [
+            1024,
+            192
+          ]
+        },
+        "development": {
+          "path": "/tmp/cw-cross-task-mechanism-20261010/readout/contact_friction/lewm/scratch/s3072/development_native.npz",
+          "sha256": "75b282ba160eb0aa2ac6dcd8f5228cba98d2a4a1993b5dbaabb875d59c602ea9",
+          "shape": [
+            512,
+            3,
+            192
+          ],
+          "future_shape": [
+            512,
+            192
+          ]
+        }
+      },
+      "splits": {
+        "training": {
+          "shapes": {
+            "history": {
+              "shape": [
+                1024,
+                3,
+                192
+              ],
+              "dtype": "float32"
+            },
+            "queryfuture": {
+              "shape": [
+                1024,
+                192
+              ],
+              "dtype": "float32"
+            },
+            "rawactions": {
+              "shape": [
+                1024,
+                15,
+                2
+              ],
+              "dtype": "float32"
+            },
+            "pair_ids": {
+              "shape": [
+                1024
+              ],
+              "dtype": "<U27"
+            },
+            "query_ids": {
+              "shape": [
+                1024
+              ],
+              "dtype": "<U27"
+            },
+            "modes": {
+              "shape": [
+                1024
+              ],
+              "dtype": "<U13"
+            },
+            "labels": {
+              "shape": [
+                1024
+              ],
+              "dtype": "int64"
+            },
+            "conditions": {
+              "shape": [
+                1024
+              ],
+              "dtype": "int64"
+            },
+            "physical_target": {
+              "shape": [
+                1024
+              ],
+              "dtype": "float32"
+            },
+            "source_groups": {
+              "shape": [
+                1024
+              ],
+              "dtype": "<U32"
+            },
+            "episode_ids": {
+              "shape": [
+                1024
+              ],
+              "dtype": "int64"
+            }
+          },
+          "query_count": 512,
+          "source_group_count": 512,
+          "pair_count": 512,
+          "label_values": [
+            0,
+            1
+          ]
+        },
+        "development": {
+          "shapes": {
+            "history": {
+              "shape": [
+                512,
+                3,
+                192
+              ],
+              "dtype": "float32"
+            },
+            "queryfuture": {
+              "shape": [
+                512,
+                192
+              ],
+              "dtype": "float32"
+            },
+            "rawactions": {
+              "shape": [
+                512,
+                15,
+                2
+              ],
+              "dtype": "float32"
+            },
+            "pair_ids": {
+              "shape": [
+                512
+              ],
+              "dtype": "<U28"
+            },
+            "query_ids": {
+              "shape": [
+                512
+              ],
+              "dtype": "<U28"
+            },
+            "modes": {
+              "shape": [
+                512
+              ],
+              "dtype": "<U13"
+            },
+            "labels": {
+              "shape": [
+                512
+              ],
+              "dtype": "int64"
+            },
+            "conditions": {
+              "shape": [
+                512
+              ],
+              "dtype": "int64"
+            },
+            "physical_target": {
+              "shape": [
+                512
+              ],
+              "dtype": "float32"
+            },
+            "source_groups": {
+              "shape": [
+                512
+              ],
+              "dtype": "<U28"
+            },
+            "episode_ids": {
+              "shape": [
+                512
+              ],
+              "dtype": "int64"
+            }
+          },
+          "query_count": 256,
+          "source_group_count": 256,
+          "pair_count": 256,
+          "label_values": [
+            0,
+            1
+          ]
+        }
+      },
+      "panel_manifest": "/tmp/cw-cross-task-mechanism-20261010/native/contact_friction/manifest.json",
+      "panel": {
+        "training": {
+          "path": "/tmp/cw-cross-task-mechanism-20261010/native/contact_friction/training.npz",
+          "sha256": "1749ab6a8e8bb198e70038c3117ad78c921a2daaa0a4a03e9089883c3ae0d92a",
+          "rows": 1024,
+          "queries": 512,
+          "source_group_count": 512,
+          "lance_path": "/opt/huawei/explorer-env/dataset/ag_data/data/world_model/ContextWorld-contact-friction-32k-v1/components/pusht-contact-friction/v1/training/data.lance",
+          "lance_version": 50,
+          "condition_order": [
+            "low_friction",
+            "high_friction"
+          ]
+        },
+        "development": {
+          "path": "/tmp/cw-cross-task-mechanism-20261010/native/contact_friction/development.npz",
+          "sha256": "68cdd9315d33a21d4ffbc8d0ee489aabac9c41f4ebe002ba2579974c525efae6",
+          "rows": 512,
+          "queries": 256,
+          "source_group_count": 256,
+          "lance_path": "/opt/huawei/explorer-env/dataset/ag_data/data/world_model/ContextWorld-contact-friction-32k-v1/components/pusht-contact-friction/v1/development/data.lance",
+          "lance_version": 1,
+          "condition_order": [
+            "low_friction",
+            "high_friction"
+          ]
+        }
+      },
+      "panel_query_overlap": 0,
+      "cache_query_overlap": 0,
+      "cache_source_group_overlap": 0
+    },
+    {
+      "task": "cube_gripper_carry",
+      "family": "lewm",
+      "model_id": "cube_gripper_carry/lewm/scratch/s3072",
+      "checkpoint": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/lewm-contextworld-v1/checkpoints/cube_gripper_carry_lewm_cube_gripper_carry_10k_independent_v2_init_form_scratch_s3072/weights_epoch_10.pt",
+      "checkpoint_sha256": "d09b23a91747229e57e2b9cf7d474ff50c8876885748d5f22f24d3b522a90a5c",
+      "training_config": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/lewm-contextworld-v1/checkpoints/cube_gripper_carry_lewm_cube_gripper_carry_10k_independent_v2_init_form_scratch_s3072/config.yaml",
+      "original_optimizer": {
+        "type": "AdamW",
+        "lr": 5e-05,
+        "weight_decay": 0.001
+      },
+      "predictor_dropout": 0.1,
+      "original_max_epochs": 10,
+      "readout_result": "/tmp/cw-cross-task-mechanism-20261010/readout/cube_gripper_carry/lewm/scratch/s3072/result.json",
+      "readout_program_sha256": "9498947f33d7c7d8b9ad84bad048d8f9eab3640e37c797c2255b02a863ca4ff5",
+      "panel_manifest_sha256": "325b469185586185421bcb415d20b380c01424b1f409181f351281f84825417b",
+      "native_cache": {
+        "training": {
+          "path": "/tmp/cw-cross-task-mechanism-20261010/readout/cube_gripper_carry/lewm/scratch/s3072/training_native.npz",
+          "sha256": "86035c1fde08c2a5dca6f5fb2004d2d4cca6ec4d213f6c9926d40617fbe0ef17",
+          "shape": [
+            1024,
+            3,
+            192
+          ],
+          "future_shape": [
+            1024,
+            192
+          ]
+        },
+        "development": {
+          "path": "/tmp/cw-cross-task-mechanism-20261010/readout/cube_gripper_carry/lewm/scratch/s3072/development_native.npz",
+          "sha256": "3ce2ea8bcdbed258024bb0de1869f967783817bfb2fcbf0a6e6ff79f0223b7fb",
+          "shape": [
+            512,
+            3,
+            192
+          ],
+          "future_shape": [
+            512,
+            192
+          ]
+        }
+      },
+      "splits": {
+        "training": {
+          "shapes": {
+            "history": {
+              "shape": [
+                1024,
+                3,
+                192
+              ],
+              "dtype": "float32"
+            },
+            "queryfuture": {
+              "shape": [
+                1024,
+                192
+              ],
+              "dtype": "float32"
+            },
+            "rawactions": {
+              "shape": [
+                1024,
+                15,
+                5
+              ],
+              "dtype": "float32"
+            },
+            "pair_ids": {
+              "shape": [
+                1024
+              ],
+              "dtype": "<U28"
+            },
+            "query_ids": {
+              "shape": [
+                1024
+              ],
+              "dtype": "<U28"
+            },
+            "modes": {
+              "shape": [
+                1024
+              ],
+              "dtype": "<U11"
+            },
+            "labels": {
+              "shape": [
+                1024
+              ],
+              "dtype": "int64"
+            },
+            "conditions": {
+              "shape": [
+                1024
+              ],
+              "dtype": "int64"
+            },
+            "physical_target": {
+              "shape": [
+                1024
+              ],
+              "dtype": "float32"
+            },
+            "source_groups": {
+              "shape": [
+                1024
+              ],
+              "dtype": "<U30"
+            },
+            "episode_ids": {
+              "shape": [
+                1024
+              ],
+              "dtype": "int64"
+            }
+          },
+          "query_count": 512,
+          "source_group_count": 512,
+          "pair_count": 512,
+          "label_values": [
+            0,
+            1
+          ]
+        },
+        "development": {
+          "shapes": {
+            "history": {
+              "shape": [
+                512,
+                3,
+                192
+              ],
+              "dtype": "float32"
+            },
+            "queryfuture": {
+              "shape": [
+                512,
+                192
+              ],
+              "dtype": "float32"
+            },
+            "rawactions": {
+              "shape": [
+                512,
+                15,
+                5
+              ],
+              "dtype": "float32"
+            },
+            "pair_ids": {
+              "shape": [
+                512
+              ],
+              "dtype": "<U40"
+            },
+            "query_ids": {
+              "shape": [
+                512
+              ],
+              "dtype": "<U40"
+            },
+            "modes": {
+              "shape": [
+                512
+              ],
+              "dtype": "<U11"
+            },
+            "labels": {
+              "shape": [
+                512
+              ],
+              "dtype": "int64"
+            },
+            "conditions": {
+              "shape": [
+                512
+              ],
+              "dtype": "int64"
+            },
+            "physical_target": {
+              "shape": [
+                512
+              ],
+              "dtype": "float32"
+            },
+            "source_groups": {
+              "shape": [
+                512
+              ],
+              "dtype": "<U24"
+            },
+            "episode_ids": {
+              "shape": [
+                512
+              ],
+              "dtype": "int64"
+            }
+          },
+          "query_count": 256,
+          "source_group_count": 256,
+          "pair_count": 256,
+          "label_values": [
+            0,
+            1
+          ]
+        }
+      },
+      "panel_manifest": "/tmp/cw-cross-task-mechanism-20261010/native/cube_gripper_carry/manifest.json",
+      "panel": {
+        "training": {
+          "path": "/tmp/cw-cross-task-mechanism-20261010/native/cube_gripper_carry/training.npz",
+          "sha256": "3d8b24f611e71c159afb52b0312e9da17a8b4dada6a32594070d9383e4bee9ff",
+          "rows": 1024,
+          "queries": 512,
+          "source_group_count": 512,
+          "lance_path": "/opt/huawei/explorer-env/dataset/ag_data/data/world_model/ContextWorld-cube-gripper-carry-10k-independent-v2/components/cube-gripper-carry/v1/training/data.lance",
+          "lance_version": 33,
+          "condition_order": [
+            "cannot_hold",
+            "can_hold"
+          ]
+        },
+        "development": {
+          "path": "/tmp/cw-cross-task-mechanism-20261010/native/cube_gripper_carry/development.npz",
+          "sha256": "27409f9966be925fdc67970763d06b81c3a5de92a50e6666abe52b2401d616df",
+          "rows": 512,
+          "queries": 256,
+          "source_group_count": 256,
+          "lance_path": "/opt/huawei/explorer-env/dataset/ag_data/data/world_model/ContextWorld-cube-gripper-carry-10k-independent-v2/components/cube-gripper-carry/v1/development/data.lance",
+          "lance_version": 1,
+          "condition_order": [
+            "cannot_hold",
+            "can_hold"
+          ]
+        }
+      },
+      "panel_query_overlap": 0,
+      "cache_query_overlap": 0,
+      "cache_source_group_overlap": 0
+    },
+    {
+      "task": "robot_arm_mass",
+      "family": "lewm",
+      "model_id": "robot_arm_mass/lewm/scratch/s3072",
+      "checkpoint": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/lewm-contextworld-v1/checkpoints/robot_arm_mass_lewm_num32k_init_form_scratch_s3072/weights_epoch_10.pt",
+      "checkpoint_sha256": "951295a4d630340034362a32af462e9c2470ee91162a1ab3a476cb13b6174da7",
+      "training_config": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/lewm-contextworld-v1/checkpoints/robot_arm_mass_lewm_num32k_init_form_scratch_s3072/config.yaml",
+      "original_optimizer": {
+        "type": "AdamW",
+        "lr": 5e-05,
+        "weight_decay": 0.001
+      },
+      "predictor_dropout": 0.1,
+      "original_max_epochs": 10,
+      "readout_result": "/tmp/cw-cross-task-mechanism-20261010/readout/robot_arm_mass/lewm/scratch/s3072/result.json",
+      "readout_program_sha256": "9498947f33d7c7d8b9ad84bad048d8f9eab3640e37c797c2255b02a863ca4ff5",
+      "panel_manifest_sha256": "da586e1cffe0524a6118e029ac34ebde0d776a86e315c6ffcf90e7f337a57e06",
+      "native_cache": {
+        "training": {
+          "path": "/tmp/cw-cross-task-mechanism-20261010/readout/robot_arm_mass/lewm/scratch/s3072/training_native.npz",
+          "sha256": "65fff2699d097e944a7101406bf4a981603b1261e27116b08c2c4d0a661ad36c",
+          "shape": [
+            1024,
+            3,
+            192
+          ],
+          "future_shape": [
+            1024,
+            192
+          ]
+        },
+        "development": {
+          "path": "/tmp/cw-cross-task-mechanism-20261010/readout/robot_arm_mass/lewm/scratch/s3072/development_native.npz",
+          "sha256": "6f07e2dee2a169e52e452dede1eee0c24863ce58e684a7bebedd710d95ee3033",
+          "shape": [
+            512,
+            3,
+            192
+          ],
+          "future_shape": [
+            512,
+            192
+          ]
+        }
+      },
+      "splits": {
+        "training": {
+          "shapes": {
+            "history": {
+              "shape": [
+                1024,
+                3,
+                192
+              ],
+              "dtype": "float32"
+            },
+            "queryfuture": {
+              "shape": [
+                1024,
+                192
+              ],
+              "dtype": "float32"
+            },
+            "rawactions": {
+              "shape": [
+                1024,
+                15,
+                2
+              ],
+              "dtype": "float32"
+            },
+            "pair_ids": {
+              "shape": [
+                1024
+              ],
+              "dtype": "<U29"
+            },
+            "query_ids": {
+              "shape": [
+                1024
+              ],
+              "dtype": "<U29"
+            },
+            "modes": {
+              "shape": [
+                1024
+              ],
+              "dtype": "<U7"
+            },
+            "labels": {
+              "shape": [
+                1024
+              ],
+              "dtype": "int64"
+            },
+            "conditions": {
+              "shape": [
+                1024
+              ],
+              "dtype": "int64"
+            },
+            "physical_target": {
+              "shape": [
+                1024
+              ],
+              "dtype": "float32"
+            },
+            "source_groups": {
+              "shape": [
+                1024
+              ],
+              "dtype": "<U28"
+            },
+            "episode_ids": {
+              "shape": [
+                1024
+              ],
+              "dtype": "int64"
+            }
+          },
+          "query_count": 512,
+          "source_group_count": 512,
+          "pair_count": 512,
+          "label_values": [
+            0,
+            1
+          ]
+        },
+        "development": {
+          "shapes": {
+            "history": {
+              "shape": [
+                512,
+                3,
+                192
+              ],
+              "dtype": "float32"
+            },
+            "queryfuture": {
+              "shape": [
+                512,
+                192
+              ],
+              "dtype": "float32"
+            },
+            "rawactions": {
+              "shape": [
+                512,
+                15,
+                2
+              ],
+              "dtype": "float32"
+            },
+            "pair_ids": {
+              "shape": [
+                512
+              ],
+              "dtype": "<U41"
+            },
+            "query_ids": {
+              "shape": [
+                512
+              ],
+              "dtype": "<U41"
+            },
+            "modes": {
+              "shape": [
+                512
+              ],
+              "dtype": "<U7"
+            },
+            "labels": {
+              "shape": [
+                512
+              ],
+              "dtype": "int64"
+            },
+            "conditions": {
+              "shape": [
+                512
+              ],
+              "dtype": "int64"
+            },
+            "physical_target": {
+              "shape": [
+                512
+              ],
+              "dtype": "float32"
+            },
+            "source_groups": {
+              "shape": [
+                512
+              ],
+              "dtype": "<U26"
+            },
+            "episode_ids": {
+              "shape": [
+                512
+              ],
+              "dtype": "int64"
+            }
+          },
+          "query_count": 256,
+          "source_group_count": 256,
+          "pair_count": 256,
+          "label_values": [
+            0,
+            1
+          ]
+        }
+      },
+      "panel_manifest": "/tmp/cw-cross-task-mechanism-20261010/native/robot_arm_mass/manifest.json",
+      "panel": {
+        "training": {
+          "path": "/tmp/cw-cross-task-mechanism-20261010/native/robot_arm_mass/training.npz",
+          "sha256": "1c502300d93156a751b3d4a14d458874f6c748ebc484693d0efa53f342e3a498",
+          "rows": 1024,
+          "queries": 512,
+          "source_group_count": 512,
+          "lance_path": "/opt/huawei/explorer-env/dataset/ag_data/data/world_model/ContextWorld-robot-arm-mass-32k-v1/components/reacher-arm-mass/v1/training/data.lance",
+          "lance_version": 64,
+          "condition_order": [
+            "lighter",
+            "heavier"
+          ]
+        },
+        "development": {
+          "path": "/tmp/cw-cross-task-mechanism-20261010/native/robot_arm_mass/development.npz",
+          "sha256": "85217d290685e63db3194b7fc02d1c329304caf0baf54d030589f5aa5508547a",
+          "rows": 512,
+          "queries": 256,
+          "source_group_count": 256,
+          "lance_path": "/opt/huawei/explorer-env/dataset/ag_data/data/world_model/ContextWorld-robot-arm-mass-32k-v1/components/reacher-arm-mass/v1/development/data.lance",
+          "lance_version": 1,
+          "condition_order": [
+            "lighter",
+            "heavier"
+          ]
+        }
+      },
+      "panel_query_overlap": 0,
+      "cache_query_overlap": 0,
+      "cache_source_group_overlap": 1,
+      "source_group_overlap_interpretation": {
+        "raw_label": "robot_arm_mass-catalog:502",
+        "assessment": "split-local catalog-index collision; not a matching cached source trajectory",
+        "evidence": {
+          "training_query": "reacher-arm-mass-train-000502",
+          "development_query": "reacher-arm-mass-loader_validation-000502",
+          "training_episode_ids": [
+            380,
+            381
+          ],
+          "development_episode_ids": [
+            372,
+            373
+          ],
+          "history_pixels_exact_equal_any_cross_arm": false,
+          "queryfuture_pixels_exact_equal_any_cross_arm": false,
+          "future_pixels_exact_equal_any_cross_arm": false,
+          "rawactions_exact_equal_any_cross_arm": false
+        },
+        "decision": "retain locked all-Development evaluation; do not filter either split"
+      }
+    },
+    {
+      "task": "action_delay",
+      "family": "dinowm",
+      "model_id": "action_delay/dinowm/scratch/s3072",
+      "checkpoint": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/dino-wm-contextworld-v1/checkpoints/action_delay_prejepa_joint_scratch_v1_s3072/weights_epoch_10.pt",
+      "checkpoint_sha256": "2b8a8a7395a7845f44355261e0d89fe0b8af6bee78504d0b3a9cb1f65791d94d",
+      "training_config": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/dino-wm-contextworld-v1/checkpoints/action_delay_prejepa_joint_scratch_v1_s3072/config.yaml",
+      "original_optimizer": {
+        "type": "AdamW",
+        "lr": 0.0005,
+        "weight_decay": 0.0
+      },
+      "predictor_dropout": "${predictor.dropout}",
+      "original_max_epochs": 10,
+      "readout_result": "/tmp/cw-cross-task-mechanism-20261010/readout/action_delay/dinowm/scratch/s3072/result.json",
+      "readout_program_sha256": "9498947f33d7c7d8b9ad84bad048d8f9eab3640e37c797c2255b02a863ca4ff5",
+      "panel_manifest_sha256": "bfbf83376a2cb85e2de3d722967d126528f7085cc56d98b25dfafe6da05a1004",
+      "native_cache": {
+        "training": {
+          "path": "/tmp/cw-cross-task-mechanism-20261010/readout/action_delay/dinowm/scratch/s3072/training_native.npz",
+          "sha256": "9ac62662b5a4397f8d9d8eedd82200662da50b3502c4e120eae9183de9c43f86",
+          "shape": [
+            1408,
+            7,
+            98304
+          ],
+          "future_shape": [
+            1408,
+            98304
+          ]
+        },
+        "development": {
+          "path": "/tmp/cw-cross-task-mechanism-20261010/readout/action_delay/dinowm/scratch/s3072/development_native.npz",
+          "sha256": "0a95c0196fd05ee6fef0db684a0977e7e02edba1684cbf9cfdbb220c6c9e2f75",
+          "shape": [
+            3300,
+            7,
+            98304
+          ],
+          "future_shape": [
+            3300,
+            98304
+          ]
+        }
+      },
+      "splits": {
+        "training": {
+          "shapes": {
+            "history": {
+              "shape": [
+                1408,
+                7,
+                98304
+              ],
+              "dtype": "float32"
+            },
+            "queryfuture": {
+              "shape": [
+                1408,
+                98304
+              ],
+              "dtype": "float32"
+            },
+            "rawactions": {
+              "shape": [
+                1408,
+                35,
+                2
+              ],
+              "dtype": "float32"
+            },
+            "pair_ids": {
+              "shape": [
+                1408
+              ],
+              "dtype": "<U18"
+            },
+            "query_ids": {
+              "shape": [
+                1408
+              ],
+              "dtype": "<U18"
+            },
+            "modes": {
+              "shape": [
+                1408
+              ],
+              "dtype": "<U2"
+            },
+            "labels": {
+              "shape": [
+                1408
+              ],
+              "dtype": "int64"
+            },
+            "conditions": {
+              "shape": [
+                1408
+              ],
+              "dtype": "int64"
+            },
+            "physical_target": {
+              "shape": [
+                1408
+              ],
+              "dtype": "float32"
+            },
+            "physical_group_labels": {
+              "shape": [
+                1408
+              ],
+              "dtype": "int64"
+            },
+            "source_groups": {
+              "shape": [
+                1408
+              ],
+              "dtype": "<U18"
+            },
+            "episode_ids": {
+              "shape": [
+                1408
+              ],
+              "dtype": "<U18"
+            }
+          },
+          "query_count": 128,
+          "source_group_count": 128,
+          "pair_count": 128,
+          "label_values": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10
+          ]
+        },
+        "development": {
+          "shapes": {
+            "history": {
+              "shape": [
+                3300,
+                7,
+                98304
+              ],
+              "dtype": "float32"
+            },
+            "queryfuture": {
+              "shape": [
+                3300,
+                98304
+              ],
+              "dtype": "float32"
+            },
+            "rawactions": {
+              "shape": [
+                3300,
+                35,
+                2
+              ],
+              "dtype": "float32"
+            },
+            "pair_ids": {
+              "shape": [
+                3300
+              ],
+              "dtype": "<U27"
+            },
+            "query_ids": {
+              "shape": [
+                3300
+              ],
+              "dtype": "<U27"
+            },
+            "modes": {
+              "shape": [
+                3300
+              ],
+              "dtype": "<U2"
+            },
+            "labels": {
+              "shape": [
+                3300
+              ],
+              "dtype": "int64"
+            },
+            "conditions": {
+              "shape": [
+                3300
+              ],
+              "dtype": "int64"
+            },
+            "physical_target": {
+              "shape": [
+                3300
+              ],
+              "dtype": "float32"
+            },
+            "physical_group_labels": {
+              "shape": [
+                3300
+              ],
+              "dtype": "int64"
+            },
+            "source_groups": {
+              "shape": [
+                3300
+              ],
+              "dtype": "<U27"
+            },
+            "episode_ids": {
+              "shape": [
+                3300
+              ],
+              "dtype": "<U27"
+            }
+          },
+          "query_count": 300,
+          "source_group_count": 300,
+          "pair_count": 300,
+          "label_values": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10
+          ]
+        }
+      },
+      "panel_manifest": "/tmp/cw-cross-task-mechanism-20261010/native/action_delay/manifest.json",
+      "panel": {
+        "training": {
+          "path": "/tmp/cw-cross-task-mechanism-20261010/native/action_delay/training.npz",
+          "sha256": "61eba667e81dae11b8fe9f41e9750cc9096bdc972b58ec79f241b97aa6fdb0c1",
+          "rows": 1408,
+          "queries": 128,
+          "source_group_count": 128
+        },
+        "development": {
+          "path": "/tmp/cw-cross-task-mechanism-20261010/native/action_delay/development.npz",
+          "sha256": "467830f3640057a0916b71f207f2a2985098d31120d4be739234f07a4eee702b",
+          "rows": 3300,
+          "queries": 300,
+          "source_group_count": 300
+        }
+      },
+      "panel_query_overlap": 0,
+      "cache_query_overlap": 0,
+      "cache_source_group_overlap": 0
+    }
+  ],
+  "design_check": {
+    "paired_loss": "Group and center predictions and target futures separately within each query; never center across unrelated queries. Keep complete groups in each batch. The pinned conditional_joint.py already centers along group dimension.",
+    "freeze": "For a predictor-only control, freeze encoder, projector, and action encoder, including their BatchNorm state; optimize predictor and pred_proj if LeWM uses it. In pinned trainer the auxiliary detaches ctx_emb and ctx_act, but native LeWM loss still updates encoder and action encoder, so freezing is required.",
+    "dropout": "Use deterministic predictor eval for paired auxiliary as pinned trainer does; predictor config dropout=0.1 is stochastic in train mode. Compare control and intervention under identical dropout policy.",
+    "scale": "Native LeWM pred MSE and auxiliary normalized response loss can differ greatly in magnitude. Calibrate auxiliary coefficient from training-only initial batches, e.g. ratio of predictor gradient norms, then lock coefficient across matched baseline/intervention and never tune on Development. Record raw losses and gradient norms.",
+    "recommended_budget": "Short bounded pilot: same pretrained weights and batch order, 100 predictor optimizer steps with evaluation at 0, 25, 50, 100; optional extension only if predeclared. Use 1e-5 LeWM predictor AdamW (original 5e-5), 1e-4 DINO predictor AdamW (original 5e-4), original weight decay and clip 1.0. These are one-fifth pinned native rates, to limit checkpoint drift."
+  },
+  "provenance": {
+    "model_catalog": "/tmp/cw-icl-validity-20261007/models.json",
+    "paired_loss_source": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/lewm-contextworld-v1/.contextworld/stable-worldmodel/c0e79230fa8baccc33c1615b5462f41f22eca0c7/stable_worldmodel/wm/conditional_joint.py",
+    "lewm_trainer_source": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/lewm-contextworld-v1/.contextworld/stable-worldmodel/c0e79230fa8baccc33c1615b5462f41f22eca0c7/scripts/train/lewm.py",
+    "dinowm_trainer_source": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/dino-wm-contextworld-v1/.contextworld/stable-worldmodel/6ab823fdc6921c95089992ed49c39e431e21ca4a/scripts/train/prejepa.py"
+  }
+}

@@ -1,0 +1,633 @@
+{
+  "schema": "contextworld.response_intervention_summary.v1",
+  "scope": "Four fixed T1 checkpoints; paired native versus response-weighted predictor updates; Training calibration and full Development evaluation; no Test",
+  "metric_definition": {
+    "response_nre": "sum query response MSE / sum query target response energy",
+    "endpoint_mse_ratio": "mean Development endpoint MSE / common step-0 mean endpoint MSE for both independently initialized arms",
+    "paired_ci95": "paired source-group bootstrap; same sampled groups in both arms; pooled numerator and denominator recomputed, including step-0 endpoint MSE denominator"
+  },
+  "source_inventory": {
+    "contact_friction/lewm": {
+      "result": {
+        "path": "sources/contact_friction/lewm/result.json",
+        "sha256": "32bc8e2e32a2148732d9bd92b53d1cdf7dbd174fb39cb68f77bbfd4fbe72dce6"
+      },
+      "protocol": {
+        "path": "sources/contact_friction/lewm/protocol.json",
+        "sha256": "edb14f513854e6513e431403ffa8fbc619d931e564cf240b661282e45e656a65"
+      }
+    },
+    "cube_gripper_carry/lewm": {
+      "result": {
+        "path": "sources/cube_gripper_carry/lewm/result.json",
+        "sha256": "8c12ec0a7901121316c3f610b0d3e3100ef5e33b3e8c0536bb2069d27898c44e"
+      },
+      "protocol": {
+        "path": "sources/cube_gripper_carry/lewm/protocol.json",
+        "sha256": "1b707a16e787c508ab86a46178a8a501c6aaef34b6add48a193b1460175a1529"
+      }
+    },
+    "robot_arm_mass/lewm": {
+      "result": {
+        "path": "sources/robot_arm_mass/lewm/result.json",
+        "sha256": "b3dbc317eae53fafb470677bbc86778bf47cd1758368cb0e2626f615288caee7"
+      },
+      "protocol": {
+        "path": "sources/robot_arm_mass/lewm/protocol.json",
+        "sha256": "50c125c58a8c890f54c1954a28e521871aa08c574937f6fccccdb2277f4598d9"
+      }
+    },
+    "action_delay/dinowm": {
+      "result": {
+        "path": "sources/action_delay/dinowm/result.json",
+        "sha256": "824077ab357a7bdeb157aec07f6044f000e267ad11181817d2c996c7fea48350"
+      },
+      "protocol": {
+        "path": "sources/action_delay/dinowm/protocol.json",
+        "sha256": "a37ee07392e70321634ba2fd41fd27074167b4ee47f7da7d33c1e5adcf7a89d7"
+      }
+    },
+    "locked_protocol": {
+      "path": "sources/protocol.json",
+      "sha256": "5b8ffb9abfa8ceeb3b1fb65a0d1904049ad0a7630a7e259ac2645b48f4b054c2"
+    },
+    "input_inventory": {
+      "path": "sources/input_inventory.json",
+      "sha256": "955597f8c836cfdfc3e4fb8bb2e902bfcfeead9c8d82539b28d01598280149d5"
+    }
+  },
+  "cells": [
+    {
+      "task": "contact_friction",
+      "family": "lewm",
+      "model_id": "contact_friction/lewm/scratch/s3072",
+      "checkpoint_sha256": "35d3be0df20fce7a073710549de0487f5816db55e1c2608848dcd4fe8ec597b0",
+      "panel_manifest_sha256": "47b389da0cc615aa2ed3a82f2c80d20c67d4ae7a83a60c30abfe3f95e82ab14b",
+      "cache_sha256": {
+        "training": "2847166b2939d88576e98f9b69d2e7cfe20cb2c465bb510835be2f95ae9415e4",
+        "development": "75b282ba160eb0aa2ac6dcd8f5228cba98d2a4a1993b5dbaabb875d59c602ea9"
+      },
+      "batch_order_sha256": "687f8b9ce9a3177fd2cd1a35f8255e0026840bb37349eb37d11bb28fca1d396d",
+      "locked_protocol_sha256": "5b8ffb9abfa8ceeb3b1fb65a0d1904049ad0a7630a7e259ac2645b48f4b054c2",
+      "source_model_state_hash": "fc6af213d33c40177c740e3fee416e1a381b8373eb80fab800c55be8ed2ec150",
+      "frozen_state_hash": "a0b26f37f8eb18b7bccbe44f94c106843e92692e5b679aa26a9374e111d429ff",
+      "calibration": {
+        "source_groups": [
+          "contact_friction-catalog:4807680",
+          "contact_friction-catalog:280930",
+          "contact_friction-catalog:6029314",
+          "contact_friction-catalog:7043329",
+          "contact_friction-catalog:7966464",
+          "contact_friction-catalog:357825",
+          "contact_friction-catalog:6507520",
+          "contact_friction-catalog:386465",
+          "contact_friction-catalog:6670593",
+          "contact_friction-catalog:6602496",
+          "contact_friction-catalog:3459590",
+          "contact_friction-catalog:342341",
+          "contact_friction-catalog:335203",
+          "contact_friction-catalog:6616576",
+          "contact_friction-catalog:6729987",
+          "contact_friction-catalog:3308288"
+        ],
+        "query_ids": [
+          "pcf-train-strat-p018780-a00",
+          "pcf-train-strat-p008779-a02",
+          "pcf-train-strat-p023552-a02",
+          "pcf-train-strat-p027513-a01",
+          "pcf-train-strat-p031119-a00",
+          "pcf-train-strat-p011182-a01",
+          "pcf-train-strat-p025420-a00",
+          "pcf-train-strat-p012077-a01",
+          "pcf-train-strat-p026057-a01",
+          "pcf-train-strat-p025791-a00",
+          "pcf-train-strat-p013514-a06",
+          "pcf-train-strat-p010698-a05",
+          "pcf-train-strat-p010475-a03",
+          "pcf-train-strat-p025846-a00",
+          "pcf-train-strat-p026289-a03",
+          "pcf-train-strat-p012923-a00"
+        ],
+        "rest_gradient_norm": 0.0651047013030599,
+        "response_gradient_norm": 2.3688321937375414e-05,
+        "gradient_cosine": 0.0004362231715009023,
+        "mean_rest_loss": 0.002575056641944684,
+        "mean_response_loss": 7.572935055577545e-05,
+        "lambda_response": 2748.388065443241,
+        "scale": 1.4145216977156203,
+        "reweighted_coefficients": [
+          0.7069527470769438,
+          1942.9804928985864
+        ]
+      },
+      "first_update_norm": {
+        "native": 0.031409371926190525,
+        "response_weighted": 0.03262853508177631
+      },
+      "snapshots": {
+        "native": {
+          "0": {
+            "full_development_response_nre": 0.9993984816459971,
+            "endpoint_mse": 0.0025459848737527267,
+            "endpoint_mse_over_common_step0": 1.0,
+            "common_mse": 0.002275684038301969,
+            "training_response_nre": 0.9995637707102084,
+            "development_queries": 256,
+            "training_queries": 512
+          },
+          "64": {
+            "full_development_response_nre": 0.999434256721565,
+            "endpoint_mse": 0.001963231028243119,
+            "endpoint_mse_over_common_step0": 0.7711086772284546,
+            "common_mse": 0.0016929205169393439,
+            "training_response_nre": 0.9995485692403302,
+            "development_queries": 256,
+            "training_queries": 512
+          },
+          "256": {
+            "full_development_response_nre": 0.9994256324655616,
+            "endpoint_mse": 0.0019405403327706012,
+            "endpoint_mse_over_common_step0": 0.7621963322626841,
+            "common_mse": 0.0016702321540134984,
+            "training_response_nre": 0.9995483200701686,
+            "development_queries": 256,
+            "training_queries": 512
+          }
+        },
+        "response_weighted": {
+          "0": {
+            "full_development_response_nre": 0.9993984816459971,
+            "endpoint_mse": 0.0025459848737527267,
+            "endpoint_mse_over_common_step0": 1.0,
+            "common_mse": 0.002275684038301969,
+            "training_response_nre": 0.9995637707102084,
+            "development_queries": 256,
+            "training_queries": 512
+          },
+          "64": {
+            "full_development_response_nre": 0.9993195498488947,
+            "endpoint_mse": 0.0019713912658972307,
+            "endpoint_mse_over_common_step0": 0.7743138171089927,
+            "common_mse": 0.0017011117786184904,
+            "training_response_nre": 0.9972787543710392,
+            "development_queries": 256,
+            "training_queries": 512
+          },
+          "256": {
+            "full_development_response_nre": 0.9991718511316352,
+            "endpoint_mse": 0.0020722914487518456,
+            "endpoint_mse_over_common_step0": 0.8139449177863075,
+            "common_mse": 0.001802051908588699,
+            "training_response_nre": 0.984992623499865,
+            "development_queries": 256,
+            "training_queries": 512
+          }
+        }
+      },
+      "paired_step256_response_nre": {
+        "weighted_minus_native": -0.00025378133392717217,
+        "ci95": [
+          -0.0019336605302812642,
+          0.0014719869620304536
+        ],
+        "weighted_minus_native_endpoint_mse_over_initial": 0.05174858552362293,
+        "endpoint_mse_difference_ci95": [
+          0.045099336631479255,
+          0.05859840849224128
+        ],
+        "source_groups": 256,
+        "bootstrap_repetitions": 4000,
+        "bootstrap_seed": 20261010
+      }
+    },
+    {
+      "task": "cube_gripper_carry",
+      "family": "lewm",
+      "model_id": "cube_gripper_carry/lewm/scratch/s3072",
+      "checkpoint_sha256": "d09b23a91747229e57e2b9cf7d474ff50c8876885748d5f22f24d3b522a90a5c",
+      "panel_manifest_sha256": "325b469185586185421bcb415d20b380c01424b1f409181f351281f84825417b",
+      "cache_sha256": {
+        "training": "86035c1fde08c2a5dca6f5fb2004d2d4cca6ec4d213f6c9926d40617fbe0ef17",
+        "development": "3ce2ea8bcdbed258024bb0de1869f967783817bfb2fcbf0a6e6ff79f0223b7fb"
+      },
+      "batch_order_sha256": "687f8b9ce9a3177fd2cd1a35f8255e0026840bb37349eb37d11bb28fca1d396d",
+      "locked_protocol_sha256": "5b8ffb9abfa8ceeb3b1fb65a0d1904049ad0a7630a7e259ac2645b48f4b054c2",
+      "source_model_state_hash": "65cddbd3b5ba261004c8dd102e361ffe15fb8fd4dc8aa6d2c50f178a43e6c70d",
+      "frozen_state_hash": "e7f5905a953db6d6fe252e1566b64ede2395089df654831095f728a50fb419b2",
+      "calibration": {
+        "source_groups": [
+          "cube-source-episode:2026102277",
+          "cube-source-episode:2170",
+          "cube-source-episode:6599",
+          "cube-source-episode:6916",
+          "cube-source-episode:2026110042",
+          "cube-source-episode:2026104467",
+          "cube-source-episode:2026102042",
+          "cube-source-episode:9847",
+          "cube-source-episode:8648",
+          "cube-source-episode:2026102508",
+          "cube-source-episode:2026105579",
+          "cube-source-episode:8494",
+          "cube-source-episode:324",
+          "cube-source-episode:3222",
+          "cube-source-episode:2026104563",
+          "cube-source-episode:2026105360"
+        ],
+        "query_ids": [
+          "cube-carry-v4r1-train-005757",
+          "cube-carry-v4r1-train-011341",
+          "cube-carry-v4r1-train-010493",
+          "cube-carry-v4r1-train-001421",
+          "cube-carry-v4r1-train-010561",
+          "cube-carry-v4r1-train-009146",
+          "cube-carry-v4r1-train-007768",
+          "cube-carry-v4r1-train-008116",
+          "cube-carry-v4r1-train-004283",
+          "cube-carry-v4r1-train-004521",
+          "cube-carry-v4r1-train-011976",
+          "cube-carry-v4r1-train-010407",
+          "cube-carry-v4r1-train-004759",
+          "cube-carry-v4r1-train-001408",
+          "cube-carry-v4r1-train-004280",
+          "cube-carry-v4r1-train-011728"
+        ],
+        "rest_gradient_norm": 0.06419914439489788,
+        "response_gradient_norm": 1.204939416714e-06,
+        "gradient_cosine": 0.00046242881547764605,
+        "mean_rest_loss": 0.002289095522428397,
+        "mean_response_loss": 1.3585580053820934e-05,
+        "lambda_response": 53279.97698836667,
+        "scale": 1.4145404933155301,
+        "reweighted_coefficients": [
+          0.7069433534957406,
+          37665.92560633182
+        ]
+      },
+      "first_update_norm": {
+        "native": 0.02969539822692209,
+        "response_weighted": 0.03233842400746448
+      },
+      "snapshots": {
+        "native": {
+          "0": {
+            "full_development_response_nre": 1.0001378780289827,
+            "endpoint_mse": 0.002198755235875685,
+            "endpoint_mse_over_common_step0": 1.0,
+            "common_mse": 0.002170005002627942,
+            "training_response_nre": 1.000166642911615,
+            "development_queries": 256,
+            "training_queries": 512
+          },
+          "64": {
+            "full_development_response_nre": 1.0001461985635267,
+            "endpoint_mse": 0.0015226904684414863,
+            "endpoint_mse_over_common_step0": 0.6925238624093843,
+            "common_mse": 0.0014939399960094127,
+            "training_response_nre": 1.0001770143686992,
+            "development_queries": 256,
+            "training_queries": 512
+          },
+          "256": {
+            "full_development_response_nre": 1.000185179451904,
+            "endpoint_mse": 0.001417022612890317,
+            "endpoint_mse_over_common_step0": 0.6444658276508745,
+            "common_mse": 0.0013882710199031104,
+            "training_response_nre": 1.0002239130228172,
+            "development_queries": 256,
+            "training_queries": 512
+          }
+        },
+        "response_weighted": {
+          "0": {
+            "full_development_response_nre": 1.0001378780289827,
+            "endpoint_mse": 0.002198755235875685,
+            "endpoint_mse_over_common_step0": 1.0,
+            "common_mse": 0.002170005002627942,
+            "training_response_nre": 1.000166642911615,
+            "development_queries": 256,
+            "training_queries": 512
+          },
+          "64": {
+            "full_development_response_nre": 0.998390859652884,
+            "endpoint_mse": 0.0015449669452040037,
+            "endpoint_mse_over_common_step0": 0.702655266032237,
+            "common_mse": 0.0015162669322177909,
+            "training_response_nre": 0.9979808464309697,
+            "development_queries": 256,
+            "training_queries": 512
+          },
+          "256": {
+            "full_development_response_nre": 0.9701727269483351,
+            "endpoint_mse": 0.0023114254108636658,
+            "endpoint_mse_over_common_step0": 1.0512427091245145,
+            "common_mse": 0.0022835365639325474,
+            "training_response_nre": 0.963341552837997,
+            "development_queries": 256,
+            "training_queries": 512
+          }
+        }
+      },
+      "paired_step256_response_nre": {
+        "weighted_minus_native": -0.03001245250357021,
+        "ci95": [
+          -0.03350094022596999,
+          -0.02669715570221477
+        ],
+        "weighted_minus_native_endpoint_mse_over_initial": 0.4067768814736391,
+        "endpoint_mse_difference_ci95": [
+          0.36504430846695235,
+          0.4519049377294197
+        ],
+        "source_groups": 256,
+        "bootstrap_repetitions": 4000,
+        "bootstrap_seed": 20261010
+      }
+    },
+    {
+      "task": "robot_arm_mass",
+      "family": "lewm",
+      "model_id": "robot_arm_mass/lewm/scratch/s3072",
+      "checkpoint_sha256": "951295a4d630340034362a32af462e9c2470ee91162a1ab3a476cb13b6174da7",
+      "panel_manifest_sha256": "da586e1cffe0524a6118e029ac34ebde0d776a86e315c6ffcf90e7f337a57e06",
+      "cache_sha256": {
+        "training": "65fff2699d097e944a7101406bf4a981603b1261e27116b08c2c4d0a661ad36c",
+        "development": "6f07e2dee2a169e52e452dede1eee0c24863ce58e684a7bebedd710d95ee3033"
+      },
+      "batch_order_sha256": "687f8b9ce9a3177fd2cd1a35f8255e0026840bb37349eb37d11bb28fca1d396d",
+      "locked_protocol_sha256": "5b8ffb9abfa8ceeb3b1fb65a0d1904049ad0a7630a7e259ac2645b48f4b054c2",
+      "source_model_state_hash": "cf481ca4285bf684b387a92dadb8d7fa3848184b917f771c0e5db4f3b92ae6a1",
+      "frozen_state_hash": "57459e597f7b03d738e8fe7d04a0fe81171abff30b0e10d4d24eec356e5327dd",
+      "calibration": {
+        "source_groups": [
+          "robot_arm_mass-catalog:1791",
+          "robot_arm_mass-catalog:23382",
+          "robot_arm_mass-catalog:6568",
+          "robot_arm_mass-catalog:43035",
+          "robot_arm_mass-catalog:38749",
+          "robot_arm_mass-catalog:25196",
+          "robot_arm_mass-catalog:73002",
+          "robot_arm_mass-catalog:48735",
+          "robot_arm_mass-catalog:43586",
+          "robot_arm_mass-catalog:18527",
+          "robot_arm_mass-catalog:52112",
+          "robot_arm_mass-catalog:484",
+          "robot_arm_mass-catalog:47734",
+          "robot_arm_mass-catalog:17524",
+          "robot_arm_mass-catalog:54355",
+          "robot_arm_mass-catalog:72628"
+        ],
+        "query_ids": [
+          "reacher-arm-mass-train-001791",
+          "reacher-arm-mass-train-023382",
+          "reacher-arm-mass-train-006568",
+          "reacher-arm-mass-train-043035",
+          "reacher-arm-mass-train-038749",
+          "reacher-arm-mass-train-025196",
+          "reacher-arm-mass-train-073002",
+          "reacher-arm-mass-train-048735",
+          "reacher-arm-mass-train-043586",
+          "reacher-arm-mass-train-018527",
+          "reacher-arm-mass-train-052112",
+          "reacher-arm-mass-train-000484",
+          "reacher-arm-mass-train-047734",
+          "reacher-arm-mass-train-017524",
+          "reacher-arm-mass-train-054355",
+          "reacher-arm-mass-train-072628"
+        ],
+        "rest_gradient_norm": 0.11948368516614472,
+        "response_gradient_norm": 0.0014320272580612273,
+        "gradient_cosine": 0.11786448636703653,
+        "mean_rest_loss": 0.00831728646880947,
+        "mean_response_loss": 0.00010604371971112414,
+        "lambda_response": 83.436739415079,
+        "scale": 1.4930207413641403,
+        "reweighted_coefficients": [
+          0.6697830594679629,
+          55.88451459746278
+        ]
+      },
+      "first_update_norm": {
+        "native": 0.03372389464075775,
+        "response_weighted": 0.03382113921711038
+      },
+      "snapshots": {
+        "native": {
+          "0": {
+            "full_development_response_nre": 0.04832510777431406,
+            "endpoint_mse": 0.006477219614533467,
+            "endpoint_mse_over_common_step0": 1.0,
+            "common_mse": 0.006065683115270129,
+            "training_response_nre": 0.05021172211136545,
+            "development_queries": 256,
+            "training_queries": 512
+          },
+          "64": {
+            "full_development_response_nre": 0.04504643754297502,
+            "endpoint_mse": 0.0025867278521257324,
+            "endpoint_mse_over_common_step0": 0.3993577500941422,
+            "common_mse": 0.002203112500509816,
+            "training_response_nre": 0.04703833620392849,
+            "development_queries": 256,
+            "training_queries": 512
+          },
+          "256": {
+            "full_development_response_nre": 0.04395865747977503,
+            "endpoint_mse": 0.002402476654165641,
+            "endpoint_mse_over_common_step0": 0.3709117178573053,
+            "common_mse": 0.002028124834899583,
+            "training_response_nre": 0.04402105215740813,
+            "development_queries": 256,
+            "training_queries": 512
+          }
+        },
+        "response_weighted": {
+          "0": {
+            "full_development_response_nre": 0.04832510777431406,
+            "endpoint_mse": 0.006477219614533467,
+            "endpoint_mse_over_common_step0": 1.0,
+            "common_mse": 0.006065683115270129,
+            "training_response_nre": 0.05021172211136545,
+            "development_queries": 256,
+            "training_queries": 512
+          },
+          "64": {
+            "full_development_response_nre": 0.042822256873034245,
+            "endpoint_mse": 0.002810743353772965,
+            "endpoint_mse_over_common_step0": 0.43394288306455914,
+            "common_mse": 0.002446069119286293,
+            "training_response_nre": 0.03760194782198721,
+            "development_queries": 256,
+            "training_queries": 512
+          },
+          "256": {
+            "full_development_response_nre": 0.04228222928913055,
+            "endpoint_mse": 0.0027942249889072518,
+            "endpoint_mse_over_common_step0": 0.4313926584545043,
+            "common_mse": 0.0024341496280004013,
+            "training_response_nre": 0.03143970096252524,
+            "development_queries": 256,
+            "training_queries": 512
+          }
+        }
+      },
+      "paired_step256_response_nre": {
+        "weighted_minus_native": -0.0016764281906444939,
+        "ci95": [
+          -0.0037303340103618976,
+          0.00026122751262452594
+        ],
+        "weighted_minus_native_endpoint_mse_over_initial": 0.060480940597198905,
+        "endpoint_mse_difference_ci95": [
+          0.046457772137493004,
+          0.07537620564885408
+        ],
+        "source_groups": 256,
+        "bootstrap_repetitions": 4000,
+        "bootstrap_seed": 20261010
+      }
+    },
+    {
+      "task": "action_delay",
+      "family": "dinowm",
+      "model_id": "action_delay/dinowm/scratch/s3072",
+      "checkpoint_sha256": "2b8a8a7395a7845f44355261e0d89fe0b8af6bee78504d0b3a9cb1f65791d94d",
+      "panel_manifest_sha256": "bfbf83376a2cb85e2de3d722967d126528f7085cc56d98b25dfafe6da05a1004",
+      "cache_sha256": {
+        "training": "9ac62662b5a4397f8d9d8eedd82200662da50b3502c4e120eae9183de9c43f86",
+        "development": "0a95c0196fd05ee6fef0db684a0977e7e02edba1684cbf9cfdbb220c6c9e2f75"
+      },
+      "batch_order_sha256": "6ea63a5914fbdc71c1e81a7eb4bcc0597db328342fe122c0f2e2598f15c579ed",
+      "locked_protocol_sha256": "5b8ffb9abfa8ceeb3b1fb65a0d1904049ad0a7630a7e259ac2645b48f4b054c2",
+      "source_model_state_hash": "70042b2d6d1b8f68089de6fb7983a42153bc0945bcc46a1f3529e2caccccff1d",
+      "frozen_state_hash": "664f0eda96c5686822b5c1d982ac3efaa23db3367c15b9239086e0851c85478b",
+      "calibration": {
+        "source_groups": [
+          "training/p004/e091",
+          "training/p018/e099",
+          "training/p028/e121",
+          "training/p025/e124",
+          "training/p029/e144",
+          "training/p002/e018",
+          "training/p031/e113",
+          "training/p000/e013",
+          "training/p007/e028",
+          "training/p020/e017",
+          "training/p005/e003",
+          "training/p026/e078",
+          "training/p026/e021",
+          "training/p002/e146",
+          "training/p010/e120",
+          "training/p009/e100"
+        ],
+        "query_ids": [
+          "training/p004/e091",
+          "training/p018/e099",
+          "training/p028/e121",
+          "training/p025/e124",
+          "training/p029/e144",
+          "training/p002/e018",
+          "training/p031/e113",
+          "training/p000/e013",
+          "training/p007/e028",
+          "training/p020/e017",
+          "training/p005/e003",
+          "training/p026/e078",
+          "training/p026/e021",
+          "training/p002/e146",
+          "training/p010/e120",
+          "training/p009/e100"
+        ],
+        "rest_gradient_norm": 0.2813434994284903,
+        "response_gradient_norm": 5.4703105151819114e-06,
+        "gradient_cosine": -0.019989791265141794,
+        "mean_rest_loss": 3.7760752737522125,
+        "mean_response_loss": 0.00644805416231975,
+        "lambda_response": 51430.992563890024,
+        "scale": 1.4000078272175545,
+        "reweighted_coefficients": [
+          0.7142817208296971,
+          36736.21787251472
+        ]
+      },
+      "first_update_norm": {
+        "native": 0.40012168614307564,
+        "response_weighted": 0.40716556203296855
+      },
+      "snapshots": {
+        "native": {
+          "0": {
+            "full_development_response_nre": 1.0001374823509825,
+            "endpoint_mse": 3.770179458233641,
+            "endpoint_mse_over_common_step0": 1.0,
+            "common_mse": 3.722831669365769,
+            "training_response_nre": 1.0001195664363567,
+            "development_queries": 300,
+            "training_queries": 128
+          },
+          "64": {
+            "full_development_response_nre": 1.00011783390759,
+            "endpoint_mse": 2.7793884812374317,
+            "endpoint_mse_over_common_step0": 0.7372032318428675,
+            "common_mse": 2.7320416225520257,
+            "training_response_nre": 1.0001577262164083,
+            "development_queries": 300,
+            "training_queries": 128
+          },
+          "256": {
+            "full_development_response_nre": 1.00511652219445,
+            "endpoint_mse": 2.0101598780431553,
+            "endpoint_mse_over_common_step0": 0.533173526701281,
+            "common_mse": 1.9625763750545426,
+            "training_response_nre": 1.0055265720908702,
+            "development_queries": 300,
+            "training_queries": 128
+          }
+        },
+        "response_weighted": {
+          "0": {
+            "full_development_response_nre": 1.0001374823509825,
+            "endpoint_mse": 3.770179458233641,
+            "endpoint_mse_over_common_step0": 1.0,
+            "common_mse": 3.722831669365769,
+            "training_response_nre": 1.0001195664363567,
+            "development_queries": 300,
+            "training_queries": 128
+          },
+          "64": {
+            "full_development_response_nre": 0.9998814702192105,
+            "endpoint_mse": 2.799971412874192,
+            "endpoint_mse_over_common_step0": 0.7426626355303524,
+            "common_mse": 2.752635743948405,
+            "training_response_nre": 0.9997833956808682,
+            "development_queries": 300,
+            "training_queries": 128
+          },
+          "256": {
+            "full_development_response_nre": 0.9805837502344956,
+            "endpoint_mse": 2.795230215128472,
+            "endpoint_mse_over_common_step0": 0.7414050832577767,
+            "common_mse": 2.7488081249731957,
+            "training_response_nre": 0.9734897266814292,
+            "development_queries": 300,
+            "training_queries": 128
+          }
+        }
+      },
+      "paired_step256_response_nre": {
+        "weighted_minus_native": -0.024532771959954403,
+        "ci95": [
+          -0.026979735390014633,
+          -0.02219858130165599
+        ],
+        "weighted_minus_native_endpoint_mse_over_initial": 0.2082315565564951,
+        "endpoint_mse_difference_ci95": [
+          0.20656266825466207,
+          0.2099439661404811
+        ],
+        "source_groups": 300,
+        "bootstrap_repetitions": 4000,
+        "bootstrap_seed": 20261010
+      }
+    }
+  ]
+}
