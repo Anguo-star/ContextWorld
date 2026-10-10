@@ -645,7 +645,7 @@ Friction、Cube、Strength 的 T3 目标条件差异占比上升、响应 NRE �
 
 [结果 JSON](research/data/conditional_map_v1/summary.json)、[简表 CSV](research/data/conditional_map_v1/summary.csv)记录检查点、面板与区间；[计算方法](Data_Generation.md#conditional-map-boundary)说明只使用 Training / Development，不读取 Test。
 
-**待验证的完整训练对照。** Friction 和 Mass 在 T2／T3 中呈相反方向，适合作为首组对照。上述实验从原环境 T0 开始，保留完整原生训练目标；它不同于 [§4.8](#response-intervention) 从已有 T1 开始、只运行 256 次更新的响应加权实验。评价同时报告 Training 与 Development 的条件响应 NRE、完整误差 E/B 和匹配历史收益，检查学习是否迁移。成功只能说明该固定表示支持这些预测模块在当前数据和预算下获得能力；失败仍需区分表示、优化和覆盖。与 T3 的差异检验的是固定 Encoder 时进一步固定 projector 的训练策略作用，不能单独证明某个模块是唯一根因。[实验方法](Data_Generation.md#fixed-target-training-control)给出设置与复现入口；完成前不纳入成绩表。
+**待验证的完整训练对照。** Friction 和 Mass 在 T2／T3 中呈相反方向，适合作为首组对照。上述实验从原环境 T0 开始，保留完整原生训练目标；它不同于 [§4.8](#response-intervention) 从已有 T1 开始、只运行 256 次更新的响应加权实验。对原生一步查询（第 5 个物理步），同时报告 Training 与 Development 的条件响应 NRE、完整误差 E/B 和匹配历史收益，检查学习是否迁移。成功只能说明该固定表示支持这些预测模块在当前数据和预算下获得能力；失败仍需区分表示、优化和覆盖。与 T3 的差异检验的是固定 Encoder 时进一步固定 projector 的训练策略作用，不能单独证明某个模块是唯一根因。[实验方法](Data_Generation.md#fixed-target-training-control)给出设置与复现入口；完成前不纳入成绩表。
 
 <a id="physical-readout-methods"></a>
 

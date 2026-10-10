@@ -890,7 +890,7 @@ python scripts/run_lewm_fixed_visual_native_v1.py \
   --run-name task_lewm_fixed_target_s3072 --freeze-scope visual
 ```
 
-完成后，以第 10 epoch 为主要终点，第 1、5 epoch 仅用于观察学习过程。评价程序要求 T0 与新检查点的 Encoder／projector 张量及同图目标编码一致；匹配与错配历史必须同时替换历史图像和历史动作，当前状态与查询动作保持不变。条件响应 NRE、完整误差 E/B、历史收益 G 使用同一个 T0 目标空间与分母；Development 差值区间按来源组配对重采样。
+完成后，以第 10 epoch 为主要终点，第 1、5 epoch 仅用于观察学习过程。这里评价原生查询的首个未来，即当前状态后的第 5 个物理步，不替代多步自由递推或规划评测。评价程序要求 T0 与新检查点的 Encoder／projector 张量及同图目标编码一致；匹配与错配历史必须同时替换历史图像和历史动作，当前状态与查询动作保持不变。条件响应 NRE、完整误差 E/B、历史收益 G 使用同一个 T0 目标空间与分母；Development 差值区间按来源组配对重采样。
 
 ```bash
 python scripts/evaluate_fixed_target_control.py \
