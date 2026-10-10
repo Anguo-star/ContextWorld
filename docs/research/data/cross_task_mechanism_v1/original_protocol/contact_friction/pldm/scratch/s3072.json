@@ -1,0 +1,205 @@
+{
+  "adapter_spec": "pldm",
+  "evaluation_split": "development",
+  "model_name": "contact_friction_pldm_num32k_v1_scratch_s3072",
+  "note": "Produced by contextworld-external-eval from the public ContextWorld-v1 Development split. It is not a held-out Public Test score, has no formal pass decision, and does not enter the official scoreboard.",
+  "official_scoreboard_row": false,
+  "result": {
+    "bundle": {
+      "bundle_schema_version": "ContextWorld-v1",
+      "component_id": "contact_friction",
+      "dataset_id": "pusht-contact-friction",
+      "development_payload_id": "data",
+      "manifest_sha256": "0fd65ad420367d1e3bd00ac0a9bee75f512ad7ee286e31fab34e43c1ee61f9bf",
+      "member_count": 1,
+      "members": [
+        "components/pusht-contact-friction/v1/development/data.lance"
+      ],
+      "task_registry_sha256": "34483dfc11ff0dfa989e353a33ed18d871692f9f8bc2a8f59cb9ec9e45069f77"
+    },
+    "metrics": {
+      "context_switch_rate": 0.50390625,
+      "correct_future_mse_mean": 0.013480206951498985,
+      "correct_future_rate": 0.501953125,
+      "correct_history_rate": 0.5,
+      "current_frame_only_accuracy_bound": 0.5,
+      "decision_count": 512,
+      "high_friction_correct_future_rate": 0.53515625,
+      "joint_icl_pair_success_rate": 0.00390625,
+      "latent_response": {
+        "calibrated_response_success_baseline": {
+          "name": "no_history_response",
+          "normalized_response_error": 1.0,
+          "pair_success_criterion": "normalized_response_error < 1.0",
+          "prediction_response": "zero"
+        },
+        "calibrated_response_success_rate": 0.48046875,
+        "ideal_values": {
+          "calibrated_response_success_rate": 1.0,
+          "normalized_response_error": 0.0,
+          "response_alignment": 1.0,
+          "response_gain": 1.0
+        },
+        "normalized_response_error": 1.0008853826107424,
+        "response_alignment": 0.013401747286929408,
+        "response_gain": 0.0006169618095778823,
+        "target_latent_separation": {
+          "criterion": "finite_and_nonidentical_for_every_pair",
+          "mean_target_response_mse": 0.009433717461338493,
+          "median_target_response_mse": 0.002057001066640715,
+          "minimum_target_response_mse": 0.00011804719212102587,
+          "passed": true,
+          "zero_separation_pair_count": 0
+        }
+      },
+      "low_friction_correct_future_rate": 0.46875,
+      "other_future_mse_mean": 0.013486025854945183,
+      "other_minus_correct_mse_margin_mean": 5.8203586377203465e-06,
+      "pair_count": 256,
+      "worst_friction_correct_future_rate": 0.46875
+    },
+    "model": {
+      "adapter": {
+        "adapter_class": "contextworld.benchmarks.adapters.StableWorldModelPLDMContactFrictionAdapter",
+        "adapter_id": "stable_worldmodel_pldm_contact_friction_v1",
+        "checkpoint": "/opt/huawei/dataset/ag_data/ckpt/pldm-contextworld-v1/checkpoints/contact_friction_pldm_num32k_v1_scratch_s3072/weights_epoch_10.pt",
+        "checkpoint_sha256": "a38fddcce2121d218719c224b4849f41866488b9c296ab627db4d4a6b49c573f",
+        "device": "cuda:0",
+        "model_class": "stable_worldmodel.wm.pldm.pldm.PLDM",
+        "parameters": 18034478,
+        "protocol": {
+          "action_block_raw_steps": 5,
+          "action_dim": 2,
+          "decoder_required": false,
+          "future_action_blocks": 5,
+          "history_tokens": 3,
+          "native_target_encoder": true
+        },
+        "stable_worldmodel_commit": "c34a107e787133468369e08f8f3efa2a43db67a2",
+        "stable_worldmodel_repo": "/opt/huawei/dataset/ag_data/ckpt/pldm-contextworld-v1/.contextworld/stable-worldmodel/c34a107e787133468369e08f8f3efa2a43db67a2"
+      },
+      "name": "contact_friction_pldm_num32k_v1_scratch_s3072",
+      "state_sha256_after": "508c98292e3797ddd27eb68098b7b5cb64bf978d6435cbf5f25b87870a3f5919",
+      "state_sha256_before": "508c98292e3797ddd27eb68098b7b5cb64bf978d6435cbf5f25b87870a3f5919",
+      "training_recipe": "contextworld_contact_friction",
+      "training_seed": 3072
+    },
+    "protocol": {
+      "claim_boundary": "This result uses only public ContextWorld-v1 Development data. It is not a held-out Public Test score and must not be reported as a formal pass or official scoreboard row.",
+      "evaluation_split": "development",
+      "formal_pass_available": false,
+      "id": "contextworld_bundle_development_icl_v1",
+      "kind": "matched_development_counterfactual",
+      "match_status": "matched_development_only",
+      "official_scoreboard_row": false,
+      "public_test_accessed": false
+    },
+    "record_count": 256,
+    "result_kind": "development_only_not_public_test",
+    "schema_version": 1,
+    "selection": {
+      "kind": "complete_registered_development_table",
+      "member": "components/pusht-contact-friction/v1/development/data.lance",
+      "pair_count": 256
+    },
+    "status": "completed"
+  },
+  "result_kind": "development_only_not_public_test",
+  "runtime_fingerprint": {
+    "evidence_kind": "captured_in_evaluation_process",
+    "executable": "/usr/bin/python",
+    "packages": {
+      "Pillow": "11.3.0",
+      "numpy": "1.26.4",
+      "pyarrow": "23.0.1",
+      "pylance": "6.0.0",
+      "stable-pretraining": "0.1.8",
+      "stable-worldmodel": "0.0.6",
+      "torch": "2.9.1",
+      "torchvision": "0.24.1",
+      "transformers": "4.57.1"
+    },
+    "platform": "Linux-5.15.0-92-generic-x86_64-with-glibc2.35",
+    "python": "3.10.12",
+    "requirements_frozen_sha256": "2b001bd25f9be4bb2932d7419f55edc3f3299e86389b0ad9de25b912e1f2b8e3",
+    "schema_version": 1,
+    "torch": {
+      "cuda_available": true,
+      "cuda_build": "12.8",
+      "cudnn_benchmark": false,
+      "cudnn_deterministic": false,
+      "cudnn_version": 91002,
+      "deterministic_algorithms": false,
+      "devices": [
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 0,
+          "name": "NVIDIA H800"
+        },
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 1,
+          "name": "NVIDIA H800"
+        },
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 2,
+          "name": "NVIDIA H800"
+        },
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 3,
+          "name": "NVIDIA H800"
+        },
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 4,
+          "name": "NVIDIA H800"
+        },
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 5,
+          "name": "NVIDIA H800"
+        },
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 6,
+          "name": "NVIDIA H800"
+        },
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 7,
+          "name": "NVIDIA H800"
+        }
+      ],
+      "float32_matmul_precision": "high",
+      "version": "2.9.1+cu128"
+    }
+  },
+  "schema_version": 1,
+  "task": "contact_friction"
+}

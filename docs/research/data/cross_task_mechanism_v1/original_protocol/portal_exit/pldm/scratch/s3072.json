@@ -1,0 +1,218 @@
+{
+  "adapter_spec": "pldm",
+  "evaluation_split": "development",
+  "model_name": "portal_exit_pldm_coverage32k_v2_scratch_s3072",
+  "note": "Produced by contextworld-external-eval from the public ContextWorld-v1 Development split. It is not a held-out Public Test score, has no formal pass decision, and does not enter the official scoreboard.",
+  "official_scoreboard_row": false,
+  "result": {
+    "bundle": {
+      "bundle_schema_version": "ContextWorld-v1",
+      "component_id": "portal_exit",
+      "dataset_id": "tworoom-portal-exit",
+      "development_payload_id": "data",
+      "manifest_sha256": "1cd7e84d63a9bd971737e951b7e56e2119281f3bfc5ae43ea7a741a05f63723e",
+      "member_count": 1,
+      "members": [
+        "components/tworoom-portal-exit/v1/development/data.lance"
+      ],
+      "task_registry_sha256": "28e9d82e9032dc4e2a4db27910d1bd255a58b2007d40a570d86892cbb52e63e1"
+    },
+    "metrics": {
+      "context_switch_rate": 1.0,
+      "correct_future_mse_mean": 0.005636662244796753,
+      "correct_future_rate": 0.736328125,
+      "correct_history_rate": 0.787109375,
+      "current_frame_only_accuracy_bound": 0.5,
+      "decision_count": 512,
+      "farther_from_border_correct_future_rate": 0.69921875,
+      "joint_icl_pair_success_rate": 0.46484375,
+      "latent_response": {
+        "calibrated_response_success_baseline": {
+          "name": "no_history_response",
+          "normalized_response_error": 1.0,
+          "pair_success_criterion": "normalized_response_error < 1.0",
+          "prediction_response": "zero"
+        },
+        "calibrated_response_success_rate": 1.0,
+        "ideal_values": {
+          "calibrated_response_success_rate": 1.0,
+          "normalized_response_error": 0.0,
+          "response_alignment": 1.0,
+          "response_gain": 1.0
+        },
+        "normalized_response_error": 0.12133774644529005,
+        "response_alignment": 0.9700323800022551,
+        "response_gain": 0.6988419498067361,
+        "target_latent_separation": {
+          "criterion": "finite_and_nonidentical_for_every_pair",
+          "mean_target_response_mse": 0.005105399126394232,
+          "median_target_response_mse": 0.002213325883943195,
+          "minimum_target_response_mse": 8.85415588467494e-06,
+          "passed": true,
+          "zero_separation_pair_count": 0
+        }
+      },
+      "near_border_correct_future_rate": 0.7734375,
+      "other_future_mse_mean": 0.009204529225826263,
+      "other_minus_correct_mse_margin_mean": 0.003567867213860154,
+      "pair_count": 256,
+      "uncertainty": {
+        "confidence_level": 0.95,
+        "lower_bounds": {
+          "context_switch_rate": 1.0,
+          "correct_future_rate": 0.705078125,
+          "correct_history_rate": 0.755859375,
+          "worst_exit_correct_future_rate": 0.640625
+        },
+        "method": "paired_query_bootstrap",
+        "random_seed": 2026080205,
+        "resamples": 10000,
+        "unit": "portal_exit_query_pair"
+      },
+      "worst_exit_correct_future_rate": 0.69921875
+    },
+    "model": {
+      "adapter": {
+        "adapter_class": "contextworld.benchmarks.adapters.StableWorldModelPLDMPortalExitAdapter",
+        "adapter_id": "stable_worldmodel_pldm_portal_exit_v1",
+        "checkpoint": "/opt/huawei/dataset/ag_data/ckpt/pldm-contextworld-v1/checkpoints/portal_exit_pldm_coverage32k_v2_scratch_s3072/weights_epoch_10.pt",
+        "checkpoint_sha256": "95ac984c211d6b97e7a965307617637ae9e8c2feb9e636a29e9ccceec47fd91f",
+        "device": "cuda:0",
+        "model_class": "stable_worldmodel.wm.pldm.pldm.PLDM",
+        "parameters": 18034478,
+        "protocol": {
+          "action_block_raw_steps": 5,
+          "action_dim": 2,
+          "decoder_required": false,
+          "future_action_blocks": 5,
+          "history_tokens": 3,
+          "native_target_encoder": true
+        },
+        "stable_worldmodel_commit": "c34a107e787133468369e08f8f3efa2a43db67a2",
+        "stable_worldmodel_repo": "/opt/huawei/dataset/ag_data/ckpt/pldm-contextworld-v1/.contextworld/stable-worldmodel/c34a107e787133468369e08f8f3efa2a43db67a2"
+      },
+      "name": "portal_exit_pldm_coverage32k_v2_scratch_s3072",
+      "state_sha256_after": "6e04b3b77e0684905cfa3ea7e54447e15f995758f8df5401b719d2f31ccd42e1",
+      "state_sha256_before": "6e04b3b77e0684905cfa3ea7e54447e15f995758f8df5401b719d2f31ccd42e1",
+      "training_recipe": "contextworld_portal_exit",
+      "training_seed": 3072
+    },
+    "protocol": {
+      "claim_boundary": "This result uses only public ContextWorld-v1 Development data. It is not a held-out Public Test score and must not be reported as a formal pass or official scoreboard row.",
+      "evaluation_split": "development",
+      "formal_pass_available": false,
+      "id": "contextworld_bundle_development_icl_v1",
+      "kind": "matched_development_counterfactual",
+      "match_status": "matched_development_only",
+      "official_scoreboard_row": false,
+      "public_test_accessed": false
+    },
+    "record_count": 256,
+    "result_kind": "development_only_not_public_test",
+    "schema_version": 1,
+    "selection": {
+      "kind": "complete_registered_development_table",
+      "member": "components/tworoom-portal-exit/v1/development/data.lance",
+      "pair_count": 256
+    },
+    "status": "completed"
+  },
+  "result_kind": "development_only_not_public_test",
+  "runtime_fingerprint": {
+    "evidence_kind": "captured_in_evaluation_process",
+    "executable": "/usr/bin/python",
+    "packages": {
+      "Pillow": "11.3.0",
+      "numpy": "1.26.4",
+      "pyarrow": "23.0.1",
+      "pylance": "6.0.0",
+      "stable-pretraining": "0.1.8",
+      "stable-worldmodel": "0.0.6",
+      "torch": "2.9.1",
+      "torchvision": "0.24.1",
+      "transformers": "4.57.1"
+    },
+    "platform": "Linux-5.15.0-92-generic-x86_64-with-glibc2.35",
+    "python": "3.10.12",
+    "requirements_frozen_sha256": "2b001bd25f9be4bb2932d7419f55edc3f3299e86389b0ad9de25b912e1f2b8e3",
+    "schema_version": 1,
+    "torch": {
+      "cuda_available": true,
+      "cuda_build": "12.8",
+      "cudnn_benchmark": false,
+      "cudnn_deterministic": false,
+      "cudnn_version": 91002,
+      "deterministic_algorithms": false,
+      "devices": [
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 0,
+          "name": "NVIDIA H800"
+        },
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 1,
+          "name": "NVIDIA H800"
+        },
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 2,
+          "name": "NVIDIA H800"
+        },
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 3,
+          "name": "NVIDIA H800"
+        },
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 4,
+          "name": "NVIDIA H800"
+        },
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 5,
+          "name": "NVIDIA H800"
+        },
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 6,
+          "name": "NVIDIA H800"
+        },
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 7,
+          "name": "NVIDIA H800"
+        }
+      ],
+      "float32_matmul_precision": "high",
+      "version": "2.9.1+cu128"
+    }
+  },
+  "schema_version": 1,
+  "task": "portal_exit"
+}

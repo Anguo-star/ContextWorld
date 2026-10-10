@@ -1,0 +1,1775 @@
+{
+  "schema": "contextworld.cross_task_mechanism_v1",
+  "scope": "Training/Development fixed T1 scratch checkpoints; full Development original-protocol NRE and separate 16-query native gradient probe; no retraining or Test access",
+  "units": {
+    "history_balanced_accuracy": "fraction",
+    "speed_mae": "speed units; lower is better",
+    "full_development_response_nre": "original task-specific Development source NRE; lower is better",
+    "probe_16_query_response_nre": "energy-pooled native response error / target response energy on 16 sampled queries; lower is better",
+    "response_loss_share_percent": "aggregate 16-query response loss / native loss",
+    "gradient_ratio_percent": "100*norm(mean response gradient)/norm(mean native gradient) on 16 queries; not mean per-query ratio",
+    "cosine": "cosine of mean gradient vectors on 16 queries"
+  },
+  "source_records": {
+    "panel/speed": {
+      "path": "cross_task_mechanism_v1/panels/speed.json",
+      "sha256": "8135e58d56f155bbcbb71f1985d1657cf933068735ba672e6578eb56e6b0c6ba"
+    },
+    "panel/action_strength": {
+      "path": "cross_task_mechanism_v1/panels/action_strength.json",
+      "sha256": "13d5f4ce5c310227e5c4ff746a8c9be0b3eff4241025a76f3f4206855a9288ef"
+    },
+    "panel/robot_arm_mass": {
+      "path": "cross_task_mechanism_v1/panels/robot_arm_mass.json",
+      "sha256": "da586e1cffe0524a6118e029ac34ebde0d776a86e315c6ffcf90e7f337a57e06"
+    },
+    "panel/action_delay": {
+      "path": "cross_task_mechanism_v1/panels/action_delay.json",
+      "sha256": "bfbf83376a2cb85e2de3d722967d126528f7085cc56d98b25dfafe6da05a1004"
+    },
+    "panel/contact_friction": {
+      "path": "cross_task_mechanism_v1/panels/contact_friction.json",
+      "sha256": "47b389da0cc615aa2ed3a82f2c80d20c67d4ae7a83a60c30abfe3f95e82ab14b"
+    },
+    "panel/motion_damping": {
+      "path": "cross_task_mechanism_v1/panels/motion_damping.json",
+      "sha256": "a4b1167f1361e42ada6804b233aea99a74e16d96cc79595767347f89fd46ac13"
+    },
+    "panel/cube_gripper_carry": {
+      "path": "cross_task_mechanism_v1/panels/cube_gripper_carry.json",
+      "sha256": "325b469185586185421bcb415d20b380c01424b1f409181f351281f84825417b"
+    },
+    "panel/door": {
+      "path": "cross_task_mechanism_v1/panels/door.json",
+      "sha256": "4d73394dd81d9e2b1b12abdcee10f299ccf3b7a36c1d209370aebc2291b66a46"
+    },
+    "panel/portal_exit": {
+      "path": "cross_task_mechanism_v1/panels/portal_exit.json",
+      "sha256": "52655c83ebc4ab0b05b6120c857ad6c4ef5730b30e2bc912d4aa2e5f106bcf62"
+    },
+    "original_protocol/speed/lewm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/original_protocol/speed/lewm/scratch/s3072.json",
+      "sha256": "e5c4d7c73e00f75b386d8da4a56850143dd9d256d8f6e71586851adf84d15fd6",
+      "metric_json_pointer": "/result/metrics/tracks/unseen_interpolation/gate_completion_inputs/metrics/latent_response/normalized_response_error"
+    },
+    "readout/speed/lewm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/readout_results/speed/lewm/scratch/s3072.json",
+      "sha256": "18adc564548d981c56de413004225edac0787e1e13b7e9492b63538cbe19f989"
+    },
+    "gradient/speed/lewm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/gradient_results/speed/lewm/scratch/s3072.json",
+      "sha256": "e1b1233956e83c45c131bef7953b6d13b25b9357a869e1a49bbd058b388be6af"
+    },
+    "original_protocol/speed/pldm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/original_protocol/speed/pldm/scratch/s3072.json",
+      "sha256": "44927009a190aa5bcb78bd551ad515e6553dddc8996431efcce38df263f4cf82",
+      "metric_json_pointer": "/result/metrics/tracks/unseen_interpolation/gate_completion_inputs/metrics/latent_response/normalized_response_error"
+    },
+    "readout/speed/pldm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/readout_results/speed/pldm/scratch/s3072.json",
+      "sha256": "85e4f7f8f0b004a1b70e25e58a3b29f8fdbfed62f506dc8e2eac5b6519a793f9"
+    },
+    "gradient/speed/pldm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/gradient_results/speed/pldm/scratch/s3072.json",
+      "sha256": "b3622f899bd4023776de32d5b852042ca9dab39f706891a545b9209a175b1daf"
+    },
+    "original_protocol/speed/dinowm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/original_protocol/speed/dinowm/scratch/s3072.json",
+      "sha256": "823727f635e1c288f3aab2fd6ce682425c198546c548fdc5bd4ba4236438dfe5",
+      "metric_json_pointer": "/result/metrics/tracks/unseen_interpolation/gate_completion_inputs/metrics/latent_response/normalized_response_error"
+    },
+    "readout/speed/dinowm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/readout_results/speed/dinowm/scratch/s3072.json",
+      "sha256": "ab9c5ed273f72bee42152a4227eb4756b399851177a0ef888ecb9f9d7f47549f"
+    },
+    "gradient/speed/dinowm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/gradient_results/speed/dinowm/scratch/s3072.json",
+      "sha256": "950537093c071c21301d36440ad878664ff6260d03020aee6f7d61bc739b4a59"
+    },
+    "original_protocol/action_strength/lewm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/original_protocol/action_strength/lewm/scratch/s3072.json",
+      "sha256": "1fa31d81cd60d73a3c5c9bb429a796df9ce78dfb62ce1d96e1cc706b71c0910b",
+      "metric_json_pointer": "/result/metrics/latent_response/normalized_response_error"
+    },
+    "readout/action_strength/lewm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/readout_results/action_strength/lewm/scratch/s3072.json",
+      "sha256": "947ce16cd4fc50af2b221683842186eb8beb72c2c022f1282950221074f99f6c"
+    },
+    "gradient/action_strength/lewm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/gradient_results/action_strength/lewm/scratch/s3072.json",
+      "sha256": "03d44614dff6cc7dfc1d4d039629868842e6133c1f5f6e607738538c935d6dbc"
+    },
+    "original_protocol/action_strength/pldm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/original_protocol/action_strength/pldm/scratch/s3072.json",
+      "sha256": "8fe25e61a9cb63e93572002d04754d35ae891be085c7053a25ffb4634969f5c8",
+      "metric_json_pointer": "/result/metrics/latent_response/normalized_response_error"
+    },
+    "readout/action_strength/pldm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/readout_results/action_strength/pldm/scratch/s3072.json",
+      "sha256": "b6dc810fc38cf153c0e59d9d4fa1bb8d997a2d7e5551883eaf2962f788111052"
+    },
+    "gradient/action_strength/pldm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/gradient_results/action_strength/pldm/scratch/s3072.json",
+      "sha256": "1dccf617892a8bee0a5148d656d7ff42b79078f63b22c278fb1693afd44d00ed"
+    },
+    "original_protocol/action_strength/dinowm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/original_protocol/action_strength/dinowm/scratch/s3072.json",
+      "sha256": "98e43d60be747538ecd74cec9f3d7b707fefd9de4973fb1041f6739c36243db2",
+      "metric_json_pointer": "/result/metrics/latent_response/normalized_response_error"
+    },
+    "readout/action_strength/dinowm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/readout_results/action_strength/dinowm/scratch/s3072.json",
+      "sha256": "5f9ada499de0fa84e6417a7927f3de26463db0642b6957de6c23b73f9951f541"
+    },
+    "gradient/action_strength/dinowm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/gradient_results/action_strength/dinowm/scratch/s3072.json",
+      "sha256": "b1764bc8537535b7279305fa88b1c9a6842fb019bedd283abd63b12277954962"
+    },
+    "original_protocol/robot_arm_mass/lewm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/original_protocol/robot_arm_mass/lewm/scratch/s3072.json",
+      "sha256": "20b46c99eb29cb5893f12483d19de8087ac503f9ecddf11051b020f700aac7cf",
+      "metric_json_pointer": "/result/metrics/latent_response/normalized_response_error"
+    },
+    "readout/robot_arm_mass/lewm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/readout_results/robot_arm_mass/lewm/scratch/s3072.json",
+      "sha256": "5253578a986274339db24d0d30e3cd58cf16011a1f654ed2d033f568ce9ae6aa"
+    },
+    "gradient/robot_arm_mass/lewm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/gradient_results/robot_arm_mass/lewm/scratch/s3072.json",
+      "sha256": "fb1b5de6bb586b3bbe238d27984a10e3a1e5908bb3178175cf411c4c59696c98"
+    },
+    "original_protocol/robot_arm_mass/pldm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/original_protocol/robot_arm_mass/pldm/scratch/s3072.json",
+      "sha256": "c86efa38cbb675a0863559be93dd36a556275093ea12dc5bbd3adc1e8cfbc9d4",
+      "metric_json_pointer": "/result/metrics/latent_response/normalized_response_error"
+    },
+    "readout/robot_arm_mass/pldm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/readout_results/robot_arm_mass/pldm/scratch/s3072.json",
+      "sha256": "384f9b2324f43810fd17378d1b3d70999c00225ee8a5aafab1e762f44683328c"
+    },
+    "gradient/robot_arm_mass/pldm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/gradient_results/robot_arm_mass/pldm/scratch/s3072.json",
+      "sha256": "520f0e37b65b6a482ca01818bf5cbb5a4fa8b0bfb332963d4f6b8b66544f87c6"
+    },
+    "original_protocol/robot_arm_mass/dinowm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/original_protocol/robot_arm_mass/dinowm/scratch/s3072.json",
+      "sha256": "6c27d238005b066cdbb550d7214b92203af02c3834f9d8919b9bc8145cc318ef",
+      "metric_json_pointer": "/result/metrics/latent_response/normalized_response_error"
+    },
+    "readout/robot_arm_mass/dinowm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/readout_results/robot_arm_mass/dinowm/scratch/s3072.json",
+      "sha256": "1fc5a68bc537dc5de8208faa721c7af4c301d2d00b567f59fb5a463f9dabce1f"
+    },
+    "gradient/robot_arm_mass/dinowm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/gradient_results/robot_arm_mass/dinowm/scratch/s3072.json",
+      "sha256": "2ba148a5b4c01607a70295f90a5e456f2dfb1ac262b60ff5b98997ab9afc03a3"
+    },
+    "original_protocol/action_delay/lewm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/original_protocol/action_delay/lewm/scratch/s3072.json",
+      "sha256": "b35b16d8378b83d8f9ee6d0511191c4a2f4245a4ab695298ddafcb90b419dd81",
+      "metric_json_pointer": "/result/metrics/gate_completion_inputs/metrics/latent_response/normalized_response_error"
+    },
+    "readout/action_delay/lewm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/readout_results/action_delay/lewm/scratch/s3072.json",
+      "sha256": "fa2b10bafdf42c1902cc7b109c17611ef3db848c43c410f9da0200c8b55cad34"
+    },
+    "gradient/action_delay/lewm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/gradient_results/action_delay/lewm/scratch/s3072.json",
+      "sha256": "72371355ac164734de579254b74886c2bb04e95b451aed73c627e78cd9e661a4"
+    },
+    "original_protocol/action_delay/pldm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/original_protocol/action_delay/pldm/scratch/s3072.json",
+      "sha256": "c778bb3dd3087f94fff483735b67b27428dd5877f2ab2d6b68eb568030abde40",
+      "metric_json_pointer": "/result/metrics/gate_completion_inputs/metrics/latent_response/normalized_response_error"
+    },
+    "readout/action_delay/pldm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/readout_results/action_delay/pldm/scratch/s3072.json",
+      "sha256": "68f9b4794ad8c86e994ba18b4e1f431586bc180cea89eee0432811c943b38277"
+    },
+    "gradient/action_delay/pldm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/gradient_results/action_delay/pldm/scratch/s3072.json",
+      "sha256": "c67ee6c0d0753025e6d16d3103895dcfb504c15da3eddc9c712dac8449e2fa28"
+    },
+    "original_protocol/action_delay/dinowm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/original_protocol/action_delay/dinowm/scratch/s3072.json",
+      "sha256": "41d31d961c5f77fd18070977e025fe1daefa474332d595323ed8200a1351c61f",
+      "metric_json_pointer": "/result/metrics/gate_completion_inputs/metrics/latent_response/normalized_response_error"
+    },
+    "readout/action_delay/dinowm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/readout_results/action_delay/dinowm/scratch/s3072.json",
+      "sha256": "f4a978a75da83cefe83d6cfbbc3d855a317b94ad4ac8a11b9359cbf92fde2cbb"
+    },
+    "gradient/action_delay/dinowm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/gradient_results/action_delay/dinowm/scratch/s3072.json",
+      "sha256": "7aa53a61c2cd24776e9a153fee175c9e0e01650cf74b800479453febb4130993"
+    },
+    "receipt/contact_friction/lewm/scratch/s3072/manifest_binding_validation.json": {
+      "path": "cross_task_mechanism_v1/receipts/contact_friction/lewm/manifest_binding_validation.json",
+      "sha256": "98f8f1104acf9968fd8560740f928fc5281214e091640397385897e19ec82e18"
+    },
+    "original_protocol/contact_friction/lewm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/original_protocol/contact_friction/lewm/scratch/s3072.json",
+      "sha256": "b8838a9b18110c373f76e231a6576efd7d5b3dd8bc1d8576a4fc08911af9e867",
+      "metric_json_pointer": "/result/metrics/latent_response/normalized_response_error"
+    },
+    "readout/contact_friction/lewm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/readout_results/contact_friction/lewm/scratch/s3072.json",
+      "sha256": "42d639c8b6f2bf2fbdaaa7b25c0acd1f71a3bd6ac7066945642d9b5ec960c83b"
+    },
+    "gradient/contact_friction/lewm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/gradient_results/contact_friction/lewm/scratch/s3072.json",
+      "sha256": "0194e64c9db27dae5e56ceb13d361f50227ff1d13b22aa63ae676b918158fe3a"
+    },
+    "receipt/contact_friction/pldm/scratch/s3072/manifest_binding_validation.json": {
+      "path": "cross_task_mechanism_v1/receipts/contact_friction/pldm/manifest_binding_validation.json",
+      "sha256": "0494b103d1508d6970720e80d44649883e65739febe3f9a4e4101a5eb7faf219"
+    },
+    "original_protocol/contact_friction/pldm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/original_protocol/contact_friction/pldm/scratch/s3072.json",
+      "sha256": "bf6095eab1df6ee5ac15323b77048168b02882d27564078b9694fe6b66e082e2",
+      "metric_json_pointer": "/result/metrics/latent_response/normalized_response_error"
+    },
+    "readout/contact_friction/pldm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/readout_results/contact_friction/pldm/scratch/s3072.json",
+      "sha256": "c038c727aaaa3087b45cdbbd245f55ff028809b47709435a688c31aada973186"
+    },
+    "gradient/contact_friction/pldm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/gradient_results/contact_friction/pldm/scratch/s3072.json",
+      "sha256": "b7d31bd7d128d307f6378065a891e57a500ca7b969a31f777b00a0f21bcf56e2"
+    },
+    "receipt/contact_friction/dinowm/scratch/s3072/manifest_binding_validation.json": {
+      "path": "cross_task_mechanism_v1/receipts/contact_friction/dinowm/manifest_binding_validation.json",
+      "sha256": "0242f8caa4cecdba67b44fcae52ab4298fddbd293c8dba4974d00a5bf01fbcfd"
+    },
+    "original_protocol/contact_friction/dinowm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/original_protocol/contact_friction/dinowm/scratch/s3072.json",
+      "sha256": "65522bb19e0379fb048fbf7636f71fbe00aa0e713453a016490a578de55c8463",
+      "metric_json_pointer": "/result/metrics/latent_response/normalized_response_error"
+    },
+    "readout/contact_friction/dinowm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/readout_results/contact_friction/dinowm/scratch/s3072.json",
+      "sha256": "6a5e0f2dcfe9e92367c9a6405aadf68b70100b2bcd6178ee7bce54b48a794d44"
+    },
+    "gradient/contact_friction/dinowm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/gradient_results/contact_friction/dinowm/scratch/s3072.json",
+      "sha256": "88283c0f97a57cacad1d1cf283b4e4078fc77184cfb0e35034b6f51ff8d14f5a"
+    },
+    "receipt/motion_damping/lewm/scratch/s3072/manifest_binding_validation.json": {
+      "path": "cross_task_mechanism_v1/receipts/motion_damping/lewm/manifest_binding_validation.json",
+      "sha256": "ba9548cb9bc9cab8ea8ba48ceeaa011819786ec6ce550ee727cfefea70dd4d62"
+    },
+    "original_protocol/motion_damping/lewm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/original_protocol/motion_damping/lewm/scratch/s3072.json",
+      "sha256": "b01352e86d84f3bdb5bfbcf9491e28025230e477abf678881905d5e480bb7f54",
+      "metric_json_pointer": "/result/metrics/latent_response/normalized_response_error"
+    },
+    "readout/motion_damping/lewm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/readout_results/motion_damping/lewm/scratch/s3072.json",
+      "sha256": "20c37c8e6a887e010169f1db5aa110d61fac69722b12b6efd8469d88976e697d"
+    },
+    "gradient/motion_damping/lewm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/gradient_results/motion_damping/lewm/scratch/s3072.json",
+      "sha256": "80f35cce819e8ccad6351f07f15eea7cbebf8e5720b544192d6af31c0b5dc082"
+    },
+    "receipt/motion_damping/pldm/scratch/s3072/manifest_binding_validation.json": {
+      "path": "cross_task_mechanism_v1/receipts/motion_damping/pldm/manifest_binding_validation.json",
+      "sha256": "e265f2d81b476c409021495662c8f1ed50807f285e7ea1431061ef32997733cb"
+    },
+    "original_protocol/motion_damping/pldm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/original_protocol/motion_damping/pldm/scratch/s3072.json",
+      "sha256": "6cd7254e79785788d5b3b2449e9937748760de76601764e83e92f680e8855d9a",
+      "metric_json_pointer": "/result/metrics/latent_response/normalized_response_error"
+    },
+    "readout/motion_damping/pldm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/readout_results/motion_damping/pldm/scratch/s3072.json",
+      "sha256": "7ea6018a551cf8954d8e7f54161cd9de753c88ab4f78d2ece9b916c68908efca"
+    },
+    "gradient/motion_damping/pldm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/gradient_results/motion_damping/pldm/scratch/s3072.json",
+      "sha256": "14c47c3d167fedb7b859072e64be865eb7184010d79298a974529df5b0d1f3de"
+    },
+    "original_protocol/motion_damping/dinowm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/original_protocol/motion_damping/dinowm/scratch/s3072.json",
+      "sha256": "08ad9a09ab5377b04540ee26c637c80f48bd6cfd4fe707f3d6692e0819428ad8",
+      "metric_json_pointer": "/result/metrics/latent_response/normalized_response_error"
+    },
+    "readout/motion_damping/dinowm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/readout_results/motion_damping/dinowm/scratch/s3072.json",
+      "sha256": "03098b4727a702647bf564b8b44357f24f51de27600f971df3304a13151dcbe0"
+    },
+    "gradient/motion_damping/dinowm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/gradient_results/motion_damping/dinowm/scratch/s3072.json",
+      "sha256": "a71d6e38f6749f1d356f82b3f4b6ae4f1f32e12d863e2e527e979d44b10b722d"
+    },
+    "original_protocol/cube_gripper_carry/lewm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/original_protocol/cube_gripper_carry/lewm/scratch/s3072.json",
+      "sha256": "a0f0494879abe9b79ebf99f03f7156729002915e469503b1b398a6046e809af9",
+      "metric_json_pointer": "/result/metrics/latent_response/normalized_response_error"
+    },
+    "readout/cube_gripper_carry/lewm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/readout_results/cube_gripper_carry/lewm/scratch/s3072.json",
+      "sha256": "bfefe0c106ad2339651d1977f4de4b4f06a9e32f83c95e51534dd44295ef6c9d"
+    },
+    "gradient/cube_gripper_carry/lewm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/gradient_results/cube_gripper_carry/lewm/scratch/s3072.json",
+      "sha256": "3b722e29fa59707664b2ca2a5d79077998d57d868a9b083de12da536bc36ce48"
+    },
+    "original_protocol/cube_gripper_carry/pldm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/original_protocol/cube_gripper_carry/pldm/scratch/s3072.json",
+      "sha256": "d91d61c2a790b99911ba9eca174f592a1d1d11cf2cc0ccd5f5f0721e4186d391",
+      "metric_json_pointer": "/result/metrics/latent_response/normalized_response_error"
+    },
+    "readout/cube_gripper_carry/pldm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/readout_results/cube_gripper_carry/pldm/scratch/s3072.json",
+      "sha256": "e96aaa9047bb119c028cf06d41a8f760e3ec035f8c12635d596b228bec39fab1"
+    },
+    "gradient/cube_gripper_carry/pldm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/gradient_results/cube_gripper_carry/pldm/scratch/s3072.json",
+      "sha256": "b6bd885166b10c563be74d2475e22a05b24077b356bcf29bcce4258b8d8fe1f1"
+    },
+    "original_protocol/cube_gripper_carry/dinowm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/original_protocol/cube_gripper_carry/dinowm/scratch/s3072.json",
+      "sha256": "ab6fc50f9ce168248c77e7e95a971738910089b2bcbedf34f3d48db96b19b0b9",
+      "metric_json_pointer": "/result/metrics/latent_response/normalized_response_error"
+    },
+    "readout/cube_gripper_carry/dinowm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/readout_results/cube_gripper_carry/dinowm/scratch/s3072.json",
+      "sha256": "79a014c132dff2d5bc65c5c689eb693595ddca77777b0b0bf22c1c0d8892734c"
+    },
+    "gradient/cube_gripper_carry/dinowm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/gradient_results/cube_gripper_carry/dinowm/scratch/s3072.json",
+      "sha256": "70a5a21f8acde4909d096c3aa6db439e1b9c74e28bc55651531df549409035a7"
+    },
+    "receipt/door/lewm/scratch/s3072/door_label_correction_receipt.json": {
+      "path": "cross_task_mechanism_v1/receipts/door/lewm/door_label_correction_receipt.json",
+      "sha256": "82764a4329d56ff4af3ae2b6cee5666c5b9ce5f00e016a748b081f80af31f54e"
+    },
+    "original_protocol/door/lewm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/original_protocol/door/lewm/scratch/s3072.json",
+      "sha256": "9b78832c1f80929a0d2abef8cb7a9769a48b9e23d7033598c256282ddf6d8020",
+      "metric_json_pointer": "/result/metrics/gate_completion_inputs/metrics/latent_response/normalized_response_error"
+    },
+    "readout/door/lewm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/readout_results/door/lewm/scratch/s3072.json",
+      "sha256": "6fd012d89d68a619adffacac5389c174d6e0fa79fc152198bba865633df6334b"
+    },
+    "gradient/door/lewm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/gradient_results/door/lewm/scratch/s3072.json",
+      "sha256": "90fad0b39ad5af4b88ae09bcac57d6e284530e968c6b93ce3267b56e84005ef2"
+    },
+    "receipt/door/pldm/scratch/s3072/door_label_correction_receipt.json": {
+      "path": "cross_task_mechanism_v1/receipts/door/pldm/door_label_correction_receipt.json",
+      "sha256": "f3f73bad16c92d5deb73fc92f19d25f40a02eacc57d5e2a2f6affd22e9674ca1"
+    },
+    "original_protocol/door/pldm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/original_protocol/door/pldm/scratch/s3072.json",
+      "sha256": "38b3eb24a19a1429d5bd2d5e494d658b0ee86d3f1166a2e29106889349163ba2",
+      "metric_json_pointer": "/result/metrics/gate_completion_inputs/metrics/latent_response/normalized_response_error"
+    },
+    "readout/door/pldm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/readout_results/door/pldm/scratch/s3072.json",
+      "sha256": "ad2c00e576d3949f23b68218ec30a2049370c0b971e791d9c5097544ccc43011"
+    },
+    "gradient/door/pldm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/gradient_results/door/pldm/scratch/s3072.json",
+      "sha256": "a51f74dad0412e437b245697a8e7d0140d1d7d94e3bb6c0343c2e89b8bc143d3"
+    },
+    "receipt/door/dinowm/scratch/s3072/door_label_correction_receipt.json": {
+      "path": "cross_task_mechanism_v1/receipts/door/dinowm/door_label_correction_receipt.json",
+      "sha256": "c85546569a18647269ac62e84103980e61ac4e0c0405bc501a557544da7247a2"
+    },
+    "original_protocol/door/dinowm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/original_protocol/door/dinowm/scratch/s3072.json",
+      "sha256": "bae65332072dbb039eddac0f2a844bb298bcedf2bef40acd1e8fa4a8ea097825",
+      "metric_json_pointer": "/result/metrics/gate_completion_inputs/metrics/latent_response/normalized_response_error"
+    },
+    "readout/door/dinowm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/readout_results/door/dinowm/scratch/s3072.json",
+      "sha256": "fac6086f0b06309a05ea513c3a9b410971c076531196f902c165f9f8d3f3f562"
+    },
+    "gradient/door/dinowm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/gradient_results/door/dinowm/scratch/s3072.json",
+      "sha256": "de12e50a9b47c35c7e1c69f620f5481c3e71710f2924343dfb2238e9844ebc3d"
+    },
+    "receipt/portal_exit/lewm/scratch/s3072/manifest_binding_validation.json": {
+      "path": "cross_task_mechanism_v1/receipts/portal_exit/lewm/manifest_binding_validation.json",
+      "sha256": "9325574fe6bcf691dd829fadc31c09ba798830b79917174d181ad4de471643c3"
+    },
+    "original_protocol/portal_exit/lewm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/original_protocol/portal_exit/lewm/scratch/s3072.json",
+      "sha256": "baa796bfe91e4aea2887886f2f10b0b5d71b1c02ab65733f66c611a428f31ce8",
+      "metric_json_pointer": "/result/metrics/latent_response/normalized_response_error"
+    },
+    "readout/portal_exit/lewm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/readout_results/portal_exit/lewm/scratch/s3072.json",
+      "sha256": "57023bade96d221b192ad6aed374f79a219ae46f0660328577ce0607e12de148"
+    },
+    "gradient/portal_exit/lewm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/gradient_results/portal_exit/lewm/scratch/s3072.json",
+      "sha256": "2bc20caa2a521027b6c273126c9087909ee2b2bf7074cf0e93ce177f3c65119d"
+    },
+    "receipt/portal_exit/pldm/scratch/s3072/manifest_binding_validation.json": {
+      "path": "cross_task_mechanism_v1/receipts/portal_exit/pldm/manifest_binding_validation.json",
+      "sha256": "02e6090fbaa5f9f2c73b1ce24987aabae745fa53063edfe6a234a8c7734dadce"
+    },
+    "original_protocol/portal_exit/pldm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/original_protocol/portal_exit/pldm/scratch/s3072.json",
+      "sha256": "2f9106b9ed026d89e6b6d45f6173ad16321ecc3f70a8ab50e5384d96502cc860",
+      "metric_json_pointer": "/result/metrics/latent_response/normalized_response_error"
+    },
+    "readout/portal_exit/pldm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/readout_results/portal_exit/pldm/scratch/s3072.json",
+      "sha256": "3a05bea5efe406a91b983a24729c005c7a50909f76187d99ec56a3841337b6b9"
+    },
+    "gradient/portal_exit/pldm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/gradient_results/portal_exit/pldm/scratch/s3072.json",
+      "sha256": "3e9710300ef3e6e91d2298457635072cf6f7b8c49847b718085d2c18a0c5094d"
+    },
+    "original_protocol/portal_exit/dinowm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/original_protocol/portal_exit/dinowm/scratch/s3072.json",
+      "sha256": "c2b30e0521dc999614015103e6d84a1bc32cb518ff6603471aa006085d4a7434",
+      "metric_json_pointer": "/result/metrics/latent_response/normalized_response_error"
+    },
+    "readout/portal_exit/dinowm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/readout_results/portal_exit/dinowm/scratch/s3072.json",
+      "sha256": "47dce60d96a4554b621a55240314e1e172b0d617f7ee5f3a706a9e071b48a466"
+    },
+    "gradient/portal_exit/dinowm/scratch/s3072": {
+      "path": "cross_task_mechanism_v1/gradient_results/portal_exit/dinowm/scratch/s3072.json",
+      "sha256": "c74254b344e2fc0a78dfc2a0f3086a28d5f1bcc625b8516c7116803f53c296c1"
+    },
+    "coverage_summary": {
+      "path": "cross_task_mechanism_v1/receipts/coverage_summary.json",
+      "sha256": "cf93e788b8a604e387282e399ef66824982aef36793cef7cd527a80896196661"
+    },
+    "readout_index": {
+      "path": "cross_task_mechanism_v1/receipts/readout_index.json",
+      "sha256": "0196f3dcef5e8900e6aa70f9022f4832944f2acbb65c58b257a81f790bc04041"
+    },
+    "gradient_manifest": {
+      "path": "cross_task_mechanism_v1/receipts/gradient_manifest.json",
+      "sha256": "5c8d9a70ffa3297b1ceca6938c00e566c09e614e5fe4afbdcf12ac6721338984"
+    },
+    "door_label_correction": {
+      "path": "cross_task_mechanism_v1/receipts/door_label_correction.json",
+      "sha256": "9730d775869045f1286d4a6d5ff52995506874d170133bc20ac4e9b640f52eb1"
+    },
+    "full_protocol_nre_crosswalk": {
+      "path": "cross_task_mechanism_v1/receipts/full_protocol_nre_crosswalk.json",
+      "sha256": "c8d7d3406b3e3ffd4b54ed8a1dd382037e7c9c3696d22ae1049adfd851a0dbdc"
+    }
+  },
+  "rows": [
+    {
+      "id": "speed/lewm/scratch/s3072",
+      "task": "speed",
+      "family": "lewm",
+      "regime": "scratch",
+      "seed": 3072,
+      "checkpoint_sha256": "bf8aab90eb010c87650a2733a8075a0975d4c7b4c107d5c2c41f899589d763c2",
+      "training_rows": 512,
+      "training_queries": 512,
+      "training_source_groups": 512,
+      "development_rows": 900,
+      "development_queries": 300,
+      "development_source_groups": 300,
+      "history_readout": {
+        "metric": "mae",
+        "value": 1.6850213224629464,
+        "ci95": [
+          1.603720372867549,
+          1.777216145997062
+        ],
+        "baseline_mae": 1.2106770190099876,
+        "r2": -1.2071237386630584,
+        "six_physical_group_balanced_accuracy": null,
+        "six_physical_group_ci95": null
+      },
+      "original_protocol": {
+        "full_development_response_nre": 0.052311303973198275,
+        "query_count": 300,
+        "conditions_per_query": 3,
+        "track": "unseen_interpolation"
+      },
+      "gradient": {
+        "development_query_count": 16,
+        "target_response_energy": 0.5781904270433191,
+        "probe_16_query_response_nre": 0.06387523176702543,
+        "aggregate_response_loss_share_percent": 1.189944002049028,
+        "mean_response_to_native_gradient_norm_percent": 6.390177883679993,
+        "mean_vector_cosine": 0.09728818198450753,
+        "negative_query_cosine_count": 1
+      },
+      "sources": {
+        "readout_result_sha256": "18adc564548d981c56de413004225edac0787e1e13b7e9492b63538cbe19f989",
+        "gradient_result_sha256": "e1b1233956e83c45c131bef7953b6d13b25b9357a869e1a49bbd058b388be6af",
+        "panel_manifest_sha256": "8135e58d56f155bbcbb71f1985d1657cf933068735ba672e6578eb56e6b0c6ba",
+        "development_raw_sha256": "c582a38a752ae9c778e08ae4bdede3f23bbc8e54e363a5e57d0e1b4afdab84de",
+        "original_protocol_source_sha256": "e5c4d7c73e00f75b386d8da4a56850143dd9d256d8f6e71586851adf84d15fd6"
+      }
+    },
+    {
+      "id": "speed/pldm/scratch/s3072",
+      "task": "speed",
+      "family": "pldm",
+      "regime": "scratch",
+      "seed": 3072,
+      "checkpoint_sha256": "7368e19623db2c16eeabad09704e33cf7df59fc81a537c7ca595c4d2d5b9a7e8",
+      "training_rows": 512,
+      "training_queries": 512,
+      "training_source_groups": 512,
+      "development_rows": 900,
+      "development_queries": 300,
+      "development_source_groups": 300,
+      "history_readout": {
+        "metric": "mae",
+        "value": 3.0742720198082316,
+        "ci95": [
+          2.636080281758138,
+          3.5773612400383517
+        ],
+        "baseline_mae": 1.2106770190099876,
+        "r2": -12.848773625739252,
+        "six_physical_group_balanced_accuracy": null,
+        "six_physical_group_ci95": null
+      },
+      "original_protocol": {
+        "full_development_response_nre": 0.08095890749533266,
+        "query_count": 300,
+        "conditions_per_query": 3,
+        "track": "unseen_interpolation"
+      },
+      "gradient": {
+        "development_query_count": 16,
+        "target_response_energy": 0.8816867056575404,
+        "probe_16_query_response_nre": 0.09284577437723933,
+        "aggregate_response_loss_share_percent": 1.2825053121518075,
+        "mean_response_to_native_gradient_norm_percent": 8.26830655185617,
+        "mean_vector_cosine": 0.27342317167843555,
+        "negative_query_cosine_count": 1
+      },
+      "sources": {
+        "readout_result_sha256": "85e4f7f8f0b004a1b70e25e58a3b29f8fdbfed62f506dc8e2eac5b6519a793f9",
+        "gradient_result_sha256": "b3622f899bd4023776de32d5b852042ca9dab39f706891a545b9209a175b1daf",
+        "panel_manifest_sha256": "8135e58d56f155bbcbb71f1985d1657cf933068735ba672e6578eb56e6b0c6ba",
+        "development_raw_sha256": "c582a38a752ae9c778e08ae4bdede3f23bbc8e54e363a5e57d0e1b4afdab84de",
+        "original_protocol_source_sha256": "44927009a190aa5bcb78bd551ad515e6553dddc8996431efcce38df263f4cf82"
+      }
+    },
+    {
+      "id": "speed/dinowm/scratch/s3072",
+      "task": "speed",
+      "family": "dinowm",
+      "regime": "scratch",
+      "seed": 3072,
+      "checkpoint_sha256": "7887e636b1f37f43f31c185ba0bdf8ba550ba708fdd5e274b2843a43d2cf8439",
+      "training_rows": 512,
+      "training_queries": 512,
+      "training_source_groups": 512,
+      "development_rows": 900,
+      "development_queries": 300,
+      "development_source_groups": 300,
+      "history_readout": {
+        "metric": "mae",
+        "value": 1.8309882003553672,
+        "ci95": [
+          1.729915045691229,
+          1.926044847623798
+        ],
+        "baseline_mae": 1.2106770190099876,
+        "r2": -1.4870584567963672,
+        "six_physical_group_balanced_accuracy": null,
+        "six_physical_group_ci95": null
+      },
+      "original_protocol": {
+        "full_development_response_nre": 0.9619315102033243,
+        "query_count": 300,
+        "conditions_per_query": 3,
+        "track": "unseen_interpolation"
+      },
+      "gradient": {
+        "development_query_count": 16,
+        "target_response_energy": 0.2671361319927865,
+        "probe_16_query_response_nre": 0.9746872971253525,
+        "aggregate_response_loss_share_percent": 6.964329108616376,
+        "mean_response_to_native_gradient_norm_percent": 1.095485142561662,
+        "mean_vector_cosine": 0.3677782186495012,
+        "negative_query_cosine_count": 4
+      },
+      "sources": {
+        "readout_result_sha256": "ab9c5ed273f72bee42152a4227eb4756b399851177a0ef888ecb9f9d7f47549f",
+        "gradient_result_sha256": "950537093c071c21301d36440ad878664ff6260d03020aee6f7d61bc739b4a59",
+        "panel_manifest_sha256": "8135e58d56f155bbcbb71f1985d1657cf933068735ba672e6578eb56e6b0c6ba",
+        "development_raw_sha256": "c582a38a752ae9c778e08ae4bdede3f23bbc8e54e363a5e57d0e1b4afdab84de",
+        "original_protocol_source_sha256": "823727f635e1c288f3aab2fd6ce682425c198546c548fdc5bd4ba4236438dfe5"
+      }
+    },
+    {
+      "id": "action_strength/lewm/scratch/s3072",
+      "task": "action_strength",
+      "family": "lewm",
+      "regime": "scratch",
+      "seed": 3072,
+      "checkpoint_sha256": "aa296d32cdd20bf817545f7feb027f4bdc5cd87ee99547bb990c433e8915bed1",
+      "training_rows": 1024,
+      "training_queries": 512,
+      "training_source_groups": 188,
+      "development_rows": 512,
+      "development_queries": 256,
+      "development_source_groups": 243,
+      "history_readout": {
+        "metric": "balanced_accuracy",
+        "value": 0.685546875,
+        "ci95": [
+          0.65636763996139,
+          0.7171314741035857
+        ],
+        "baseline_mae": null,
+        "r2": null,
+        "six_physical_group_balanced_accuracy": null,
+        "six_physical_group_ci95": null
+      },
+      "original_protocol": {
+        "full_development_response_nre": 0.9812409600640022,
+        "query_count": 256,
+        "conditions_per_query": 2,
+        "track": "native_task_development"
+      },
+      "gradient": {
+        "development_query_count": 16,
+        "target_response_energy": 0.02808710086119115,
+        "probe_16_query_response_nre": 0.9638511344553394,
+        "aggregate_response_loss_share_percent": 18.36465468344297,
+        "mean_response_to_native_gradient_norm_percent": 3.4790201636668217,
+        "mean_vector_cosine": 0.010995912269100695,
+        "negative_query_cosine_count": 7
+      },
+      "sources": {
+        "readout_result_sha256": "947ce16cd4fc50af2b221683842186eb8beb72c2c022f1282950221074f99f6c",
+        "gradient_result_sha256": "03d44614dff6cc7dfc1d4d039629868842e6133c1f5f6e607738538c935d6dbc",
+        "panel_manifest_sha256": "13d5f4ce5c310227e5c4ff746a8c9be0b3eff4241025a76f3f4206855a9288ef",
+        "development_raw_sha256": "084ed054f18a10ce4aaf18a43f448188cf95601d4c98faeeb266163ee5319035",
+        "original_protocol_source_sha256": "1fa31d81cd60d73a3c5c9bb429a796df9ce78dfb62ce1d96e1cc706b71c0910b"
+      }
+    },
+    {
+      "id": "action_strength/pldm/scratch/s3072",
+      "task": "action_strength",
+      "family": "pldm",
+      "regime": "scratch",
+      "seed": 3072,
+      "checkpoint_sha256": "b3e4cb257ae822501909e6ab99fe0919f35e60ee50eff08b6075cbb22f476594",
+      "training_rows": 1024,
+      "training_queries": 512,
+      "training_source_groups": 188,
+      "development_rows": 512,
+      "development_queries": 256,
+      "development_source_groups": 243,
+      "history_readout": {
+        "metric": "balanced_accuracy",
+        "value": 0.716796875,
+        "ci95": [
+          0.686040942706941,
+          0.7480314960629921
+        ],
+        "baseline_mae": null,
+        "r2": null,
+        "six_physical_group_balanced_accuracy": null,
+        "six_physical_group_ci95": null
+      },
+      "original_protocol": {
+        "full_development_response_nre": 0.8956576629424007,
+        "query_count": 256,
+        "conditions_per_query": 2,
+        "track": "native_task_development"
+      },
+      "gradient": {
+        "development_query_count": 16,
+        "target_response_energy": 0.4416100228869939,
+        "probe_16_query_response_nre": 0.9178779462958419,
+        "aggregate_response_loss_share_percent": 19.185158480531094,
+        "mean_response_to_native_gradient_norm_percent": 19.770928786046692,
+        "mean_vector_cosine": 0.20999596270834173,
+        "negative_query_cosine_count": 3
+      },
+      "sources": {
+        "readout_result_sha256": "b6dc810fc38cf153c0e59d9d4fa1bb8d997a2d7e5551883eaf2962f788111052",
+        "gradient_result_sha256": "1dccf617892a8bee0a5148d656d7ff42b79078f63b22c278fb1693afd44d00ed",
+        "panel_manifest_sha256": "13d5f4ce5c310227e5c4ff746a8c9be0b3eff4241025a76f3f4206855a9288ef",
+        "development_raw_sha256": "084ed054f18a10ce4aaf18a43f448188cf95601d4c98faeeb266163ee5319035",
+        "original_protocol_source_sha256": "8fe25e61a9cb63e93572002d04754d35ae891be085c7053a25ffb4634969f5c8"
+      }
+    },
+    {
+      "id": "action_strength/dinowm/scratch/s3072",
+      "task": "action_strength",
+      "family": "dinowm",
+      "regime": "scratch",
+      "seed": 3072,
+      "checkpoint_sha256": "2508fa27309d4c01ab86e03ec375572af084f5ea1e87eb43a6961197fc165c7d",
+      "training_rows": 1024,
+      "training_queries": 512,
+      "training_source_groups": 188,
+      "development_rows": 512,
+      "development_queries": 256,
+      "development_source_groups": 243,
+      "history_readout": {
+        "metric": "balanced_accuracy",
+        "value": 0.833984375,
+        "ci95": [
+          0.8022803047500142,
+          0.8641814930576426
+        ],
+        "baseline_mae": null,
+        "r2": null,
+        "six_physical_group_balanced_accuracy": null,
+        "six_physical_group_ci95": null
+      },
+      "original_protocol": {
+        "full_development_response_nre": 0.43165927544440985,
+        "query_count": 256,
+        "conditions_per_query": 2,
+        "track": "native_task_development"
+      },
+      "gradient": {
+        "development_query_count": 16,
+        "target_response_energy": 1.3118891499559833,
+        "probe_16_query_response_nre": 0.4215518892829578,
+        "aggregate_response_loss_share_percent": 19.589556368265253,
+        "mean_response_to_native_gradient_norm_percent": 47.24156377151662,
+        "mean_vector_cosine": 0.5740460547998608,
+        "negative_query_cosine_count": 0
+      },
+      "sources": {
+        "readout_result_sha256": "5f9ada499de0fa84e6417a7927f3de26463db0642b6957de6c23b73f9951f541",
+        "gradient_result_sha256": "b1764bc8537535b7279305fa88b1c9a6842fb019bedd283abd63b12277954962",
+        "panel_manifest_sha256": "13d5f4ce5c310227e5c4ff746a8c9be0b3eff4241025a76f3f4206855a9288ef",
+        "development_raw_sha256": "084ed054f18a10ce4aaf18a43f448188cf95601d4c98faeeb266163ee5319035",
+        "original_protocol_source_sha256": "98e43d60be747538ecd74cec9f3d7b707fefd9de4973fb1041f6739c36243db2"
+      }
+    },
+    {
+      "id": "robot_arm_mass/lewm/scratch/s3072",
+      "task": "robot_arm_mass",
+      "family": "lewm",
+      "regime": "scratch",
+      "seed": 3072,
+      "checkpoint_sha256": "951295a4d630340034362a32af462e9c2470ee91162a1ab3a476cb13b6174da7",
+      "training_rows": 1024,
+      "training_queries": 512,
+      "training_source_groups": 512,
+      "development_rows": 512,
+      "development_queries": 256,
+      "development_source_groups": 256,
+      "history_readout": {
+        "metric": "balanced_accuracy",
+        "value": 0.505859375,
+        "ci95": [
+          0.470703125,
+          0.5391113281249997
+        ],
+        "baseline_mae": null,
+        "r2": null,
+        "six_physical_group_balanced_accuracy": null,
+        "six_physical_group_ci95": null
+      },
+      "original_protocol": {
+        "full_development_response_nre": 0.04832336432571279,
+        "query_count": 256,
+        "conditions_per_query": 2,
+        "track": "native_task_development"
+      },
+      "gradient": {
+        "development_query_count": 16,
+        "target_response_energy": 0.10320862858181828,
+        "probe_16_query_response_nre": 0.0692208083521072,
+        "aggregate_response_loss_share_percent": 1.7212304213065819,
+        "mean_response_to_native_gradient_norm_percent": 1.384854666008781,
+        "mean_vector_cosine": 0.10238572835631594,
+        "negative_query_cosine_count": 3
+      },
+      "sources": {
+        "readout_result_sha256": "5253578a986274339db24d0d30e3cd58cf16011a1f654ed2d033f568ce9ae6aa",
+        "gradient_result_sha256": "fb1b5de6bb586b3bbe238d27984a10e3a1e5908bb3178175cf411c4c59696c98",
+        "panel_manifest_sha256": "da586e1cffe0524a6118e029ac34ebde0d776a86e315c6ffcf90e7f337a57e06",
+        "development_raw_sha256": "85217d290685e63db3194b7fc02d1c329304caf0baf54d030589f5aa5508547a",
+        "original_protocol_source_sha256": "20b46c99eb29cb5893f12483d19de8087ac503f9ecddf11051b020f700aac7cf"
+      }
+    },
+    {
+      "id": "robot_arm_mass/pldm/scratch/s3072",
+      "task": "robot_arm_mass",
+      "family": "pldm",
+      "regime": "scratch",
+      "seed": 3072,
+      "checkpoint_sha256": "3d691fb4f31c990650eaff35774b5dec430e10dea1489bdec4ed49b8c425b7b1",
+      "training_rows": 1024,
+      "training_queries": 512,
+      "training_source_groups": 512,
+      "development_rows": 512,
+      "development_queries": 256,
+      "development_source_groups": 256,
+      "history_readout": {
+        "metric": "balanced_accuracy",
+        "value": 0.509765625,
+        "ci95": [
+          0.48046875,
+          0.541015625
+        ],
+        "baseline_mae": null,
+        "r2": null,
+        "six_physical_group_balanced_accuracy": null,
+        "six_physical_group_ci95": null
+      },
+      "original_protocol": {
+        "full_development_response_nre": 0.03276674190407705,
+        "query_count": 256,
+        "conditions_per_query": 2,
+        "track": "native_task_development"
+      },
+      "gradient": {
+        "development_query_count": 16,
+        "target_response_energy": 0.7242396082626414,
+        "probe_16_query_response_nre": 0.04701656920974393,
+        "aggregate_response_loss_share_percent": 3.0681086248068876,
+        "mean_response_to_native_gradient_norm_percent": 6.689046770715697,
+        "mean_vector_cosine": 0.2889240332361065,
+        "negative_query_cosine_count": 0
+      },
+      "sources": {
+        "readout_result_sha256": "384f9b2324f43810fd17378d1b3d70999c00225ee8a5aafab1e762f44683328c",
+        "gradient_result_sha256": "520f0e37b65b6a482ca01818bf5cbb5a4fa8b0bfb332963d4f6b8b66544f87c6",
+        "panel_manifest_sha256": "da586e1cffe0524a6118e029ac34ebde0d776a86e315c6ffcf90e7f337a57e06",
+        "development_raw_sha256": "85217d290685e63db3194b7fc02d1c329304caf0baf54d030589f5aa5508547a",
+        "original_protocol_source_sha256": "c86efa38cbb675a0863559be93dd36a556275093ea12dc5bbd3adc1e8cfbc9d4"
+      }
+    },
+    {
+      "id": "robot_arm_mass/dinowm/scratch/s3072",
+      "task": "robot_arm_mass",
+      "family": "dinowm",
+      "regime": "scratch",
+      "seed": 3072,
+      "checkpoint_sha256": "019ff7e803c1f6c6c8dd54fae94d0357bbb66f8c5ca3adf426add6ad683f4a30",
+      "training_rows": 1024,
+      "training_queries": 512,
+      "training_source_groups": 512,
+      "development_rows": 512,
+      "development_queries": 256,
+      "development_source_groups": 256,
+      "history_readout": {
+        "metric": "balanced_accuracy",
+        "value": 0.505859375,
+        "ci95": [
+          0.474609375,
+          0.53515625
+        ],
+        "baseline_mae": null,
+        "r2": null,
+        "six_physical_group_balanced_accuracy": null,
+        "six_physical_group_ci95": null
+      },
+      "original_protocol": {
+        "full_development_response_nre": 0.6575899887316345,
+        "query_count": 256,
+        "conditions_per_query": 2,
+        "track": "native_task_development"
+      },
+      "gradient": {
+        "development_query_count": 16,
+        "target_response_energy": 0.22115120327208806,
+        "probe_16_query_response_nre": 0.7155107268509645,
+        "aggregate_response_loss_share_percent": 8.811682592331602,
+        "mean_response_to_native_gradient_norm_percent": 8.23617929500112,
+        "mean_vector_cosine": 0.3137228990518306,
+        "negative_query_cosine_count": 0
+      },
+      "sources": {
+        "readout_result_sha256": "1fc5a68bc537dc5de8208faa721c7af4c301d2d00b567f59fb5a463f9dabce1f",
+        "gradient_result_sha256": "2ba148a5b4c01607a70295f90a5e456f2dfb1ac262b60ff5b98997ab9afc03a3",
+        "panel_manifest_sha256": "da586e1cffe0524a6118e029ac34ebde0d776a86e315c6ffcf90e7f337a57e06",
+        "development_raw_sha256": "85217d290685e63db3194b7fc02d1c329304caf0baf54d030589f5aa5508547a",
+        "original_protocol_source_sha256": "6c27d238005b066cdbb550d7214b92203af02c3834f9d8919b9bc8145cc318ef"
+      }
+    },
+    {
+      "id": "action_delay/lewm/scratch/s3072",
+      "task": "action_delay",
+      "family": "lewm",
+      "regime": "scratch",
+      "seed": 3072,
+      "checkpoint_sha256": "72684787f14ef3b84f6fa47814bd8dc367ea34f5acb2839d6b5e726efdff1e09",
+      "training_rows": 1408,
+      "training_queries": 128,
+      "training_source_groups": 128,
+      "development_rows": 3300,
+      "development_queries": 300,
+      "development_source_groups": 300,
+      "history_readout": {
+        "metric": "balanced_accuracy",
+        "value": 0.1490909090909091,
+        "ci95": [
+          0.12878787878787878,
+          0.1693939393939394
+        ],
+        "baseline_mae": null,
+        "r2": null,
+        "six_physical_group_balanced_accuracy": 0.2236111111111111,
+        "six_physical_group_ci95": [
+          0.20175925925925928,
+          0.24583796296296295
+        ]
+      },
+      "original_protocol": {
+        "full_development_response_nre": 0.012274050812152423,
+        "query_count": 300,
+        "conditions_per_query": 11,
+        "track": "gate_completion_inputs"
+      },
+      "gradient": {
+        "development_query_count": 16,
+        "target_response_energy": 0.5719794715546714,
+        "probe_16_query_response_nre": 0.011420247533286748,
+        "aggregate_response_loss_share_percent": 0.3665251890422384,
+        "mean_response_to_native_gradient_norm_percent": 1.1019307820895112,
+        "mean_vector_cosine": 0.5113074599479408,
+        "negative_query_cosine_count": 5
+      },
+      "sources": {
+        "readout_result_sha256": "fa2b10bafdf42c1902cc7b109c17611ef3db848c43c410f9da0200c8b55cad34",
+        "gradient_result_sha256": "72371355ac164734de579254b74886c2bb04e95b451aed73c627e78cd9e661a4",
+        "panel_manifest_sha256": "bfbf83376a2cb85e2de3d722967d126528f7085cc56d98b25dfafe6da05a1004",
+        "development_raw_sha256": "467830f3640057a0916b71f207f2a2985098d31120d4be739234f07a4eee702b",
+        "original_protocol_source_sha256": "b35b16d8378b83d8f9ee6d0511191c4a2f4245a4ab695298ddafcb90b419dd81"
+      }
+    },
+    {
+      "id": "action_delay/pldm/scratch/s3072",
+      "task": "action_delay",
+      "family": "pldm",
+      "regime": "scratch",
+      "seed": 3072,
+      "checkpoint_sha256": "e4041d758e21c48161f4297966e051e36be780a5bdfecbe6b8ff9ec02246c853",
+      "training_rows": 1408,
+      "training_queries": 128,
+      "training_source_groups": 128,
+      "development_rows": 3300,
+      "development_queries": 300,
+      "development_source_groups": 300,
+      "history_readout": {
+        "metric": "balanced_accuracy",
+        "value": 0.1412121212121212,
+        "ci95": [
+          0.12332575757575755,
+          0.15969696969696967
+        ],
+        "baseline_mae": null,
+        "r2": null,
+        "six_physical_group_balanced_accuracy": 0.20324074074074075,
+        "six_physical_group_ci95": [
+          0.18240509259259258,
+          0.22342824074074075
+        ]
+      },
+      "original_protocol": {
+        "full_development_response_nre": 0.006509426919683113,
+        "query_count": 300,
+        "conditions_per_query": 11,
+        "track": "gate_completion_inputs"
+      },
+      "gradient": {
+        "development_query_count": 16,
+        "target_response_energy": 4.095803337698067,
+        "probe_16_query_response_nre": 0.006277528483398717,
+        "aggregate_response_loss_share_percent": 0.2846859765015029,
+        "mean_response_to_native_gradient_norm_percent": 1.817737219201612,
+        "mean_vector_cosine": 0.3040320874919449,
+        "negative_query_cosine_count": 5
+      },
+      "sources": {
+        "readout_result_sha256": "68f9b4794ad8c86e994ba18b4e1f431586bc180cea89eee0432811c943b38277",
+        "gradient_result_sha256": "c67ee6c0d0753025e6d16d3103895dcfb504c15da3eddc9c712dac8449e2fa28",
+        "panel_manifest_sha256": "bfbf83376a2cb85e2de3d722967d126528f7085cc56d98b25dfafe6da05a1004",
+        "development_raw_sha256": "467830f3640057a0916b71f207f2a2985098d31120d4be739234f07a4eee702b",
+        "original_protocol_source_sha256": "c778bb3dd3087f94fff483735b67b27428dd5877f2ab2d6b68eb568030abde40"
+      }
+    },
+    {
+      "id": "action_delay/dinowm/scratch/s3072",
+      "task": "action_delay",
+      "family": "dinowm",
+      "regime": "scratch",
+      "seed": 3072,
+      "checkpoint_sha256": "2b8a8a7395a7845f44355261e0d89fe0b8af6bee78504d0b3a9cb1f65791d94d",
+      "training_rows": 1408,
+      "training_queries": 128,
+      "training_source_groups": 128,
+      "development_rows": 3300,
+      "development_queries": 300,
+      "development_source_groups": 300,
+      "history_readout": {
+        "metric": "balanced_accuracy",
+        "value": 0.19757575757575757,
+        "ci95": [
+          0.17333333333333334,
+          0.22303030303030305
+        ],
+        "baseline_mae": null,
+        "r2": null,
+        "six_physical_group_balanced_accuracy": 0.25712962962962965,
+        "six_physical_group_ci95": [
+          0.23119907407407406,
+          0.2838912037037037
+        ]
+      },
+      "original_protocol": {
+        "full_development_response_nre": 1.0001230873280547,
+        "query_count": 300,
+        "conditions_per_query": 11,
+        "track": "gate_completion_inputs"
+      },
+      "gradient": {
+        "development_query_count": 16,
+        "target_response_energy": 0.7456269793428456,
+        "probe_16_query_response_nre": 1.0001039995202237,
+        "aggregate_response_loss_share_percent": 0.1771443775749554,
+        "mean_response_to_native_gradient_norm_percent": 0.002642800665510503,
+        "mean_vector_cosine": -0.061288517115343805,
+        "negative_query_cosine_count": 10
+      },
+      "sources": {
+        "readout_result_sha256": "f4a978a75da83cefe83d6cfbbc3d855a317b94ad4ac8a11b9359cbf92fde2cbb",
+        "gradient_result_sha256": "7aa53a61c2cd24776e9a153fee175c9e0e01650cf74b800479453febb4130993",
+        "panel_manifest_sha256": "bfbf83376a2cb85e2de3d722967d126528f7085cc56d98b25dfafe6da05a1004",
+        "development_raw_sha256": "467830f3640057a0916b71f207f2a2985098d31120d4be739234f07a4eee702b",
+        "original_protocol_source_sha256": "41d31d961c5f77fd18070977e025fe1daefa474332d595323ed8200a1351c61f"
+      }
+    },
+    {
+      "id": "contact_friction/lewm/scratch/s3072",
+      "task": "contact_friction",
+      "family": "lewm",
+      "regime": "scratch",
+      "seed": 3072,
+      "checkpoint_sha256": "35d3be0df20fce7a073710549de0487f5816db55e1c2608848dcd4fe8ec597b0",
+      "training_rows": 1024,
+      "training_queries": 512,
+      "training_source_groups": 512,
+      "development_rows": 512,
+      "development_queries": 256,
+      "development_source_groups": 256,
+      "history_readout": {
+        "metric": "balanced_accuracy",
+        "value": 0.734375,
+        "ci95": [
+          0.701171875,
+          0.767578125
+        ],
+        "baseline_mae": null,
+        "r2": null,
+        "six_physical_group_balanced_accuracy": null,
+        "six_physical_group_ci95": null
+      },
+      "original_protocol": {
+        "full_development_response_nre": 0.9992282091145698,
+        "query_count": 256,
+        "conditions_per_query": 2,
+        "track": "native_task_development"
+      },
+      "gradient": {
+        "development_query_count": 16,
+        "target_response_energy": 0.0038150694680220126,
+        "probe_16_query_response_nre": 1.0025117868564752,
+        "aggregate_response_loss_share_percent": 2.3011083892738906,
+        "mean_response_to_native_gradient_norm_percent": 0.15495940317623913,
+        "mean_vector_cosine": 0.014147920460954302,
+        "negative_query_cosine_count": 6
+      },
+      "sources": {
+        "readout_result_sha256": "42d639c8b6f2bf2fbdaaa7b25c0acd1f71a3bd6ac7066945642d9b5ec960c83b",
+        "gradient_result_sha256": "0194e64c9db27dae5e56ceb13d361f50227ff1d13b22aa63ae676b918158fe3a",
+        "panel_manifest_sha256": "47b389da0cc615aa2ed3a82f2c80d20c67d4ae7a83a60c30abfe3f95e82ab14b",
+        "development_raw_sha256": "68cdd9315d33a21d4ffbc8d0ee489aabac9c41f4ebe002ba2579974c525efae6",
+        "original_protocol_source_sha256": "b8838a9b18110c373f76e231a6576efd7d5b3dd8bc1d8576a4fc08911af9e867"
+      }
+    },
+    {
+      "id": "contact_friction/pldm/scratch/s3072",
+      "task": "contact_friction",
+      "family": "pldm",
+      "regime": "scratch",
+      "seed": 3072,
+      "checkpoint_sha256": "a38fddcce2121d218719c224b4849f41866488b9c296ab627db4d4a6b49c573f",
+      "training_rows": 1024,
+      "training_queries": 512,
+      "training_source_groups": 512,
+      "development_rows": 512,
+      "development_queries": 256,
+      "development_source_groups": 256,
+      "history_readout": {
+        "metric": "balanced_accuracy",
+        "value": 0.580078125,
+        "ci95": [
+          0.55078125,
+          0.611328125
+        ],
+        "baseline_mae": null,
+        "r2": null,
+        "six_physical_group_balanced_accuracy": null,
+        "six_physical_group_ci95": null
+      },
+      "original_protocol": {
+        "full_development_response_nre": 1.0008853826107424,
+        "query_count": 256,
+        "conditions_per_query": 2,
+        "track": "native_task_development"
+      },
+      "gradient": {
+        "development_query_count": 16,
+        "target_response_energy": 0.013504681971709866,
+        "probe_16_query_response_nre": 1.0289392929860943,
+        "aggregate_response_loss_share_percent": 1.26137243263805,
+        "mean_response_to_native_gradient_norm_percent": 0.3481287513698404,
+        "mean_vector_cosine": 0.003518834255551235,
+        "negative_query_cosine_count": 6
+      },
+      "sources": {
+        "readout_result_sha256": "c038c727aaaa3087b45cdbbd245f55ff028809b47709435a688c31aada973186",
+        "gradient_result_sha256": "b7d31bd7d128d307f6378065a891e57a500ca7b969a31f777b00a0f21bcf56e2",
+        "panel_manifest_sha256": "47b389da0cc615aa2ed3a82f2c80d20c67d4ae7a83a60c30abfe3f95e82ab14b",
+        "development_raw_sha256": "68cdd9315d33a21d4ffbc8d0ee489aabac9c41f4ebe002ba2579974c525efae6",
+        "original_protocol_source_sha256": "bf6095eab1df6ee5ac15323b77048168b02882d27564078b9694fe6b66e082e2"
+      }
+    },
+    {
+      "id": "contact_friction/dinowm/scratch/s3072",
+      "task": "contact_friction",
+      "family": "dinowm",
+      "regime": "scratch",
+      "seed": 3072,
+      "checkpoint_sha256": "f195be116b759e18edae824684fa4cb7098077ed9f83e3008eefef19a3806dec",
+      "training_rows": 1024,
+      "training_queries": 512,
+      "training_source_groups": 512,
+      "development_rows": 512,
+      "development_queries": 256,
+      "development_source_groups": 256,
+      "history_readout": {
+        "metric": "balanced_accuracy",
+        "value": 0.912109375,
+        "ci95": [
+          0.888671875,
+          0.935546875
+        ],
+        "baseline_mae": null,
+        "r2": null,
+        "six_physical_group_balanced_accuracy": null,
+        "six_physical_group_ci95": null
+      },
+      "original_protocol": {
+        "full_development_response_nre": 0.6836245765601625,
+        "query_count": 256,
+        "conditions_per_query": 2,
+        "track": "native_task_development"
+      },
+      "gradient": {
+        "development_query_count": 16,
+        "target_response_energy": 0.4792405908291669,
+        "probe_16_query_response_nre": 0.5551571842351821,
+        "aggregate_response_loss_share_percent": 7.229341962901873,
+        "mean_response_to_native_gradient_norm_percent": 12.688071900367543,
+        "mean_vector_cosine": 0.09633265064064017,
+        "negative_query_cosine_count": 0
+      },
+      "sources": {
+        "readout_result_sha256": "6a5e0f2dcfe9e92367c9a6405aadf68b70100b2bcd6178ee7bce54b48a794d44",
+        "gradient_result_sha256": "88283c0f97a57cacad1d1cf283b4e4078fc77184cfb0e35034b6f51ff8d14f5a",
+        "panel_manifest_sha256": "47b389da0cc615aa2ed3a82f2c80d20c67d4ae7a83a60c30abfe3f95e82ab14b",
+        "development_raw_sha256": "68cdd9315d33a21d4ffbc8d0ee489aabac9c41f4ebe002ba2579974c525efae6",
+        "original_protocol_source_sha256": "65522bb19e0379fb048fbf7636f71fbe00aa0e713453a016490a578de55c8463"
+      }
+    },
+    {
+      "id": "motion_damping/lewm/scratch/s3072",
+      "task": "motion_damping",
+      "family": "lewm",
+      "regime": "scratch",
+      "seed": 3072,
+      "checkpoint_sha256": "d23cc3c543e708bb497d670040c7d24e402b29e019c1e6b1414e6ede4cb36c31",
+      "training_rows": 1024,
+      "training_queries": 512,
+      "training_source_groups": 256,
+      "development_rows": 512,
+      "development_queries": 256,
+      "development_source_groups": 128,
+      "history_readout": {
+        "metric": "balanced_accuracy",
+        "value": 0.515625,
+        "ci95": [
+          0.48828125,
+          0.544921875
+        ],
+        "baseline_mae": null,
+        "r2": null,
+        "six_physical_group_balanced_accuracy": null,
+        "six_physical_group_ci95": null
+      },
+      "original_protocol": {
+        "full_development_response_nre": 1.0022150340220666,
+        "query_count": 256,
+        "conditions_per_query": 2,
+        "track": "native_task_development"
+      },
+      "gradient": {
+        "development_query_count": 16,
+        "target_response_energy": 0.0002410800344741599,
+        "probe_16_query_response_nre": 1.0026579568745484,
+        "aggregate_response_loss_share_percent": 0.24118281319989465,
+        "mean_response_to_native_gradient_norm_percent": 0.018807177784907578,
+        "mean_vector_cosine": 0.004336549715501915,
+        "negative_query_cosine_count": 8
+      },
+      "sources": {
+        "readout_result_sha256": "20c37c8e6a887e010169f1db5aa110d61fac69722b12b6efd8469d88976e697d",
+        "gradient_result_sha256": "80f35cce819e8ccad6351f07f15eea7cbebf8e5720b544192d6af31c0b5dc082",
+        "panel_manifest_sha256": "a4b1167f1361e42ada6804b233aea99a74e16d96cc79595767347f89fd46ac13",
+        "development_raw_sha256": "20782bd75ebd328a19beff271eb033c1e9419d6c006424aa8a0777a63817cf6a",
+        "original_protocol_source_sha256": "b01352e86d84f3bdb5bfbcf9491e28025230e477abf678881905d5e480bb7f54"
+      }
+    },
+    {
+      "id": "motion_damping/pldm/scratch/s3072",
+      "task": "motion_damping",
+      "family": "pldm",
+      "regime": "scratch",
+      "seed": 3072,
+      "checkpoint_sha256": "b8f1d59e881aac0b34e36fd94ef7c1ca54eb36510011cc4efb96bbacb780f178",
+      "training_rows": 1024,
+      "training_queries": 512,
+      "training_source_groups": 256,
+      "development_rows": 512,
+      "development_queries": 256,
+      "development_source_groups": 128,
+      "history_readout": {
+        "metric": "balanced_accuracy",
+        "value": 0.462890625,
+        "ci95": [
+          0.435546875,
+          0.4921875
+        ],
+        "baseline_mae": null,
+        "r2": null,
+        "six_physical_group_balanced_accuracy": null,
+        "six_physical_group_ci95": null
+      },
+      "original_protocol": {
+        "full_development_response_nre": 1.5209010142903123,
+        "query_count": 256,
+        "conditions_per_query": 2,
+        "track": "native_task_development"
+      },
+      "gradient": {
+        "development_query_count": 16,
+        "target_response_energy": 0.05965379860651579,
+        "probe_16_query_response_nre": 0.8176103097465047,
+        "aggregate_response_loss_share_percent": 1.0465238202556797,
+        "mean_response_to_native_gradient_norm_percent": 4.18216306443222,
+        "mean_vector_cosine": 0.2121221192621851,
+        "negative_query_cosine_count": 8
+      },
+      "sources": {
+        "readout_result_sha256": "7ea6018a551cf8954d8e7f54161cd9de753c88ab4f78d2ece9b916c68908efca",
+        "gradient_result_sha256": "14c47c3d167fedb7b859072e64be865eb7184010d79298a974529df5b0d1f3de",
+        "panel_manifest_sha256": "a4b1167f1361e42ada6804b233aea99a74e16d96cc79595767347f89fd46ac13",
+        "development_raw_sha256": "20782bd75ebd328a19beff271eb033c1e9419d6c006424aa8a0777a63817cf6a",
+        "original_protocol_source_sha256": "6cd7254e79785788d5b3b2449e9937748760de76601764e83e92f680e8855d9a"
+      }
+    },
+    {
+      "id": "motion_damping/dinowm/scratch/s3072",
+      "task": "motion_damping",
+      "family": "dinowm",
+      "regime": "scratch",
+      "seed": 3072,
+      "checkpoint_sha256": "3a4bcfe495619f503323c248363b1538e52590bb3bc685e03469bfd4d30a45ad",
+      "training_rows": 1024,
+      "training_queries": 512,
+      "training_source_groups": 256,
+      "development_rows": 512,
+      "development_queries": 256,
+      "development_source_groups": 128,
+      "history_readout": {
+        "metric": "balanced_accuracy",
+        "value": 0.49609375,
+        "ci95": [
+          0.466796875,
+          0.52734375
+        ],
+        "baseline_mae": null,
+        "r2": null,
+        "six_physical_group_balanced_accuracy": null,
+        "six_physical_group_ci95": null
+      },
+      "original_protocol": {
+        "full_development_response_nre": 1.0207279740379738,
+        "query_count": 256,
+        "conditions_per_query": 2,
+        "track": "native_task_development"
+      },
+      "gradient": {
+        "development_query_count": 16,
+        "target_response_energy": 0.17666436690341858,
+        "probe_16_query_response_nre": 0.87889878136593,
+        "aggregate_response_loss_share_percent": 3.55565001986676,
+        "mean_response_to_native_gradient_norm_percent": 2.88535298704481,
+        "mean_vector_cosine": 0.12686137851501258,
+        "negative_query_cosine_count": 3
+      },
+      "sources": {
+        "readout_result_sha256": "03098b4727a702647bf564b8b44357f24f51de27600f971df3304a13151dcbe0",
+        "gradient_result_sha256": "a71d6e38f6749f1d356f82b3f4b6ae4f1f32e12d863e2e527e979d44b10b722d",
+        "panel_manifest_sha256": "a4b1167f1361e42ada6804b233aea99a74e16d96cc79595767347f89fd46ac13",
+        "development_raw_sha256": "20782bd75ebd328a19beff271eb033c1e9419d6c006424aa8a0777a63817cf6a",
+        "original_protocol_source_sha256": "08ad9a09ab5377b04540ee26c637c80f48bd6cfd4fe707f3d6692e0819428ad8"
+      }
+    },
+    {
+      "id": "cube_gripper_carry/lewm/scratch/s3072",
+      "task": "cube_gripper_carry",
+      "family": "lewm",
+      "regime": "scratch",
+      "seed": 3072,
+      "checkpoint_sha256": "d09b23a91747229e57e2b9cf7d474ff50c8876885748d5f22f24d3b522a90a5c",
+      "training_rows": 1024,
+      "training_queries": 512,
+      "training_source_groups": 512,
+      "development_rows": 512,
+      "development_queries": 256,
+      "development_source_groups": 256,
+      "history_readout": {
+        "metric": "balanced_accuracy",
+        "value": 0.615234375,
+        "ci95": [
+          0.589794921875,
+          0.6406738281249997
+        ],
+        "baseline_mae": null,
+        "r2": null,
+        "six_physical_group_balanced_accuracy": null,
+        "six_physical_group_ci95": null
+      },
+      "original_protocol": {
+        "full_development_response_nre": 1.0005768570854305,
+        "query_count": 256,
+        "conditions_per_query": 2,
+        "track": "native_task_development"
+      },
+      "gradient": {
+        "development_query_count": 16,
+        "target_response_energy": 0.0003716570365569126,
+        "probe_16_query_response_nre": 1.000008252018212,
+        "aggregate_response_loss_share_percent": 0.314023550753593,
+        "mean_response_to_native_gradient_norm_percent": 0.005628447723013924,
+        "mean_vector_cosine": -0.02058837378171029,
+        "negative_query_cosine_count": 7
+      },
+      "sources": {
+        "readout_result_sha256": "bfefe0c106ad2339651d1977f4de4b4f06a9e32f83c95e51534dd44295ef6c9d",
+        "gradient_result_sha256": "3b722e29fa59707664b2ca2a5d79077998d57d868a9b083de12da536bc36ce48",
+        "panel_manifest_sha256": "325b469185586185421bcb415d20b380c01424b1f409181f351281f84825417b",
+        "development_raw_sha256": "27409f9966be925fdc67970763d06b81c3a5de92a50e6666abe52b2401d616df",
+        "original_protocol_source_sha256": "a0f0494879abe9b79ebf99f03f7156729002915e469503b1b398a6046e809af9"
+      }
+    },
+    {
+      "id": "cube_gripper_carry/pldm/scratch/s3072",
+      "task": "cube_gripper_carry",
+      "family": "pldm",
+      "regime": "scratch",
+      "seed": 3072,
+      "checkpoint_sha256": "acff28a8c08d1052416844dbea0446b06e4b2f58f5e67462c80da6bff03eb4b5",
+      "training_rows": 1024,
+      "training_queries": 512,
+      "training_source_groups": 512,
+      "development_rows": 512,
+      "development_queries": 256,
+      "development_source_groups": 256,
+      "history_readout": {
+        "metric": "balanced_accuracy",
+        "value": 0.5,
+        "ci95": [
+          0.482421875,
+          0.517578125
+        ],
+        "baseline_mae": null,
+        "r2": null,
+        "six_physical_group_balanced_accuracy": null,
+        "six_physical_group_ci95": null
+      },
+      "original_protocol": {
+        "full_development_response_nre": 0.9853853401678618,
+        "query_count": 256,
+        "conditions_per_query": 2,
+        "track": "native_task_development"
+      },
+      "gradient": {
+        "development_query_count": 16,
+        "target_response_energy": 0.005566826850915583,
+        "probe_16_query_response_nre": 1.0065072740911267,
+        "aggregate_response_loss_share_percent": 0.6534338601935504,
+        "mean_response_to_native_gradient_norm_percent": 0.07080555930984714,
+        "mean_vector_cosine": 0.0019220453552535638,
+        "negative_query_cosine_count": 10
+      },
+      "sources": {
+        "readout_result_sha256": "e96aaa9047bb119c028cf06d41a8f760e3ec035f8c12635d596b228bec39fab1",
+        "gradient_result_sha256": "b6bd885166b10c563be74d2475e22a05b24077b356bcf29bcce4258b8d8fe1f1",
+        "panel_manifest_sha256": "325b469185586185421bcb415d20b380c01424b1f409181f351281f84825417b",
+        "development_raw_sha256": "27409f9966be925fdc67970763d06b81c3a5de92a50e6666abe52b2401d616df",
+        "original_protocol_source_sha256": "d91d61c2a790b99911ba9eca174f592a1d1d11cf2cc0ccd5f5f0721e4186d391"
+      }
+    },
+    {
+      "id": "cube_gripper_carry/dinowm/scratch/s3072",
+      "task": "cube_gripper_carry",
+      "family": "dinowm",
+      "regime": "scratch",
+      "seed": 3072,
+      "checkpoint_sha256": "1506fa3b8074dafda3149b797fbc31276cb864ed01d18b9361e523a07f00e8a6",
+      "training_rows": 1024,
+      "training_queries": 512,
+      "training_source_groups": 512,
+      "development_rows": 512,
+      "development_queries": 256,
+      "development_source_groups": 256,
+      "history_readout": {
+        "metric": "balanced_accuracy",
+        "value": 0.78515625,
+        "ci95": [
+          0.75390625,
+          0.814453125
+        ],
+        "baseline_mae": null,
+        "r2": null,
+        "six_physical_group_balanced_accuracy": null,
+        "six_physical_group_ci95": null
+      },
+      "original_protocol": {
+        "full_development_response_nre": 0.8902029182754686,
+        "query_count": 256,
+        "conditions_per_query": 2,
+        "track": "native_task_development"
+      },
+      "gradient": {
+        "development_query_count": 16,
+        "target_response_energy": 0.09377271881776914,
+        "probe_16_query_response_nre": 0.8821722314025175,
+        "aggregate_response_loss_share_percent": 1.8231829758519165,
+        "mean_response_to_native_gradient_norm_percent": 1.2383267458232274,
+        "mean_vector_cosine": -0.040662042076203345,
+        "negative_query_cosine_count": 6
+      },
+      "sources": {
+        "readout_result_sha256": "79a014c132dff2d5bc65c5c689eb693595ddca77777b0b0bf22c1c0d8892734c",
+        "gradient_result_sha256": "70a5a21f8acde4909d096c3aa6db439e1b9c74e28bc55651531df549409035a7",
+        "panel_manifest_sha256": "325b469185586185421bcb415d20b380c01424b1f409181f351281f84825417b",
+        "development_raw_sha256": "27409f9966be925fdc67970763d06b81c3a5de92a50e6666abe52b2401d616df",
+        "original_protocol_source_sha256": "ab6fc50f9ce168248c77e7e95a971738910089b2bcbedf34f3d48db96b19b0b9"
+      }
+    },
+    {
+      "id": "door/lewm/scratch/s3072",
+      "task": "door",
+      "family": "lewm",
+      "regime": "scratch",
+      "seed": 3072,
+      "checkpoint_sha256": "8699017e30ce6fd4aab2f8e55de2b09293543702586dd0f3ef76d5c397acc8a5",
+      "training_rows": 512,
+      "training_queries": 512,
+      "training_source_groups": 512,
+      "development_rows": 600,
+      "development_queries": 300,
+      "development_source_groups": 300,
+      "history_readout": {
+        "metric": "balanced_accuracy",
+        "value": 0.775,
+        "ci95": [
+          0.7483333333333333,
+          0.8033333333333333
+        ],
+        "baseline_mae": null,
+        "r2": null,
+        "six_physical_group_balanced_accuracy": null,
+        "six_physical_group_ci95": null
+      },
+      "original_protocol": {
+        "full_development_response_nre": 0.040422451746919115,
+        "query_count": 300,
+        "conditions_per_query": 2,
+        "track": "gate_completion_inputs"
+      },
+      "gradient": {
+        "development_query_count": 16,
+        "target_response_energy": 3.3332799724400988,
+        "probe_16_query_response_nre": 0.043850738165122756,
+        "aggregate_response_loss_share_percent": 4.988226563014134,
+        "mean_response_to_native_gradient_norm_percent": 5.571759326358298,
+        "mean_vector_cosine": 0.3807991971359216,
+        "negative_query_cosine_count": 0
+      },
+      "sources": {
+        "readout_result_sha256": "6fd012d89d68a619adffacac5389c174d6e0fa79fc152198bba865633df6334b",
+        "gradient_result_sha256": "90fad0b39ad5af4b88ae09bcac57d6e284530e968c6b93ce3267b56e84005ef2",
+        "panel_manifest_sha256": "4d73394dd81d9e2b1b12abdcee10f299ccf3b7a36c1d209370aebc2291b66a46",
+        "development_raw_sha256": "7654c5f7dd2b79778885b26ce2e1ed456477366207e7eceba8255e9dfeada3a4",
+        "original_protocol_source_sha256": "9b78832c1f80929a0d2abef8cb7a9769a48b9e23d7033598c256282ddf6d8020"
+      }
+    },
+    {
+      "id": "door/pldm/scratch/s3072",
+      "task": "door",
+      "family": "pldm",
+      "regime": "scratch",
+      "seed": 3072,
+      "checkpoint_sha256": "4bf4caa4d9848b95ba9dde777e39a57503a388df7fbe92e2d86b2e09d5309856",
+      "training_rows": 512,
+      "training_queries": 512,
+      "training_source_groups": 512,
+      "development_rows": 600,
+      "development_queries": 300,
+      "development_source_groups": 300,
+      "history_readout": {
+        "metric": "balanced_accuracy",
+        "value": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ],
+        "baseline_mae": null,
+        "r2": null,
+        "six_physical_group_balanced_accuracy": null,
+        "six_physical_group_ci95": null
+      },
+      "original_protocol": {
+        "full_development_response_nre": 0.019770618225576787,
+        "query_count": 300,
+        "conditions_per_query": 2,
+        "track": "gate_completion_inputs"
+      },
+      "gradient": {
+        "development_query_count": 16,
+        "target_response_energy": 7.968646058502202,
+        "probe_16_query_response_nre": 0.01913285298813347,
+        "aggregate_response_loss_share_percent": 6.782341314406374,
+        "mean_response_to_native_gradient_norm_percent": 14.518404987999745,
+        "mean_vector_cosine": 0.45417774976158665,
+        "negative_query_cosine_count": 0
+      },
+      "sources": {
+        "readout_result_sha256": "ad2c00e576d3949f23b68218ec30a2049370c0b971e791d9c5097544ccc43011",
+        "gradient_result_sha256": "a51f74dad0412e437b245697a8e7d0140d1d7d94e3bb6c0343c2e89b8bc143d3",
+        "panel_manifest_sha256": "4d73394dd81d9e2b1b12abdcee10f299ccf3b7a36c1d209370aebc2291b66a46",
+        "development_raw_sha256": "7654c5f7dd2b79778885b26ce2e1ed456477366207e7eceba8255e9dfeada3a4",
+        "original_protocol_source_sha256": "38b3eb24a19a1429d5bd2d5e494d658b0ee86d3f1166a2e29106889349163ba2"
+      }
+    },
+    {
+      "id": "door/dinowm/scratch/s3072",
+      "task": "door",
+      "family": "dinowm",
+      "regime": "scratch",
+      "seed": 3072,
+      "checkpoint_sha256": "35ef1aae3de106a700684d5253c20308435623ddc48c55793cf23021a3c74bd1",
+      "training_rows": 512,
+      "training_queries": 512,
+      "training_source_groups": 512,
+      "development_rows": 600,
+      "development_queries": 300,
+      "development_source_groups": 300,
+      "history_readout": {
+        "metric": "balanced_accuracy",
+        "value": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ],
+        "baseline_mae": null,
+        "r2": null,
+        "six_physical_group_balanced_accuracy": null,
+        "six_physical_group_ci95": null
+      },
+      "original_protocol": {
+        "full_development_response_nre": 0.22594621827409447,
+        "query_count": 300,
+        "conditions_per_query": 2,
+        "track": "gate_completion_inputs"
+      },
+      "gradient": {
+        "development_query_count": 16,
+        "target_response_energy": 2.482135848937878,
+        "probe_16_query_response_nre": 0.2312164385225972,
+        "aggregate_response_loss_share_percent": 10.233663218872007,
+        "mean_response_to_native_gradient_norm_percent": 29.43659672093353,
+        "mean_vector_cosine": 0.7154387206260232,
+        "negative_query_cosine_count": 0
+      },
+      "sources": {
+        "readout_result_sha256": "fac6086f0b06309a05ea513c3a9b410971c076531196f902c165f9f8d3f3f562",
+        "gradient_result_sha256": "de12e50a9b47c35c7e1c69f620f5481c3e71710f2924343dfb2238e9844ebc3d",
+        "panel_manifest_sha256": "4d73394dd81d9e2b1b12abdcee10f299ccf3b7a36c1d209370aebc2291b66a46",
+        "development_raw_sha256": "7654c5f7dd2b79778885b26ce2e1ed456477366207e7eceba8255e9dfeada3a4",
+        "original_protocol_source_sha256": "bae65332072dbb039eddac0f2a844bb298bcedf2bef40acd1e8fa4a8ea097825"
+      }
+    },
+    {
+      "id": "portal_exit/lewm/scratch/s3072",
+      "task": "portal_exit",
+      "family": "lewm",
+      "regime": "scratch",
+      "seed": 3072,
+      "checkpoint_sha256": "e4d8af10bc6a30f389ae8cb86ea9830592dff0a04ded10cdd3b8c156b8a94479",
+      "training_rows": 1024,
+      "training_queries": 512,
+      "training_source_groups": 512,
+      "development_rows": 512,
+      "development_queries": 256,
+      "development_source_groups": 256,
+      "history_readout": {
+        "metric": "balanced_accuracy",
+        "value": 0.732421875,
+        "ci95": [
+          0.701171875,
+          0.763671875
+        ],
+        "baseline_mae": null,
+        "r2": null,
+        "six_physical_group_balanced_accuracy": null,
+        "six_physical_group_ci95": null
+      },
+      "original_protocol": {
+        "full_development_response_nre": 0.917812608817007,
+        "query_count": 256,
+        "conditions_per_query": 2,
+        "track": "native_task_development"
+      },
+      "gradient": {
+        "development_query_count": 16,
+        "target_response_energy": 0.0014616846534353284,
+        "probe_16_query_response_nre": 0.9117192906742524,
+        "aggregate_response_loss_share_percent": 1.1009291130804282,
+        "mean_response_to_native_gradient_norm_percent": 0.04492432222922281,
+        "mean_vector_cosine": -0.009363437697271973,
+        "negative_query_cosine_count": 7
+      },
+      "sources": {
+        "readout_result_sha256": "57023bade96d221b192ad6aed374f79a219ae46f0660328577ce0607e12de148",
+        "gradient_result_sha256": "2bc20caa2a521027b6c273126c9087909ee2b2bf7074cf0e93ce177f3c65119d",
+        "panel_manifest_sha256": "52655c83ebc4ab0b05b6120c857ad6c4ef5730b30e2bc912d4aa2e5f106bcf62",
+        "development_raw_sha256": "713da245876216a7c4a180ca1908ce338cefc00abc8a9aa0740f12ad7a304969",
+        "original_protocol_source_sha256": "baa796bfe91e4aea2887886f2f10b0b5d71b1c02ab65733f66c611a428f31ce8"
+      }
+    },
+    {
+      "id": "portal_exit/pldm/scratch/s3072",
+      "task": "portal_exit",
+      "family": "pldm",
+      "regime": "scratch",
+      "seed": 3072,
+      "checkpoint_sha256": "95ac984c211d6b97e7a965307617637ae9e8c2feb9e636a29e9ccceec47fd91f",
+      "training_rows": 1024,
+      "training_queries": 512,
+      "training_source_groups": 512,
+      "development_rows": 512,
+      "development_queries": 256,
+      "development_source_groups": 256,
+      "history_readout": {
+        "metric": "balanced_accuracy",
+        "value": 0.552734375,
+        "ci95": [
+          0.525390625,
+          0.5781738281249997
+        ],
+        "baseline_mae": null,
+        "r2": null,
+        "six_physical_group_balanced_accuracy": null,
+        "six_physical_group_ci95": null
+      },
+      "original_protocol": {
+        "full_development_response_nre": 0.12133774644529005,
+        "query_count": 256,
+        "conditions_per_query": 2,
+        "track": "native_task_development"
+      },
+      "gradient": {
+        "development_query_count": 16,
+        "target_response_energy": 0.02964951667912108,
+        "probe_16_query_response_nre": 0.08795696998471539,
+        "aggregate_response_loss_share_percent": 0.23694916687365875,
+        "mean_response_to_native_gradient_norm_percent": 0.28651988822828645,
+        "mean_vector_cosine": 0.09984346891628165,
+        "negative_query_cosine_count": 1
+      },
+      "sources": {
+        "readout_result_sha256": "3a05bea5efe406a91b983a24729c005c7a50909f76187d99ec56a3841337b6b9",
+        "gradient_result_sha256": "3e9710300ef3e6e91d2298457635072cf6f7b8c49847b718085d2c18a0c5094d",
+        "panel_manifest_sha256": "52655c83ebc4ab0b05b6120c857ad6c4ef5730b30e2bc912d4aa2e5f106bcf62",
+        "development_raw_sha256": "713da245876216a7c4a180ca1908ce338cefc00abc8a9aa0740f12ad7a304969",
+        "original_protocol_source_sha256": "2f9106b9ed026d89e6b6d45f6173ad16321ecc3f70a8ab50e5384d96502cc860"
+      }
+    },
+    {
+      "id": "portal_exit/dinowm/scratch/s3072",
+      "task": "portal_exit",
+      "family": "dinowm",
+      "regime": "scratch",
+      "seed": 3072,
+      "checkpoint_sha256": "bff5f6ecc2575d7828b11dc3b7e1ad4735ae203112d950e58b35dd0289f34a6c",
+      "training_rows": 1024,
+      "training_queries": 512,
+      "training_source_groups": 512,
+      "development_rows": 512,
+      "development_queries": 256,
+      "development_source_groups": 256,
+      "history_readout": {
+        "metric": "balanced_accuracy",
+        "value": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ],
+        "baseline_mae": null,
+        "r2": null,
+        "six_physical_group_balanced_accuracy": null,
+        "six_physical_group_ci95": null
+      },
+      "original_protocol": {
+        "full_development_response_nre": 0.1425351834277126,
+        "query_count": 256,
+        "conditions_per_query": 2,
+        "track": "native_task_development"
+      },
+      "gradient": {
+        "development_query_count": 16,
+        "target_response_energy": 1.1763164864563953,
+        "probe_16_query_response_nre": 0.14163008656107604,
+        "aggregate_response_loss_share_percent": 4.634182483640132,
+        "mean_response_to_native_gradient_norm_percent": 5.134560782978525,
+        "mean_vector_cosine": 0.3160172227976724,
+        "negative_query_cosine_count": 0
+      },
+      "sources": {
+        "readout_result_sha256": "47dce60d96a4554b621a55240314e1e172b0d617f7ee5f3a706a9e071b48a466",
+        "gradient_result_sha256": "c74254b344e2fc0a78dfc2a0f3086a28d5f1bcc625b8516c7116803f53c296c1",
+        "panel_manifest_sha256": "52655c83ebc4ab0b05b6120c857ad6c4ef5730b30e2bc912d4aa2e5f106bcf62",
+        "development_raw_sha256": "713da245876216a7c4a180ca1908ce338cefc00abc8a9aa0740f12ad7a304969",
+        "original_protocol_source_sha256": "c2b30e0521dc999614015103e6d84a1bc32cb518ff6603471aa006085d4a7434"
+      }
+    }
+  ],
+  "limitations": [
+    "Door Training readout uses fixed start-0 windows with unverified wall-interaction evidence coverage.",
+    "Delay exact 11-class readout and six first-future physical-group readout are distinct targets.",
+    "Speed Development speeds are unseen; its readout is continuous regression and MAE is not comparable to classification accuracy.",
+    "The full Development original-protocol NRE and the 16-query native gradient probe have different query coverage and weighting; compare them as separate diagnostics."
+  ]
+}

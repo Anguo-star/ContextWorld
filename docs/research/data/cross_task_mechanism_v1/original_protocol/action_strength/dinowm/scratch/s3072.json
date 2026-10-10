@@ -1,0 +1,205 @@
+{
+  "adapter_spec": "prejepa",
+  "evaluation_split": "development",
+  "model_name": "action_strength_prejepa_joint_scratch_v1_s3072",
+  "note": "Produced by contextworld-external-eval from the public ContextWorld-v1 Development split. It is not a held-out Public Test score, has no formal pass decision, and does not enter the official scoreboard.",
+  "official_scoreboard_row": false,
+  "result": {
+    "bundle": {
+      "bundle_schema_version": "ContextWorld-v1",
+      "component_id": "action_strength",
+      "dataset_id": "pusht-action-strength",
+      "development_payload_id": "data",
+      "manifest_sha256": "9328c931a6891aaa37b32094e779eccc58de5bf893869dd0537635f687d047e3",
+      "member_count": 1,
+      "members": [
+        "components/pusht-action-strength/v1/development/data.lance"
+      ],
+      "task_registry_sha256": "fbbc048b8275f1ceaf768a3d911d850edf85ba9f38c2a622ffe755879fc2f81d"
+    },
+    "metrics": {
+      "correct_future_mse_mean": 0.10154645144939423,
+      "correct_future_rate": 0.9609375,
+      "correct_history_rate": 0.986328125,
+      "current_frame_only_accuracy_bound": 0.5,
+      "decision_count": 512,
+      "high_strength_correct_future_rate": 0.9375,
+      "joint_icl_pair_success_rate": 0.9140625,
+      "latent_response": {
+        "calibrated_response_success_baseline": {
+          "name": "no_history_response",
+          "normalized_response_error": 1.0,
+          "pair_success_criterion": "normalized_response_error < 1.0",
+          "prediction_response": "zero"
+        },
+        "calibrated_response_success_rate": 0.984375,
+        "ideal_values": {
+          "calibrated_response_success_rate": 1.0,
+          "normalized_response_error": 0.0,
+          "response_alignment": 1.0,
+          "response_gain": 1.0
+        },
+        "normalized_response_error": 0.43165927544440985,
+        "response_alignment": 0.7564762310484485,
+        "response_gain": 0.6195923830744102,
+        "target_latent_separation": {
+          "criterion": "finite_and_nonidentical_for_every_pair",
+          "mean_target_response_mse": 0.38117782297135083,
+          "median_target_response_mse": 0.315789855156943,
+          "minimum_target_response_mse": 0.08420173750805415,
+          "passed": true,
+          "zero_separation_pair_count": 0
+        }
+      },
+      "low_strength_correct_future_rate": 0.984375,
+      "other_future_mse_mean": 0.3377213478088379,
+      "other_minus_correct_mse_margin_mean": 0.23617488145828247,
+      "pair_count": 256,
+      "rule_switch_rate": 0.99609375,
+      "worst_strength_correct_future_rate": 0.9375
+    },
+    "model": {
+      "adapter": {
+        "adapter_class": "contextworld.benchmarks.prejepa_adapters.StableWorldModelPreJEPAActionStrengthAdapter",
+        "adapter_id": "stable_worldmodel_prejepa_action_strength_v2",
+        "checkpoint": "/opt/huawei/dataset/ag_data/ckpt/dino-wm-contextworld-v1/checkpoints/action_strength_prejepa_joint_scratch_v1_s3072/weights_epoch_10.pt",
+        "checkpoint_sha256": "2508fa27309d4c01ab86e03ec375572af084f5ea1e87eb43a6961197fc165c7d",
+        "device": "cuda:0",
+        "model_class": "stable_worldmodel.wm.prejepa.prejepa.PreJEPA",
+        "parameters": 41752426,
+        "protocol": {
+          "action_block_raw_steps": 5,
+          "action_dim": 2,
+          "decoder_required": false,
+          "future_action_blocks": 5,
+          "history_tokens": 3,
+          "native_target_encoder": true
+        },
+        "stable_worldmodel_commit": "c34a107e787133468369e08f8f3efa2a43db67a2",
+        "stable_worldmodel_repo": "/opt/huawei/dataset/ag_data/ckpt/dino-wm-contextworld-v1/.contextworld/stable-worldmodel/c34a107e787133468369e08f8f3efa2a43db67a2"
+      },
+      "name": "action_strength_prejepa_joint_scratch_v1_s3072",
+      "state_sha256_after": "98f81159016bfc7a31395d12d015c7bdd4a5bdff7f8267895da05d955422aa39",
+      "state_sha256_before": "98f81159016bfc7a31395d12d015c7bdd4a5bdff7f8267895da05d955422aa39",
+      "training_recipe": "contextworld_action_strength",
+      "training_seed": 3072
+    },
+    "protocol": {
+      "claim_boundary": "This result uses only public ContextWorld-v1 Development data. It is not a held-out Public Test score and must not be reported as a formal pass or official scoreboard row.",
+      "evaluation_split": "development",
+      "formal_pass_available": false,
+      "id": "contextworld_bundle_development_icl_v1",
+      "kind": "matched_development_counterfactual",
+      "match_status": "matched_development_only",
+      "official_scoreboard_row": false,
+      "public_test_accessed": false
+    },
+    "record_count": 256,
+    "result_kind": "development_only_not_public_test",
+    "schema_version": 1,
+    "selection": {
+      "kind": "complete_registered_development_table",
+      "member": "components/pusht-action-strength/v1/development/data.lance",
+      "pair_count": 256
+    },
+    "status": "completed"
+  },
+  "result_kind": "development_only_not_public_test",
+  "runtime_fingerprint": {
+    "evidence_kind": "captured_in_evaluation_process",
+    "executable": "/usr/bin/python",
+    "packages": {
+      "Pillow": "11.3.0",
+      "numpy": "1.26.4",
+      "pyarrow": "23.0.1",
+      "pylance": "6.0.0",
+      "stable-pretraining": "0.1.8",
+      "stable-worldmodel": "0.0.6",
+      "torch": "2.9.1",
+      "torchvision": "0.24.1",
+      "transformers": "4.57.1"
+    },
+    "platform": "Linux-5.15.0-92-generic-x86_64-with-glibc2.35",
+    "python": "3.10.12",
+    "requirements_frozen_sha256": "2b001bd25f9be4bb2932d7419f55edc3f3299e86389b0ad9de25b912e1f2b8e3",
+    "schema_version": 1,
+    "torch": {
+      "cuda_available": true,
+      "cuda_build": "12.8",
+      "cudnn_benchmark": false,
+      "cudnn_deterministic": false,
+      "cudnn_version": 91002,
+      "deterministic_algorithms": false,
+      "devices": [
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 0,
+          "name": "NVIDIA H800"
+        },
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 1,
+          "name": "NVIDIA H800"
+        },
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 2,
+          "name": "NVIDIA H800"
+        },
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 3,
+          "name": "NVIDIA H800"
+        },
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 4,
+          "name": "NVIDIA H800"
+        },
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 5,
+          "name": "NVIDIA H800"
+        },
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 6,
+          "name": "NVIDIA H800"
+        },
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 7,
+          "name": "NVIDIA H800"
+        }
+      ],
+      "float32_matmul_precision": "high",
+      "version": "2.9.1+cu128"
+    }
+  },
+  "schema_version": 1,
+  "task": "action_strength"
+}

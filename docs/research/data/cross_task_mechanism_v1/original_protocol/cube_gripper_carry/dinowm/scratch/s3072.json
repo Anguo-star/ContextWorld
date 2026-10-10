@@ -1,0 +1,210 @@
+{
+  "adapter_spec": "prejepa",
+  "evaluation_split": "development",
+  "model_name": "cube_gripper_carry_prejepa_ind10k_v2_scratch_s3072",
+  "note": "Produced by contextworld-external-eval from the public ContextWorld-v1 Development split. It is not a held-out Public Test score, has no formal pass decision, and does not enter the official scoreboard.",
+  "official_scoreboard_row": false,
+  "result": {
+    "bundle": {
+      "bundle_schema_version": "ContextWorld-v1",
+      "component_id": "cube_gripper_carry",
+      "dataset_id": "cube-gripper-carry",
+      "development_payload_id": "data",
+      "manifest_sha256": "6e8d707857db9e50d0e21d0a0c4d12647a63a5f1ee25e3527af5b46759463baf",
+      "member_count": 1,
+      "members": [
+        "components/cube-gripper-carry/v1/development/data.lance"
+      ],
+      "task_registry_sha256": "864119bb8a10ca806d4709f08c7c05a19ef0c63c2602f9f5d4fdad009eeee07e"
+    },
+    "metrics": {
+      "can_hold_correct_future_rate": 0.50390625,
+      "cannot_hold_correct_future_rate": 0.72265625,
+      "context_switch_rate": 0.953125,
+      "correct_future_mse_mean": 0.08836938440799713,
+      "correct_future_rate": 0.61328125,
+      "correct_history_rate": 0.806640625,
+      "current_frame_only_accuracy_bound": 0.5,
+      "decision_count": 512,
+      "joint_icl_pair_success_rate": 0.19140625,
+      "latent_response": {
+        "calibrated_response_success_baseline": {
+          "name": "no_history_response",
+          "normalized_response_error": 1.0,
+          "pair_success_criterion": "normalized_response_error < 1.0",
+          "prediction_response": "zero"
+        },
+        "calibrated_response_success_rate": 0.921875,
+        "ideal_values": {
+          "calibrated_response_success_rate": 1.0,
+          "normalized_response_error": 0.0,
+          "response_alignment": 1.0,
+          "response_gain": 1.0
+        },
+        "normalized_response_error": 0.8902029182754686,
+        "response_alignment": 0.33567152671619455,
+        "response_gain": 0.09466669146826812,
+        "target_latent_separation": {
+          "criterion": "finite_and_nonidentical_for_every_pair",
+          "mean_target_response_mse": 0.021814991346424145,
+          "median_target_response_mse": 0.019972438209588654,
+          "minimum_target_response_mse": 0.0043005975647915345,
+          "passed": true,
+          "zero_separation_pair_count": 0
+        }
+      },
+      "other_future_mse_mean": 0.09043453633785248,
+      "other_minus_correct_mse_margin_mean": 0.002065153094008565,
+      "pair_count": 256,
+      "paired_bootstrap_95_lower_bound": {
+        "context_switch_rate": 0.92578125,
+        "correct_future_rate": 0.587890625,
+        "correct_history_rate": 0.775390625
+      },
+      "worst_rule_correct_future_rate": 0.50390625
+    },
+    "model": {
+      "adapter": {
+        "adapter_class": "contextworld.benchmarks.prejepa_adapters.StableWorldModelPreJEPACubeGraspRuleAdapter",
+        "adapter_id": "stable_worldmodel_prejepa_cube_grasp_rule_v2",
+        "checkpoint": "/opt/huawei/dataset/ag_data/ckpt/dino-wm-contextworld-v1/checkpoints/cube_gripper_carry_prejepa_ind10k_v2_scratch_s3072/weights_epoch_10.pt",
+        "checkpoint_sha256": "1506fa3b8074dafda3149b797fbc31276cb864ed01d18b9361e523a07f00e8a6",
+        "device": "cuda:0",
+        "model_class": "stable_worldmodel.wm.prejepa.prejepa.PreJEPA",
+        "parameters": 41752576,
+        "protocol": {
+          "action_block_raw_steps": 5,
+          "action_dim": 5,
+          "decoder_required": false,
+          "future_action_blocks": 5,
+          "history_tokens": 3,
+          "native_target_encoder": true
+        },
+        "stable_worldmodel_commit": "c34a107e787133468369e08f8f3efa2a43db67a2",
+        "stable_worldmodel_repo": "/opt/huawei/dataset/ag_data/ckpt/dino-wm-contextworld-v1/.contextworld/stable-worldmodel/c34a107e787133468369e08f8f3efa2a43db67a2"
+      },
+      "name": "cube_gripper_carry_prejepa_ind10k_v2_scratch_s3072",
+      "state_sha256_after": "e2e3beb4c077aeffcb965689041bace30936ea142b280c9c0ccaf8a349d58852",
+      "state_sha256_before": "e2e3beb4c077aeffcb965689041bace30936ea142b280c9c0ccaf8a349d58852",
+      "training_recipe": "contextworld_cube_gripper_carry",
+      "training_seed": 3072
+    },
+    "protocol": {
+      "claim_boundary": "This result uses only public ContextWorld-v1 Development data. It is not a held-out Public Test score and must not be reported as a formal pass or official scoreboard row.",
+      "evaluation_split": "development",
+      "formal_pass_available": false,
+      "id": "contextworld_bundle_development_icl_v1",
+      "kind": "matched_development_counterfactual",
+      "match_status": "matched_development_only",
+      "official_scoreboard_row": false,
+      "public_test_accessed": false
+    },
+    "record_count": 256,
+    "result_kind": "development_only_not_public_test",
+    "schema_version": 1,
+    "selection": {
+      "kind": "complete_registered_development_table",
+      "member": "components/cube-gripper-carry/v1/development/data.lance",
+      "pair_count": 256
+    },
+    "status": "completed"
+  },
+  "result_kind": "development_only_not_public_test",
+  "runtime_fingerprint": {
+    "evidence_kind": "captured_in_evaluation_process",
+    "executable": "/usr/bin/python",
+    "packages": {
+      "Pillow": "11.3.0",
+      "numpy": "1.26.4",
+      "pyarrow": "23.0.1",
+      "pylance": "6.0.0",
+      "stable-pretraining": "0.1.8",
+      "stable-worldmodel": "0.0.6",
+      "torch": "2.9.1",
+      "torchvision": "0.24.1",
+      "transformers": "4.57.1"
+    },
+    "platform": "Linux-5.15.0-92-generic-x86_64-with-glibc2.35",
+    "python": "3.10.12",
+    "requirements_frozen_sha256": "2b001bd25f9be4bb2932d7419f55edc3f3299e86389b0ad9de25b912e1f2b8e3",
+    "schema_version": 1,
+    "torch": {
+      "cuda_available": true,
+      "cuda_build": "12.8",
+      "cudnn_benchmark": false,
+      "cudnn_deterministic": false,
+      "cudnn_version": 91002,
+      "deterministic_algorithms": false,
+      "devices": [
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 0,
+          "name": "NVIDIA H800"
+        },
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 1,
+          "name": "NVIDIA H800"
+        },
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 2,
+          "name": "NVIDIA H800"
+        },
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 3,
+          "name": "NVIDIA H800"
+        },
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 4,
+          "name": "NVIDIA H800"
+        },
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 5,
+          "name": "NVIDIA H800"
+        },
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 6,
+          "name": "NVIDIA H800"
+        },
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 7,
+          "name": "NVIDIA H800"
+        }
+      ],
+      "float32_matmul_precision": "high",
+      "version": "2.9.1+cu128"
+    }
+  },
+  "schema_version": 1,
+  "task": "cube_gripper_carry"
+}

@@ -1,0 +1,210 @@
+{
+  "adapter_spec": "lewm",
+  "evaluation_split": "development",
+  "model_name": "robot_arm_mass_lewm_num32k_init_form_scratch_s3072",
+  "note": "Produced by contextworld-external-eval from the public ContextWorld-v1 Development split. It is not a held-out Public Test score, has no formal pass decision, and does not enter the official scoreboard.",
+  "official_scoreboard_row": false,
+  "result": {
+    "bundle": {
+      "bundle_schema_version": "ContextWorld-v1",
+      "component_id": "robot_arm_mass",
+      "dataset_id": "reacher-arm-mass",
+      "development_payload_id": "data",
+      "manifest_sha256": "3499b2f37c50b79ae8406edaebe4ba48f97744506b381f771b2d6c902804a58e",
+      "member_count": 1,
+      "members": [
+        "components/reacher-arm-mass/v1/development/data.lance"
+      ],
+      "task_registry_sha256": "2a90f1a88e48f7d6b5d6bc8d098d05d9c11759eccf8cb48754e36cb67fb8e139"
+    },
+    "metrics": {
+      "context_switch_rate": 0.9921875,
+      "correct_future_mse_mean": 0.006471001543104649,
+      "correct_future_rate": 0.87109375,
+      "correct_history_rate": 0.916015625,
+      "current_frame_only_accuracy_bound": 0.5,
+      "decision_count": 512,
+      "heavier_correct_future_rate": 0.859375,
+      "joint_icl_pair_success_rate": 0.734375,
+      "latent_response": {
+        "calibrated_response_success_baseline": {
+          "name": "no_history_response",
+          "normalized_response_error": 1.0,
+          "pair_success_criterion": "normalized_response_error < 1.0",
+          "prediction_response": "zero"
+        },
+        "calibrated_response_success_rate": 0.98828125,
+        "ideal_values": {
+          "calibrated_response_success_rate": 1.0,
+          "normalized_response_error": 0.0,
+          "response_alignment": 1.0,
+          "response_gain": 1.0
+        },
+        "normalized_response_error": 0.04832336432571279,
+        "response_alignment": 0.9762073797058036,
+        "response_gain": 0.9177262094700519,
+        "target_latent_separation": {
+          "criterion": "finite_and_nonidentical_for_every_pair",
+          "mean_target_response_mse": 0.03405860535569161,
+          "median_target_response_mse": 0.027231688428167276,
+          "minimum_target_response_mse": 0.000293277219567433,
+          "passed": true,
+          "zero_separation_pair_count": 0
+        }
+      },
+      "lighter_correct_future_rate": 0.8828125,
+      "other_future_mse_mean": 0.0377274751663208,
+      "other_minus_correct_mse_margin_mean": 0.03125647455453873,
+      "pair_count": 256,
+      "paired_bootstrap_95_lower_bound": {
+        "context_switch_rate": 0.98046875,
+        "correct_future_rate": 0.84375,
+        "correct_history_rate": 0.892578125
+      },
+      "worst_mass_correct_future_rate": 0.859375
+    },
+    "model": {
+      "adapter": {
+        "adapter_class": "contextworld.benchmarks.adapters.StableWorldModelLeWMReacherArmMassAdapter",
+        "adapter_id": "stable_worldmodel_lewm_reacher_arm_mass_v1",
+        "checkpoint": "/opt/huawei/dataset/ag_data/ckpt/lewm-contextworld-v1/checkpoints/robot_arm_mass_lewm_num32k_init_form_scratch_s3072/weights_epoch_10.pt",
+        "checkpoint_sha256": "951295a4d630340034362a32af462e9c2470ee91162a1ab3a476cb13b6174da7",
+        "device": "cuda:0",
+        "model_class": "stable_worldmodel.wm.lewm.lewm.LeWM",
+        "parameters": 18034478,
+        "protocol": {
+          "action_block_raw_steps": 5,
+          "action_dim": 2,
+          "decoder_required": false,
+          "future_action_blocks": 5,
+          "history_tokens": 3,
+          "native_target_encoder": true
+        },
+        "stable_worldmodel_commit": "c3dfc4431bfdba39ad05955752feca7939773103",
+        "stable_worldmodel_repo": "/opt/huawei/dataset/ag_data/ckpt/lewm-contextworld-v1/.contextworld/stable-worldmodel/c3dfc4431bfdba39ad05955752feca7939773103"
+      },
+      "name": "robot_arm_mass_lewm_num32k_init_form_scratch_s3072",
+      "state_sha256_after": "cf481ca4285bf684b387a92dadb8d7fa3848184b917f771c0e5db4f3b92ae6a1",
+      "state_sha256_before": "cf481ca4285bf684b387a92dadb8d7fa3848184b917f771c0e5db4f3b92ae6a1",
+      "training_recipe": "contextworld_robot_arm_mass",
+      "training_seed": 3072
+    },
+    "protocol": {
+      "claim_boundary": "This result uses only public ContextWorld-v1 Development data. It is not a held-out Public Test score and must not be reported as a formal pass or official scoreboard row.",
+      "evaluation_split": "development",
+      "formal_pass_available": false,
+      "id": "contextworld_bundle_development_icl_v1",
+      "kind": "matched_development_counterfactual",
+      "match_status": "matched_development_only",
+      "official_scoreboard_row": false,
+      "public_test_accessed": false
+    },
+    "record_count": 256,
+    "result_kind": "development_only_not_public_test",
+    "schema_version": 1,
+    "selection": {
+      "kind": "complete_registered_development_table",
+      "member": "components/reacher-arm-mass/v1/development/data.lance",
+      "pair_count": 256
+    },
+    "status": "completed"
+  },
+  "result_kind": "development_only_not_public_test",
+  "runtime_fingerprint": {
+    "evidence_kind": "captured_in_evaluation_process",
+    "executable": "/usr/bin/python",
+    "packages": {
+      "Pillow": "11.3.0",
+      "numpy": "1.26.4",
+      "pyarrow": "23.0.1",
+      "pylance": "6.0.0",
+      "stable-pretraining": "0.1.8",
+      "stable-worldmodel": "0.0.6",
+      "torch": "2.9.1",
+      "torchvision": "0.24.1",
+      "transformers": "4.57.1"
+    },
+    "platform": "Linux-5.15.0-92-generic-x86_64-with-glibc2.35",
+    "python": "3.10.12",
+    "requirements_frozen_sha256": "2b001bd25f9be4bb2932d7419f55edc3f3299e86389b0ad9de25b912e1f2b8e3",
+    "schema_version": 1,
+    "torch": {
+      "cuda_available": true,
+      "cuda_build": "12.8",
+      "cudnn_benchmark": false,
+      "cudnn_deterministic": false,
+      "cudnn_version": 91002,
+      "deterministic_algorithms": false,
+      "devices": [
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 0,
+          "name": "NVIDIA H800"
+        },
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 1,
+          "name": "NVIDIA H800"
+        },
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 2,
+          "name": "NVIDIA H800"
+        },
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 3,
+          "name": "NVIDIA H800"
+        },
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 4,
+          "name": "NVIDIA H800"
+        },
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 5,
+          "name": "NVIDIA H800"
+        },
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 6,
+          "name": "NVIDIA H800"
+        },
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 7,
+          "name": "NVIDIA H800"
+        }
+      ],
+      "float32_matmul_precision": "high",
+      "version": "2.9.1+cu128"
+    }
+  },
+  "schema_version": 1,
+  "task": "robot_arm_mass"
+}

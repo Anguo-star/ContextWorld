@@ -1,0 +1,205 @@
+{
+  "adapter_spec": "lewm",
+  "evaluation_split": "development",
+  "model_name": "motion_damping_lewm_num32k_init_form_scratch_s3072",
+  "note": "Produced by contextworld-external-eval from the public ContextWorld-v1 Development split. It is not a held-out Public Test score, has no formal pass decision, and does not enter the official scoreboard.",
+  "official_scoreboard_row": false,
+  "result": {
+    "bundle": {
+      "bundle_schema_version": "ContextWorld-v1",
+      "component_id": "motion_damping",
+      "dataset_id": "pusht-motion-damping",
+      "development_payload_id": "data",
+      "manifest_sha256": "b73d0fb88089a8d792a31e440e67841c1d7b623c7277b4b5e6dca0b165c3403d",
+      "member_count": 1,
+      "members": [
+        "components/pusht-motion-damping/v1/development/data.lance"
+      ],
+      "task_registry_sha256": "06f57c07e7d3fae6799fd02e420e996a6cc2c1ae9bf45b04c2991963efad199e"
+    },
+    "metrics": {
+      "context_switch_rate": 0.49609375,
+      "correct_future_mse_mean": 0.0017980836564674973,
+      "correct_future_rate": 0.498046875,
+      "correct_history_rate": 0.49609375,
+      "current_frame_only_accuracy_bound": 0.5,
+      "decision_count": 512,
+      "faster_decay_correct_future_rate": 0.78125,
+      "joint_icl_pair_success_rate": 0.0,
+      "latent_response": {
+        "calibrated_response_success_baseline": {
+          "name": "no_history_response",
+          "normalized_response_error": 1.0,
+          "pair_success_criterion": "normalized_response_error < 1.0",
+          "prediction_response": "zero"
+        },
+        "calibrated_response_success_rate": 0.38671875,
+        "ideal_values": {
+          "calibrated_response_success_rate": 1.0,
+          "normalized_response_error": 0.0,
+          "response_alignment": 1.0,
+          "response_gain": 1.0
+        },
+        "normalized_response_error": 1.0022150340220666,
+        "response_alignment": -0.0026872599258912886,
+        "response_gain": -0.0001194582271611304,
+        "target_latent_separation": {
+          "criterion": "finite_and_nonidentical_for_every_pair",
+          "mean_target_response_mse": 7.599291640863229e-05,
+          "median_target_response_mse": 2.417060774861339e-05,
+          "minimum_target_response_mse": 1.9214744702470876e-06,
+          "passed": true,
+          "zero_separation_pair_count": 0
+        }
+      },
+      "no_extra_decay_correct_future_rate": 0.21484375,
+      "other_future_mse_mean": 0.0017980745760723948,
+      "other_minus_correct_mse_margin_mean": -9.080395102500916e-09,
+      "pair_count": 256,
+      "worst_damping_correct_future_rate": 0.21484375
+    },
+    "model": {
+      "adapter": {
+        "adapter_class": "contextworld.benchmarks.adapters.StableWorldModelLeWMMotionDampingAdapter",
+        "adapter_id": "stable_worldmodel_lewm_motion_damping_v1",
+        "checkpoint": "/opt/huawei/dataset/ag_data/ckpt/lewm-contextworld-v1/checkpoints/motion_damping_lewm_num32k_init_form_scratch_s3072/weights_epoch_10.pt",
+        "checkpoint_sha256": "d23cc3c543e708bb497d670040c7d24e402b29e019c1e6b1414e6ede4cb36c31",
+        "device": "cuda:0",
+        "model_class": "stable_worldmodel.wm.lewm.lewm.LeWM",
+        "parameters": 18034478,
+        "protocol": {
+          "action_block_raw_steps": 5,
+          "action_dim": 2,
+          "decoder_required": false,
+          "future_action_blocks": 5,
+          "history_tokens": 3,
+          "native_target_encoder": true
+        },
+        "stable_worldmodel_commit": "c3dfc4431bfdba39ad05955752feca7939773103",
+        "stable_worldmodel_repo": "/opt/huawei/dataset/ag_data/ckpt/lewm-contextworld-v1/.contextworld/stable-worldmodel/c3dfc4431bfdba39ad05955752feca7939773103"
+      },
+      "name": "motion_damping_lewm_num32k_init_form_scratch_s3072",
+      "state_sha256_after": "5515fbe26ce0965349461e59b2e9f3112856eb4fbcd54483f6d73f6b60c0a0e3",
+      "state_sha256_before": "5515fbe26ce0965349461e59b2e9f3112856eb4fbcd54483f6d73f6b60c0a0e3",
+      "training_recipe": "contextworld_motion_damping",
+      "training_seed": 3072
+    },
+    "protocol": {
+      "claim_boundary": "This result uses only public ContextWorld-v1 Development data. It is not a held-out Public Test score and must not be reported as a formal pass or official scoreboard row.",
+      "evaluation_split": "development",
+      "formal_pass_available": false,
+      "id": "contextworld_bundle_development_icl_v1",
+      "kind": "matched_development_counterfactual",
+      "match_status": "matched_development_only",
+      "official_scoreboard_row": false,
+      "public_test_accessed": false
+    },
+    "record_count": 256,
+    "result_kind": "development_only_not_public_test",
+    "schema_version": 1,
+    "selection": {
+      "kind": "complete_registered_development_table",
+      "member": "components/pusht-motion-damping/v1/development/data.lance",
+      "pair_count": 256
+    },
+    "status": "completed"
+  },
+  "result_kind": "development_only_not_public_test",
+  "runtime_fingerprint": {
+    "evidence_kind": "captured_in_evaluation_process",
+    "executable": "/usr/bin/python",
+    "packages": {
+      "Pillow": "11.3.0",
+      "numpy": "1.26.4",
+      "pyarrow": "23.0.1",
+      "pylance": "6.0.0",
+      "stable-pretraining": "0.1.8",
+      "stable-worldmodel": "0.0.6",
+      "torch": "2.9.1",
+      "torchvision": "0.24.1",
+      "transformers": "4.57.1"
+    },
+    "platform": "Linux-5.15.0-92-generic-x86_64-with-glibc2.35",
+    "python": "3.10.12",
+    "requirements_frozen_sha256": "2b001bd25f9be4bb2932d7419f55edc3f3299e86389b0ad9de25b912e1f2b8e3",
+    "schema_version": 1,
+    "torch": {
+      "cuda_available": true,
+      "cuda_build": "12.8",
+      "cudnn_benchmark": false,
+      "cudnn_deterministic": false,
+      "cudnn_version": 91002,
+      "deterministic_algorithms": false,
+      "devices": [
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 0,
+          "name": "NVIDIA H800"
+        },
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 1,
+          "name": "NVIDIA H800"
+        },
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 2,
+          "name": "NVIDIA H800"
+        },
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 3,
+          "name": "NVIDIA H800"
+        },
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 4,
+          "name": "NVIDIA H800"
+        },
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 5,
+          "name": "NVIDIA H800"
+        },
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 6,
+          "name": "NVIDIA H800"
+        },
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 7,
+          "name": "NVIDIA H800"
+        }
+      ],
+      "float32_matmul_precision": "high",
+      "version": "2.9.1+cu128"
+    }
+  },
+  "schema_version": 1,
+  "task": "motion_damping"
+}

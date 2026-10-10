@@ -769,3 +769,59 @@ python scripts/analyze_expanded_history_reference.py --check
 `DATA_ROOT` 是数据包父目录，`OUTPUT_DIR` 是新的结果目录。第二条命令直接复核仓库中的公开结果：完整分母、预测标签、来源组区间、数据身份和生成表格，均不需要 GPU 或模型权重。代码依赖 Lance、Pillow、NumPy 与 scikit-learn；运行版本随参考结果保存。
 
 [`expanded_supervision_coverage_v1.json`](research/data/expanded_supervision_coverage_v1.json) 另记录数据校验记录、加载器摘要与固定版本训练源码，区分可采样窗口、目标位置和实际批次曝光。输入侧结果与解释边界见[研究说明](ICL_Metric_Study.md#expanded-history-prerequisites)；冻结的旧 Cube 探针与评分身份保留不变。
+
+
+<a id="strength-representation-objective"></a>
+
+## Strength 的表示与预测目标对照
+
+该诊断比较当前 32k Strength 数据上 LeWM T1、T2、T3 的既有检查点，结果见[指标研究](ICL_Metric_Study.md#strength-representation-objective)。参考分类器只在 Training 拟合，世界模型始终固定；梯度计算不执行优化器更新。
+
+来源组由原始 PushT 文件 SHA256 与 `source_episode_index` 共同确定。按种子 `20261010` 打乱 Training 来源组，完整保留组内查询，取足 512 对；本面板有 188 个来源。Development 使用全部 256 对、243 个来源。读取原轨迹的第 0、5、10 帧作为历史，第 15 帧作为查询目标，动作使用第 0–14 步。输入标签仅用于参考分类器监督，不传入世界模型；不读取 Test。
+
+原生 Encoder 的每帧 192 维输出组成 `[z0, z1-z0, z2-z1]`，保留完整三帧信息。固定 `StandardScaler + RidgeClassifier(alpha=1)` 与 256 棵 `ExtraTrees` 在 Training 拟合，不使用 Development 选择参数或分类器。区间对 243 个 Development 来源进行 2,000 次成组重采样；三方案差值共用重采样索引。Training 分数是参考分类器的拟合集表现。
+
+梯度面板取选定 Training 查询顺序中的前 16 个不同来源，每来源取第一对。H3 原生监督的三个目标为第 5、10、15 帧，视觉 MSE 对全部条件、位置与 latent 维度平均。最后位置的条件中心化误差与共同偏差各保留 1/3 权重，前两个位置保留其原权重。仅对主预测器求导；Encoder、动作编码器和其他目标项不参与本次梯度测量。响应 NRE 按目标能量汇总，不平均逐对误差比。关闭 TF32 后，在每个检查点的首个查询上核对公开 RGB Adapter，直接预测的端点差不超过 `1.1e-6`；损失与梯度分解均核对闭合，模型状态保持不变。
+
+运行脚本为 `scripts/diagnose_strength_history_readout.py` 与 `scripts/diagnose_strength_native_objective.py`，汇总脚本为 `scripts/analyze_strength_mechanism.py`。面板 JSON 记录选定查询、来源、数据与检查点哈希；原始 RGB 与 latent 缓存保存在运行输出中，不包含在公开汇总记录内。
+
+```bash
+python scripts/diagnose_strength_history_readout.py --build-panel --panel /path/to/panel
+python scripts/diagnose_strength_history_readout.py --panel /path/to/panel --models /path/to/models.json --id action_strength/lewm/scratch/s3072 --device cuda:0 --output /path/to/history_result
+python scripts/diagnose_strength_native_objective.py --cache /path/to/panel --models /path/to/models.json --id action_strength/lewm/scratch/s3072 --device cuda:3 --output /path/to/objective_result
+python scripts/analyze_strength_mechanism.py --check
+```
+
+T2、T3 分别使用模型清单中的 `joint`、`frozen` ID；输出目录分别设置。当前模型清单、面板和权重仍需本地准备，公开 JSON 支持结果复算，不等于完整实验资产已公开分发。
+
+<a id="cross-task-mechanism"></a>
+
+## 九任务的历史表示与原生预测目标诊断
+
+本诊断使用每任务、每模型的 T1 seed 3072 固定检查点。研究结果见[九任务机制对照](ICL_Metric_Study.md#cross-task-mechanism)，不改变已有主分。训练包分别为五项 32k 配对数据、Cube 的 10k 独立来源数据，以及 Speed、Delay、Door 的基础数据；Development 保持原定义。
+
+参考读出的拟合预算为：六项扩量任务各 512 对 Training 查询；Delay 为 128 个查询、每查询 11 个延迟；Speed 和 Door 各 512 条自然 Training 历史。Strength 的 512 对来自 188 个来源，Damping 的镜像配对归并为 256 个来源，其余四项为 512 个来源。Development 使用全部查询：六项配对任务各 256 个，Speed、Delay、Door 各 300 个，共 2,436 个。当前 RGB 与原始动作在各 Development 查询的条件间完全相同。标签按物理规律定义，不能使用条件在文件中的位置代替规律值。
+
+对历史表示使用可逆坐标 `[z0, z1−z0, …]`，保留全部原生维度；DINO-WM 不进行 patch 池化。固定 `StandardScaler + Ridge(alpha=1)`，标准化及拟合只使用 Training。分类采用 RidgeClassifier 的标签编码；Speed 回归连续物理速度，参照是固定的 Training 速度均值。实现用分块的样本空间矩阵求解，与 sklearn 的固定配方进行数值核对。区间按 Development 来源组重采样 2,000 次，种子 `20261010`；分类重算各类别准确率再宏平均，不将 Delay 的六种静止延迟当作六个等权物理组。隐藏标签仅用于参考读出，不输入世界模型。不同模型的特征维度不同，固定读出配方的准确率不等于可用信息量的统一度量。
+
+局部梯度从每任务的 Development 来源组按 `SHA256(20261010:source_group)` 排序选取 16 个来源，每来源选清单中的首个查询。监督目标沿用原生移位序列：H3 的目标在第 5、10、15 步，Delay H7 延伸到第 35 步。Cube 按五物理步一块的模型帧解释。各查询包含全部条件；Delay 保留 11 条延迟轨迹，未重新按六个物理组加权。
+
+设预测与真实目标在条件维度上的均值分别为 $\bar{\hat z}_t,\bar z_t$，原生视觉损失按条件、时间、坐标平均。逐时刻有精确分解：
+
+$$
+L_t = \underbrace{\mathbb E_k\| (\hat z_{kt}-\bar{\hat z}_t)-(z_{kt}-\bar z_t)\|^2}_{L_{\mathrm{response},t}}
++ \underbrace{\|\bar{\hat z}_t-\bar z_t\|^2}_{L_{\mathrm{common},t}}.
+$$
+
+范数对 latent 坐标取均方。查询端点的响应与共同误差保留 $1/H$ 权重，其余位置保持原权重。仅对主预测器求导，固定视觉及动作编码器；不计入其他正则项，DINO-WM 也不计入动作流预测损失。梯度子集的响应 NRE 将 16 个查询的中心化误差与目标能量分别相加后相除，单独保存在下载数据；正文表格引用同一检查点的全量原协议响应 NRE，避免将局部样本当作完整能力表现。先平均梯度向量，再计算范数比及余弦；这不同于平均各查询的范数比或余弦。检查每个查询的损失及梯度分解，在每个检查点的首个查询上核对公开 RGB Adapter 的端点，并确认计算前后模型状态相同。计算不执行优化器更新。
+
+脚本入口如下。模型清单须提供实际权重、SHA256 及对应的源码目录；数据面板与 latent 缓存仍需本地准备。
+
+```bash
+python scripts/build_task_mechanism_panels.py --tasks contact_friction --output /path/to/panels
+python scripts/diagnose_task_history_readout.py --panel /path/to/panels/contact_friction --models /path/to/models.json --id contact_friction/lewm/scratch/s3072 --device cuda:0 --output /path/to/readout
+python scripts/diagnose_task_native_objective.py --cache /path/to/panels/contact_friction --models /path/to/models.json --id contact_friction/lewm/scratch/s3072 --split development --device cuda:1 --output /path/to/gradient
+python scripts/analyze_cross_task_mechanism.py --check
+```
+
+[汇总 JSON](research/data/cross_task_mechanism_v1.json)与 [CSV](research/data/cross_task_mechanism_v1.csv)链接所用来源记录和哈希；公开记录可用于复算汇总。参考读出只检验固定方法能否识别规律，局部梯度只描述所选检查点的视觉损失。它们不能替代世界模型的多步成绩，也不单独证明某种训练策略造成了失败。

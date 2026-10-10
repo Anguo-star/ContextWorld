@@ -1,0 +1,2346 @@
+{
+  "schema": "contextworld.task_native_visual_objective.v1",
+  "model": {
+    "id": "speed/lewm/scratch/s3072",
+    "task": "speed",
+    "family": "lewm",
+    "regime": "scratch",
+    "training_seed": 3072,
+    "checkpoint": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/lewm-contextworld-v1/checkpoints/speed_lewm_joint_scratch_v1_s3072/weights_epoch_10.pt",
+    "checkpoint_sha256": "bf8aab90eb010c87650a2733a8075a0975d4c7b4c107d5c2c41f899589d763c2",
+    "stable_repo": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/lewm-contextworld-v1/.contextworld/stable-worldmodel/6ab823fdc6921c95089992ed49c39e431e21ca4a",
+    "stable_ref": "6ab823fdc6921c95089992ed49c39e431e21ca4a",
+    "public_row_id": "speed/lewm/scratch",
+    "source_result": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/lewm-contextworld-v1/checkpoints/speed_lewm_joint_scratch_v1_s3072/eval_results/benchmark_icl/speed/result.json",
+    "result_dir": "/tmp/cw-icl-validity-20261007/results/speed/lewm/scratch/s3072",
+    "previous_result_dir": "/tmp/cw-multistep-coverage-20260930/results/speed/lewm/scratch/s3072"
+  },
+  "selection": {
+    "split": "development",
+    "seed": 20261010,
+    "algorithm": "SHA256(seed:source_group) order; first manifest query per selected group; 16 distinct groups",
+    "fit_query_count": 300,
+    "query_ids": [
+      "twms-746f2f3a131ccb85",
+      "twms-1649a5f91cae8fe2",
+      "twms-f831fcef97959b30",
+      "twms-966100174d8fe9b4",
+      "twms-ec57018b10deb90e",
+      "twms-26d0f8c229b57037",
+      "twms-99d4253af65c4f5c",
+      "twms-6b8bc57263eac0b9",
+      "twms-792f71c9da725854",
+      "twms-9e3c7d7659f16142",
+      "twms-cbd7641cba367a8e",
+      "twms-bc2abab0bfb81af2",
+      "twms-42d62387760c5ed9",
+      "twms-75e35968a55ce42a",
+      "twms-c81fcc2d3f8c58cb",
+      "twms-62b763af45fae87c"
+    ],
+    "source_groups": [
+      "twms-746f2f3a131ccb85",
+      "twms-1649a5f91cae8fe2",
+      "twms-f831fcef97959b30",
+      "twms-966100174d8fe9b4",
+      "twms-ec57018b10deb90e",
+      "twms-26d0f8c229b57037",
+      "twms-99d4253af65c4f5c",
+      "twms-6b8bc57263eac0b9",
+      "twms-792f71c9da725854",
+      "twms-9e3c7d7659f16142",
+      "twms-cbd7641cba367a8e",
+      "twms-bc2abab0bfb81af2",
+      "twms-42d62387760c5ed9",
+      "twms-75e35968a55ce42a",
+      "twms-c81fcc2d3f8c58cb",
+      "twms-62b763af45fae87c"
+    ],
+    "manifest_sha256": "8135e58d56f155bbcbb71f1985d1657cf933068735ba672e6578eb56e6b0c6ba",
+    "raw_sha256": "c582a38a752ae9c778e08ae4bdede3f23bbc8e54e363a5e57d0e1b4afdab84de"
+  },
+  "query_count": 16,
+  "condition_count": 48,
+  "position_count": 3,
+  "optimizer_steps": 0,
+  "public_test_accessed": false,
+  "scope": "development only; shifted native targets; visual prediction MSE component only; predictor gradients only",
+  "cuda_precision": {
+    "matmul_allow_tf32": false,
+    "cudnn_allow_tf32": false,
+    "float32_matmul_precision": "highest"
+  },
+  "state_hash_before": "65773c1c8f2a842bbc3afda8c3cd9007421ca856a8bcd0922968974a0158d5ac",
+  "state_hash_after": "65773c1c8f2a842bbc3afda8c3cd9007421ca856a8bcd0922968974a0158d5ac",
+  "script_sha256": "4ac28b090e7faa69f96de03317f312f73b8d45b9f333e2ed3c5a1332679e035e",
+  "generic_helper_sha256": "215fed3424b90737df7ad77545a446dacf494c3a5049a5258d118f2fbf17395e",
+  "trainer_alignment": {
+    "pinned_source": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/lewm-contextworld-v1/.contextworld/stable-worldmodel/6ab823fdc6921c95089992ed49c39e431e21ca4a/scripts/train/lewm.py",
+    "pinned_source_sha256": "98b77615eb2c3457dec13827e969498f37dc5a1c9fd3eb709566c281511cdd24",
+    "native_visual_loss": "mean squared prediction error across every shifted visual position",
+    "visual_component_only": true,
+    "action_stream_excluded_from_loss": false,
+    "native_positions": 3
+  },
+  "predictor_parameter_count": 10791360,
+  "summary": {
+    "energy_pooled_native_query_response_nre": 0.06387523176702543,
+    "zero_query_target_energy_count": 0,
+    "mean_query_response_loss_share": 0.011686973033071285,
+    "aggregate_query_response_loss_share": 0.011899440020490279,
+    "mean_query_response_to_native_gradient_norm_ratio": 0.07684717735324742,
+    "negative_query_response_native_cosine_count": 1,
+    "defined_query_response_native_cosine_count": 16,
+    "mean_query_response_native_cosine": 0.17017429939197787
+  },
+  "mean_gradient": {
+    "mean_gradient_norms": {
+      "query_response": 0.011563427708743398,
+      "query_common": 0.057804917457767876,
+      "earlier_native": 0.1481902124263887,
+      "query_native": 0.058625508715396,
+      "native_all": 0.18095627256755206
+    },
+    "pairwise": {
+      "query_response__query_common": {
+        "dot": -1.9085590478640224e-05,
+        "cosine": -0.02855316308511868
+      },
+      "query_response__earlier_native": {
+        "dot": 8.89458064275983e-05,
+        "cosine": 0.05190621565510042
+      },
+      "query_response__query_native": {
+        "dot": 0.00011462726899058584,
+        "cosine": 0.16908875696436867
+      },
+      "query_response__native_all": {
+        "dot": 0.0002035730668325797,
+        "cosine": 0.09728818198450753
+      },
+      "query_common__earlier_native": {
+        "dot": 0.0035849952182953615,
+        "cosine": 0.4185084920449653
+      },
+      "query_common__query_native": {
+        "dot": 0.003322322886212703,
+        "cosine": 0.9803709372071878
+      },
+      "query_common__native_all": {
+        "dot": 0.006907318415457553,
+        "cosine": 0.6603452367015106
+      },
+      "earlier_native__query_native": {
+        "dot": 0.0036739410729627053,
+        "cosine": 0.42288866193516517
+      },
+      "earlier_native__native_all": {
+        "dot": 0.025634281415534588,
+        "cosine": 0.9559341689000225
+      },
+      "query_native__native_all": {
+        "dot": 0.007110891524918728,
+        "cosine": 0.6702916163473416
+      }
+    },
+    "scene_cancellation": {
+      "query_response": {
+        "sum_scene_gradient_norms": 0.5562064783153134,
+        "norm_of_sum_scene_gradients": 0.18501484333989437,
+        "coherence_ratio": 0.33263698024568755,
+        "cancellation_fraction": 0.6673630197543124
+      },
+      "query_common": {
+        "sum_scene_gradient_norms": 2.5020262659208887,
+        "norm_of_sum_scene_gradients": 0.924878679324286,
+        "coherence_ratio": 0.369651866537811,
+        "cancellation_fraction": 0.630348133462189
+      },
+      "earlier_native": {
+        "sum_scene_gradient_norms": 6.1897289620135245,
+        "norm_of_sum_scene_gradients": 2.371043398822219,
+        "coherence_ratio": 0.38306094069277574,
+        "cancellation_fraction": 0.6169390593072243
+      },
+      "query_native": {
+        "sum_scene_gradient_norms": 2.611860431059987,
+        "norm_of_sum_scene_gradients": 0.938008139446336,
+        "coherence_ratio": 0.3591340977839534,
+        "cancellation_fraction": 0.6408659022160466
+      },
+      "native_all": {
+        "sum_scene_gradient_norms": 7.510608755388148,
+        "norm_of_sum_scene_gradients": 2.895300361080833,
+        "coherence_ratio": 0.3854947655213341,
+        "cancellation_fraction": 0.6145052344786659
+      }
+    }
+  },
+  "per_query": [
+    {
+      "query_id": "twms-746f2f3a131ccb85",
+      "condition_count": 3,
+      "position_count": 3,
+      "losses": {
+        "query_response": 0.0007059174251139273,
+        "query_common": 0.009825222793429853,
+        "earlier_native": 0.03747015433034846,
+        "query_native": 0.010531140218543778,
+        "native_all": 0.04800129454889224
+      },
+      "query_response_loss_share": 0.014706216399953701,
+      "native_query_response_nre": 0.087492584157783,
+      "loss_reconstruction_residual": -6.938893903907228e-18,
+      "position_decomposition_max_abs": 1.3877787807814457e-17,
+      "per_position": {
+        "native_by_position": [
+          0.08099952811095434,
+          0.03141093488009104,
+          0.03159342065563134
+        ],
+        "response_by_position": [
+          0.04942723520231699,
+          0.0019225834770732852,
+          0.002117752275341782
+        ],
+        "common_by_position": [
+          0.03157229290863734,
+          0.02948835140301776,
+          0.02947566838028956
+        ],
+        "target_response_energy_by_position": [
+          0.04942723520231699,
+          0.0,
+          0.02420493457505673
+        ],
+        "prediction_response_energy_by_position": [
+          0.0,
+          0.0019225834770732852,
+          0.013215246832035746
+        ]
+      },
+      "canonical_adapter_endpoint": {
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      },
+      "gradient": {
+        "norms": {
+          "query_response": 0.02979005800560398,
+          "query_common": 0.1254290047333013,
+          "earlier_native": 0.2222651618773783,
+          "query_native": 0.1343116987662815,
+          "native_all": 0.2937286615484635
+        },
+        "pairs": {
+          "query_response__query_common": {
+            "dot": 0.0007098750011591548,
+            "cosine": 0.18998204463461132
+          },
+          "query_response__earlier_native": {
+            "dot": -0.0007403712680309482,
+            "cosine": -0.1118167361850559
+          },
+          "query_response__query_native": {
+            "dot": 0.001597322538255952,
+            "cosine": 0.39921553103755525
+          },
+          "query_response__native_all": {
+            "dot": 0.0008569512278455704,
+            "cosine": 0.09793511332708722
+          },
+          "query_common__earlier_native": {
+            "dot": 0.010157916042222936,
+            "cosine": 0.3643638200029162
+          },
+          "query_common__query_native": {
+            "dot": 0.016442309833365698,
+            "cosine": 0.9760026781620872
+          },
+          "query_common__native_all": {
+            "dot": 0.02660022605297918,
+            "cosine": 0.722006362729018
+          },
+          "earlier_native__query_native": {
+            "dot": 0.009417545171579889,
+            "cosine": 0.31546593799300904
+          },
+          "earlier_native__native_all": {
+            "dot": 0.0588193486282762,
+            "cosine": 0.900953731383767
+          },
+          "query_native__native_all": {
+            "dot": 0.027457177616000195,
+            "cosine": 0.6959783413861786
+          }
+        }
+      },
+      "gradient_reconstruction": {
+        "query_native": {
+          "max_abs": 5.820766091346741e-10,
+          "relative_l2": 2.1433007562114757e-07,
+          "relative_to_component_norm_sum": 1.8546070337897038e-07,
+          "reference_norm": 0.1343116987662815,
+          "component_norm_sum": 0.15521906273890526
+        },
+        "native_all": {
+          "max_abs": 1.862645149230957e-09,
+          "relative_l2": 2.4054894328621905e-07,
+          "relative_to_component_norm_sum": 1.871763494757457e-07,
+          "reference_norm": 0.2937286615484635,
+          "component_norm_sum": 0.37748422461628356
+        }
+      },
+      "query_response_to_native_gradient_norm_ratio": 0.10142033075205634,
+      "query_response_native_gradient_dot": 0.0008569512278455704,
+      "query_response_native_gradient_cosine": 0.09793511332708722,
+      "query_response_native_gradient_negative_cosine": false,
+      "actual_public_adapter_endpoint": {
+        "max_abs": 1.6808509826660156e-05,
+        "relative_l2": 2.3136099116527475e-06
+      },
+      "source": {
+        "row_indices": [
+          204,
+          205,
+          206
+        ],
+        "source_groups": [
+          "twms-746f2f3a131ccb85",
+          "twms-746f2f3a131ccb85",
+          "twms-746f2f3a131ccb85"
+        ],
+        "conditions": [
+          "3.4000000953674316",
+          "4.800000190734863",
+          "6.900000095367432"
+        ]
+      }
+    },
+    {
+      "query_id": "twms-1649a5f91cae8fe2",
+      "condition_count": 3,
+      "position_count": 3,
+      "losses": {
+        "query_response": 0.000708223576617865,
+        "query_common": 0.01388520735971491,
+        "earlier_native": 0.05995810983248984,
+        "query_native": 0.014593430936332774,
+        "native_all": 0.07455154076882263
+      },
+      "query_response_loss_share": 0.00949978456936256,
+      "native_query_response_nre": 0.047595812300811044,
+      "loss_reconstruction_residual": 1.3877787807814457e-17,
+      "position_decomposition_max_abs": 2.0816681711721685e-17,
+      "per_position": {
+        "native_by_position": [
+          0.12753843972829423,
+          0.052335889769175296,
+          0.043780292808998325
+        ],
+        "response_by_position": [
+          0.09155743268911931,
+          0.0018547630715019278,
+          0.002124670729853595
+        ],
+        "common_by_position": [
+          0.035981007039174936,
+          0.05048112669767335,
+          0.041655622079144736
+        ],
+        "target_response_energy_by_position": [
+          0.09155743268911931,
+          0.0,
+          0.04463986697874658
+        ],
+        "prediction_response_energy_by_position": [
+          0.0,
+          0.0018547630715019278,
+          0.060040015770895766
+        ]
+      },
+      "canonical_adapter_endpoint": {
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      },
+      "gradient": {
+        "norms": {
+          "query_response": 0.05006596671460664,
+          "query_common": 0.21206784780056645,
+          "earlier_native": 0.3377612824827454,
+          "query_native": 0.2050275135078823,
+          "native_all": 0.47998101515986474
+        },
+        "pairs": {
+          "query_response__query_common": {
+            "dot": -0.0027215457568763313,
+            "cosine": -0.25632927267554884
+          },
+          "query_response__earlier_native": {
+            "dot": 0.0049649273831100516,
+            "cosine": 0.2936029599655461
+          },
+          "query_response__query_native": {
+            "dot": -0.00021494475116501377,
+            "cosine": -0.020939778975053322
+          },
+          "query_response__native_all": {
+            "dot": 0.004749982049659707,
+            "cosine": 0.19766296344048434
+          },
+          "query_common__earlier_native": {
+            "dot": 0.032166478117559905,
+            "cosine": 0.44907493845693197
+          },
+          "query_common__query_native": {
+            "dot": 0.04225122674392878,
+            "cosine": 0.9717450774576133
+          },
+          "query_common__native_all": {
+            "dot": 0.07441770568686934,
+            "cosine": 0.7311010163889801
+          },
+          "earlier_native__query_native": {
+            "dot": 0.03713140502946999,
+            "cosine": 0.5361908187087484
+          },
+          "earlier_native__native_all": {
+            "dot": 0.15121408774575684,
+            "cosine": 0.9327351187488909
+          },
+          "query_native__native_all": {
+            "dot": 0.07916768732030732,
+            "cosine": 0.8044735203074853
+          }
+        }
+      },
+      "gradient_reconstruction": {
+        "query_native": {
+          "max_abs": 9.313225746154785e-10,
+          "relative_l2": 1.9750950685145187e-07,
+          "relative_to_component_norm_sum": 1.5448172208846125e-07,
+          "reference_norm": 0.2050275135078823,
+          "component_norm_sum": 0.2621338145151731
+        },
+        "native_all": {
+          "max_abs": 2.3283064365386963e-09,
+          "relative_l2": 2.397426758663324e-07,
+          "relative_to_component_norm_sum": 1.9182009240502913e-07,
+          "reference_norm": 0.47998101515986474,
+          "component_norm_sum": 0.5998950969979184
+        }
+      },
+      "query_response_to_native_gradient_norm_ratio": 0.10430822289488144,
+      "query_response_native_gradient_dot": 0.004749982049659707,
+      "query_response_native_gradient_cosine": 0.19766296344048434,
+      "query_response_native_gradient_negative_cosine": false,
+      "source": {
+        "row_indices": [
+          618,
+          619,
+          620
+        ],
+        "source_groups": [
+          "twms-1649a5f91cae8fe2",
+          "twms-1649a5f91cae8fe2",
+          "twms-1649a5f91cae8fe2"
+        ],
+        "conditions": [
+          "3.4000000953674316",
+          "4.800000190734863",
+          "6.900000095367432"
+        ]
+      }
+    },
+    {
+      "query_id": "twms-f831fcef97959b30",
+      "condition_count": 3,
+      "position_count": 3,
+      "losses": {
+        "query_response": 0.0002567128731457602,
+        "query_common": 0.008822338024943902,
+        "earlier_native": 0.05400844395385436,
+        "query_native": 0.009079050898089663,
+        "native_all": 0.06308749485194402
+      },
+      "query_response_loss_share": 0.004069156236877421,
+      "native_query_response_nre": 0.026825880638707132,
+      "loss_reconstruction_residual": 0.0,
+      "position_decomposition_max_abs": 3.469446951953614e-18,
+      "per_position": {
+        "native_by_position": [
+          0.13578146619865233,
+          0.02624386566291075,
+          0.02723715269426899
+        ],
+        "response_by_position": [
+          0.10588646505923457,
+          0.00041698824730082253,
+          0.0007701386194372806
+        ],
+        "common_by_position": [
+          0.029895001139417763,
+          0.025826877415609923,
+          0.026467014074831707
+        ],
+        "target_response_energy_by_position": [
+          0.10588646505923457,
+          0.0,
+          0.02870879170043147
+        ],
+        "prediction_response_energy_by_position": [
+          0.0,
+          0.00041698824730082253,
+          0.03306278570563386
+        ]
+      },
+      "canonical_adapter_endpoint": {
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      },
+      "gradient": {
+        "norms": {
+          "query_response": 0.014762430235771756,
+          "query_common": 0.20426074170428038,
+          "earlier_native": 0.26681846149903227,
+          "query_native": 0.19975472005756137,
+          "native_all": 0.41204168062577323
+        },
+        "pairs": {
+          "query_response__query_common": {
+            "dot": -0.0010192146647751699,
+            "cosine": -0.33800482588673086
+          },
+          "query_response__earlier_native": {
+            "dot": -5.000683200551137e-05,
+            "cosine": -0.012695669509038788
+          },
+          "query_response__query_native": {
+            "dot": -0.0008012852114529512,
+            "cosine": -0.27172664027888593
+          },
+          "query_response__native_all": {
+            "dot": -0.0008512920851000416,
+            "cosine": -0.13995215411313458
+          },
+          "query_common__earlier_native": {
+            "dot": 0.02939216512271514,
+            "cosine": 0.5393004697488833
+          },
+          "query_common__query_native": {
+            "dot": 0.04070323458586245,
+            "cosine": 0.9975782418133836
+          },
+          "query_common__native_all": {
+            "dot": 0.07009539946466248,
+            "cosine": 0.8328436150870512
+          },
+          "earlier_native__query_native": {
+            "dot": 0.029342156871450698,
+            "cosine": 0.5505276153978632
+          },
+          "earlier_native__native_all": {
+            "dot": 0.1005342471739823,
+            "cosine": 0.9144437682219867
+          },
+          "query_native__native_all": {
+            "dot": 0.06924410561828154,
+            "cosine": 0.8412878369380571
+          }
+        }
+      },
+      "gradient_reconstruction": {
+        "query_native": {
+          "max_abs": 9.313225746154785e-10,
+          "relative_l2": 1.6772641108780435e-07,
+          "relative_to_component_norm_sum": 1.5297076558764332e-07,
+          "reference_norm": 0.19975472005756137,
+          "component_norm_sum": 0.21902317194005214
+        },
+        "native_all": {
+          "max_abs": 3.259629011154175e-09,
+          "relative_l2": 2.740916109561188e-07,
+          "relative_to_component_norm_sum": 2.324567518521342e-07,
+          "reference_norm": 0.41204168062577323,
+          "component_norm_sum": 0.4858416334390844
+        }
+      },
+      "query_response_to_native_gradient_norm_ratio": 0.035827516802066854,
+      "query_response_native_gradient_dot": -0.0008512920851000416,
+      "query_response_native_gradient_cosine": -0.13995215411313458,
+      "query_response_native_gradient_negative_cosine": true,
+      "source": {
+        "row_indices": [
+          864,
+          865,
+          866
+        ],
+        "source_groups": [
+          "twms-f831fcef97959b30",
+          "twms-f831fcef97959b30",
+          "twms-f831fcef97959b30"
+        ],
+        "conditions": [
+          "3.4000000953674316",
+          "4.800000190734863",
+          "6.900000095367432"
+        ]
+      }
+    },
+    {
+      "query_id": "twms-966100174d8fe9b4",
+      "condition_count": 3,
+      "position_count": 3,
+      "losses": {
+        "query_response": 0.0006442518039133059,
+        "query_common": 0.010944058564074658,
+        "earlier_native": 0.05892624403648883,
+        "query_native": 0.011588310367987966,
+        "native_all": 0.07051455440447679
+      },
+      "query_response_loss_share": 0.009136437283824118,
+      "native_query_response_nre": 0.10579419298550292,
+      "loss_reconstruction_residual": 0.0,
+      "position_decomposition_max_abs": 1.3877787807814457e-17,
+      "per_position": {
+        "native_by_position": [
+          0.12465083887157014,
+          0.052127893237896336,
+          0.0347649311039639
+        ],
+        "response_by_position": [
+          0.07876710040914645,
+          0.0012406764064429032,
+          0.001932755411739918
+        ],
+        "common_by_position": [
+          0.04588373846242369,
+          0.05088721683145342,
+          0.03283217569222398
+        ],
+        "target_response_energy_by_position": [
+          0.07876710040914645,
+          0.0,
+          0.018269012288838624
+        ],
+        "prediction_response_energy_by_position": [
+          0.0,
+          0.0012406764064429032,
+          0.02756047107830092
+        ]
+      },
+      "canonical_adapter_endpoint": {
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      },
+      "gradient": {
+        "norms": {
+          "query_response": 0.03729503051838482,
+          "query_common": 0.126522504906903,
+          "earlier_native": 0.44893573055044717,
+          "query_native": 0.12602272979709717,
+          "native_all": 0.4671957533630805
+        },
+        "pairs": {
+          "query_response__query_common": {
+            "dot": -0.0007585682175148545,
+            "cosine": -0.16075922145583132
+          },
+          "query_response__earlier_native": {
+            "dot": 8.345543356291785e-05,
+            "cosine": 0.00498447565064593
+          },
+          "query_response__query_native": {
+            "dot": 0.0006323509788619397,
+            "cosine": 0.13454214446136623
+          },
+          "query_response__native_all": {
+            "dot": 0.0007158064766032979,
+            "cosine": 0.04108145058699929
+          },
+          "query_common__earlier_native": {
+            "dot": 0.0003399730622390962,
+            "cosine": 0.005985391375400741
+          },
+          "query_common__query_native": {
+            "dot": 0.015249376518369218,
+            "cosine": 0.9563908739908201
+          },
+          "query_common__native_all": {
+            "dot": 0.015589349752037407,
+            "cosine": 0.2637310917556107
+          },
+          "earlier_native__query_native": {
+            "dot": 0.0004234283317074983,
+            "cosine": 0.007484225402611768
+          },
+          "earlier_native__native_all": {
+            "dot": 0.20196671455505566,
+            "cosine": 0.9629344895538692
+          },
+          "query_native__native_all": {
+            "dot": 0.016305156704641277,
+            "cosine": 0.2769345925070082
+          }
+        }
+      },
+      "gradient_reconstruction": {
+        "query_native": {
+          "max_abs": 9.313225746154785e-10,
+          "relative_l2": 2.1417073004889693e-07,
+          "relative_to_component_norm_sum": 1.647587968731752e-07,
+          "reference_norm": 0.12602272979709717,
+          "component_norm_sum": 0.16381753542528782
+        },
+        "native_all": {
+          "max_abs": 3.026798367500305e-09,
+          "relative_l2": 2.3532881890989627e-07,
+          "relative_to_component_norm_sum": 1.794272359586358e-07,
+          "reference_norm": 0.4671957533630805,
+          "component_norm_sum": 0.612753265975735
+        }
+      },
+      "query_response_to_native_gradient_norm_ratio": 0.07982741762937438,
+      "query_response_native_gradient_dot": 0.0007158064766032979,
+      "query_response_native_gradient_cosine": 0.04108145058699929,
+      "query_response_native_gradient_negative_cosine": false,
+      "source": {
+        "row_indices": [
+          519,
+          520,
+          521
+        ],
+        "source_groups": [
+          "twms-966100174d8fe9b4",
+          "twms-966100174d8fe9b4",
+          "twms-966100174d8fe9b4"
+        ],
+        "conditions": [
+          "3.4000000953674316",
+          "4.800000190734863",
+          "6.900000095367432"
+        ]
+      }
+    },
+    {
+      "query_id": "twms-ec57018b10deb90e",
+      "condition_count": 3,
+      "position_count": 3,
+      "losses": {
+        "query_response": 0.0006065032430630935,
+        "query_common": 0.01271863395130591,
+        "earlier_native": 0.05854231716237427,
+        "query_native": 0.013325137194369008,
+        "native_all": 0.07186745435674328
+      },
+      "query_response_loss_share": 0.008439191960973995,
+      "native_query_response_nre": 0.0358415998231993,
+      "loss_reconstruction_residual": 1.3877787807814457e-17,
+      "position_decomposition_max_abs": 4.163336342344337e-17,
+      "per_position": {
+        "native_by_position": [
+          0.12832431824734244,
+          0.04730263323978039,
+          0.03997541158310702
+        ],
+        "response_by_position": [
+          0.09343264378619555,
+          0.00226287689802914,
+          0.0018195097291892805
+        ],
+        "common_by_position": [
+          0.03489167446114694,
+          0.04503975634175124,
+          0.038155901853917734
+        ],
+        "target_response_energy_by_position": [
+          0.09343264378619555,
+          0.0,
+          0.05076530451108828
+        ],
+        "prediction_response_energy_by_position": [
+          0.0,
+          0.00226287689802914,
+          0.06351796080435701
+        ]
+      },
+      "canonical_adapter_endpoint": {
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      },
+      "gradient": {
+        "norms": {
+          "query_response": 0.038594870215125095,
+          "query_common": 0.15962491714980398,
+          "earlier_native": 0.21737175125575892,
+          "query_native": 0.15143538862501005,
+          "native_all": 0.3033968035669254
+        },
+        "pairs": {
+          "query_response__query_common": {
+            "dot": -0.0020185010270488135,
+            "cosine": -0.3276413487213556
+          },
+          "query_response__earlier_native": {
+            "dot": 0.0017570286751986686,
+            "cosine": 0.2094335046424186
+          },
+          "query_response__query_native": {
+            "dot": -0.0005289371206775861,
+            "cosine": -0.09049968873923785
+          },
+          "query_response__native_all": {
+            "dot": 0.0012280921679934664,
+            "cosine": 0.10487944389053186
+          },
+          "query_common__earlier_native": {
+            "dot": 0.009176203234456892,
+            "cosine": 0.26445953781877646
+          },
+          "query_common__query_native": {
+            "dot": 0.023461613548903415,
+            "cosine": 0.9705765981429789
+          },
+          "query_common__native_all": {
+            "dot": 0.0326378160162335,
+            "cosine": 0.6739216431829255
+          },
+          "earlier_native__query_native": {
+            "dot": 0.010933232048902397,
+            "cosine": 0.33213763203865065
+          },
+          "earlier_native__native_all": {
+            "dot": 0.05818371118584764,
+            "cosine": 0.8822411561413053
+          },
+          "query_native__native_all": {
+            "dot": 0.03386590823507163,
+            "cosine": 0.7370965014506107
+          }
+        }
+      },
+      "gradient_reconstruction": {
+        "query_native": {
+          "max_abs": 9.313225746154785e-10,
+          "relative_l2": 2.2503495760182449e-07,
+          "relative_to_component_norm_sum": 1.7192156601351696e-07,
+          "reference_norm": 0.15143538862501005,
+          "component_norm_sum": 0.19821978736492907
+        },
+        "native_all": {
+          "max_abs": 4.190951585769653e-09,
+          "relative_l2": 3.551525607982671e-07,
+          "relative_to_component_norm_sum": 2.59274171178803e-07,
+          "reference_norm": 0.3033968035669254,
+          "component_norm_sum": 0.415591538620688
+        }
+      },
+      "query_response_to_native_gradient_norm_ratio": 0.1272092182955763,
+      "query_response_native_gradient_dot": 0.0012280921679934664,
+      "query_response_native_gradient_cosine": 0.10487944389053186,
+      "query_response_native_gradient_negative_cosine": false,
+      "source": {
+        "row_indices": [
+          741,
+          742,
+          743
+        ],
+        "source_groups": [
+          "twms-ec57018b10deb90e",
+          "twms-ec57018b10deb90e",
+          "twms-ec57018b10deb90e"
+        ],
+        "conditions": [
+          "3.4000000953674316",
+          "4.800000190734863",
+          "6.900000095367432"
+        ]
+      }
+    },
+    {
+      "query_id": "twms-26d0f8c229b57037",
+      "condition_count": 3,
+      "position_count": 3,
+      "losses": {
+        "query_response": 0.0011093481044146245,
+        "query_common": 0.014529547414814797,
+        "earlier_native": 0.06480498159694406,
+        "query_native": 0.01563889551922942,
+        "native_all": 0.08044387711617348
+      },
+      "query_response_loss_share": 0.013790336122319826,
+      "native_query_response_nre": 0.050867695086520136,
+      "loss_reconstruction_residual": 0.0,
+      "position_decomposition_max_abs": 6.938893903907228e-18,
+      "per_position": {
+        "native_by_position": [
+          0.13594665686454716,
+          0.05846828792628502,
+          0.04691668655768826
+        ],
+        "response_by_position": [
+          0.08244305497126062,
+          0.002857417633875801,
+          0.003328044313243874
+        ],
+        "common_by_position": [
+          0.05350360189328655,
+          0.05561087029240922,
+          0.04358864224444439
+        ],
+        "target_response_energy_by_position": [
+          0.08244305497126062,
+          0.0,
+          0.06542549859165529
+        ],
+        "prediction_response_energy_by_position": [
+          0.0,
+          0.002857417633875801,
+          0.08088578651959245
+        ]
+      },
+      "canonical_adapter_endpoint": {
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      },
+      "gradient": {
+        "norms": {
+          "query_response": 0.052578484024240486,
+          "query_common": 0.21276981418020396,
+          "earlier_native": 0.455540108890379,
+          "query_native": 0.2276647552930444,
+          "native_all": 0.5544576306956233
+        },
+        "pairs": {
+          "query_response__query_common": {
+            "dot": 0.0018978714059052493,
+            "cosine": 0.16964798598913397
+          },
+          "query_response__earlier_native": {
+            "dot": 0.001878615353263946,
+            "cosine": 0.07843378727546647
+          },
+          "query_response__query_native": {
+            "dot": 0.004662369189432525,
+            "cosine": 0.38949581635500496
+          },
+          "query_response__native_all": {
+            "dot": 0.0065409845093071795,
+            "cosine": 0.2243709856119443
+          },
+          "query_common__earlier_native": {
+            "dot": 0.022158997522453205,
+            "cosine": 0.22861960673957574
+          },
+          "query_common__query_native": {
+            "dot": 0.047168868340179415,
+            "cosine": 0.9737548634756379
+          },
+          "query_common__native_all": {
+            "dot": 0.06932786642988731,
+            "cosine": 0.5876644992954115
+          },
+          "earlier_native__query_native": {
+            "dot": 0.02403761622300493,
+            "cosine": 0.23177627189236175
+          },
+          "earlier_native__native_all": {
+            "dot": 0.23155440109394476,
+            "cosine": 0.9167650618191735
+          },
+          "query_native__native_all": {
+            "dot": 0.07586886093599787,
+            "cosine": 0.6010344923685537
+          }
+        }
+      },
+      "gradient_reconstruction": {
+        "query_native": {
+          "max_abs": 2.3283064365386963e-09,
+          "relative_l2": 2.9609945002497056e-07,
+          "relative_to_component_norm_sum": 2.5404877019562074e-07,
+          "reference_norm": 0.2276647552930444,
+          "component_norm_sum": 0.26534829820444444
+        },
+        "native_all": {
+          "max_abs": 4.48198989033699e-09,
+          "relative_l2": 2.5262399798283296e-07,
+          "relative_to_component_norm_sum": 1.9430095143698599e-07,
+          "reference_norm": 0.5544576306956233,
+          "component_norm_sum": 0.7208884070948234
+        }
+      },
+      "query_response_to_native_gradient_norm_ratio": 0.0948286778166899,
+      "query_response_native_gradient_dot": 0.0065409845093071795,
+      "query_response_native_gradient_cosine": 0.2243709856119443,
+      "query_response_native_gradient_negative_cosine": false,
+      "source": {
+        "row_indices": [
+          132,
+          133,
+          134
+        ],
+        "source_groups": [
+          "twms-26d0f8c229b57037",
+          "twms-26d0f8c229b57037",
+          "twms-26d0f8c229b57037"
+        ],
+        "conditions": [
+          "3.4000000953674316",
+          "4.800000190734863",
+          "6.900000095367432"
+        ]
+      }
+    },
+    {
+      "query_id": "twms-99d4253af65c4f5c",
+      "condition_count": 3,
+      "position_count": 3,
+      "losses": {
+        "query_response": 0.00036513300551541876,
+        "query_common": 0.012589373358852596,
+        "earlier_native": 0.05520869081467531,
+        "query_native": 0.012954506364368014,
+        "native_all": 0.06816319717904334
+      },
+      "query_response_loss_share": 0.00535674705158458,
+      "native_query_response_nre": 0.031445535163245254,
+      "loss_reconstruction_residual": 1.3877787807814457e-17,
+      "position_decomposition_max_abs": 2.0816681711721685e-17,
+      "per_position": {
+        "native_by_position": [
+          0.12648492009479761,
+          0.03914115234922833,
+          0.038863519093104044
+        ],
+        "response_by_position": [
+          0.07546898003370751,
+          0.000271309705679737,
+          0.0010953990165462563
+        ],
+        "common_by_position": [
+          0.05101594006109012,
+          0.03886984264354862,
+          0.03776812007655779
+        ],
+        "target_response_energy_by_position": [
+          0.07546898003370751,
+          0.0,
+          0.03483480280617391
+        ],
+        "prediction_response_energy_by_position": [
+          0.0,
+          0.000271309705679737,
+          0.030501207581657183
+        ]
+      },
+      "canonical_adapter_endpoint": {
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      },
+      "gradient": {
+        "norms": {
+          "query_response": 0.013879528039213428,
+          "query_common": 0.11656610127954244,
+          "earlier_native": 0.41778204606818764,
+          "query_native": 0.1216178863265663,
+          "native_all": 0.5005264845883594
+        },
+        "pairs": {
+          "query_response__query_common": {
+            "dot": 0.0005053065265858692,
+            "cosine": 0.31232585530923374
+          },
+          "query_response__earlier_native": {
+            "dot": 0.002220903914048833,
+            "cosine": 0.3830057538819206
+          },
+          "query_response__query_native": {
+            "dot": 0.0006979478314956822,
+            "cosine": 0.4134764819182987
+          },
+          "query_response__native_all": {
+            "dot": 0.0029188515844786878,
+            "cosine": 0.42015569237603484
+          },
+          "query_common__earlier_native": {
+            "dot": 0.028376102139759496,
+            "cosine": 0.5826807829219043
+          },
+          "query_common__query_native": {
+            "dot": 0.014092962302555634,
+            "cosine": 0.994105708907201
+          },
+          "query_common__native_all": {
+            "dot": 0.042469064654198974,
+            "cosine": 0.7279027540641365
+          },
+          "earlier_native__query_native": {
+            "dot": 0.03059700601716031,
+            "cosine": 0.6021874609095526
+          },
+          "earlier_native__native_all": {
+            "dot": 0.2051388431164014,
+            "cosine": 0.9810046524184193
+          },
+          "query_native__native_all": {
+            "dot": 0.045387916890462066,
+            "cosine": 0.7456168899677356
+          }
+        }
+      },
+      "gradient_reconstruction": {
+        "query_native": {
+          "max_abs": 9.313225746154785e-10,
+          "relative_l2": 2.1871652391378764e-07,
+          "relative_to_component_norm_sum": 2.039151597642999e-07,
+          "reference_norm": 0.1216178863265663,
+          "component_norm_sum": 0.13044562931875586
+        },
+        "native_all": {
+          "max_abs": 2.7939677238464355e-09,
+          "relative_l2": 2.107360971745044e-07,
+          "relative_to_component_norm_sum": 1.923999875055152e-07,
+          "reference_norm": 0.5005264845883594,
+          "component_norm_sum": 0.5482276753869435
+        }
+      },
+      "query_response_to_native_gradient_norm_ratio": 0.02772985739331689,
+      "query_response_native_gradient_dot": 0.0029188515844786878,
+      "query_response_native_gradient_cosine": 0.42015569237603484,
+      "query_response_native_gradient_negative_cosine": false,
+      "source": {
+        "row_indices": [
+          528,
+          529,
+          530
+        ],
+        "source_groups": [
+          "twms-99d4253af65c4f5c",
+          "twms-99d4253af65c4f5c",
+          "twms-99d4253af65c4f5c"
+        ],
+        "conditions": [
+          "3.4000000953674316",
+          "4.800000190734863",
+          "6.900000095367432"
+        ]
+      }
+    },
+    {
+      "query_id": "twms-6b8bc57263eac0b9",
+      "condition_count": 3,
+      "position_count": 3,
+      "losses": {
+        "query_response": 0.0006836271839137235,
+        "query_common": 0.011073927510581685,
+        "earlier_native": 0.056251616199341076,
+        "query_native": 0.011757554694495409,
+        "native_all": 0.06800917089383648
+      },
+      "query_response_loss_share": 0.010051985267999776,
+      "native_query_response_nre": 0.052211560818864786,
+      "loss_reconstruction_residual": 0.0,
+      "position_decomposition_max_abs": 6.938893903907228e-18,
+      "per_position": {
+        "native_by_position": [
+          0.1289424522938001,
+          0.03981239630422311,
+          0.03527266408348623
+        ],
+        "response_by_position": [
+          0.09941669025281989,
+          0.002246812554185257,
+          0.0020508815517411706
+        ],
+        "common_by_position": [
+          0.02952576204098021,
+          0.03756558375003785,
+          0.033221782531745056
+        ],
+        "target_response_energy_by_position": [
+          0.09941669025281989,
+          0.0,
+          0.039280219161733194
+        ],
+        "prediction_response_energy_by_position": [
+          0.0,
+          0.002246812554185257,
+          0.05080557110870659
+        ]
+      },
+      "canonical_adapter_endpoint": {
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      },
+      "gradient": {
+        "norms": {
+          "query_response": 0.05132781757480045,
+          "query_common": 0.12723570751534793,
+          "earlier_native": 0.20611939779445396,
+          "query_native": 0.13759019325849314,
+          "native_all": 0.30477265976069157
+        },
+        "pairs": {
+          "query_response__query_common": {
+            "dot": 5.379564422114402e-05,
+            "cosine": 0.008237307998539382
+          },
+          "query_response__earlier_native": {
+            "dot": 0.002801734790536692,
+            "cosine": 0.2648227916065329
+          },
+          "query_response__query_native": {
+            "dot": 0.0026883409033917616,
+            "cosine": 0.38066597539482583
+          },
+          "query_response__native_all": {
+            "dot": 0.005490075179675813,
+            "cosine": 0.35095342710429667
+          },
+          "query_common__earlier_native": {
+            "dot": 0.012933319640453078,
+            "cosine": 0.4931535196217551
+          },
+          "query_common__query_native": {
+            "dot": 0.01624272019903117,
+            "cosine": 0.9278168882349384
+          },
+          "query_common__native_all": {
+            "dot": 0.029176040373315004,
+            "cosine": 0.7523870934520439
+          },
+          "earlier_native__query_native": {
+            "dot": 0.01573505465049152,
+            "cosine": 0.5548325224130791
+          },
+          "earlier_native__native_all": {
+            "dot": 0.058220259516360784,
+            "cosine": 0.9267855777646062
+          },
+          "query_native__native_all": {
+            "dot": 0.03466611555518284,
+            "cosine": 0.826688116048696
+          }
+        }
+      },
+      "gradient_reconstruction": {
+        "query_native": {
+          "max_abs": 6.111804395914078e-10,
+          "relative_l2": 2.4422772932767473e-07,
+          "relative_to_component_norm_sum": 1.8818703573595425e-07,
+          "reference_norm": 0.13759019325849314,
+          "component_norm_sum": 0.1785635250901484
+        },
+        "native_all": {
+          "max_abs": 2.2118911147117615e-09,
+          "relative_l2": 3.52828777451766e-07,
+          "relative_to_component_norm_sum": 2.7953558254611056e-07,
+          "reference_norm": 0.30477265976069157,
+          "component_norm_sum": 0.3846829228846024
+        }
+      },
+      "query_response_to_native_gradient_norm_ratio": 0.16841345813336148,
+      "query_response_native_gradient_dot": 0.005490075179675813,
+      "query_response_native_gradient_cosine": 0.35095342710429667,
+      "query_response_native_gradient_negative_cosine": false,
+      "source": {
+        "row_indices": [
+          873,
+          874,
+          875
+        ],
+        "source_groups": [
+          "twms-6b8bc57263eac0b9",
+          "twms-6b8bc57263eac0b9",
+          "twms-6b8bc57263eac0b9"
+        ],
+        "conditions": [
+          "3.4000000953674316",
+          "4.800000190734863",
+          "6.900000095367432"
+        ]
+      }
+    },
+    {
+      "query_id": "twms-792f71c9da725854",
+      "condition_count": 3,
+      "position_count": 3,
+      "losses": {
+        "query_response": 0.00023631257376568733,
+        "query_common": 0.010870900530752941,
+        "earlier_native": 0.051530746345739877,
+        "query_native": 0.011107213104518631,
+        "native_all": 0.0626379594502585
+      },
+      "query_response_loss_share": 0.003772673564715111,
+      "native_query_response_nre": 0.022431522780221678,
+      "loss_reconstruction_residual": 0.0,
+      "position_decomposition_max_abs": 6.938893903907228e-18,
+      "per_position": {
+        "native_by_position": [
+          0.10771485678858929,
+          0.046877382248630334,
+          0.0333216393135559
+        ],
+        "response_by_position": [
+          0.07034493586948763,
+          0.0004836897226547696,
+          0.000708937721297062
+        ],
+        "common_by_position": [
+          0.03736992091910165,
+          0.04639369252597557,
+          0.032612701592258826
+        ],
+        "target_response_energy_by_position": [
+          0.07034493586948763,
+          0.0,
+          0.03160452940458178
+        ],
+        "prediction_response_energy_by_position": [
+          0.0,
+          0.0004836897226547696,
+          0.029040199087298785
+        ]
+      },
+      "canonical_adapter_endpoint": {
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      },
+      "gradient": {
+        "norms": {
+          "query_response": 0.009696322949187009,
+          "query_common": 0.1328158651457579,
+          "earlier_native": 0.48110661394038245,
+          "query_native": 0.1360518491777623,
+          "native_all": 0.5589772455234105
+        },
+        "pairs": {
+          "query_response__query_common": {
+            "dot": 0.0003880165907430566,
+            "cosine": 0.3012959320551298
+          },
+          "query_response__earlier_native": {
+            "dot": 0.00040489216136241346,
+            "cosine": 0.08679425301810326
+          },
+          "query_response__query_native": {
+            "dot": 0.00048203525083634347,
+            "cosine": 0.36539893583132904
+          },
+          "query_response__native_all": {
+            "dot": 0.0008869274847798092,
+            "cosine": 0.16363903594364235
+          },
+          "query_common__earlier_native": {
+            "dot": 0.030836041252797486,
+            "cosine": 0.48257779544197377
+          },
+          "query_common__query_native": {
+            "dot": 0.018028070779422478,
+            "cosine": 0.9976882327440596
+          },
+          "query_common__native_all": {
+            "dot": 0.04886411368630661,
+            "cosine": 0.6581819090061709
+          },
+          "earlier_native__query_native": {
+            "dot": 0.03124093479897283,
+            "cosine": 0.47728550387215174
+          },
+          "earlier_native__native_all": {
+            "dot": 0.2627045162048489,
+            "cosine": 0.9768594502580903
+          },
+          "query_native__native_all": {
+            "dot": 0.04975104228026339,
+            "cosine": 0.6541895544216472
+          }
+        }
+      },
+      "gradient_reconstruction": {
+        "query_native": {
+          "max_abs": 4.656612873077393e-10,
+          "relative_l2": 1.7374093189222126e-07,
+          "relative_to_component_norm_sum": 1.6586493673128033e-07,
+          "reference_norm": 0.1360518491777623,
+          "component_norm_sum": 0.14251218809494492
+        },
+        "native_all": {
+          "max_abs": 2.7939677238464355e-09,
+          "relative_l2": 2.1130952542570725e-07,
+          "relative_to_component_norm_sum": 1.8940611811224656e-07,
+          "reference_norm": 0.5589772455234105,
+          "component_norm_sum": 0.6236188020353274
+        }
+      },
+      "query_response_to_native_gradient_norm_ratio": 0.01734654322128559,
+      "query_response_native_gradient_dot": 0.0008869274847798092,
+      "query_response_native_gradient_cosine": 0.16363903594364235,
+      "query_response_native_gradient_negative_cosine": false,
+      "source": {
+        "row_indices": [
+          582,
+          583,
+          584
+        ],
+        "source_groups": [
+          "twms-792f71c9da725854",
+          "twms-792f71c9da725854",
+          "twms-792f71c9da725854"
+        ],
+        "conditions": [
+          "3.4000000953674316",
+          "4.800000190734863",
+          "6.900000095367432"
+        ]
+      }
+    },
+    {
+      "query_id": "twms-9e3c7d7659f16142",
+      "condition_count": 3,
+      "position_count": 3,
+      "losses": {
+        "query_response": 0.003864257479755025,
+        "query_common": 0.01075781443665032,
+        "earlier_native": 0.05402265201950427,
+        "query_native": 0.014622071916405348,
+        "native_all": 0.06864472393590962
+      },
+      "query_response_loss_share": 0.056293583223714354,
+      "native_query_response_nre": 0.28430872813212366,
+      "loss_reconstruction_residual": 0.0,
+      "position_decomposition_max_abs": 2.0816681711721685e-17,
+      "per_position": {
+        "native_by_position": [
+          0.08507544905479318,
+          0.07699250700371962,
+          0.04386621574921604
+        ],
+        "response_by_position": [
+          0.025389022294819694,
+          0.02382657533138776,
+          0.011592772439265075
+        ],
+        "common_by_position": [
+          0.0596864267599735,
+          0.05316593167233184,
+          0.03227344330995096
+        ],
+        "target_response_energy_by_position": [
+          0.025389022294819694,
+          0.0,
+          0.040775295628200675
+        ],
+        "prediction_response_energy_by_position": [
+          0.0,
+          0.02382657533138776,
+          0.010910278819059463
+        ]
+      },
+      "canonical_adapter_endpoint": {
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      },
+      "gradient": {
+        "norms": {
+          "query_response": 0.10820279573864798,
+          "query_common": 0.2905371214128275,
+          "earlier_native": 0.7462833510988028,
+          "query_native": 0.32523195054333104,
+          "native_all": 0.8948465609964831
+        },
+        "pairs": {
+          "query_response__query_common": {
+            "dot": 0.004828076117648905,
+            "cosine": 0.15357976435758258
+          },
+          "query_response__earlier_native": {
+            "dot": -0.0024354124410663758,
+            "cosine": -0.03015992693249656
+          },
+          "query_response__query_native": {
+            "dot": 0.016535921558713085,
+            "cosine": 0.4698905570348252
+          },
+          "query_response__native_all": {
+            "dot": 0.014100508095545194,
+            "cosine": 0.14562894612341998
+          },
+          "query_common__earlier_native": {
+            "dot": 0.07145326145732156,
+            "cosine": 0.32954647796256664
+          },
+          "query_common__query_native": {
+            "dot": 0.0892398957395244,
+            "cosine": 0.9444179244745362
+          },
+          "query_common__native_all": {
+            "dot": 0.16069315839877163,
+            "cosine": 0.6180835484718734
+          },
+          "earlier_native__query_native": {
+            "dot": 0.06901785751588818,
+            "cosine": 0.2843573883205331
+          },
+          "earlier_native__native_all": {
+            "dot": 0.6259566946055202,
+            "cosine": 0.9373288021013623
+          },
+          "query_native__native_all": {
+            "dot": 0.17479367194027873,
+            "cosine": 0.600598064969522
+          }
+        }
+      },
+      "gradient_reconstruction": {
+        "query_native": {
+          "max_abs": 2.9103830456733704e-09,
+          "relative_l2": 3.171888980012765e-07,
+          "relative_to_component_norm_sum": 2.587149155384307e-07,
+          "reference_norm": 0.32523195054333104,
+          "component_norm_sum": 0.3987399171514755
+        },
+        "native_all": {
+          "max_abs": 3.725290298461914e-09,
+          "relative_l2": 1.801452429449128e-07,
+          "relative_to_component_norm_sum": 1.40785218605615e-07,
+          "reference_norm": 0.8948465609964831,
+          "component_norm_sum": 1.1450232682502783
+        }
+      },
+      "query_response_to_native_gradient_norm_ratio": 0.12091770863840112,
+      "query_response_native_gradient_dot": 0.014100508095545194,
+      "query_response_native_gradient_cosine": 0.14562894612341998,
+      "query_response_native_gradient_negative_cosine": false,
+      "source": {
+        "row_indices": [
+          126,
+          127,
+          128
+        ],
+        "source_groups": [
+          "twms-9e3c7d7659f16142",
+          "twms-9e3c7d7659f16142",
+          "twms-9e3c7d7659f16142"
+        ],
+        "conditions": [
+          "3.4000000953674316",
+          "4.800000190734863",
+          "6.900000095367432"
+        ]
+      }
+    },
+    {
+      "query_id": "twms-cbd7641cba367a8e",
+      "condition_count": 3,
+      "position_count": 3,
+      "losses": {
+        "query_response": 0.0005334373710116132,
+        "query_common": 0.009677013829896903,
+        "earlier_native": 0.04662266132390395,
+        "query_native": 0.010210451200908518,
+        "native_all": 0.05683311252481246
+      },
+      "query_response_loss_share": 0.009386031264409858,
+      "native_query_response_nre": 0.046691124468623876,
+      "loss_reconstruction_residual": 0.0,
+      "position_decomposition_max_abs": 6.938893903907228e-18,
+      "per_position": {
+        "native_by_position": [
+          0.10782325640683821,
+          0.03204472756487366,
+          0.030631353602725557
+        ],
+        "response_by_position": [
+          0.06873460305270264,
+          0.0002718525751100722,
+          0.0016003121130348397
+        ],
+        "common_by_position": [
+          0.03908865335413556,
+          0.03177287498976359,
+          0.029031041489690712
+        ],
+        "target_response_energy_by_position": [
+          0.06873460305270264,
+          0.0,
+          0.03427443933397318
+        ],
+        "prediction_response_energy_by_position": [
+          0.0,
+          0.0002718525751100722,
+          0.02366920686482935
+        ]
+      },
+      "canonical_adapter_endpoint": {
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      },
+      "gradient": {
+        "norms": {
+          "query_response": 0.029042804965828548,
+          "query_common": 0.07663747375880357,
+          "earlier_native": 0.3588672808929913,
+          "query_native": 0.08141978803960083,
+          "native_all": 0.3757060636011694
+        },
+        "pairs": {
+          "query_response__query_common": {
+            "dot": -4.380260647796064e-05,
+            "cosine": -0.019679778914008135
+          },
+          "query_response__earlier_native": {
+            "dot": -0.00018203919569437232,
+            "cosine": -0.01746596097723291
+          },
+          "query_response__query_native": {
+            "dot": 0.0007996818441462494,
+            "cosine": 0.3381806154278198
+          },
+          "query_response__native_all": {
+            "dot": 0.0006176428115329813,
+            "cosine": 0.0566044569909468
+          },
+          "query_common__earlier_native": {
+            "dot": 0.003052105455500609,
+            "cosine": 0.1109748305717067
+          },
+          "query_common__query_native": {
+            "dot": 0.005829499963844853,
+            "cosine": 0.9342436530361214
+          },
+          "query_common__native_all": {
+            "dot": 0.008881605346910959,
+            "cosine": 0.30846229588734725
+          },
+          "earlier_native__query_native": {
+            "dot": 0.002870066288959805,
+            "cosine": 0.09822637028939693
+          },
+          "earlier_native__native_all": {
+            "dot": 0.13165579610426903,
+            "cosine": 0.9764677743553039
+          },
+          "query_native__native_all": {
+            "dot": 0.009499248023139728,
+            "cosine": 0.3105353570657904
+          }
+        }
+      },
+      "gradient_reconstruction": {
+        "query_native": {
+          "max_abs": 4.656612873077393e-10,
+          "relative_l2": 2.236896658008328e-07,
+          "relative_to_component_norm_sum": 1.7233835296374831e-07,
+          "reference_norm": 0.08141978803960083,
+          "component_norm_sum": 0.10568027872463212
+        },
+        "native_all": {
+          "max_abs": 1.862645149230957e-09,
+          "relative_l2": 2.2921831364326782e-07,
+          "relative_to_component_norm_sum": 1.8538190232900176e-07,
+          "reference_norm": 0.3757060636011694,
+          "component_norm_sum": 0.4645475596176234
+        }
+      },
+      "query_response_to_native_gradient_norm_ratio": 0.07730193302565093,
+      "query_response_native_gradient_dot": 0.0006176428115329813,
+      "query_response_native_gradient_cosine": 0.0566044569909468,
+      "query_response_native_gradient_negative_cosine": false,
+      "source": {
+        "row_indices": [
+          711,
+          712,
+          713
+        ],
+        "source_groups": [
+          "twms-cbd7641cba367a8e",
+          "twms-cbd7641cba367a8e",
+          "twms-cbd7641cba367a8e"
+        ],
+        "conditions": [
+          "3.4000000953674316",
+          "4.800000190734863",
+          "6.900000095367432"
+        ]
+      }
+    },
+    {
+      "query_id": "twms-bc2abab0bfb81af2",
+      "condition_count": 3,
+      "position_count": 3,
+      "losses": {
+        "query_response": 0.000227588547963815,
+        "query_common": 0.00968602024168752,
+        "earlier_native": 0.038674118255362065,
+        "query_native": 0.009913608789651335,
+        "native_all": 0.048587727045013414
+      },
+      "query_response_loss_share": 0.004684074802531282,
+      "native_query_response_nre": 0.022091981208340317,
+      "loss_reconstruction_residual": 1.3877787807814457e-17,
+      "position_decomposition_max_abs": 1.0408340855860843e-17,
+      "per_position": {
+        "native_by_position": [
+          0.08974331284904093,
+          0.02627904191704528,
+          0.029740826368954004
+        ],
+        "response_by_position": [
+          0.05310958134361199,
+          0.0008802837818248435,
+          0.000682765643891445
+        ],
+        "common_by_position": [
+          0.036633731505428944,
+          0.025398758135220446,
+          0.029058060725062562
+        ],
+        "target_response_energy_by_position": [
+          0.05310958134361199,
+          0.0,
+          0.03090558684857484
+        ],
+        "prediction_response_energy_by_position": [
+          0.0,
+          0.0008802837818248435,
+          0.033395345071051796
+        ]
+      },
+      "canonical_adapter_endpoint": {
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      },
+      "gradient": {
+        "norms": {
+          "query_response": 0.015863018696515227,
+          "query_common": 0.08563147813518576,
+          "earlier_native": 0.3623836039937621,
+          "query_native": 0.08932194695962326,
+          "native_all": 0.38943747821808283
+        },
+        "pairs": {
+          "query_response__query_common": {
+            "dot": 0.00019701239955627337,
+            "cosine": 0.1450354890910664
+          },
+          "query_response__earlier_native": {
+            "dot": 0.0007571226308393797,
+            "cosine": 0.13170790803523405
+          },
+          "query_response__query_native": {
+            "dot": 0.0004486476996962141,
+            "cosine": 0.3166368296038569
+          },
+          "query_response__native_all": {
+            "dot": 0.0012057702403382997,
+            "cosine": 0.19518254675799182
+          },
+          "query_common__earlier_native": {
+            "dot": 0.005423506331393213,
+            "cosine": 0.1747745412839056
+          },
+          "query_common__query_native": {
+            "dot": 0.0075297625499928245,
+            "cosine": 0.9844409241411621
+          },
+          "query_common__native_all": {
+            "dot": 0.012953268290686992,
+            "cosine": 0.3884258956324063
+          },
+          "earlier_native__query_native": {
+            "dot": 0.006180628059134108,
+            "cosine": 0.19094394386393126
+          },
+          "earlier_native__native_all": {
+            "dot": 0.13750250596581282,
+            "cosine": 0.9743260833385523
+          },
+          "query_native__native_all": {
+            "dot": 0.014159037592200718,
+            "cosine": 0.40704067482045797
+          }
+        }
+      },
+      "gradient_reconstruction": {
+        "query_native": {
+          "max_abs": 3.4924596548080444e-10,
+          "relative_l2": 2.192149621414955e-07,
+          "relative_to_component_norm_sum": 1.9292383165983246e-07,
+          "reference_norm": 0.08932194695962326,
+          "component_norm_sum": 0.10149449683170099
+        },
+        "native_all": {
+          "max_abs": 4.030880518257618e-09,
+          "relative_l2": 2.5221253236484825e-07,
+          "relative_to_component_norm_sum": 2.11738843468533e-07,
+          "reference_norm": 0.38943747821808283,
+          "component_norm_sum": 0.4638781008254631
+        }
+      },
+      "query_response_to_native_gradient_norm_ratio": 0.040733158937599795,
+      "query_response_native_gradient_dot": 0.0012057702403382997,
+      "query_response_native_gradient_cosine": 0.19518254675799182,
+      "query_response_native_gradient_negative_cosine": false,
+      "source": {
+        "row_indices": [
+          861,
+          862,
+          863
+        ],
+        "source_groups": [
+          "twms-bc2abab0bfb81af2",
+          "twms-bc2abab0bfb81af2",
+          "twms-bc2abab0bfb81af2"
+        ],
+        "conditions": [
+          "3.4000000953674316",
+          "4.800000190734863",
+          "6.900000095367432"
+        ]
+      }
+    },
+    {
+      "query_id": "twms-42d62387760c5ed9",
+      "condition_count": 3,
+      "position_count": 3,
+      "losses": {
+        "query_response": 0.0008054592012899493,
+        "query_common": 0.013021491618692344,
+        "earlier_native": 0.05483986701369742,
+        "query_native": 0.013826950819982295,
+        "native_all": 0.06866681783367971
+      },
+      "query_response_loss_share": 0.011729962545240993,
+      "native_query_response_nre": 0.07000548706510651,
+      "loss_reconstruction_residual": 0.0,
+      "position_decomposition_max_abs": 1.3877787807814457e-17,
+      "per_position": {
+        "native_by_position": [
+          0.11516543234066111,
+          0.04935416870043116,
+          0.041480852459946885
+        ],
+        "response_by_position": [
+          0.06686195983693058,
+          0.00556363319340422,
+          0.002416377603869848
+        ],
+        "common_by_position": [
+          0.04830347250373054,
+          0.04379053550702694,
+          0.03906447485607703
+        ],
+        "target_response_energy_by_position": [
+          0.06686195983693058,
+          0.0,
+          0.03451697438548736
+        ],
+        "prediction_response_energy_by_position": [
+          0.0,
+          0.00556363319340422,
+          0.03502145370894678
+        ]
+      },
+      "canonical_adapter_endpoint": {
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      },
+      "gradient": {
+        "norms": {
+          "query_response": 0.03677686015261254,
+          "query_common": 0.2711406847422198,
+          "earlier_native": 0.6827500937680716,
+          "query_native": 0.3024498123462313,
+          "native_all": 0.8603301261540873
+        },
+        "pairs": {
+          "query_response__query_common": {
+            "dot": 0.008303040575384557,
+            "cosine": 0.8326602324973266
+          },
+          "query_response__earlier_native": {
+            "dot": 0.007621572801713938,
+            "cosine": 0.3035345874346422
+          },
+          "query_response__query_native": {
+            "dot": 0.00965557818686591,
+            "cosine": 0.8680611447652413
+          },
+          "query_response__native_all": {
+            "dot": 0.017277153005547774,
+            "cosine": 0.5460499858532375
+          },
+          "query_common__earlier_native": {
+            "dot": 0.08365052241742887,
+            "cosine": 0.45186863854020864
+          },
+          "query_common__query_native": {
+            "dot": 0.08182031046487737,
+            "cosine": 0.9977301937029736
+          },
+          "query_common__native_all": {
+            "dot": 0.16547085352431168,
+            "cosine": 0.7093518206204832
+          },
+          "earlier_native__query_native": {
+            "dot": 0.09127209704030292,
+            "cosine": 0.44200068358860845
+          },
+          "earlier_native__native_all": {
+            "dot": 0.5574198591948516,
+            "cosine": 0.9489766749385893
+          },
+          "query_native__native_all": {
+            "dot": 0.1827480022373038,
+            "cosine": 0.7023186283205408
+          }
+        }
+      },
+      "gradient_reconstruction": {
+        "query_native": {
+          "max_abs": 2.0954757928848267e-09,
+          "relative_l2": 2.1745411733334287e-07,
+          "relative_to_component_norm_sum": 2.135927558263949e-07,
+          "reference_norm": 0.3024498123462313,
+          "component_norm_sum": 0.30791754489483236
+        },
+        "native_all": {
+          "max_abs": 7.450580596923828e-09,
+          "relative_l2": 2.8624661556628776e-07,
+          "relative_to_component_norm_sum": 2.4858648579023826e-07,
+          "reference_norm": 0.8603301261540873,
+          "component_norm_sum": 0.990667638662904
+        }
+      },
+      "query_response_to_native_gradient_norm_ratio": 0.042747381539473966,
+      "query_response_native_gradient_dot": 0.017277153005547774,
+      "query_response_native_gradient_cosine": 0.5460499858532375,
+      "query_response_native_gradient_negative_cosine": false,
+      "source": {
+        "row_indices": [
+          201,
+          202,
+          203
+        ],
+        "source_groups": [
+          "twms-42d62387760c5ed9",
+          "twms-42d62387760c5ed9",
+          "twms-42d62387760c5ed9"
+        ],
+        "conditions": [
+          "3.4000000953674316",
+          "4.800000190734863",
+          "6.900000095367432"
+        ]
+      }
+    },
+    {
+      "query_id": "twms-75e35968a55ce42a",
+      "condition_count": 3,
+      "position_count": 3,
+      "losses": {
+        "query_response": 0.0003278870243602169,
+        "query_common": 0.00897612882521909,
+        "earlier_native": 0.05893828991732997,
+        "query_native": 0.00930401584957931,
+        "native_all": 0.06824230576690929
+      },
+      "query_response_loss_share": 0.004804747153183229,
+      "native_query_response_nre": 0.017350099844239623,
+      "loss_reconstruction_residual": 1.3877787807814457e-17,
+      "position_decomposition_max_abs": 2.7755575615628914e-17,
+      "per_position": {
+        "native_by_position": [
+          0.13862756063320442,
+          0.03818730911878549,
+          0.027912047548737932
+        ],
+        "response_by_position": [
+          0.10958097965778335,
+          0.001638398830240777,
+          0.0009836610730806507
+        ],
+        "common_by_position": [
+          0.029046580975421094,
+          0.036548910288544706,
+          0.026928386475657276
+        ],
+        "target_response_energy_by_position": [
+          0.10958097965778335,
+          0.0,
+          0.05669483645117088
+        ],
+        "prediction_response_energy_by_position": [
+          0.0,
+          0.001638398830240777,
+          0.061875027248235175
+        ]
+      },
+      "canonical_adapter_endpoint": {
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      },
+      "gradient": {
+        "norms": {
+          "query_response": 0.01807183947206709,
+          "query_common": 0.09904288683759332,
+          "earlier_native": 0.22678454637200507,
+          "query_native": 0.0969158536641732,
+          "native_all": 0.2671886989971144
+        },
+        "pairs": {
+          "query_response__query_common": {
+            "dot": -0.0003717009150611128,
+            "cosine": -0.2076672346028371
+          },
+          "query_response__earlier_native": {
+            "dot": 5.220147571982636e-05,
+            "cosine": 0.012736994549548573
+          },
+          "query_response__query_native": {
+            "dot": -4.510952915334765e-05,
+            "cosine": -0.025755566593767463
+          },
+          "query_response__native_all": {
+            "dot": 7.09197377268822e-06,
+            "cosine": 0.0014687459272916187
+          },
+          "query_common__earlier_native": {
+            "dot": 0.005230740605917106,
+            "cosine": 0.2328769132602456
+          },
+          "query_common__query_native": {
+            "dot": 0.009437792129403988,
+            "cosine": 0.9832235943180655
+          },
+          "query_common__native_all": {
+            "dot": 0.014668533004325468,
+            "cosine": 0.5543005463639329
+          },
+          "earlier_native__query_native": {
+            "dot": 0.005282942660258527,
+            "cosine": 0.2403629990209276
+          },
+          "earlier_native__native_all": {
+            "dot": 0.05671417365505249,
+            "cosine": 0.9359659852763725
+          },
+          "query_native__native_all": {
+            "dot": 0.014675625021855154,
+            "cosine": 0.5667397780166801
+          }
+        }
+      },
+      "gradient_reconstruction": {
+        "query_native": {
+          "max_abs": 4.0745362639427185e-10,
+          "relative_l2": 1.996068066357434e-07,
+          "relative_to_component_norm_sum": 1.6518045741858949e-07,
+          "reference_norm": 0.0969158536641732,
+          "component_norm_sum": 0.11711472630966041
+        },
+        "native_all": {
+          "max_abs": 3.4924596548080444e-09,
+          "relative_l2": 3.8921448778324417e-07,
+          "relative_to_component_norm_sum": 3.0239584925757116e-07,
+          "reference_norm": 0.2671886989971144,
+          "component_norm_sum": 0.3438992726816655
+        }
+      },
+      "query_response_to_native_gradient_norm_ratio": 0.06763699041126835,
+      "query_response_native_gradient_dot": 7.09197377268822e-06,
+      "query_response_native_gradient_cosine": 0.0014687459272916187,
+      "query_response_native_gradient_negative_cosine": false,
+      "source": {
+        "row_indices": [
+          855,
+          856,
+          857
+        ],
+        "source_groups": [
+          "twms-75e35968a55ce42a",
+          "twms-75e35968a55ce42a",
+          "twms-75e35968a55ce42a"
+        ],
+        "conditions": [
+          "3.4000000953674316",
+          "4.800000190734863",
+          "6.900000095367432"
+        ]
+      }
+    },
+    {
+      "query_id": "twms-c81fcc2d3f8c58cb",
+      "condition_count": 3,
+      "position_count": 3,
+      "losses": {
+        "query_response": 0.00036708976877721937,
+        "query_common": 0.0072957866383954574,
+        "earlier_native": 0.050601686989567074,
+        "query_native": 0.007662876407172677,
+        "native_all": 0.058264563396739744
+      },
+      "query_response_loss_share": 0.006300395083673797,
+      "native_query_response_nre": 0.04484324600077803,
+      "loss_reconstruction_residual": -6.938893903907228e-18,
+      "position_decomposition_max_abs": 2.7755575615628914e-17,
+      "per_position": {
+        "native_by_position": [
+          0.12496478963859066,
+          0.026840271330110563,
+          0.022988629221518033
+        ],
+        "response_by_position": [
+          0.08570128604184554,
+          0.0001905933961531237,
+          0.0011012693063316582
+        ],
+        "common_by_position": [
+          0.03926350359674509,
+          0.026649677933957443,
+          0.021887359915186373
+        ],
+        "target_response_energy_by_position": [
+          0.08570128604184554,
+          0.0,
+          0.02455819782342588
+        ],
+        "prediction_response_energy_by_position": [
+          0.0,
+          0.0001905933961531237,
+          0.023003901993329016
+        ]
+      },
+      "canonical_adapter_endpoint": {
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      },
+      "gradient": {
+        "norms": {
+          "query_response": 0.014407042169010668,
+          "query_common": 0.10211764270602008,
+          "earlier_native": 0.400827524842662,
+          "query_native": 0.11097185858279376,
+          "native_all": 0.45756776165301355
+        },
+        "pairs": {
+          "query_response__query_common": {
+            "dot": 0.0008395893668975418,
+            "cosine": 0.5706782508806696
+          },
+          "query_response__earlier_native": {
+            "dot": 0.0005534203446111441,
+            "cosine": 0.09583469305551014
+          },
+          "query_response__query_native": {
+            "dot": 0.0010471522084323226,
+            "cosine": 0.65497108237445
+          },
+          "query_response__native_all": {
+            "dot": 0.0016005726003545107,
+            "cosine": 0.24279801536521717
+          },
+          "query_common__earlier_native": {
+            "dot": 0.01764198228687519,
+            "cosine": 0.4310117043761916
+          },
+          "query_common__query_native": {
+            "dot": 0.011267601595363885,
+            "cosine": 0.9943009214845202
+          },
+          "query_common__native_all": {
+            "dot": 0.028909584280881973,
+            "cosine": 0.6187078800571012
+          },
+          "earlier_native__query_native": {
+            "dot": 0.018195402211603096,
+            "cosine": 0.4090640025849142
+          },
+          "earlier_native__native_all": {
+            "dot": 0.17885810319694428,
+            "cosine": 0.9752044302256828
+          },
+          "query_native__native_all": {
+            "dot": 0.03051015655489664,
+            "cosine": 0.600863963344686
+          }
+        }
+      },
+      "gradient_reconstruction": {
+        "query_native": {
+          "max_abs": 4.656612873077393e-10,
+          "relative_l2": 1.712033382264399e-07,
+          "relative_to_component_norm_sum": 1.630448746455937e-07,
+          "reference_norm": 0.11097185858279376,
+          "component_norm_sum": 0.11652468487503076
+        },
+        "native_all": {
+          "max_abs": 3.259629011154175e-09,
+          "relative_l2": 2.335354506261901e-07,
+          "relative_to_component_norm_sum": 2.0654844301904842e-07,
+          "reference_norm": 0.45756776165301355,
+          "component_norm_sum": 0.5173522097176928
+        }
+      },
+      "query_response_to_native_gradient_norm_ratio": 0.031486139051762854,
+      "query_response_native_gradient_dot": 0.0016005726003545107,
+      "query_response_native_gradient_cosine": 0.24279801536521717,
+      "query_response_native_gradient_negative_cosine": false,
+      "source": {
+        "row_indices": [
+          537,
+          538,
+          539
+        ],
+        "source_groups": [
+          "twms-c81fcc2d3f8c58cb",
+          "twms-c81fcc2d3f8c58cb",
+          "twms-c81fcc2d3f8c58cb"
+        ],
+        "conditions": [
+          "3.4000000953674316",
+          "4.800000190734863",
+          "6.900000095367432"
+        ]
+      }
+    },
+    {
+      "query_id": "twms-62b763af45fae87c",
+      "condition_count": 3,
+      "position_count": 3,
+      "losses": {
+        "query_response": 0.0008689333283345603,
+        "query_common": 0.0132882910367289,
+        "earlier_native": 0.043886800322681094,
+        "query_native": 0.014157224365063462,
+        "native_all": 0.05804402468774456
+      },
+      "query_response_loss_share": 0.014970245998775946,
+      "native_query_response_nre": 0.13916191447055803,
+      "loss_reconstruction_residual": 6.938893903907228e-18,
+      "position_decomposition_max_abs": 2.0816681711721685e-17,
+      "per_position": {
+        "native_by_position": [
+          0.09207006039497787,
+          0.03959034057306543,
+          0.042471673095190385
+        ],
+        "response_by_position": [
+          0.06734715078586237,
+          0.0014134968837401527,
+          0.002606799985003681
+        ],
+        "common_by_position": [
+          0.024722909609115495,
+          0.03817684368932526,
+          0.0398648731101867
+        ],
+        "target_response_energy_by_position": [
+          0.06734715078586237,
+          0.0,
+          0.018732136554180503
+        ],
+        "prediction_response_energy_by_position": [
+          0.0,
+          0.0014134968837401527,
+          0.02632633798415409
+        ]
+      },
+      "canonical_adapter_endpoint": {
+        "max_abs": 0.0,
+        "relative_l2": 0.0
+      },
+      "gradient": {
+        "norms": {
+          "query_response": 0.03585160884369767,
+          "query_common": 0.1596264739125312,
+          "earlier_native": 0.35813200668646383,
+          "query_native": 0.16607248611453487,
+          "native_all": 0.3904541309360041
+        },
+        "pairs": {
+          "query_response__query_common": {
+            "dot": 0.00040706112604915745,
+            "cosine": 0.0711288946641404
+          },
+          "query_response__earlier_native": {
+            "dot": -0.0006518951398621908,
+            "cosine": -0.05077219713236498
+          },
+          "query_response__query_native": {
+            "dot": 0.0016923988925938716,
+            "cosine": 0.2842473312858764
+          },
+          "query_response__native_all": {
+            "dot": 0.00104050361513508,
+            "cosine": 0.0743301350856544
+          },
+          "query_common__earlier_native": {
+            "dot": -0.0010401892466518348,
+            "cosine": -0.018195512948532704
+          },
+          "query_common__query_native": {
+            "dot": 0.025887672146780005,
+            "cosine": 0.9765407988838768
+          },
+          "query_common__native_all": {
+            "dot": 0.02484748289580807,
+            "cosine": 0.39866440213542254
+          },
+          "earlier_native__query_native": {
+            "dot": -0.0016920866127492218,
+            "cosine": -0.028449966948240618
+          },
+          "earlier_native__native_all": {
+            "dot": 0.12656644454500565,
+            "cosine": 0.905118459283493
+          },
+          "query_native__native_all": {
+            "dot": 0.025887984097845873,
+            "cosine": 0.39923676152927595
+          }
+        }
+      },
+      "gradient_reconstruction": {
+        "query_native": {
+          "max_abs": 9.313225746154785e-10,
+          "relative_l2": 1.968205141841744e-07,
+          "relative_to_component_norm_sum": 1.6721297675948976e-07,
+          "reference_norm": 0.16607248611453487,
+          "component_norm_sum": 0.19547808275622888
+        },
+        "native_all": {
+          "max_abs": 2.0954757928848267e-09,
+          "relative_l2": 2.5351741385376537e-07,
+          "relative_to_component_norm_sum": 1.788025966128313e-07,
+          "reference_norm": 0.3904541309360041,
+          "component_norm_sum": 0.5536100894426927
+        }
+      },
+      "query_response_to_native_gradient_norm_ratio": 0.09182028310919263,
+      "query_response_native_gradient_dot": 0.00104050361513508,
+      "query_response_native_gradient_cosine": 0.0743301350856544,
+      "query_response_native_gradient_negative_cosine": false,
+      "source": {
+        "row_indices": [
+          87,
+          88,
+          89
+        ],
+        "source_groups": [
+          "twms-62b763af45fae87c",
+          "twms-62b763af45fae87c",
+          "twms-62b763af45fae87c"
+        ],
+        "conditions": [
+          "3.4000000953674316",
+          "4.800000190734863",
+          "6.900000095367432"
+        ]
+      }
+    }
+  ],
+  "limitation": "Frozen-checkpoint posthoc gradients cannot independently establish optimization causality"
+}

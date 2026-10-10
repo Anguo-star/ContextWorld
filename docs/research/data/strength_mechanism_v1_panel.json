@@ -1,0 +1,2382 @@
+{
+  "schema": "contextworld.strength_history_panel.v1",
+  "seed": 20261010,
+  "release": "ContextWorld-action-strength-32k-v1",
+  "component_root": "/opt/huawei/explorer-env/dataset/ag_data/data/world_model/ContextWorld-action-strength-32k-v1/components/pusht-action-strength/v1",
+  "source_provenance_path": "/opt/huawei/explorer-env/dataset/ag_data/code/ContextWorld/artifacts/synthesis/pusht_action_strength_h3_release_v1/manifest.json",
+  "source_provenance_sha256": "61551e3aba02d33b4411548bbdc123c3926191f0892bb1f8aac8b8736d4531f0",
+  "source_identity": "b6ebd9ac94bbe9e383f6e7a9cd92d74e9aa665ea57b758ed3717b0ee7df8d4fb",
+  "source_group_rule": "upstream_source_file_sha256 + source_episode_index; pair IDs are not independent",
+  "normalization": {
+    "mean": [
+      -0.007812564261257648,
+      0.006860687397420406
+    ],
+    "source": "original_pusht_h5_population_zscore",
+    "std": [
+      0.20846743881702423,
+      0.2067486196756363
+    ],
+    "std_estimator": "population",
+    "transform": "zscore"
+  },
+  "selection": "seed20261010 permutation of sorted upstream source episode groups; retain complete groups until >=512 Training pairs; sorted selected pair IDs; all256 Development pairs",
+  "layout": "pair-major, low_gain then high_gain; row axis K=2*pairs; history0/5/10, future15, actions0:15",
+  "no_test_read": true,
+  "release_hashes": {
+    "manifest.jsonl": "9328c931a6891aaa37b32094e779eccc58de5bf893869dd0537635f687d047e3",
+    "manifest.sha256": "0d508b35393642141f907524ea78d0e51fc7eb1727987ab52ab604d18ec58c31",
+    "task_registry.json": "fbbc048b8275f1ceaf768a3d911d850edf85ba9f38c2a622ffe755879fc2f81d"
+  },
+  "splits": {
+    "training": {
+      "path": "training.npz",
+      "sha256": "c339e60dc1083a172b1acfd172e281eb5a7eaeaf2b9bcc5057442ac0929ff267",
+      "pairs": 512,
+      "pair_ids": [
+        "phrm-train-00004",
+        "phrm-train-00082",
+        "phrm-train-00096",
+        "phrm-train-00112",
+        "phrm-train-00238",
+        "phrm-train-00328",
+        "phrm-train-00391",
+        "phrm-train-00395",
+        "phrm-train-00435",
+        "phrm-train-00582",
+        "phrm-train-00630",
+        "phrm-train-00675",
+        "phrm-train-00676",
+        "phrm-train-00841",
+        "phrm-train-00842",
+        "phrm-train-00843",
+        "phrm-train-00932",
+        "phrm-train-00964",
+        "phrm-train-01167",
+        "phrm-train-01187",
+        "phrm-train-01232",
+        "phrm-train-01314",
+        "phrm-train-01434",
+        "phrm-train-01586",
+        "phrm-train-01587",
+        "phrm-train-01678",
+        "phrm-train-01708",
+        "phrm-train-01866",
+        "phrm-train-01911",
+        "phrm-train-02017",
+        "phrm-train-02057",
+        "phrm-train-02172",
+        "phrm-train-02197",
+        "phrm-train-02405",
+        "phrm-train-02443",
+        "phrm-train-02521",
+        "phrm-train-02589",
+        "phrm-train-02703",
+        "phrm-train-02869",
+        "phrm-train-02871",
+        "phrm-train-02972",
+        "phrm-train-02973",
+        "phrm-train-03009",
+        "phrm-train-03087",
+        "phrm-train-03099",
+        "phrm-train-03139",
+        "phrm-train-03311",
+        "phrm-train-03390",
+        "phrm-train-03398",
+        "phrm-train-03422",
+        "phrm-train-03442",
+        "phrm-train-03450",
+        "phrm-train-03473",
+        "phrm-train-03634",
+        "phrm-train-03637",
+        "phrm-train-03823",
+        "phrm-train-03857",
+        "phrm-train-03879",
+        "phrm-train-03885",
+        "phrm-train-03927",
+        "phrm-train-04023",
+        "phrm-train-04114",
+        "phrm-train-04151",
+        "phrm-train-04162",
+        "phrm-train-04289",
+        "phrm-train-04329",
+        "phrm-train-04334",
+        "phrm-train-04400",
+        "phrm-train-04420",
+        "phrm-train-04558",
+        "phrm-train-04571",
+        "phrm-train-04579",
+        "phrm-train-04743",
+        "phrm-train-04749",
+        "phrm-train-04771",
+        "phrm-train-04792",
+        "phrm-train-04843",
+        "phrm-train-04846",
+        "phrm-train-04863",
+        "phrm-train-04971",
+        "phrm-train-05004",
+        "phrm-train-05011",
+        "phrm-train-05050",
+        "phrm-train-05127",
+        "phrm-train-05169",
+        "phrm-train-05316",
+        "phrm-train-05513",
+        "phrm-train-05607",
+        "phrm-train-05689",
+        "phrm-train-05693",
+        "phrm-train-05728",
+        "phrm-train-05739",
+        "phrm-train-05779",
+        "phrm-train-05814",
+        "phrm-train-05877",
+        "phrm-train-05884",
+        "phrm-train-05940",
+        "phrm-train-05946",
+        "phrm-train-05949",
+        "phrm-train-06001",
+        "phrm-train-06027",
+        "phrm-train-06090",
+        "phrm-train-06110",
+        "phrm-train-06118",
+        "phrm-train-06139",
+        "phrm-train-06288",
+        "phrm-train-06467",
+        "phrm-train-06578",
+        "phrm-train-06656",
+        "phrm-train-06774",
+        "phrm-train-06863",
+        "phrm-train-06908",
+        "phrm-train-07154",
+        "phrm-train-07226",
+        "phrm-train-07271",
+        "phrm-train-07281",
+        "phrm-train-07349",
+        "phrm-train-07471",
+        "phrm-train-07502",
+        "phrm-train-07519",
+        "phrm-train-07627",
+        "phrm-train-07665",
+        "phrm-train-07785",
+        "phrm-train-07801",
+        "phrm-train-07813",
+        "phrm-train-07899",
+        "phrm-train-07902",
+        "phrm-train-07913",
+        "phrm-train-07920",
+        "phrm-train-07962",
+        "phrm-train-08242",
+        "phrm-train-08509",
+        "phrm-train-08578",
+        "phrm-train-08599",
+        "phrm-train-08695",
+        "phrm-train-08697",
+        "phrm-train-08726",
+        "phrm-train-08739",
+        "phrm-train-08752",
+        "phrm-train-08771",
+        "phrm-train-08863",
+        "phrm-train-09076",
+        "phrm-train-09091",
+        "phrm-train-09253",
+        "phrm-train-09462",
+        "phrm-train-09467",
+        "phrm-train-09472",
+        "phrm-train-09535",
+        "phrm-train-09627",
+        "phrm-train-09696",
+        "phrm-train-09727",
+        "phrm-train-09738",
+        "phrm-train-09760",
+        "phrm-train-09966",
+        "phrm-train-09967",
+        "phrm-train-09977",
+        "phrm-train-09981",
+        "phrm-train-10092",
+        "phrm-train-10124",
+        "phrm-train-10237",
+        "phrm-train-10348",
+        "phrm-train-10403",
+        "phrm-train-10500",
+        "phrm-train-10595",
+        "phrm-train-10596",
+        "phrm-train-10601",
+        "phrm-train-10647",
+        "phrm-train-10670",
+        "phrm-train-10819",
+        "phrm-train-10890",
+        "phrm-train-10926",
+        "phrm-train-10941",
+        "phrm-train-11103",
+        "phrm-train-11115",
+        "phrm-train-11245",
+        "phrm-train-11251",
+        "phrm-train-11277",
+        "phrm-train-11292",
+        "phrm-train-11338",
+        "phrm-train-11370",
+        "phrm-train-11454",
+        "phrm-train-11544",
+        "phrm-train-11652",
+        "phrm-train-11810",
+        "phrm-train-11818",
+        "phrm-train-11872",
+        "phrm-train-11910",
+        "phrm-train-11942",
+        "phrm-train-11978",
+        "phrm-train-11988",
+        "phrm-train-11997",
+        "phrm-train-12123",
+        "phrm-train-12153",
+        "phrm-train-12231",
+        "phrm-train-12262",
+        "phrm-train-12281",
+        "phrm-train-12607",
+        "phrm-train-12636",
+        "phrm-train-12707",
+        "phrm-train-12721",
+        "phrm-train-12773",
+        "phrm-train-12787",
+        "phrm-train-12824",
+        "phrm-train-12936",
+        "phrm-train-12942",
+        "phrm-train-13031",
+        "phrm-train-13153",
+        "phrm-train-13180",
+        "phrm-train-13280",
+        "phrm-train-13383",
+        "phrm-train-13435",
+        "phrm-train-13465",
+        "phrm-train-13491",
+        "phrm-train-13519",
+        "phrm-train-13524",
+        "phrm-train-13819",
+        "phrm-train-13848",
+        "phrm-train-13875",
+        "phrm-train-13979",
+        "phrm-train-13980",
+        "phrm-train-14004",
+        "phrm-train-14132",
+        "phrm-train-14156",
+        "phrm-train-14171",
+        "phrm-train-14177",
+        "phrm-train-14207",
+        "phrm-train-14267",
+        "phrm-train-14315",
+        "phrm-train-14387",
+        "phrm-train-14437",
+        "phrm-train-14473",
+        "phrm-train-14580",
+        "phrm-train-14647",
+        "phrm-train-14710",
+        "phrm-train-14718",
+        "phrm-train-14938",
+        "phrm-train-14981",
+        "phrm-train-15021",
+        "phrm-train-15047",
+        "phrm-train-15090",
+        "phrm-train-15166",
+        "phrm-train-15243",
+        "phrm-train-15255",
+        "phrm-train-15262",
+        "phrm-train-15272",
+        "phrm-train-15331",
+        "phrm-train-15363",
+        "phrm-train-15437",
+        "phrm-train-15465",
+        "phrm-train-15502",
+        "phrm-train-15562",
+        "phrm-train-15610",
+        "phrm-train-15647",
+        "phrm-train-15717",
+        "phrm-train-15772",
+        "phrm-train-15828",
+        "phrm-train-15831",
+        "phrm-train-15834",
+        "phrm-train-15875",
+        "phrm-train-15891",
+        "phrm-train-16138",
+        "phrm-train-16248",
+        "phrm-train-16255",
+        "phrm-train-16392",
+        "phrm-train-16426",
+        "phrm-train-16479",
+        "phrm-train-16487",
+        "phrm-train-16528",
+        "phrm-train-16653",
+        "phrm-train-16874",
+        "phrm-train-16985",
+        "phrm-train-17026",
+        "phrm-train-17116",
+        "phrm-train-17128",
+        "phrm-train-17166",
+        "phrm-train-17264",
+        "phrm-train-17290",
+        "phrm-train-17324",
+        "phrm-train-17362",
+        "phrm-train-17363",
+        "phrm-train-17374",
+        "phrm-train-17417",
+        "phrm-train-17499",
+        "phrm-train-17530",
+        "phrm-train-17589",
+        "phrm-train-17612",
+        "phrm-train-17707",
+        "phrm-train-17745",
+        "phrm-train-17884",
+        "phrm-train-17891",
+        "phrm-train-17939",
+        "phrm-train-18024",
+        "phrm-train-18105",
+        "phrm-train-18126",
+        "phrm-train-18235",
+        "phrm-train-18293",
+        "phrm-train-18307",
+        "phrm-train-18349",
+        "phrm-train-18358",
+        "phrm-train-18396",
+        "phrm-train-18406",
+        "phrm-train-18664",
+        "phrm-train-18769",
+        "phrm-train-18913",
+        "phrm-train-18957",
+        "phrm-train-19035",
+        "phrm-train-19214",
+        "phrm-train-19222",
+        "phrm-train-19299",
+        "phrm-train-19344",
+        "phrm-train-19388",
+        "phrm-train-19398",
+        "phrm-train-19406",
+        "phrm-train-19422",
+        "phrm-train-19445",
+        "phrm-train-19567",
+        "phrm-train-19600",
+        "phrm-train-19671",
+        "phrm-train-19690",
+        "phrm-train-19700",
+        "phrm-train-19784",
+        "phrm-train-19804",
+        "phrm-train-19934",
+        "phrm-train-19944",
+        "phrm-train-19951",
+        "phrm-train-20157",
+        "phrm-train-20283",
+        "phrm-train-20542",
+        "phrm-train-20567",
+        "phrm-train-20572",
+        "phrm-train-20683",
+        "phrm-train-20741",
+        "phrm-train-20839",
+        "phrm-train-20893",
+        "phrm-train-20901",
+        "phrm-train-20939",
+        "phrm-train-20976",
+        "phrm-train-21014",
+        "phrm-train-21066",
+        "phrm-train-21071",
+        "phrm-train-21114",
+        "phrm-train-21141",
+        "phrm-train-21195",
+        "phrm-train-21196",
+        "phrm-train-21281",
+        "phrm-train-21430",
+        "phrm-train-21507",
+        "phrm-train-21616",
+        "phrm-train-21751",
+        "phrm-train-21811",
+        "phrm-train-21839",
+        "phrm-train-21976",
+        "phrm-train-22025",
+        "phrm-train-22070",
+        "phrm-train-22175",
+        "phrm-train-22180",
+        "phrm-train-22198",
+        "phrm-train-22238",
+        "phrm-train-22339",
+        "phrm-train-22346",
+        "phrm-train-22387",
+        "phrm-train-22432",
+        "phrm-train-22470",
+        "phrm-train-22472",
+        "phrm-train-22614",
+        "phrm-train-22843",
+        "phrm-train-22873",
+        "phrm-train-22875",
+        "phrm-train-22910",
+        "phrm-train-22992",
+        "phrm-train-23022",
+        "phrm-train-23044",
+        "phrm-train-23084",
+        "phrm-train-23100",
+        "phrm-train-23164",
+        "phrm-train-23290",
+        "phrm-train-23363",
+        "phrm-train-23364",
+        "phrm-train-23377",
+        "phrm-train-23467",
+        "phrm-train-23543",
+        "phrm-train-23676",
+        "phrm-train-23729",
+        "phrm-train-23744",
+        "phrm-train-23745",
+        "phrm-train-23796",
+        "phrm-train-23933",
+        "phrm-train-23976",
+        "phrm-train-24079",
+        "phrm-train-24296",
+        "phrm-train-24423",
+        "phrm-train-24483",
+        "phrm-train-24729",
+        "phrm-train-24825",
+        "phrm-train-24865",
+        "phrm-train-24975",
+        "phrm-train-24981",
+        "phrm-train-25014",
+        "phrm-train-25034",
+        "phrm-train-25064",
+        "phrm-train-25195",
+        "phrm-train-25516",
+        "phrm-train-25585",
+        "phrm-train-25596",
+        "phrm-train-25700",
+        "phrm-train-25995",
+        "phrm-train-26020",
+        "phrm-train-26028",
+        "phrm-train-26115",
+        "phrm-train-26129",
+        "phrm-train-26206",
+        "phrm-train-26217",
+        "phrm-train-26281",
+        "phrm-train-26282",
+        "phrm-train-26315",
+        "phrm-train-26347",
+        "phrm-train-26393",
+        "phrm-train-26450",
+        "phrm-train-26473",
+        "phrm-train-26557",
+        "phrm-train-26585",
+        "phrm-train-26601",
+        "phrm-train-26743",
+        "phrm-train-26898",
+        "phrm-train-26970",
+        "phrm-train-27014",
+        "phrm-train-27178",
+        "phrm-train-27243",
+        "phrm-train-27440",
+        "phrm-train-27442",
+        "phrm-train-27650",
+        "phrm-train-27889",
+        "phrm-train-28092",
+        "phrm-train-28178",
+        "phrm-train-28226",
+        "phrm-train-28263",
+        "phrm-train-28323",
+        "phrm-train-28495",
+        "phrm-train-28514",
+        "phrm-train-28658",
+        "phrm-train-28716",
+        "phrm-train-28717",
+        "phrm-train-28729",
+        "phrm-train-28906",
+        "phrm-train-28973",
+        "phrm-train-29067",
+        "phrm-train-29102",
+        "phrm-train-29140",
+        "phrm-train-29149",
+        "phrm-train-29212",
+        "phrm-train-29215",
+        "phrm-train-29373",
+        "phrm-train-29419",
+        "phrm-train-29493",
+        "phrm-train-29534",
+        "phrm-train-29635",
+        "phrm-train-29668",
+        "phrm-train-29837",
+        "phrm-train-29872",
+        "phrm-train-29949",
+        "phrm-train-29983",
+        "phrm-train-29985",
+        "phrm-train-30076",
+        "phrm-train-30092",
+        "phrm-train-30129",
+        "phrm-train-30364",
+        "phrm-train-30396",
+        "phrm-train-30427",
+        "phrm-train-30470",
+        "phrm-train-30526",
+        "phrm-train-30550",
+        "phrm-train-30559",
+        "phrm-train-30628",
+        "phrm-train-30685",
+        "phrm-train-30771",
+        "phrm-train-30778",
+        "phrm-train-30789",
+        "phrm-train-30924",
+        "phrm-train-30940",
+        "phrm-train-31011",
+        "phrm-train-31101",
+        "phrm-train-31139",
+        "phrm-train-31248",
+        "phrm-train-31312",
+        "phrm-train-31318",
+        "phrm-train-31431",
+        "phrm-train-31476",
+        "phrm-train-31493",
+        "phrm-train-31557",
+        "phrm-train-31574",
+        "phrm-train-31579",
+        "phrm-train-31642",
+        "phrm-train-31650",
+        "phrm-train-31777",
+        "phrm-train-31826",
+        "phrm-train-31830",
+        "phrm-train-31835",
+        "phrm-train-31883",
+        "phrm-train-31974",
+        "phrm-train-32100",
+        "phrm-train-32113",
+        "phrm-train-32246",
+        "phrm-train-32339",
+        "phrm-train-32341",
+        "phrm-train-32382",
+        "phrm-train-32416",
+        "phrm-train-32437",
+        "phrm-train-32446",
+        "phrm-train-32503",
+        "phrm-train-32632",
+        "phrm-train-32638",
+        "phrm-train-32749"
+      ],
+      "selected_source_groups": 188,
+      "metadata_pairs": 32768,
+      "metadata_source_groups": 12305,
+      "lance_path": "/opt/huawei/explorer-env/dataset/ag_data/data/world_model/ContextWorld-action-strength-32k-v1/components/pusht-action-strength/v1/training/data.lance",
+      "lance_version": 385,
+      "lance_versions": {
+        "_versions/18446744073709551448.manifest": [
+          20205,
+          1789456315710665466
+        ],
+        "_versions/18446744073709551370.manifest": [
+          29174,
+          1789457483162561691
+        ],
+        "_versions/18446744073709551341.manifest": [
+          32510,
+          1789457927637429129
+        ],
+        "_versions/18446744073709551452.manifest": [
+          19745,
+          1789456257591867131
+        ],
+        "_versions/18446744073709551520.manifest": [
+          11954,
+          1789455254756648587
+        ],
+        "_versions/18446744073709551392.manifest": [
+          26645,
+          1789457157677256941
+        ],
+        "_versions/18446744073709551489.manifest": [
+          15489,
+          1789455703267352596
+        ],
+        "_versions/18446744073709551419.manifest": [
+          23540,
+          1789456750773670091
+        ],
+        "_versions/18446744073709551518.manifest": [
+          12181,
+          1789455284020042063
+        ],
+        "_versions/18446744073709551283.manifest": [
+          39180,
+          1789458920865036268
+        ],
+        "_versions/18446744073709551302.manifest": [
+          36994,
+          1789458601139640649
+        ],
+        "_versions/18446744073709551524.manifest": [
+          11497,
+          1789455195185883272
+        ],
+        "_versions/18446744073709551528.manifest": [
+          11042,
+          1789455134711136656
+        ],
+        "_versions/18446744073709551249.manifest": [
+          43090,
+          1789459477313588927
+        ],
+        "_versions/18446744073709551268.manifest": [
+          40904,
+          1789459164244008928
+        ],
+        "_versions/18446744073709551409.manifest": [
+          24690,
+          1789456899370597696
+        ],
+        "_versions/18446744073709551301.manifest": [
+          37110,
+          1789458617415304452
+        ],
+        "_versions/18446744073709551232.manifest": [
+          45045,
+          1789459786583238637
+        ],
+        "_versions/18446744073709551235.manifest": [
+          44700,
+          1789459733484334149
+        ],
+        "_versions/18446744073709551371.manifest": [
+          29060,
+          1789457468514862656
+        ],
+        "_versions/18446744073709551374.manifest": [
+          28715,
+          1789457420931840337
+        ],
+        "_versions/18446744073709551366.manifest": [
+          29635,
+          1789457547325243350
+        ],
+        "_versions/18446744073709551275.manifest": [
+          40100,
+          1789459055398257292
+        ],
+        "_versions/18446744073709551459.manifest": [
+          18940,
+          1789456144370210140
+        ],
+        "_versions/18446744073709551485.manifest": [
+          15950,
+          1789455758798201643
+        ],
+        "_versions/18446744073709551603.manifest": [
+          2492,
+          1789454020650222141
+        ],
+        "_versions/18446744073709551372.manifest": [
+          28944,
+          1789457453131178742
+        ],
+        "_versions/18446744073709551573.manifest": [
+          5912,
+          1789454479928704960
+        ],
+        "_versions/18446744073709551547.manifest": [
+          8876,
+          1789454855928913540
+        ],
+        "_versions/18446744073709551307.manifest": [
+          36420,
+          1789458505705611975
+        ],
+        "_versions/18446744073709551335.manifest": [
+          33200,
+          1789458023847441322
+        ],
+        "_versions/18446744073709551568.manifest": [
+          6481,
+          1789454552055210365
+        ],
+        "_versions/18446744073709551478.manifest": [
+          16754,
+          1789455861228078644
+        ],
+        "_versions/18446744073709551480.manifest": [
+          16524,
+          1789455832124681851
+        ],
+        "_versions/18446744073709551239.manifest": [
+          44240,
+          1789459658501881154
+        ],
+        "_versions/18446744073709551580.manifest": [
+          5113,
+          1789454365195082453
+        ],
+        "_versions/18446744073709551473.manifest": [
+          17329,
+          1789455933130588368
+        ],
+        "_versions/18446744073709551548.manifest": [
+          8761,
+          1789454842253196925
+        ],
+        "_versions/18446744073709551552.manifest": [
+          8306,
+          1789454784318397442
+        ],
+        "_versions/18446744073709551597.manifest": [
+          3176,
+          1789454106556441928
+        ],
+        "_versions/18446744073709551446.manifest": [
+          20435,
+          1789456346462029649
+        ],
+        "_versions/18446744073709551280.manifest": [
+          39524,
+          1789458974175935054
+        ],
+        "_versions/18446744073709551295.manifest": [
+          37800,
+          1789458728885001887
+        ],
+        "_versions/18446744073709551331.manifest": [
+          33659,
+          1789458084246190884
+        ],
+        "_versions/18446744073709551344.manifest": [
+          32164,
+          1789457880046406975
+        ],
+        "_versions/18446744073709551298.manifest": [
+          37455,
+          1789458671698183162
+        ],
+        "_versions/18446744073709551323.manifest": [
+          34580,
+          1789458204399703339
+        ],
+        "_versions/18446744073709551384.manifest": [
+          27565,
+          1789457273338872910
+        ],
+        "_versions/18446744073709551433.manifest": [
+          21930,
+          1789456537874072009
+        ],
+        "_versions/18446744073709551596.manifest": [
+          3289,
+          1789454121008142458
+        ],
+        "_versions/18446744073709551555.manifest": [
+          7963,
+          1789454739167333055
+        ],
+        "_versions/18446744073709551364.manifest": [
+          29865,
+          1789457576748638792
+        ],
+        "_versions/18446744073709551527.manifest": [
+          11156,
+          1789455149298834342
+        ],
+        "_versions/18446744073709551403.manifest": [
+          25380,
+          1789456989560732924
+        ],
+        "_versions/18446744073709551501.manifest": [
+          14121,
+          1789455530286937848
+        ],
+        "_versions/18446744073709551289.manifest": [
+          38488,
+          1789458825998995860
+        ],
+        "_versions/18446744073709551414.manifest": [
+          24115,
+          1789456825348128187
+        ],
+        "_versions/18446744073709551499.manifest": [
+          14349,
+          1789455558734348238
+        ],
+        "_versions/18446744073709551358.manifest": [
+          30555,
+          1789457666458795530
+        ],
+        "_versions/18446744073709551272.manifest": [
+          40444,
+          1789459102185290839
+        ],
+        "_versions/18446744073709551245.manifest": [
+          43550,
+          1789459546476176942
+        ],
+        "_versions/18446744073709551476.manifest": [
+          16985,
+          1789455889803486380
+        ],
+        "_versions/18446744073709551397.manifest": [
+          26069,
+          1789457082186817784
+        ],
+        "_versions/18446744073709551538.manifest": [
+          9902,
+          1789454985786222655
+        ],
+        "_versions/18446744073709551493.manifest": [
+          15033,
+          1789455645460550720
+        ],
+        "_versions/18446744073709551455.manifest": [
+          19399,
+          1789456210200846990
+        ],
+        "_versions/18446744073709551442.manifest": [
+          20895,
+          1789456406264793167
+        ],
+        "_versions/18446744073709551537.manifest": [
+          10015,
+          1789455001221902799
+        ],
+        "_versions/18446744073709551464.manifest": [
+          18365,
+          1789456067655800150
+        ],
+        "_versions/18446744073709551436.manifest": [
+          21585,
+          1789456493970979751
+        ],
+        "_versions/18446744073709551377.manifest": [
+          28370,
+          1789457375892765749
+        ],
+        "_versions/18446744073709551567.manifest": [
+          6596,
+          1789454566622908496
+        ],
+        "_versions/latest_version_hint.json": [
+          15,
+          1789459822310501530
+        ],
+        "_versions/18446744073709551532.manifest": [
+          10586,
+          1789455074676380687
+        ],
+        "_versions/18446744073709551435.manifest": [
+          21700,
+          1789456507814693517
+        ],
+        "_versions/18446744073709551595.manifest": [
+          3404,
+          1789454135891834040
+        ],
+        "_versions/18446744073709551322.manifest": [
+          34694,
+          1789458223011318022
+        ],
+        "_versions/18446744073709551540.manifest": [
+          9673,
+          1789454956150836756
+        ],
+        "_versions/18446744073709551380.manifest": [
+          28025,
+          1789457332509657136
+        ],
+        "_versions/18446744073709551432.manifest": [
+          22045,
+          1789456552877761792
+        ],
+        "_versions/18446744073709551429.manifest": [
+          22389,
+          1789456598084827090
+        ],
+        "_versions/18446744073709551241.manifest": [
+          44010,
+          1789459619978675946
+        ],
+        "_versions/18446744073709551285.manifest": [
+          38950,
+          1789458888345708000
+        ],
+        "_versions/18446744073709551248.manifest": [
+          43205,
+          1789459493773252896
+        ],
+        "_versions/18446744073709551306.manifest": [
+          36535,
+          1789458525693199103
+        ],
+        "_versions/18446744073709551238.manifest": [
+          44355,
+          1789459676593507896
+        ],
+        "_versions/18446744073709551592.manifest": [
+          3745,
+          1789454179118938295
+        ],
+        "_versions/18446744073709551339.manifest": [
+          32740,
+          1789457959648770430
+        ],
+        "_versions/18446744073709551251.manifest": [
+          42860,
+          1789459442450300677
+        ],
+        "_versions/18446744073709551394.manifest": [
+          26415,
+          1789457128389862488
+        ],
+        "_versions/18446744073709551382.manifest": [
+          27795,
+          1789457302718269255
+        ],
+        "_versions/18446744073709551329.manifest": [
+          33890,
+          1789458113881577340
+        ],
+        "_versions/18446744073709551503.manifest": [
+          13893,
+          1789455500551554154
+        ],
+        "_versions/18446744073709551350.manifest": [
+          31475,
+          1789457789840260428
+        ],
+        "_versions/18446744073709551599.manifest": [
+          2948,
+          1789454078281027873
+        ],
+        "_versions/18446744073709551390.manifest": [
+          26874,
+          1789457186200667191
+        ],
+        "_versions/18446744073709551355.manifest": [
+          30899,
+          1789457711133877597
+        ],
+        "_versions/18446744073709551300.manifest": [
+          37225,
+          1789458634742946525
+        ],
+        "_versions/18446744073709551609.manifest": [
+          1807,
+          1789453935767981133
+        ],
+        "_versions/18446744073709551611.manifest": [
+          1579,
+          1789453908512545940
+        ],
+        "_versions/18446744073709551535.manifest": [
+          10244,
+          1789455031477275852
+        ],
+        "_versions/18446744073709551410.manifest": [
+          24575,
+          1789456884582903447
+        ],
+        "_versions/18446744073709551544.manifest": [
+          9217,
+          1789454898172038184
+        ],
+        "_versions/18446744073709551316.manifest": [
+          35385,
+          1789458328693176082
+        ],
+        "_versions/18446744073709551444.manifest": [
+          20665,
+          1789456377801381676
+        ],
+        "_versions/18446744073709551383.manifest": [
+          27679,
+          1789457288206567425
+        ],
+        "_versions/18446744073709551294.manifest": [
+          37915,
+          1789458745560657428
+        ],
+        "_versions/18446744073709551337.manifest": [
+          32969,
+          1789457992216096187
+        ],
+        "_versions/18446744073709551260.manifest": [
+          41824,
+          1789459292229367505
+        ],
+        "_versions/18446744073709551576.manifest": [
+          5570,
+          1789454434573644801
+        ],
+        "_versions/18446744073709551287.manifest": [
+          38720,
+          1789458857470345775
+        ],
+        "_versions/18446744073709551553.manifest": [
+          8192,
+          1789454770666680331
+        ],
+        "_versions/18446744073709551585.manifest": [
+          4544,
+          1789454287356695408
+        ],
+        "_versions/18446744073709551500.manifest": [
+          14235,
+          1789455543706659706
+        ],
+        "_versions/18446744073709551385.manifest": [
+          27450,
+          1789457258759172477
+        ],
+        "_versions/18446744073709551368.manifest": [
+          29404,
+          1789457513057947435
+        ],
+        "_versions/18446744073709551539.manifest": [
+          9787,
+          1789454971058527841
+        ],
+        "_versions/18446744073709551579.manifest": [
+          5228,
+          1789454383610700847
+        ],
+        "_versions/18446744073709551434.manifest": [
+          21814,
+          1789456522078398601
+        ],
+        "_versions/18446744073709551270.manifest": [
+          40675,
+          1789459134424624890
+        ],
+        "_versions/18446744073709551557.manifest": [
+          7735,
+          1789454709207953870
+        ],
+        "_versions/18446744073709551545.manifest": [
+          9104,
+          1789454883528341628
+        ],
+        "_versions/18446744073709551495.manifest": [
+          14805,
+          1789455614541191565
+        ],
+        "_versions/18446744073709551282.manifest": [
+          39294,
+          1789458940012640746
+        ],
+        "_versions/18446744073709551262.manifest": [
+          41595,
+          1789459259606039090
+        ],
+        "_versions/18446744073709551290.manifest": [
+          38375,
+          1789458809543335776
+        ],
+        "_versions/18446744073709551550.manifest": [
+          8534,
+          1789454811801827935
+        ],
+        "_versions/18446744073709551467.manifest": [
+          18019,
+          1789456022184742600
+        ],
+        "_versions/18446744073709551556.manifest": [
+          7850,
+          1789454724411638821
+        ],
+        "_versions/18446744073709551521.manifest": [
+          11839,
+          1789455240216949941
+        ],
+        "_versions/18446744073709551506.manifest": [
+          13550,
+          1789455456148474468
+        ],
+        "_versions/18446744073709551412.manifest": [
+          24344,
+          1789456855187511228
+        ],
+        "_versions/18446744073709551312.manifest": [
+          35844,
+          1789458407119597205
+        ],
+        "_versions/18446744073709551411.manifest": [
+          24459,
+          1789456870135202168
+        ],
+        "_versions/18446744073709551415.manifest": [
+          23999,
+          1789456811184421036
+        ],
+        "_versions/18446744073709551517.manifest": [
+          12296,
+          1789455298879734076
+        ],
+        "_versions/18446744073709551549.manifest": [
+          8648,
+          1789454827809496225
+        ],
+        "_versions/18446744073709551491.manifest": [
+          15261,
+          1789455674707944528
+        ],
+        "_versions/18446744073709551581.manifest": [
+          5000,
+          1789454348907419963
+        ],
+        "_versions/18446744073709551468.manifest": [
+          17905,
+          1789456006753062441
+        ],
+        "_versions/18446744073709551560.manifest": [
+          7393,
+          1789454665084868181
+        ],
+        "_versions/18446744073709551426.manifest": [
+          22735,
+          1789456643623885523
+        ],
+        "_versions/18446744073709551246.manifest": [
+          43435,
+          1789459528424545475
+        ],
+        "_versions/18446744073709551387.manifest": [
+          27220,
+          1789457230275757722
+        ],
+        "_versions/18446744073709551450.manifest": [
+          19975,
+          1789456286483269772
+        ],
+        "_versions/18446744073709551336.manifest": [
+          33084,
+          1789458007119787635
+        ],
+        "_versions/18446744073709551577.manifest": [
+          5456,
+          1789454419849949903
+        ],
+        "_versions/18446744073709551333.manifest": [
+          33430,
+          1789458053550826371
+        ],
+        "_versions/18446744073709551453.manifest": [
+          19630,
+          1789456241608197610
+        ],
+        "_versions/18446744073709551586.manifest": [
+          4430,
+          1789454269653062261
+        ],
+        "_versions/18446744073709551230.manifest": [
+          45275,
+          1789459822310501530
+        ],
+        "_versions/18446744073709551250.manifest": [
+          42974,
+          1789459459161959501
+        ],
+        "_versions/18446744073709551299.manifest": [
+          37339,
+          1789458652022589590
+        ],
+        "_versions/18446744073709551308.manifest": [
+          36305,
+          1789458486334002464
+        ],
+        "_versions/18446744073709551474.manifest": [
+          17215,
+          1789455919662867504
+        ],
+        "_versions/18446744073709551605.manifest": [
+          2263,
+          1789453992354808499
+        ],
+        "_versions/18446744073709551479.manifest": [
+          16640,
+          1789455846880376019
+        ],
+        "_versions/18446744073709551593.manifest": [
+          3632,
+          1789454164607239005
+        ],
+        "_versions/18446744073709551304.manifest": [
+          36764,
+          1789458564112405499
+        ],
+        "_versions/18446744073709551514.manifest": [
+          12639,
+          1789455342906821554
+        ],
+        "_versions/18446744073709551601.manifest": [
+          2720,
+          1789454049745619205
+        ],
+        "_versions/18446744073709551519.manifest": [
+          12068,
+          1789455269516342672
+        ],
+        "_versions/18446744073709551334.manifest": [
+          33314,
+          1789458039159124324
+        ],
+        "_versions/18446744073709551454.manifest": [
+          19515,
+          1789456226464510721
+        ],
+        "_versions/18446744073709551311.manifest": [
+          35960,
+          1789458427555185796
+        ],
+        "_versions/18446744073709551255.manifest": [
+          42400,
+          1789459376695643088
+        ],
+        "_versions/18446744073709551497.manifest": [
+          14577,
+          1789455587393754233
+        ],
+        "_versions/18446744073709551317.manifest": [
+          35270,
+          1789458308321586202
+        ],
+        "_versions/18446744073709551265.manifest": [
+          41250,
+          1789459211767027273
+        ],
+        "_versions/18446744073709551274.manifest": [
+          40215,
+          1789459071589922830
+        ],
+        "_versions/18446744073709551600.manifest": [
+          2834,
+          1789454064417315166
+        ],
+        "_versions/18446744073709551584.manifest": [
+          4658,
+          1789454301732397517
+        ],
+        "_versions/18446744073709551458.manifest": [
+          19054,
+          1789456161029864846
+        ],
+        "_versions/18446744073709551375.manifest": [
+          28599,
+          1789457405224163081
+        ],
+        "_versions/18446744073709551470.manifest": [
+          17674,
+          1789455977093677173
+        ],
+        "_versions/18446744073709551542.manifest": [
+          9446,
+          1789454927595428477
+        ],
+        "_versions/18446744073709551318.manifest": [
+          35154,
+          1789458289137972405
+        ],
+        "_versions/18446744073709551569.manifest": [
+          6367,
+          1789454537051521269
+        ],
+        "_versions/18446744073709551613.manifest": [
+          1351,
+          1789453881305109753
+        ],
+        "_versions/18446744073709551399.manifest": [
+          25840,
+          1789457052519431188
+        ],
+        "_versions/18446744073709551261.manifest": [
+          41710,
+          1789459275501710742
+        ],
+        "_versions/18446744073709551284.manifest": [
+          39065,
+          1789458904737369407
+        ],
+        "_versions/18446744073709551456.manifest": [
+          19285,
+          1789456194925162830
+        ],
+        "_versions/18446744073709551460.manifest": [
+          18825,
+          1789456128598537030
+        ],
+        "_versions/18446744073709551425.manifest": [
+          22849,
+          1789456659199563480
+        ],
+        "_versions/18446744073709551360.manifest": [
+          30325,
+          1789457636703406910
+        ],
+        "_versions/18446744073709551369.manifest": [
+          29290,
+          1789457498442247743
+        ],
+        "_versions/18446744073709551346.manifest": [
+          31935,
+          1789457850803007835
+        ],
+        "_versions/18446744073709551606.manifest": [
+          2149,
+          1789453976951127705
+        ],
+        "_versions/18446744073709551324.manifest": [
+          34464,
+          1789458188200038722
+        ],
+        "_versions/18446744073709551349.manifest": [
+          31590,
+          1789457804923950505
+        ],
+        "_versions/18446744073709551541.manifest": [
+          9560,
+          1789454941571138875
+        ],
+        "_versions/18446744073709551325.manifest": [
+          34350,
+          1789458173692339075
+        ],
+        "_versions/18446744073709551558.manifest": [
+          7622,
+          1789454694860251180
+        ],
+        "_versions/18446744073709551386.manifest": [
+          27335,
+          1789457244387467770
+        ],
+        "_versions/18446744073709551531.manifest": [
+          10699,
+          1789455090072061660
+        ],
+        "_versions/18446744073709551513.manifest": [
+          12752,
+          1789455359190484054
+        ],
+        "_versions/18446744073709551465.manifest": [
+          18249,
+          1789456053188100013
+        ],
+        "_versions/18446744073709551559.manifest": [
+          7507,
+          1789454680060557857
+        ],
+        "_versions/18446744073709551256.manifest": [
+          42284,
+          1789459359200000270
+        ],
+        "_versions/18446744073709551240.manifest": [
+          44125,
+          1789459640394254741
+        ],
+        "_versions/18446744073709551326.manifest": [
+          34235,
+          1789458157984664272
+        ],
+        "_versions/18446744073709551604.manifest": [
+          2378,
+          1789454007366497416
+        ],
+        "_versions/18446744073709551257.manifest": [
+          42170,
+          1789459341692357696
+        ],
+        "_versions/18446744073709551400.manifest": [
+          25725,
+          1789457037867734127
+        ],
+        "_versions/18446744073709551258.manifest": [
+          42055,
+          1789459325272692911
+        ],
+        "_versions/18446744073709551365.manifest": [
+          29750,
+          1789457562508931373
+        ],
+        "_versions/18446744073709551416.manifest": [
+          23884,
+          1789456796128732329
+        ],
+        "_versions/18446744073709551320.manifest": [
+          34925,
+          1789458256922620963
+        ],
+        "_versions/18446744073709551281.manifest": [
+          39409,
+          1789458957024289346
+        ],
+        "_versions/18446744073709551602.manifest": [
+          2606,
+          1789454034417936836
+        ],
+        "_versions/18446744073709551512.manifest": [
+          12867,
+          1789455373510187259
+        ],
+        "_versions/18446744073709551237.manifest": [
+          44470,
+          1789459694893130346
+        ],
+        "_versions/18446744073709551297.manifest": [
+          37570,
+          1789458691773768473
+        ],
+        "_versions/18446744073709551303.manifest": [
+          36879,
+          1789458582004035922
+        ],
+        "_versions/18446744073709551554.manifest": [
+          8078,
+          1789454754411017178
+        ],
+        "_versions/18446744073709551428.manifest": [
+          22505,
+          1789456613500508355
+        ],
+        "_versions/18446744073709551293.manifest": [
+          38030,
+          1789458761924319414
+        ],
+        "_versions/18446744073709551486.manifest": [
+          15834,
+          1789455745242482604
+        ],
+        "_versions/18446744073709551395.manifest": [
+          26300,
+          1789457113430171795
+        ],
+        "_versions/18446744073709551437.manifest": [
+          21470,
+          1789456479771273344
+        ],
+        "_versions/18446744073709551575.manifest": [
+          5684,
+          1789454450637311932
+        ],
+        "_versions/18446744073709551562.manifest": [
+          7166,
+          1789454636393462721
+        ],
+        "_versions/18446744073709551332.manifest": [
+          33544,
+          1789458069042505646
+        ],
+        "_versions/18446744073709551424.manifest": [
+          22965,
+          1789456674331250616
+        ],
+        "_versions/18446744073709551413.manifest": [
+          24230,
+          1789456840975805069
+        ],
+        "_versions/18446744073709551391.manifest": [
+          26759,
+          1789457172012960536
+        ],
+        "_versions/18446744073709551263.manifest": [
+          41480,
+          1789459243962362233
+        ],
+        "_versions/18446744073709551353.manifest": [
+          31130,
+          1789457741653250520
+        ],
+        "_versions/18446744073709551472.manifest": [
+          17444,
+          1789455948134277396
+        ],
+        "_versions/18446744073709551402.manifest": [
+          25495,
+          1789457005656400129
+        ],
+        "_versions/18446744073709551564.manifest": [
+          6937,
+          1789454609238025431
+        ],
+        "_versions/18446744073709551484.manifest": [
+          16064,
+          1789455775121863313
+        ],
+        "_versions/18446744073709551319.manifest": [
+          35039,
+          1789458273058296121
+        ],
+        "_versions/18446744073709551574.manifest": [
+          5798,
+          1789454464809018268
+        ],
+        "_versions/18446744073709551443.manifest": [
+          20779,
+          1789456392125085519
+        ],
+        "_versions/18446744073709551373.manifest": [
+          28830,
+          1789457437315503705
+        ],
+        "_versions/18446744073709551509.manifest": [
+          13209,
+          1789455414797331526
+        ],
+        "_versions/18446744073709551438.manifest": [
+          21354,
+          1789456465047577772
+        ],
+        "_versions/18446744073709551487.manifest": [
+          15718,
+          1789455731546766467
+        ],
+        "_versions/18446744073709551342.manifest": [
+          32394,
+          1789457910261786143
+        ],
+        "_versions/18446744073709551536.manifest": [
+          10130,
+          1789455015933597946
+        ],
+        "_versions/18446744073709551417.manifest": [
+          23769,
+          1789456780245060740
+        ],
+        "_versions/18446744073709551427.manifest": [
+          22620,
+          1789456628288202604
+        ],
+        "_versions/18446744073709551494.manifest": [
+          14919,
+          1789455630320864511
+        ],
+        "_versions/18446744073709551393.manifest": [
+          26530,
+          1789457142941561617
+        ],
+        "_versions/18446744073709551315.manifest": [
+          35499,
+          1789458348180783758
+        ],
+        "_versions/18446744073709551357.manifest": [
+          30670,
+          1789457680826500319
+        ],
+        "_versions/18446744073709551381.manifest": [
+          27909,
+          1789457317225971167
+        ],
+        "_versions/18446744073709551439.manifest": [
+          21240,
+          1789456449951889890
+        ],
+        "_versions/18446744073709551266.manifest": [
+          41135,
+          1789459196763337195
+        ],
+        "_versions/18446744073709551259.manifest": [
+          41939,
+          1789459309061023879
+        ],
+        "_versions/18446744073709551271.manifest": [
+          40559,
+          1789459118004964061
+        ],
+        "_versions/18446744073709551492.manifest": [
+          15147,
+          1789455660644236017
+        ],
+        "_versions/18446744073709551389.manifest": [
+          26989,
+          1789457201212356808
+        ],
+        "_versions/18446744073709551511.manifest": [
+          12981,
+          1789455386441919231
+        ],
+        "_versions/18446744073709551534.manifest": [
+          10358,
+          1789455045684981442
+        ],
+        "_versions/18446744073709551608.manifest": [
+          1921,
+          1789453948939708179
+        ],
+        "_versions/18446744073709551523.manifest": [
+          11612,
+          1789455210413567656
+        ],
+        "_versions/18446744073709551405.manifest": [
+          25150,
+          1789456958885367168
+        ],
+        "_versions/18446744073709551247.manifest": [
+          43320,
+          1789459510392913598
+        ],
+        "_versions/18446744073709551348.manifest": [
+          31705,
+          1789457820359633350
+        ],
+        "_versions/18446744073709551343.manifest": [
+          32279,
+          1789457895214095326
+        ],
+        "_versions/18446744073709551463.manifest": [
+          18480,
+          1789456082871484785
+        ],
+        "_versions/18446744073709551571.manifest": [
+          6140,
+          1789454508756107602
+        ],
+        "_versions/18446744073709551252.manifest": [
+          42745,
+          1789459425806640465
+        ],
+        "_versions/18446744073709551396.manifest": [
+          26185,
+          1789457097834494252
+        ],
+        "_versions/18446744073709551422.manifest": [
+          23195,
+          1789456704638623980
+        ],
+        "_versions/18446744073709551359.manifest": [
+          30440,
+          1789457652459083180
+        ],
+        "_versions/18446744073709551351.manifest": [
+          31360,
+          1789457774728570926
+        ],
+        "_versions/18446744073709551264.manifest": [
+          41365,
+          1789459227614699917
+        ],
+        "_versions/18446744073709551488.manifest": [
+          15603,
+          1789455717295061852
+        ],
+        "_versions/18446744073709551338.manifest": [
+          32855,
+          1789457975548441259
+        ],
+        "_versions/18446744073709551530.manifest": [
+          10814,
+          1789455103855776036
+        ],
+        "_versions/18446744073709551278.manifest": [
+          39755,
+          1789459006739262413
+        ],
+        "_versions/18446744073709551431.manifest": [
+          22160,
+          1789456568313442644
+        ],
+        "_versions/18446744073709551441.manifest": [
+          21010,
+          1789456421532477492
+        ],
+        "_versions/18446744073709551570.manifest": [
+          6253,
+          1789454523027811867
+        ],
+        "_versions/18446744073709551330.manifest": [
+          33775,
+          1789458099293879351
+        ],
+        "_versions/18446744073709551449.manifest": [
+          20089,
+          1789456300018989907
+        ],
+        "_versions/18446744073709551292.manifest": [
+          38145,
+          1789458777767992140
+        ],
+        "_versions/18446744073709551277.manifest": [
+          39870,
+          1789459022634934065
+        ],
+        "_versions/18446744073709551461.manifest": [
+          18710,
+          1789456112978860768
+        ],
+        "_versions/18446744073709551440.manifest": [
+          21124,
+          1789456435044198122
+        ],
+        "_versions/18446744073709551462.manifest": [
+          18595,
+          1789456097511181357
+        ],
+        "_versions/18446744073709551356.manifest": [
+          30785,
+          1789457695742193848
+        ],
+        "_versions/18446744073709551253.manifest": [
+          42629,
+          1789459409026983029
+        ],
+        "_versions/18446744073709551466.manifest": [
+          18134,
+          1789456038112412477
+        ],
+        "_versions/18446744073709551504.manifest": [
+          13779,
+          1789455485535865375
+        ],
+        "_versions/18446744073709551231.manifest": [
+          45159,
+          1789459805118856220
+        ],
+        "_versions/18446744073709551496.manifest": [
+          14691,
+          1789455601401463904
+        ],
+        "_versions/18446744073709551345.manifest": [
+          32050,
+          1789457865494705966
+        ],
+        "_versions/18446744073709551451.manifest": [
+          19860,
+          1789456272539558073
+        ],
+        "_versions/18446744073709551482.manifest": [
+          16294,
+          1789455805113241701
+        ],
+        "_versions/18446744073709551614.manifest": [
+          2086,
+          1789448549839334195
+        ],
+        "_versions/18446744073709551269.manifest": [
+          40790,
+          1789459149348316620
+        ],
+        "_versions/18446744073709551354.manifest": [
+          31015,
+          1789457725521581975
+        ],
+        "_versions/18446744073709551296.manifest": [
+          37685,
+          1789458710833374770
+        ],
+        "_versions/18446744073709551314.manifest": [
+          35615,
+          1789458367860387569
+        ],
+        "_versions/18446744073709551236.manifest": [
+          44585,
+          1789459713564745121
+        ],
+        "_versions/18446744073709551328.manifest": [
+          34004,
+          1789458128025284522
+        ],
+        "_versions/18446744073709551379.manifest": [
+          28139,
+          1789457347129356747
+        ],
+        "_versions/18446744073709551578.manifest": [
+          5342,
+          1789454402434310788
+        ],
+        "_versions/18446744073709551363.manifest": [
+          29980,
+          1789457591788329773
+        ],
+        "_versions/18446744073709551516.manifest": [
+          12410,
+          1789455314599408264
+        ],
+        "_versions/18446744073709551543.manifest": [
+          9332,
+          1789454912327744852
+        ],
+        "_versions/18446744073709551288.manifest": [
+          38604,
+          1789458842242660324
+        ],
+        "_versions/18446744073709551481.manifest": [
+          16410,
+          1789455818576962646
+        ],
+        "_versions/18446744073709551243.manifest": [
+          43780,
+          1789459581803455719
+        ],
+        "_versions/18446744073709551588.manifest": [
+          4202,
+          1789454240437667657
+        ],
+        "_versions/18446744073709551589.manifest": [
+          4088,
+          1789454224785991989
+        ],
+        "_versions/18446744073709551406.manifest": [
+          25034,
+          1789456944193670934
+        ],
+        "_versions/18446744073709551475.manifest": [
+          17100,
+          1789455905283165543
+        ],
+        "_versions/18446744073709551362.manifest": [
+          30095,
+          1789457605604045904
+        ],
+        "_versions/18446744073709551551.manifest": [
+          8420,
+          1789454798582101871
+        ],
+        "_versions/18446744073709551505.manifest": [
+          13665,
+          1789455470900168720
+        ],
+        "_versions/18446744073709551590.manifest": [
+          3974,
+          1789454209646305712
+        ],
+        "_versions/18446744073709551408.manifest": [
+          24804,
+          1789456914114292856
+        ],
+        "_versions/18446744073709551310.manifest": [
+          36075,
+          1789458447682780589
+        ],
+        "_versions/18446744073709551525.manifest": [
+          11383,
+          1789455180082196316
+        ],
+        "_versions/18446744073709551515.manifest": [
+          12524,
+          1789455327967131200
+        ],
+        "_versions/18446744073709551340.manifest": [
+          32625,
+          1789457943265108030
+        ],
+        "_versions/18446744073709551401.manifest": [
+          25609,
+          1789457021168079409
+        ],
+        "_versions/18446744073709551244.manifest": [
+          43665,
+          1789459564719804489
+        ],
+        "_versions/18446744073709551423.manifest": [
+          23080,
+          1789456689938927912
+        ],
+        "_versions/18446744073709551594.manifest": [
+          3518,
+          1789454150607529105
+        ],
+        "_versions/18446744073709551404.manifest": [
+          25265,
+          1789456974393046530
+        ],
+        "_versions/18446744073709551483.manifest": [
+          16180,
+          1789455791317527636
+        ],
+        "_versions/18446744073709551273.manifest": [
+          40329,
+          1789459086101623070
+        ],
+        "_versions/18446744073709551612.manifest": [
+          1465,
+          1789453894996826023
+        ],
+        "_versions/18446744073709551242.manifest": [
+          43894,
+          1789459601099061790
+        ],
+        "_versions/18446744073709551582.manifest": [
+          4885,
+          1789454335003708075
+        ],
+        "_versions/18446744073709551490.manifest": [
+          15375,
+          1789455689615635546
+        ],
+        "_versions/18446744073709551508.manifest": [
+          13323,
+          1789455428613045177
+        ],
+        "_versions/18446744073709551587.manifest": [
+          4316,
+          1789454254429377724
+        ],
+        "_versions/18446744073709551457.manifest": [
+          19170,
+          1789456177621520963
+        ],
+        "_versions/18446744073709551522.manifest": [
+          11726,
+          1789455225629252291
+        ],
+        "_versions/18446744073709551305.manifest": [
+          36650,
+          1789458544704806391
+        ],
+        "_versions/18446744073709551591.manifest": [
+          3859,
+          1789454194038629131
+        ],
+        "_versions/18446744073709551267.manifest": [
+          41020,
+          1789459180683669344
+        ],
+        "_versions/18446744073709551234.manifest": [
+          44815,
+          1789459748528023775
+        ],
+        "_versions/18446744073709551378.manifest": [
+          28255,
+          1789457361441062686
+        ],
+        "_versions/18446744073709551447.manifest": [
+          20320,
+          1789456331266343836
+        ],
+        "_versions/18446744073709551533.manifest": [
+          10472,
+          1789455059852687861
+        ],
+        "_versions/18446744073709551507.manifest": [
+          13437,
+          1789455442544756424
+        ],
+        "_versions/18446744073709551529.manifest": [
+          10928,
+          1789455118843465463
+        ],
+        "_versions/18446744073709551418.manifest": [
+          23655,
+          1789456765637362769
+        ],
+        "_versions/18446744073709551563.manifest": [
+          7052,
+          1789454622705746355
+        ],
+        "_versions/18446744073709551469.manifest": [
+          17789,
+          1789455991045388005
+        ],
+        "_versions/18446744073709551471.manifest": [
+          17559,
+          1789455963069967833
+        ],
+        "_versions/18446744073709551388.manifest": [
+          27105,
+          1789457215720056847
+        ],
+        "_versions/18446744073709551526.manifest": [
+          11269,
+          1789455165030508283
+        ],
+        "_versions/18446744073709551286.manifest": [
+          38835,
+          1789458872886027342
+        ],
+        "_versions/18446744073709551421.manifest": [
+          23309,
+          1789456720002306321
+        ],
+        "_versions/18446744073709551361.manifest": [
+          30209,
+          1789457620139747241
+        ],
+        "_versions/18446744073709551561.manifest": [
+          7279,
+          1789454650217176268
+        ],
+        "_versions/18446744073709551546.manifest": [
+          8990,
+          1789454869632629574
+        ],
+        "_versions/18446744073709551398.manifest": [
+          25955,
+          1789457067643118490
+        ],
+        "_versions/18446744073709551572.manifest": [
+          6026,
+          1789454493896415523
+        ],
+        "_versions/18446744073709551598.manifest": [
+          3062,
+          1789454091536753177
+        ],
+        "_versions/18446744073709551233.manifest": [
+          44930,
+          1789459766699648867
+        ],
+        "_versions/18446744073709551313.manifest": [
+          35730,
+          1789458387307996051
+        ],
+        "_versions/18446744073709551376.manifest": [
+          28485,
+          1789457390568464209
+        ],
+        "_versions/18446744073709551291.manifest": [
+          38260,
+          1789458792951678500
+        ],
+        "_versions/18446744073709551279.manifest": [
+          39640,
+          1789458990851590595
+        ],
+        "_versions/18446744073709551502.manifest": [
+          14007,
+          1789455515435245670
+        ],
+        "_versions/18446744073709551309.manifest": [
+          36190,
+          1789458467438382870
+        ],
+        "_versions/18446744073709551254.manifest": [
+          42515,
+          1789459393771294481
+        ],
+        "_versions/18446744073709551610.manifest": [
+          1692,
+          1789453922208262128
+        ],
+        "_versions/18446744073709551498.manifest": [
+          14463,
+          1789455573386044561
+        ],
+        "_versions/18446744073709551607.manifest": [
+          2035,
+          1789453962519426770
+        ],
+        "_versions/18446744073709551352.manifest": [
+          31245,
+          1789457758608902134
+        ],
+        "_versions/18446744073709551583.manifest": [
+          4772,
+          1789454317444071942
+        ],
+        "_versions/18446744073709551445.manifest": [
+          20550,
+          1789456362497698096
+        ],
+        "_versions/18446744073709551367.manifest": [
+          29520,
+          1789457529341612857
+        ],
+        "_versions/18446744073709551430.manifest": [
+          22275,
+          1789456583465129368
+        ],
+        "_versions/18446744073709551276.manifest": [
+          39985,
+          1789459038514606047
+        ],
+        "_versions/18446744073709551321.manifest": [
+          34810,
+          1789458240362958790
+        ],
+        "_versions/18446744073709551420.manifest": [
+          23425,
+          1789456735337989239
+        ],
+        "_versions/18446744073709551477.manifest": [
+          16869,
+          1789455875255787901
+        ],
+        "_versions/18446744073709551510.manifest": [
+          13095,
+          1789455400289632219
+        ],
+        "_versions/18446744073709551565.manifest": [
+          6824,
+          1789454594702326637
+        ],
+        "_versions/18446744073709551407.manifest": [
+          24920,
+          1789456928873987683
+        ],
+        "_versions/18446744073709551566.manifest": [
+          6709,
+          1789454580254626021
+        ],
+        "_versions/18446744073709551327.manifest": [
+          34120,
+          1789458143580962472
+        ],
+        "_versions/18446744073709551347.manifest": [
+          31820,
+          1789457835607320059
+        ]
+      },
+      "current_rgb_equal_pairs": 512,
+      "actions_equal_pairs": 512
+    },
+    "development": {
+      "path": "development.npz",
+      "sha256": "084ed054f18a10ce4aaf18a43f448188cf95601d4c98faeeb266163ee5319035",
+      "pairs": 256,
+      "pair_ids": [
+        "phrm-validation-00000",
+        "phrm-validation-00001",
+        "phrm-validation-00002",
+        "phrm-validation-00003",
+        "phrm-validation-00004",
+        "phrm-validation-00005",
+        "phrm-validation-00006",
+        "phrm-validation-00007",
+        "phrm-validation-00008",
+        "phrm-validation-00009",
+        "phrm-validation-00010",
+        "phrm-validation-00011",
+        "phrm-validation-00012",
+        "phrm-validation-00013",
+        "phrm-validation-00014",
+        "phrm-validation-00015",
+        "phrm-validation-00016",
+        "phrm-validation-00017",
+        "phrm-validation-00018",
+        "phrm-validation-00019",
+        "phrm-validation-00020",
+        "phrm-validation-00021",
+        "phrm-validation-00022",
+        "phrm-validation-00023",
+        "phrm-validation-00024",
+        "phrm-validation-00025",
+        "phrm-validation-00026",
+        "phrm-validation-00027",
+        "phrm-validation-00028",
+        "phrm-validation-00029",
+        "phrm-validation-00030",
+        "phrm-validation-00031",
+        "phrm-validation-00032",
+        "phrm-validation-00033",
+        "phrm-validation-00034",
+        "phrm-validation-00035",
+        "phrm-validation-00036",
+        "phrm-validation-00037",
+        "phrm-validation-00038",
+        "phrm-validation-00039",
+        "phrm-validation-00040",
+        "phrm-validation-00041",
+        "phrm-validation-00042",
+        "phrm-validation-00043",
+        "phrm-validation-00044",
+        "phrm-validation-00045",
+        "phrm-validation-00046",
+        "phrm-validation-00047",
+        "phrm-validation-00048",
+        "phrm-validation-00049",
+        "phrm-validation-00050",
+        "phrm-validation-00051",
+        "phrm-validation-00052",
+        "phrm-validation-00053",
+        "phrm-validation-00054",
+        "phrm-validation-00055",
+        "phrm-validation-00056",
+        "phrm-validation-00057",
+        "phrm-validation-00058",
+        "phrm-validation-00059",
+        "phrm-validation-00060",
+        "phrm-validation-00061",
+        "phrm-validation-00062",
+        "phrm-validation-00063",
+        "phrm-validation-00064",
+        "phrm-validation-00065",
+        "phrm-validation-00066",
+        "phrm-validation-00067",
+        "phrm-validation-00068",
+        "phrm-validation-00069",
+        "phrm-validation-00070",
+        "phrm-validation-00071",
+        "phrm-validation-00072",
+        "phrm-validation-00073",
+        "phrm-validation-00074",
+        "phrm-validation-00075",
+        "phrm-validation-00076",
+        "phrm-validation-00077",
+        "phrm-validation-00078",
+        "phrm-validation-00079",
+        "phrm-validation-00080",
+        "phrm-validation-00081",
+        "phrm-validation-00082",
+        "phrm-validation-00083",
+        "phrm-validation-00084",
+        "phrm-validation-00085",
+        "phrm-validation-00086",
+        "phrm-validation-00087",
+        "phrm-validation-00088",
+        "phrm-validation-00089",
+        "phrm-validation-00090",
+        "phrm-validation-00091",
+        "phrm-validation-00092",
+        "phrm-validation-00093",
+        "phrm-validation-00094",
+        "phrm-validation-00095",
+        "phrm-validation-00096",
+        "phrm-validation-00097",
+        "phrm-validation-00098",
+        "phrm-validation-00099",
+        "phrm-validation-00100",
+        "phrm-validation-00101",
+        "phrm-validation-00102",
+        "phrm-validation-00103",
+        "phrm-validation-00104",
+        "phrm-validation-00105",
+        "phrm-validation-00106",
+        "phrm-validation-00107",
+        "phrm-validation-00108",
+        "phrm-validation-00109",
+        "phrm-validation-00110",
+        "phrm-validation-00111",
+        "phrm-validation-00112",
+        "phrm-validation-00113",
+        "phrm-validation-00114",
+        "phrm-validation-00115",
+        "phrm-validation-00116",
+        "phrm-validation-00117",
+        "phrm-validation-00118",
+        "phrm-validation-00119",
+        "phrm-validation-00120",
+        "phrm-validation-00121",
+        "phrm-validation-00122",
+        "phrm-validation-00123",
+        "phrm-validation-00124",
+        "phrm-validation-00125",
+        "phrm-validation-00126",
+        "phrm-validation-00127",
+        "phrm-validation-00128",
+        "phrm-validation-00129",
+        "phrm-validation-00130",
+        "phrm-validation-00131",
+        "phrm-validation-00132",
+        "phrm-validation-00133",
+        "phrm-validation-00134",
+        "phrm-validation-00135",
+        "phrm-validation-00136",
+        "phrm-validation-00137",
+        "phrm-validation-00138",
+        "phrm-validation-00139",
+        "phrm-validation-00140",
+        "phrm-validation-00141",
+        "phrm-validation-00142",
+        "phrm-validation-00143",
+        "phrm-validation-00144",
+        "phrm-validation-00145",
+        "phrm-validation-00146",
+        "phrm-validation-00147",
+        "phrm-validation-00148",
+        "phrm-validation-00149",
+        "phrm-validation-00150",
+        "phrm-validation-00151",
+        "phrm-validation-00152",
+        "phrm-validation-00153",
+        "phrm-validation-00154",
+        "phrm-validation-00155",
+        "phrm-validation-00156",
+        "phrm-validation-00157",
+        "phrm-validation-00158",
+        "phrm-validation-00159",
+        "phrm-validation-00160",
+        "phrm-validation-00161",
+        "phrm-validation-00162",
+        "phrm-validation-00163",
+        "phrm-validation-00164",
+        "phrm-validation-00165",
+        "phrm-validation-00166",
+        "phrm-validation-00167",
+        "phrm-validation-00168",
+        "phrm-validation-00169",
+        "phrm-validation-00170",
+        "phrm-validation-00171",
+        "phrm-validation-00172",
+        "phrm-validation-00173",
+        "phrm-validation-00174",
+        "phrm-validation-00175",
+        "phrm-validation-00176",
+        "phrm-validation-00177",
+        "phrm-validation-00178",
+        "phrm-validation-00179",
+        "phrm-validation-00180",
+        "phrm-validation-00181",
+        "phrm-validation-00182",
+        "phrm-validation-00183",
+        "phrm-validation-00184",
+        "phrm-validation-00185",
+        "phrm-validation-00186",
+        "phrm-validation-00187",
+        "phrm-validation-00188",
+        "phrm-validation-00189",
+        "phrm-validation-00190",
+        "phrm-validation-00191",
+        "phrm-validation-00192",
+        "phrm-validation-00193",
+        "phrm-validation-00194",
+        "phrm-validation-00195",
+        "phrm-validation-00196",
+        "phrm-validation-00197",
+        "phrm-validation-00198",
+        "phrm-validation-00199",
+        "phrm-validation-00200",
+        "phrm-validation-00201",
+        "phrm-validation-00202",
+        "phrm-validation-00203",
+        "phrm-validation-00204",
+        "phrm-validation-00205",
+        "phrm-validation-00206",
+        "phrm-validation-00207",
+        "phrm-validation-00208",
+        "phrm-validation-00209",
+        "phrm-validation-00210",
+        "phrm-validation-00211",
+        "phrm-validation-00212",
+        "phrm-validation-00213",
+        "phrm-validation-00214",
+        "phrm-validation-00215",
+        "phrm-validation-00216",
+        "phrm-validation-00217",
+        "phrm-validation-00218",
+        "phrm-validation-00219",
+        "phrm-validation-00220",
+        "phrm-validation-00221",
+        "phrm-validation-00222",
+        "phrm-validation-00223",
+        "phrm-validation-00224",
+        "phrm-validation-00225",
+        "phrm-validation-00226",
+        "phrm-validation-00227",
+        "phrm-validation-00228",
+        "phrm-validation-00229",
+        "phrm-validation-00230",
+        "phrm-validation-00231",
+        "phrm-validation-00232",
+        "phrm-validation-00233",
+        "phrm-validation-00234",
+        "phrm-validation-00235",
+        "phrm-validation-00236",
+        "phrm-validation-00237",
+        "phrm-validation-00238",
+        "phrm-validation-00239",
+        "phrm-validation-00240",
+        "phrm-validation-00241",
+        "phrm-validation-00242",
+        "phrm-validation-00243",
+        "phrm-validation-00244",
+        "phrm-validation-00245",
+        "phrm-validation-00246",
+        "phrm-validation-00247",
+        "phrm-validation-00248",
+        "phrm-validation-00249",
+        "phrm-validation-00250",
+        "phrm-validation-00251",
+        "phrm-validation-00252",
+        "phrm-validation-00253",
+        "phrm-validation-00254",
+        "phrm-validation-00255"
+      ],
+      "selected_source_groups": 243,
+      "metadata_pairs": 256,
+      "metadata_source_groups": 243,
+      "lance_path": "/opt/huawei/explorer-env/dataset/ag_data/data/world_model/ContextWorld-action-strength-32k-v1/components/pusht-action-strength/v1/development/data.lance",
+      "lance_version": 1,
+      "lance_versions": {
+        "_versions/18446744073709551614.manifest": [
+          2233,
+          1786706277503650389
+        ]
+      },
+      "current_rgb_equal_pairs": 256,
+      "actions_equal_pairs": 256
+    }
+  },
+  "full_metadata_source_episode_overlap_count": 0
+}
