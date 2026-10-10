@@ -182,7 +182,7 @@ ContextWorld 保留已有计算，通过以下分工支持根因分析：
 
 #### 九任务共同呈现的现象
 
-T0 为原始数据训练；T1 为混合数据从头训练；T2 为加载原始权重后联合训练；T3 为加载原始权重并冻结 Encoder 后训练预测器。完整训练定义见[训练方案](ContextWorld_ICL_Benchmark.md#training-schemes)。DINO-WM 始终冻结视觉 Encoder，不另设 T2。
+T0 为原始数据训练；T1 为混合数据从头训练；T2 为加载原始权重后联合训练；T3 为加载原始权重、固定视觉 Encoder 后混合训练其余模块。完整训练定义见[训练方案](ContextWorld_ICL_Benchmark.md#training-schemes)。DINO-WM 始终冻结视觉 Encoder，不另设 T2。
 
 | 任务 | 三模型与训练方案对照 | 根因分析要区分的问题 |
 |---|---|---|
@@ -611,7 +611,7 @@ Speed 的固定 Training 均值参照 MAE 为 1.211；三模型的固定线性�
 
 ### 4.9 相同初始化下，冻结 Encoder 改变了什么
 
-**冻结 Encoder 对原生条件响应的影响随任务反转。** LeWM 的 Friction、Cube、Strength 在 T3 比 T2 恢复了更多条件响应；Mass 则由较准确的 T2 响应退化。四组对照均从各任务相同的 T0 权重出发，使用相同的混合 Training 数据、训练种子 3072 和 10 个第二阶段 epoch；T2 更新 Encoder，T3 固定 Encoder，并继续训练其他原生可训练模块。逐张量核对确认，四项 T3 的 198 个 Encoder 参数张量均与 T0 完全一致，T2 的对应张量均不同于 T0。因此比较的是**完整训练策略的效果**，不是单独替换 Encoder 的消融。
+**单种子 Development 对照中，冻结 Encoder 对原生 latent 响应的作用随任务反转。** LeWM 的 Friction、Cube、Strength 在 T3 的响应 NRE 低于 T2；Mass 则升高。四组对照均从各任务相同的 T0 权重出发，使用相同的混合 Training 数据、训练种子 3072 和 10 个第二阶段 epoch；T2 更新 Encoder，T3 固定 Encoder，目标 projector 等其余原生模块仍参与训练。逐张量核对确认，四项 T3 的 198 个 Encoder 参数张量均与 T0 完全一致，T2 的对应张量均不同于 T0。因此比较的是**完整训练策略的效果**，不是单独替换 Encoder 的消融。
 
 表中的成对数值依次为 T2 → T3。目标方差、历史读出与原生一步响应使用各任务全部 256 个配对 Development 查询；多步 E/B 引用另行发布的扩展 Development 动作面板，不与一步查询合并计算。历史线性读出只在 Training 的 512 对查询上拟合，表中报告 Development 的平衡分类准确率（随机参照为 50%）；隐藏条件标签只用于拟合读出器，不输入世界模型。目标条件差异占比是同一检查点内“配对条件间目标 latent 方差／全部查询目标 latent 方差”，以百分数表示；它消除了整体缩放，却仍取决于 Encoder 的表示几何。原生响应 NRE 越低越好，0 为准确条件差，1 为零响应；多步完整误差比 E/B 越低越好，1 为条件均值参照。**不同检查点的 latent 原始距离不可直接比较，表中无量纲读数也不能解释为共同物理误差。**
 
@@ -624,9 +624,26 @@ Speed 的固定 Training 均值参照 MAE 为 1.211；三模型的固定线性�
 | 机械臂质量 | 0.743 → 0.637 | 54.30 → 51.95 | 0.039 → 0.338 | 88.87 → 80.86 | 47.152 → 31.814 |
 <!-- END MATCHED_ENCODER_CONTRAST -->
 
-Friction、Cube、Strength 的 T3 目标条件差异占比上升、响应 NRE 下降；Mass 的方向相反。这说明 Encoder 更新策略改变了任务条件在目标表示中的相对权重，**但不足以证明表示变化就是唯一根因**：预测器和目标表示在第二阶段共同经历了不同的优化轨迹。Friction 的历史线性读出只由 75.0% 增至 79.3%，原生 NRE 却由接近 1 降至约 0.45；Mass 的读出接近随机，T2 的原生 NRE 仍约为 0.04。因此固定线性读出既不能解释全部响应变化，也不能作为表示信息缺失的判据。
+Friction、Cube、Strength 的 T3 目标条件差异占比上升、响应 NRE 下降；Mass 的方向相反。两种训练策略形成了不同的目标表示和预测器，**不能将表示变化单独归因于 ViT Encoder**：T3 的 projector 仍会更新，预测器也经历了不同的优化轨迹。Friction 的历史线性读出只由 75.0% 增至 79.3%，原生 NRE 却由接近 1 降至约 0.45；Mass 的读出接近随机，T2 的原生 NRE 仍约为 0.04。因此固定线性读出既不能解释全部响应变化，也不能作为表示信息缺失的判据。
 
 **较好的原协议响应不保证较准的多步完整未来。** Friction 的 T3 在原协议明显优于 T2，多步 E/B 却略高；Mass 的 T3 则是原协议响应退化、多步 E/B 降低。原生表示度量、完整预测和物理用途须分别判断。本对照确认了任务依赖的训练策略效应，尚未隔离表示、预测器路由或优化目标各自的贡献。它只比较每项一个训练种子，不代表跨种子稳定；没有读取 Test 或重新训练模型。[完整表格 CSV](research/data/matched_encoder_contrast_v1/summary.csv)、[来源 JSON](research/data/matched_encoder_contrast_v1/summary.json)、[Encoder 权重核对](research/data/matched_encoder_contrast_v1/encoder_freeze_validation.json)与[复现方法](Data_Generation.md#matched-encoder-contrast)保留检查点、面板及训练身份。
+
+<a id="conditional-map-boundary"></a>
+
+### 4.10 冻结视觉骨干后，目标表示是否仍可直接比较
+
+**不能。** 在 Friction 和 Mass 中，T3 与原始权重 T0 的 198 个 ViT Encoder 张量完全相同，但可训练目标 projector 的 9 个参数或缓冲区张量全部改变；同一批真实未来图像在两检查点下也得到不同的目标 latent。因此，冻结 ViT 不等于固定评分空间，更不能把 T0→T3 的原生 NRE 差值解释为同一坐标系中的预测误差变化。
+
+为检验 T2 与 T3 是否至少能通过简单映射比较，我们只用 512 对 Training 真实目标条件差拟合无截距线性 Ridge 映射，以来源组交叉验证选正则强度，再在 256 对 Development 真实目标条件差上检查映射。下表中的 NRE 以零条件响应为 1，越低越好；T0、T2、T3 的原生 NRE 均在各自目标空间内计算，最后一列才是 **T2 真实目标差映射到 T3 空间**后的误差。
+
+| 任务 | 原生响应 NRE：T0 / T2 / T3 ↓ | 真实目标跨空间映射 NRE [95% 区间] ↓ |
+|---|---:|---:|
+| 接触摩擦 | 1.004 / 0.998 / 0.448 | 0.934 [0.915, 0.953] |
+| 机械臂质量 | 0.980 / 0.039 / 0.338 | 0.384 [0.359, 0.411] |
+
+这条线性映射连 Development 的**真实目标差**都未能准确还原，故不再用它比较两个模型的预测输出。它的失败只限定了这种 Training 预算下的线性桥接方式，不能证明某个 Encoder 丢失了物理信息，也不能排除非线性映射。T3 的原生响应 NRE 在两项任务中均低于 T0，说明第二阶段训练改变了模型行为；projector、动作编码器和预测器都可能参与，现有权重不能分离各自贡献。要检验预测器能否在**固定目标空间**中学到条件响应，下一步需从同一 T0 出发，同时固定 Encoder 与 projector，再以相同数据和更新预算训练预测模块；本节没有进行这项新训练。
+
+[结果 JSON](research/data/conditional_map_v1/summary.json)、[简表 CSV](research/data/conditional_map_v1/summary.csv)记录检查点、面板与区间；[计算方法](Data_Generation.md#conditional-map-boundary)说明只使用 Training / Development，不读取 Test。
 
 <a id="physical-readout-methods"></a>
 

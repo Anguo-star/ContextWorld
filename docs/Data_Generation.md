@@ -831,7 +831,7 @@ python scripts/analyze_cross_task_mechanism.py --check
 
 ## 匹配初始化的 Encoder 更新策略对照
 
-[四任务机制结果](ICL_Metric_Study.md#matched-encoder-contrast)复用 LeWM T2／T3 的完整训练检查点，不生成轨迹或重新训练。每项任务两方案使用相同的 T0 权重、混合 Training 数据和种子 3072；T2 更新 Encoder，T3 固定 Encoder，其他模块继续训练；[逐张量核对](research/data/matched_encoder_contrast_v1/encoder_freeze_validation.json)确认四项 T3 的 198 个 Encoder 参数与各自 T0 完全一致。Friction、Cube、Strength、Mass 各取原生面板的 512 对 Training 查询和全部 256 对 Development 查询；两条件具有相同当前图像与查询动作。脚本核对检查点、数据清单和面板 SHA256，历史读出使用原生三帧表示的可逆时间差分 `[z0, z1−z0, z2−z1]`，在 Training 上拟合固定 `StandardScaler + Ridge(alpha=1)`，只在 Development 评价；不读取 Test，推理前后核对模型状态。
+[四任务机制结果](ICL_Metric_Study.md#matched-encoder-contrast)复用 LeWM T2／T3 的完整训练检查点，不生成轨迹或重新训练。每项任务两方案使用相同的 T0 权重、混合 Training 数据和种子 3072；T2 更新 Encoder，T3 固定 Encoder，目标 projector 等其他模块继续训练；[逐张量核对](research/data/matched_encoder_contrast_v1/encoder_freeze_validation.json)确认四项 T3 的 198 个 Encoder 参数与各自 T0 完全一致。Friction、Cube、Strength、Mass 各取原生面板的 512 对 Training 查询和全部 256 对 Development 查询；两条件具有相同当前图像与查询动作。脚本核对检查点、数据清单和面板 SHA256，历史读出使用原生三帧表示的可逆时间差分 `[z0, z1−z0, z2−z1]`，在 Training 上拟合固定 `StandardScaler + Ridge(alpha=1)`，只在 Development 评价；不读取 Test，推理前后核对模型状态。
 
 对每个 Development 查询，先从两条件真实未来的目标 latent 减去本查询条件均值，求平方和 $V_{\mathrm{cond}}$；再对所有查询的真实未来减去全局均值，求平方和 $V_{\mathrm{all}}$。报告 $V_{\mathrm{cond}}/V_{\mathrm{all}}$。历史 latent 使用相同计算；比值无量纲，但仍依赖各 Encoder 的表示几何。原生响应 NRE 是条件中心化预测误差能量除以 $V_{\mathrm{cond}}$；不跨 Encoder 比较原始 latent 能量或 MSE。完整 E/B 来自另行发布的多步 Development 诊断，使用该诊断自己的面板和参照。
 
@@ -844,6 +844,26 @@ python scripts/analyze_matched_encoder_contrast.py --check
 ```
 
 其他任务用 `cube_gripper_carry`、`action_strength`、`robot_arm_mass` 替换任务名。公开[表格 CSV](research/data/matched_encoder_contrast_v1/summary.csv)与[来源 JSON](research/data/matched_encoder_contrast_v1/summary.json)绑定权重与面板身份；权重及面板仍需本地准备，不能仅用公开汇总重新运行 Encoder 推理。
+
+<a id="conditional-map-boundary"></a>
+
+## 目标表示的线性桥接核对
+
+[结果与解释](ICL_Metric_Study.md#conditional-map-boundary)只涉及 LeWM 的 Friction、Mass 两项。沿用前节的配对面板，先分别在 T2、T3 编码真实未来，并取每对隐藏条件 1 减条件 0 的目标差；仅用 512 对 Training 数据拟合无截距 Ridge，从 T2 目标差映射到 T3 目标差。正则强度由 Training 来源组五折交叉验证选择，Development 的 256 对只用于一次性检查真实目标差的映射 NRE，并按来源组进行 2,000 次 bootstrap。诊断代码要求真实目标映射的 NRE < 0.1、方向增益在 0.8–1.2、余弦对齐度 > 0.95，才允许报告跨空间预测比较；两项任务均未达到条件。这个门槛仅防止误读未经校准的映射，不是 benchmark 评分规则，也不能检验所有非线性跨空间关系。
+
+另在同一 Development 面板上评估原始 T0 和 T3，核对两者 ViT Encoder 张量相同、目标 projector 的参数及训练态缓冲区是否相同，并比较相同图像的最终目标 latent。T0、T2、T3 的原生响应 NRE 分别以自身空间的真实响应能量为分母，数值不等于共同物理坐标中的误差。所有推理均冻结权重，不读取 Test。复现入口：
+
+```bash
+MODELS=/path/to/models.json
+PANELS=/path/to/native_panels
+RESULTS=/path/to/conditional_map_results
+python scripts/diagnose_conditional_map.py --models "$MODELS" --panels "$PANELS" --output "$RESULTS"
+python scripts/diagnose_conditional_map.py --worker original --task contact_friction --models "$MODELS" --panels "$PANELS" --output "$RESULTS"
+python scripts/diagnose_conditional_map.py --worker original --task robot_arm_mass --models "$MODELS" --panels "$PANELS" --output "$RESULTS"
+python scripts/analyze_conditional_map.py --source "$RESULTS" --models "$MODELS" --panels "$PANELS" --check
+```
+
+上述命令需要前节的本地模型清单、配对面板和检查点；[公开结果 JSON](research/data/conditional_map_v1/summary.json)与 [CSV](research/data/conditional_map_v1/summary.csv)用于核对数值和来源，不包含模型权重。
 
 <a id="response-intervention"></a>
 

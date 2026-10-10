@@ -1,0 +1,159 @@
+{
+  "schema": "contextworld.conditional_map_summary.v1",
+  "scope": "LeWM, two tasks, one training seed per policy, matched Development queries; no world-model training or Test access",
+  "interpretation": "The Train-fitted linear bridge does not support common-latent predictor comparison. Frozen ViT backbone does not freeze the learned target projector.",
+  "tasks": [
+    {
+      "task": "contact_friction",
+      "paired_development_queries": 256,
+      "training_pairs_for_bridge": 512,
+      "checkpoint_sha256": {
+        "original": "9f13b2c28bb909338047e08d62bf6eb16ea3616cb53e57cfa9b5072b43db1c59",
+        "joint": "e8d0aa8208e1cd28dad7d446771ad6832e94218ed1bbed2abd06122309ec8bb2",
+        "frozen": "aa413e9634c6b2ea9b3d20c1cb4900f9bfa5cc3ba158a735093058d73bc9535a"
+      },
+      "panel_development_sha256": "68cdd9315d33a21d4ffbc8d0ee489aabac9c41f4ebe002ba2579974c525efae6",
+      "backbone_tensor_count": 198,
+      "backbone_changed_T0_to_T3": 0,
+      "projector_tensor_count": 9,
+      "projector_changed_T0_to_T3": 9,
+      "target_T0_T3_max_abs_difference": 4.23295783996582,
+      "native_response": {
+        "original": {
+          "nre": 1.004080910437639,
+          "amplitude": 0.05927902605918055,
+          "gain": -0.00028345375355701147,
+          "alignment": -0.004781687089022492,
+          "prediction_energy": 1.6989943430813208,
+          "target_energy": 483.49258002112254
+        },
+        "joint": {
+          "nre": 0.9984589530804313,
+          "amplitude": 0.012463186267389726,
+          "gain": 0.0008481889657522115,
+          "alignment": 0.06805554755861441,
+          "prediction_energy": 0.007927156954984745,
+          "target_energy": 51.033961964199946
+        },
+        "frozen": {
+          "nre": 0.4479620382342154,
+          "amplitude": 0.707460056762636,
+          "gain": 0.5262688468401884,
+          "alignment": 0.7438848904748269,
+          "prediction_energy": 538.0031236401891,
+          "target_energy": 1074.9318917357516
+        }
+      },
+      "T2_to_T3_true_target_linear_bridge": {
+        "ridge_alpha": 1.0,
+        "training_group_cv_nre": 0.9337852511002637,
+        "development": {
+          "nre": 0.9339614755417646,
+          "amplitude": 0.27141591013177757,
+          "gain": 0.06985256036544822,
+          "alignment": 0.2573635433955713,
+          "prediction_energy": 79.18657368910553,
+          "target_energy": 1074.9318917357516,
+          "source_group_bootstrap": {
+            "seed": 20261010,
+            "resamples": 2000,
+            "source_groups": 256,
+            "nre_ci95": [
+              0.9149299973288123,
+              0.9532102554137107
+            ],
+            "amplitude_ci95": [
+              0.25670634082889465,
+              0.2860340617308917
+            ],
+            "gain_ci95": [
+              0.059676704347771135,
+              0.08041238753730241
+            ],
+            "alignment_ci95": [
+              0.22180501773921038,
+              0.29254155554207734
+            ]
+          }
+        },
+        "common_space_prediction_interpretable": false
+      }
+    },
+    {
+      "task": "robot_arm_mass",
+      "paired_development_queries": 256,
+      "training_pairs_for_bridge": 512,
+      "checkpoint_sha256": {
+        "original": "105b5f5890637cfee0bc5ef7a2db00808f718be375f425a6619e43843b290135",
+        "joint": "d6c8058c6daa627e07413712bb383b70e148c70e4ee1af538308df08ebd29415",
+        "frozen": "3886b3ff7b0f081505f31786fe29979c1ff9d212220f93d7f0fd3f61beef61bf"
+      },
+      "panel_development_sha256": "85217d290685e63db3194b7fc02d1c329304caf0baf54d030589f5aa5508547a",
+      "backbone_tensor_count": 198,
+      "backbone_changed_T0_to_T3": 0,
+      "projector_tensor_count": 9,
+      "projector_changed_T0_to_T3": 9,
+      "target_T0_T3_max_abs_difference": 7.895297527313232,
+      "native_response": {
+        "original": {
+          "nre": 0.9803530605054916,
+          "amplitude": 0.03581001793591229,
+          "gain": 0.010464648439539415,
+          "alignment": 0.29222684161363904,
+          "prediction_energy": 0.4511158967754429,
+          "target_energy": 351.78640697467057
+        },
+        "joint": {
+          "nre": 0.0394345370418483,
+          "amplitude": 0.9556536286978168,
+          "gain": 0.9369196605007282,
+          "alignment": 0.9803966964237705,
+          "prediction_energy": 1401.5259040855037,
+          "target_energy": 1534.6173458728824
+        },
+        "frozen": {
+          "nre": 0.33818840878058176,
+          "amplitude": 0.7317120279651542,
+          "gain": 0.5986070415441485,
+          "alignment": 0.8180910230611317,
+          "prediction_energy": 599.1613526731364,
+          "target_energy": 1119.085849940109
+        }
+      },
+      "T2_to_T3_true_target_linear_bridge": {
+        "ridge_alpha": 1.0,
+        "training_group_cv_nre": 0.42988746364686714,
+        "development": {
+          "nre": 0.3841682540093692,
+          "amplitude": 0.7937383047626353,
+          "gain": 0.6229261212190466,
+          "alignment": 0.7848003775064508,
+          "prediction_energy": 705.0470227465977,
+          "target_energy": 1119.085849940109,
+          "source_group_bootstrap": {
+            "seed": 20261010,
+            "resamples": 2000,
+            "source_groups": 256,
+            "nre_ci95": [
+              0.3592305729562457,
+              0.4107993477772034
+            ],
+            "amplitude_ci95": [
+              0.7707760116762046,
+              0.8176124141202494
+            ],
+            "gain_ci95": [
+              0.599900718787885,
+              0.6450353591959805
+            ],
+            "alignment_ci95": [
+              0.7678010348791505,
+              0.8005659338763327
+            ]
+          }
+        },
+        "common_space_prediction_interpretable": false
+      }
+    }
+  ]
+}
