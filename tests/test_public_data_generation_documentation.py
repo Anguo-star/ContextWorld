@@ -13,8 +13,8 @@ semantically, paragraph by paragraph:
 * the future is a continuous simulator rollout, with no reset or state write
   between the context and the future;
 * matched construction and split isolation;
-* Speed Development is a history-utility diagnostic rather than the matched
-  formal scoring construction used by most components;
+* the current Speed Development score uses strict history comparison, while
+  the older history-utility diagnostic is not a component score;
 * the Cube action-template constraints ``sum(p)=0`` and ``p[-1]=0``;
 * which fields a model sees and which stay audit-only;
 * the guide covers Training/Development/Test generation, states that Test is
@@ -35,7 +35,7 @@ ROOT = Path(__file__).resolve().parents[1]
 DOCUMENT = ROOT / "docs/Data_Generation.md"
 SUITE_REGISTRY = ROOT / "configs/benchmark/contextworld_icl_suite_v2.yaml"
 
-REPOSITORY_ROOTS = ("configs/", "scripts/", "contextworld/", "docs/", "tests/", "research/")
+REPOSITORY_ROOTS = ("configs/", "scripts/", "contextworld/", "docs/", "tests/")
 ENTRY_POINT_ROOTS = ("configs/", "scripts/", "contextworld/")
 
 _HEADING = re.compile(r"^(#{1,6})[ \t]+(.+?)[ \t]*$", re.MULTILINE)
@@ -59,13 +59,6 @@ SPLIT_TERMS = re.compile(r"(Training|Development|训练集|开发集)")
 DISJOINT = re.compile(r"(互不重叠|不重叠|不相交|互斥|隔离|disjoint)", re.IGNORECASE)
 
 SPEED = re.compile(r"(速度|speed)", re.IGNORECASE)
-DIAGNOSTIC = re.compile(r"(诊断|diagnostic|history[\s-]?utility)", re.IGNORECASE)
-NOT_FORMAL_SCORING = re.compile(
-    r"(不是|并非|不同于|区别于|不产生|不构成|不复用|不属于|not)"
-    r"[^，。；]{0,20}(匹配|配对|正式|通过判定|formal|matched|scoring)",
-    re.IGNORECASE,
-)
-
 SUM_ZERO = re.compile(r"sum\s*\(\s*p\s*\)\s*=\s*0")
 LAST_ZERO = re.compile(r"p\s*\[\s*-\s*1\s*\]\s*=\s*0")
 
@@ -203,8 +196,11 @@ def _component_of(label: str) -> str | None:
 def _referenced_paths(document: str) -> set[str]:
     """Repository paths the document points at, as repo-relative strings."""
     paths: set[str] = set()
+    links = list(_LINK.finditer(document))
 
     for match in _PATH.finditer(document):
+        if any(link.start() <= match.start() < link.end() for link in links):
+            continue  # Markdown targets are resolved relative to the document below.
         before = document[match.start() - 1: match.start()]
         if before and (before.isalnum() or before in {"/", ".", "-", "_", ":"}):
             continue  # part of a longer token, for example a URL
@@ -212,7 +208,7 @@ def _referenced_paths(document: str) -> set[str]:
             continue  # a templated path such as scripts/build_<component>_data.py
         paths.add(match.group(0).rstrip("./,;:)`"))
 
-    for match in _LINK.finditer(document):
+    for match in links:
         target = match.group(1).split("#")[0]
         if not target or target.startswith(("http", "mailto:")):
             continue
@@ -341,24 +337,19 @@ def test_explains_matched_construction_and_split_isolation() -> None:
     )
 
 
-def test_marks_speed_development_as_a_history_utility_diagnostic() -> None:
+def test_distinguishes_formal_speed_development_from_old_history_utility_diagnostic() -> None:
     paragraphs = _paragraphs(_document())
 
     assert any(
         SPEED.search(paragraph)
         and "Development" in paragraph
-        and DIAGNOSTIC.search(paragraph)
-        for paragraph in paragraphs
-    ), "the guide must describe Speed Development as a diagnostic"
-    assert any(
-        SPEED.search(paragraph)
-        and DIAGNOSTIC.search(paragraph)
-        and NOT_FORMAL_SCORING.search(paragraph)
+        and "严格历史比较" in paragraph
+        and "不是当前主表的数据来源" in paragraph
+        and "补充诊断" in paragraph
         for paragraph in paragraphs
     ), (
-        "the guide must say that Speed Development is not the matched formal "
-        "scoring construction used by most components, so its numbers are not "
-        "read as a component score"
+        "the guide must keep formal Speed Development strict-history scoring "
+        "separate from the older history-utility diagnostic"
     )
 
 

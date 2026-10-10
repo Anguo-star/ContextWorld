@@ -26,26 +26,29 @@ def _sha256(path: Path) -> str:
 
 def test_cube_task_card_defines_current_data_and_links_unified_results() -> None:
     document = PUBLIC_DOCUMENT.read_text(encoding="utf-8")
+    appendix = (ROOT / "docs/reference/ContextWorld_Expanded_Training_Results.md").read_text(encoding="utf-8")
     heading = "#### 6.3.3 Cube 夹爪携带规则"
     start = document.index(heading)
     end = document.index("\n### 6.4 隐藏结构转移规则", start)
     section = document[start:end]
+    detail_start = appendix.index(heading)
+    detail_end = appendix.index("\n### 6.4 隐藏结构转移规则", detail_start)
+    detail = appendix[detail_start:detail_end]
 
-    assert re.findall(r"^\*\*(任务目标|数据构成|评测方法|适用范围)。\*\*", section, flags=re.MULTILINE) == [
-        "任务目标",
-        "数据构成",
-        "评测方法",
-        "适用范围",
+    assert "10,000 对来自不同来源 episode" in section
+    assert "reference/ContextWorld_Expanded_Training_Results.md#task-cube-gripper-carry" in section
+    assert re.findall(r"^\*\*(任务目标|数据构成|任务主指标|解释范围)。\*\*", detail, flags=re.MULTILINE) == [
+        "任务目标", "数据构成", "任务主指标", "解释范围",
     ]
     assert "authorized_not_generated_not_opened_not_read_not_scored" not in document
-    assert "四类动作模板在每个划分中严格均衡" in section
-    assert "源轨迹、动作模板、场景、配对内容和 query 画面互不重叠" in section
+    assert "四类动作模板在每个划分中严格均衡" in detail
+    assert "源轨迹、动作模板、场景、配对内容和 query 画面互不重叠" in detail
     assert "新结果应引用明确的数据版本、训练方案和评测划分" in document
-    assert "10,000 个独立来源 episode" in section
-    assert "##### 基线表现" not in section
-    assert "### 5.2 主结果表" in document
-    assert "<!-- BEGIN TRAINING_COMPARISON_DETAIL_CUBE_GRIPPER_CARRY -->" in section
-    assert "77.73%、79.10% 和 78.52%" not in section
+    assert "10,000 个独立来源 episode" in detail
+    assert "##### 基线表现" not in detail
+    assert "<!-- BEGIN TRAINING_COMPARISON_OVERVIEW -->" in document
+    assert "<!-- BEGIN TRAINING_COMPARISON_DETAIL_CUBE_GRIPPER_CARRY -->" in detail
+    assert "77.73%、79.10% 和 78.52%" not in detail
 
 
 def test_cube_release_adds_suite_v2_without_rewriting_suite_v1() -> None:
