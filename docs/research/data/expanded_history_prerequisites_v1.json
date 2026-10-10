@@ -1,0 +1,188 @@
+{
+  "version": "expanded_history_prerequisites_v1",
+  "scope": "current Training-fit Development reference classification; not world-model results",
+  "coverage_source": "docs/research/data/expanded_supervision_coverage_v1.json",
+  "coverage_source_sha256": "697113878dd66043263aca2f3da13426e35f62be1ad88f74c3a78c2eb233160a",
+  "tasks": [
+    {
+      "task": "friction",
+      "release": "ContextWorld-contact-friction-32k-v1",
+      "training_package_pairs": 32768,
+      "fit_pairs": 4096,
+      "fit_source_groups": 4096,
+      "development_pairs": 256,
+      "development_source_groups": 256,
+      "input_sha256": {
+        "training": "4a9c6e697ceecb26e01b9a1dc011f5895ce7af5eae285cbc185c6b8beba6949e",
+        "development": "25e19496a613acf4b29b3042bbe40683233ed2214b77f9b32947af5be2b3ee1b"
+      },
+      "manifest_sha256": {
+        "manifest.jsonl": "0fd65ad420367d1e3bd00ac0a9bee75f512ad7ee286e31fab34e43c1ee61f9bf",
+        "manifest.sha256": "d2d504a43a8f7d357aee0bf28e647d33bd02ceba99b807873ee23b213003ffdd",
+        "task_registry.json": "34483dfc11ff0dfa989e353a33ed18d871692f9f8bc2a8f59cb9ec9e45069f77"
+      },
+      "recipe": {
+        "history_frames": [
+          0,
+          5,
+          10
+        ],
+        "future_integrity_frame": 15,
+        "action_tokens": 3,
+        "action_scalars": 30,
+        "action_features_used": true,
+        "estimator": "Training-fit StandardScaler + ExtraTreesClassifier(256, random_state=20261009)"
+      },
+      "sampling": {
+        "train_pair_target": 4096,
+        "workers": 4,
+        "selection": "SHA256 source-group order, retain full last group",
+        "bootstrap_resamples": 4000,
+        "seed": 20261009
+      },
+      "status": "completed_empirical_reference",
+      "development_accuracy": 1.0,
+      "development_accuracy_95ci": {
+        "resamples": 4000,
+        "seed": 20261009,
+        "groups": 256,
+        "lower": 1.0,
+        "upper": 1.0
+      },
+      "worst_condition_accuracy": 1.0,
+      "current_plus_action_theoretical_upper_bound": 0.5,
+      "condition_denominators": {
+        "low_friction": 256,
+        "high_friction": 256
+      },
+      "source": "docs/research/data/expanded_history_reference_v1_friction.json",
+      "source_sha256": "127d0a02b94953d75017f8abcb81d3be5e21eea1c190c62fa04f13524ea694e0"
+    },
+    {
+      "task": "damping",
+      "release": "ContextWorld-motion-damping-32k-v1",
+      "training_package_pairs": 32768,
+      "fit_pairs": 4096,
+      "fit_source_groups": 2048,
+      "development_pairs": 256,
+      "development_source_groups": 128,
+      "input_sha256": {
+        "training": "08159c285e6c7cda49892bf25649802e46e6e0295f6e695708e1fee846dfe98a",
+        "development": "71736881a118481b1bf7c6e6bd1f53d55f615fa9d23d0c103973b4eddd8fab7b"
+      },
+      "manifest_sha256": {
+        "manifest.jsonl": "b73d0fb88089a8d792a31e440e67841c1d7b623c7277b4b5e6dca0b165c3403d",
+        "manifest.sha256": "071f4d42e48cb93c073b37ca0cc5b434534ea50dedfa315af5fbd474b7ca1d98",
+        "task_registry.json": "06f57c07e7d3fae6799fd02e420e996a6cc2c1ae9bf45b04c2991963efad199e"
+      },
+      "recipe": {
+        "history_frames": [
+          0,
+          5,
+          10
+        ],
+        "future_integrity_frame": 15,
+        "action_tokens": 3,
+        "action_scalars": 30,
+        "action_features_used": false,
+        "estimator": "Training-only minimum-error single threshold; both directions"
+      },
+      "sampling": {
+        "train_pair_target": 4096,
+        "workers": 4,
+        "selection": "SHA256 source-group order, retain full last group",
+        "bootstrap_resamples": 4000,
+        "seed": 20261009
+      },
+      "status": "completed_empirical_reference",
+      "development_accuracy": 1.0,
+      "development_accuracy_95ci": {
+        "resamples": 4000,
+        "seed": 20261009,
+        "groups": 128,
+        "lower": 1.0,
+        "upper": 1.0
+      },
+      "worst_condition_accuracy": 1.0,
+      "current_plus_action_theoretical_upper_bound": 0.5,
+      "condition_denominators": {
+        "faster_decay": 256,
+        "no_extra_decay": 256
+      },
+      "source": "docs/research/data/expanded_history_reference_v1_damping.json",
+      "source_sha256": "1b99ccc459b7b0264f9a198527ba93258cec5aec21e05f1eb9e93459383a2c81"
+    },
+    {
+      "task": "cube",
+      "release": "ContextWorld-cube-gripper-carry-10k-independent-v2",
+      "training_package_pairs": 10000,
+      "fit_pairs": 4096,
+      "fit_source_groups": 4096,
+      "development_pairs": 256,
+      "development_source_groups": 256,
+      "input_sha256": {
+        "training": "06cba7277edcba568d653669780a6526991c6fcbfc962522d81e85b847c02910",
+        "development": "85c156f565ce941df8311887ace2cea9e5534075ca1d8fac8cf96eea61a0fa53"
+      },
+      "manifest_sha256": {
+        "manifest.jsonl": "6e8d707857db9e50d0e21d0a0c4d12647a63a5f1ee25e3527af5b46759463baf",
+        "manifest.sha256": "d84c631d6a16b6ae183f12e5ead2f94496c441b6f09602049cdb0c76444343d6",
+        "task_registry.json": "864119bb8a10ca806d4709f08c7c05a19ef0c63c2602f9f5d4fdad009eeee07e"
+      },
+      "recipe": {
+        "history_frames": [
+          0,
+          1,
+          2
+        ],
+        "future_integrity_frame": 3,
+        "action_tokens": 3,
+        "action_scalars": 75,
+        "action_features_used": false,
+        "estimator": "16x16 bilinear decoded RGB flatten(2*x1-x0-x2); Training-fit StandardScaler + RidgeClassifier(alpha=1)"
+      },
+      "sampling": {
+        "train_pair_target": 4096,
+        "workers": 4,
+        "selection": "SHA256 source-group order, retain full last group",
+        "bootstrap_resamples": 4000,
+        "seed": 20261009
+      },
+      "full_train_development_metadata_overlap": {
+        "source_episode": {
+          "count": 0,
+          "values": []
+        },
+        "action_profile_id": {
+          "count": 0,
+          "values": []
+        },
+        "scene_template_content_hash": {
+          "count": 0,
+          "values": []
+        },
+        "pair_content_hash": {
+          "count": 0,
+          "values": []
+        }
+      },
+      "status": "completed_empirical_reference",
+      "development_accuracy": 0.79296875,
+      "development_accuracy_95ci": {
+        "resamples": 4000,
+        "seed": 20261009,
+        "groups": 256,
+        "lower": 0.763623046875,
+        "upper": 0.82421875
+      },
+      "worst_condition_accuracy": 0.7734375,
+      "current_plus_action_theoretical_upper_bound": 0.5,
+      "condition_denominators": {
+        "cannot_hold": 256,
+        "can_hold": 256
+      },
+      "source": "docs/research/data/expanded_history_reference_v1_cube.json",
+      "source_sha256": "c1e6603b07caab6fa68dbe40e18c0d4b33a19d40d1ead3688389e8acd576ddd0"
+    }
+  ]
+}

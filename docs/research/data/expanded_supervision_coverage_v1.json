@@ -1,0 +1,458 @@
+{
+  "schema_version": "expanded_supervision_coverage_v1",
+  "scope": "Native expanded-data runs, training seed 3072: LeWM joint, PLDM joint, and DINO-WM scratch. Structural eligibility and native supervision coverage; no recorded per-batch exposure claim.",
+  "verification_basis": {
+    "adapter": "Source content SHA256 matches adapter_source_sha256 in each listed training identity receipt.",
+    "native_loss": "Inspected pinned family training source; all three shifted target positions are supervised.",
+    "dataset_structure": "Public release registries, quality audits and generation receipts; this inventory did not directly scan Lance trajectory rows.",
+    "event_coverage": "Generator timing and audited pair response receipts establish recipe coverage of history and query events within the sole eligible synthetic window; not a new direct all-row physics audit."
+  },
+  "common_adapter": {
+    "path": "contextworld/training/stablewm_bundle.py",
+    "sha256": "20cb62be935d4ffacccd41c31e29a24f07854dc6de1808bb94ae1af8a6e479f3"
+  },
+  "epoch_budget_note": "With URI epoch_size=null, the runtime constructs an unsplit 50/50 schedule of 2*max(original_window_count, synthetic_window_count) occurrences, then applies a seeded 90/10 random split and training drop_last=True; exact emitted per-epoch proportions and per-batch exposure are not established.",
+  "tasks": [
+    {
+      "task": "contact_friction",
+      "release": "ContextWorld-contact-friction-32k-v1",
+      "training_member": "components/pusht-contact-friction/v1/training/data.lance",
+      "development_member": "components/pusht-contact-friction/v1/development/data.lance",
+      "pair_count": 32768,
+      "episode_count": 65536,
+      "row_count": 1310720,
+      "row_kind": "raw",
+      "rows_per_episode": 20,
+      "eligible_synthetic_window_count": 65536,
+      "eligible_start_positions": [
+        0
+      ],
+      "start_position_unit": "raw_step",
+      "history_model_positions": [
+        0,
+        1,
+        2
+      ],
+      "target_model_positions": [
+        1,
+        2,
+        3
+      ],
+      "history_raw_positions": [
+        0,
+        5,
+        10
+      ],
+      "target_raw_positions": [
+        5,
+        10,
+        15
+      ],
+      "query_model_position": 2,
+      "query_raw_position": 10,
+      "query_endpoint_model_position": 3,
+      "query_endpoint_raw_position": 15,
+      "query_horizon_raw_steps": 5,
+      "raw_steps_per_action_block": 5,
+      "event_coverage": "Every sampler-eligible native synthetic window contains the designed history evidence and query response endpoint.",
+      "event": "History friction contact response and query contact evolution from raw step 10 to 15.",
+      "structure_verification": "Recipe and quality-receipt evidence plus receipt-matched adapter; no direct trajectory-row scan in this inventory.",
+      "native_families": [
+        {
+          "family": "lewm",
+          "regime": "joint",
+          "source": "scripts/train/lewm.py",
+          "ref": "c3dfc4431bfdba39ad05955752feca7939773103",
+          "native_target_model_positions": [
+            1,
+            2,
+            3
+          ],
+          "native_target_raw_positions": [
+            5,
+            10,
+            15
+          ],
+          "evidence": "Pinned source target slice starts at num_preds=1 and includes all three shifted positions."
+        },
+        {
+          "family": "pldm",
+          "regime": "joint",
+          "source": "scripts/train/pldm.py",
+          "ref": "c34a107e787133468369e08f8f3efa2a43db67a2",
+          "native_target_model_positions": [
+            1,
+            2,
+            3
+          ],
+          "native_target_raw_positions": [
+            5,
+            10,
+            15
+          ],
+          "evidence": "Pinned source target slice starts at num_preds=1 and includes all three shifted positions."
+        },
+        {
+          "family": "dinowm",
+          "regime": "scratch",
+          "source": "scripts/train/prejepa.py",
+          "ref": "c34a107e787133468369e08f8f3efa2a43db67a2",
+          "native_target_model_positions": [
+            1,
+            2,
+            3
+          ],
+          "native_target_raw_positions": [
+            5,
+            10,
+            15
+          ],
+          "evidence": "Pinned source target slice starts at num_preds=1 and includes all three shifted positions."
+        }
+      ],
+      "matched_training_identity_receipts": [
+        {
+          "model_id": "contact_friction/lewm/joint/s3072",
+          "path": "checkpoints/contact_friction_lewm_num32k_init_form_pusht_lewm_baseline_seed3073_weights_s3072/contextworld_training_identity_v1.json",
+          "sha256": "f8b5f19ed1ac0cefdba765e9fad37d4186d12d831e87827a00b5b9b8e464121e",
+          "adapter_source_sha256": "20cb62be935d4ffacccd41c31e29a24f07854dc6de1808bb94ae1af8a6e479f3",
+          "adapter_match": true
+        },
+        {
+          "model_id": "contact_friction/pldm/joint/s3072",
+          "path": "checkpoints/contact_friction_pldm_num32k_v1_warmstart3073_s3072/contextworld_training_identity_v1.json",
+          "sha256": "1882dba684f68e88838915c8a7c7eb7f30e48eabb3913c216d0b7cf34c168c10",
+          "adapter_source_sha256": "20cb62be935d4ffacccd41c31e29a24f07854dc6de1808bb94ae1af8a6e479f3",
+          "adapter_match": true
+        },
+        {
+          "model_id": "contact_friction/dinowm/scratch/s3072",
+          "path": "checkpoints/contact_friction_prejepa_num32k_v1_scratch_s3072/contextworld_training_identity_v1.json",
+          "sha256": "751bbd45af0be25bf4b52349ee9c1832f71f546cba612d107ad4c4afa43050ac",
+          "adapter_source_sha256": "20cb62be935d4ffacccd41c31e29a24f07854dc6de1808bb94ae1af8a6e479f3",
+          "adapter_match": true
+        }
+      ],
+      "release_evidence": [
+        {
+          "release": "ContextWorld-contact-friction-32k-v1",
+          "path": "task_registry.json",
+          "sha256": "34483dfc11ff0dfa989e353a33ed18d871692f9f8bc2a8f59cb9ec9e45069f77",
+          "inspection": "Relevant task metadata read."
+        },
+        {
+          "release": "ContextWorld-contact-friction-32k-v1",
+          "path": "research_receipts/quality_audit.json",
+          "sha256": "31473f92ff0448a607e73cecdd82bb7c7822de327a8eabcf2d8ca5a83b5415ef",
+          "inspection": "Relevant task metadata read."
+        },
+        {
+          "release": "ContextWorld-contact-friction-32k-v1",
+          "path": "research_receipts/generation_manifest.json",
+          "sha256": "873258598ac10d136531fdac4da3c16d6ff60d72038e88ba415143cd68f12a33",
+          "inspection": "Relevant task metadata read."
+        },
+        {
+          "release": "ContextWorld-contact-friction-32k-v1",
+          "path": "research_receipts/pair_reports.jsonl",
+          "sha256": "b8078b439eabcfa290754bb7723614c84ff421e91340901e4239f0b70395ddc4",
+          "inspection": "First pair report only; SHA256 covers complete file."
+        }
+      ]
+    },
+    {
+      "task": "motion_damping",
+      "release": "ContextWorld-motion-damping-32k-v1",
+      "training_member": "components/pusht-motion-damping/v1/training/data.lance",
+      "development_member": "components/pusht-motion-damping/v1/development/data.lance",
+      "pair_count": 32768,
+      "episode_count": 65536,
+      "row_count": 1310720,
+      "row_kind": "raw",
+      "rows_per_episode": 20,
+      "eligible_synthetic_window_count": 65536,
+      "eligible_start_positions": [
+        0
+      ],
+      "start_position_unit": "raw_step",
+      "history_model_positions": [
+        0,
+        1,
+        2
+      ],
+      "target_model_positions": [
+        1,
+        2,
+        3
+      ],
+      "history_raw_positions": [
+        0,
+        5,
+        10
+      ],
+      "target_raw_positions": [
+        5,
+        10,
+        15
+      ],
+      "query_model_position": 2,
+      "query_raw_position": 10,
+      "query_endpoint_model_position": 3,
+      "query_endpoint_raw_position": 15,
+      "query_horizon_raw_steps": 5,
+      "raw_steps_per_action_block": 5,
+      "event_coverage": "Every sampler-eligible native synthetic window contains the designed history evidence and query response endpoint.",
+      "event": "No-contact damping history and query evolution from raw step 10 to 15.",
+      "structure_verification": "Recipe and quality-receipt evidence plus receipt-matched adapter; no direct trajectory-row scan in this inventory.",
+      "native_families": [
+        {
+          "family": "lewm",
+          "regime": "joint",
+          "source": "scripts/train/lewm.py",
+          "ref": "c3dfc4431bfdba39ad05955752feca7939773103",
+          "native_target_model_positions": [
+            1,
+            2,
+            3
+          ],
+          "native_target_raw_positions": [
+            5,
+            10,
+            15
+          ],
+          "evidence": "Pinned source target slice starts at num_preds=1 and includes all three shifted positions."
+        },
+        {
+          "family": "pldm",
+          "regime": "joint",
+          "source": "scripts/train/pldm.py",
+          "ref": "c34a107e787133468369e08f8f3efa2a43db67a2",
+          "native_target_model_positions": [
+            1,
+            2,
+            3
+          ],
+          "native_target_raw_positions": [
+            5,
+            10,
+            15
+          ],
+          "evidence": "Pinned source target slice starts at num_preds=1 and includes all three shifted positions."
+        },
+        {
+          "family": "dinowm",
+          "regime": "scratch",
+          "source": "scripts/train/prejepa.py",
+          "ref": "c34a107e787133468369e08f8f3efa2a43db67a2",
+          "native_target_model_positions": [
+            1,
+            2,
+            3
+          ],
+          "native_target_raw_positions": [
+            5,
+            10,
+            15
+          ],
+          "evidence": "Pinned source target slice starts at num_preds=1 and includes all three shifted positions."
+        }
+      ],
+      "matched_training_identity_receipts": [
+        {
+          "model_id": "motion_damping/lewm/joint/s3072",
+          "path": "checkpoints/motion_damping_lewm_num32k_init_form_pusht_lewm_baseline_seed3073_weights_s3072/contextworld_training_identity_v1.json",
+          "sha256": "7b66f40afb720c074d6ed9db2fbed096af3ae148ed3c45840513ca296013d9ce",
+          "adapter_source_sha256": "20cb62be935d4ffacccd41c31e29a24f07854dc6de1808bb94ae1af8a6e479f3",
+          "adapter_match": true
+        },
+        {
+          "model_id": "motion_damping/pldm/joint/s3072",
+          "path": "checkpoints/motion_damping_pldm_num32k_v1_warmstart3073_s3072/contextworld_training_identity_v1.json",
+          "sha256": "02c26b28ff85ddf18f1ea7f34b4ba8c8b7b378b567e80027ed66604e6eb89d70",
+          "adapter_source_sha256": "20cb62be935d4ffacccd41c31e29a24f07854dc6de1808bb94ae1af8a6e479f3",
+          "adapter_match": true
+        },
+        {
+          "model_id": "motion_damping/dinowm/scratch/s3072",
+          "path": "checkpoints/motion_damping_prejepa_num32k_v1_scratch_s3072/contextworld_training_identity_v1.json",
+          "sha256": "0f87e082c7dfac8fe5113b308a83387ab623a7150782e1b605b2c17da6cd6961",
+          "adapter_source_sha256": "20cb62be935d4ffacccd41c31e29a24f07854dc6de1808bb94ae1af8a6e479f3",
+          "adapter_match": true
+        }
+      ],
+      "release_evidence": [
+        {
+          "release": "ContextWorld-motion-damping-32k-v1",
+          "path": "task_registry.json",
+          "sha256": "06f57c07e7d3fae6799fd02e420e996a6cc2c1ae9bf45b04c2991963efad199e",
+          "inspection": "Relevant task metadata read."
+        },
+        {
+          "release": "ContextWorld-motion-damping-32k-v1",
+          "path": "research_receipts/quality_audit.json",
+          "sha256": "bd6600aaaa049aa068202c491356c91e0480fc00627ef5c729376d264de8456b",
+          "inspection": "Relevant task metadata read."
+        },
+        {
+          "release": "ContextWorld-motion-damping-32k-v1",
+          "path": "research_receipts/generation_manifest.json",
+          "sha256": "37625a1471a5d31c8393bb662279b44553dc9d1adb64b42efd8c6c5602db2a35",
+          "inspection": "Relevant task metadata read."
+        },
+        {
+          "release": "ContextWorld-motion-damping-32k-v1",
+          "path": "research_receipts/pair_reports.jsonl",
+          "sha256": "fc905e3eaf89dc9a8c82991df59ea204cec8e92967014da465b8c7a167b5d918",
+          "inspection": "First pair report only; SHA256 covers complete file."
+        }
+      ]
+    },
+    {
+      "task": "cube_gripper_carry",
+      "release": "ContextWorld-cube-gripper-carry-10k-independent-v2",
+      "training_member": "components/cube-gripper-carry/v1/training/data.lance",
+      "development_member": "components/cube-gripper-carry/v1/development/data.lance",
+      "pair_count": 10000,
+      "episode_count": 20000,
+      "row_count": 80000,
+      "row_kind": "blocked",
+      "rows_per_episode": 4,
+      "eligible_synthetic_window_count": 20000,
+      "eligible_start_positions": [
+        0
+      ],
+      "start_position_unit": "model_row",
+      "history_model_positions": [
+        0,
+        1,
+        2
+      ],
+      "target_model_positions": [
+        1,
+        2,
+        3
+      ],
+      "history_raw_positions": [
+        0,
+        5,
+        10
+      ],
+      "target_raw_positions": [
+        5,
+        10,
+        15
+      ],
+      "query_model_position": 2,
+      "query_raw_position": 10,
+      "query_endpoint_model_position": 3,
+      "query_endpoint_raw_position": 15,
+      "query_horizon_raw_steps": 5,
+      "raw_steps_per_action_block": 5,
+      "event_coverage": "Every sampler-eligible native synthetic window contains the designed history evidence and query response endpoint.",
+      "event": "History holding-rule evidence and future attachment/carry response across the query action block.",
+      "structure_verification": "Recipe and quality-receipt evidence plus receipt-matched adapter; no direct trajectory-row scan in this inventory.",
+      "native_families": [
+        {
+          "family": "lewm",
+          "regime": "joint",
+          "source": "scripts/train/lewm.py",
+          "ref": "d4589819e2bf8218a84113d450c81e5a68722dc2",
+          "native_target_model_positions": [
+            1,
+            2,
+            3
+          ],
+          "native_target_raw_positions": [
+            5,
+            10,
+            15
+          ],
+          "evidence": "Pinned source target slice starts at num_preds=1 and includes all three shifted positions."
+        },
+        {
+          "family": "pldm",
+          "regime": "joint",
+          "source": "scripts/train/pldm.py",
+          "ref": "c34a107e787133468369e08f8f3efa2a43db67a2",
+          "native_target_model_positions": [
+            1,
+            2,
+            3
+          ],
+          "native_target_raw_positions": [
+            5,
+            10,
+            15
+          ],
+          "evidence": "Pinned source target slice starts at num_preds=1 and includes all three shifted positions."
+        },
+        {
+          "family": "dinowm",
+          "regime": "scratch",
+          "source": "scripts/train/prejepa.py",
+          "ref": "c34a107e787133468369e08f8f3efa2a43db67a2",
+          "native_target_model_positions": [
+            1,
+            2,
+            3
+          ],
+          "native_target_raw_positions": [
+            5,
+            10,
+            15
+          ],
+          "evidence": "Pinned source target slice starts at num_preds=1 and includes all three shifted positions."
+        }
+      ],
+      "matched_training_identity_receipts": [
+        {
+          "model_id": "cube_gripper_carry/lewm/joint/s3072",
+          "path": "checkpoints/cube_gripper_carry_lewm_cube_gripper_carry_10k_independent_v2_init_form_baseline_seed3073_s3072/contextworld_training_identity_v1.json",
+          "sha256": "a268f4ce615465f9af8b03fe94dd6fe2b3a083f7a6b1d496ba3ea3f078c111e3",
+          "adapter_source_sha256": "20cb62be935d4ffacccd41c31e29a24f07854dc6de1808bb94ae1af8a6e479f3",
+          "adapter_match": true
+        },
+        {
+          "model_id": "cube_gripper_carry/pldm/joint/s3072",
+          "path": "checkpoints/cube_gripper_carry_pldm_ind10k_v2_warmstart3073_s3072/contextworld_training_identity_v1.json",
+          "sha256": "141b9307aa410170cb6b681265be8178ccec1ce7a9915bb8e9e1d33efa68c426",
+          "adapter_source_sha256": "20cb62be935d4ffacccd41c31e29a24f07854dc6de1808bb94ae1af8a6e479f3",
+          "adapter_match": true
+        },
+        {
+          "model_id": "cube_gripper_carry/dinowm/scratch/s3072",
+          "path": "checkpoints/cube_gripper_carry_prejepa_ind10k_v2_scratch_s3072/contextworld_training_identity_v1.json",
+          "sha256": "9dacf494869f6576b4825fa75e85b564c92bb6507a91f445faf07f0faaa509f7",
+          "adapter_source_sha256": "20cb62be935d4ffacccd41c31e29a24f07854dc6de1808bb94ae1af8a6e479f3",
+          "adapter_match": true
+        }
+      ],
+      "release_evidence": [
+        {
+          "release": "ContextWorld-cube-gripper-carry-10k-independent-v2",
+          "path": "task_registry.json",
+          "sha256": "864119bb8a10ca806d4709f08c7c05a19ef0c63c2602f9f5d4fdad009eeee07e",
+          "inspection": "Relevant task metadata read."
+        },
+        {
+          "release": "ContextWorld-cube-gripper-carry-10k-independent-v2",
+          "path": "research_receipts/quality_audit.json",
+          "sha256": "467c6605499e3008312c21cdd1cfae9612ef9a8a6b76206aec64c24ff3f701c6",
+          "inspection": "Relevant task metadata read."
+        },
+        {
+          "release": "ContextWorld-cube-gripper-carry-10k-independent-v2",
+          "path": "research_receipts/generation_manifest.json",
+          "sha256": "04f64d16895d4b947ba87117e8b124d440aa6bbdd2f14421a7450dd82f3a1ba6",
+          "inspection": "Relevant task metadata read."
+        },
+        {
+          "release": "ContextWorld-cube-gripper-carry-10k-independent-v2",
+          "path": "research_receipts/pair_reports.jsonl",
+          "sha256": "00b473b90a8198f9fb7ef756c5dd542e44d0f87cceb014948dfc8168ecba73a8",
+          "inspection": "First pair report only; SHA256 covers complete file."
+        }
+      ]
+    }
+  ]
+}

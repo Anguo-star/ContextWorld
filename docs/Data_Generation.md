@@ -731,3 +731,41 @@ python scripts/diagnose_delay_native_objective.py \
 python scripts/analyze_delay_native_objective.py
 python scripts/analyze_delay_native_objective.py --check
 ```
+
+<a id="expanded-history-prerequisites"></a>
+
+## 扩量任务的图像历史参考验证
+
+这项验证检验模型允许读取的历史是否包含隐藏规律线索，并核对原生训练目标是否覆盖查询未来。它不训练世界模型，也不将规则分类准确率作为未来预测分数。所有参数仅在 Training 拟合，使用完整 Development 评价；不读取 Test。
+
+| `--task` | 数据包 | `--bundle-root` 对应组件目录 |
+|---|---|---|
+| `friction` | `ContextWorld-contact-friction-32k-v1` | `components/pusht-contact-friction/v1` |
+| `damping` | `ContextWorld-motion-damping-32k-v1` | `components/pusht-motion-damping/v1` |
+| `cube` | `ContextWorld-cube-gripper-carry-10k-independent-v2` | `components/cube-gripper-carry/v1` |
+
+[`validate_expanded_history_reference.py`](../scripts/validate_expanded_history_reference.py) 从 Training 选择目标为 4,096 对的完整来源组，排序只依赖来源组 SHA256。Friction 按去掉动作锚点后缀的基础场景分组；Damping 按 `catalog_index // 2` 合并正反向镜像；Cube 按来源 episode 分组。来源字段只用于选择、划分检查和重采样，不进入分类特征。Development 的全部 256 对保留，两条件均评分，bootstrap 按来源组进行 4,000 次重采样。
+
+固定参考方法如下：
+
+- Friction：三帧 RGB 中物体的可见几何、两段位移及三个动作块；Training 拟合标准化与 256 棵 ExtraTrees，随机种子 20261009。
+- Damping：三帧 RGB 中方块两段位移范数的比值；只在 Training 选择最小分类误差的单阈值及方向。
+- Cube：将三帧 RGB 以 bilinear 缩为 16×16，使用 `2*x1-x0-x2` 的展平特征；Training 拟合标准化与 RidgeClassifier，`alpha=1`。
+
+Friction／Damping 读取物理步 0、5、10 的图像与 0–14 的动作，共 30 个动作标量；Cube 读取前三个模型帧和动作块，每块含五个原始动作，共 75 个标量。未来帧只检查配对是否视觉不同，不参与分类。控制上限通过成对当前图像与动作的解码后相等性计算，不拟合另一个模型。任何提取失败均记录完整分母并停止分类汇总，不能删除后冒充全量结果，也不能由此宣称历史不可辨识。
+
+以下命令以 Friction 为例；另两项替换上表的任务与组件。输出路径必须尚不存在，以保留已发布参考结果。
+
+```bash
+python scripts/validate_expanded_history_reference.py \
+  --task friction \
+  --bundle-root "$DATA_ROOT/ContextWorld-contact-friction-32k-v1/components/pusht-contact-friction/v1" \
+  --train-pairs 4096 --workers 4 \
+  --output "$OUTPUT_DIR/friction.json"
+
+python scripts/analyze_expanded_history_reference.py --check
+```
+
+`DATA_ROOT` 是数据包父目录，`OUTPUT_DIR` 是新的结果目录。第二条命令直接复核仓库中的公开结果：完整分母、预测标签、来源组区间、数据身份和生成表格，均不需要 GPU 或模型权重。代码依赖 Lance、Pillow、NumPy 与 scikit-learn；运行版本随参考结果保存。
+
+[`expanded_supervision_coverage_v1.json`](research/data/expanded_supervision_coverage_v1.json) 另记录数据校验记录、加载器摘要与固定版本训练源码，区分可采样窗口、目标位置和实际批次曝光。输入侧结果与解释边界见[研究说明](ICL_Metric_Study.md#expanded-history-prerequisites)；冻结的旧 Cube 探针与评分身份保留不变。

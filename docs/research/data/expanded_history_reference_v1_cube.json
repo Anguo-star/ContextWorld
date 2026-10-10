@@ -1,0 +1,4114 @@
+{
+  "version": "expanded_history_reference_v1",
+  "task": "cube",
+  "release": "ContextWorld-cube-gripper-carry-10k-independent-v2",
+  "program_sha256": "27ad465f6ff844f944d303b3e1e351ceb5b746e329c4bbe4ba5ff60a5af8f5c6",
+  "versions": {
+    "numpy": "1.24.4",
+    "sklearn": "1.2.0",
+    "lance": "11.0.0"
+  },
+  "sampling": {
+    "train_pair_target": 4096,
+    "workers": 4,
+    "selection": "SHA256 source-group order, retain full last group",
+    "bootstrap_resamples": 4000,
+    "seed": 20261009
+  },
+  "recipe": {
+    "history_frames": [
+      0,
+      1,
+      2
+    ],
+    "future_integrity_frame": 3,
+    "action_tokens": 3,
+    "action_scalars": 75,
+    "action_features_used": false,
+    "estimator": "16x16 bilinear decoded RGB flatten(2*x1-x0-x2); Training-fit StandardScaler + RidgeClassifier(alpha=1)"
+  },
+  "training": {
+    "path": "components/cube-gripper-carry/v1/training/data.lance",
+    "lance_version": 33,
+    "metadata_rows": 80000,
+    "metadata_pairs": 10000,
+    "selected_conditions": 8192,
+    "versions_before": {
+      "_versions/18446744073709551603.manifest": [
+        2405,
+        1789698238379691299
+      ],
+      "_versions/18446744073709551597.manifest": [
+        3089,
+        1789698558460887404
+      ],
+      "_versions/18446744073709551596.manifest": [
+        3203,
+        1789698589584218878
+      ],
+      "_versions/latest_version_hint.json": [
+        14,
+        1789698972943984354
+      ],
+      "_versions/18446744073709551595.manifest": [
+        3316,
+        1789698619103584805
+      ],
+      "_versions/18446744073709551592.manifest": [
+        3659,
+        1789698708917655610
+      ],
+      "_versions/18446744073709551599.manifest": [
+        2861,
+        1789698407768124266
+      ],
+      "_versions/18446744073709551609.manifest": [
+        1719,
+        1789697985180962150
+      ],
+      "_versions/18446744073709551611.manifest": [
+        1492,
+        1789697901334707583
+      ],
+      "_versions/18446744073709551585.manifest": [
+        4456,
+        1789698896125634405
+      ],
+      "_versions/18446744073709551586.manifest": [
+        4343,
+        1789698871298167696
+      ],
+      "_versions/18446744073709551605.manifest": [
+        2176,
+        1789698153737453301
+      ],
+      "_versions/18446744073709551593.manifest": [
+        3544,
+        1789698679246292947
+      ],
+      "_versions/18446744073709551601.manifest": [
+        2633,
+        1789698323457920221
+      ],
+      "_versions/18446744073709551600.manifest": [
+        2747,
+        1789698365665028635
+      ],
+      "_versions/18446744073709551584.manifest": [
+        4571,
+        1789698921545088398
+      ],
+      "_versions/18446744073709551613.manifest": [
+        1264,
+        1789697656831797417
+      ],
+      "_versions/18446744073709551606.manifest": [
+        2062,
+        1789698111362335426
+      ],
+      "_versions/18446744073709551604.manifest": [
+        2291,
+        1789698195852576588
+      ],
+      "_versions/18446744073709551602.manifest": [
+        2519,
+        1789698280922805676
+      ],
+      "_versions/18446744073709551608.manifest": [
+        1833,
+        1789698027016091266
+      ],
+      "_versions/18446744073709551614.manifest": [
+        1911,
+        1786706285160220574
+      ],
+      "_versions/18446744073709551588.manifest": [
+        4115,
+        1789698820579257132
+      ],
+      "_versions/18446744073709551589.manifest": [
+        4001,
+        1789698795455796781
+      ],
+      "_versions/18446744073709551590.manifest": [
+        3886,
+        1789698770088341671
+      ],
+      "_versions/18446744073709551594.manifest": [
+        3430,
+        1789698649034941884
+      ],
+      "_versions/18446744073709551612.manifest": [
+        1378,
+        1789697858439600532
+      ],
+      "_versions/18446744073709551582.manifest": [
+        4799,
+        1789698972943984354
+      ],
+      "_versions/18446744073709551587.manifest": [
+        4229,
+        1789698845778715850
+      ],
+      "_versions/18446744073709551591.manifest": [
+        3773,
+        1789698739484999027
+      ],
+      "_versions/18446744073709551598.manifest": [
+        2975,
+        1789698450895197902
+      ],
+      "_versions/18446744073709551610.manifest": [
+        1605,
+        1789697942045860097
+      ],
+      "_versions/18446744073709551607.manifest": [
+        1948,
+        1789698068415229458
+      ],
+      "_versions/18446744073709551583.manifest": [
+        4685,
+        1789698946796545998
+      ]
+    },
+    "versions_after": {
+      "_versions/18446744073709551603.manifest": [
+        2405,
+        1789698238379691299
+      ],
+      "_versions/18446744073709551597.manifest": [
+        3089,
+        1789698558460887404
+      ],
+      "_versions/18446744073709551596.manifest": [
+        3203,
+        1789698589584218878
+      ],
+      "_versions/latest_version_hint.json": [
+        14,
+        1789698972943984354
+      ],
+      "_versions/18446744073709551595.manifest": [
+        3316,
+        1789698619103584805
+      ],
+      "_versions/18446744073709551592.manifest": [
+        3659,
+        1789698708917655610
+      ],
+      "_versions/18446744073709551599.manifest": [
+        2861,
+        1789698407768124266
+      ],
+      "_versions/18446744073709551609.manifest": [
+        1719,
+        1789697985180962150
+      ],
+      "_versions/18446744073709551611.manifest": [
+        1492,
+        1789697901334707583
+      ],
+      "_versions/18446744073709551585.manifest": [
+        4456,
+        1789698896125634405
+      ],
+      "_versions/18446744073709551586.manifest": [
+        4343,
+        1789698871298167696
+      ],
+      "_versions/18446744073709551605.manifest": [
+        2176,
+        1789698153737453301
+      ],
+      "_versions/18446744073709551593.manifest": [
+        3544,
+        1789698679246292947
+      ],
+      "_versions/18446744073709551601.manifest": [
+        2633,
+        1789698323457920221
+      ],
+      "_versions/18446744073709551600.manifest": [
+        2747,
+        1789698365665028635
+      ],
+      "_versions/18446744073709551584.manifest": [
+        4571,
+        1789698921545088398
+      ],
+      "_versions/18446744073709551613.manifest": [
+        1264,
+        1789697656831797417
+      ],
+      "_versions/18446744073709551606.manifest": [
+        2062,
+        1789698111362335426
+      ],
+      "_versions/18446744073709551604.manifest": [
+        2291,
+        1789698195852576588
+      ],
+      "_versions/18446744073709551602.manifest": [
+        2519,
+        1789698280922805676
+      ],
+      "_versions/18446744073709551608.manifest": [
+        1833,
+        1789698027016091266
+      ],
+      "_versions/18446744073709551614.manifest": [
+        1911,
+        1786706285160220574
+      ],
+      "_versions/18446744073709551588.manifest": [
+        4115,
+        1789698820579257132
+      ],
+      "_versions/18446744073709551589.manifest": [
+        4001,
+        1789698795455796781
+      ],
+      "_versions/18446744073709551590.manifest": [
+        3886,
+        1789698770088341671
+      ],
+      "_versions/18446744073709551594.manifest": [
+        3430,
+        1789698649034941884
+      ],
+      "_versions/18446744073709551612.manifest": [
+        1378,
+        1789697858439600532
+      ],
+      "_versions/18446744073709551582.manifest": [
+        4799,
+        1789698972943984354
+      ],
+      "_versions/18446744073709551587.manifest": [
+        4229,
+        1789698845778715850
+      ],
+      "_versions/18446744073709551591.manifest": [
+        3773,
+        1789698739484999027
+      ],
+      "_versions/18446744073709551598.manifest": [
+        2975,
+        1789698450895197902
+      ],
+      "_versions/18446744073709551610.manifest": [
+        1605,
+        1789697942045860097
+      ],
+      "_versions/18446744073709551607.manifest": [
+        1948,
+        1789698068415229458
+      ],
+      "_versions/18446744073709551583.manifest": [
+        4685,
+        1789698946796545998
+      ]
+    },
+    "metadata_conditions": 20000,
+    "metadata_group_count": 10000,
+    "selected_group_count": 4096,
+    "selected_pairs": 4096,
+    "selection_ids_sha256": "799a3fbb4646bbda2e7b1fec44f51ca36e36c9fc65a281fa0c5b3f9ef3a2dc42",
+    "selected_history_feature_and_label_sha256": "06cba7277edcba568d653669780a6526991c6fcbfc962522d81e85b847c02910",
+    "mask_or_extraction_failure_count": 0,
+    "mask_or_extraction_failures": [],
+    "metadata_source_groups_sha256": "d4e05e92c8dcb4a686166ea84ca03d9607f2e057e02d4690e2a1db9307b42ff2",
+    "isolation_metadata": {
+      "source_episode": {
+        "distinct_count": 10000,
+        "sha256": "d4e05e92c8dcb4a686166ea84ca03d9607f2e057e02d4690e2a1db9307b42ff2"
+      },
+      "action_profile_id": {
+        "distinct_count": 10000,
+        "sha256": "27608f929868a3749b677880e27cd2e841670e38a3fb205738ccc53f63fab04d"
+      },
+      "scene_template_content_hash": {
+        "distinct_count": 10000,
+        "sha256": "ae20a6ae330b35beddacd566ec8186fb04214eed0363bfb09bfbb3286f8cae0a"
+      },
+      "pair_content_hash": {
+        "distinct_count": 10000,
+        "sha256": "3250b822800b4421772c1a5d22375b984f41d9e5780de4ce2af16dc612bc6930"
+      }
+    }
+  },
+  "development": {
+    "path": "components/cube-gripper-carry/v1/development/data.lance",
+    "lance_version": 1,
+    "metadata_rows": 2048,
+    "metadata_pairs": 256,
+    "selected_conditions": 512,
+    "versions_before": {
+      "_versions/18446744073709551614.manifest": [
+        1909,
+        1786706285032216292
+      ]
+    },
+    "versions_after": {
+      "_versions/18446744073709551614.manifest": [
+        1909,
+        1786706285032216292
+      ]
+    },
+    "metadata_conditions": 512,
+    "metadata_group_count": 256,
+    "selected_group_count": 256,
+    "selected_pairs": 256,
+    "selection_ids_sha256": "a9d7d1b03bdb85e3d9e87431875c8e5b624e6cba5f388c72226d1ecd50cbd21e",
+    "selected_history_feature_and_label_sha256": "85c156f565ce941df8311887ace2cea9e5534075ca1d8fac8cf96eea61a0fa53",
+    "mask_or_extraction_failure_count": 0,
+    "mask_or_extraction_failures": [],
+    "metadata_source_groups_sha256": "cce86456e791874337008c4f01c551ee977f8bc20264b437e0312ad0ced8e0c2",
+    "isolation_metadata": {
+      "source_episode": {
+        "distinct_count": 256,
+        "sha256": "cce86456e791874337008c4f01c551ee977f8bc20264b437e0312ad0ced8e0c2"
+      },
+      "action_profile_id": {
+        "distinct_count": 256,
+        "sha256": "de16e817dfdf045e628bd37b282f1a8cd160c8017cef7fe3e4e31787a8d38d96"
+      },
+      "scene_template_content_hash": {
+        "distinct_count": 256,
+        "sha256": "375f82363407584765730329fe8896346acdde9130eecc9d9168c272044f066a"
+      },
+      "pair_content_hash": {
+        "distinct_count": 256,
+        "sha256": "7025395c398eba935f10757bafd4588a7a79ca1107c3f02e200de20e5af7ede3"
+      }
+    }
+  },
+  "manifest_sha256_before": {
+    "manifest.jsonl": "6e8d707857db9e50d0e21d0a0c4d12647a63a5f1ee25e3527af5b46759463baf",
+    "manifest.sha256": "d84c631d6a16b6ae183f12e5ead2f94496c441b6f09602049cdb0c76444343d6",
+    "task_registry.json": "864119bb8a10ca806d4709f08c7c05a19ef0c63c2602f9f5d4fdad009eeee07e"
+  },
+  "input_contract": {
+    "allowed": "history pixels/actions only",
+    "hidden_mode": "supervised target only",
+    "future_pixels": "equality check only",
+    "Test_read": false,
+    "failure_interpretation": "decoder failure does not establish unidentifiability; fixed recipe is not retried based on Development",
+    "friction_action_scalars": 30,
+    "bootstrap_unit": "source group; mirror pairs kept together"
+  },
+  "controls": {
+    "training": {
+      "x0_equal": {
+        "count": 4096,
+        "pairs": 4096,
+        "fraction": 1.0
+      },
+      "current_only_equal": {
+        "count": 4096,
+        "pairs": 4096,
+        "fraction": 1.0,
+        "deterministic_classifier_theoretical_accuracy_upper_bound_not_trained_score": 0.5
+      },
+      "action_only_equal": {
+        "count": 4096,
+        "pairs": 4096,
+        "fraction": 1.0,
+        "deterministic_classifier_theoretical_accuracy_upper_bound_not_trained_score": 0.5
+      },
+      "future_different": {
+        "count": 4096,
+        "pairs": 4096,
+        "fraction": 1.0
+      },
+      "current_plus_action_equal": {
+        "count": 4096,
+        "pairs": 4096,
+        "fraction": 1.0,
+        "deterministic_classifier_theoretical_accuracy_upper_bound_not_trained_score": 0.5
+      }
+    },
+    "development": {
+      "x0_equal": {
+        "count": 256,
+        "pairs": 256,
+        "fraction": 1.0
+      },
+      "current_only_equal": {
+        "count": 256,
+        "pairs": 256,
+        "fraction": 1.0,
+        "deterministic_classifier_theoretical_accuracy_upper_bound_not_trained_score": 0.5
+      },
+      "action_only_equal": {
+        "count": 256,
+        "pairs": 256,
+        "fraction": 1.0,
+        "deterministic_classifier_theoretical_accuracy_upper_bound_not_trained_score": 0.5
+      },
+      "future_different": {
+        "count": 256,
+        "pairs": 256,
+        "fraction": 1.0
+      },
+      "current_plus_action_equal": {
+        "count": 256,
+        "pairs": 256,
+        "fraction": 1.0,
+        "deterministic_classifier_theoretical_accuracy_upper_bound_not_trained_score": 0.5
+      }
+    }
+  },
+  "estimator": {
+    "name": "RidgeClassifier",
+    "parameters": {
+      "alpha": 1,
+      "class_weight": null,
+      "copy_X": true,
+      "fit_intercept": true,
+      "max_iter": null,
+      "positive": false,
+      "random_state": null,
+      "solver": "auto",
+      "tol": 0.0001
+    },
+    "scaler": {
+      "copy": true,
+      "with_mean": true,
+      "with_std": true
+    }
+  },
+  "training_scores": {
+    "accuracy": 0.8546142578125,
+    "condition_accuracy": {
+      "can_hold": 0.84326171875,
+      "cannot_hold": 0.865966796875
+    },
+    "worst_condition_accuracy": 0.84326171875
+  },
+  "development_scores": {
+    "accuracy": 0.79296875,
+    "condition_accuracy": {
+      "can_hold": 0.8125,
+      "cannot_hold": 0.7734375
+    },
+    "worst_condition_accuracy": 0.7734375
+  },
+  "development_predictions": [
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000027",
+      "source_group": "6889",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000027",
+      "source_group": "6889",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000110",
+      "source_group": "7615",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000110",
+      "source_group": "7615",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000136",
+      "source_group": "3148",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000136",
+      "source_group": "3148",
+      "mode": "can_hold",
+      "prediction": "cannot_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000055",
+      "source_group": "1948",
+      "mode": "cannot_hold",
+      "prediction": "can_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000055",
+      "source_group": "1948",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000233",
+      "source_group": "6623",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000233",
+      "source_group": "6623",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000018",
+      "source_group": "8925",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000018",
+      "source_group": "8925",
+      "mode": "can_hold",
+      "prediction": "cannot_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000195",
+      "source_group": "1330",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000195",
+      "source_group": "1330",
+      "mode": "can_hold",
+      "prediction": "cannot_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000230",
+      "source_group": "1438",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000230",
+      "source_group": "1438",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000242",
+      "source_group": "8462",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000242",
+      "source_group": "8462",
+      "mode": "can_hold",
+      "prediction": "cannot_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000046",
+      "source_group": "9756",
+      "mode": "cannot_hold",
+      "prediction": "can_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000046",
+      "source_group": "9756",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000244",
+      "source_group": "9662",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000244",
+      "source_group": "9662",
+      "mode": "can_hold",
+      "prediction": "cannot_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000119",
+      "source_group": "9277",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000119",
+      "source_group": "9277",
+      "mode": "can_hold",
+      "prediction": "cannot_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000026",
+      "source_group": "791",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000026",
+      "source_group": "791",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000132",
+      "source_group": "9570",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000132",
+      "source_group": "9570",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000157",
+      "source_group": "748",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000157",
+      "source_group": "748",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000056",
+      "source_group": "5313",
+      "mode": "cannot_hold",
+      "prediction": "can_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000056",
+      "source_group": "5313",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000156",
+      "source_group": "437",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000156",
+      "source_group": "437",
+      "mode": "can_hold",
+      "prediction": "cannot_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000053",
+      "source_group": "8362",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000053",
+      "source_group": "8362",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000220",
+      "source_group": "7795",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000220",
+      "source_group": "7795",
+      "mode": "can_hold",
+      "prediction": "cannot_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000184",
+      "source_group": "3981",
+      "mode": "cannot_hold",
+      "prediction": "can_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000184",
+      "source_group": "3981",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000107",
+      "source_group": "2603",
+      "mode": "cannot_hold",
+      "prediction": "can_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000107",
+      "source_group": "2603",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000235",
+      "source_group": "7087",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000235",
+      "source_group": "7087",
+      "mode": "can_hold",
+      "prediction": "cannot_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000228",
+      "source_group": "1876",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000228",
+      "source_group": "1876",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000049",
+      "source_group": "386",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000049",
+      "source_group": "386",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000116",
+      "source_group": "6154",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000116",
+      "source_group": "6154",
+      "mode": "can_hold",
+      "prediction": "cannot_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000012",
+      "source_group": "6148",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000012",
+      "source_group": "6148",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000212",
+      "source_group": "398",
+      "mode": "cannot_hold",
+      "prediction": "can_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000212",
+      "source_group": "398",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000004",
+      "source_group": "9896",
+      "mode": "cannot_hold",
+      "prediction": "can_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000004",
+      "source_group": "9896",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000036",
+      "source_group": "7904",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000036",
+      "source_group": "7904",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000168",
+      "source_group": "4419",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000168",
+      "source_group": "4419",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000051",
+      "source_group": "535",
+      "mode": "cannot_hold",
+      "prediction": "can_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000051",
+      "source_group": "535",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000125",
+      "source_group": "5136",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000125",
+      "source_group": "5136",
+      "mode": "can_hold",
+      "prediction": "cannot_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000158",
+      "source_group": "1097",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000158",
+      "source_group": "1097",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000161",
+      "source_group": "5914",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000161",
+      "source_group": "5914",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000108",
+      "source_group": "4933",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000108",
+      "source_group": "4933",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000059",
+      "source_group": "6258",
+      "mode": "cannot_hold",
+      "prediction": "can_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000059",
+      "source_group": "6258",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000198",
+      "source_group": "9935",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000198",
+      "source_group": "9935",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000194",
+      "source_group": "8199",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000194",
+      "source_group": "8199",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000016",
+      "source_group": "5234",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000016",
+      "source_group": "5234",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000047",
+      "source_group": "5533",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000047",
+      "source_group": "5533",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000138",
+      "source_group": "4847",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000138",
+      "source_group": "4847",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000221",
+      "source_group": "5143",
+      "mode": "cannot_hold",
+      "prediction": "can_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000221",
+      "source_group": "5143",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000042",
+      "source_group": "1555",
+      "mode": "cannot_hold",
+      "prediction": "can_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000042",
+      "source_group": "1555",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000247",
+      "source_group": "1343",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000247",
+      "source_group": "1343",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000144",
+      "source_group": "5063",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000144",
+      "source_group": "5063",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000114",
+      "source_group": "1426",
+      "mode": "cannot_hold",
+      "prediction": "can_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000114",
+      "source_group": "1426",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000197",
+      "source_group": "5366",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000197",
+      "source_group": "5366",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000135",
+      "source_group": "4206",
+      "mode": "cannot_hold",
+      "prediction": "can_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000135",
+      "source_group": "4206",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000025",
+      "source_group": "7237",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000025",
+      "source_group": "7237",
+      "mode": "can_hold",
+      "prediction": "cannot_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000146",
+      "source_group": "6108",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000146",
+      "source_group": "6108",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000183",
+      "source_group": "4345",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000183",
+      "source_group": "4345",
+      "mode": "can_hold",
+      "prediction": "cannot_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000039",
+      "source_group": "6384",
+      "mode": "cannot_hold",
+      "prediction": "can_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000039",
+      "source_group": "6384",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000250",
+      "source_group": "8734",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000250",
+      "source_group": "8734",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000149",
+      "source_group": "3955",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000149",
+      "source_group": "3955",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000041",
+      "source_group": "9497",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000041",
+      "source_group": "9497",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000140",
+      "source_group": "5596",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000140",
+      "source_group": "5596",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000167",
+      "source_group": "78",
+      "mode": "cannot_hold",
+      "prediction": "can_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000167",
+      "source_group": "78",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000213",
+      "source_group": "271",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000213",
+      "source_group": "271",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000092",
+      "source_group": "8355",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000092",
+      "source_group": "8355",
+      "mode": "can_hold",
+      "prediction": "cannot_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000159",
+      "source_group": "7532",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000159",
+      "source_group": "7532",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000121",
+      "source_group": "9007",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000121",
+      "source_group": "9007",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000134",
+      "source_group": "60",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000134",
+      "source_group": "60",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000254",
+      "source_group": "2837",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000254",
+      "source_group": "2837",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000217",
+      "source_group": "1201",
+      "mode": "cannot_hold",
+      "prediction": "can_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000217",
+      "source_group": "1201",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000050",
+      "source_group": "9784",
+      "mode": "cannot_hold",
+      "prediction": "can_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000050",
+      "source_group": "9784",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000060",
+      "source_group": "9305",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000060",
+      "source_group": "9305",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000111",
+      "source_group": "4457",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000111",
+      "source_group": "4457",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000115",
+      "source_group": "6885",
+      "mode": "cannot_hold",
+      "prediction": "can_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000115",
+      "source_group": "6885",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000006",
+      "source_group": "9016",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000006",
+      "source_group": "9016",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000203",
+      "source_group": "1082",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000203",
+      "source_group": "1082",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000112",
+      "source_group": "640",
+      "mode": "cannot_hold",
+      "prediction": "can_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000112",
+      "source_group": "640",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000122",
+      "source_group": "1436",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000122",
+      "source_group": "1436",
+      "mode": "can_hold",
+      "prediction": "cannot_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000252",
+      "source_group": "745",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000252",
+      "source_group": "745",
+      "mode": "can_hold",
+      "prediction": "cannot_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000020",
+      "source_group": "4834",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000020",
+      "source_group": "4834",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000014",
+      "source_group": "7499",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000014",
+      "source_group": "7499",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000191",
+      "source_group": "3718",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000191",
+      "source_group": "3718",
+      "mode": "can_hold",
+      "prediction": "cannot_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000074",
+      "source_group": "9366",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000074",
+      "source_group": "9366",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000128",
+      "source_group": "4115",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000128",
+      "source_group": "4115",
+      "mode": "can_hold",
+      "prediction": "cannot_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000029",
+      "source_group": "2734",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000029",
+      "source_group": "2734",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000173",
+      "source_group": "9663",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000173",
+      "source_group": "9663",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000124",
+      "source_group": "8856",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000124",
+      "source_group": "8856",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000067",
+      "source_group": "4418",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000067",
+      "source_group": "4418",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000236",
+      "source_group": "5731",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000236",
+      "source_group": "5731",
+      "mode": "can_hold",
+      "prediction": "cannot_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000096",
+      "source_group": "517",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000096",
+      "source_group": "517",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000071",
+      "source_group": "2433",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000071",
+      "source_group": "2433",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000243",
+      "source_group": "794",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000243",
+      "source_group": "794",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000251",
+      "source_group": "7269",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000251",
+      "source_group": "7269",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000210",
+      "source_group": "7273",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000210",
+      "source_group": "7273",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000017",
+      "source_group": "6991",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000017",
+      "source_group": "6991",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000076",
+      "source_group": "8755",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000076",
+      "source_group": "8755",
+      "mode": "can_hold",
+      "prediction": "cannot_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000226",
+      "source_group": "4079",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000226",
+      "source_group": "4079",
+      "mode": "can_hold",
+      "prediction": "cannot_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000082",
+      "source_group": "6530",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000082",
+      "source_group": "6530",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000246",
+      "source_group": "3026",
+      "mode": "cannot_hold",
+      "prediction": "can_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000246",
+      "source_group": "3026",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000013",
+      "source_group": "7248",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000013",
+      "source_group": "7248",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000240",
+      "source_group": "3474",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000240",
+      "source_group": "3474",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000253",
+      "source_group": "338",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000253",
+      "source_group": "338",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000003",
+      "source_group": "9817",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000003",
+      "source_group": "9817",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000241",
+      "source_group": "6211",
+      "mode": "cannot_hold",
+      "prediction": "can_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000241",
+      "source_group": "6211",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000113",
+      "source_group": "5433",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000113",
+      "source_group": "5433",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000255",
+      "source_group": "366",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000255",
+      "source_group": "366",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000086",
+      "source_group": "7270",
+      "mode": "cannot_hold",
+      "prediction": "can_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000086",
+      "source_group": "7270",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000166",
+      "source_group": "3200",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000166",
+      "source_group": "3200",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000024",
+      "source_group": "6883",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000024",
+      "source_group": "6883",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000162",
+      "source_group": "2097",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000162",
+      "source_group": "2097",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000002",
+      "source_group": "2959",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000002",
+      "source_group": "2959",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000147",
+      "source_group": "3741",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000147",
+      "source_group": "3741",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000145",
+      "source_group": "6558",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000145",
+      "source_group": "6558",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000196",
+      "source_group": "2841",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000196",
+      "source_group": "2841",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000032",
+      "source_group": "9117",
+      "mode": "cannot_hold",
+      "prediction": "can_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000032",
+      "source_group": "9117",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000037",
+      "source_group": "3950",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000037",
+      "source_group": "3950",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000201",
+      "source_group": "3196",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000201",
+      "source_group": "3196",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000199",
+      "source_group": "5371",
+      "mode": "cannot_hold",
+      "prediction": "can_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000199",
+      "source_group": "5371",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000172",
+      "source_group": "5564",
+      "mode": "cannot_hold",
+      "prediction": "can_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000172",
+      "source_group": "5564",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000229",
+      "source_group": "4377",
+      "mode": "cannot_hold",
+      "prediction": "can_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000229",
+      "source_group": "4377",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000094",
+      "source_group": "7536",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000094",
+      "source_group": "7536",
+      "mode": "can_hold",
+      "prediction": "cannot_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000216",
+      "source_group": "9172",
+      "mode": "cannot_hold",
+      "prediction": "can_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000216",
+      "source_group": "9172",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000007",
+      "source_group": "7370",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000007",
+      "source_group": "7370",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000189",
+      "source_group": "4458",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000189",
+      "source_group": "4458",
+      "mode": "can_hold",
+      "prediction": "cannot_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000045",
+      "source_group": "2644",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000045",
+      "source_group": "2644",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000091",
+      "source_group": "984",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000091",
+      "source_group": "984",
+      "mode": "can_hold",
+      "prediction": "cannot_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000141",
+      "source_group": "7760",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000141",
+      "source_group": "7760",
+      "mode": "can_hold",
+      "prediction": "cannot_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000009",
+      "source_group": "1463",
+      "mode": "cannot_hold",
+      "prediction": "can_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000009",
+      "source_group": "1463",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000185",
+      "source_group": "7185",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000185",
+      "source_group": "7185",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000181",
+      "source_group": "1114",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000181",
+      "source_group": "1114",
+      "mode": "can_hold",
+      "prediction": "cannot_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000205",
+      "source_group": "8029",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000205",
+      "source_group": "8029",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000038",
+      "source_group": "7070",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000038",
+      "source_group": "7070",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000085",
+      "source_group": "4207",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000085",
+      "source_group": "4207",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000080",
+      "source_group": "2458",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000080",
+      "source_group": "2458",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000008",
+      "source_group": "259",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000008",
+      "source_group": "259",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000180",
+      "source_group": "728",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000180",
+      "source_group": "728",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000109",
+      "source_group": "7417",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000109",
+      "source_group": "7417",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000192",
+      "source_group": "6624",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000192",
+      "source_group": "6624",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000066",
+      "source_group": "691",
+      "mode": "cannot_hold",
+      "prediction": "can_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000066",
+      "source_group": "691",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000098",
+      "source_group": "3128",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000098",
+      "source_group": "3128",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000152",
+      "source_group": "8628",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000152",
+      "source_group": "8628",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000169",
+      "source_group": "3236",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000169",
+      "source_group": "3236",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000011",
+      "source_group": "9067",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000011",
+      "source_group": "9067",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000048",
+      "source_group": "1594",
+      "mode": "cannot_hold",
+      "prediction": "can_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000048",
+      "source_group": "1594",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000223",
+      "source_group": "4558",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000223",
+      "source_group": "4558",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000010",
+      "source_group": "626",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000010",
+      "source_group": "626",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000239",
+      "source_group": "4291",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000239",
+      "source_group": "4291",
+      "mode": "can_hold",
+      "prediction": "cannot_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000224",
+      "source_group": "3281",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000224",
+      "source_group": "3281",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000179",
+      "source_group": "7183",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000179",
+      "source_group": "7183",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000178",
+      "source_group": "3422",
+      "mode": "cannot_hold",
+      "prediction": "can_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000178",
+      "source_group": "3422",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000021",
+      "source_group": "3905",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000021",
+      "source_group": "3905",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000005",
+      "source_group": "2396",
+      "mode": "cannot_hold",
+      "prediction": "can_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000005",
+      "source_group": "2396",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000075",
+      "source_group": "994",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000075",
+      "source_group": "994",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000245",
+      "source_group": "6711",
+      "mode": "cannot_hold",
+      "prediction": "can_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000245",
+      "source_group": "6711",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000093",
+      "source_group": "3165",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000093",
+      "source_group": "3165",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000190",
+      "source_group": "6034",
+      "mode": "cannot_hold",
+      "prediction": "can_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000190",
+      "source_group": "6034",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000087",
+      "source_group": "4288",
+      "mode": "cannot_hold",
+      "prediction": "can_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000087",
+      "source_group": "4288",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000249",
+      "source_group": "6445",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000249",
+      "source_group": "6445",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000187",
+      "source_group": "989",
+      "mode": "cannot_hold",
+      "prediction": "can_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000187",
+      "source_group": "989",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000104",
+      "source_group": "4872",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000104",
+      "source_group": "4872",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000234",
+      "source_group": "5543",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000234",
+      "source_group": "5543",
+      "mode": "can_hold",
+      "prediction": "cannot_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000068",
+      "source_group": "7001",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000068",
+      "source_group": "7001",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000001",
+      "source_group": "3603",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000001",
+      "source_group": "3603",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000081",
+      "source_group": "7993",
+      "mode": "cannot_hold",
+      "prediction": "can_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000081",
+      "source_group": "7993",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000022",
+      "source_group": "9515",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000022",
+      "source_group": "9515",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000202",
+      "source_group": "48",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000202",
+      "source_group": "48",
+      "mode": "can_hold",
+      "prediction": "cannot_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000214",
+      "source_group": "9596",
+      "mode": "cannot_hold",
+      "prediction": "can_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000214",
+      "source_group": "9596",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000118",
+      "source_group": "432",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000118",
+      "source_group": "432",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000063",
+      "source_group": "6996",
+      "mode": "cannot_hold",
+      "prediction": "can_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000063",
+      "source_group": "6996",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000064",
+      "source_group": "9771",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000064",
+      "source_group": "9771",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000083",
+      "source_group": "8531",
+      "mode": "cannot_hold",
+      "prediction": "can_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000083",
+      "source_group": "8531",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000035",
+      "source_group": "3511",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000035",
+      "source_group": "3511",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000106",
+      "source_group": "5013",
+      "mode": "cannot_hold",
+      "prediction": "can_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000106",
+      "source_group": "5013",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000174",
+      "source_group": "5389",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000174",
+      "source_group": "5389",
+      "mode": "can_hold",
+      "prediction": "cannot_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000131",
+      "source_group": "2976",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000131",
+      "source_group": "2976",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000182",
+      "source_group": "2778",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000182",
+      "source_group": "2778",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000031",
+      "source_group": "5507",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000031",
+      "source_group": "5507",
+      "mode": "can_hold",
+      "prediction": "cannot_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000237",
+      "source_group": "1152",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000237",
+      "source_group": "1152",
+      "mode": "can_hold",
+      "prediction": "cannot_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000034",
+      "source_group": "7005",
+      "mode": "cannot_hold",
+      "prediction": "can_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000034",
+      "source_group": "7005",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000028",
+      "source_group": "6264",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000028",
+      "source_group": "6264",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000033",
+      "source_group": "9328",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000033",
+      "source_group": "9328",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000062",
+      "source_group": "9722",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000062",
+      "source_group": "9722",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000078",
+      "source_group": "4383",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000078",
+      "source_group": "4383",
+      "mode": "can_hold",
+      "prediction": "cannot_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000015",
+      "source_group": "7885",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000015",
+      "source_group": "7885",
+      "mode": "can_hold",
+      "prediction": "cannot_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000137",
+      "source_group": "3671",
+      "mode": "cannot_hold",
+      "prediction": "can_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000137",
+      "source_group": "3671",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000070",
+      "source_group": "9925",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000070",
+      "source_group": "9925",
+      "mode": "can_hold",
+      "prediction": "cannot_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000120",
+      "source_group": "5843",
+      "mode": "cannot_hold",
+      "prediction": "can_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000120",
+      "source_group": "5843",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000204",
+      "source_group": "8958",
+      "mode": "cannot_hold",
+      "prediction": "can_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000204",
+      "source_group": "8958",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000231",
+      "source_group": "9634",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000231",
+      "source_group": "9634",
+      "mode": "can_hold",
+      "prediction": "cannot_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000052",
+      "source_group": "1327",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000052",
+      "source_group": "1327",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000211",
+      "source_group": "7396",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000211",
+      "source_group": "7396",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000227",
+      "source_group": "3288",
+      "mode": "cannot_hold",
+      "prediction": "can_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000227",
+      "source_group": "3288",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000165",
+      "source_group": "5154",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000165",
+      "source_group": "5154",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000126",
+      "source_group": "7122",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000126",
+      "source_group": "7122",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000044",
+      "source_group": "5364",
+      "mode": "cannot_hold",
+      "prediction": "can_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000044",
+      "source_group": "5364",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000225",
+      "source_group": "3985",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000225",
+      "source_group": "3985",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000215",
+      "source_group": "3596",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000215",
+      "source_group": "3596",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000019",
+      "source_group": "8285",
+      "mode": "cannot_hold",
+      "prediction": "can_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000019",
+      "source_group": "8285",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000101",
+      "source_group": "4849",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000101",
+      "source_group": "4849",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000058",
+      "source_group": "8911",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000058",
+      "source_group": "8911",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000155",
+      "source_group": "1893",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000155",
+      "source_group": "1893",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000206",
+      "source_group": "9872",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000206",
+      "source_group": "9872",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000153",
+      "source_group": "4438",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000153",
+      "source_group": "4438",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000222",
+      "source_group": "8996",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000222",
+      "source_group": "8996",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000130",
+      "source_group": "7629",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000130",
+      "source_group": "7629",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000105",
+      "source_group": "2482",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000105",
+      "source_group": "2482",
+      "mode": "can_hold",
+      "prediction": "cannot_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000084",
+      "source_group": "3096",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000084",
+      "source_group": "3096",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000142",
+      "source_group": "8781",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000142",
+      "source_group": "8781",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000065",
+      "source_group": "1646",
+      "mode": "cannot_hold",
+      "prediction": "can_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000065",
+      "source_group": "1646",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000218",
+      "source_group": "7295",
+      "mode": "cannot_hold",
+      "prediction": "can_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000218",
+      "source_group": "7295",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000079",
+      "source_group": "4063",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000079",
+      "source_group": "4063",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000139",
+      "source_group": "2717",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000139",
+      "source_group": "2717",
+      "mode": "can_hold",
+      "prediction": "cannot_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000099",
+      "source_group": "6270",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000099",
+      "source_group": "6270",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000097",
+      "source_group": "1350",
+      "mode": "cannot_hold",
+      "prediction": "can_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000097",
+      "source_group": "1350",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000208",
+      "source_group": "4290",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000208",
+      "source_group": "4290",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000154",
+      "source_group": "5811",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000154",
+      "source_group": "5811",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000207",
+      "source_group": "6267",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000207",
+      "source_group": "6267",
+      "mode": "can_hold",
+      "prediction": "cannot_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000219",
+      "source_group": "2193",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000219",
+      "source_group": "2193",
+      "mode": "can_hold",
+      "prediction": "cannot_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000069",
+      "source_group": "9855",
+      "mode": "cannot_hold",
+      "prediction": "can_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000069",
+      "source_group": "9855",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000117",
+      "source_group": "4731",
+      "mode": "cannot_hold",
+      "prediction": "can_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000117",
+      "source_group": "4731",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000123",
+      "source_group": "2538",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000123",
+      "source_group": "2538",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000150",
+      "source_group": "9788",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000150",
+      "source_group": "9788",
+      "mode": "can_hold",
+      "prediction": "cannot_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000176",
+      "source_group": "2731",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000176",
+      "source_group": "2731",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000030",
+      "source_group": "3187",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000030",
+      "source_group": "3187",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000248",
+      "source_group": "8725",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000248",
+      "source_group": "8725",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000040",
+      "source_group": "4181",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000040",
+      "source_group": "4181",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000209",
+      "source_group": "3733",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000209",
+      "source_group": "3733",
+      "mode": "can_hold",
+      "prediction": "cannot_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000232",
+      "source_group": "5158",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000232",
+      "source_group": "5158",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000148",
+      "source_group": "3170",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000148",
+      "source_group": "3170",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000054",
+      "source_group": "1965",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000054",
+      "source_group": "1965",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000043",
+      "source_group": "9434",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000043",
+      "source_group": "9434",
+      "mode": "can_hold",
+      "prediction": "cannot_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000188",
+      "source_group": "5887",
+      "mode": "cannot_hold",
+      "prediction": "can_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000188",
+      "source_group": "5887",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000193",
+      "source_group": "2042",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000193",
+      "source_group": "2042",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000089",
+      "source_group": "1921",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000089",
+      "source_group": "1921",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000072",
+      "source_group": "1428",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000072",
+      "source_group": "1428",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000200",
+      "source_group": "1730",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000200",
+      "source_group": "1730",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000129",
+      "source_group": "8011",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000129",
+      "source_group": "8011",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000073",
+      "source_group": "6915",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000073",
+      "source_group": "6915",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000171",
+      "source_group": "3334",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000171",
+      "source_group": "3334",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000077",
+      "source_group": "3386",
+      "mode": "cannot_hold",
+      "prediction": "can_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000077",
+      "source_group": "3386",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000186",
+      "source_group": "9978",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000186",
+      "source_group": "9978",
+      "mode": "can_hold",
+      "prediction": "cannot_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000023",
+      "source_group": "3533",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000023",
+      "source_group": "3533",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000095",
+      "source_group": "3966",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000095",
+      "source_group": "3966",
+      "mode": "can_hold",
+      "prediction": "cannot_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000170",
+      "source_group": "489",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000170",
+      "source_group": "489",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000127",
+      "source_group": "1696",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000127",
+      "source_group": "1696",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000000",
+      "source_group": "6491",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000000",
+      "source_group": "6491",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000151",
+      "source_group": "7917",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000151",
+      "source_group": "7917",
+      "mode": "can_hold",
+      "prediction": "cannot_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000238",
+      "source_group": "6936",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000238",
+      "source_group": "6936",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000177",
+      "source_group": "3080",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000177",
+      "source_group": "3080",
+      "mode": "can_hold",
+      "prediction": "cannot_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000100",
+      "source_group": "4919",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000100",
+      "source_group": "4919",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000164",
+      "source_group": "6567",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000164",
+      "source_group": "6567",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000160",
+      "source_group": "3458",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000160",
+      "source_group": "3458",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000061",
+      "source_group": "3325",
+      "mode": "cannot_hold",
+      "prediction": "can_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000061",
+      "source_group": "3325",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000143",
+      "source_group": "806",
+      "mode": "cannot_hold",
+      "prediction": "can_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000143",
+      "source_group": "806",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000102",
+      "source_group": "878",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000102",
+      "source_group": "878",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000103",
+      "source_group": "5561",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000103",
+      "source_group": "5561",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000163",
+      "source_group": "6891",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000163",
+      "source_group": "6891",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000057",
+      "source_group": "6882",
+      "mode": "cannot_hold",
+      "prediction": "can_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000057",
+      "source_group": "6882",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000090",
+      "source_group": "5103",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000090",
+      "source_group": "5103",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000175",
+      "source_group": "6619",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000175",
+      "source_group": "6619",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000088",
+      "source_group": "3154",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000088",
+      "source_group": "3154",
+      "mode": "can_hold",
+      "prediction": "cannot_hold",
+      "correct": false
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000133",
+      "source_group": "7285",
+      "mode": "cannot_hold",
+      "prediction": "cannot_hold",
+      "correct": true
+    },
+    {
+      "pair_id": "cube-carry-v4r1-loader_validation-000133",
+      "source_group": "7285",
+      "mode": "can_hold",
+      "prediction": "can_hold",
+      "correct": true
+    }
+  ],
+  "development_group_bootstrap_95ci": {
+    "resamples": 4000,
+    "seed": 20261009,
+    "groups": 256,
+    "lower": 0.763623046875,
+    "upper": 0.82421875
+  },
+  "status": "completed_empirical_reference_not_mathematical_identifiability",
+  "full_train_development_metadata_overlap": {
+    "source_episode": {
+      "count": 0,
+      "values": []
+    },
+    "action_profile_id": {
+      "count": 0,
+      "values": []
+    },
+    "scene_template_content_hash": {
+      "count": 0,
+      "values": []
+    },
+    "pair_content_hash": {
+      "count": 0,
+      "values": []
+    }
+  },
+  "manifest_sha256_after": {
+    "manifest.jsonl": "6e8d707857db9e50d0e21d0a0c4d12647a63a5f1ee25e3527af5b46759463baf",
+    "manifest.sha256": "d84c631d6a16b6ae183f12e5ead2f94496c441b6f09602049cdb0c76444343d6",
+    "task_registry.json": "864119bb8a10ca806d4709f08c7c05a19ef0c63c2602f9f5d4fdad009eeee07e"
+  }
+}
