@@ -1,0 +1,58 @@
+{
+  "schema": "contextworld.matched_encoder_contrast.v1",
+  "task": "contact_friction",
+  "regime": "joint",
+  "model_id": "contact_friction/lewm/joint/s3072",
+  "checkpoint_sha256": "e8d0aa8208e1cd28dad7d446771ad6832e94218ed1bbed2abd06122309ec8bb2",
+  "panel_manifest_sha256": "47b389da0cc615aa2ed3a82f2c80d20c67d4ae7a83a60c30abfe3f95e82ab14b",
+  "split_sha256": {
+    "training": "1749ab6a8e8bb198e70038c3117ad78c921a2daaa0a4a03e9089883c3ae0d92a",
+    "development": "68cdd9315d33a21d4ffbc8d0ee489aabac9c41f4ebe002ba2579974c525efae6"
+  },
+  "model_state_hash_before": "0928831d0ac4cea6aa60c16a787e47a9745bb7032821fac6224f07f588d7227a",
+  "model_state_hash_after": "0928831d0ac4cea6aa60c16a787e47a9745bb7032821fac6224f07f588d7227a",
+  "no_model_update": true,
+  "no_test_read": true,
+  "readout": "StandardScaler(Train)+Ridge(alpha=1), same hidden labels, Dev evaluation",
+  "readout_full_history": {
+    "accuracy": 0.75,
+    "balanced_accuracy": 0.75,
+    "classes": [
+      0,
+      1
+    ]
+  },
+  "readout_current_only": {
+    "accuracy": 0.5,
+    "balanced_accuracy": 0.5,
+    "classes": [
+      0,
+      1
+    ]
+  },
+  "readout_history_gain_balanced_accuracy": 0.25,
+  "target_variance": {
+    "within_query_energy": 25.51698098304348,
+    "global_centered_energy": 107524.56204453784,
+    "between_query_energy": 107499.0450635548,
+    "conditional_variance_fraction": 0.0002373130426932041
+  },
+  "history_variance": {
+    "within_query_energy": 30.258865884532675,
+    "global_centered_energy": 319120.3469950577,
+    "between_query_energy": 319090.0881291732,
+    "conditional_variance_fraction": 9.48196069898398e-05
+  },
+  "response": {
+    "target_energy": 25.51698098304348,
+    "response_error": 25.477658117360836,
+    "response_nre": 0.9984589530513514,
+    "endpoint_mse": 0.002204320882655842,
+    "response_error_mse": 0.00025917214067953324,
+    "common_error_mse": 0.0019451487419763088,
+    "latent_dim": 192,
+    "dev_rows": 512,
+    "matched_query_groups": 256
+  },
+  "limitations": "Joint versus frozen compares total training-policy effects; readout accuracy does not prove rollout sufficiency."
+}
