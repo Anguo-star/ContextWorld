@@ -1,0 +1,55 @@
+{
+  "schema": "contextworld.visible_native_geometry_protocol.v1",
+  "purpose": "Test whether native target distance inversions persist when entire agent/block shapes stay on canvas.",
+  "task": "action_strength",
+  "checkpoints": [
+    {
+      "regime": "original",
+      "cache_seed": 3073,
+      "sha256": "9f13b2c28bb909338047e08d62bf6eb16ea3616cb53e57cfa9b5072b43db1c59"
+    },
+    {
+      "regime": "frozen",
+      "cache_seed": 3072,
+      "sha256": "0097aa2e5c352e957cb17382c7518a49c8a266f42a8dc1384d41934a5515d225"
+    }
+  ],
+  "scenes_per_version": 256,
+  "source_groups": 243,
+  "versions": [
+    "multistep_development_coverage_v2",
+    "visible_future_development_v1"
+  ],
+  "geometry": [
+    "agent xy + block xy + 40sin/cos(block angle)",
+    "agent xy only"
+  ],
+  "candidate_axis": "Use each version\u2019s unique candidate axis without padding or silent scene exclusions.",
+  "reference_rule": "One true trajectory as anchor; all other true trajectories as alternative outputs; compare every unordered pair of alternatives, excluding the anchor itself.",
+  "metric": "Per-scene reversed / both-strict ordering comparisons; mean scenes; physical and latent ties reported separately. Not ICL error rate.",
+  "horizons": [
+    5,
+    10,
+    15,
+    20,
+    25
+  ],
+  "tolerance": {
+    "absolute": 1e-08,
+    "relative": 1e-07
+  },
+  "strong_subset": "RMS error ratio at least 2 and larger error at least 1 task unit.",
+  "bootstrap": {
+    "draws": 4000,
+    "seed": 20261008,
+    "unit": "source cluster, same resampled sources for old/new differences"
+  },
+  "unchanged_subset": "Unique candidates with factor 1 and exactly unchanged actions; require at least 3 unique candidates, report coverage separately.",
+  "limits": [
+    "This uses true target features, not model predictions.",
+    "Changing future action sequences changes the error distribution. Old/new differences are not a pure visibility causal effect or a model-training gain.",
+    "Evidence can refute an offscreen-only explanation but cannot assign all remaining reversals to encoder defects.",
+    "Two-dimensional agent coordinates or selected poses are not complete physical state.",
+    "No new model inference, training, data synthesis or benchmark score replacement."
+  ]
+}

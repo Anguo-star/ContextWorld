@@ -24,6 +24,7 @@ import copy
 import hashlib
 import json
 import math
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable, Mapping, Sequence
@@ -1153,6 +1154,36 @@ def upgrade_physical_readout_result(
     return upgraded
 
 
+def _prediction_export_path(output_dir: Path, scene_id: str) -> Path:
+    """Build a stable, filesystem-safe filename for one scene's predictions."""
+
+    safe_id = re.sub(r"[^A-Za-z0-9._-]+", "_", str(scene_id)).strip("._-") or "scene"
+    digest = hashlib.sha256(str(scene_id).encode("utf-8")).hexdigest()[:12]
+    return output_dir / f"{safe_id[:96]}-{digest}.npz"
+
+
+def _export_physical_predictions(
+    output_dir: Path,
+    record: FeatureScene,
+    *,
+    fold: int,
+    matched: np.ndarray,
+    calibration: np.ndarray,
+) -> None:
+    """Save the exact held-out predictions used by the aggregate metrics."""
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    np.savez_compressed(
+        _prediction_export_path(output_dir, record.scene_id),
+        truth=record.physical,
+        matched=matched,
+        calibration=calibration,
+        scene_id=np.asarray(record.scene_id),
+        source_group=np.asarray(record.source_group),
+        fold=np.asarray(int(fold), dtype=np.int64),
+    )
+
+
 def crossfit_physical_readout(
     records: Sequence[FeatureScene],
     *,
@@ -1164,6 +1195,7 @@ def crossfit_physical_readout(
     projection_seed: int = DEFAULT_PROJECTION_SEED,
     bootstrap_reps: int = DEFAULT_BOOTSTRAP_REPS,
     seed: int = 0,
+    prediction_output_dir: str | Path | None = None,
 ) -> dict[str, Any]:
     """Run source-group crossfit and return a JSON-ready diagnostic payload."""
 
@@ -1208,6 +1240,9 @@ def crossfit_physical_readout(
         bootstrap_reps=bootstrap_reps,
         seed=seed + 101,
     )
+    prediction_dir = (
+        None if prediction_output_dir is None else Path(prediction_output_dir)
+    )
     row_metrics: list[dict[str, Any]] = []
     fold_receipts: list[dict[str, Any]] = []
     for fold in range(int(n_folds)):
@@ -1236,6 +1271,14 @@ def crossfit_physical_readout(
             pred_latent, true_latent, _ = _record_rows(record, projector)
             pred_physical = apply_ridge_readout(readout, pred_latent).reshape(record.physical.shape)
             oracle_physical = apply_ridge_readout(readout, true_latent).reshape(record.physical.shape)
+            if prediction_dir is not None:
+                _export_physical_predictions(
+                    prediction_dir,
+                    record,
+                    fold=fold,
+                    matched=pred_physical,
+                    calibration=oracle_physical,
+                )
             row_metrics.append(
                 {
                     "scene_id": record.scene_id,
@@ -1428,6 +1471,7 @@ def build_argument_parser() -> argparse.ArgumentParser:
     parser.add_argument("--projection-seed", type=int, default=DEFAULT_PROJECTION_SEED)
     parser.add_argument("--bootstrap-reps", type=int, default=DEFAULT_BOOTSTRAP_REPS)
     parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--prediction-output-dir", type=Path)
     return parser
 
 
@@ -1450,6 +1494,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         projection_seed=args.projection_seed,
         bootstrap_reps=args.bootstrap_reps,
         seed=args.seed,
+        prediction_output_dir=args.prediction_output_dir,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(

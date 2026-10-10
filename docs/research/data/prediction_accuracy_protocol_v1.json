@@ -1,0 +1,45 @@
+{
+  "schema": "contextworld.prediction_accuracy_candidate.v1",
+  "status": "measurement_validation_not_official_benchmark",
+  "base_commit": "72df254ef70c91399e6e869ac5ad870b762b9586",
+  "world_model_training": false,
+  "new_world_model_inference": false,
+  "evaluation_split": "development",
+  "physical_steps": [
+    5,
+    10,
+    15,
+    20,
+    25
+  ],
+  "score": "100 * mean over fixed tolerances of fraction of Euclidean errors strictly below tolerance; equal scenes, conditions, candidates and horizons within scene",
+  "threshold_origin": "TAP-Vid discrete tolerances 1,2,4,8,16 at256px, mapped by canvas width. Exploratory accuracy scale, not certified task-specific tolerances. Fixed without inspecting candidate model scores. Block coordinate+angle distance remains auxiliary.",
+  "thresholds": {
+    "pusht": [
+      2.0,
+      4.0,
+      8.0,
+      16.0,
+      32.0
+    ],
+    "tworoom": [
+      0.875,
+      1.75,
+      3.5,
+      7.0,
+      14.0
+    ]
+  },
+  "geometry": "Canonical physical_targets_from_panel output; PushT block angle is already40sin/cos, no repeat scaling; no hidden velocities scored.",
+  "calibration_screen": "Necessary measurement screen only: >=95% of held-out true-future readouts within the strictest tolerance; not a capability gate and not proof of readout validity on predicted latents.",
+  "primary_object": {
+    "action_strength": "agent",
+    "contact_friction": "block",
+    "motion_damping": "block",
+    "speed": "object",
+    "door": "object"
+  },
+  "statistics": "Scene macro average; source cluster bootstrap1000 with seed20261008; paired changes share source scenes and source IDs.",
+  "failure_policy": "Keep failures, low scores and negative context gains; never discard difficult rows or tune tolerances to model results.",
+  "publication": "Keep existing9task benchmark scores; report candidate score and calibration separately. Do not call readout score true physical accuracy or report one official crossmodel leaderboard until measurement validation passes."
+}

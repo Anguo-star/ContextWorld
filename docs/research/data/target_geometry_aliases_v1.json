@@ -1,0 +1,905 @@
+{
+  "comparison_rule": {
+    "full_trajectory": "Compare all five [224,224,3] frames at the same candidate-condition pair; byte confirmation after SHA grouping.",
+    "geometry_distance_full_trajectory": "sqrt(mean_T(sum_D((x_i-x_j)^2)))",
+    "geometry_distance_single_frame": "sqrt(sum_D((x_i-x_j)^2))",
+    "pair_denominator_per_scene": "choose(K*C,2)",
+    "single_frame": "Compare pairs only within the same stored horizon; never compare across time."
+  },
+  "read_only": true,
+  "schema": "contextworld.pixel_geometry_aliases.v1",
+  "simulation_or_cem": false,
+  "training_or_inference": false,
+  "tasks": [
+    {
+      "candidates_C": 11,
+      "conditions_K": 2,
+      "epsilon_interpretation": "Floating-point comparison tolerance only; not a scientific or perceptual threshold.",
+      "full_trajectory": {
+        "geometry_different_among_pixel_identical_count": 187,
+        "max_alias_counterexample": {
+          "horizon_raw_steps": [
+            5,
+            10,
+            15,
+            20,
+            25
+          ],
+          "left": {
+            "candidate_index": 2,
+            "candidate_name": null,
+            "condition_index": 1,
+            "condition_value": 140.0
+          },
+          "right": {
+            "candidate_index": 7,
+            "candidate_name": null,
+            "condition_index": 1,
+            "condition_value": 140.0
+          },
+          "scene_id": "phrm-validation-00247"
+        },
+        "max_geometry_different_alias_counterexample": {
+          "horizon_raw_steps": [
+            5,
+            10,
+            15,
+            20,
+            25
+          ],
+          "left": {
+            "candidate_index": 2,
+            "candidate_name": null,
+            "condition_index": 1,
+            "condition_value": 140.0
+          },
+          "right": {
+            "candidate_index": 7,
+            "candidate_name": null,
+            "condition_index": 1,
+            "condition_value": 140.0
+          },
+          "scene_id": "phrm-validation-00247"
+        },
+        "max_geometry_different_alias_rms": 269.73005040104135,
+        "max_rms_all_pair_example": {
+          "horizon_raw_steps": [
+            5,
+            10,
+            15,
+            20,
+            25
+          ],
+          "left": {
+            "candidate_index": 4,
+            "candidate_name": null,
+            "condition_index": 1,
+            "condition_value": 140.0
+          },
+          "right": {
+            "candidate_index": 5,
+            "candidate_name": null,
+            "condition_index": 1,
+            "condition_value": 140.0
+          },
+          "scene_id": "phrm-validation-00247"
+        },
+        "max_rms_all_pairs": 1456.4472071145474,
+        "max_rms_among_pixel_identical_pairs": 269.73005040104135,
+        "pair_denominator": 59136,
+        "pixel_identical_pair_count": 340,
+        "scene_count": 256
+      },
+      "geometry_difference_epsilon": 1e-06,
+      "geometry_interpretation": "Selected task geometry only, not the complete physical state.",
+      "physical_steps_raw": [
+        5,
+        10,
+        15,
+        20,
+        25
+      ],
+      "scene_count_expected_and_processed": 256,
+      "selected_geometry": "agent_xy + block_xy + 40*sin(block_angle) + 40*cos(block_angle), px",
+      "single_frame_by_horizon": {
+        "10": {
+          "geometry_different_among_pixel_identical_count": 113,
+          "max_alias_counterexample": {
+            "horizon_raw_steps": 10,
+            "left": {
+              "candidate_index": 5,
+              "candidate_name": null,
+              "condition_index": 0,
+              "condition_value": 60.0
+            },
+            "right": {
+              "candidate_index": 5,
+              "candidate_name": null,
+              "condition_index": 1,
+              "condition_value": 140.0
+            },
+            "scene_id": "phrm-validation-00116"
+          },
+          "max_geometry_different_alias_counterexample": {
+            "horizon_raw_steps": 10,
+            "left": {
+              "candidate_index": 5,
+              "candidate_name": null,
+              "condition_index": 0,
+              "condition_value": 60.0
+            },
+            "right": {
+              "candidate_index": 5,
+              "candidate_name": null,
+              "condition_index": 1,
+              "condition_value": 140.0
+            },
+            "scene_id": "phrm-validation-00116"
+          },
+          "max_geometry_different_alias_rms": 132.9072321804203,
+          "max_rms_all_pair_example": {
+            "horizon_raw_steps": 10,
+            "left": {
+              "candidate_index": 4,
+              "candidate_name": null,
+              "condition_index": 1,
+              "condition_value": 140.0
+            },
+            "right": {
+              "candidate_index": 5,
+              "candidate_name": null,
+              "condition_index": 1,
+              "condition_value": 140.0
+            },
+            "scene_id": "phrm-validation-00247"
+          },
+          "max_rms_all_pairs": 867.2049913079103,
+          "max_rms_among_pixel_identical_pairs": 132.9072321804203,
+          "pair_denominator": 59136,
+          "pixel_identical_pair_count": 3338,
+          "scene_count": 256
+        },
+        "15": {
+          "geometry_different_among_pixel_identical_count": 140,
+          "max_alias_counterexample": {
+            "horizon_raw_steps": 15,
+            "left": {
+              "candidate_index": 3,
+              "candidate_name": null,
+              "condition_index": 0,
+              "condition_value": 60.0
+            },
+            "right": {
+              "candidate_index": 4,
+              "candidate_name": null,
+              "condition_index": 1,
+              "condition_value": 140.0
+            },
+            "scene_id": "phrm-validation-00174"
+          },
+          "max_geometry_different_alias_counterexample": {
+            "horizon_raw_steps": 15,
+            "left": {
+              "candidate_index": 3,
+              "candidate_name": null,
+              "condition_index": 0,
+              "condition_value": 60.0
+            },
+            "right": {
+              "candidate_index": 4,
+              "candidate_name": null,
+              "condition_index": 1,
+              "condition_value": 140.0
+            },
+            "scene_id": "phrm-validation-00174"
+          },
+          "max_geometry_different_alias_rms": 498.69473199574185,
+          "max_rms_all_pair_example": {
+            "horizon_raw_steps": 15,
+            "left": {
+              "candidate_index": 4,
+              "candidate_name": null,
+              "condition_index": 1,
+              "condition_value": 140.0
+            },
+            "right": {
+              "candidate_index": 5,
+              "candidate_name": null,
+              "condition_index": 1,
+              "condition_value": 140.0
+            },
+            "scene_id": "phrm-validation-00247"
+          },
+          "max_rms_all_pairs": 1312.8441150684203,
+          "max_rms_among_pixel_identical_pairs": 498.69473199574185,
+          "pair_denominator": 59136,
+          "pixel_identical_pair_count": 1829,
+          "scene_count": 256
+        },
+        "20": {
+          "geometry_different_among_pixel_identical_count": 193,
+          "max_alias_counterexample": {
+            "horizon_raw_steps": 20,
+            "left": {
+              "candidate_index": 3,
+              "candidate_name": null,
+              "condition_index": 0,
+              "condition_value": 60.0
+            },
+            "right": {
+              "candidate_index": 4,
+              "candidate_name": null,
+              "condition_index": 1,
+              "condition_value": 140.0
+            },
+            "scene_id": "phrm-validation-00174"
+          },
+          "max_geometry_different_alias_counterexample": {
+            "horizon_raw_steps": 20,
+            "left": {
+              "candidate_index": 3,
+              "candidate_name": null,
+              "condition_index": 0,
+              "condition_value": 60.0
+            },
+            "right": {
+              "candidate_index": 4,
+              "candidate_name": null,
+              "condition_index": 1,
+              "condition_value": 140.0
+            },
+            "scene_id": "phrm-validation-00174"
+          },
+          "max_geometry_different_alias_rms": 667.7009813469181,
+          "max_rms_all_pair_example": {
+            "horizon_raw_steps": 20,
+            "left": {
+              "candidate_index": 4,
+              "candidate_name": null,
+              "condition_index": 1,
+              "condition_value": 140.0
+            },
+            "right": {
+              "candidate_index": 5,
+              "candidate_name": null,
+              "condition_index": 1,
+              "condition_value": 140.0
+            },
+            "scene_id": "phrm-validation-00247"
+          },
+          "max_rms_all_pairs": 1758.62265441801,
+          "max_rms_among_pixel_identical_pairs": 667.7009813469181,
+          "pair_denominator": 59136,
+          "pixel_identical_pair_count": 858,
+          "scene_count": 256
+        },
+        "25": {
+          "geometry_different_among_pixel_identical_count": 252,
+          "max_alias_counterexample": {
+            "horizon_raw_steps": 25,
+            "left": {
+              "candidate_index": 2,
+              "candidate_name": null,
+              "condition_index": 1,
+              "condition_value": 140.0
+            },
+            "right": {
+              "candidate_index": 10,
+              "candidate_name": null,
+              "condition_index": 1,
+              "condition_value": 140.0
+            },
+            "scene_id": "phrm-validation-00247"
+          },
+          "max_geometry_different_alias_counterexample": {
+            "horizon_raw_steps": 25,
+            "left": {
+              "candidate_index": 2,
+              "candidate_name": null,
+              "condition_index": 1,
+              "condition_value": 140.0
+            },
+            "right": {
+              "candidate_index": 10,
+              "candidate_name": null,
+              "condition_index": 1,
+              "condition_value": 140.0
+            },
+            "scene_id": "phrm-validation-00247"
+          },
+          "max_geometry_different_alias_rms": 1302.3685463313848,
+          "max_rms_all_pair_example": {
+            "horizon_raw_steps": 25,
+            "left": {
+              "candidate_index": 4,
+              "candidate_name": null,
+              "condition_index": 1,
+              "condition_value": 140.0
+            },
+            "right": {
+              "candidate_index": 5,
+              "candidate_name": null,
+              "condition_index": 1,
+              "condition_value": 140.0
+            },
+            "scene_id": "phrm-validation-00247"
+          },
+          "max_rms_all_pairs": 2204.4560343623884,
+          "max_rms_among_pixel_identical_pairs": 1302.3685463313848,
+          "pair_denominator": 59136,
+          "pixel_identical_pair_count": 405,
+          "scene_count": 256
+        },
+        "5": {
+          "geometry_different_among_pixel_identical_count": 103,
+          "max_alias_counterexample": {
+            "horizon_raw_steps": 5,
+            "left": {
+              "candidate_index": 0,
+              "candidate_name": null,
+              "condition_index": 0,
+              "condition_value": 60.0
+            },
+            "right": {
+              "candidate_index": 0,
+              "candidate_name": null,
+              "condition_index": 1,
+              "condition_value": 140.0
+            },
+            "scene_id": "phrm-validation-00174"
+          },
+          "max_geometry_different_alias_counterexample": {
+            "horizon_raw_steps": 5,
+            "left": {
+              "candidate_index": 0,
+              "candidate_name": null,
+              "condition_index": 0,
+              "condition_value": 60.0
+            },
+            "right": {
+              "candidate_index": 0,
+              "candidate_name": null,
+              "condition_index": 1,
+              "condition_value": 140.0
+            },
+            "scene_id": "phrm-validation-00174"
+          },
+          "max_geometry_different_alias_rms": 5.112145850424559e-06,
+          "max_rms_all_pair_example": {
+            "horizon_raw_steps": 5,
+            "left": {
+              "candidate_index": 4,
+              "candidate_name": null,
+              "condition_index": 1,
+              "condition_value": 140.0
+            },
+            "right": {
+              "candidate_index": 5,
+              "candidate_name": null,
+              "condition_index": 1,
+              "condition_value": 140.0
+            },
+            "scene_id": "phrm-validation-00247"
+          },
+          "max_rms_all_pairs": 422.1470360794894,
+          "max_rms_among_pixel_identical_pairs": 5.112145850424559e-06,
+          "pair_denominator": 59136,
+          "pixel_identical_pair_count": 7936,
+          "scene_count": 256
+        }
+      },
+      "task": "action_strength",
+      "scenes_with_full_sequence_alias_rms_at_least_one_unit": 29
+    },
+    {
+      "candidates_C": 11,
+      "conditions_K": 2,
+      "epsilon_interpretation": "Floating-point comparison tolerance only; not a scientific or perceptual threshold.",
+      "full_trajectory": {
+        "geometry_different_among_pixel_identical_count": 346,
+        "max_alias_counterexample": {
+          "horizon_raw_steps": [
+            5,
+            10,
+            15,
+            20,
+            25
+          ],
+          "left": {
+            "candidate_index": 2,
+            "candidate_name": "amp1.0",
+            "condition_index": 0,
+            "condition_value": "faster_decay"
+          },
+          "right": {
+            "candidate_index": 8,
+            "candidate_name": "trunc3",
+            "condition_index": 0,
+            "condition_value": "faster_decay"
+          },
+          "scene_id": "pmd-loader-validation-000176-forward"
+        },
+        "max_geometry_different_alias_counterexample": {
+          "horizon_raw_steps": [
+            5,
+            10,
+            15,
+            20,
+            25
+          ],
+          "left": {
+            "candidate_index": 2,
+            "candidate_name": "amp1.0",
+            "condition_index": 0,
+            "condition_value": "faster_decay"
+          },
+          "right": {
+            "candidate_index": 8,
+            "candidate_name": "trunc3",
+            "condition_index": 0,
+            "condition_value": "faster_decay"
+          },
+          "scene_id": "pmd-loader-validation-000176-forward"
+        },
+        "max_geometry_different_alias_rms": 78.73851302327077,
+        "max_rms_all_pair_example": {
+          "horizon_raw_steps": [
+            5,
+            10,
+            15,
+            20,
+            25
+          ],
+          "left": {
+            "candidate_index": 4,
+            "candidate_name": "amp2.0",
+            "condition_index": 1,
+            "condition_value": "no_extra_decay"
+          },
+          "right": {
+            "candidate_index": 5,
+            "candidate_name": "amp-1.0",
+            "condition_index": 1,
+            "condition_value": "no_extra_decay"
+          },
+          "scene_id": "pmd-loader-validation-000095-reverse"
+        },
+        "max_rms_all_pairs": 896.8062438241252,
+        "max_rms_among_pixel_identical_pairs": 78.73851302327077,
+        "pair_denominator": 59136,
+        "pixel_identical_pair_count": 346,
+        "scene_count": 256
+      },
+      "geometry_difference_epsilon": 1e-06,
+      "geometry_interpretation": "Selected task geometry only, not the complete physical state.",
+      "physical_steps_raw": [
+        5,
+        10,
+        15,
+        20,
+        25
+      ],
+      "scene_count_expected_and_processed": 256,
+      "selected_geometry": "agent_xy + block_xy + 40*sin(block_angle) + 40*cos(block_angle), px",
+      "single_frame_by_horizon": {
+        "10": {
+          "geometry_different_among_pixel_identical_count": 0,
+          "max_alias_counterexample": null,
+          "max_geometry_different_alias_counterexample": null,
+          "max_geometry_different_alias_rms": 0.0,
+          "max_rms_all_pair_example": {
+            "horizon_raw_steps": 10,
+            "left": {
+              "candidate_index": 4,
+              "candidate_name": "amp2.0",
+              "condition_index": 1,
+              "condition_value": "no_extra_decay"
+            },
+            "right": {
+              "candidate_index": 5,
+              "candidate_name": "amp-1.0",
+              "condition_index": 1,
+              "condition_value": "no_extra_decay"
+            },
+            "scene_id": "pmd-loader-validation-000095-reverse"
+          },
+          "max_rms_all_pairs": 589.7149473387088,
+          "max_rms_among_pixel_identical_pairs": 0.0,
+          "pair_denominator": 59136,
+          "pixel_identical_pair_count": 3072,
+          "scene_count": 256
+        },
+        "15": {
+          "geometry_different_among_pixel_identical_count": 4,
+          "max_alias_counterexample": {
+            "horizon_raw_steps": 15,
+            "left": {
+              "candidate_index": 2,
+              "candidate_name": "amp1.0",
+              "condition_index": 1,
+              "condition_value": "no_extra_decay"
+            },
+            "right": {
+              "candidate_index": 10,
+              "candidate_name": "counter",
+              "condition_index": 1,
+              "condition_value": "no_extra_decay"
+            },
+            "scene_id": "pmd-loader-validation-000248-forward"
+          },
+          "max_geometry_different_alias_counterexample": {
+            "horizon_raw_steps": 15,
+            "left": {
+              "candidate_index": 2,
+              "candidate_name": "amp1.0",
+              "condition_index": 1,
+              "condition_value": "no_extra_decay"
+            },
+            "right": {
+              "candidate_index": 10,
+              "candidate_name": "counter",
+              "condition_index": 1,
+              "condition_value": "no_extra_decay"
+            },
+            "scene_id": "pmd-loader-validation-000248-forward"
+          },
+          "max_geometry_different_alias_rms": 316.702681563052,
+          "max_rms_all_pair_example": {
+            "horizon_raw_steps": 15,
+            "left": {
+              "candidate_index": 4,
+              "candidate_name": "amp2.0",
+              "condition_index": 1,
+              "condition_value": "no_extra_decay"
+            },
+            "right": {
+              "candidate_index": 5,
+              "candidate_name": "amp-1.0",
+              "condition_index": 1,
+              "condition_value": "no_extra_decay"
+            },
+            "scene_id": "pmd-loader-validation-000095-reverse"
+          },
+          "max_rms_all_pairs": 852.2204859079669,
+          "max_rms_among_pixel_identical_pairs": 316.702681563052,
+          "pair_denominator": 59136,
+          "pixel_identical_pair_count": 1540,
+          "scene_count": 256
+        },
+        "20": {
+          "geometry_different_among_pixel_identical_count": 169,
+          "max_alias_counterexample": {
+            "horizon_raw_steps": 20,
+            "left": {
+              "candidate_index": 2,
+              "candidate_name": "amp1.0",
+              "condition_index": 1,
+              "condition_value": "no_extra_decay"
+            },
+            "right": {
+              "candidate_index": 10,
+              "candidate_name": "counter",
+              "condition_index": 1,
+              "condition_value": "no_extra_decay"
+            },
+            "scene_id": "pmd-loader-validation-000254-forward"
+          },
+          "max_geometry_different_alias_counterexample": {
+            "horizon_raw_steps": 20,
+            "left": {
+              "candidate_index": 2,
+              "candidate_name": "amp1.0",
+              "condition_index": 1,
+              "condition_value": "no_extra_decay"
+            },
+            "right": {
+              "candidate_index": 10,
+              "candidate_name": "counter",
+              "condition_index": 1,
+              "condition_value": "no_extra_decay"
+            },
+            "scene_id": "pmd-loader-validation-000254-forward"
+          },
+          "max_geometry_different_alias_rms": 479.47547074951825,
+          "max_rms_all_pair_example": {
+            "horizon_raw_steps": 20,
+            "left": {
+              "candidate_index": 4,
+              "candidate_name": "amp2.0",
+              "condition_index": 1,
+              "condition_value": "no_extra_decay"
+            },
+            "right": {
+              "candidate_index": 5,
+              "candidate_name": "amp-1.0",
+              "condition_index": 1,
+              "condition_value": "no_extra_decay"
+            },
+            "scene_id": "pmd-loader-validation-000095-reverse"
+          },
+          "max_rms_all_pairs": 1083.7917084924347,
+          "max_rms_among_pixel_identical_pairs": 479.47547074951825,
+          "pair_denominator": 59136,
+          "pixel_identical_pair_count": 681,
+          "scene_count": 256
+        },
+        "25": {
+          "geometry_different_among_pixel_identical_count": 413,
+          "max_alias_counterexample": {
+            "horizon_raw_steps": 25,
+            "left": {
+              "candidate_index": 2,
+              "candidate_name": "amp1.0",
+              "condition_index": 1,
+              "condition_value": "no_extra_decay"
+            },
+            "right": {
+              "candidate_index": 10,
+              "candidate_name": "counter",
+              "condition_index": 1,
+              "condition_value": "no_extra_decay"
+            },
+            "scene_id": "pmd-loader-validation-000208-forward"
+          },
+          "max_geometry_different_alias_counterexample": {
+            "horizon_raw_steps": 25,
+            "left": {
+              "candidate_index": 2,
+              "candidate_name": "amp1.0",
+              "condition_index": 1,
+              "condition_value": "no_extra_decay"
+            },
+            "right": {
+              "candidate_index": 10,
+              "candidate_name": "counter",
+              "condition_index": 1,
+              "condition_value": "no_extra_decay"
+            },
+            "scene_id": "pmd-loader-validation-000208-forward"
+          },
+          "max_geometry_different_alias_rms": 642.2483058907172,
+          "max_rms_all_pair_example": {
+            "horizon_raw_steps": 25,
+            "left": {
+              "candidate_index": 4,
+              "candidate_name": "amp2.0",
+              "condition_index": 1,
+              "condition_value": "no_extra_decay"
+            },
+            "right": {
+              "candidate_index": 5,
+              "candidate_name": "amp-1.0",
+              "condition_index": 1,
+              "condition_value": "no_extra_decay"
+            },
+            "scene_id": "pmd-loader-validation-000095-reverse"
+          },
+          "max_rms_all_pairs": 1309.3519042882835,
+          "max_rms_among_pixel_identical_pairs": 642.2483058907172,
+          "pair_denominator": 59136,
+          "pixel_identical_pair_count": 413,
+          "scene_count": 256
+        },
+        "5": {
+          "geometry_different_among_pixel_identical_count": 0,
+          "max_alias_counterexample": null,
+          "max_geometry_different_alias_counterexample": null,
+          "max_geometry_different_alias_rms": 0.0,
+          "max_rms_all_pair_example": {
+            "horizon_raw_steps": 5,
+            "left": {
+              "candidate_index": 4,
+              "candidate_name": "amp2.0",
+              "condition_index": 1,
+              "condition_value": "no_extra_decay"
+            },
+            "right": {
+              "candidate_index": 5,
+              "candidate_name": "amp-1.0",
+              "condition_index": 1,
+              "condition_value": "no_extra_decay"
+            },
+            "scene_id": "pmd-loader-validation-000042-forward"
+          },
+          "max_rms_all_pairs": 267.86551664627365,
+          "max_rms_among_pixel_identical_pairs": 0.0,
+          "pair_denominator": 59136,
+          "pixel_identical_pair_count": 7680,
+          "scene_count": 256
+        }
+      },
+      "task": "motion_damping",
+      "scenes_with_full_sequence_alias_rms_at_least_one_unit": 99
+    },
+    {
+      "candidates_C": 11,
+      "conditions_K": 2,
+      "epsilon_interpretation": "Floating-point comparison tolerance only; not a scientific or perceptual threshold.",
+      "full_trajectory": {
+        "geometry_different_among_pixel_identical_count": 0,
+        "max_alias_counterexample": null,
+        "max_geometry_different_alias_counterexample": null,
+        "max_geometry_different_alias_rms": 0.0,
+        "max_rms_all_pair_example": {
+          "horizon_raw_steps": [
+            5,
+            10,
+            15,
+            20,
+            25
+          ],
+          "left": {
+            "candidate_index": 3,
+            "candidate_name": null,
+            "condition_index": 1,
+            "condition_value": "heavier"
+          },
+          "right": {
+            "candidate_index": 4,
+            "candidate_name": null,
+            "condition_index": 1,
+            "condition_value": "heavier"
+          },
+          "scene_id": "reacher-arm-mass-loader_validation-000123"
+        },
+        "max_rms_all_pairs": 364.6338313819623,
+        "max_rms_among_pixel_identical_pairs": 0.0,
+        "pair_denominator": 59136,
+        "pixel_identical_pair_count": 0,
+        "scene_count": 256
+      },
+      "geometry_difference_epsilon": 1e-06,
+      "geometry_interpretation": "Selected task geometry only, not the complete physical state.",
+      "physical_steps_raw": [
+        5,
+        10,
+        15,
+        20,
+        25
+      ],
+      "scene_count_expected_and_processed": 256,
+      "selected_geometry": "finger_positions * 1000, mm",
+      "single_frame_by_horizon": {
+        "10": {
+          "geometry_different_among_pixel_identical_count": 0,
+          "max_alias_counterexample": null,
+          "max_geometry_different_alias_counterexample": null,
+          "max_geometry_different_alias_rms": 0.0,
+          "max_rms_all_pair_example": {
+            "horizon_raw_steps": 10,
+            "left": {
+              "candidate_index": 4,
+              "candidate_name": null,
+              "condition_index": 0,
+              "condition_value": "lighter"
+            },
+            "right": {
+              "candidate_index": 6,
+              "candidate_name": null,
+              "condition_index": 1,
+              "condition_value": "heavier"
+            },
+            "scene_id": "reacher-arm-mass-loader_validation-000219"
+          },
+          "max_rms_all_pairs": 400.37298288563204,
+          "max_rms_among_pixel_identical_pairs": 0.0,
+          "pair_denominator": 59136,
+          "pixel_identical_pair_count": 3072,
+          "scene_count": 256
+        },
+        "15": {
+          "geometry_different_among_pixel_identical_count": 0,
+          "max_alias_counterexample": null,
+          "max_geometry_different_alias_counterexample": null,
+          "max_geometry_different_alias_rms": 0.0,
+          "max_rms_all_pair_example": {
+            "horizon_raw_steps": 15,
+            "left": {
+              "candidate_index": 3,
+              "candidate_name": null,
+              "condition_index": 0,
+              "condition_value": "lighter"
+            },
+            "right": {
+              "candidate_index": 4,
+              "candidate_name": null,
+              "condition_index": 1,
+              "condition_value": "heavier"
+            },
+            "scene_id": "reacher-arm-mass-loader_validation-000123"
+          },
+          "max_rms_all_pairs": 474.3201024309227,
+          "max_rms_among_pixel_identical_pairs": 0.0,
+          "pair_denominator": 59136,
+          "pixel_identical_pair_count": 1537,
+          "scene_count": 256
+        },
+        "20": {
+          "geometry_different_among_pixel_identical_count": 0,
+          "max_alias_counterexample": null,
+          "max_geometry_different_alias_counterexample": null,
+          "max_geometry_different_alias_rms": 0.0,
+          "max_rms_all_pair_example": {
+            "horizon_raw_steps": 20,
+            "left": {
+              "candidate_index": 3,
+              "candidate_name": null,
+              "condition_index": 1,
+              "condition_value": "heavier"
+            },
+            "right": {
+              "candidate_index": 4,
+              "candidate_name": null,
+              "condition_index": 1,
+              "condition_value": "heavier"
+            },
+            "scene_id": "reacher-arm-mass-loader_validation-000123"
+          },
+          "max_rms_all_pairs": 477.20445089017835,
+          "max_rms_among_pixel_identical_pairs": 0.0,
+          "pair_denominator": 59136,
+          "pixel_identical_pair_count": 513,
+          "scene_count": 256
+        },
+        "25": {
+          "geometry_different_among_pixel_identical_count": 0,
+          "max_alias_counterexample": null,
+          "max_geometry_different_alias_counterexample": null,
+          "max_geometry_different_alias_rms": 0.0,
+          "max_rms_all_pair_example": {
+            "horizon_raw_steps": 25,
+            "left": {
+              "candidate_index": 4,
+              "candidate_name": null,
+              "condition_index": 0,
+              "condition_value": "lighter"
+            },
+            "right": {
+              "candidate_index": 8,
+              "candidate_name": null,
+              "condition_index": 0,
+              "condition_value": "lighter"
+            },
+            "scene_id": "reacher-arm-mass-loader_validation-000270"
+          },
+          "max_rms_all_pairs": 460.93598378154576,
+          "max_rms_among_pixel_identical_pairs": 0.0,
+          "pair_denominator": 59136,
+          "pixel_identical_pair_count": 1,
+          "scene_count": 256
+        },
+        "5": {
+          "geometry_different_among_pixel_identical_count": 0,
+          "max_alias_counterexample": null,
+          "max_geometry_different_alias_counterexample": null,
+          "max_geometry_different_alias_rms": 0.0,
+          "max_rms_all_pair_example": {
+            "horizon_raw_steps": 5,
+            "left": {
+              "candidate_index": 2,
+              "candidate_name": null,
+              "condition_index": 0,
+              "condition_value": "lighter"
+            },
+            "right": {
+              "candidate_index": 4,
+              "candidate_name": null,
+              "condition_index": 0,
+              "condition_value": "lighter"
+            },
+            "scene_id": "reacher-arm-mass-loader_validation-000219"
+          },
+          "max_rms_all_pairs": 332.0179627049783,
+          "max_rms_among_pixel_identical_pairs": 0.0,
+          "pair_denominator": 59136,
+          "pixel_identical_pair_count": 7680,
+          "scene_count": 256
+        }
+      },
+      "task": "robot_arm_mass",
+      "scenes_with_full_sequence_alias_rms_at_least_one_unit": 0
+    }
+  ],
+  "scene_count_rule": "Retain all 256 scenes per task; count scenes with at least one byte-identical five-frame trajectory pair having selected geometry RMS >=1 task unit. This is an effect-size diagnostic, not a benchmark acceptance threshold.",
+  "full_alias_source_sha256": "1e98ab4ee299295d7358715e3acacd0bb1b00c913467c7ceabfe45c451964f1f"
+}

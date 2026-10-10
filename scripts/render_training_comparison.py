@@ -2,7 +2,7 @@
 """Render aggregated training-comparison blocks in docs/ContextWorld_ICL_Benchmark.md
 (and the historical appendix in docs/reference/Benchmark_Result_Provenance.md) from the
 published docs/research/data/icl_training_study_v2.json, and maintain its aggregated CSV twin.
-The primary multi-step blocks use multistep_prediction_coverage_v2.json; legacy numbers remain separate.
+Supplementary multi-step tables use multistep_prediction_coverage_v2.json; task scores remain separate.
 
 Every published row stays a separate record: distinct ids, training recipes, data versions,
 or data scales never merge.  When a row carries ``replicates`` -- per-training-run dicts that
@@ -31,6 +31,7 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
 DOC = REPO / "docs" / "ContextWorld_ICL_Benchmark.md"
+STUDY_DOC = REPO / "docs" / "ICL_Metric_Study.md"
 APPENDIX_DOC = REPO / "docs" / "reference" / "Benchmark_Result_Provenance.md"
 JSON_PATH = REPO / "docs" / "research" / "data" / "icl_training_study_v2.json"
 CSV_PATH = REPO / "docs" / "research" / "data" / "icl_training_study_v2.csv"
@@ -81,9 +82,14 @@ APPENDIX_MARKERS = ["HISTORICAL"]
 MARKERS = MAIN_MARKERS + APPENDIX_MARKERS
 
 
+STUDY_MARKERS = ['CROSS_TASK_VALIDITY', 'CROSS_TASK_ERRORS', 'CROSS_TASK_MODELS', 'PRED_STRENGTH', 'PRED_SPEED', 'DECISION', 'SPEED_DECISION', 'SPEED_CEM', 'SPEED_TIMED', 'SPEED_SEARCH', 'SPEED_REFRESH', 'SPEED_PROBE', 'PRED_HORIZON']
+
+
 def marker_doc(marker):
-    """Path of the document that owns a marker (HISTORICAL lives in the appendix)."""
-    return APPENDIX_DOC if marker in APPENDIX_MARKERS else DOC
+    """Return the benchmark, measurement study, or historical appendix owning a block."""
+    if marker in APPENDIX_MARKERS:
+        return APPENDIX_DOC
+    return STUDY_DOC if marker in STUDY_MARKERS else DOC
 
 CSV_COLS = (["id", "task", "model", "regime", "training_data_version", "training_pair_count",
              "n_icl", "n_cem", "training_seeds"]
@@ -92,7 +98,7 @@ CSV_COLS = (["id", "task", "model", "regime", "training_data_version", "training
 
 OVERVIEW_GROUPS = [(model, regime) for model in MODEL_ORDER for regime in REGIME_ORDER
                    if not (model == "dinowm" and regime == "joint")]
-METRIC_HDR = ["旧选择分↑", "最弱条件↑", "History↑", "Switch↑", "Joint↑", "Gain≈1",
+METRIC_HDR = ["任务主指标↑", "最弱条件↑", "History↑", "Switch↑", "Joint↑", "Gain≈1",
               "Alignment↑", "NRE↓", "CalResp↑", "CEM↑"]
 DISPLAY_LABEL = dict(zip(ALL, METRIC_HDR)) | {"response": "响应分↑", "calibrated": "优于零响应↑"}
 
@@ -447,7 +453,7 @@ def scaling_rows(rows):
 
 
 def render_scaling(rows):
-    header = ["任务", "模型", "方案", "训练数据", "n", "旧选择分↑", "响应分↑", "Joint↑", "Gain≈1", "CEM↑"]
+    header = ["任务", "模型", "方案", "训练数据", "n", "任务主指标↑", "响应分↑", "Joint↑", "Gain≈1", "CEM↑"]
     body = []
     for r in scaling_rows(rows):
         metrics, agg = display_stats(r)
@@ -719,31 +725,53 @@ def render_cross_task_tables():
 
 
 
-def render_multistep_primary():
+def complete_error_ratio(score):
+    """Display E/B from the archived S=100*(1-E/B), without changing scores."""
+    return None if score is None else 1.0 - score / 100.0
+
+
+def complete_error_interval(score_ci):
+    """The decreasing display transform reverses confidence-interval endpoints."""
+    return [complete_error_ratio(score_ci[1]), complete_error_ratio(score_ci[0])]
+
+
+def render_multistep_primary(rows):
     data=json.loads((REPO/'docs/research/data/multistep_prediction_coverage_v2.json').read_text())
     indexed={(r['task'],r['family'],r['regime']):r for r in data['rows']}
     if len(indexed)!=len(data['rows']):raise Fail('Duplicate multi-step score row')
+    base={(r['task'],r['model'],r['regime']):r for r in rows
+          if not r.get('comparison_variant') and r['regime'] in REGIME_ORDER}
     def get(task,family,regime):return indexed.get((task,family,regime))
     header=['模型','方案']+[f'[{TASK_ZH[t]}](#task-{t.replace("_","-")})' for t in TASK_ORDER]
     body=[]
     for family,regime in OVERVIEW_GROUPS:
-        cells=[f2(get(t,family,regime)['score']) if get(t,family,regime) else '—' for t in TASK_ORDER]
+        cells=[f3(complete_error_ratio(get(t,family,regime)['score'])) if get(t,family,regime) else '—' for t in TASK_ORDER]
         body.append('| '+' | '.join([MODEL_ZH[family],REGIME_ZH[regime],*cells])+' |')
     blocks={'MULTISTEP_OVERVIEW':'\n'.join(_markdown_table(header,body))}
     for task in TASK_ORDER:
-        header=['模型','方案','多步完整预测分↑','95% 区间','训练重复数']
+        header=['模型','方案','任务主指标↑ (%)','匹配历史胜率↑ (%)','响应 NRE↓',
+                '多步 E/B↓ [95% 区间]','CEM↑ (%)','n (任务/多步/CEM)']
         body=[]
         for family,regime in OVERVIEW_GROUPS:
             r=get(task,family,regime)
+            original=base[(task,family,regime)]
+            metrics,agg=display_stats(original)
+            if not r and not any(st['n'] for st in metrics.values()):continue
+            multi='—'
             if r:
-                body.append('| '+' | '.join([MODEL_ZH[family],REGIME_ZH[regime],f2(r['score']),f"[{f2(r['ci95'][0])}, {f2(r['ci95'][1])}]",str(r['training_repetitions'])])+' |')
+                lo,hi=complete_error_interval(r['ci95'])
+                multi=f"{f3(complete_error_ratio(r['score']))} [{f3(lo)}, {f3(hi)}]"
+            ns=[metrics['main']['n'],r['training_repetitions'] if r else 0,agg['scores']['cem']['n']]
+            counts='/'.join(str(n) if n else '—' for n in ns)
+            body.append('| '+' | '.join([MODEL_ZH[family],scheme_label(original),
+                stat_cell(original,'main',metrics['main']),stat_cell(original,'history',metrics['history']),
+                stat_cell(original,'nre',metrics['nre']),multi,stat_cell(original,'cem',metrics['cem']),counts])+' |')
         blocks['MULTISTEP_'+task.upper()]='\n'.join(_markdown_table(header,body))
-        header=['模型','方案','5 步误差','25 步自由误差','25 步真实输入误差','25 步差值 [95% 区间]']
+        header=['模型','方案','第 5 步误差比↓','第 25 步自由误差比↓','第 25 步真实输入误差比↓','自由−真实输入 [95% 区间]']
         body=[]
         for family,regime in OVERVIEW_GROUPS:
             r=get(task,family,regime)
-            if not r or 'error_diagnostics' not in r:
-                continue
+            if not r or 'error_diagnostics' not in r:continue
             d=r['error_diagnostics'];gap=d['feedback_gap']
             body.append('| '+' | '.join([MODEL_ZH[family],REGIME_ZH[regime],
                 f2(d['free']['mean'][0]),f2(d['free']['mean'][-1]),f2(d['real_input']['mean'][-1]),
@@ -777,7 +805,7 @@ def build_blocks(rows):
               "SCALING": render_scaling(rows),
               "HISTORICAL": render_historical(rows)}
     blocks.update(render_cross_task_tables())
-    blocks.update(render_multistep_primary())
+    blocks.update(render_multistep_primary(rows))
     blocks["CEM_OVERVIEW"] = render_cem_overview(rows)
     for task, marker in DETAIL_MARKERS.items():
         blocks[marker] = render_detail(task, rows)
@@ -916,7 +944,7 @@ def main():
     blocks = build_blocks(rows)
 
     texts = {}
-    for path in sorted({DOC, APPENDIX_DOC}):
+    for path in sorted({marker_doc(m) for m in MARKERS}):
         if not path.exists():
             raise Fail(f"benchmark doc missing: {path}")
         text = path.read_text(encoding="utf-8")

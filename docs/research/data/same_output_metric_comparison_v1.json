@@ -1,0 +1,1682 @@
+{
+  "cache_checks": [
+    {
+      "distance_sha_verified": 256,
+      "matched_wrong_receipt_energy_verified": 256,
+      "max_abs_matched_energy_delta": 6.984919309616089e-10,
+      "max_abs_wrong_energy_delta": 6.984919309616089e-10,
+      "model_id": "action_strength/dinowm/original/s3073",
+      "scene_count": 256,
+      "source_group_count": 243,
+      "source_sha_verified": 256
+    },
+    {
+      "distance_sha_verified": 256,
+      "matched_wrong_receipt_energy_verified": 256,
+      "max_abs_matched_energy_delta": 4.656612873077393e-10,
+      "max_abs_wrong_energy_delta": 4.656612873077393e-10,
+      "model_id": "action_strength/dinowm/scratch/s3072",
+      "scene_count": 256,
+      "source_group_count": 243,
+      "source_sha_verified": 256
+    },
+    {
+      "distance_sha_verified": 256,
+      "matched_wrong_receipt_energy_verified": 256,
+      "max_abs_matched_energy_delta": 9.313225746154785e-10,
+      "max_abs_wrong_energy_delta": 9.313225746154785e-10,
+      "model_id": "contact_friction/dinowm/original/s3073",
+      "scene_count": 256,
+      "source_group_count": 256,
+      "source_sha_verified": 256
+    },
+    {
+      "distance_sha_verified": 256,
+      "matched_wrong_receipt_energy_verified": 256,
+      "max_abs_matched_energy_delta": 6.984919309616089e-10,
+      "max_abs_wrong_energy_delta": 6.984919309616089e-10,
+      "model_id": "contact_friction/dinowm/scratch/s3072",
+      "scene_count": 256,
+      "source_group_count": 256,
+      "source_sha_verified": 256
+    },
+    {
+      "distance_sha_verified": 256,
+      "matched_wrong_receipt_energy_verified": 256,
+      "max_abs_matched_energy_delta": 1.3969838619232178e-09,
+      "max_abs_wrong_energy_delta": 1.3969838619232178e-09,
+      "model_id": "motion_damping/dinowm/original/s3073",
+      "scene_count": 256,
+      "source_group_count": 128,
+      "source_sha_verified": 256
+    },
+    {
+      "distance_sha_verified": 256,
+      "matched_wrong_receipt_energy_verified": 256,
+      "max_abs_matched_energy_delta": 9.313225746154785e-10,
+      "max_abs_wrong_energy_delta": 9.313225746154785e-10,
+      "model_id": "motion_damping/dinowm/scratch/s3072",
+      "scene_count": 256,
+      "source_group_count": 128,
+      "source_sha_verified": 256
+    },
+    {
+      "distance_sha_verified": 256,
+      "matched_wrong_receipt_energy_verified": 256,
+      "max_abs_matched_energy_delta": 9.094947017729282e-13,
+      "max_abs_wrong_energy_delta": 1.8189894035458565e-12,
+      "model_id": "action_strength/lewm/frozen/s3072",
+      "scene_count": 256,
+      "source_group_count": 243,
+      "source_sha_verified": 256
+    },
+    {
+      "distance_sha_verified": 256,
+      "matched_wrong_receipt_energy_verified": 256,
+      "max_abs_matched_energy_delta": 1.3642420526593924e-12,
+      "max_abs_wrong_energy_delta": 1.3642420526593924e-12,
+      "model_id": "action_strength/lewm/original/s3073",
+      "scene_count": 256,
+      "source_group_count": 243,
+      "source_sha_verified": 256
+    }
+  ],
+  "definitions": {
+    "G": "(Ewrong-E)/B",
+    "S": "100*(1-E/B)",
+    "all5": "sum five horizon E/W/B, with equal condition/candidate/time weight within each scene; model score is ratio of mean per-scene normalized sums, matching pilot weighting.",
+    "all_candidates": "all cached unique candidates retained, including zero-action candidate; no candidates/scenes filtered.",
+    "canonical_strict": "only exact same-target candidate/time cells are canonicalized: each history row uses its diagonal distance for both target columns; LeWM baseline is recomputed directly from native pred/target, DINO baseline remains cached distance after byte-identical future-pixel confirmation. No tolerance threshold is used.",
+    "distance_axes": "[history,truth,candidate,time] squared Euclidean distance",
+    "first_step": "uses Bfirst only, not the shared all-horizon denominator.",
+    "future_rate": "strict d[h,h] < d[h,1-h], equally across the two histories, candidates and horizons; exact ties count as false.",
+    "history_rate": "strict correct-history prediction error < opposite-history prediction error for each target condition; exact ties count as false.",
+    "raw": "strict comparisons and E/W from stored distance cache, before same-target numerical-tie canonicalization."
+  },
+  "dino_T1_minus_T0_paired_source_group_deltas": [
+    {
+      "contrast": "T1(scratch)-T0(original)",
+      "n_queries_each": 256,
+      "n_source_groups": 243,
+      "point_deltas": {
+        "canonical": {
+          "G": 1.2262272897749829,
+          "R": 0.32260061553030306,
+          "S": 132.5039823387466,
+          "future_tie": 0.0,
+          "history_tie": 0.0,
+          "history_win": 0.5784141216856062
+        },
+        "raw": {
+          "G": 1.2262272897749822,
+          "R": 0.3216628196022727,
+          "S": 132.5039823387466,
+          "future_tie": -0.0001711450441919192,
+          "history_tie": 0.0,
+          "history_win": 0.5784141216856062
+        }
+      },
+      "source_group_bootstrap_95ci_all5": {
+        "canonical": {
+          "G": [
+            1.1805101838753933,
+            1.2739860057549335
+          ],
+          "R": [
+            0.310859056702483,
+            0.33447938318158554
+          ],
+          "S": [
+            122.51885583981489,
+            142.6728150804496
+          ]
+        },
+        "raw": {
+          "G": [
+            1.183090441520683,
+            1.273680254682948
+          ],
+          "R": [
+            0.30963754411238126,
+            0.3335517557110657
+          ],
+          "S": [
+            123.02124552510311,
+            142.58023652226746
+          ]
+        }
+      },
+      "task": "action_strength"
+    },
+    {
+      "contrast": "T1(scratch)-T0(original)",
+      "n_queries_each": 256,
+      "n_source_groups": 256,
+      "point_deltas": {
+        "canonical": {
+          "G": 0.31089598227461235,
+          "R": 0.08257181186868684,
+          "S": 250.0192201994425,
+          "future_tie": 0.0,
+          "history_tie": 0.0,
+          "history_win": 0.31787918244949503
+        },
+        "raw": {
+          "G": 0.3108959822746123,
+          "R": 0.08416311553030298,
+          "S": 250.0192201994425,
+          "future_tie": 6.392045454545452e-05,
+          "history_tie": 0.0,
+          "history_win": 0.31787918244949503
+        }
+      },
+      "source_group_bootstrap_95ci_all5": {
+        "canonical": {
+          "G": [
+            0.2794570237894667,
+            0.34282139042362914
+          ],
+          "R": [
+            0.0747480370107321,
+            0.08956117818813099
+          ],
+          "S": [
+            227.3206938974827,
+            272.7345158894884
+          ]
+        },
+        "raw": {
+          "G": [
+            0.27870239081257614,
+            0.34500378605335713
+          ],
+          "R": [
+            0.07611632930871204,
+            0.0929189749053024
+          ],
+          "S": [
+            226.95932764804107,
+            276.0929279815658
+          ]
+        }
+      },
+      "task": "contact_friction"
+    },
+    {
+      "contrast": "T1(scratch)-T0(original)",
+      "n_queries_each": 256,
+      "n_source_groups": 128,
+      "point_deltas": {
+        "canonical": {
+          "G": 0.011838720132122716,
+          "R": 0.010270083648989847,
+          "S": 169.01344392165618,
+          "future_tie": 0.0,
+          "history_tie": 0.0,
+          "history_win": 0.043591382575757676
+        },
+        "raw": {
+          "G": 0.011838720132122716,
+          "R": 0.010270083648989847,
+          "S": 169.01344392165618,
+          "future_tie": 0.0,
+          "history_tie": 0.0,
+          "history_win": 0.043591382575757676
+        }
+      },
+      "source_group_bootstrap_95ci_all5": {
+        "canonical": {
+          "G": [
+            0.0059523604850317035,
+            0.017737458070484564
+          ],
+          "R": [
+            0.006674587673611071,
+            0.013636590514519981
+          ],
+          "S": [
+            142.633987102657,
+            197.69176808633432
+          ]
+        },
+        "raw": {
+          "G": [
+            0.006278764733685938,
+            0.017289469064469723
+          ],
+          "R": [
+            0.0071287237610480215,
+            0.013691430910669175
+          ],
+          "S": [
+            142.7777104176656,
+            195.40760025963755
+          ]
+        }
+      },
+      "task": "motion_damping"
+    }
+  ],
+  "dino_target_separation_energy_alignment": {
+    "all_exactly_equal": true,
+    "exact_equal_scene_horizon_entries": 3840,
+    "interpretation": "Per-scene/per-horizon scalar energy alignment only; this alone does not establish all target vectors are equal.",
+    "max_abs_delta": 0.0,
+    "rows": 768,
+    "total_scene_horizon_entries": 3840
+  },
+  "distance_source": "Existing distance_*.npz; no DINO feature-space scoring.",
+  "inputs": {
+    "bootstrap_replicates": 1000,
+    "bootstrap_seed": 20261008,
+    "models_json_sha256": "caf3d8dd004b0005b666484aa71a2e323719e90bff3f2369a48554168ab2d2e1",
+    "pilot_json": "/opt/huawei/explorer-env/dataset/ag_data/code/ContextWorld/docs/research/data/icl_visible_future_pilot_v1.json",
+    "pilot_schema": "contextworld.visible_future_pilot.v1",
+    "root": "/tmp/cw-visible-futures-20261008"
+  },
+  "models": [
+    {
+      "candidate_count_range": [
+        8,
+        11
+      ],
+      "family": "dinowm",
+      "model_id": "action_strength/dinowm/original/s3073",
+      "n_queries": 256,
+      "n_source_groups": 243,
+      "pilot_comparison": {
+        "computed_raw_G_all5_minus_pilot_gain": 8.326672684688674e-17,
+        "computed_raw_S_all5_minus_pilot_score": 0.0,
+        "model_id": "action_strength/dinowm/original/s3073",
+        "pilot_gain": -0.11401486149003848,
+        "pilot_score": -224.1232157464933,
+        "raw_G_all5_matches_pilot": true,
+        "raw_S_all5_matches_pilot": true
+      },
+      "point_estimates": {
+        "canonical_all5": {
+          "G": -0.11401486149003774,
+          "R": 0.41885722458964647,
+          "S": -224.1232157464933,
+          "future_tie": 0.10049222695707072,
+          "history_tie": 0.0,
+          "history_win": 0.30343907828282823
+        },
+        "canonical_first": {
+          "G": -0.17559405078468066,
+          "R": 0.38661665482954544,
+          "S": -192.6277253745475,
+          "future_tie": 0.0993124605429293,
+          "history_tie": 0.0,
+          "history_win": 0.23724796796085856
+        },
+        "raw_all5": {
+          "G": -0.1140148614900384,
+          "R": 0.4606072443181818,
+          "S": -224.1232157464933,
+          "future_tie": 0.000331735321969697,
+          "history_tie": 0.0,
+          "history_win": 0.30343907828282823
+        },
+        "raw_first": {
+          "G": -0.1755940507846817,
+          "R": 0.42607323232323235,
+          "S": -192.6277253745475,
+          "future_tie": 0.0001953125,
+          "history_tie": 0.0,
+          "history_win": 0.23724796796085856
+        }
+      },
+      "raw_to_canonical_future_label_changes": 1075,
+      "raw_to_canonical_history_label_changes": 0,
+      "regime": "original",
+      "same_target_verified_candidate_time_count": 1295,
+      "source_group_bootstrap_95ci": {
+        "canonical_all5": {
+          "G": [
+            -0.12437553971894283,
+            -0.10390797446103026
+          ],
+          "R": [
+            0.41376763992060706,
+            0.4243956792135635
+          ],
+          "S": [
+            -237.8434161739059,
+            -210.65081941597052
+          ],
+          "future_tie": [
+            0.09946631269468391,
+            0.10161755000201221
+          ],
+          "history_tie": [
+            0.0,
+            0.0
+          ],
+          "history_win": [
+            0.2874947691197692,
+            0.31917372792480714
+          ]
+        },
+        "canonical_first": {
+          "G": [
+            -0.1947931904760886,
+            -0.15565602646965704
+          ],
+          "R": [
+            0.37323294784232286,
+            0.3994804744197166
+          ],
+          "S": [
+            -205.4580428591712,
+            -181.05544087349065
+          ],
+          "future_tie": [
+            0.09841379757395395,
+            0.10012003151594695
+          ],
+          "history_tie": [
+            0.0,
+            0.0
+          ],
+          "history_win": [
+            0.2181086092513835,
+            0.25687925103315384
+          ]
+        },
+        "raw_all5": {
+          "G": [
+            -0.1240487649701967,
+            -0.10326722802069804
+          ],
+          "R": [
+            0.45512147103912165,
+            0.4661295254439177
+          ],
+          "S": [
+            -238.61258934884466,
+            -210.73427390604814
+          ],
+          "future_tie": [
+            0.00012684670543633024,
+            0.000563493966029463
+          ],
+          "history_tie": [
+            0.0,
+            0.0
+          ],
+          "history_win": [
+            0.2880396839488638,
+            0.31900828923065566
+          ]
+        },
+        "raw_first": {
+          "G": [
+            -0.1967184263012772,
+            -0.15489953897638795
+          ],
+          "R": [
+            0.4104721320346321,
+            0.44132442362325164
+          ],
+          "S": [
+            -206.2823934596256,
+            -180.58413778259603
+          ],
+          "future_tie": [
+            0.0,
+            0.0005952380952380953
+          ],
+          "history_tie": [
+            0.0,
+            0.0
+          ],
+          "history_win": [
+            0.21570722118550678,
+            0.2584638301044548
+          ]
+        }
+      },
+      "target_identity_basis": "LeWM: exact equality of native target vectors. DINO: exact equality in pooled target used only as candidate mask, then byte-identical panel future pixels required.",
+      "task": "action_strength"
+    },
+    {
+      "candidate_count_range": [
+        8,
+        11
+      ],
+      "family": "dinowm",
+      "model_id": "action_strength/dinowm/scratch/s3072",
+      "n_queries": 256,
+      "n_source_groups": 243,
+      "pilot_comparison": {
+        "computed_raw_G_all5_minus_pilot_gain": 0.0,
+        "computed_raw_S_all5_minus_pilot_score": 0.0,
+        "model_id": "action_strength/dinowm/scratch/s3072",
+        "pilot_gain": 1.1122124282849437,
+        "pilot_score": -91.61923340774669,
+        "raw_G_all5_matches_pilot": true,
+        "raw_S_all5_matches_pilot": true
+      },
+      "point_estimates": {
+        "canonical_all5": {
+          "G": 1.112212428284945,
+          "R": 0.7414578401199495,
+          "S": -91.61923340774669,
+          "future_tie": 0.10049222695707072,
+          "history_tie": 0.0,
+          "history_win": 0.8818531999684345
+        },
+        "canonical_first": {
+          "G": 2.316880475125365,
+          "R": 0.8397421480429292,
+          "S": -28.97193122314361,
+          "future_tie": 0.0993124605429293,
+          "history_tie": 0.0,
+          "history_win": 0.9062149818497474
+        },
+        "raw_all5": {
+          "G": 1.1122124282849437,
+          "R": 0.7822700639204545,
+          "S": -91.61923340774669,
+          "future_tie": 0.00016059027777777778,
+          "history_tie": 0.0,
+          "history_win": 0.8818531999684345
+        },
+        "raw_first": {
+          "G": 2.3168804751253638,
+          "R": 0.8801313920454545,
+          "S": -28.97193122314361,
+          "future_tie": 0.0,
+          "history_tie": 0.0,
+          "history_win": 0.9062149818497474
+        }
+      },
+      "raw_to_canonical_future_label_changes": 1051,
+      "raw_to_canonical_history_label_changes": 0,
+      "regime": "scratch",
+      "same_target_verified_candidate_time_count": 1295,
+      "source_group_bootstrap_95ci": {
+        "canonical_all5": {
+          "G": [
+            1.0675973436892725,
+            1.1566923384564147
+          ],
+          "R": [
+            0.7317934869249526,
+            0.7508008399583771
+          ],
+          "S": [
+            -96.73190422424908,
+            -86.4417392306203
+          ],
+          "future_tie": [
+            0.09945921362495007,
+            0.10155702508369872
+          ],
+          "history_tie": [
+            0.0,
+            0.0
+          ],
+          "history_win": [
+            0.8738443346366892,
+            0.8901288936226971
+          ]
+        },
+        "canonical_first": {
+          "G": [
+            2.202264013590856,
+            2.418126146127263
+          ],
+          "R": [
+            0.8272614431104361,
+            0.852124122477672
+          ],
+          "S": [
+            -37.1976123845233,
+            -21.43561525687881
+          ],
+          "future_tie": [
+            0.09841430932152836,
+            0.10023827214452213
+          ],
+          "history_tie": [
+            0.0,
+            0.0
+          ],
+          "history_win": [
+            0.8957054329485109,
+            0.9157987707817479
+          ]
+        },
+        "raw_all5": {
+          "G": [
+            1.067120922498064,
+            1.1573904952876841
+          ],
+          "R": [
+            0.7715052562174275,
+            0.791857677881759
+          ],
+          "S": [
+            -96.69435301432753,
+            -86.66333167099495
+          ],
+          "future_tie": [
+            3.861003861003861e-05,
+            0.00033843726285005615
+          ],
+          "history_tie": [
+            0.0,
+            0.0
+          ],
+          "history_win": [
+            0.873739653613103,
+            0.8896790639896205
+          ]
+        },
+        "raw_first": {
+          "G": [
+            2.200561576158593,
+            2.420468358727684
+          ],
+          "R": [
+            0.8667615242665592,
+            0.8916639730225484
+          ],
+          "S": [
+            -37.338377943903986,
+            -20.959064412922658
+          ],
+          "future_tie": [
+            0.0,
+            0.0
+          ],
+          "history_tie": [
+            0.0,
+            0.0
+          ],
+          "history_win": [
+            0.8951218450339543,
+            0.9155387338911307
+          ]
+        }
+      },
+      "target_identity_basis": "LeWM: exact equality of native target vectors. DINO: exact equality in pooled target used only as candidate mask, then byte-identical panel future pixels required.",
+      "task": "action_strength"
+    },
+    {
+      "candidate_count_range": [
+        9,
+        11
+      ],
+      "family": "dinowm",
+      "model_id": "contact_friction/dinowm/original/s3073",
+      "n_queries": 256,
+      "n_source_groups": 256,
+      "pilot_comparison": {
+        "computed_raw_G_all5_minus_pilot_gain": -6.938893903907228e-17,
+        "computed_raw_S_all5_minus_pilot_score": 0.0,
+        "model_id": "contact_friction/dinowm/original/s3073",
+        "pilot_gain": -0.021011252493656762,
+        "pilot_score": -523.7950337157533,
+        "raw_G_all5_matches_pilot": true,
+        "raw_S_all5_matches_pilot": true
+      },
+      "point_estimates": {
+        "canonical_all5": {
+          "G": -0.021011252493655208,
+          "R": 0.3837949810606061,
+          "S": -523.7950337157533,
+          "future_tie": 0.2223784722222223,
+          "history_tie": 0.0,
+          "history_win": 0.45023753156565655
+        },
+        "canonical_first": {
+          "G": -0.014695112161005403,
+          "R": 0.34223879419191916,
+          "S": -799.7499171305723,
+          "future_tie": 0.3033420138888888,
+          "history_tie": 0.0,
+          "history_win": 0.48538707386363633
+        },
+        "raw_all5": {
+          "G": -0.021011252493656832,
+          "R": 0.47195036300505055,
+          "S": -523.7950337157533,
+          "future_tie": 0.0021448863636363636,
+          "history_tie": 0.0,
+          "history_win": 0.45023753156565655
+        },
+        "raw_first": {
+          "G": -0.014695112161010467,
+          "R": 0.4631313131313131,
+          "S": -799.7499171305723,
+          "future_tie": 0.0014737215909090909,
+          "history_tie": 0.0,
+          "history_win": 0.48538707386363633
+        }
+      },
+      "raw_to_canonical_future_label_changes": 2389,
+      "raw_to_canonical_history_label_changes": 0,
+      "regime": "original",
+      "same_target_verified_candidate_time_count": 3014,
+      "source_group_bootstrap_95ci": {
+        "canonical_all5": {
+          "G": [
+            -0.026661277310433107,
+            -0.015605084641040911
+          ],
+          "R": [
+            0.38057883522727304,
+            0.38638751775568225
+          ],
+          "S": [
+            -552.3170277207747,
+            -497.74339748713703
+          ],
+          "future_tie": [
+            0.21857846038510095,
+            0.22631366398358593
+          ],
+          "history_tie": [
+            0.0,
+            0.0
+          ],
+          "history_win": [
+            0.43672974865845987,
+            0.46321351207386374
+          ]
+        },
+        "canonical_first": {
+          "G": [
+            -0.024946343717076422,
+            -0.005627796106703055
+          ],
+          "R": [
+            0.33617892795138843,
+            0.3475304312657824
+          ],
+          "S": [
+            -875.1418737984603,
+            -731.9539169468009
+          ],
+          "future_tie": [
+            0.2979395517676759,
+            0.30888819839015086
+          ],
+          "history_tie": [
+            0.0,
+            0.0
+          ],
+          "history_win": [
+            0.46958052201704553,
+            0.5012286931818182
+          ]
+        },
+        "raw_all5": {
+          "G": [
+            -0.026302850666353787,
+            -0.01571300901233867
+          ],
+          "R": [
+            0.4684103140782826,
+            0.475512863005051
+          ],
+          "S": [
+            -550.8478644634123,
+            -498.115830413895
+          ],
+          "future_tie": [
+            0.0016298828125000005,
+            0.0027059659090909074
+          ],
+          "history_tie": [
+            0.0,
+            0.0
+          ],
+          "history_win": [
+            0.43757723721590913,
+            0.46320329269255084
+          ]
+        },
+        "raw_first": {
+          "G": [
+            -0.024503541049895067,
+            -0.005776187435287502
+          ],
+          "R": [
+            0.4535706182922977,
+            0.4723058218907824
+          ],
+          "S": [
+            -879.3628141124962,
+            -727.3247855216212
+          ],
+          "future_tie": [
+            0.0005326704545454545,
+            0.0025923295454545457
+          ],
+          "history_tie": [
+            0.0,
+            0.0
+          ],
+          "history_win": [
+            0.4688343394886365,
+            0.5016539417613634
+          ]
+        }
+      },
+      "target_identity_basis": "LeWM: exact equality of native target vectors. DINO: exact equality in pooled target used only as candidate mask, then byte-identical panel future pixels required.",
+      "task": "contact_friction"
+    },
+    {
+      "candidate_count_range": [
+        9,
+        11
+      ],
+      "family": "dinowm",
+      "model_id": "contact_friction/dinowm/scratch/s3072",
+      "n_queries": 256,
+      "n_source_groups": 256,
+      "pilot_comparison": {
+        "computed_raw_G_all5_minus_pilot_gain": 0.0,
+        "computed_raw_S_all5_minus_pilot_score": 0.0,
+        "model_id": "contact_friction/dinowm/scratch/s3072",
+        "pilot_gain": 0.2898847297809555,
+        "pilot_score": -273.77581351631085,
+        "raw_G_all5_matches_pilot": true,
+        "raw_S_all5_matches_pilot": true
+      },
+      "point_estimates": {
+        "canonical_all5": {
+          "G": 0.28988472978095714,
+          "R": 0.46636679292929295,
+          "S": -273.77581351631085,
+          "future_tie": 0.2223784722222223,
+          "history_tie": 0.0,
+          "history_win": 0.7681167140151516
+        },
+        "canonical_first": {
+          "G": 1.0270568380055554,
+          "R": 0.537868923611111,
+          "S": -355.9771974380194,
+          "future_tie": 0.3033420138888888,
+          "history_tie": 0.0,
+          "history_win": 0.795541351010101
+        },
+        "raw_all5": {
+          "G": 0.2898847297809555,
+          "R": 0.5561134785353535,
+          "S": -273.77581351631085,
+          "future_tie": 0.002208806818181818,
+          "history_tie": 0.0,
+          "history_win": 0.7681167140151516
+        },
+        "raw_first": {
+          "G": 1.0270568380055505,
+          "R": 0.6602213541666666,
+          "S": -355.9771974380194,
+          "future_tie": 0.0022904829545454548,
+          "history_tie": 0.0,
+          "history_win": 0.795541351010101
+        }
+      },
+      "raw_to_canonical_future_label_changes": 2432,
+      "raw_to_canonical_history_label_changes": 0,
+      "regime": "scratch",
+      "same_target_verified_candidate_time_count": 3014,
+      "source_group_bootstrap_95ci": {
+        "canonical_all5": {
+          "G": [
+            0.2599059327488353,
+            0.32186363435245824
+          ],
+          "R": [
+            0.4592914891098488,
+            0.4731761560921716
+          ],
+          "S": [
+            -282.00666746162875,
+            -266.2468168563293
+          ],
+          "future_tie": [
+            0.21883794981060617,
+            0.22612957702020198
+          ],
+          "history_tie": [
+            0.0,
+            0.0
+          ],
+          "history_win": [
+            0.7581836825284088,
+            0.7778091560132577
+          ]
+        },
+        "canonical_first": {
+          "G": [
+            0.8503603976543085,
+            1.1899130146935104
+          ],
+          "R": [
+            0.5207846038510103,
+            0.5544744318181822
+          ],
+          "S": [
+            -382.2047586415439,
+            -329.1778904292465
+          ],
+          "future_tie": [
+            0.2978022411616154,
+            0.3087724905303022
+          ],
+          "history_tie": [
+            0.0,
+            0.0
+          ],
+          "history_win": [
+            0.7832659110637629,
+            0.8069649621212117
+          ]
+        },
+        "raw_all5": {
+          "G": [
+            0.25887164354825376,
+            0.3239475202736856
+          ],
+          "R": [
+            0.5489488241792926,
+            0.5633321397569445
+          ],
+          "S": [
+            -282.0541748012765,
+            -266.28757821703744
+          ],
+          "future_tie": [
+            0.0016795987215909097,
+            0.0027879083806818176
+          ],
+          "history_tie": [
+            0.0,
+            0.0
+          ],
+          "history_win": [
+            0.7582498224431821,
+            0.7773584576231052
+          ]
+        },
+        "raw_first": {
+          "G": [
+            0.8691870958069358,
+            1.1924579762220466
+          ],
+          "R": [
+            0.6415744850852275,
+            0.6781905480587124
+          ],
+          "S": [
+            -382.9640606019201,
+            -330.74689257433147
+          ],
+          "future_tie": [
+            0.0011008522727272729,
+            0.003640358664772728
+          ],
+          "history_tie": [
+            0.0,
+            0.0
+          ],
+          "history_win": [
+            0.7830346926294197,
+            0.8079001440183082
+          ]
+        }
+      },
+      "target_identity_basis": "LeWM: exact equality of native target vectors. DINO: exact equality in pooled target used only as candidate mask, then byte-identical panel future pixels required.",
+      "task": "contact_friction"
+    },
+    {
+      "candidate_count_range": [
+        8,
+        11
+      ],
+      "family": "dinowm",
+      "model_id": "motion_damping/dinowm/original/s3073",
+      "n_queries": 256,
+      "n_source_groups": 128,
+      "pilot_comparison": {
+        "computed_raw_G_all5_minus_pilot_gain": 6.591949208711867e-16,
+        "computed_raw_S_all5_minus_pilot_score": 2.2737367544323206e-13,
+        "model_id": "motion_damping/dinowm/original/s3073",
+        "pilot_gain": 0.003921099865685562,
+        "pilot_score": -828.4018582242073,
+        "raw_G_all5_matches_pilot": true,
+        "raw_S_all5_matches_pilot": true
+      },
+      "point_estimates": {
+        "canonical_all5": {
+          "G": 0.003921099865686221,
+          "R": 0.49965711805555557,
+          "S": -828.4018582242071,
+          "future_tie": 0.0,
+          "history_tie": 0.0,
+          "history_win": 0.5182672427398989
+        },
+        "canonical_first": {
+          "G": 0.0054157147447380085,
+          "R": 0.4989583333333334,
+          "S": -2270.156363478639,
+          "future_tie": 0.0,
+          "history_tie": 0.0,
+          "history_win": 0.5077355587121212
+        },
+        "raw_all5": {
+          "G": 0.003921099865686221,
+          "R": 0.49965711805555557,
+          "S": -828.4018582242071,
+          "future_tie": 0.0,
+          "history_tie": 0.0,
+          "history_win": 0.5182672427398989
+        },
+        "raw_first": {
+          "G": 0.0054157147447380085,
+          "R": 0.4989583333333334,
+          "S": -2270.156363478639,
+          "future_tie": 0.0,
+          "history_tie": 0.0,
+          "history_win": 0.5077355587121212
+        }
+      },
+      "raw_to_canonical_future_label_changes": 0,
+      "raw_to_canonical_history_label_changes": 0,
+      "regime": "original",
+      "same_target_verified_candidate_time_count": 0,
+      "source_group_bootstrap_95ci": {
+        "canonical_all5": {
+          "G": [
+            0.002290283384901867,
+            0.005706647214667494
+          ],
+          "R": [
+            0.49874077690972224,
+            0.5006640625
+          ],
+          "S": [
+            -866.2030981034683,
+            -794.4614112331909
+          ],
+          "future_tie": [
+            0.0,
+            0.0
+          ],
+          "history_tie": [
+            0.0,
+            0.0
+          ],
+          "history_win": [
+            0.5111700846354166,
+            0.5247767025726009
+          ]
+        },
+        "canonical_first": {
+          "G": [
+            -0.001103356084296566,
+            0.011673955180761149
+          ],
+          "R": [
+            0.49503038194444454,
+            0.5028862847222223
+          ],
+          "S": [
+            -2498.6615339461514,
+            -2074.6275446244686
+          ],
+          "future_tie": [
+            0.0,
+            0.0
+          ],
+          "history_tie": [
+            0.0,
+            0.0
+          ],
+          "history_win": [
+            0.4962848578559026,
+            0.5189113547585226
+          ]
+        },
+        "raw_all5": {
+          "G": [
+            0.002255128342926424,
+            0.005828514054718019
+          ],
+          "R": [
+            0.49859776475694434,
+            0.5006468098958335
+          ],
+          "S": [
+            -864.8357094296679,
+            -791.6606985293787
+          ],
+          "future_tie": [
+            0.0,
+            0.0
+          ],
+          "history_tie": [
+            0.0,
+            0.0
+          ],
+          "history_win": [
+            0.5117411714804294,
+            0.5251306423611112
+          ]
+        },
+        "raw_first": {
+          "G": [
+            -0.0007862698237086093,
+            0.012281783063012329
+          ],
+          "R": [
+            0.4952468532986111,
+            0.502604709201389
+          ],
+          "S": [
+            -2496.981002765989,
+            -2079.9429812400836
+          ],
+          "future_tie": [
+            0.0,
+            0.0
+          ],
+          "history_tie": [
+            0.0,
+            0.0
+          ],
+          "history_win": [
+            0.4974459808041352,
+            0.5193226823903094
+          ]
+        }
+      },
+      "target_identity_basis": "LeWM: exact equality of native target vectors. DINO: exact equality in pooled target used only as candidate mask, then byte-identical panel future pixels required.",
+      "task": "motion_damping"
+    },
+    {
+      "candidate_count_range": [
+        8,
+        11
+      ],
+      "family": "dinowm",
+      "model_id": "motion_damping/dinowm/scratch/s3072",
+      "n_queries": 256,
+      "n_source_groups": 128,
+      "pilot_comparison": {
+        "computed_raw_G_all5_minus_pilot_gain": -1.2385925618474403e-15,
+        "computed_raw_S_all5_minus_pilot_score": -1.1368683772161603e-13,
+        "model_id": "motion_damping/dinowm/scratch/s3072",
+        "pilot_gain": 0.015759819997810176,
+        "pilot_score": -659.3884143025508,
+        "raw_G_all5_matches_pilot": true,
+        "raw_S_all5_matches_pilot": true
+      },
+      "point_estimates": {
+        "canonical_all5": {
+          "G": 0.015759819997808937,
+          "R": 0.5099272017045454,
+          "S": -659.3884143025509,
+          "future_tie": 0.0,
+          "history_tie": 0.0,
+          "history_win": 0.5618586253156566
+        },
+        "canonical_first": {
+          "G": 0.017172583237776717,
+          "R": 0.5119880445075757,
+          "S": -1816.106413159831,
+          "future_tie": 0.0,
+          "history_tie": 0.0,
+          "history_win": 0.549203460385101
+        },
+        "raw_all5": {
+          "G": 0.015759819997808937,
+          "R": 0.5099272017045454,
+          "S": -659.3884143025509,
+          "future_tie": 0.0,
+          "history_tie": 0.0,
+          "history_win": 0.5618586253156566
+        },
+        "raw_first": {
+          "G": 0.017172583237776717,
+          "R": 0.5119880445075757,
+          "S": -1816.106413159831,
+          "future_tie": 0.0,
+          "history_tie": 0.0,
+          "history_win": 0.549203460385101
+        }
+      },
+      "raw_to_canonical_future_label_changes": 0,
+      "raw_to_canonical_history_label_changes": 0,
+      "regime": "scratch",
+      "same_target_verified_candidate_time_count": 0,
+      "source_group_bootstrap_95ci": {
+        "canonical_all5": {
+          "G": [
+            0.00981498756243633,
+            0.02092462709310868
+          ],
+          "R": [
+            0.5067467151988637,
+            0.5131184550583965
+          ],
+          "S": [
+            -679.1975428669805,
+            -640.2920776203906
+          ],
+          "future_tie": [
+            0.0,
+            0.0
+          ],
+          "history_tie": [
+            0.0,
+            0.0
+          ],
+          "history_win": [
+            0.5523255405618687,
+            0.5713288549558079
+          ]
+        },
+        "canonical_first": {
+          "G": [
+            -0.021856528564760645,
+            0.06269066132530067
+          ],
+          "R": [
+            0.5012152284564395,
+            0.522591614386048
+          ],
+          "S": [
+            -1979.3076059274931,
+            -1659.287800842474
+          ],
+          "future_tie": [
+            0.0,
+            0.0
+          ],
+          "history_tie": [
+            0.0,
+            0.0
+          ],
+          "history_win": [
+            0.5354823380287247,
+            0.5633461322206439
+          ]
+        },
+        "raw_all5": {
+          "G": [
+            0.010241345481566777,
+            0.021245858650076443
+          ],
+          "R": [
+            0.5067883029513889,
+            0.5130845219775885
+          ],
+          "S": [
+            -678.658693085993,
+            -641.2614485665556
+          ],
+          "future_tie": [
+            0.0,
+            0.0
+          ],
+          "history_tie": [
+            0.0,
+            0.0
+          ],
+          "history_win": [
+            0.5525839251893938,
+            0.5716717122395831
+          ]
+        },
+        "raw_first": {
+          "G": [
+            -0.02263311228591303,
+            0.05855891346038717
+          ],
+          "R": [
+            0.5011430959990529,
+            0.5232087969539142
+          ],
+          "S": [
+            -1981.227468640081,
+            -1667.1398316468894
+          ],
+          "future_tie": [
+            0.0,
+            0.0
+          ],
+          "history_tie": [
+            0.0,
+            0.0
+          ],
+          "history_win": [
+            0.534429845328283,
+            0.5638539200599745
+          ]
+        }
+      },
+      "target_identity_basis": "LeWM: exact equality of native target vectors. DINO: exact equality in pooled target used only as candidate mask, then byte-identical panel future pixels required.",
+      "task": "motion_damping"
+    },
+    {
+      "candidate_count_range": [
+        8,
+        11
+      ],
+      "family": "lewm",
+      "model_id": "action_strength/lewm/frozen/s3072",
+      "n_queries": 256,
+      "n_source_groups": 243,
+      "pilot_comparison": {
+        "computed_raw_G_all5_minus_pilot_gain": 0.0,
+        "computed_raw_S_all5_minus_pilot_score": 0.0,
+        "model_id": "action_strength/lewm/frozen/s3072",
+        "pilot_gain": 1.686109102031463,
+        "pilot_score": -36.83821217121825,
+        "raw_G_all5_matches_pilot": true,
+        "raw_S_all5_matches_pilot": true
+      },
+      "point_estimates": {
+        "canonical_all5": {
+          "G": 1.686109102031463,
+          "R": 0.7581380208333335,
+          "S": -36.83821217121825,
+          "future_tie": 0.10049222695707072,
+          "history_tie": 0.0,
+          "history_win": 0.8734581163194445
+        },
+        "canonical_first": {
+          "G": 3.412160892222982,
+          "R": 0.8324420967487374,
+          "S": 44.968035548701835,
+          "future_tie": 0.0993124605429293,
+          "history_tie": 0.0,
+          "history_win": 0.8741132023358587
+        },
+        "raw_all5": {
+          "G": 1.686109102031463,
+          "R": 0.8019171204229798,
+          "S": -36.83821217121825,
+          "future_tie": 0.0006991792929292929,
+          "history_tie": 0.0,
+          "history_win": 0.8734581163194445
+        },
+        "raw_first": {
+          "G": 3.412160892222982,
+          "R": 0.8770537405303029,
+          "S": 44.968035548701835,
+          "future_tie": 0.000390625,
+          "history_tie": 0.0,
+          "history_win": 0.8741132023358587
+        }
+      },
+      "raw_to_canonical_future_label_changes": 1130,
+      "raw_to_canonical_history_label_changes": 0,
+      "regime": "frozen",
+      "same_target_verified_candidate_time_count": 1295,
+      "source_group_bootstrap_95ci": {
+        "canonical_all5": {
+          "G": [
+            1.6391810326357483,
+            1.7295186550527846
+          ],
+          "R": [
+            0.7453966968809485,
+            0.7708790150228548
+          ],
+          "S": [
+            -43.02615871525604,
+            -30.677629058464007
+          ],
+          "future_tie": [
+            0.09947386467135062,
+            0.10171379375466727
+          ],
+          "history_tie": [
+            0.0,
+            0.0
+          ],
+          "history_win": [
+            0.8625728714844526,
+            0.8839143175945504
+          ]
+        },
+        "canonical_first": {
+          "G": [
+            3.344770320874053,
+            3.4786656443300368
+          ],
+          "R": [
+            0.8196112884248198,
+            0.8439252808323761
+          ],
+          "S": [
+            37.84632221839579,
+            51.65771523655129
+          ],
+          "future_tie": [
+            0.09848056004682515,
+            0.1001718252198585
+          ],
+          "history_tie": [
+            0.0,
+            0.0
+          ],
+          "history_win": [
+            0.8630293208882077,
+            0.8848394053082501
+          ]
+        },
+        "raw_all5": {
+          "G": [
+            1.6363620917621358,
+            1.7308488118394654
+          ],
+          "R": [
+            0.7895732121539933,
+            0.8133955298562515
+          ],
+          "S": [
+            -43.559495455639265,
+            -30.993887339145733
+          ],
+          "future_tie": [
+            0.0004067439096850862,
+            0.0010061641145895715
+          ],
+          "history_tie": [
+            0.0,
+            0.0
+          ],
+          "history_win": [
+            0.8621426224759664,
+            0.8835101513851521
+          ]
+        },
+        "raw_first": {
+          "G": [
+            3.3392611055098547,
+            3.4772482348517983
+          ],
+          "R": [
+            0.8647930895897249,
+            0.8885249406414746
+          ],
+          "S": [
+            37.79452804504433,
+            51.0028532584448
+          ],
+          "future_tie": [
+            0.0,
+            0.000980392156862745
+          ],
+          "history_tie": [
+            0.0,
+            0.0
+          ],
+          "history_win": [
+            0.8615478488957822,
+            0.8849325336115518
+          ]
+        }
+      },
+      "target_identity_basis": "LeWM: exact equality of native target vectors. DINO: exact equality in pooled target used only as candidate mask, then byte-identical panel future pixels required.",
+      "task": "action_strength"
+    },
+    {
+      "candidate_count_range": [
+        8,
+        11
+      ],
+      "family": "lewm",
+      "model_id": "action_strength/lewm/original/s3073",
+      "n_queries": 256,
+      "n_source_groups": 243,
+      "pilot_comparison": {
+        "computed_raw_G_all5_minus_pilot_gain": 2.2551405187698492e-17,
+        "computed_raw_S_all5_minus_pilot_score": 0.0,
+        "model_id": "action_strength/lewm/original/s3073",
+        "pilot_gain": -0.011329269872859093,
+        "pilot_score": -138.6076306241345,
+        "raw_G_all5_matches_pilot": true,
+        "raw_S_all5_matches_pilot": true
+      },
+      "point_estimates": {
+        "canonical_all5": {
+          "G": -0.011329269872859071,
+          "R": 0.44868420533459596,
+          "S": -138.6076306241345,
+          "future_tie": 0.10049222695707072,
+          "history_tie": 0.0,
+          "history_win": 0.42446012863005056
+        },
+        "canonical_first": {
+          "G": -0.0030004020331159537,
+          "R": 0.45118617818813134,
+          "S": -101.35304070396964,
+          "future_tie": 0.0993124605429293,
+          "history_tie": 0.0,
+          "history_win": 0.4206044823232323
+        },
+        "raw_all5": {
+          "G": -0.011329269872859071,
+          "R": 0.490703519570707,
+          "S": -138.6076306241345,
+          "future_tie": 0.0009185606060606061,
+          "history_tie": 0.0,
+          "history_win": 0.42446012863005056
+        },
+        "raw_first": {
+          "G": -0.0030004020331159537,
+          "R": 0.49611002604166665,
+          "S": -101.35304070396964,
+          "future_tie": 0.0,
+          "history_tie": 0.0,
+          "history_win": 0.4206044823232323
+        }
+      },
+      "raw_to_canonical_future_label_changes": 1087,
+      "raw_to_canonical_history_label_changes": 0,
+      "regime": "original",
+      "same_target_verified_candidate_time_count": 1295,
+      "source_group_bootstrap_95ci": {
+        "canonical_all5": {
+          "G": [
+            -0.017594983894553082,
+            -0.005104778092688667
+          ],
+          "R": [
+            0.446688347690616,
+            0.4507916902204248
+          ],
+          "S": [
+            -151.637008180119,
+            -127.5264023114071
+          ],
+          "future_tie": [
+            0.09937066099877465,
+            0.101583700444052
+          ],
+          "history_tie": [
+            0.0,
+            0.0
+          ],
+          "history_win": [
+            0.39875798458494366,
+            0.45073054163597787
+          ]
+        },
+        "canonical_first": {
+          "G": [
+            -0.014776984781649662,
+            0.009867284357629966
+          ],
+          "R": [
+            0.4468414716147138,
+            0.45602152834063864
+          ],
+          "S": [
+            -113.97755988387057,
+            -90.83270430359413
+          ],
+          "future_tie": [
+            0.0984206168361443,
+            0.10012360184115908
+          ],
+          "history_tie": [
+            0.0,
+            0.0
+          ],
+          "history_win": [
+            0.3868014166830922,
+            0.454109768928532
+          ]
+        },
+        "raw_all5": {
+          "G": [
+            -0.017504525093990506,
+            -0.0048138100970436404
+          ],
+          "R": [
+            0.4877541670663134,
+            0.49362142284712174
+          ],
+          "S": [
+            -151.12110067386368,
+            -126.60164121608523
+          ],
+          "future_tie": [
+            0.000571113091701327,
+            0.0012934830038981969
+          ],
+          "history_tie": [
+            0.0,
+            0.0
+          ],
+          "history_win": [
+            0.4003366784156997,
+            0.45089258366450047
+          ]
+        },
+        "raw_first": {
+          "G": [
+            -0.014980452019339948,
+            0.008912174101686026
+          ],
+          "R": [
+            0.48999006143120644,
+            0.5024635442426633
+          ],
+          "S": [
+            -113.69963093855633,
+            -89.07187558343935
+          ],
+          "future_tie": [
+            0.0,
+            0.0
+          ],
+          "history_tie": [
+            0.0,
+            0.0
+          ],
+          "history_win": [
+            0.39046429368361774,
+            0.45219884543105443
+          ]
+        }
+      },
+      "target_identity_basis": "LeWM: exact equality of native target vectors. DINO: exact equality in pooled target used only as candidate mask, then byte-identical panel future pixels required.",
+      "task": "action_strength"
+    }
+  ],
+  "no_training_inference_or_simulation": true,
+  "outputs": {
+    "dino_target_energy_csv": "/tmp/cw-metric-comparison-20261008/dino_target_energy_alignment.csv",
+    "models_csv": "/tmp/cw-metric-comparison-20261008/metric_comparison_models.csv",
+    "query_csv": "/tmp/cw-metric-comparison-20261008/metric_comparison_queries.csv",
+    "summary_json": "/tmp/cw-metric-comparison-20261008/metric_comparison.json"
+  },
+  "pilot_raw_S_G_checks": [
+    {
+      "computed_raw_G_all5_minus_pilot_gain": 8.326672684688674e-17,
+      "computed_raw_S_all5_minus_pilot_score": 0.0,
+      "model_id": "action_strength/dinowm/original/s3073",
+      "pilot_gain": -0.11401486149003848,
+      "pilot_score": -224.1232157464933,
+      "raw_G_all5_matches_pilot": true,
+      "raw_S_all5_matches_pilot": true
+    },
+    {
+      "computed_raw_G_all5_minus_pilot_gain": 0.0,
+      "computed_raw_S_all5_minus_pilot_score": 0.0,
+      "model_id": "action_strength/dinowm/scratch/s3072",
+      "pilot_gain": 1.1122124282849437,
+      "pilot_score": -91.61923340774669,
+      "raw_G_all5_matches_pilot": true,
+      "raw_S_all5_matches_pilot": true
+    },
+    {
+      "computed_raw_G_all5_minus_pilot_gain": -6.938893903907228e-17,
+      "computed_raw_S_all5_minus_pilot_score": 0.0,
+      "model_id": "contact_friction/dinowm/original/s3073",
+      "pilot_gain": -0.021011252493656762,
+      "pilot_score": -523.7950337157533,
+      "raw_G_all5_matches_pilot": true,
+      "raw_S_all5_matches_pilot": true
+    },
+    {
+      "computed_raw_G_all5_minus_pilot_gain": 0.0,
+      "computed_raw_S_all5_minus_pilot_score": 0.0,
+      "model_id": "contact_friction/dinowm/scratch/s3072",
+      "pilot_gain": 0.2898847297809555,
+      "pilot_score": -273.77581351631085,
+      "raw_G_all5_matches_pilot": true,
+      "raw_S_all5_matches_pilot": true
+    },
+    {
+      "computed_raw_G_all5_minus_pilot_gain": 6.591949208711867e-16,
+      "computed_raw_S_all5_minus_pilot_score": 2.2737367544323206e-13,
+      "model_id": "motion_damping/dinowm/original/s3073",
+      "pilot_gain": 0.003921099865685562,
+      "pilot_score": -828.4018582242073,
+      "raw_G_all5_matches_pilot": true,
+      "raw_S_all5_matches_pilot": true
+    },
+    {
+      "computed_raw_G_all5_minus_pilot_gain": -1.2385925618474403e-15,
+      "computed_raw_S_all5_minus_pilot_score": -1.1368683772161603e-13,
+      "model_id": "motion_damping/dinowm/scratch/s3072",
+      "pilot_gain": 0.015759819997810176,
+      "pilot_score": -659.3884143025508,
+      "raw_G_all5_matches_pilot": true,
+      "raw_S_all5_matches_pilot": true
+    },
+    {
+      "computed_raw_G_all5_minus_pilot_gain": 0.0,
+      "computed_raw_S_all5_minus_pilot_score": 0.0,
+      "model_id": "action_strength/lewm/frozen/s3072",
+      "pilot_gain": 1.686109102031463,
+      "pilot_score": -36.83821217121825,
+      "raw_G_all5_matches_pilot": true,
+      "raw_S_all5_matches_pilot": true
+    },
+    {
+      "computed_raw_G_all5_minus_pilot_gain": 2.2551405187698492e-17,
+      "computed_raw_S_all5_minus_pilot_score": 0.0,
+      "model_id": "action_strength/lewm/original/s3073",
+      "pilot_gain": -0.011329269872859093,
+      "pilot_score": -138.6076306241345,
+      "raw_G_all5_matches_pilot": true,
+      "raw_S_all5_matches_pilot": true
+    }
+  ],
+  "purpose": "Same cached actions/horizons: compare strict selection/history decisions with complete normalized prediction scores.",
+  "schema": "cw_metric_comparison_v1"
+}

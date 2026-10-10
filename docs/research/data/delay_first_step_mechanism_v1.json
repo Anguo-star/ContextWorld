@@ -1,0 +1,253 @@
+{
+  "schema": "contextworld.delay_first_step_mechanism.v1",
+  "scope": "300 Development scenes, native H7 T1, three training repetitions per family. First endpoint is raw step 5, no autoregressive feedback yet.",
+  "protocol": {
+    "conditions": 11,
+    "physical_future_groups_at_raw_step5": 6,
+    "candidate_actions": 13,
+    "weights": "equal conditions and candidates within scene, ratio of summed energies per checkpoint, then equal training-repetition mean",
+    "metric_identity": "g=(K-1)/(2K)*(Ewrong-Ematched)/B; amplitude=sqrt(R-1+2g). K=11. B uses raw-step-5 targets only, not all-horizon B.",
+    "bootstrap": "1000 paired source-scene draws shared across training repetitions; checkpoints fixed; no cross-encoder physical-error ranking",
+    "original_score": "Six physical-group original-query choice and response NRE retained separately; its weights and candidate actions differ from the diagnostic.",
+    "interpretation": "Representation distinctness excludes exact information erasure only; not a trained decoder or proof of sufficient geometry. Response amplitude is a diagnostic, not an extra benchmark score."
+  },
+  "sources": {
+    "delay_first_step_mechanism_v1_records.json.gz": "9853df15ec9f52f2bf135969274649fa8b266d71d3cce3b5bdc6d00fe5a9ce6a",
+    "icl_training_study_v2.json": "4c9fa5824b8663192ed41e01bb80383fbd069d1b5d89ba173ac39865463885de"
+  },
+  "rows": [
+    {
+      "family": "lewm",
+      "training_repetitions": 3,
+      "scenes": 300,
+      "original_choice": {
+        "mean": 97.6388888889,
+        "std": 0.38266626515882696,
+        "n": 3
+      },
+      "original_response_nre": {
+        "mean": 0.011968606466666665,
+        "std": 0.0013515386626517364,
+        "n": 3
+      },
+      "metrics": {
+        "response_error": {
+          "mean": 0.4183913011986409,
+          "ci95": [
+            0.41242978379872025,
+            0.42421461335214034
+          ],
+          "training_sd": 0.03152857894167689
+        },
+        "response_gain": {
+          "mean": 0.6657477415298142,
+          "ci95": [
+            0.6591075660871674,
+            0.6725903929556816
+          ],
+          "training_sd": 0.018216320915248236
+        },
+        "response_amplitude_ratio": {
+          "mean": 0.8659547006871599,
+          "ci95": [
+            0.8605473196381511,
+            0.8719196233805507
+          ],
+          "training_sd": 0.0037230262046623144
+        },
+        "complete_error_ratio": {
+          "mean": 1.0615666669320183,
+          "ci95": [
+            1.0407941723884009,
+            1.0847350740859008
+          ],
+          "training_sd": 0.030743879664130783
+        }
+      },
+      "runs": [
+        {
+          "id": "action_delay/lewm/scratch/s3072",
+          "response_error": 0.4521769155364847,
+          "response_gain": 0.6473458648257525,
+          "response_amplitude_ratio": 0.8642156242443143,
+          "complete_error_ratio": 1.0366570715006986
+        },
+        {
+          "id": "action_delay/lewm/scratch/s3073",
+          "response_error": 0.4132437265920146,
+          "response_gain": 0.6661247041331423,
+          "response_amplitude_ratio": 0.8634194431782847,
+          "complete_error_ratio": 1.0521166665799366
+        },
+        {
+          "id": "action_delay/lewm/scratch/s3074",
+          "response_error": 0.38975326146742323,
+          "response_gain": 0.6837726556305478,
+          "response_amplitude_ratio": 0.870229034638881,
+          "complete_error_ratio": 1.0959262627154198
+        }
+      ]
+    },
+    {
+      "family": "pldm",
+      "training_repetitions": 3,
+      "scenes": 300,
+      "original_choice": {
+        "mean": 99.98456790123333,
+        "std": 0.019274685152964266,
+        "n": 3
+      },
+      "original_response_nre": {
+        "mean": 0.006697591133333333,
+        "std": 0.0008460718635678433,
+        "n": 3
+      },
+      "metrics": {
+        "response_error": {
+          "mean": 0.4465787742561889,
+          "ci95": [
+            0.4407649168176728,
+            0.4526502504474678
+          ],
+          "training_sd": 0.0250968357860121
+        },
+        "response_gain": {
+          "mean": 0.7082152054510682,
+          "ci95": [
+            0.7043478952200863,
+            0.7116846322251668
+          ],
+          "training_sd": 0.012694703845137144
+        },
+        "response_amplitude_ratio": {
+          "mean": 0.9289802731058038,
+          "ci95": [
+            0.9257145071687239,
+            0.9322924145903321
+          ],
+          "training_sd": 0.0026936978091980745
+        },
+        "complete_error_ratio": {
+          "mean": 0.921891716271756,
+          "ci95": [
+            0.9056304502090294,
+            0.9380313826026437
+          ],
+          "training_sd": 0.037257823214367415
+        }
+      },
+      "runs": [
+        {
+          "id": "action_delay/pldm/scratch/s3072",
+          "response_error": 0.420088685667786,
+          "response_gain": 0.7225223766729351,
+          "response_amplitude_ratio": 0.930125496378664,
+          "complete_error_ratio": 0.8811623560561309
+        },
+        {
+          "id": "action_delay/pldm/scratch/s3073",
+          "response_error": 0.47000014261185685,
+          "response_gain": 0.6982986242851479,
+          "response_amplitude_ratio": 0.9309121286040657,
+          "complete_error_ratio": 0.9302570296049235
+        },
+        {
+          "id": "action_delay/pldm/scratch/s3074",
+          "response_error": 0.44964749448892405,
+          "response_gain": 0.7038246153951214,
+          "response_amplitude_ratio": 0.9259031943346815,
+          "complete_error_ratio": 0.9542557631542133
+        }
+      ]
+    },
+    {
+      "family": "dinowm",
+      "training_repetitions": 3,
+      "scenes": 300,
+      "original_choice": {
+        "mean": 16.62962962963333,
+        "std": 0.032075014980638084,
+        "n": 3
+      },
+      "original_response_nre": {
+        "mean": 1.0000841965333334,
+        "std": 6.739594750056375e-05,
+        "n": 3
+      },
+      "metrics": {
+        "response_error": {
+          "mean": 1.0001112317631515,
+          "ci95": [
+            1.0000945801641972,
+            1.0001310886609067
+          ],
+          "training_sd": 9.176156910988021e-05
+        },
+        "response_gain": {
+          "mean": -6.818448681172818e-06,
+          "ci95": [
+            -1.2944873667333459e-05,
+            -1.3024629900231437e-06
+          ],
+          "training_sd": 7.563712668388995e-06
+        },
+        "response_amplitude_ratio": {
+          "mean": 0.008764376603982873,
+          "ci95": [
+            0.008316445233407655,
+            0.009292149651999641
+          ],
+          "training_sd": 0.005583086314854452
+        },
+        "complete_error_ratio": {
+          "mean": 99.25859465062526,
+          "ci95": [
+            97.6408974418624,
+            100.61342219374998
+          ],
+          "training_sd": 30.9575834623528
+        }
+      },
+      "runs": [
+        {
+          "id": "action_delay/dinowm/scratch/s3072",
+          "response_error": 1.0001448130785047,
+          "response_gain": -1.5256217997735209e-05,
+          "response_amplitude_ratio": 0.010691147857419156,
+          "complete_error_ratio": 91.36675226962704
+        },
+        {
+          "id": "action_delay/dinowm/scratch/s3073",
+          "response_error": 1.0001814721746967,
+          "response_gain": -4.55219969047195e-06,
+          "response_amplitude_ratio": 0.01312889086388176,
+          "complete_error_ratio": 133.39824187325976
+        },
+        {
+          "id": "action_delay/dinowm/scratch/s3074",
+          "response_error": 1.0000074100362533,
+          "response_gain": -6.469283553112972e-07,
+          "response_amplitude_ratio": 0.0024730910906477035,
+          "complete_error_ratio": 73.010789808989
+        }
+      ]
+    }
+  ],
+  "representation_check": {
+    "model_id": "action_delay/dinowm/scratch/s3072",
+    "checkpoint_sha256": "2b8a8a7395a7845f44355261e0d89fe0b8af6bee78504d0b3a9cb1f65791d94d",
+    "panel_sha256": "f24015acb406a6e743dbf327087fb40f9b39f848622d053f520ee400e42ad66c",
+    "scenes": 300,
+    "history_pairs": 16500,
+    "distinct_history_pairs": 16500,
+    "distinct_temporal_difference_pairs": 16500,
+    "target_group_pairs": 4500,
+    "distinct_target_group_pairs": 4500,
+    "weights_unchanged": true
+  },
+  "queue_check": {
+    "scenes": 300,
+    "nonzero_pending_commands": 0,
+    "note": "Queue length varies with delay but every pending command at the query is zero; queue-length metadata is never given to the model."
+  }
+}

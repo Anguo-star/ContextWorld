@@ -114,6 +114,50 @@ def test_crossfit_keeps_source_groups_out_of_readout_fit() -> None:
     }
 
 
+def test_crossfit_prediction_export_contains_exact_heldout_arrays(tmp_path) -> None:
+    records = [_synthetic_scene(index) for index in range(6)]
+    expected = crossfit_physical_readout(records, task="speed", bootstrap_reps=0, seed=9)
+    output_dir = tmp_path / "predictions"
+    exported = crossfit_physical_readout(
+        records,
+        task="speed",
+        bootstrap_reps=0,
+        seed=9,
+        prediction_output_dir=output_dir,
+    )
+
+    assert exported == expected
+    files = sorted(output_dir.glob("*.npz"))
+    assert len(files) == len(records)
+    metrics_by_scene = {row["scene_id"]: row for row in exported["query_metrics"]}
+    records_by_scene = {record.scene_id: record for record in records}
+    for path in files:
+        with np.load(path, allow_pickle=False) as archive:
+            scene_id = str(archive["scene_id"].item())
+            record = records_by_scene[scene_id]
+            metric = metrics_by_scene[scene_id]
+            truth = archive["truth"]
+            matched = archive["matched"]
+            calibration = archive["calibration"]
+            assert archive["source_group"].item() == record.source_group
+            assert int(archive["fold"].item()) == metric["fold"]
+            assert truth.shape == matched.shape == calibration.shape == record.physical.shape
+            np.testing.assert_array_equal(truth, record.physical)
+            np.testing.assert_allclose(
+                np.sqrt(np.mean(np.square(matched - truth), axis=(0, 1, 2))),
+                metric["predicted_latent_matched"]["rmse_by_dimension"],
+                rtol=1e-12,
+                atol=1e-12,
+            )
+            np.testing.assert_allclose(
+                np.sqrt(np.mean(np.square(calibration - truth), axis=(0, 1, 2))),
+                metric["oracle_true_latent"]["rmse_by_dimension"],
+                rtol=1e-12,
+                atol=1e-12,
+            )
+            assert not {"mismatched", "predicted_latent_mismatched"}.intersection(archive.files)
+
+
 def test_upgrade_old_query_metrics_adds_semantic_pair_fields_without_refit() -> None:
     # The varying normalization denominators make sure normalized MSE is
     # summed before the square root (and is not a mean of query differences).

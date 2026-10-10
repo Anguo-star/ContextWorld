@@ -1,0 +1,48 @@
+{
+  "schema": "contextworld.true_target_geometry_protocol.v1",
+  "purpose": "Check whether distances between encoded real future trajectories preserve ordering of errors in selected task geometry.",
+  "tasks": [
+    "action_strength",
+    "motion_damping",
+    "robot_arm_mass"
+  ],
+  "families": [
+    "lewm",
+    "pldm"
+  ],
+  "regimes": [
+    "original",
+    "scratch",
+    "joint",
+    "frozen"
+  ],
+  "cache_run_seed": 3072,
+  "scenes_per_task": 256,
+  "physical_steps": [
+    5,
+    10,
+    15,
+    20,
+    25
+  ],
+  "reference": "Each real condition-candidate future trajectory in turn.",
+  "alternatives": "All other real condition-candidate trajectories from the same source scene; exclude identity.",
+  "supplementary_alternatives": "Other actions under the same hidden condition.",
+  "distance": "Mean over five times of squared Euclidean error; selected physical coordinates or full native target latent. No goal costs.",
+  "ordering_tolerance": "1e-8 + 1e-7 * max(abs(distance_a), abs(distance_b)), separately in each distance space; numerical tolerance only.",
+  "primary_reversal_rate": "reversed comparisons / comparisons with neither physical nor latent numerical ties; aggregate within scene, then average scenes.",
+  "tie_reporting": "Report physical tie counts and latent tie fraction among physical-strict comparisons; do not interpret all-tie as perfect ordering.",
+  "large_error_contrast": "Physical RMS errors differ by at least factor two and larger RMS is >=1 task unit (px-equivalent or mm); diagnostic effect-size subset, not accuracy acceptance.",
+  "uncertainty": "4000 source-cluster bootstrap samples, seed 20261008; mirrored Damping scenes together.",
+  "physical_scope": {
+    "pusht": "Agent xy, block xy, 40*sin(theta), 40*cos(theta), pixels-equivalent. Selected pose geometry, not full state.",
+    "mass": "Fingertip xy in millimetres, not all joint states."
+  },
+  "dino_excluded": "Cached 4x4 pooled patch features are not the native 16x16 patch space used by the benchmark score.",
+  "limits": [
+    "This does not use model predictions or test history utilization.",
+    "True-target ordering consistency is not sufficient to validate off-manifold predicted latent physical error.",
+    "Rendering/visibility and selected physical coordinates can cause discrepancies; do not attribute all reversals to the encoder.",
+    "No fixed acceptance threshold or new benchmark score is introduced."
+  ]
+}

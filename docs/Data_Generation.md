@@ -236,6 +236,66 @@ python scripts/summarize_cross_task_decisions.py \
 
 </details>
 
+<a id="true-target-geometry"></a>
+
+## 真实轨迹的表示距离校准
+
+这项诊断检查：两条真实未来在所选物理几何上偏得更远时，它们的 latent 距离是否也更大。它复用 Development 真实轨迹和已缓存的目标编码，不运行预测器、不拟合坐标读出器，也不重新生成数据。
+
+每个来源场景包含两种隐藏条件、各 11 条候选动作，以及第 5、10、15、20、25 步的真实图像与状态。依次以一条真实未来为参照，其他 21 条作为具有已知误差的替代输出。排除参照自身，避免完美匹配让排序表现虚高；这里不评价候选动作优劣，也不将替代输出当作模型实际预测。
+
+对每条替代轨迹，分别计算五个时刻等权平均的物理平方距离和原生 latent 平方距离。比较两种替代输出时，如果物理距离与 latent 距离的大小关系相反，记作一次排序反转。分母只包含两种距离都能明确排序的比较；物理平局数量和物理可排序时的 latent 平局率单独报告。数值平局容差为 `1e-8 + 1e-7 × max(|距离一|, |距离二|)`，只是浮点容差，不是能力门槛。
+
+每场景先统计反序比例，再对场景等权平均。95% 区间按来源组 bootstrap 4,000 次，随机种子 20261008；Damping 的前向与镜像样本始终一起抽取。条件、候选和替代输出之间的相关比较不当作独立样本。另报告物理 RMS 误差至少相差两倍、且较大误差至少为一个任务单位的子集，检查反序是否仅来自细微误差差别。没有可排序比较的场景保留并报告覆盖，不计为零反序。
+
+| 任务 | 全几何距离使用的坐标 | 任务相关几何补充 | 单位 |
+|---|---|---|---|
+| 推手移动幅度 | 推手 xy、方块 xy、40 sinθ、40 cosθ | 推手 xy | px 等效 |
+| 运动阻尼 | 推手 xy、方块 xy、40 sinθ、40 cosθ | 方块 xy、40 sinθ、40 cosθ | px 等效 |
+| 机械臂质量 | 末端 xy | 与全几何相同 | mm |
+
+这些坐标是指定的任务几何量，不是完整物理状态。全几何结果保持不变，任务相关几何和同条件不同动作结果作为补充。不能将反序全部归因于编码器：图像可能还包含其他物理坐标没有度量的变化，也可能无法呈现离屏物体的位置。
+
+像素检查进一步比较同一时刻的完整图像，以及包含全部五个时刻的图像序列。先按哈希分组，再逐字节确认一致，记录同图但几何不同的反例及最大距离。完全相同的目标图像无法通过确定性图像编码区分；未找到精确反例也不证明充分可观测。所有场景均保留，不根据模型成绩删样。
+
+本次覆盖 LeWM、PLDM 的 T0–T3 各一个已登记检查点，每项任务各 256 个场景。DINO-WM 现有辅助特征缓存经过 patch 池化，不能替代主分所用的完整表示，故不纳入这项原生距离诊断。低反序率只说明这些真实目标之间的排序较一致，不能证明模型输出的预测 latent 已具有可靠物理精度。结果见[统一报告](ContextWorld_ICL_Benchmark.md#true-target-geometry-calibration)。
+
+复算需要已生成的真实轨迹面板及原生目标特征缓存；公开结果文件提供逐场景统计，尚不能替代这些原始输入。
+
+```bash
+python scripts/calibrate_native_geometry.py \
+  --cache-root /path/to/validation/results \
+  --panels-root /path/to/multistep/panels \
+  --output /path/to/output/geometry.json
+
+python scripts/check_trajectory_pixel_aliases.py \
+  --panel-root /path/to/multistep/panels \
+  --output /path/to/output/pixel_aliases.json
+
+python scripts/render_target_geometry_calibration.py --check
+```
+
+<a id="visible-target-geometry"></a>
+
+### 画布内对照
+
+画布内版本复用 Strength 的 256 个来源场景、243 个来源组，保留历史图像、历史动作、隐藏条件和评分时刻。未来动作按已有生成规则缩放，使推手与方块轮廓在两种条件的全部 25 步内均位于 `[2, 510]`；实际候选去重后每场景为 8–11 条，不补齐重复候选。它改变了未来动作分布，所以新旧差值不能单独归因于可见性。
+
+对照使用 LeWM 的 T0 与 T3 各一份检查点，两套数据内逐一匹配相同 SHA256。每条真实轨迹依次作为参照，其他轨迹之间仍按上述规则计算反序率；推手 xy 为任务相关几何，全六维几何作为补充。两套数据共享来源组 bootstrap 抽样，输出配对差值区间。另保留动作完全不变、每场景至少三个唯一候选的子集，仅作一致性检查，不替代完整数据结果。
+
+候选数量以实际轨迹数组为准，同时核对目标特征的候选轴。所有场景均保留，不按清单计数补齐或截断样本；数组身份及清单差异在结果文件中单独记录。公开 [JSON](research/data/visible_target_geometry_v1.json) 与[逐场景统计](research/data/visible_target_geometry_v1_queries.jsonl.gz) 保留数据和检查点身份。[计算定义](research/data/visible_target_geometry_protocol_v1.json) 固定比较规则；原始轨迹与缓存仍需自行提供。
+
+```bash
+python scripts/calibrate_visible_geometry.py \
+  --old-cache-root /path/to/original/results/action_strength/lewm \
+  --visible-cache-root /path/to/visible/results/action_strength/lewm \
+  --old-panels-root /path/to/original/panels/action_strength \
+  --visible-panels-root /path/to/visible/panels/action_strength \
+  --output-dir /path/to/output
+
+python scripts/render_visible_target_geometry.py --check
+```
+
 ## 历史对照与物理校准
 
 这两项验证直接复用上述多步面板与冻结检查点，不生成新轨迹、不访问 Test，也不修改已有主分。
@@ -481,3 +541,168 @@ python scripts/build_speed_cem_panel.py \
 评分使用同脚本的 `evaluate` 子命令，传入生成目录 `--panel`、查询 ID、已有检查点及其 SHA-256；汇总入口为 `scripts/summarize_speed_planning_probe.py --root <结果目录> --output <JSON>`。目录中 `panel/` 保存场景，`T0/`、`T1/` 保存模型输出。评分抽查缓存预测与原生五个动作块的 rollout 的一致性，并检查权重未变；汇总再次检查原始命令与裁剪输入的真实未来完全相同。物理 regret 先在场景内平均速度条件，再跨场景平均；裁剪差值的区间以场景为配对重采样单位。汇总还比较“按速度分别选最优动作”与“所有速度共用一个最优动作”，检查真实未来有差异时，决策是否也需要区分速度。这里的代价取固定时刻终点，不能直接作为执行途中首次进入目标区的闭环成功率。定义、逐场景统计与文件身份见[诊断结果](research/data/speed_planning_horizon_probe_v1.json)。
 
 </details>
+
+
+<a id="prediction-accuracy-validation"></a>
+
+## 多容差预测准确率验证
+
+该验证使用已生成的 Development 轨迹和冻结检查点缓存，检查百分制准确率是否正确反映几何误差。它不生成新训练数据，也不更新世界模型。评分定义及结论见[基准报告 §4.6、§5.7](ContextWorld_ICL_Benchmark.md#main-score-interpretation-and-auxiliary-physical-readout)。
+
+数据对照覆盖三个 PushT 画布内任务各 256 个场景，以及原 Speed、Door 多步面板各 300 个场景。两种数据分布不混合；真值、固定位置偏差、位移幅值错误、时间延迟、共同未来均值和错误规律未来均使用同一套容差。共同未来均值使用全部条件的真实未来，仅供检验“不区分规律也能得多少分”，不是可部署模型。
+
+模型对照复用 12 组检查点的缓存预测。原来源组折分、读出参数和拟合样本保持固定；从缓存重建辅助读出器，只是为了导出逐场景坐标。所有校准及预测的逐维 RMSE 与原记录一致。阻尼的 256 场景按 128 个来源组重采样，不能将镜像场景当成独立样本。
+
+**复现。** 将下例变量设置为对应数据和输出目录。清单中的缓存路径应按本地位置调整，保留相应的检查点、面板和来源身份。`RUN` 仅存本次验证产物。
+
+```bash
+# 在仓库根目录执行；复用既有缓存，不运行世界模型。
+mkdir -p "$RUN"
+cp docs/research/data/prediction_accuracy_protocol_v1.json "$RUN/protocol.json"
+python scripts/export_prediction_accuracy_readouts.py \
+  --manifest "$READOUT_MANIFEST" --output-root "$RUN/readout" --workers 4
+
+python scripts/validate_prediction_accuracy_controls.py \
+  --pusht-panels "$VISIBLE_PUSHT_PANELS" \
+  --tworoom-panels "$MULTISTEP_PANELS" \
+  --strength-query-states docs/research/data/prediction_accuracy_strength_query_states_v1.json \
+  --output-dir "$RUN/controls"
+
+python scripts/summarize_prediction_accuracy.py \
+  --root "$RUN" --output "$RUN/prediction_accuracy_validation_v1"
+```
+
+批量入口接受包含 `settings` 和 `units` 的 [读出清单](research/data/prediction_accuracy_readout_manifest_v1.json)。每项列明任务、特征缓存、原校准结果及面板路径。Strength 的当前状态旁文件来自原 Development 的历史末帧；全部 256 个来源的历史图像与动作已逐项核对，未从未来状态反推当前状态。旁文件与指定面板绑定，不能移用于其他划分。
+
+[逐容差对照](research/data/prediction_accuracy_controls_v1.csv)、[固定容差子集敏感性](research/data/prediction_accuracy_threshold_sensitivity_v1.csv)和[逐场景模型分数](research/data/prediction_accuracy_validation_v1_queries.json.gz)支持复算。公开文件包含验证统计与来源身份；面板、权重和特征缓存尚无稳定公共下载地址，完整端到端复现仍需这些输入。该候选分尚未通过统一物理准确率的测量验证，不替换冻结结果。
+
+
+<a id="paired-scoring-controls"></a>
+
+## 配对评分函数的已知输出验证
+
+这项验证直接复用 Strength 画布内面板及两套 native latent 目标缓存，不重新合成数据或运行模型。每个来源场景固定候选与第 5 个物理步，将两条件目标构造成已知正确、忽略历史、错配和微小正确响应的输出，调用实际配对评分函数并独立核算。候选 0 的零动作单独用于检查不可定义情况；候选 1 用于分离目标上的控制。全部 256 个场景保留，不按模型分数筛选。
+
+```bash
+# 在仓库根目录执行；变量指向现有画布内面板、LeWM 缓存和独立输出目录。
+# 缓存目录包含 original/s3073 与 frozen/s3072 两套结果。
+python scripts/validate_paired_scoring_controls.py \
+  --panel-dir "$VISIBLE_PUSHT_PANELS" \
+  --results-root "$LEWM_NATIVE_CACHE" \
+  --candidate-index 1 --output-dir "$CONTROL_OUTPUT"
+python scripts/render_paired_scoring_controls.py --check
+```
+
+缓存保存的 float32 目标转换为 float64 进行受控构造与严格比较；不使用近似平局阈值。记录精确零分离与平局数量、不可定义状态，以及评分实现和缓存身份。控制实验不是训练模型评测，也未覆盖其他任务的独立评分逻辑。结果及限制见[指标研究](ICL_Metric_Study.md#paired-score-controls)；完整复跑需要对应缓存，当前没有稳定公共下载地址。
+
+
+<a id="same-output-metric-comparison"></a>
+
+## 同一输出的指标比较
+
+该比较复用画布内面板及 `models.json` 列出的八组缓存。读取原生 `[history, truth, candidate, time]` 距离和条件均值参照能量，在同一查询上计算严格未来选择率、完整误差和历史收益；不使用池化特征计算距离。相同目标的数值平局通过原生向量或相同未来图像确认，保留处理前后的记录。所有场景、候选和时刻均参与统计。
+
+```bash
+python scripts/compare_cached_icl_metrics.py \
+  --root "$VISIBLE_FUTURE_RUN" \
+  --output-dir "$COMPARISON_OUTPUT"
+python scripts/complete_metric_comparison.py \
+  --root "$VISIBLE_FUTURE_RUN" \
+  --comparison docs/research/data/same_output_metric_comparison_v1.json \
+  --queries docs/research/data/same_output_metric_comparison_v1_queries.csv.gz \
+  --output-dir "$COMPARISON_COMPLETION_OUTPUT"
+python scripts/render_same_output_metric_comparison.py --check
+```
+
+来源分组沿用面板清单。每模型的区间与 DINO-WM T1−T0 对照使用 1,000 次来源组重采样；差值对照在两方案间共享抽样。独立训练重复的不确定性不在此区间内。结果与测量边界见[指标研究](ICL_Metric_Study.md#real-output-metric-comparison)。脚本要求对应缓存，当前无稳定公共下载地址。
+
+补充程序从原生误差缓存读取条件响应，使用与完整误差相同的场景权重和分母，得到响应 NRE 与共同预测偏差。LeWM 使用完整特征独立复算；DINO-WM 使用原生评分时保存的误差项，不使用池化特征计算距离。原 v1 选择率、完整分与历史收益保留，补充分解保存为 v2；公开表由 v2 JSON 生成。生成的输出目录独立于源结果，区间按来源组重采样，逐场景能量可复核分解恒等式。
+
+
+<a id="nine-task-root-cause-inventory"></a>
+
+## 九任务结果统一索引
+
+索引将原协议成绩、现有多步完整误差、历史对照和缓存中的条件响应误差按任务、模型、训练方案对应。它不改变原评分，不运行模型，也不合并不同面板为一个新分数。逐场景响应能量与已有完整误差使用相同的条件、候选和时间权重；先对每个检查点计算能量比，再对训练重复等权平均。
+
+公开数据已包含复算所需的响应统计和原始汇总，常规校验无需模型权重或预测数组：
+
+```bash
+OPENBLAS_NUM_THREADS=1 python scripts/build_nine_task_inventory.py --check
+```
+
+如需从原生结果缓存重新导出响应统计，使用原多步面板运行目录：
+
+```bash
+OPENBLAS_NUM_THREADS=1 python scripts/build_nine_task_inventory.py \
+  --cache-root "$MULTISTEP_RUN"
+```
+
+该目录需包含 `models.json` 及其指向的逐场景结果和 `receipt.json`。导出时核对检查点、面板和结果摘要，并逐场景验证完整误差与已有公开记录一致；不读取池化特征。无 `--cache-root` 时从公开统计重建 JSON、CSV 和研究文档表格。Bootstrap 使用 1,000 次来源组抽样，跨训练重复共享抽样，不将条件、候选动作或镜像场景视为独立来源。结果、范围和缺项见[九任务根因分析入口](ICL_Metric_Study.md#root-cause-entry)。
+
+
+<a id="delay-first-step-mechanism"></a>
+
+## Delay 首端点机制对照
+
+本对照使用原 H7 Development 面板和已完成的原生历史对照，不更改模型训练。冻结编码器检查仅编码真实历史，逐场景比较完整表示和时间差分是否仍区分延迟，不拟合读出器。
+
+```bash
+python scripts/diagnose_delay_history_encoding.py \
+  --run-root "$MULTISTEP_RUN" --family dinowm --seed 3072 \
+  --device cuda:0 --output "$HISTORY_ENCODING_OUTPUT"
+python scripts/analyze_delay_first_step.py \
+  --export-root "$HISTORY_VALIDATION_RUN" \
+  --panel-root "$MULTISTEP_RUN/panels/action_delay" \
+  --history-encoding "$HISTORY_ENCODING_OUTPUT/history_encoding.json"
+```
+
+冻结编码器推理应使用原评测的依赖环境；不更换 Backbone 或特征池化方式。首端点统计读取原生误差能量，物理目标组可区分性另用已保存的目标特征验证。队列检查直接读取面板中的真实待执行动作。脚本保存的充分统计可独立复算，无需检查点或 GPU：
+
+```bash
+OPENBLAS_NUM_THREADS=1 python scripts/analyze_delay_first_step.py --check
+```
+
+对 $K=11$ 个等权历史条件，设 $R$ 为中心化响应误差比，$G=(E_- - E_+)/B$ 为其他历史平均误差与匹配误差之差，则沿真实响应方向的增益 $g=(K-1)G/(2K)$；预测条件响应的相对能量为 $R-1+2g$，响应幅度比为其平方根。这里 $B$ 仅来自第 5 个物理步。每个检查点先按所有场景的能量和计算，再对三个训练重复平均；不能把不同检查点的能量混在一起。该恒等式还用随机已知预测与直接向量计算核对。解释范围及结果见[Delay 机制分析](ICL_Metric_Study.md#delay-first-step-mechanism)。
+
+
+<a id="delay-train-development"></a>
+
+## Delay 训练集与 Development 对照
+
+本对照从既有 Lance 数据提取原生 H7 窗口，不生成新轨迹，不使用 Test，不重新训练。两个 split 各 128 个来源查询，按左右房间与上下动作方向分成四层，每层 32 个；查询按来源身份的 SHA-256 顺序选择，和预测结果无关。
+
+训练集入口必须与检查点登记的 `action_delay / training / full` 成员一致。脚本读取每个同来源 episode 的 11 个延迟条件，使用第 0、5、10、15、20、25、30 行作为历史，第 35 行作为目标，第 0–34 行的动作作为模型输入。当前帧、动作与来源关系逐组核对；物理状态和延迟标签仅供检查，不输入预测器。
+
+还需复算训练加载器的内部切分。检查点绑定的运行时先对六个物理延迟组等权采样，再按 50/50 混入原始数据，最终用各训练种子的 90/10 随机索引切分。所选训练查询的每个延迟条件，在三个种子的训练子集中都必须至少有一个对应起点窗口。它证明训练索引资格，不证明每个窗口实际进入过多少个优化批次。加载器实际允许每个 episode 的 11 个滑动起点；本对照只选保持当前帧相同的起点 0。
+
+```bash
+python scripts/prepare_delay_train_development.py \
+  --bundle-root "$CONTEXTWORLD_BENCHMARK_ROOT" \
+  --original-h5 "$TWOROOM_ORIGINAL_H5" \
+  --models "$MODELS_JSON" --output "$DELAY_SPLIT_PANEL" \
+  --scenes-per-split 128
+python scripts/evaluate_delay_train_development.py \
+  --models "$MODELS_JSON" --id action_delay/dinowm/scratch/s3072 \
+  --panel "$DELAY_SPLIT_PANEL" \
+  --output "$DELAY_SPLIT_PANEL/results/dinowm/3072" --device cuda:0
+```
+
+`MODELS_JSON` 使用 [九任务冻结推理清单](#nine-task-root-cause-inventory)的模型条目；需提供三模型、三个训练种子的全部九项 Delay T1 条目。依次替换上述模型 ID 与输出目录，保持每个检查点独立进程和原评测依赖环境。评测核对原生 Adapter 单步预测一致性及前后参数摘要，不拟合读出器，不执行优化器更新。
+
+汇总时，每个查询的 11 个条件等权，先累加能量再归一化，最后等权平均三个检查点；六物理组选择率单独保留。区间按来源查询在四层中重采样，不把同查询的延迟条件当作独立样本，也不把不同编码器的能量混在一起。零响应、完美预测、微弱正确响应和共同偏差反例已与直接向量计算核对。
+
+```bash
+OPENBLAS_NUM_THREADS=1 python scripts/analyze_delay_train_development.py \
+  --run-root "$DELAY_SPLIT_PANEL"
+OPENBLAS_NUM_THREADS=1 python scripts/analyze_delay_train_development.py --check
+```
+
+第一条命令汇总已有九份推理结果，第二条仅从公开充分统计量复算结果与文档表格，不需 GPU。来源记录同时保留检查点的历史身份与当前镜像身份：成员名单和适配器字节匹配，整体发布哈希不同，因此不能据此宣称所有数据字节与历史训练时完全一致。结果与解释见[训练域与迁移对照](ICL_Metric_Study.md#delay-first-step-mechanism)。
+
+
+<a id="training-curve-reproduction"></a>
+
+### 训练过程诊断的样本与数值复现
+
+训练样本在推理前抽取，每对的当前图像与查询动作匹配。训练集成员资格按原生划分规则重建，未按逐批日志确认曝光次数。第 10 epoch 的诊断复测与归档主分最多相差 512 次判断中的 2 次，NRE 差异小于 0.002；差异原因尚未隔离。九任务主表引用归档成绩，本节使用同一次诊断评测所得的第 5、10 epoch 结果。
