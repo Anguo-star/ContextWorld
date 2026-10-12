@@ -1023,3 +1023,31 @@ python scripts/summarize_pldm_fixed_representation_intervention.py --check --ren
 ```
 
 同样对 `contact_friction` 执行第一条命令。每个任务输出目录必须不存在，缓存来自原生查询诊断的 `--save-latents`。公开归档包含锁定协议和压缩逐查询结果，第二条命令无需 GPU 或原始权重即可重算表格；重新执行预测器更新仍需相应权重和原生面板，不代表这些资产已具备公共下载。
+
+
+<a id="fixed-response-mapping"></a>
+
+## 固定视觉表示的条件响应回归
+
+本实验把“历史规律可分类”推进到“历史与动作能否预测真实条件响应”。两任务仍为 PLDM T3 的摩擦与阻尼，采用[原生查询诊断](#native-policy-contrast)的缓存、512 对 Training 和全部 256 对 Development；不更新世界模型或读取 Test。结果见[条件响应拟合与迁移](ICL_Metric_Study.md#fixed-response-mapping)。
+
+**单轨迹输入与监督。** 输入为可逆历史坐标 `[z0, z1−z0, z2−z1]` 和 15×2 原始动作；目标是同一 T3 编码的真实未来减去配对未来均值。真实均值和条件标签仅用于构造监督与评分，均不输入回归器。预测时一行只读取自身历史与动作，配对预测只在评分时做差。该目标特意移除共同未来，不产生可直接用于规划的完整预测。
+
+**拟合与选择。** 特征均值、标准差均只在当前 Training 拟合部分计算，标准差下限为 `1e-6`。线性核为内积除以输入维度；RBF 核为 `exp(−||x−x′||²/(2 m d))`，其中 d 是拟合部分标准化输入的正两两平方距离中位数。正则网格为 `1e-6、1e-4、1e-2、1、100`，RBF 带宽乘数 m 为 `0.25、1、4`。按独立来源做四折 GroupKFold，完整配对与阻尼镜像查询不拆开；参数按各折配对响应误差能量之和除以真实响应能量之和选择，平局取网格中先出现者。选择后在全 Training 重拟合。直接用 float64 特征分解求解核岭回归，不使用 Development 早停或参数选择。
+
+近插值对照固定 RBF 的 m=1、正则 `1e-8`，只检查有限数据拟合能力，不作泛化最优模型。当前画面与动作对照复用主 RBF 的已选参数，但重新拟合自身的 Training 标准化与距离尺度。两条件的当前输入相同、中心化目标相反，其预测差应为零。交换历史的响应分数通过交换同对预测得到；它是符号反转检查，不另算一条独立机制证据。
+
+**来源与统计。** 阻尼 catalog 编号在各划分内重新编号，所以来源身份为“划分＋相邻 catalog 镜像组”；原编号同时保留。生成器使用不同 split 的 catalog seed，缓存中的完整历史与动作还进行跨划分逐行相同输入检查，未发现重复；摩擦沿用原全局 catalog 来源。NRE 先累计配对响应平方误差与目标能量再相除；来源组 bootstrap 2,000 次、种子 `20261012` 给出区间。归档另保留预测对中心化监督目标的误差，但它不是完整未来 E/B，不用于原生预测器的完整误差比较。
+
+```bash
+python scripts/diagnose_fixed_response_mapping.py \
+  --task motion_damping \
+  --protocol docs/research/data/fixed_response_mapping_v1/sources/protocol.json \
+  --input-protocol docs/research/data/pldm_fixed_representation_intervention_v1/sources/protocol.json \
+  --panels /path/to/native_panels --cache-root /path/to/native_policy_diagnostics \
+  --output /path/to/new_results/motion_damping
+
+python scripts/summarize_fixed_response_mapping.py --check --render-doc
+```
+
+摩擦使用 `--task contact_friction`。每任务输出目录必须不存在；运行协议绑定代码与原始缓存文件。公开归档包含逐行目标、预测和来源分组，第二条命令可在 CPU 上独立重算表格和区间。重新拟合需相应原生缓存；近乎插值不意味着这些固定表示能泛化到任意新场景。

@@ -1,0 +1,32 @@
+{
+  "schema": "contextworld.fixed_response_mapping.v1",
+  "design": {
+    "alpha_grid": [
+      1e-06,
+      0.0001,
+      0.01,
+      1.0,
+      100.0
+    ],
+    "bandwidth_multipliers": [
+      0.25,
+      1.0,
+      4.0
+    ],
+    "folds": 4,
+    "scaler_floor": 1e-06,
+    "interpolation_alpha": 1e-08,
+    "interpolation_bandwidth_multiplier": 1.0,
+    "kernels": [
+      "linear",
+      "rbf"
+    ],
+    "target": "pair_centered_future_latent",
+    "history": "z0,dz1,dz2",
+    "actions": "raw_15x2",
+    "selection": "pooled_training_fold_pair_difference_squared_error_over_pair_difference_energy",
+    "source_identity": "motion_damping_split_scoped_original_group; contact_friction_original_group; exact_cross_split_history_actions_row_rejection"
+  },
+  "runner_sha256": "4a2e736eada969783960e7f948ad899a9cbf5501bdbc877bbd2edeba4f62aa14",
+  "input_protocol_sha256": "174adbf763257b892b756e32ca20d9f82bb5e171e402b82aa35c263b740fe4e1"
+}

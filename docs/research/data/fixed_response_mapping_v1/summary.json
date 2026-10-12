@@ -1,0 +1,356 @@
+{
+  "schema": "contextworld.fixed_response_mapping_summary.v1",
+  "protocol_sha256": "07ce7e5f429c14f14fcc9cfa048414be1ef51de47de6ee67418d042db47b8bf5",
+  "design": {
+    "alpha_grid": [
+      1e-06,
+      0.0001,
+      0.01,
+      1.0,
+      100.0
+    ],
+    "bandwidth_multipliers": [
+      0.25,
+      1.0,
+      4.0
+    ],
+    "folds": 4,
+    "scaler_floor": 1e-06,
+    "interpolation_alpha": 1e-08,
+    "interpolation_bandwidth_multiplier": 1.0,
+    "kernels": [
+      "linear",
+      "rbf"
+    ],
+    "target": "pair_centered_future_latent",
+    "history": "z0,dz1,dz2",
+    "actions": "raw_15x2",
+    "selection": "pooled_training_fold_pair_difference_squared_error_over_pair_difference_energy",
+    "source_identity": "motion_damping_split_scoped_original_group; contact_friction_original_group; exact_cross_split_history_actions_row_rejection"
+  },
+  "identities": {
+    "contact_friction": {
+      "result_sha256": "318cb83f7e42f8ea57b3b1001377866259b03d66a48fa759474e24b8cbd72be6",
+      "array_sha256": "54f0df6ac9030153ff179e48aa2ff294c01454d330fedb513f591811ec0c769a",
+      "selected": {
+        "linear_cv": {
+          "alpha": 0.01,
+          "centered_energy": 2543.335937322322,
+          "multiplier": 1.0,
+          "nre": 0.8831492600566587,
+          "squared_error": 2246.145251121717
+        },
+        "rbf_cv": {
+          "alpha": 0.01,
+          "centered_energy": 2543.335937322322,
+          "multiplier": 0.25,
+          "nre": 0.7607973833322327,
+          "squared_error": 1934.963326049654
+        }
+      }
+    },
+    "motion_damping": {
+      "result_sha256": "dd95bb4103c5e422762a32762203980862b10e6d95186f3613f89d9a3536af64",
+      "array_sha256": "0d7c4b0531e07c3d3850f3ba99f0ecc3b66b9723fc1f0c719e7d319f9c47a6a5",
+      "selected": {
+        "linear_cv": {
+          "alpha": 1.0,
+          "centered_energy": 1363.7065402047774,
+          "multiplier": 1.0,
+          "nre": 0.9928177114887193,
+          "squared_error": 1353.9120063883063
+        },
+        "rbf_cv": {
+          "alpha": 1.0,
+          "centered_energy": 1363.7065402047774,
+          "multiplier": 0.25,
+          "nre": 0.9682792390148547,
+          "squared_error": 1320.4487309890621
+        }
+      }
+    }
+  },
+  "rows": [
+    {
+      "task": "contact_friction",
+      "mode": "native",
+      "split": "training",
+      "queries": 512,
+      "source_groups": 512,
+      "NRE": 0.5871894851835536,
+      "NRE_ci95": [
+        0.5650059333513047,
+        0.60816213911528
+      ],
+      "swapped_NRE": 1.9964525668745137,
+      "centered_target_error_ratio": null
+    },
+    {
+      "task": "contact_friction",
+      "mode": "linear_cv",
+      "split": "training",
+      "queries": 512,
+      "source_groups": 512,
+      "NRE": 0.7315358485986597,
+      "NRE_ci95": [
+        0.7200622788331769,
+        0.7429180849060959
+      ],
+      "swapped_NRE": 1.440814548232752,
+      "centered_target_error_ratio": 0.7745093942934609
+    },
+    {
+      "task": "contact_friction",
+      "mode": "rbf_cv",
+      "split": "training",
+      "queries": 512,
+      "source_groups": 512,
+      "NRE": 0.12315665533507844,
+      "NRE_ci95": [
+        0.11541326951915457,
+        0.13104351845917728
+      ],
+      "swapped_NRE": 2.9268382596369285,
+      "centered_target_error_ratio": 0.12398569228279646
+    },
+    {
+      "task": "contact_friction",
+      "mode": "rbf_interpolation",
+      "split": "training",
+      "queries": 512,
+      "source_groups": 512,
+      "NRE": 7.944679869308534e-11,
+      "NRE_ci95": [
+        7.093321802986997e-11,
+        8.827742214367744e-11
+      ],
+      "swapped_NRE": 3.999977815060369,
+      "centered_target_error_ratio": 7.989497614448e-11
+    },
+    {
+      "task": "contact_friction",
+      "mode": "current_control",
+      "split": "training",
+      "queries": 512,
+      "source_groups": 512,
+      "NRE": 1.0,
+      "NRE_ci95": [
+        1.0,
+        1.0
+      ],
+      "swapped_NRE": 1.0,
+      "centered_target_error_ratio": 1.0
+    },
+    {
+      "task": "contact_friction",
+      "mode": "native",
+      "split": "development",
+      "queries": 256,
+      "source_groups": 256,
+      "NRE": 0.6038420246276802,
+      "NRE_ci95": [
+        0.5776421673191201,
+        0.6320967316221062
+      ],
+      "swapped_NRE": 1.959375610780465,
+      "centered_target_error_ratio": null
+    },
+    {
+      "task": "contact_friction",
+      "mode": "linear_cv",
+      "split": "development",
+      "queries": 256,
+      "source_groups": 256,
+      "NRE": 0.8760166434847217,
+      "NRE_ci95": [
+        0.8594848473434479,
+        0.8920461823388397
+      ],
+      "swapped_NRE": 1.2842126709137553,
+      "centered_target_error_ratio": 1.1855391783545512
+    },
+    {
+      "task": "contact_friction",
+      "mode": "rbf_cv",
+      "split": "development",
+      "queries": 256,
+      "source_groups": 256,
+      "NRE": 0.7546304841209259,
+      "NRE_ci95": [
+        0.7220834428623615,
+        0.7881707000770144
+      ],
+      "swapped_NRE": 1.7448845674903943,
+      "centered_target_error_ratio": 1.3098184139180078
+    },
+    {
+      "task": "contact_friction",
+      "mode": "rbf_interpolation",
+      "split": "development",
+      "queries": 256,
+      "source_groups": 256,
+      "NRE": 0.9381640112120722,
+      "NRE_ci95": [
+        0.8886178427106074,
+        0.9913745370445743
+      ],
+      "swapped_NRE": 2.295255613183712,
+      "centered_target_error_ratio": 3.548664315590837
+    },
+    {
+      "task": "contact_friction",
+      "mode": "current_control",
+      "split": "development",
+      "queries": 256,
+      "source_groups": 256,
+      "NRE": 1.0,
+      "NRE_ci95": [
+        1.0,
+        1.0
+      ],
+      "swapped_NRE": 1.0,
+      "centered_target_error_ratio": 1.0000000000000002
+    },
+    {
+      "task": "motion_damping",
+      "mode": "native",
+      "split": "training",
+      "queries": 512,
+      "source_groups": 256,
+      "NRE": 0.8672062010913809,
+      "NRE_ci95": [
+        0.842113827055633,
+        0.8919420705139277
+      ],
+      "swapped_NRE": 1.437470177446989,
+      "centered_target_error_ratio": null
+    },
+    {
+      "task": "motion_damping",
+      "mode": "linear_cv",
+      "split": "training",
+      "queries": 512,
+      "source_groups": 256,
+      "NRE": 0.8360883616287084,
+      "NRE_ci95": [
+        0.8275200964729329,
+        0.844332041628539
+      ],
+      "swapped_NRE": 1.2220656549845885,
+      "centered_target_error_ratio": 0.8581209006730858
+    },
+    {
+      "task": "motion_damping",
+      "mode": "rbf_cv",
+      "split": "training",
+      "queries": 512,
+      "source_groups": 256,
+      "NRE": 0.5026737553583439,
+      "NRE_ci95": [
+        0.48912920236361757,
+        0.5172136924429228
+      ],
+      "swapped_NRE": 1.6997272717021856,
+      "centered_target_error_ratio": 0.5089944216372997
+    },
+    {
+      "task": "motion_damping",
+      "mode": "rbf_interpolation",
+      "split": "training",
+      "queries": 512,
+      "source_groups": 256,
+      "NRE": 1.5132080921614118e-13,
+      "NRE_ci95": [
+        1.1945632652940278e-13,
+        1.9143889897703465e-13
+      ],
+      "swapped_NRE": 3.9999989609667734,
+      "centered_target_error_ratio": 1.6647090591485318e-13
+    },
+    {
+      "task": "motion_damping",
+      "mode": "current_control",
+      "split": "training",
+      "queries": 512,
+      "source_groups": 256,
+      "NRE": 1.0,
+      "NRE_ci95": [
+        1.0,
+        1.0
+      ],
+      "swapped_NRE": 1.0,
+      "centered_target_error_ratio": 1.0
+    },
+    {
+      "task": "motion_damping",
+      "mode": "native",
+      "split": "development",
+      "queries": 256,
+      "source_groups": 128,
+      "NRE": 0.8821042205052392,
+      "NRE_ci95": [
+        0.8496599536032627,
+        0.9169087004294437
+      ],
+      "swapped_NRE": 1.4218383819695652,
+      "centered_target_error_ratio": null
+    },
+    {
+      "task": "motion_damping",
+      "mode": "linear_cv",
+      "split": "development",
+      "queries": 256,
+      "source_groups": 128,
+      "NRE": 1.0007305204107264,
+      "NRE_ci95": [
+        0.9946612844627396,
+        1.0066350891832436
+      ],
+      "swapped_NRE": 1.0513939262763359,
+      "centered_target_error_ratio": 1.0506806901064574
+    },
+    {
+      "task": "motion_damping",
+      "mode": "rbf_cv",
+      "split": "development",
+      "queries": 256,
+      "source_groups": 128,
+      "NRE": 0.9753468820061745,
+      "NRE_ci95": [
+        0.9664629695469681,
+        0.9835972914035999
+      ],
+      "swapped_NRE": 1.0488027425361948,
+      "centered_target_error_ratio": 0.992287852060188
+    },
+    {
+      "task": "motion_damping",
+      "mode": "rbf_interpolation",
+      "split": "development",
+      "queries": 256,
+      "source_groups": 128,
+      "NRE": 1.220869406675054,
+      "NRE_ci95": [
+        1.1756657673323005,
+        1.267323468062047
+      ],
+      "swapped_NRE": 1.4858999063642608,
+      "centered_target_error_ratio": 2.031566603976093
+    },
+    {
+      "task": "motion_damping",
+      "mode": "current_control",
+      "split": "development",
+      "queries": 256,
+      "source_groups": 128,
+      "NRE": 1.0,
+      "NRE_ci95": [
+        1.0,
+        1.0
+      ],
+      "swapped_NRE": 1.0,
+      "centered_target_error_ratio": 1.0
+    }
+  ],
+  "scope": "Training-supervised centered future targets; single-trajectory history/actions at inference; fixed PLDM T3 representation; not complete future accuracy."
+}
