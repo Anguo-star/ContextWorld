@@ -661,6 +661,36 @@ Friction、Cube、Strength 的 T3 目标条件差异占比上升、响应 NRE �
 
 [结果 JSON](research/data/native_policy_contrast_v1/summary.json)、[CSV](research/data/native_policy_contrast_v1/summary.csv)、[训练对照身份](research/data/native_policy_contrast_v1/matched_training_identity.json)与逐查询充分统计量提供复算依据；[复现方法](Data_Generation.md#native-policy-contrast)说明来源分组、历史交换和读出设置。这是已有同初始化训练对照的补充诊断，不改变正式任务成绩。
 
+<a id="native-epoch-checkpoints"></a>
+
+#### 完整训练后半程：继续学习，还是已经退化
+
+**不同任务与训练方案的变化不同，不能统一解释为过拟合或训练轮数不足。** PLDM 的摩擦联合训练在训练查询上仍缺少条件响应；摩擦冻结训练、阻尼联合训练和阻尼冻结训练的响应则在后半程继续改善。阻尼冻结训练的残差仍然较大。
+
+沿用上节的四次完整训练，仅补测现存第 5 epoch 检查点，并复用第 10 epoch 逐查询结果；没有追加训练或拟合读出器。每项固定 512 对训练查询和全部 256 对 Development 查询，预测当前状态后第 5 个物理步。两条件的查询窗口均有索引进入原训练器的训练子集；这证明成员资格，不代表掌握了逐批曝光次数。摩擦的统计来源数为 512／256，阻尼为 256／128，镜像查询同组。
+
+**箭头表示第 5 → 10 epoch。** T2 为加载原环境权重后联合更新，T3 为加载相同权重后冻结 Encoder。NRE 衡量条件响应，0 为准确、1 为零响应参照；E/B 衡量完整预测，1 为条件均值参照；两者越低越好。每个检查点使用自己的目标表示，因此该表反映原生任务表现的变化，不是共同物理坐标系中的误差曲线。
+
+<!-- BEGIN NATIVE_EPOCH_CHECKPOINTS -->
+| 任务 / 训练方案 | 训练子集 NRE ↓ | Dev NRE ↓ | 训练子集 E/B ↓ | Dev E/B ↓ | Dev 选择率（%）↑ |
+|---|---:|---:|---:|---:|---:|
+| 接触摩擦 / T2 联合更新 | 1.009 → 1.011 | 0.972 → 1.004 | 8.853 → 10.500 | 8.412 → 4.163 | 50.78 → 50.20 |
+| 接触摩擦 / T3 冻结 Encoder | 0.674 → 0.587 | 0.692 → 0.604 | 3.389 → 2.837 | 3.704 → 3.275 | 64.84 → 74.02 |
+| 运动阻尼 / T2 联合更新 | 0.236 → 0.197 | 0.261 → 0.221 | 1.606 → 1.314 | 2.038 → 2.058 | 77.34 → 77.93 |
+| 运动阻尼 / T3 冻结 Encoder | 0.940 → 0.867 | 0.959 → 0.882 | 7.395 → 6.538 | 9.187 → 8.746 | 53.71 → 56.05 |
+<!-- END NATIVE_EPOCH_CHECKPOINTS -->
+
+- **摩擦 T2：训练查询上也缺少响应。** 训练与 Development 的 NRE 均接近 1，不能归结为“训练已学好、只在未见数据失败”。Development 完整 E/B 虽下降，条件响应没有同步改善；完整误差改善可以主要来自两条件共有的预测部分。
+- **摩擦 T3：拟合与迁移同步改善。** 两个划分上的响应误差与完整误差均下降，现有保存点没有呈现后半程泛化退化。
+- **阻尼 T3：还在学习，但尚未学准。** 两个划分上的响应误差和完整误差均下降；训练 NRE 仍为 0.867，不符合仅在未见样本上失败的解释。该趋势支持检验训练进展，不能外推为延长训练一定能达到 T2 水平。
+- **阻尼 T2：响应改善不等于完整误差同步下降。** Development NRE 由 0.261 降至 0.221，完整 E/B 却基本持平（2.038 → 2.058）；两种误差需要分开看。
+
+[已有 Strength 第 5／10 epoch 对照](reference/ContextWorld_Expanded_Training_Results.md#训练过程诊断)提供另一种情况：PLDM 联合训练的训练响应误差保持较低，Development 响应误差却明显上升，与后期泛化退化相符。相比之下，当前摩擦 T2、阻尼 T3 连训练查询也未获得准确响应。它们不宜共享同一种“增加数据即可解决”的解释。[LeWM 固定完整目标表示的曲线](#fixed-target-training-results)还显示摩擦和质量在同一评分空间中持续改善，说明继续学习的现象并不限于 PLDM。
+
+**泛化依据是独立 Development。** 原训练器在构建重复采样的混合集合之后划分 90%／10%：512 对训练面板中，摩擦 457 对、阻尼 476 对的两侧窗口也各有索引进入内部 validation。因此不能把内部 validation loss 当作独立泛化证据。本表使用单独的 benchmark Development；没有读取 Test，也不改变已发布成绩。
+
+这些观测区分了后期泛化退化与训练查询上的响应不足，但仅有两个保存点，尚不能判定收敛，更不能单独在容量、目标与表示因素中指定根因。[逐查询数据与汇总](research/data/native_epoch_checkpoints_v1/summary.json)、[CSV](research/data/native_epoch_checkpoints_v1/summary.csv)和[复现方法](Data_Generation.md#native-epoch-checkpoints)提供成员资格与评分依据。
+
 <a id="pldm-fixed-representation-intervention"></a>
 
 #### 固定表示后，提高响应损失权重是否足够
@@ -691,7 +721,7 @@ Friction、Cube、Strength 的 T3 目标条件差异占比上升、响应 NRE �
 
 **更强的历史作用也可能伴随更差的完整预测。** 两项 G 均增加，但加权臂的共同误差 C/B 相比对照分别由 2.629 升至 2.709、7.814 升至 7.998，超过响应改善，最终完整 E/B 上升。这说明只强化条件差异不能代替完整未来的学习；本干预尚未得到兼顾两者的改进。
 
-此结果限定于固定 T3 表示、小规模合成查询与 256 次更新，不能推出数据有误、容量不足、原生训练的唯一根因或更长训练必然无效。下面直接监督条件响应，检验有限查询的拟合与新来源的迁移，不再用条件分类代替预测验证。
+此结果限定于固定 T3 表示、小规模合成查询与 256 次更新，不能推出数据有误、容量不足、原生训练的唯一根因或更长训练必然无效。下方辅助映射只说明其自身的拟合与迁移边界；原生训练进展以[完整训练检查点](#native-epoch-checkpoints)为依据。
 
 [逐查询结果与汇总](research/data/pldm_fixed_representation_intervention_v1/summary.json)、[学习过程 CSV](research/data/pldm_fixed_representation_intervention_v1/summary.csv)保存第 0、64、256 步；[方法与复算](Data_Generation.md#pldm-fixed-representation-intervention)说明损失、冻结范围和数据来源。本节不读取 Test，不修改 benchmark 成绩，也不报告多步或规划收益。
 
@@ -724,7 +754,7 @@ Friction、Cube、Strength 的 T3 目标条件差异占比上升、响应 NRE �
 
 **训练内的来源组验证已显示同样限制。** 非线性映射的 Training 四折验证 NRE 为摩擦 0.761、阻尼 0.968，与 Development 的 0.755、0.975 接近。这说明弱迁移不只出现在 Development 划分；不能简单归因为 Development 独有的分布偏移。近插值对照的训练误差接近零，Development 却为 0.938／1.221，因此有限训练点可拟合不等于学到可迁移的动力学映射。
 
-**这些结果仍不能指定原生模型的唯一根因。** 辅助映射的函数形式、输入动作表示、监督和数据预算均不同于原生预测器；近插值也可能只是记忆。结果既不证明原生预测器容量不足，也不证明 32k 训练数据有误或现有表示充分。下一项可区分的因素是独立 Training 来源覆盖：固定表示、回归方法和 Development，只增加拟合来源，检查来源组验证与 Development 是否同步改善，而不先追加分类探针或扩大世界模型。
+**这些结果仍不能指定原生模型的唯一根因。** 辅助映射的函数形式、输入动作表示、监督和数据预算均不同于原生预测器；近插值也可能只是记忆。结果既不证明原生预测器容量不足，也不证明 32k 训练数据有误或现有表示充分。这些辅助结果不作为追加映射实验或扩充原生训练数据的依据。原生模型是否仍在学习，应直接查看同一次完整训练的[检查点变化](#native-epoch-checkpoints)。
 
 [结果与区间](research/data/fixed_response_mapping_v1/summary.json)、[CSV](research/data/fixed_response_mapping_v1/summary.csv)和归档预测支持独立复算；[方法](Data_Generation.md#fixed-response-mapping)给出监督、参数选择和来源定义。本实验不更新世界模型、不读取 Test；响应拟合成功也不代表完整未来或规划准确。
 

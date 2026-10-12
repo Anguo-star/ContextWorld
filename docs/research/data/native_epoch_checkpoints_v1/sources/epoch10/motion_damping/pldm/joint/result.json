@@ -1,0 +1,151 @@
+{
+  "schema": "contextworld.native_policy_contrast.v1",
+  "model_id": "motion_damping/pldm/joint/s3072",
+  "task": "motion_damping",
+  "family": "pldm",
+  "regime": "joint",
+  "checkpoint_sha256": "2f71a802a3d7bacf305c7e8257c2f76b526ab04ab2676d7ffe0ee6dbe94bcb66",
+  "panel_manifest_sha256": "a4b1167f1361e42ada6804b233aea99a74e16d96cc79595767347f89fd46ac13",
+  "split_sha256": {
+    "training": "5e15883dcd08073aee215fd60bc89f457bd6dff3e015656a32b83281d6757168",
+    "development": "20782bd75ebd328a19beff271eb033c1e9419d6c006424aa8a0777a63817cf6a"
+  },
+  "model_state_hash_before": "7212cba418aef096f1b4dbd4c8fcccb87fabdf6bea147efe39641ee5c71e1a55",
+  "model_state_hash_after": "7212cba418aef096f1b4dbd4c8fcccb87fabdf6bea147efe39641ee5c71e1a55",
+  "no_model_update": true,
+  "no_test_read": true,
+  "metrics": {
+    "training": {
+      "summary": {
+        "energy": {
+          "B": 3190.055831272097,
+          "E": 4190.861017966317,
+          "W": 14679.63542321722,
+          "C": 3562.5643005878987,
+          "R": 628.2967173784183,
+          "main_choice": 432.5,
+          "history_wins": 430.0
+        },
+        "E_over_B": 1.3137265426151272,
+        "NRE": 0.1969547715181752,
+        "G": 3.287959509181474,
+        "main_choice": 0.8447265625,
+        "history_wins": 0.83984375
+      },
+      "bootstrap": {
+        "source_groups": 256,
+        "seed": 20261010,
+        "resamples": 2000,
+        "interval_95": {
+          "E_over_B": [
+            1.1915523916434125,
+            1.451158307267311
+          ],
+          "NRE": [
+            0.17568284226906541,
+            0.22229097806357984
+          ],
+          "G": [
+            3.1802222377350127,
+            3.4030603056663127
+          ]
+        }
+      },
+      "target_conditional_fraction": {
+        "within_query_energy": 3190.0558312720977,
+        "global_centered_energy": 238296.2220085158,
+        "between_query_energy": 235106.1661772437,
+        "conditional_variance_fraction": 0.013386934146014691
+      },
+      "query_stats_sha256": "61583d947763bb345266d76829101a659bc897223c833942068a96b55b74357a",
+      "max_abs_swap_prediction_difference": 0.0,
+      "max_abs_native_rollout_difference": 1.6689300537109375e-06
+    },
+    "development": {
+      "summary": {
+        "energy": {
+          "B": 1358.4090063805174,
+          "E": 2795.9765072343507,
+          "W": 7299.7939930803,
+          "C": 2495.3825087058103,
+          "R": 300.59399852854045,
+          "main_choice": 199.5,
+          "history_wins": 202.5
+        },
+        "E_over_B": 2.0582729458517313,
+        "NRE": 0.22128386746306516,
+        "G": 3.3155091468705566,
+        "main_choice": 0.779296875,
+        "history_wins": 0.791015625
+      },
+      "bootstrap": {
+        "source_groups": 128,
+        "seed": 20261010,
+        "resamples": 2000,
+        "interval_95": {
+          "E_over_B": [
+            1.6955452882005635,
+            2.5254869328625116
+          ],
+          "NRE": [
+            0.1881459632980416,
+            0.25608296906779704
+          ],
+          "G": [
+            3.125241502231782,
+            3.508794815079243
+          ]
+        }
+      },
+      "target_conditional_fraction": {
+        "within_query_energy": 1358.4090063805174,
+        "global_centered_energy": 117059.07341652701,
+        "between_query_energy": 115700.66441014649,
+        "conditional_variance_fraction": 0.011604474277247527
+      },
+      "query_stats_sha256": "9aaa447c9a8d9f5ae5edf3b830f41f4544a292a7510d216bf603a47796861502",
+      "max_abs_swap_prediction_difference": 0.0,
+      "max_abs_native_rollout_difference": 1.3113021850585938e-06
+    }
+  },
+  "readout": {
+    "history": {
+      "ridge": {
+        "accuracy": 0.6640625,
+        "balanced_accuracy": 0.6640625,
+        "classes": [
+          0,
+          1
+        ]
+      },
+      "extra_trees": {
+        "accuracy": 0.796875,
+        "balanced_accuracy": 0.796875,
+        "classes": [
+          0,
+          1
+        ]
+      }
+    },
+    "current": {
+      "ridge": {
+        "accuracy": 0.5,
+        "balanced_accuracy": 0.5,
+        "classes": [
+          0,
+          1
+        ]
+      },
+      "extra_trees": {
+        "accuracy": 0.5,
+        "balanced_accuracy": 0.5,
+        "classes": [
+          0,
+          1
+        ]
+      }
+    }
+  },
+  "readout_note": "Training-fitted StandardScaler+Ridge and fixed ExtraTrees(200, leaf=2, sqrt, seed=20261011) on native visual history/current only; historical actions are omitted. Auxiliary readability, not native ICL.",
+  "comparison_note": "All latent metrics are within-checkpoint normalized; do not rank physical accuracy across changing target spaces."
+}

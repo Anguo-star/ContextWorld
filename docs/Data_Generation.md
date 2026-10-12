@@ -1051,3 +1051,34 @@ python scripts/summarize_fixed_response_mapping.py --check --render-doc
 ```
 
 摩擦使用 `--task contact_friction`。每任务输出目录必须不存在；运行协议绑定代码与原始缓存文件。公开归档包含逐行目标、预测和来源分组，第二条命令可在 CPU 上独立重算表格和区间。重新拟合需相应原生缓存；近乎插值不意味着这些固定表示能泛化到任意新场景。
+
+<a id="native-epoch-checkpoints"></a>
+
+## 原生完整训练的保存点对照
+
+本诊断比较 PLDM 摩擦与阻尼的 T2／T3 第 5、10 epoch 检查点。使用同一固定 Training／Development 原查询面板，只计算原生预测，不训练模型或辅助映射；第 10 epoch 复用既有逐查询缓存。结果解释见[研究报告](ICL_Metric_Study.md#native-epoch-checkpoints)。
+
+先按模型登记表重建训练器的数据索引划分，再评价缺少的保存点：
+
+```bash
+python scripts/recover_native_epoch_membership.py \
+  --models "$MODELS_JSON" --panels "$NATIVE_PANELS" --output "$EPOCH_RUN/membership"
+python scripts/evaluate_native_epoch_checkpoints.py \
+  --models "$MODELS_JSON" --panels "$NATIVE_PANELS" \
+  --task contact_friction --regime joint --epoch 5 \
+  --output "$EPOCH_RUN" --device cuda:0
+```
+
+将任务替换为 `motion_damping`、方案替换为 `frozen`，覆盖四组现有训练。模型登记表沿用[原生训练策略对照](#native-policy-contrast)；面板不重新抽样。输出包含检查点与面板哈希、逐查询误差能量、原生 Adapter 一致性检查和前后权重哈希。训练查询按两条件均进入 loader fit 子集筛选；重复采样窗口可能也进入内部 validation，故独立泛化只使用 benchmark Development。
+
+汇总使用逐查询充分统计量 E、C、R、B，核验 E=C+R 后按能量合并：完整误差为 ΣE/ΣB，响应 NRE 为 ΣR/ΣB。来源组 bootstrap 区间保存在 JSON；不同检查点的目标空间可能改变，故不把跨轮次差值区间解释为物理精度变化。
+
+```bash
+python scripts/summarize_native_epoch_checkpoints.py \
+  --epoch5 "$EPOCH_RUN/epoch5" --epoch10 "$NATIVE_POLICY_RUN" \
+  --membership "$EPOCH_RUN/membership" --doc docs/ICL_Metric_Study.md
+# 只读已公开的逐查询统计量复算，不需要模型、原始数据或 GPU。
+python scripts/summarize_native_epoch_checkpoints.py --check --doc docs/ICL_Metric_Study.md
+```
+
+本比较不重建没有保存的逐轮权重，不将成员资格当作逐批曝光日志，也不由第 5／10 epoch 两点判断训练已收敛。
