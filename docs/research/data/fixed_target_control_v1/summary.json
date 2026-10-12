@@ -1,0 +1,892 @@
+{
+  "schema": "contextworld.fixed_target_control_archive.v1",
+  "scope": "native one-step query, physical step 5; training 512 pairs, development 256 pairs",
+  "source_queue": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/lewm-fixed-target-control-v1/queue_status.json",
+  "source_queue_sha256": "ada9f94a283a2b7e9f3d39937a49493adb9e6dd6aef2f405449679ad659fd27b",
+  "tasks": {
+    "contact_friction": {
+      "run_dir": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/lewm-fixed-target-control-v1/checkpoints/contact_friction_lewm_fixed_target_v1_s3072",
+      "recipe": {
+        "path": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/lewm-fixed-target-control-v1/checkpoints/contact_friction_lewm_fixed_target_v1_s3072/recipe.json",
+        "sha256": "47a4512f4bd5d798542ca1181f448dbcb1084163e69bb072eb3e78908f8bca4f",
+        "full_t0_sha256": "9f13b2c28bb909338047e08d62bf6eb16ea3616cb53e57cfa9b5072b43db1c59",
+        "full_t0_checkpoint": "/opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-pusht/ckpt/pusht_lewm_baseline_seed3073/pusht_lewm_baseline_seed3073_weights.ckpt",
+        "stablewm_repo": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/lewm-contextworld-v1/.contextworld/stable-worldmodel/1763bc582fc8ebb2f157859abbee979543dec1d1",
+        "reference_run": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/lewm-contextworld-v1/checkpoints/contact_friction_lewm_encoder_frozen_v1_s3072"
+      },
+      "loader": {
+        "path": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/lewm-fixed-target-control-v1/checkpoints/contact_friction_lewm_fixed_target_v1_s3072/loader_actual.json",
+        "sha256": "88568031932b7cb2bed497d969930a42c0de9831c3385ce2a41bf454d55dde54",
+        "world_size": 8,
+        "actual_num_training_batches_per_rank": 3483,
+        "estimated_optimizer_steps": 34830,
+        "max_epochs": 10,
+        "max_steps": -1,
+        "accumulate_grad_batches": 1
+      },
+      "train_end_audit": {
+        "path": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/lewm-fixed-target-control-v1/checkpoints/contact_friction_lewm_fixed_target_v1_s3072/train_end_audit.json",
+        "sha256": "542170fe593a21df366a0bb4271598f26a868612b60482fe9ab03d71ee86301d",
+        "global_step": 34830,
+        "world_size": 8,
+        "frozen_hashes": {
+          "encoder": {
+            "sha256": "56a513193097f9339cddb0c8fa769c22d77526b19a4b6b5bf15be18d42d02122",
+            "tensors": 198
+          },
+          "projector": {
+            "sha256": "2784a1854711aa943c880b5e7cd040c265f8731edbd1539182aa45e4aea46210",
+            "tensors": 9
+          }
+        },
+        "frozen_state_unchanged": true
+      },
+      "epochs": {
+        "1": {
+          "result_path": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/lewm-fixed-target-control-v1/checkpoints/contact_friction_lewm_fixed_target_v1_s3072/fixed_target_eval/epoch_01/result.json",
+          "result_sha256": "1f63a9856a0df2244b38c6701c847fe4e922ef7be8d0d3960fd9ecf9a4182958",
+          "checkpoint_path": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/lewm-fixed-target-control-v1/checkpoints/contact_friction_lewm_fixed_target_v1_s3072/weights_epoch_1.pt",
+          "checkpoint_sha256": "4bc534e035008c34dcde337d22c64b8916899d67396f8faf62217fdfbd06ee5e",
+          "splits": {
+            "training": {
+              "panel_sha256": "1749ab6a8e8bb198e70038c3117ad78c921a2daaa0a4a03e9089883c3ae0d92a",
+              "pairs": 512,
+              "rows": 1024,
+              "B_conditional_mean_error": 0.4582226989111697,
+              "old": {
+                "response_nre": 0.9994142135822769,
+                "full_error": 7.479900650676846,
+                "full_error_over_B": 16.323723526683885,
+                "history_benefit": 0.003859841993981388,
+                "history_benefit_over_B": 0.008423506742798114
+              },
+              "new": {
+                "response_nre": 0.9870728279256564,
+                "full_error": 2.127124773283464,
+                "full_error_over_B": 4.642120039749112,
+                "history_benefit": 0.016779232021365612,
+                "history_benefit_over_B": 0.036618072525076734
+              },
+              "deltas": {
+                "delta_response_nre": {
+                  "delta": -0.012341385656620445,
+                  "ci95": [
+                    -0.016538003631773317,
+                    -0.008129513247526598
+                  ],
+                  "source_groups": 512,
+                  "resamples": 2000,
+                  "seed": 20261010
+                },
+                "delta_full_error": {
+                  "delta": -5.352775877393382,
+                  "ci95": [
+                    -5.580261507960055,
+                    -5.119438752795813
+                  ],
+                  "source_groups": 512,
+                  "resamples": 2000,
+                  "seed": 20261010
+                },
+                "delta_full_error_over_B": {
+                  "delta": -11.681603486934772,
+                  "ci95": [
+                    -12.293477417552731,
+                    -11.042363291623037
+                  ],
+                  "source_groups": 512,
+                  "resamples": 2000,
+                  "seed": 20261010
+                },
+                "delta_history_benefit_over_B": {
+                  "delta": 0.02819456578227862,
+                  "ci95": [
+                    0.020012221723061326,
+                    0.03653209516826034
+                  ],
+                  "source_groups": 512,
+                  "resamples": 2000,
+                  "seed": 20261010
+                }
+              }
+            },
+            "development": {
+              "panel_sha256": "68cdd9315d33a21d4ffbc8d0ee489aabac9c41f4ebe002ba2579974c525efae6",
+              "pairs": 256,
+              "rows": 512,
+              "B_conditional_mean_error": 0.4721607226328688,
+              "old": {
+                "response_nre": 1.0040809104376391,
+                "full_error": 7.352185984026718,
+                "full_error_over_B": 15.571362952490759,
+                "history_benefit": -0.0005353429209261412,
+                "history_benefit_over_B": -0.0011338150237083571
+              },
+              "new": {
+                "response_nre": 0.9886883151864401,
+                "full_error": 2.2234160331318695,
+                "full_error_over_B": 4.7090237000943835,
+                "history_benefit": 0.01532874856668239,
+                "history_benefit_over_B": 0.032465107392258344
+              },
+              "deltas": {
+                "delta_response_nre": {
+                  "delta": -0.015392595251198838,
+                  "ci95": [
+                    -0.021041061494986538,
+                    -0.01005976478280321
+                  ],
+                  "source_groups": 256,
+                  "resamples": 2000,
+                  "seed": 20261010
+                },
+                "delta_full_error": {
+                  "delta": -5.128769950894849,
+                  "ci95": [
+                    -5.437117193576418,
+                    -4.8327422360752115
+                  ],
+                  "source_groups": 256,
+                  "resamples": 2000,
+                  "seed": 20261010
+                },
+                "delta_full_error_over_B": {
+                  "delta": -10.862339252396378,
+                  "ci95": [
+                    -11.767556000722978,
+                    -10.051381993898659
+                  ],
+                  "source_groups": 256,
+                  "resamples": 2000,
+                  "seed": 20261010
+                },
+                "delta_history_benefit_over_B": {
+                  "delta": 0.0335989224159667,
+                  "ci95": [
+                    0.022843277809259575,
+                    0.04489973476785479
+                  ],
+                  "source_groups": 256,
+                  "resamples": 2000,
+                  "seed": 20261010
+                }
+              }
+            }
+          }
+        },
+        "5": {
+          "result_path": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/lewm-fixed-target-control-v1/checkpoints/contact_friction_lewm_fixed_target_v1_s3072/fixed_target_eval/epoch_05/result.json",
+          "result_sha256": "0c0cebfaa4b6e04d7a103136ebfc1fdb671f0a2a7d8b5c35a62f7af61476402d",
+          "checkpoint_path": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/lewm-fixed-target-control-v1/checkpoints/contact_friction_lewm_fixed_target_v1_s3072/weights_epoch_5.pt",
+          "checkpoint_sha256": "85505f1189b46fe14a11eb9959ca6aa2a77626cfdbb7f4bee23c8d0a4ab58a35",
+          "splits": {
+            "training": {
+              "panel_sha256": "1749ab6a8e8bb198e70038c3117ad78c921a2daaa0a4a03e9089883c3ae0d92a",
+              "pairs": 512,
+              "rows": 1024,
+              "B_conditional_mean_error": 0.4582226989111697,
+              "old": {
+                "response_nre": 0.9994142135822769,
+                "full_error": 7.479900650676846,
+                "full_error_over_B": 16.323723526683885,
+                "history_benefit": 0.003859841993981388,
+                "history_benefit_over_B": 0.008423506742798114
+              },
+              "new": {
+                "response_nre": 0.6106693443008432,
+                "full_error": 1.4179709206683433,
+                "full_error_over_B": 3.094501699801713,
+                "history_benefit": 0.6209111676777846,
+                "history_benefit_over_B": 1.3550423607411763
+              },
+              "deltas": {
+                "delta_response_nre": {
+                  "delta": -0.38874486928143376,
+                  "ci95": [
+                    -0.4083535654662408,
+                    -0.3698610886917128
+                  ],
+                  "source_groups": 512,
+                  "resamples": 2000,
+                  "seed": 20261010
+                },
+                "delta_full_error": {
+                  "delta": -6.061929730008503,
+                  "ci95": [
+                    -6.305808434240074,
+                    -5.814491085863599
+                  ],
+                  "source_groups": 512,
+                  "resamples": 2000,
+                  "seed": 20261010
+                },
+                "delta_full_error_over_B": {
+                  "delta": -13.22922182688217,
+                  "ci95": [
+                    -13.886453933937004,
+                    -12.56799539495925
+                  ],
+                  "source_groups": 512,
+                  "resamples": 2000,
+                  "seed": 20261010
+                },
+                "delta_history_benefit_over_B": {
+                  "delta": 1.3466188539983783,
+                  "ci95": [
+                    1.2847423800829034,
+                    1.4126761958582201
+                  ],
+                  "source_groups": 512,
+                  "resamples": 2000,
+                  "seed": 20261010
+                }
+              }
+            },
+            "development": {
+              "panel_sha256": "68cdd9315d33a21d4ffbc8d0ee489aabac9c41f4ebe002ba2579974c525efae6",
+              "pairs": 256,
+              "rows": 512,
+              "B_conditional_mean_error": 0.4721607226328688,
+              "old": {
+                "response_nre": 1.0040809104376391,
+                "full_error": 7.352185984026718,
+                "full_error_over_B": 15.571362952490759,
+                "history_benefit": -0.0005353429209261412,
+                "history_benefit_over_B": -0.0011338150237083571
+              },
+              "new": {
+                "response_nre": 0.6528658047004554,
+                "full_error": 1.5613502007036049,
+                "full_error_over_B": 3.306819322024889,
+                "history_benefit": 0.582712749879599,
+                "history_benefit_over_B": 1.2341406685212368
+              },
+              "deltas": {
+                "delta_response_nre": {
+                  "delta": -0.3512151057371836,
+                  "ci95": [
+                    -0.3824513892763488,
+                    -0.3222771116863469
+                  ],
+                  "source_groups": 256,
+                  "resamples": 2000,
+                  "seed": 20261010
+                },
+                "delta_full_error": {
+                  "delta": -5.790835783323114,
+                  "ci95": [
+                    -6.129163498160049,
+                    -5.478367720266755
+                  ],
+                  "source_groups": 256,
+                  "resamples": 2000,
+                  "seed": 20261010
+                },
+                "delta_full_error_over_B": {
+                  "delta": -12.264543630465873,
+                  "ci95": [
+                    -13.266292016174289,
+                    -11.370747629324429
+                  ],
+                  "source_groups": 256,
+                  "resamples": 2000,
+                  "seed": 20261010
+                },
+                "delta_history_benefit_over_B": {
+                  "delta": 1.2352744835449452,
+                  "ci95": [
+                    1.1361197195436783,
+                    1.3428152189069689
+                  ],
+                  "source_groups": 256,
+                  "resamples": 2000,
+                  "seed": 20261010
+                }
+              }
+            }
+          }
+        },
+        "10": {
+          "result_path": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/lewm-fixed-target-control-v1/checkpoints/contact_friction_lewm_fixed_target_v1_s3072/fixed_target_eval/epoch_10/result.json",
+          "result_sha256": "4397c55b48c06f408f4119a871a4b6fc22d780de4ec1718707f74b060ebc6907",
+          "checkpoint_path": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/lewm-fixed-target-control-v1/checkpoints/contact_friction_lewm_fixed_target_v1_s3072/weights_epoch_10.pt",
+          "checkpoint_sha256": "013583fccfce808e710ce19470071b1fa9f58a93b063ad8abe6b192fed104511",
+          "splits": {
+            "training": {
+              "panel_sha256": "1749ab6a8e8bb198e70038c3117ad78c921a2daaa0a4a03e9089883c3ae0d92a",
+              "pairs": 512,
+              "rows": 1024,
+              "B_conditional_mean_error": 0.4582226989111697,
+              "old": {
+                "response_nre": 0.9994142135822769,
+                "full_error": 7.479900650676846,
+                "full_error_over_B": 16.323723526683885,
+                "history_benefit": 0.003859841993981388,
+                "history_benefit_over_B": 0.008423506742798114
+              },
+              "new": {
+                "response_nre": 0.538166384505263,
+                "full_error": 1.1545880821535788,
+                "full_error_over_B": 2.519709488196711,
+                "history_benefit": 0.8080031218985608,
+                "history_benefit_over_B": 1.7633415451014116
+              },
+              "deltas": {
+                "delta_response_nre": {
+                  "delta": -0.4612478290770139,
+                  "ci95": [
+                    -0.4812260039903452,
+                    -0.4418716894915597
+                  ],
+                  "source_groups": 512,
+                  "resamples": 2000,
+                  "seed": 20261010
+                },
+                "delta_full_error": {
+                  "delta": -6.325312568523268,
+                  "ci95": [
+                    -6.572704733173574,
+                    -6.07731558195498
+                  ],
+                  "source_groups": 512,
+                  "resamples": 2000,
+                  "seed": 20261010
+                },
+                "delta_full_error_over_B": {
+                  "delta": -13.804014038487175,
+                  "ci95": [
+                    -14.469675583948307,
+                    -13.132824288726876
+                  ],
+                  "source_groups": 512,
+                  "resamples": 2000,
+                  "seed": 20261010
+                },
+                "delta_history_benefit_over_B": {
+                  "delta": 1.7549180383586136,
+                  "ci95": [
+                    1.6941403668681683,
+                    1.8177764707155062
+                  ],
+                  "source_groups": 512,
+                  "resamples": 2000,
+                  "seed": 20261010
+                }
+              }
+            },
+            "development": {
+              "panel_sha256": "68cdd9315d33a21d4ffbc8d0ee489aabac9c41f4ebe002ba2579974c525efae6",
+              "pairs": 256,
+              "rows": 512,
+              "B_conditional_mean_error": 0.4721607226328688,
+              "old": {
+                "response_nre": 1.0040809104376391,
+                "full_error": 7.352185984026718,
+                "full_error_over_B": 15.571362952490759,
+                "history_benefit": -0.0005353429209261412,
+                "history_benefit_over_B": -0.0011338150237083571
+              },
+              "new": {
+                "response_nre": 0.5893912950730966,
+                "full_error": 1.3307109615032702,
+                "full_error_over_B": 2.818343199076243,
+                "history_benefit": 0.7565268454598768,
+                "history_benefit_over_B": 1.602265519336979
+              },
+              "deltas": {
+                "delta_response_nre": {
+                  "delta": -0.4146896153645424,
+                  "ci95": [
+                    -0.4454986869258972,
+                    -0.3872480057686623
+                  ],
+                  "source_groups": 256,
+                  "resamples": 2000,
+                  "seed": 20261010
+                },
+                "delta_full_error": {
+                  "delta": -6.021475022523449,
+                  "ci95": [
+                    -6.357531478368383,
+                    -5.704469943191843
+                  ],
+                  "source_groups": 256,
+                  "resamples": 2000,
+                  "seed": 20261010
+                },
+                "delta_full_error_over_B": {
+                  "delta": -12.753019753414517,
+                  "ci95": [
+                    -13.763485688090302,
+                    -11.854667525193664
+                  ],
+                  "source_groups": 256,
+                  "resamples": 2000,
+                  "seed": 20261010
+                },
+                "delta_history_benefit_over_B": {
+                  "delta": 1.6033993343606872,
+                  "ci95": [
+                    1.5054956461990117,
+                    1.7119543578704186
+                  ],
+                  "source_groups": 256,
+                  "resamples": 2000,
+                  "seed": 20261010
+                }
+              }
+            }
+          }
+        }
+      },
+      "panel_manifest_sha256": "47b389da0cc615aa2ed3a82f2c80d20c67d4ae7a83a60c30abfe3f95e82ab14b",
+      "panel_sha256": {
+        "training": "1749ab6a8e8bb198e70038c3117ad78c921a2daaa0a4a03e9089883c3ae0d92a",
+        "development": "68cdd9315d33a21d4ffbc8d0ee489aabac9c41f4ebe002ba2579974c525efae6"
+      },
+      "stable_ref": "1763bc582fc8ebb2f157859abbee979543dec1d1"
+    },
+    "robot_arm_mass": {
+      "run_dir": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/lewm-fixed-target-control-v1/checkpoints/robot_arm_mass_lewm_fixed_target_v1_s3072",
+      "recipe": {
+        "path": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/lewm-fixed-target-control-v1/checkpoints/robot_arm_mass_lewm_fixed_target_v1_s3072/recipe.json",
+        "sha256": "bb7e96b327421f4f6f18b7f743cdcc3bc7ef7a62287e4fcb7d12f662b21f7649",
+        "full_t0_sha256": "105b5f5890637cfee0bc5ef7a2db00808f718be375f425a6619e43843b290135",
+        "full_t0_checkpoint": "/opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-reacher/ckpt/reacher_lewm_baseline_seed3073/reacher_lewm_baseline_seed3073_weights.ckpt",
+        "stablewm_repo": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/lewm-contextworld-v1/.contextworld/stable-worldmodel/1763bc582fc8ebb2f157859abbee979543dec1d1",
+        "reference_run": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/lewm-contextworld-v1/checkpoints/robot_arm_mass_lewm_encoder_frozen_v1_s3072"
+      },
+      "loader": {
+        "path": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/lewm-fixed-target-control-v1/checkpoints/robot_arm_mass_lewm_fixed_target_v1_s3072/loader_actual.json",
+        "sha256": "f06090a2125a3e5147261d78c5d35838d0dd95f19f0747ed2c7d3f9379ad66ee",
+        "world_size": 8,
+        "actual_num_training_batches_per_rank": 3199,
+        "estimated_optimizer_steps": 31990,
+        "max_epochs": 10,
+        "max_steps": -1,
+        "accumulate_grad_batches": 1
+      },
+      "train_end_audit": {
+        "path": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/lewm-fixed-target-control-v1/checkpoints/robot_arm_mass_lewm_fixed_target_v1_s3072/train_end_audit.json",
+        "sha256": "dc1a842fd657b20aaee0d9ad15e1dc4175a9abf5463c76cb6fca4d01a972c636",
+        "global_step": 31990,
+        "world_size": 8,
+        "frozen_hashes": {
+          "encoder": {
+            "sha256": "07b84522e6ab112a550fe9d76657dbad1f3e3bf8311deb6c2282e6f9cc481e91",
+            "tensors": 198
+          },
+          "projector": {
+            "sha256": "09b0a732b077af237fd56088f86fddcc7d965dcb55d104dcec9fd43d834da15e",
+            "tensors": 9
+          }
+        },
+        "frozen_state_unchanged": true
+      },
+      "epochs": {
+        "1": {
+          "result_path": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/lewm-fixed-target-control-v1/checkpoints/robot_arm_mass_lewm_fixed_target_v1_s3072/fixed_target_eval/epoch_01/result.json",
+          "result_sha256": "a502501f11e2a5fe9122a393ea56d697fcd65a7683b0c7c6862f84ea08fbf1f4",
+          "checkpoint_path": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/lewm-fixed-target-control-v1/checkpoints/robot_arm_mass_lewm_fixed_target_v1_s3072/weights_epoch_1.pt",
+          "checkpoint_sha256": "23295958088eeef5c882052c9bd9651f7c1653ea513f952b6e6b9f01c2c912e9",
+          "splits": {
+            "training": {
+              "panel_sha256": "1c502300d93156a751b3d4a14d458874f6c748ebc484693d0efa53f342e3a498",
+              "pairs": 512,
+              "rows": 1024,
+              "B_conditional_mean_error": 0.3156587903868424,
+              "old": {
+                "response_nre": 0.9820810325900939,
+                "full_error": 370.08567221625367,
+                "full_error_over_B": 1172.4231464066331,
+                "history_benefit": 0.012160580048360126,
+                "history_benefit_over_B": 0.03852444607500788
+              },
+              "new": {
+                "response_nre": 0.8775486200991456,
+                "full_error": 1.9368755066932328,
+                "full_error_over_B": 6.135978359162994,
+                "history_benefit": 0.08544447487465431,
+                "history_benefit_over_B": 0.2706861886213953
+              },
+              "deltas": {
+                "delta_response_nre": {
+                  "delta": -0.10453241249094827,
+                  "ci95": [
+                    -0.11109161585144582,
+                    -0.09775022334613527
+                  ],
+                  "source_groups": 512,
+                  "resamples": 2000,
+                  "seed": 20261010
+                },
+                "delta_full_error": {
+                  "delta": -368.14879670956043,
+                  "ci95": [
+                    -372.8324122674248,
+                    -363.5576057911018
+                  ],
+                  "source_groups": 512,
+                  "resamples": 2000,
+                  "seed": 20261010
+                },
+                "delta_full_error_over_B": {
+                  "delta": -1166.2871680474702,
+                  "ci95": [
+                    -1248.5506367991054,
+                    -1092.9495308636606
+                  ],
+                  "source_groups": 512,
+                  "resamples": 2000,
+                  "seed": 20261010
+                },
+                "delta_history_benefit_over_B": {
+                  "delta": 0.23216174254638744,
+                  "ci95": [
+                    0.21699361612313786,
+                    0.24627701082525108
+                  ],
+                  "source_groups": 512,
+                  "resamples": 2000,
+                  "seed": 20261010
+                }
+              }
+            },
+            "development": {
+              "panel_sha256": "85217d290685e63db3194b7fc02d1c329304caf0baf54d030589f5aa5508547a",
+              "pairs": 256,
+              "rows": 512,
+              "B_conditional_mean_error": 0.3435414129694955,
+              "old": {
+                "response_nre": 0.9803530605054915,
+                "full_error": 376.7187378790407,
+                "full_error_over_B": 1096.574455530027,
+                "history_benefit": 0.014380160449847024,
+                "history_benefit_over_B": 0.041858593773449665
+              },
+              "new": {
+                "response_nre": 0.8775889182436787,
+                "full_error": 1.9192568010251891,
+                "full_error_over_B": 5.5866825033860135,
+                "history_benefit": 0.09223517978099834,
+                "history_benefit_over_B": 0.26848343838298266
+              },
+              "deltas": {
+                "delta_response_nre": {
+                  "delta": -0.10276414226181271,
+                  "ci95": [
+                    -0.1113103286302206,
+                    -0.09403465623355045
+                  ],
+                  "source_groups": 256,
+                  "resamples": 2000,
+                  "seed": 20261010
+                },
+                "delta_full_error": {
+                  "delta": -374.7994810780155,
+                  "ci95": [
+                    -381.17861204235396,
+                    -368.31298102252214
+                  ],
+                  "source_groups": 256,
+                  "resamples": 2000,
+                  "seed": 20261010
+                },
+                "delta_full_error_over_B": {
+                  "delta": -1090.9877730266412,
+                  "ci95": [
+                    -1206.5912026455658,
+                    -990.72011829039
+                  ],
+                  "source_groups": 256,
+                  "resamples": 2000,
+                  "seed": 20261010
+                },
+                "delta_history_benefit_over_B": {
+                  "delta": 0.22662484460953294,
+                  "ci95": [
+                    0.20725041476286474,
+                    0.2457721417934011
+                  ],
+                  "source_groups": 256,
+                  "resamples": 2000,
+                  "seed": 20261010
+                }
+              }
+            }
+          }
+        },
+        "5": {
+          "result_path": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/lewm-fixed-target-control-v1/checkpoints/robot_arm_mass_lewm_fixed_target_v1_s3072/fixed_target_eval/epoch_05/result.json",
+          "result_sha256": "87849cd7ca40cc60a37b78bd754c933227c9c98a6b94f35935f01f9eb1a07bf6",
+          "checkpoint_path": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/lewm-fixed-target-control-v1/checkpoints/robot_arm_mass_lewm_fixed_target_v1_s3072/weights_epoch_5.pt",
+          "checkpoint_sha256": "0ec4180c43846b28cc1f065245898f2505bf77423d8ea69b8a55217b28caf862",
+          "splits": {
+            "training": {
+              "panel_sha256": "1c502300d93156a751b3d4a14d458874f6c748ebc484693d0efa53f342e3a498",
+              "pairs": 512,
+              "rows": 1024,
+              "B_conditional_mean_error": 0.3156587903868424,
+              "old": {
+                "response_nre": 0.9820810325900939,
+                "full_error": 370.08567221625367,
+                "full_error_over_B": 1172.4231464066331,
+                "history_benefit": 0.012160580048360126,
+                "history_benefit_over_B": 0.03852444607500788
+              },
+              "new": {
+                "response_nre": 0.5662813304067182,
+                "full_error": 1.1238757747792412,
+                "full_error_over_B": 3.560413360901251,
+                "history_benefit": 0.40486531574992735,
+                "history_benefit_over_B": 1.2826042805706808
+              },
+              "deltas": {
+                "delta_response_nre": {
+                  "delta": -0.41579970218337564,
+                  "ci95": [
+                    -0.4357654818173025,
+                    -0.3926234607784571
+                  ],
+                  "source_groups": 512,
+                  "resamples": 2000,
+                  "seed": 20261010
+                },
+                "delta_full_error": {
+                  "delta": -368.96179644147446,
+                  "ci95": [
+                    -373.63040824880613,
+                    -364.37619822152305
+                  ],
+                  "source_groups": 512,
+                  "resamples": 2000,
+                  "seed": 20261010
+                },
+                "delta_full_error_over_B": {
+                  "delta": -1168.862733045732,
+                  "ci95": [
+                    -1251.2930252709334,
+                    -1095.3292282993496
+                  ],
+                  "source_groups": 512,
+                  "resamples": 2000,
+                  "seed": 20261010
+                },
+                "delta_history_benefit_over_B": {
+                  "delta": 1.2440798344956727,
+                  "ci95": [
+                    1.1681902630971448,
+                    1.3111204382113657
+                  ],
+                  "source_groups": 512,
+                  "resamples": 2000,
+                  "seed": 20261010
+                }
+              }
+            },
+            "development": {
+              "panel_sha256": "85217d290685e63db3194b7fc02d1c329304caf0baf54d030589f5aa5508547a",
+              "pairs": 256,
+              "rows": 512,
+              "B_conditional_mean_error": 0.3435414129694955,
+              "old": {
+                "response_nre": 0.9803530605054915,
+                "full_error": 376.7187378790407,
+                "full_error_over_B": 1096.574455530027,
+                "history_benefit": 0.014380160449847024,
+                "history_benefit_over_B": 0.041858593773449665
+              },
+              "new": {
+                "response_nre": 0.557674354821106,
+                "full_error": 1.128451126613629,
+                "full_error_over_B": 3.2847601017284895,
+                "history_benefit": 0.4351156000362007,
+                "history_benefit_over_B": 1.2665593829726622
+              },
+              "deltas": {
+                "delta_response_nre": {
+                  "delta": -0.4226787056843855,
+                  "ci95": [
+                    -0.44953797903540454,
+                    -0.39428563030351643
+                  ],
+                  "source_groups": 256,
+                  "resamples": 2000,
+                  "seed": 20261010
+                },
+                "delta_full_error": {
+                  "delta": -375.5902867524271,
+                  "ci95": [
+                    -381.9537387126783,
+                    -369.1239430657132
+                  ],
+                  "source_groups": 256,
+                  "resamples": 2000,
+                  "seed": 20261010
+                },
+                "delta_full_error_over_B": {
+                  "delta": -1093.2896954282987,
+                  "ci95": [
+                    -1208.8915327839748,
+                    -992.9295815078451
+                  ],
+                  "source_groups": 256,
+                  "resamples": 2000,
+                  "seed": 20261010
+                },
+                "delta_history_benefit_over_B": {
+                  "delta": 1.2247007891992125,
+                  "ci95": [
+                    1.1228241092027862,
+                    1.3244150063571083
+                  ],
+                  "source_groups": 256,
+                  "resamples": 2000,
+                  "seed": 20261010
+                }
+              }
+            }
+          }
+        },
+        "10": {
+          "result_path": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/lewm-fixed-target-control-v1/checkpoints/robot_arm_mass_lewm_fixed_target_v1_s3072/fixed_target_eval/epoch_10/result.json",
+          "result_sha256": "d132ab067f54197c94961d7315e296230bf5229ab73dce185600c7db2c288f1e",
+          "checkpoint_path": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/lewm-fixed-target-control-v1/checkpoints/robot_arm_mass_lewm_fixed_target_v1_s3072/weights_epoch_10.pt",
+          "checkpoint_sha256": "f06e0c8c78533c076f59d139317254e03fd20eb5e0d261ff3700fe13b719f82b",
+          "splits": {
+            "training": {
+              "panel_sha256": "1c502300d93156a751b3d4a14d458874f6c748ebc484693d0efa53f342e3a498",
+              "pairs": 512,
+              "rows": 1024,
+              "B_conditional_mean_error": 0.3156587903868424,
+              "old": {
+                "response_nre": 0.9820810325900939,
+                "full_error": 370.08567221625367,
+                "full_error_over_B": 1172.4231464066331,
+                "history_benefit": 0.012160580048360126,
+                "history_benefit_over_B": 0.03852444607500788
+              },
+              "new": {
+                "response_nre": 0.4966115328989016,
+                "full_error": 0.8631230061089825,
+                "full_error_over_B": 2.734354411772339,
+                "history_benefit": 0.535946958083038,
+                "history_benefit_over_B": 1.697867996725929
+              },
+              "deltas": {
+                "delta_response_nre": {
+                  "delta": -0.4854694996911924,
+                  "ci95": [
+                    -0.5077361673438252,
+                    -0.4600008633649288
+                  ],
+                  "source_groups": 512,
+                  "resamples": 2000,
+                  "seed": 20261010
+                },
+                "delta_full_error": {
+                  "delta": -369.2225492101447,
+                  "ci95": [
+                    -373.8874135293903,
+                    -364.61958114856174
+                  ],
+                  "source_groups": 512,
+                  "resamples": 2000,
+                  "seed": 20261010
+                },
+                "delta_full_error_over_B": {
+                  "delta": -1169.6887919948608,
+                  "ci95": [
+                    -1252.1926370260273,
+                    -1096.1236567044857
+                  ],
+                  "source_groups": 512,
+                  "resamples": 2000,
+                  "seed": 20261010
+                },
+                "delta_history_benefit_over_B": {
+                  "delta": 1.6593435506509209,
+                  "ci95": [
+                    1.5658918590083686,
+                    1.7440096692043165
+                  ],
+                  "source_groups": 512,
+                  "resamples": 2000,
+                  "seed": 20261010
+                }
+              }
+            },
+            "development": {
+              "panel_sha256": "85217d290685e63db3194b7fc02d1c329304caf0baf54d030589f5aa5508547a",
+              "pairs": 256,
+              "rows": 512,
+              "B_conditional_mean_error": 0.3435414129694955,
+              "old": {
+                "response_nre": 0.9803530605054915,
+                "full_error": 376.7187378790407,
+                "full_error_over_B": 1096.574455530027,
+                "history_benefit": 0.014380160449847024,
+                "history_benefit_over_B": 0.041858593773449665
+              },
+              "new": {
+                "response_nre": 0.47818005056324947,
+                "full_error": 0.8694988219871393,
+                "full_error_over_B": 2.5309869179129967,
+                "history_benefit": 0.5815962631815248,
+                "history_benefit_over_B": 1.6929436778941327
+              },
+              "deltas": {
+                "delta_response_nre": {
+                  "delta": -0.502173009942242,
+                  "ci95": [
+                    -0.5300731508968742,
+                    -0.4711468423034555
+                  ],
+                  "source_groups": 256,
+                  "resamples": 2000,
+                  "seed": 20261010
+                },
+                "delta_full_error": {
+                  "delta": -375.8492390570536,
+                  "ci95": [
+                    -382.2036369052605,
+                    -369.3852572500151
+                  ],
+                  "source_groups": 256,
+                  "resamples": 2000,
+                  "seed": 20261010
+                },
+                "delta_full_error_over_B": {
+                  "delta": -1094.043468612114,
+                  "ci95": [
+                    -1209.703727683241,
+                    -993.5253656033015
+                  ],
+                  "source_groups": 256,
+                  "resamples": 2000,
+                  "seed": 20261010
+                },
+                "delta_history_benefit_over_B": {
+                  "delta": 1.6510850841206832,
+                  "ci95": [
+                    1.527723258434696,
+                    1.767687873307363
+                  ],
+                  "source_groups": 256,
+                  "resamples": 2000,
+                  "seed": 20261010
+                }
+              }
+            }
+          }
+        }
+      },
+      "panel_manifest_sha256": "da586e1cffe0524a6118e029ac34ebde0d776a86e315c6ffcf90e7f337a57e06",
+      "panel_sha256": {
+        "training": "1c502300d93156a751b3d4a14d458874f6c748ebc484693d0efa53f342e3a498",
+        "development": "85217d290685e63db3194b7fc02d1c329304caf0baf54d030589f5aa5508547a"
+      },
+      "stable_ref": "1763bc582fc8ebb2f157859abbee979543dec1d1"
+    }
+  }
+}

@@ -869,7 +869,7 @@ python scripts/analyze_conditional_map.py --source "$RESULTS" --models "$MODELS"
 
 ## 固定目标表示的完整训练对照
 
-这项对照检验：原环境训练得到的表示保持不变时，混合数据训练能否使模型获得条件响应。先比较 LeWM 的 Friction 与 Mass；两者在已有 T2／T3 中变化方向相反。它是研究对照，完成前不加入 benchmark 成绩表。
+这项对照检验：原环境训练得到的表示保持不变时，混合数据训练能否使模型获得条件响应。比较 LeWM 的 Friction 与 Mass；两者在已有 T2／T3 中变化方向相反。[已完成结果](ICL_Metric_Study.md#fixed-target-training-results)作为机制对照单独报告，不替换 benchmark 成绩。
 
 | 设置 | 固定目标对照 |
 |---|---|
@@ -890,7 +890,7 @@ python scripts/run_lewm_fixed_visual_native_v1.py \
   --run-name task_lewm_fixed_target_s3072 --freeze-scope visual
 ```
 
-完成后，以第 10 epoch 为主要终点，第 1、5 epoch 仅用于观察学习过程。这里评价原生查询的首个未来，即当前状态后的第 5 个物理步，不替代多步自由递推或规划评测。评价程序要求 T0 与新检查点的 Encoder／projector 张量及同图目标编码一致；匹配与错配历史必须同时替换历史图像和历史动作，当前状态与查询动作保持不变。条件响应 NRE、完整误差 E/B、历史收益 G 使用同一个 T0 目标空间与分母；Development 差值区间按来源组配对重采样。
+以第 10 epoch 为主要终点，第 1、5 epoch 仅用于观察学习过程。这里评价原生查询的首个未来，即当前状态后的第 5 个物理步，不替代多步自由递推或规划评测。评价程序要求 T0 与新检查点的 Encoder／projector 张量及同图目标编码一致；匹配与错配历史必须同时替换历史图像和历史动作，当前状态与查询动作保持不变。条件响应 NRE、完整误差 E/B、历史收益 G 使用同一个 T0 目标空间与分母；Development 差值区间按来源组配对重采样。
 
 ```bash
 python scripts/evaluate_fixed_target_control.py \
@@ -900,7 +900,7 @@ python scripts/evaluate_fixed_target_control.py \
   --device cuda:0 --output /path/to/evaluation
 ```
 
-另一任务使用 `robot_arm_mass`。Training 诊断是固定子集，不代表全量训练误差；结果只说明当前表示、模型、数据及预算下能学到多少。此设计与[256 步响应加权干预](#response-intervention)的起点、目标和预算不同，不能合并为同一实验。
+另一任务使用 `robot_arm_mass`。Friction、Mass 的完整运行分别完成 34,830、31,990 次优化更新；每项保存点的评测均核对固定目标表示。汇总入口为 `scripts/analyze_fixed_target_control.py`，`--check` 核对发布的 JSON、CSV 和结果表。Training 诊断是固定子集，不代表全量训练误差；结果只说明当前表示、模型、数据及预算下能学到多少。此设计与[256 步响应加权干预](#response-intervention)的起点、目标和预算不同，不能合并为同一实验。
 
 <a id="response-intervention"></a>
 

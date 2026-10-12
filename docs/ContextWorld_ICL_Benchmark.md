@@ -338,6 +338,8 @@ LeWM / PLDM 在八项任务上的 T2 / T3 使用相同任务数据、混合比�
 
 这些是固定检查点上的能力差异与误差现象。[同初始化的 LeWM 四任务对照](ICL_Metric_Study.md#matched-encoder-contrast)显示：在这组 Development 对照中，T3 相比 T2 的 Friction、Cube、Strength 原生 latent 响应 NRE 降低，Mass 则升高；Friction 的多步完整误差并未随原协议主分一起改善。该对照固定了训练数据，但目标 projector 仍可训练，表示几何与预测器优化轨迹同时变化，不能归因于单一模块；详见[跨表示空间的核对](ICL_Metric_Study.md#conditional-map-boundary)。
 
+**固定目标空间的补充对照已观察到真实学习收益。** 在 LeWM 的 Friction 与 Mass 中，固定原环境模型的 Encoder 和目标 projector 后继续混合训练，Development 一步响应 NRE 分别由 1.004／0.980 降至 0.589／0.478，匹配历史收益同时增加。完整 E/B 仍为 2.818／2.531，说明条件响应改善尚不等于完整未来预测准确。这是第 5 个物理步的机制对照，不能替代多步或规划成绩，详见[固定表示结果](ICL_Metric_Study.md#fixed-target-training-results)。
+
 ### 5.4 训练数据规模对照
 
 [规模对照完整表](reference/ContextWorld_Expanded_Training_Results.md#训练数据规模对照)单列较小与扩量 Training 的结果。配对数不等于独立 episode 数；扩量同时可能改变覆盖、重复曝光和每轮更新次数，因此这些对照不构成普适 scaling law。

@@ -645,7 +645,38 @@ Friction、Cube、Strength 的 T3 目标条件差异占比上升、响应 NRE �
 
 [结果 JSON](research/data/conditional_map_v1/summary.json)、[简表 CSV](research/data/conditional_map_v1/summary.csv)记录检查点、面板与区间；[计算方法](Data_Generation.md#conditional-map-boundary)说明只使用 Training / Development，不读取 Test。
 
-**待验证的完整训练对照。** Friction 和 Mass 在 T2／T3 中呈相反方向，适合作为首组对照。上述实验从原环境 T0 开始，保留完整原生训练目标；它不同于 [§4.8](#response-intervention) 从已有 T1 开始、只运行 256 次更新的响应加权实验。对原生一步查询（第 5 个物理步），同时报告 Training 与 Development 的条件响应 NRE、完整误差 E/B 和匹配历史收益，检查学习是否迁移。成功只能说明该固定表示支持这些预测模块在当前数据和预算下获得能力；失败仍需区分表示、优化和覆盖。与 T3 的差异检验的是固定 Encoder 时进一步固定 projector 的训练策略作用，不能单独证明某个模块是唯一根因。[实验方法](Data_Generation.md#fixed-target-training-control)给出设置与复现入口；完成前不纳入成绩表。
+固定目标空间的完整训练结果见[下一节](#fixed-target-training-results)。它从 T0 开始并保留原生训练目标，与 [§4.8](#response-intervention) 的 T1 起点、256 步响应加权干预分别报告。
+
+<a id="fixed-target-training-results"></a>
+
+### 4.11 不更新视觉表示，能否学到条件响应
+
+**可以获得明显收益，但完整 latent 预测误差仍高于条件均值参照。** LeWM 在 Friction、Mass 上固定 T0 的 Encoder 和目标 projector，仍通过混合数据训练降低了 Development 的条件响应误差；匹配历史也比错配历史更有用。因此，第二阶段更新视觉表示不是获得这些收益的必要条件。此结论只针对这两个任务与当前训练设置，不等于原始表示足以支持任意精度或多步规划。
+
+每项实验从对应 T3 的同一 T0 全模型权重开始，沿用 32k Training、50% 原环境／50% 合成数据、原生目标与 10 epoch 预算。仅新增对目标 projector 的冻结；动作编码器、预测器和预测输出投影继续训练。Encoder／projector 的 207 个参数与缓冲区张量始终等于 T0，六次评测的同图目标编码均与 T0 一致。因此，以下训练前后比较使用同一目标空间，不经过跨空间映射。[方法](Data_Generation.md#fixed-target-training-control)说明完整配置与复现入口。
+
+表中均为全部 256 对 Development 查询，预测当前状态之后第 5 个物理步。T0 表示混合训练前，1／5／10 epoch 为同一次混合训练的保存点；第 10 epoch 是预定终点。数值均无量纲：响应 NRE 为 0 表示条件差准确、1 表示零条件响应；完整 E/B 为 1 表示与真实条件均值参照相当；历史收益 G 为错配历史误差减匹配历史误差，再除以同一参照 B，正值表示匹配历史有帮助。B 是由真实未来构造的诊断参照，不是可部署的无历史模型。
+
+<!-- BEGIN FIXED_TARGET_CONTROL -->
+| 任务 | 阶段 | 响应 NRE ↓ | 完整 E/B ↓ | 历史收益 G ↑ |
+|---|---|---:|---:|---:|
+| 接触摩擦 | T0 | 1.004 | 15.571 | -0.001 |
+| 接触摩擦 | 混合训练 1 轮 | 0.989 | 4.709 | 0.032 |
+| 接触摩擦 | 混合训练 5 轮 | 0.653 | 3.307 | 1.234 |
+| 接触摩擦 | 混合训练 10 轮 | 0.589 | 2.818 | 1.602 |
+| 机械臂质量 | T0 | 0.980 | 1096.574 | 0.042 |
+| 机械臂质量 | 混合训练 1 轮 | 0.878 | 5.587 | 0.268 |
+| 机械臂质量 | 混合训练 5 轮 | 0.558 | 3.285 | 1.267 |
+| 机械臂质量 | 混合训练 10 轮 | 0.478 | 2.531 | 1.693 |
+<!-- END FIXED_TARGET_CONTROL -->
+
+**收益持续增长，且不只停留在 Training。** 两项的响应 NRE 和完整 E/B 在第 1、5、10 epoch 的检查点上均持续下降，历史收益上升。第 10 epoch 的 Training／Development 响应 NRE 分别为 Friction 0.538／0.589、Mass 0.497／0.478；固定 Training 子集与 Development 都仍有残差，当前结果不支持把问题主要概括为“训练查询已学准、只在未见查询失败”。Training 诊断仅覆盖 512 对，不能代替全量拟合误差。
+
+**完整误差仍有明显残差。** 两项终点的 E/B 分别为 2.818、2.531，仍高于条件均值参照。响应改善与正历史收益已同时出现，但不能据此声称未来预测充分准确或规划成功。Mass 的 T0 E/B 很大，是该模型完整误差相对于较小条件差能量的比值；它不表示物理距离，也不宜直接跨任务比较。
+
+**根因范围收窄。** 原始视觉表示并非完全没有可用条件信息，当前数据也包含能迁移的学习信号；下一步应解释固定表示下仍未拟合准确的部分，而非直接归因为“数据完全不可学”或“必须调整 Encoder”。这项实验没有单独改变容量、损失分配或数据覆盖，不能在三者中指定唯一根因；与 T2／T3 的不同目标空间也不能直接作物理精度排名。
+
+[结果 JSON](research/data/fixed_target_control_v1/summary.json)与[CSV](research/data/fixed_target_control_v1/summary.csv)保存 Training／Development 全部检查点、配对差值区间和来源。每任务是一个固定训练运行；95% 区间按 Development 来源组重采样，只描述场景抽样差异，不覆盖训练随机性。两项终点相对 T0 的响应误差、完整误差下降以及历史收益增长，其区间均不包含零。此次没有读取 Test，也没有测量多步自由递推或 CEM，不改写冻结 benchmark 成绩。
 
 <a id="physical-readout-methods"></a>
 
