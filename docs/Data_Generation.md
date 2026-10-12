@@ -997,3 +997,29 @@ python scripts/analyze_response_intervention.py --check
 ```
 
 其余模型 ID 见[实验配置](research/data/response_intervention_v1/sources/protocol.json)。模型清单、权重与缓存仍需本地准备；公开 JSON 保存完整逐查询结果，可在 CPU 上重算汇总，不等于所有原始资产已具备公共下载。该实验只检验固定表示和有限更新预算下的目标分配，不单独证明表示充分、原训练的唯一根因或长期泛化改善。
+
+
+<a id="pldm-fixed-representation-intervention"></a>
+
+## PLDM 固定表示下的预测器目标对照
+
+本实验检验高历史可读性是否能通过响应损失加权转化为更准确的预测。使用 PLDM 的摩擦、阻尼 T3 检查点，结果见[固定表示干预](ICL_Metric_Study.md#pldm-fixed-representation-intervention)。两臂分别从同一 T3 开始，只更新 `predictor` 和 `pred_proj`，固定全部视觉、目标及动作表示，包括缓冲区；使用 eval 模式关闭 dropout，但保留预测器梯度。
+
+**数据与预算。** 复用[原生查询诊断](#native-policy-contrast)的图像、动作与表示缓存，每任务 512 对 Training 查询、256 对 Development 查询。512 对在本实验中全部参与拟合，每对恰好使用四次。每次更新包含 8 个完整配对查询；两臂共用顺序，执行 256 次更新。使用 AdamW，学习率 `1e-5`、weight decay `0.001`、betas `(0.9,0.999)`、epsilon `1e-8`，梯度裁剪范数为 1；顺序种子为 `20261012`。优化器状态重新初始化，主要比较点固定为第 256 步，同时保存第 0、64 步。
+
+**唯一目标干预。** 两臂复用[响应损失分解与 Training 梯度校准](#response-intervention)：普通三位置视觉 MSE，与提高查询端点条件响应权重后的损失比较。监督目标为移位历史加最终未来，最终未来距当前状态 5 个物理步。校准只用 16 个 Training 来源，不按 Development 调整；得到的响应相对权重分别为 24.446（摩擦）、112.381（阻尼）。校准缩放仅匹配初始梯度范数，不保证 AdamW 更新相同；实际首步参数更新范数保存在结果中。PLDM 原生的表示正则和逆动力学项在本固定设置下不直接更新预测器；该对照只拟合合成面板，不复现完整混合数据训练。
+
+**评分与检查。** 采用原生诊断的 E、C、R、B、W 定义，报告 NRE=R/B、完整 E/B、共同误差 C/B 和 G=(W−E)/B；分母始终来自同一 T3 的真实条件能量。来源组配对 bootstrap 2,000 次，种子 `20261012`。摩擦 Training／Development 分别为 512／256 组；阻尼正反方向查询合为一组，分别为 256／128 组。检查起始预测复现、图像编码与缓存一致、两臂起点相同以及非预测器状态不变；结束后恢复原始模型，不覆盖原检查点。运行前的协议绑定代码、检查点和面板文件。没有读取 Test，也未使用条件标签作为模型输入。
+
+```bash
+python scripts/run_pldm_fixed_representation_intervention.py \
+  --task motion_damping \
+  --protocol docs/research/data/pldm_fixed_representation_intervention_v1/sources/protocol.json \
+  --models /path/to/models.json --panels /path/to/native_panels \
+  --cache-root /path/to/native_policy_diagnostics \
+  --device cuda:0 --output /path/to/new_results/motion_damping
+
+python scripts/summarize_pldm_fixed_representation_intervention.py --check --render-doc
+```
+
+同样对 `contact_friction` 执行第一条命令。每个任务输出目录必须不存在，缓存来自原生查询诊断的 `--save-latents`。公开归档包含锁定协议和压缩逐查询结果，第二条命令无需 GPU 或原始权重即可重算表格；重新执行预测器更新仍需相应权重和原生面板，不代表这些资产已具备公共下载。

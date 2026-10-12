@@ -1,0 +1,56 @@
+{
+  "schema": "contextworld.pldm_fixed_representation_intervention.v1",
+  "design": {
+    "steps": 256,
+    "batch_queries": 8,
+    "seed": 20261012,
+    "checkpoints": [
+      0,
+      64,
+      256
+    ],
+    "primary_checkpoint": 256,
+    "learning_rate": 1e-05,
+    "weight_decay": 0.001,
+    "gradient_clip_norm": 1.0,
+    "arms": [
+      "native_visual",
+      "response_weighted"
+    ]
+  },
+  "tasks": {
+    "contact_friction": {
+      "model_id": "contact_friction/pldm/frozen/s3072",
+      "checkpoint_sha256": "9a9ee650ba7fd16ecaf9b4b04f94cc84e97d01fbaa94ac9c1d5008bd4585bfb4",
+      "panel_manifest_sha256": "47b389da0cc615aa2ed3a82f2c80d20c67d4ae7a83a60c30abfe3f95e82ab14b",
+      "split_sha256": {
+        "training": "1749ab6a8e8bb198e70038c3117ad78c921a2daaa0a4a03e9089883c3ae0d92a",
+        "development": "68cdd9315d33a21d4ffbc8d0ee489aabac9c41f4ebe002ba2579974c525efae6"
+      },
+      "cache_sha256": {
+        "training": "54ae0bdf5fccd4389f921a79acef10b4eb134649f2e493ab855c1457dccecc27",
+        "development": "9e8343ab31481014721efe4e60fb01d60ea00841303ec307046a6e444952fb7c"
+      },
+      "previous_result_sha256": "9c3a498a178bf9d010fad8b1956ef8fabf7778602ff12991539292403da487e3"
+    },
+    "motion_damping": {
+      "model_id": "motion_damping/pldm/frozen/s3072",
+      "checkpoint_sha256": "58229053b8b49e1e652ffcb172e33e53373411727c378c0a4cc745ad73cb99a6",
+      "panel_manifest_sha256": "a4b1167f1361e42ada6804b233aea99a74e16d96cc79595767347f89fd46ac13",
+      "split_sha256": {
+        "training": "5e15883dcd08073aee215fd60bc89f457bd6dff3e015656a32b83281d6757168",
+        "development": "20782bd75ebd328a19beff271eb033c1e9419d6c006424aa8a0777a63817cf6a"
+      },
+      "cache_sha256": {
+        "training": "189192e8d95ff7273f663ea9de0919328eee1beb201576649d62fc3bda933ace",
+        "development": "ac056d897e021283a49716ac186fe20b5a9d7328fae98c6569b890814c2262ed"
+      },
+      "previous_result_sha256": "97a4189d676383142385f693effdc7ea44cca1d83c29d9943ca96a838dfe7a7a"
+    }
+  },
+  "code_sha256": {
+    "runner": "01f2a336649bf1fe1edaf15475ab2869159ea35354c79be84424696ced764d6a",
+    "intervention_helpers": "6348197427010469ea42bc8081d6ff8b2479dbe51b0c3e966e70ed9c30442f97",
+    "native_prediction": "4ac28b090e7faa69f96de03317f312f73b8d45b9f333e2ed3c5a1332679e035e"
+  }
+}
