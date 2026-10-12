@@ -974,6 +974,8 @@ def _validate_args(
             "eval_num",
     ):
         _validate_positive(f"--{name.replace('_', '-')}", getattr(args, name))
+    for name in ("predictor_depth", "predictor_hidden_dim"):
+        _validate_positive(f"--{name.replace('_', '-')}", getattr(args, name, None))
     if args.num_workers is not None and args.num_workers <= 0:
         raise SystemExit(
             "--num-workers must be positive. The supported Stable-WorldModel "
@@ -999,6 +1001,9 @@ def _validate_args(
             "--prefetch-factor": args.prefetch_factor,
             "--pin-memory": args.pin_memory,
             "--embed-dim": args.embed_dim,
+            "--encoder-scale": getattr(args, "encoder_scale", None),
+            "--predictor-depth": getattr(args, "predictor_depth", None),
+            "--predictor-hidden-dim": getattr(args, "predictor_hidden_dim", None),
         }
         requested = [name for name, value in unsupported.items() if value is not None]
         if requested:
@@ -1283,6 +1288,11 @@ def build_overrides(
         ("num_preds", num_preds),
         ("embed_dim", args.embed_dim),
     ):
+        _add(entries, keys.get(name), value)
+    for name in ("encoder_scale", "predictor_depth", "predictor_hidden_dim"):
+        value = getattr(args, name, None)
+        if value is not None and name not in keys:
+            raise SystemExit(f"{family} does not expose --{name.replace('_', '-')}")
         _add(entries, keys.get(name), value)
     if args.rollout_steps > 1:
         _add(
@@ -2914,6 +2924,13 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
                         type=float,
                         default=_env_float("CW_WEIGHT_DECAY"))
     parser.add_argument("--embed-dim", type=int, default=_env_int("CW_EMBED_DIM"))
+    parser.add_argument("--encoder-scale", default=_env("CW_ENCODER_SCALE"),
+                        help="Visual encoder size, e.g. tiny, small, base (CW_ENCODER_SCALE).")
+    parser.add_argument("--predictor-depth", type=int, default=_env_int("CW_PREDICTOR_DEPTH"),
+                        help="Predictor transformer layers (CW_PREDICTOR_DEPTH).")
+    parser.add_argument("--predictor-hidden-dim", type=int,
+                        default=_env_int("CW_PREDICTOR_HIDDEN_DIM"),
+                        help="Predictor internal width; omitted = native config (CW_PREDICTOR_HIDDEN_DIM).")
     parser.add_argument("--hydra-job-chdir",
                         action=argparse.BooleanOptionalAction,
                         default=_env_bool("CW_HYDRA_JOB_CHDIR"))

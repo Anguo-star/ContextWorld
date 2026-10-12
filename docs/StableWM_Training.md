@@ -222,6 +222,13 @@ therefore remains five-dimensional rather than inheriting a two-dimensional
 assumption; this does not make the blocked benchmark projection a native
 training sequence.
 
+For LeWM, VisWM and PLDM, `CW_ENCODER_SCALE`, `CW_PREDICTOR_DEPTH` and
+`CW_PREDICTOR_HIDDEN_DIM` separately select encoder size, predictor layer count
+and predictor internal width. They are optional scalar values and preserve
+native defaults when omitted. The standard predictor width follows
+`CW_EMBED_DIM`; an explicit hidden width changes only the predictor interior,
+not the visual target width. PreJEPA does not expose these options.
+
 Advanced users may repeat `--override KEY=VALUE` or supply a JSON array of
 these strings through `CW_OVERRIDES` in the cloud GUI. Explicit CLI entries
 follow environment entries; both use the same validation and identity binding. These raw Hydra overrides

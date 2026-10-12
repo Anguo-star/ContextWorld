@@ -158,6 +158,9 @@ families:
       num_preds: wm.num_preds
       sequence_length: data.dataset.num_steps
       embed_dim: embed_dim
+      encoder_scale: encoder_scale
+      predictor_depth: model.predictor.depth
+      predictor_hidden_dim: model.predictor.hidden_dim
   viswm:
     entrypoint: scripts/train/viswm.py
     config_name: viswm
@@ -176,6 +179,9 @@ families:
       num_preds: wm.num_preds
       sequence_length: data.dataset.num_steps
       embed_dim: embed_dim
+      encoder_scale: encoder_scale
+      predictor_depth: model.predictor.depth
+      predictor_hidden_dim: model.predictor.hidden_dim
   pldm:
     entrypoint: scripts/train/pldm.py
     config_name: pldm
@@ -194,6 +200,9 @@ families:
       num_preds: wm.num_preds
       sequence_length: data.dataset.num_steps
       embed_dim: wm.embed_dim
+      encoder_scale: encoder_scale
+      predictor_depth: model.predictor.depth
+      predictor_hidden_dim: model.predictor.hidden_dim
   prejepa:
     entrypoint: scripts/train/prejepa.py
     config_name: prejepa

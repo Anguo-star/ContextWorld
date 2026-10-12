@@ -299,7 +299,9 @@ Then per run:
 | `CW_BATCH_SIZE` | 128 for cloud PreJEPA; family YAML otherwise | see below |
 | `CW_MAX_EPOCHS` | family YAML | training epochs |
 | `CW_EMBED_DIM` | family YAML | representation width: `embed_dim` for LeWM, `wm.embed_dim` for PLDM; match the selected encoder width |
-| `CW_OVERRIDES` | `[]` | JSON array of upstream `KEY=VALUE` strings; uses the same validation and run identity as repeated `--override` |
+| `CW_ENCODER_SCALE` | family YAML | LeWM/PLDM/VisWM visual encoder size, e.g. `tiny`, `small`, `base` |
+| `CW_PREDICTOR_DEPTH` | family YAML | number of predictor Transformer layers |
+| `CW_PREDICTOR_HIDDEN_DIM` | family YAML | optional predictor internal width; the standard LeWM/PLDM configuration follows `CW_EMBED_DIM` when omitted |
 | `CW_NUM_WORKERS` | `2` per DDP process for any ContextWorld-v3-hf view; family YAML otherwise | data loader workers |
 | `CW_DEVICES` | family YAML | Lightning devices (`auto`, integer, or Hydra value) |
 | `CW_LOGGER` | `none` | `wandb` or `swanlab` when the selected family trainer uses the common logger factory |
@@ -314,12 +316,22 @@ Then per run:
 Arguments given to `cloud_train.sh` are parsed by the same public
 `run_stablewm_train.py` entry used outside the cloud. Prefer the typed `CW_*`
 variables; an uncommon upstream Hydra setting can be passed with a repeated
-`--override KEY=VALUE` option. In the cloud GUI, put the same strings in
-`CW_OVERRIDES`, for example `["encoder_scale=base","model.predictor.depth=9"]`,
-and set `CW_EMBED_DIM=768` for this LeWM/PLDM encoder. Explicit command-line
-`--override` values follow the environment values and take precedence. Model
-size changes require a compatible initialization checkpoint, or a fresh run
-with `CW_INIT_CHECKPOINT` omitted; use a distinct `CW_TRAINING_TRACK`.
+`--override KEY=VALUE` option. Model-size settings in the cloud GUI are
+ordinary scalar fields; no JSON array or shell quoting is required:
+
+| Setting | Approximately 10× LeWM/PLDM model |
+|---|---|
+| `CW_ENCODER_SCALE` | `base` |
+| `CW_EMBED_DIM` | `768` |
+| `CW_PREDICTOR_DEPTH` | `9` |
+
+The predictor width follows `CW_EMBED_DIM` in the standard configs; set
+`CW_PREDICTOR_HIDDEN_DIM` only to change it independently. Omitted settings
+retain the family defaults. PreJEPA uses a different architecture and does
+not accept these size options. For scratch training, omit `CW_INIT_CHECKPOINT`
+and use a distinct `CW_TRAINING_TRACK`; an old small-model checkpoint cannot
+initialize the larger architecture. Remove a previous `CW_OVERRIDES` field
+when switching to these scalar settings, because raw overrides take precedence.
 
 With the standard PushT action width (5 × 2), this configuration increases
 LeWM from 18.03M to 182.98M parameters and PLDM from 18.24M to 183.78M
