@@ -222,7 +222,9 @@ therefore remains five-dimensional rather than inheriting a two-dimensional
 assumption; this does not make the blocked benchmark projection a native
 training sequence.
 
-Advanced users may repeat `--override KEY=VALUE`. These raw Hydra overrides
+Advanced users may repeat `--override KEY=VALUE` or supply a JSON array of
+these strings through `CW_OVERRIDES` in the cloud GUI. Explicit CLI entries
+follow environment entries; both use the same validation and identity binding. These raw Hydra overrides
 are appended last and therefore win over the typed interface. They are useful
 for upstream options that are not part of the stable public contract, but the
 result should be recorded with the experiment because ContextWorld cannot

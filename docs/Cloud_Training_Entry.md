@@ -298,6 +298,8 @@ Then per run:
 | `CW_CHECKPOINT_ROOT` | — | Stable-WorldModel cache/checkpoint root (`STABLEWM_HOME`) |
 | `CW_BATCH_SIZE` | 128 for cloud PreJEPA; family YAML otherwise | see below |
 | `CW_MAX_EPOCHS` | family YAML | training epochs |
+| `CW_EMBED_DIM` | family YAML | representation width: `embed_dim` for LeWM, `wm.embed_dim` for PLDM; match the selected encoder width |
+| `CW_OVERRIDES` | `[]` | JSON array of upstream `KEY=VALUE` strings; uses the same validation and run identity as repeated `--override` |
 | `CW_NUM_WORKERS` | `2` per DDP process for any ContextWorld-v3-hf view; family YAML otherwise | data loader workers |
 | `CW_DEVICES` | family YAML | Lightning devices (`auto`, integer, or Hydra value) |
 | `CW_LOGGER` | `none` | `wandb` or `swanlab` when the selected family trainer uses the common logger factory |
@@ -312,7 +314,19 @@ Then per run:
 Arguments given to `cloud_train.sh` are parsed by the same public
 `run_stablewm_train.py` entry used outside the cloud. Prefer the typed `CW_*`
 variables; an uncommon upstream Hydra setting can be passed with a repeated
-`--override KEY=VALUE` option.
+`--override KEY=VALUE` option. In the cloud GUI, put the same strings in
+`CW_OVERRIDES`, for example `["encoder_scale=base","model.predictor.depth=9"]`,
+and set `CW_EMBED_DIM=768` for this LeWM/PLDM encoder. Explicit command-line
+`--override` values follow the environment values and take precedence. Model
+size changes require a compatible initialization checkpoint, or a fresh run
+with `CW_INIT_CHECKPOINT` omitted; use a distinct `CW_TRAINING_TRACK`.
+
+With the standard PushT action width (5 × 2), this configuration increases
+LeWM from 18.03M to 182.98M parameters and PLDM from 18.24M to 183.78M
+(including its inverse-dynamics head). It changes ViT-Tiny to ViT-Base,
+representation width 192 to 768, and predictor depth 6 to 9. Compare against
+the same task/data mixture and training exposure; equal epochs do not imply
+equal compute. Other model families may require different upstream keys.
 
 For a `ContextWorld-v3-hf` training view, the launcher uses the multiprocessing
 `spawn` method and defaults to two workers in each DDP process. Worker counts
