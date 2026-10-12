@@ -93,6 +93,14 @@ def initialize_and_freeze(model, checkpoint, scope):
     return frozen, {name: tensor_hash(module) for name, module in frozen.items()}
 
 
+def apply_training_seed(cfg, seed):
+    """Override training RNG without changing the pinned T0 identity."""
+    reference_seed = int(cfg.seed)
+    if seed is not None:
+        cfg.seed = int(seed)
+    return reference_seed
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--reference-run", type=Path, required=True)
@@ -100,6 +108,7 @@ def main():
     parser.add_argument("--output-root", type=Path, required=True)
     parser.add_argument("--run-name", required=True)
     parser.add_argument("--freeze-scope", choices=("encoder", "visual"), required=True)
+    parser.add_argument("--seed", type=int, help="training RNG seed; T0 checkpoint remains pinned by the reference identity")
     parser.add_argument("--smoke-max-steps", type=int)
     parser.add_argument("--devices", type=int)
     args = parser.parse_args()
@@ -146,6 +155,7 @@ def main():
     from lightning.pytorch.loggers import CSVLogger
     from omegaconf import OmegaConf
     cfg = OmegaConf.create(mapped(json.loads(config_file.read_text())))
+    reference_seed = apply_training_seed(cfg, args.seed)
     cfg.subdir = args.run_name
     cfg.output_model_name = args.run_name
     cfg.logger_backend = "csv"
@@ -169,8 +179,9 @@ def main():
                   "native_entry_sha256": sha256(repo / "scripts/train/lewm.py"),
                   "runner_sha256": sha256(Path(__file__).resolve()),
                   "full_t0_checkpoint": str(t0), "full_t0_sha256": sha256(t0),
+                  "reference_training_seed": reference_seed, "training_seed": int(cfg.seed),
                   "freeze_scope": args.freeze_scope, "frozen_modules": ["encoder"] if args.freeze_scope == "encoder" else ["encoder", "projector"],
-                  "changes_from_T3": ["T0 visual freeze scope", "local CSV logger", "new output path"] + (["smoke max_steps"] if args.smoke_max_steps else []) + (["device count"] if args.devices is not None else []),
+                  "changes_from_T3": ["T0 visual freeze scope", "local CSV logger", "new output path"] + (["training seed"] if int(cfg.seed) != reference_seed else []) + (["smoke max_steps"] if args.smoke_max_steps else []) + (["device count"] if args.devices is not None else []),
                   "smoke_max_steps": args.smoke_max_steps, "devices_override": args.devices}
         (run_dir / "recipe.json").write_text(json.dumps(recipe, indent=2) + "\n")
     spec = importlib.util.spec_from_file_location("cw_native_lewm_fixed_visual", repo / "scripts/train/lewm.py")

@@ -1,0 +1,215 @@
+{
+  "schema": "contextworld.fixed_target_confirmation.v1",
+  "scope": "Two-task confirmation of learning conditional responses without updating the original visual target representation; separate from frozen v3 and the nine-task Development study.",
+  "frozen_utc": "2026-10-12T02:08:55.332507+00:00",
+  "code_revision": "d540f81f50389a21ee22bedea0090b60e6ef9d82",
+  "selection_policy": "Contact Friction and Robot Arm Mass selected from Development; use prespecified final epoch10, all256 Public Test pairs per task and all completed planned seeds; report all outcomes without capability gating. No method or checkpoint selection from these Test results.",
+  "public_test_history": "These are existing public benchmark Test datasets used in historical baseline reporting, not a newly sealed or never-accessed holdout. No Test rows for this confirmation were opened before this selection file was written.",
+  "training": {
+    "seeds": [
+      3072,
+      3073,
+      3074
+    ],
+    "repeat_seeds": [
+      3073,
+      3074
+    ],
+    "max_epochs": 10,
+    "world_size": 8,
+    "batch_size_per_rank": 128,
+    "accumulate_grad_batches": 1,
+    "initialization": "same full original-environment T0 seed3073 for all second-stage seeds",
+    "frozen_modules": [
+      "encoder",
+      "projector"
+    ],
+    "trainable_modules": [
+      "action_encoder",
+      "predictor",
+      "pred_proj"
+    ],
+    "mixture": {
+      "original": 0.5,
+      "synthetic": 0.5
+    },
+    "objective": "unchanged native LeWM objective",
+    "checkpoint_selection": "weights_epoch_10.pt only"
+  },
+  "evaluation": {
+    "splits": [
+      "test"
+    ],
+    "pairs_per_task": 256,
+    "physical_steps_after_query": 5,
+    "history_frames": 3,
+    "raw_actions_per_block": 5,
+    "history_control": "swap paired history observations and past actions; keep current pixels and query actions fixed",
+    "metrics": [
+      "response_nre",
+      "full_error_over_B",
+      "history_benefit_over_B"
+    ],
+    "denominator": "B is the paired true-target conditional-mean error, an oracle diagnostic reference, not an executable no-history model",
+    "target_space": "exact T0 encoder+projector for baseline and every candidate;207 parameters/buffers identical",
+    "bootstrap": {
+      "unit": "source_group",
+      "resamples": 2000,
+      "seed": 20261010,
+      "coverage": 0.95,
+      "scope": "scene sampling conditional on each trained checkpoint; not training uncertainty"
+    },
+    "model_updates": false,
+    "fit_readouts": false,
+    "decision_rule": "report continuous effect sizes and paired scene intervals, no success gate"
+  },
+  "claims_to_check": [
+    "Held-out conditional response error decreases with native second-stage training at fixed target representation.",
+    "Matched history improves predictions relative to paired wrong-history input.",
+    "Complete prediction error may remain above B despite those gains; report this independently."
+  ],
+  "out_of_scope": [
+    "Nine-task final Test leaderboard",
+    "universal superiority of freezing",
+    "unique causal bottleneck",
+    "physical reconstruction accuracy",
+    "multistep or CEM gains",
+    "variance over T0 pretraining seeds"
+  ],
+  "paths": {
+    "models": "/tmp/cw-icl-validity-20261007/models.json",
+    "panels": "/tmp/cw-fixed-target-confirmation-v1/panels",
+    "results_root": "/tmp/cw-fixed-target-confirmation-v1/results",
+    "repeat_root": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/lewm-fixed-target-confirmation-v1"
+  },
+  "source": {
+    "root": "/opt/huawei/explorer-env/dataset/ag_data/data/world_model/ContextWorld-v1-full",
+    "manifest_sha256": "81eb29d8eeaefb91750187831b9120b9241c78b4903047cd4b720a186c7f6d97",
+    "registry_sha256": "26b78ae7d3bbaa2c170080bc1eb8791582a9183e7d606322aaf6bae1b01dcbdd"
+  },
+  "code_sha256": {
+    "scripts/evaluate_fixed_target_control.py": "57c20b29ed214df76304f77c2a0b7a4cadad7a5d585f5cc6f8ea450961ec5dc8",
+    "scripts/build_fixed_target_test_panel.py": "fb5034c7079f77d6229775e1df6e34badc15d814e7ace51b7a6b0e8cdfd10edc",
+    "scripts/run_lewm_fixed_visual_native_v1.py": "511ba5483aa83200c4e43ade82e8969c22e201fdb1e85ae255f024e4461a4448",
+    "scripts/fixed_visual_bootstrap/sitecustomize.py": "f72dc63fe5fff477c566db9fe0fd5044323a72b233b4a3926b17cef9131cb125",
+    "scripts/diagnose_task_history_readout.py": "9498947f33d7c7d8b9ad84bad048d8f9eab3640e37c797c2255b02a863ca4ff5",
+    "scripts/multistep_prediction_score.py": "1c74fc3a631f233186d84c37eb5c8e84d3ed37ec2c2b3b0d06067d32091591fa"
+  },
+  "tasks": {
+    "contact_friction": {
+      "reference_run": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/lewm-contextworld-v1/checkpoints/contact_friction_lewm_encoder_frozen_v1_s3072",
+      "reference_config_sha256": "107308d373f8d80c5be1f0bc08045df9043f1a571a34fb9d326f13be8f7aae80",
+      "stablewm_repo": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/lewm-contextworld-v1/.contextworld/stable-worldmodel/1763bc582fc8ebb2f157859abbee979543dec1d1",
+      "stable_ref": "1763bc582fc8ebb2f157859abbee979543dec1d1",
+      "baseline_checkpoint": "/opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-pusht/ckpt/pusht_lewm_baseline_seed3073/pusht_lewm_baseline_seed3073_weights.ckpt",
+      "baseline_sha256": "9f13b2c28bb909338047e08d62bf6eb16ea3616cb53e57cfa9b5072b43db1c59",
+      "completed_checkpoint": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/lewm-fixed-target-control-v1/checkpoints/contact_friction_lewm_fixed_target_v1_s3072/weights_epoch_10.pt",
+      "completed_checkpoint_sha256": "013583fccfce808e710ce19470071b1fa9f58a93b063ad8abe6b192fed104511",
+      "development_result_sha256": "4397c55b48c06f408f4119a871a4b6fc22d780de4ec1718707f74b060ebc6907",
+      "normalization_manifest": "/tmp/cw-cross-task-mechanism-20261010/native/contact_friction/manifest.json",
+      "normalization_manifest_sha256": "47b389da0cc615aa2ed3a82f2c80d20c67d4ae7a83a60c30abfe3f95e82ab14b",
+      "normalization": {
+        "mean": [
+          -0.007812564261257648,
+          0.006860687397420406
+        ],
+        "source": "original_pusht_h5_population_zscore",
+        "std": [
+          0.20846743881702423,
+          0.2067486196756363
+        ],
+        "std_estimator": "population",
+        "transform": "zscore"
+      },
+      "expected_optimizer_steps": 34830,
+      "test_payload": "artifacts/synthesis/pusht_contact_friction_h3_release_v3/validation.lance",
+      "test_files": [
+        {
+          "bytes": 870,
+          "component": "contact_friction",
+          "path": "artifacts/synthesis/pusht_contact_friction_h3_release_v3/validation.lance/_transactions/0-04932a6d-500a-4d8e-b220-5a67a7e24031.txn",
+          "role": "dataset_payload",
+          "sha256": "8e8c29b5e0fb68717d1806119bad141957e7490a8e4390fc1acb7459186e23e4",
+          "source_logical_path": "synthesis/pusht_contact_friction_h3_release_v3/validation.lance/_transactions/0-04932a6d-500a-4d8e-b220-5a67a7e24031.txn",
+          "split": "test"
+        },
+        {
+          "bytes": 1817,
+          "component": "contact_friction",
+          "path": "artifacts/synthesis/pusht_contact_friction_h3_release_v3/validation.lance/_versions/18446744073709551614.manifest",
+          "role": "dataset_payload",
+          "sha256": "5e91c768ba8f62987d711d437859bd2023d05754014e82d0c9131e245774ebc5",
+          "source_logical_path": "synthesis/pusht_contact_friction_h3_release_v3/validation.lance/_versions/18446744073709551614.manifest",
+          "split": "test"
+        },
+        {
+          "bytes": 28202266,
+          "component": "contact_friction",
+          "path": "artifacts/synthesis/pusht_contact_friction_h3_release_v3/validation.lance/data/1100011011000011110110118e2d2e408996596576493b3934.lance",
+          "role": "dataset_payload",
+          "sha256": "6719657f2c68e14ce02a89ea1758ab67b6983f4a218c19402e91e33309b324ee",
+          "source_logical_path": "synthesis/pusht_contact_friction_h3_release_v3/validation.lance/data/1100011011000011110110118e2d2e408996596576493b3934.lance",
+          "split": "test"
+        }
+      ]
+    },
+    "robot_arm_mass": {
+      "reference_run": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/lewm-contextworld-v1/checkpoints/robot_arm_mass_lewm_encoder_frozen_v1_s3072",
+      "reference_config_sha256": "2023a82ecd565c658596763873a5b43810276001e343c80fe0a20ccc35305764",
+      "stablewm_repo": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/lewm-contextworld-v1/.contextworld/stable-worldmodel/1763bc582fc8ebb2f157859abbee979543dec1d1",
+      "stable_ref": "1763bc582fc8ebb2f157859abbee979543dec1d1",
+      "baseline_checkpoint": "/opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-reacher/ckpt/reacher_lewm_baseline_seed3073/reacher_lewm_baseline_seed3073_weights.ckpt",
+      "baseline_sha256": "105b5f5890637cfee0bc5ef7a2db00808f718be375f425a6619e43843b290135",
+      "completed_checkpoint": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/lewm-fixed-target-control-v1/checkpoints/robot_arm_mass_lewm_fixed_target_v1_s3072/weights_epoch_10.pt",
+      "completed_checkpoint_sha256": "f06e0c8c78533c076f59d139317254e03fd20eb5e0d261ff3700fe13b719f82b",
+      "development_result_sha256": "d132ab067f54197c94961d7315e296230bf5229ab73dce185600c7db2c288f1e",
+      "normalization_manifest": "/tmp/cw-cross-task-mechanism-20261010/native/robot_arm_mass/manifest.json",
+      "normalization_manifest_sha256": "da586e1cffe0524a6118e029ac34ebde0d776a86e315c6ffcf90e7f337a57e06",
+      "normalization": {
+        "mean": [
+          3.5727661713243504e-05,
+          -0.0005056222437278677
+        ],
+        "source": "original_reacher_h5_finite_actions_population_zscore",
+        "std": [
+          0.5774140806845414,
+          0.577182679325366
+        ],
+        "std_estimator": "population",
+        "transform": "zscore"
+      },
+      "expected_optimizer_steps": 31990,
+      "test_payload": "artifacts/synthesis/reacher_robot_arm_mass_h3_release_v1/validation.lance",
+      "test_files": [
+        {
+          "bytes": 703,
+          "component": "robot_arm_mass",
+          "path": "artifacts/synthesis/reacher_robot_arm_mass_h3_release_v1/validation.lance/_transactions/0-82e78d9d-e5a7-40a1-a5fb-043f51c6c757.txn",
+          "role": "dataset_payload",
+          "sha256": "198b5719169153c14a474e52aa33113f0c8d344bb282b5696f42ac922b438aaf",
+          "source_logical_path": "synthesis/reacher_robot_arm_mass_h3_release_v1/validation.lance/_transactions/0-82e78d9d-e5a7-40a1-a5fb-043f51c6c757.txn",
+          "split": "test"
+        },
+        {
+          "bytes": 1483,
+          "component": "robot_arm_mass",
+          "path": "artifacts/synthesis/reacher_robot_arm_mass_h3_release_v1/validation.lance/_versions/18446744073709551614.manifest",
+          "role": "dataset_payload",
+          "sha256": "3ee52603d5443cb05c017a3d85a0bf2bcd25ce62c9d93126d3c7e56dbbc5d951",
+          "source_logical_path": "synthesis/reacher_robot_arm_mass_h3_release_v1/validation.lance/_versions/18446744073709551614.manifest",
+          "split": "test"
+        },
+        {
+          "bytes": 91314847,
+          "component": "robot_arm_mass",
+          "path": "artifacts/synthesis/reacher_robot_arm_mass_h3_release_v1/validation.lance/data/0100111111011110001010115a2d4f48d19b352463670517bb.lance",
+          "role": "dataset_payload",
+          "sha256": "9503306daf030d681889a6f7f4b66a1f65f2f9fd81a517d5a5440f3893f5d3f4",
+          "source_logical_path": "synthesis/reacher_robot_arm_mass_h3_release_v1/validation.lance/data/0100111111011110001010115a2d4f48d19b352463670517bb.lance",
+          "split": "test"
+        }
+      ]
+    }
+  },
+  "models_sha256": "72761142a741abea66de083eefbac8d03fce3d8249db128cd274afbb20a08189"
+}

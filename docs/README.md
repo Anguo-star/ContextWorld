@@ -41,10 +41,8 @@
 - `archive/`：已经结束的实验阶段材料；
 - `reference/`：第三方工程、运行环境和结果来源说明。
 
-这些材料用于复核已报告结果。历史 v3 的 Training / Development 来源为 `ContextWorld-v1`，
-Test 来源为 `ContextWorld-v1-full`；`ContextWorld-v3-hf` 是汇集这些冻结来源的发布候选。
-**当前训练比较的六项配对任务采用扩量 Training，其余三项沿用基础版；Development / Test 固定。**
-具体规模以技术报告为准，扩量包的发布准备见下文，不将当前结果重新标为历史 v3。
+这些材料用于复核已报告结果。冻结 v3、当前 Development 训练研究及扩量包计划的
+证据范围和发布状态见[主报告的状态表](ContextWorld_ICL_Benchmark.md#8-可复现性与结果报告)。
 
 ## 仓库维护与发布
 
@@ -52,8 +50,8 @@ Test 来源为 `ContextWorld-v1-full`；`ContextWorld-v3-hf` 是汇集这些冻�
 文件校验和上传后固定 revision 的下载验证。独立外部复现与新增模型覆盖单独维护，
 不修改已冻结的历史基线。
 
-Training、Development 和 Test 已在本地组装为发布候选，但稳定公共下载地址与固定 revision 尚未公布。
-仓库中的汇总结果可供检查；缺少公开面板和权重，当前无法端到端复跑。Test 使用离线评分入口作最终报告。
+v3 数据已在本地组装为发布候选；扩量包目前只有元数据清单，尚未完成整包验证。
+两者均未上传 HF，缺少公共固定 revision 和公开权重，当前无法从公开材料端到端复跑。
 
 扩量训练数据的打包与发布准备见[发布说明](Expanded_Training_Release.md)。研究结果仍以统一技术报告为准。
 

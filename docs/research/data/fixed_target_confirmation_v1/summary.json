@@ -1,0 +1,204 @@
+{
+  "schema": "contextworld.fixed_target_confirmation_summary.v1",
+  "protocol": "/opt/huawei/explorer-env/dataset/ag_data/code/ContextWorld/configs/benchmark/fixed_target_confirmation_v1.json",
+  "protocol_sha256": "60edf101d40a2f4cdb337439a1704bde858f69ac866fc4f36471068d4558c797",
+  "scope": "fixed-target native one-step Test, 256 pairs per task; available seeds only",
+  "queue": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/lewm-fixed-target-confirmation-v1/queue_status.json",
+  "queue_status": "running",
+  "tasks": {
+    "contact_friction": {
+      "planned_seeds": [
+        3072,
+        3073,
+        3074
+      ],
+      "available_seeds": [
+        3072
+      ],
+      "missing": [
+        {
+          "seed": 3073,
+          "status": "training",
+          "result": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/lewm-fixed-target-confirmation-v1/checkpoints/contact_friction_lewm_fixed_target_v1_s3073/fixed_target_eval/epoch_10_test/result.json"
+        },
+        {
+          "seed": 3074,
+          "status": "not_started",
+          "result": null
+        }
+      ],
+      "n": 1,
+      "results": [
+        {
+          "seed": 3072,
+          "result": "/tmp/cw-fixed-target-confirmation-v1/results/contact_friction/s3072/result.json",
+          "checkpoint": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/lewm-fixed-target-control-v1/checkpoints/contact_friction_lewm_fixed_target_v1_s3072/weights_epoch_10.pt",
+          "checkpoint_sha256": "013583fccfce808e710ce19470071b1fa9f58a93b063ad8abe6b192fed104511",
+          "panel_manifest_sha256": "a89f2fb9e22a40145c7e18ead00289e613a074c98475418050fe71fdba7893ce",
+          "panel_sha256": "7df2e7e05f01ede72f90091e292537f31e720f44818b5f0fe76f9943e88113af",
+          "metrics": {
+            "nre_t0": 0.9978723242482467,
+            "nre_after": 0.54708653867259,
+            "eb_t0": 15.549856128260778,
+            "eb_after": 2.7418083867757237,
+            "g_t0": 0.010602213684634447,
+            "g_after": 1.7066139256133024
+          },
+          "within_seed_paired_ci95": {
+            "nre": {
+              "delta": -0.4507857855756566,
+              "ci95": [
+                -0.4777252927154912,
+                -0.4250981298983519
+              ],
+              "source_groups": 256,
+              "resamples": 2000
+            },
+            "eb": {
+              "delta": -12.808047741485053,
+              "ci95": [
+                -13.677547257706221,
+                -11.994151312268787
+              ],
+              "source_groups": 256,
+              "resamples": 2000
+            },
+            "g": {
+              "delta": 1.696011711928668,
+              "ci95": [
+                1.612087890381944,
+                1.7920439846416627
+              ],
+              "source_groups": 256,
+              "resamples": 2000
+            }
+          },
+          "result_sha256": "7d55b503e6e9b4dc03b752e2370513e78b66f37c5a4b61e5ed92b64bb6a2f228"
+        }
+      ],
+      "aggregate": {
+        "nre_t0": {
+          "mean": 0.9978723242482467,
+          "seed_std": null
+        },
+        "nre_after": {
+          "mean": 0.54708653867259,
+          "seed_std": null
+        },
+        "eb_t0": {
+          "mean": 15.549856128260778,
+          "seed_std": null
+        },
+        "eb_after": {
+          "mean": 2.7418083867757237,
+          "seed_std": null
+        },
+        "g_t0": {
+          "mean": 0.010602213684634447,
+          "seed_std": null
+        },
+        "g_after": {
+          "mean": 1.7066139256133024,
+          "seed_std": null
+        }
+      }
+    },
+    "robot_arm_mass": {
+      "planned_seeds": [
+        3072,
+        3073,
+        3074
+      ],
+      "available_seeds": [
+        3072
+      ],
+      "missing": [
+        {
+          "seed": 3073,
+          "status": "not_started",
+          "result": null
+        },
+        {
+          "seed": 3074,
+          "status": "not_started",
+          "result": null
+        }
+      ],
+      "n": 1,
+      "results": [
+        {
+          "seed": 3072,
+          "result": "/tmp/cw-fixed-target-confirmation-v1/results/robot_arm_mass/s3072/result.json",
+          "checkpoint": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/lewm-fixed-target-control-v1/checkpoints/robot_arm_mass_lewm_fixed_target_v1_s3072/weights_epoch_10.pt",
+          "checkpoint_sha256": "f06e0c8c78533c076f59d139317254e03fd20eb5e0d261ff3700fe13b719f82b",
+          "panel_manifest_sha256": "462a16b4fbb76d8f45738ae4d9c7b42a885f5f21da2124e3a052f529fbbf53fe",
+          "panel_sha256": "98523d90f648741bc30632fb33d96385b1412b6c896e8ca0b8af91c47f7f4d2c",
+          "metrics": {
+            "nre_t0": 0.9782034582468917,
+            "nre_after": 0.4762903294167508,
+            "eb_t0": 1200.4854784519578,
+            "eb_after": 2.664411665819007,
+            "g_t0": 0.04623634158115221,
+            "g_after": 1.7719908627195582
+          },
+          "within_seed_paired_ci95": {
+            "nre": {
+              "delta": -0.5019131288301407,
+              "ci95": [
+                -0.5307817540598061,
+                -0.47061531072617935
+              ],
+              "source_groups": 256,
+              "resamples": 2000
+            },
+            "eb": {
+              "delta": -1197.8210667861388,
+              "ci95": [
+                -1338.476211194437,
+                -1075.9859702020199
+              ],
+              "source_groups": 256,
+              "resamples": 2000
+            },
+            "g": {
+              "delta": 1.725754521138406,
+              "ci95": [
+                1.6061547301434762,
+                1.8356682142042502
+              ],
+              "source_groups": 256,
+              "resamples": 2000
+            }
+          },
+          "result_sha256": "442768cb9ec980edf65af3cedacbc3d5871f7fc782ad9a4d11b88675c9d7f60a"
+        }
+      ],
+      "aggregate": {
+        "nre_t0": {
+          "mean": 0.9782034582468917,
+          "seed_std": null
+        },
+        "nre_after": {
+          "mean": 0.4762903294167508,
+          "seed_std": null
+        },
+        "eb_t0": {
+          "mean": 1200.4854784519578,
+          "seed_std": null
+        },
+        "eb_after": {
+          "mean": 2.664411665819007,
+          "seed_std": null
+        },
+        "g_t0": {
+          "mean": 0.04623634158115221,
+          "seed_std": null
+        },
+        "g_after": {
+          "mean": 1.7719908627195582,
+          "seed_std": null
+        }
+      }
+    }
+  }
+}

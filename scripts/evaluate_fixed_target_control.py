@@ -16,6 +16,8 @@ import numpy as np
 CW = Path(__file__).resolve().parents[1]
 TASKS = ('contact_friction', 'robot_arm_mass')
 SEED = 20261010
+DEFAULT_SPLITS = ('training', 'development')
+AVAILABLE_SPLITS = (*DEFAULT_SPLITS, 'test')
 
 
 def sha(path):
@@ -141,7 +143,7 @@ def worker(args, spec, manifest):
     adapter = helper.load_adapter(spec, manifest['normalization'], args.output / '_model_cache', args.device)
     adapter.model.eval()
     before = adapter.frozen_state_hash()
-    for split in ('training', 'development'):
+    for split in args.splits:
         entry = manifest['splits'][split]
         data = read_panel(Path(args.panels) / args.task / entry['path'], entry['sha256'])
         order = pair_order(data)
@@ -215,8 +217,11 @@ def main():
     p.add_argument('--models', type=Path, default=Path('/tmp/cw-icl-validity-20261007/models.json'))
     p.add_argument('--panels', type=Path, default=Path('/tmp/cw-cross-task-mechanism-20261010/native'))
     p.add_argument('--device', default='cuda:0')
+    p.add_argument('--splits', nargs='+', choices=AVAILABLE_SPLITS, default=DEFAULT_SPLITS,
+                   help='Panel splits to evaluate (default: training development).')
     p.add_argument('--role', choices=('t0', 'new'), help=argparse.SUPPRESS)
     args = p.parse_args()
+    assert len(args.splits) == len(set(args.splits)), 'duplicate split requested'
     args.output.mkdir(parents=True, exist_ok=True)
     manifest_path = args.panels / args.task / 'manifest.json'
     manifest = json.loads(manifest_path.read_text())
@@ -232,13 +237,14 @@ def main():
     for role in ('t0', 'new'):
         command = [sys.executable, str(Path(__file__).resolve()), '--task', args.task, '--checkpoint', str(args.checkpoint),
                    '--stablewm-repo', str(args.stablewm_repo), '--stable-ref', args.stable_ref, '--output', str(args.output),
-                   '--models', str(args.models), '--panels', str(args.panels), '--device', args.device, '--role', role]
+                   '--models', str(args.models), '--panels', str(args.panels), '--device', args.device,
+                   '--splits', *args.splits, '--role', role]
         subprocess.run(command, check=True)
     result = {'schema': 'contextworld.fixed_target_control.v1', 'task': args.task, 't0_checkpoint_sha256': t0['checkpoint_sha256'],
               'new_checkpoint_sha256': new['checkpoint_sha256'], 'stable_ref': args.stable_ref, 'visual_identity': visual,
               'panel_manifest_sha256': sha(manifest_path), 'splits': {}, 'fixed_target': 'T0 original/s3073 encoder plus projector; float32 latent equality required',
-              'no_fitting': True, 'no_test_read': True}
-    for split in ('training', 'development'):
+              'no_fitting': True, 'no_test_read': 'test' not in args.splits}
+    for split in args.splits:
         entry = manifest['splits'][split]
         data = read_panel(args.panels / args.task / entry['path'], entry['sha256'])
         baseline = load_worker(args.output / f'_t0_{split}.npz')

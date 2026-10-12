@@ -878,7 +878,7 @@ python scripts/analyze_conditional_map.py --source "$RESULTS" --models "$MODELS"
 | 更新模块 | 动作编码器、预测器与预测输出投影；保留其原生训练模式 |
 | 数据与预算 | 对应 T3 的 32k Training 数据，原环境／合成数据 50%／50%；8 GPU、每卡 batch 128、累积 1、10 epochs、种子 3072 |
 | 训练目标 | 保存的 T3 原生配置及固定版本训练入口；不增加响应加权损失 |
-| 评价 | 固定的 512 对 Training 诊断查询与全部 256 对 Development 查询；不读取 Test |
+| 评价 | 学习曲线使用固定的 512 对 Training 查询与全部 256 对 Development 查询；最终 Test 另按下述固定方案报告 |
 
 执行入口从参考运行读取 `config.json` 与 `contextworld_training_identity_v1.json`，复用原生数据加载、损失、优化器和调度器。路径与日志输出独立设置；不覆盖已有权重。每轮记录实际优化步数，核对固定模块的参数和缓冲区始终等于 T0。短启动验证使用 `--smoke-max-steps`，其结果不算完整训练成绩。
 
@@ -901,6 +901,30 @@ python scripts/evaluate_fixed_target_control.py \
 ```
 
 另一任务使用 `robot_arm_mass`。Friction、Mass 的完整运行分别完成 34,830、31,990 次优化更新；每项保存点的评测均核对固定目标表示。汇总入口为 `scripts/analyze_fixed_target_control.py`，`--check` 核对发布的 JSON、CSV 和结果表。Training 诊断是固定子集，不代表全量训练误差；结果只说明当前表示、模型、数据及预算下能学到多少。此设计与[256 步响应加权干预](#response-intervention)的起点、目标和预算不同，不能合并为同一实验。
+
+<a id="fixed-target-confirmation"></a>
+
+### 固定终点的 Test 与训练重复
+
+[评价方案](../configs/benchmark/fixed_target_confirmation_v1.json)绑定两项任务的原环境初始化、已完成的最终检查点、参考训练配置、评分程序及 Test 来源文件身份。补充训练只改变第二阶段随机种子（3073／3074）；原环境 T0 权重、数据、10 epoch 预算和训练目标保持一致。`--seed` 不改变初始化权重；缺省时沿用参考配置的种子。
+
+Test 使用 `ContextWorld-v1-full` 注册的两张表，每任务保留全部 256 对，不重新合成、不按结果筛选。数据读取前验证所选 Lance 文件的大小与 SHA256；动作标准化沿用 Training 的统计量。历史图像取轨迹第 0／5／10 步，目标为第 15 步，即当前状态后 5 个物理步。交换历史图像及历史动作，保持当前图像和查询动作不变。评分与 Development 完全相同，模型状态与目标表示在评测前后保持不变。
+
+```bash
+python scripts/build_fixed_target_test_panel.py \
+  --task contact_friction --source /path/to/ContextWorld-v1-full \
+  --normalization-root /path/to/native_panels --output /path/to/test_panels
+
+python scripts/evaluate_fixed_target_control.py \
+  --task contact_friction --checkpoint /path/to/weights_epoch_10.pt \
+  --stablewm-repo /path/to/pinned_stable_worldmodel --stable-ref <ref> \
+  --models /path/to/models.json --panels /path/to/test_panels \
+  --splits test --device cuda:0 --output /path/to/test_result
+```
+
+另一任务使用 `robot_arm_mass`。`scripts/run_fixed_target_confirmation.py --protocol <protocol.json>`按固定配置依次执行补充训练和最终 Test，拒绝覆盖未完成运行。`scripts/summarize_fixed_target_confirmation.py --render-doc`汇总全部已完成重复，`--check --render-doc`核对发布表；命令中的本地权重、原始面板和模型清单需要另行提供，当前不等于已具备公开端到端下载复现。
+
+同一任务的 T0 是共用参照，不作为多个独立模型重复计数。训练后读数跨种子等权平均，报告样本标准差；每个种子的 95% 差值区间按来源组配对重采样 2,000 次，两种不确定性分别记录。Public Test 已用于历史基线，本次是预先选定新检查点的最终验证，不宣称全新密封测试，也不修改 v3 成绩。
 
 <a id="response-intervention"></a>
 

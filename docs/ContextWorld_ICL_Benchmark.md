@@ -338,7 +338,7 @@ LeWM / PLDM 在八项任务上的 T2 / T3 使用相同任务数据、混合比�
 
 这些是固定检查点上的能力差异与误差现象。[同初始化的 LeWM 四任务对照](ICL_Metric_Study.md#matched-encoder-contrast)显示：在这组 Development 对照中，T3 相比 T2 的 Friction、Cube、Strength 原生 latent 响应 NRE 降低，Mass 则升高；Friction 的多步完整误差并未随原协议主分一起改善。该对照固定了训练数据，但目标 projector 仍可训练，表示几何与预测器优化轨迹同时变化，不能归因于单一模块；详见[跨表示空间的核对](ICL_Metric_Study.md#conditional-map-boundary)。
 
-**固定目标空间的补充对照已观察到真实学习收益。** 在 LeWM 的 Friction 与 Mass 中，固定原环境模型的 Encoder 和目标 projector 后继续混合训练，Development 一步响应 NRE 分别由 1.004／0.980 降至 0.589／0.478，匹配历史收益同时增加。完整 E/B 仍为 2.818／2.531，说明条件响应改善尚不等于完整未来预测准确。这是第 5 个物理步的机制对照，不能替代多步或规划成绩，详见[固定表示结果](ICL_Metric_Study.md#fixed-target-training-results)。
+**固定目标空间的补充对照已观察到真实学习收益。** 在 LeWM 的 Friction 与 Mass 中，固定原环境模型的 Encoder 和目标 projector 后继续混合训练，Development 一步响应 NRE 分别由 1.004／0.980 降至 0.589／0.478，匹配历史收益同时增加。完整 E/B 仍为 2.818／2.531。固定终点的 Public Test 响应 NRE 为 0.547／0.476，呈现同方向改善，但完整 E/B 仍为 2.742／2.664；条件响应改善尚不等于完整未来预测准确。这是第 5 个物理步的机制对照，不能替代多步或规划成绩，详见[固定表示结果](ICL_Metric_Study.md#fixed-target-training-results)。
 
 ### 5.4 训练数据规模对照
 
@@ -468,6 +468,13 @@ python -m contextworld.benchmarks.external_model_cli \
 这是 Development 原协议入口，不会运行补充多步诊断或 CEM。[高级评测说明](Data_Generation.md#冻结权重评测与误差定位)提供逐检查点多步推演和误差定位命令；外部 Adapter 的多步反馈还需验证动作对齐。
 
 ## 8. 可复现性与结果报告
+
+| 范围 | 当前证据与状态 | 结果身份 |
+|---|---|---|
+| 冻结 v3 | 已完成的内部参考；Training / Development 来自 `ContextWorld-v1`，Test 来自 `ContextWorld-v1-full`。`ContextWorld-v3-hf` 已在本地组装并验证为发布候选。 | 固定结果与种子范围见[参考附录](reference/Benchmark_Result_Provenance.md)；不随扩量研究改写。 |
+| 扩量训练研究 | 六项任务采用扩量 Training，其余三项沿用基础 Training；Development / Test 面板固定。本文训练对照与补充多步结果为已测 Development 结果。 | 按[结果文件](research/data/icl_training_study_v2.json)记录实际任务、方案和训练重复；不继承 v3 的种子覆盖，也不是最终 Test 成绩。 |
+| 固定表示机制对照 | LeWM 的 Friction、Mass 已完成预先选定最终检查点的 Public Test；训练重复按实际完成情况单独汇总。 | 仅覆盖两任务、当前状态后第 5 个物理步；见[结果与范围](ICL_Metric_Study.md#fixed-target-training-results)。不表示九任务最新方案已完成 Test。 |
+| 扩量数据发布计划 | [当前清单](research/data/expanded_training_release_plan.json)仅核对元数据与来源；尚未完成文件逐字节验证、整包加载和公开发布。 | 不等同于 v3 已验证的本地候选。HF 尚未上传，公共固定 revision 未提供；见[发布准备](Expanded_Training_Release.md)。 |
 
 报告至少注明数据版本与划分、训练数据和比例、初始化、更新模块、训练预算、检查点及评测版本。表格与 CSV 从同一份 JSON 生成，检查点和数据哈希用于追溯来源；九任务结果按 §5.1 汇总全部可比训练重复。当前补充多步表含 136 个检查点×任务单元，汇总为 86 个模型／训练方案／任务组合；冻结权重与数据身份检查全部通过。缺少同协议检查点的组合保留为空，不补零。
 

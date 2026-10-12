@@ -651,7 +651,7 @@ Friction、Cube、Strength 的 T3 目标条件差异占比上升、响应 NRE �
 
 ### 4.11 不更新视觉表示，能否学到条件响应
 
-**可以获得明显收益，但完整 latent 预测误差仍高于条件均值参照。** LeWM 在 Friction、Mass 上固定 T0 的 Encoder 和目标 projector，仍通过混合数据训练降低了 Development 的条件响应误差；匹配历史也比错配历史更有用。因此，第二阶段更新视觉表示不是获得这些收益的必要条件。此结论只针对这两个任务与当前训练设置，不等于原始表示足以支持任意精度或多步规划。
+**可以获得明显收益，且在 Public Test 上得到同方向验证；完整 latent 预测误差仍高于条件均值参照。** LeWM 在 Friction、Mass 上固定 T0 的 Encoder 和目标 projector，仍通过混合数据训练降低了条件响应误差；匹配历史也比错配历史更有用。因此，第二阶段更新视觉表示不是获得这些收益的必要条件。此结论只针对这两个任务与当前训练设置，不等于原始表示足以支持任意精度或多步规划。
 
 每项实验从对应 T3 的同一 T0 全模型权重开始，沿用 32k Training、50% 原环境／50% 合成数据、原生目标与 10 epoch 预算。仅新增对目标 projector 的冻结；动作编码器、预测器和预测输出投影继续训练。Encoder／projector 的 207 个参数与缓冲区张量始终等于 T0，六次评测的同图目标编码均与 T0 一致。因此，以下训练前后比较使用同一目标空间，不经过跨空间映射。[方法](Data_Generation.md#fixed-target-training-control)说明完整配置与复现入口。
 
@@ -676,7 +676,22 @@ Friction、Cube、Strength 的 T3 目标条件差异占比上升、响应 NRE �
 
 **根因范围收窄。** 原始视觉表示并非完全没有可用条件信息，当前数据也包含能迁移的学习信号；下一步应解释固定表示下仍未拟合准确的部分，而非直接归因为“数据完全不可学”或“必须调整 Encoder”。这项实验没有单独改变容量、损失分配或数据覆盖，不能在三者中指定唯一根因；与 T2／T3 的不同目标空间也不能直接作物理精度排名。
 
-[结果 JSON](research/data/fixed_target_control_v1/summary.json)与[CSV](research/data/fixed_target_control_v1/summary.csv)保存 Training／Development 全部检查点、配对差值区间和来源。每任务是一个固定训练运行；95% 区间按 Development 来源组重采样，只描述场景抽样差异，不覆盖训练随机性。两项终点相对 T0 的响应误差、完整误差下降以及历史收益增长，其区间均不包含零。此次没有读取 Test，也没有测量多步自由递推或 CEM，不改写冻结 benchmark 成绩。
+[学习曲线 JSON](research/data/fixed_target_control_v1/summary.json)与[CSV](research/data/fixed_target_control_v1/summary.csv)保存 Training／Development 的三个检查点及配对差值区间。每任务曲线来自一个固定训练运行；来源组重采样区间描述场景抽样差异，不覆盖训练随机性。
+
+**最终检查点的 Public Test 验证。** [固定评价方案](../configs/benchmark/fixed_target_confirmation_v1.json)在本次读取 Test 之前确定两项任务、第 10 epoch 终点、全部 256 对查询以及训练种子 3072／3073／3074。不从 Test 挑选任务、检查点或样本，也不按能力门槛排除低分。表中只汇总已经完成训练和评测的重复；其余重复未完成时不计入。所有第二阶段训练共用对应任务的同一份 T0 权重，因此这里检验第二阶段训练随机性，不覆盖原环境预训练随机性。
+
+<!-- BEGIN FIXED_TARGET_CONFIRMATION -->
+| 任务 | 训练种子 n | 响应 NRE ↓ T0→训练后 | 完整 E/B ↓ T0→训练后 | 历史收益 G ↑ 训练后 |
+|---|---:|---:|---:|---:|
+| 接触摩擦 | 1 | 0.998 → 0.547 | 15.550 → 2.742 | 1.707 |
+| 机械臂质量 | 1 | 0.978 → 0.476 | 1200.485 → 2.664 | 1.772 |
+
+T0 是各训练种子共用的固定基线，只显示一次；训练后 ± 为训练种子间样本标准差（仅 n>1）。逐种子配对来源组 bootstrap 区间单独保存在 [JSON](research/data/fixed_target_confirmation_v1/summary.json)，不表示训练重复间变异。缺少的种子不补零。
+<!-- END FIXED_TARGET_CONFIRMATION -->
+
+两任务的 Test 响应误差下降、完整误差下降和历史收益增长，与 Development 的方向一致；已完成运行的来源组配对 95% 区间均不包含零。但训练后的 E/B 仍大于 1，故支持的结论是“固定表示下可以学到可迁移的条件响应”，并非“完整预测已经准确”。Test 是已有公共划分，历史参考模型曾在其上报告结果，不能称为新建的密封盲测集。该对照只测当前状态后第 5 个物理步，不覆盖多步递推或 CEM，不替代九任务最终 Test 表。
+
+[Test 结果 JSON](research/data/fixed_target_confirmation_v1/summary.json)与[CSV](research/data/fixed_target_confirmation_v1/summary.csv)记录实际完成的训练重复、全部计划重复及配对区间；复现步骤见[数据与评价方法](Data_Generation.md#fixed-target-confirmation)。
 
 <a id="physical-readout-methods"></a>
 

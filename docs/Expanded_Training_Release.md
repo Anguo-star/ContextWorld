@@ -14,11 +14,11 @@ Task definitions, training regimes, and scientific interpretation are maintained
 | Robot Arm Mass | 32,768 pairs |
 | Cube Gripper Carry | 10,000 pairs from 10,000 independent source episodes |
 | Portal Exit | 32,768 pairs with expanded physical coverage |
-| Speed | Inherited v3 data |
-| Action Delay | Inherited v3 data |
-| Door | Inherited v3 data |
+| Speed | Reused frozen-source Training data |
+| Action Delay | Reused frozen-source Training data |
+| Door | Reused frozen-source Training data |
 
-Counts measure different sampling units and should not be treated as equal numbers of independent episodes. Coverage definitions are in the technical report. Development and Test are inherited from frozen sources, not regenerated alongside expanded Training data. Existing v3 results remain attached to v3 and must not be relabeled as results from expanded Training data.
+Counts measure different sampling units and should not be treated as equal numbers of independent episodes. Coverage definitions are in the technical report. Development and Test reuse frozen-source files; they are not regenerated alongside expanded Training data. Reusing files does not inherit v3 result seeds, completeness, or release validation. See the [scope and status table](ContextWorld_ICL_Benchmark.md#8-可复现性与结果报告).
 
 ## Proposed Hugging Face layout
 

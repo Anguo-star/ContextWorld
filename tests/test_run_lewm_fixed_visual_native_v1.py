@@ -62,3 +62,19 @@ def test_old_prefix_inside_dataset_uri_is_mapped():
     decoded = json.loads(urlsafe_b64decode(encoded + "=" * (-len(encoded) % 4)))
     assert decoded["root"].startswith(RUNNER.LOCAL)
     assert decoded["original_dataset"].startswith(RUNNER.LOCAL)
+
+
+def test_training_seed_override_changes_only_seed():
+    from omegaconf import OmegaConf
+
+    reference = OmegaConf.create({"seed": 3072, "trainer": {"max_epochs": 10, "devices": "auto"},
+                                  "loader": {"batch_size": 128},
+                                  "optimizer": {"type": "AdamW", "lr": 5e-5}})
+    for seed in (None, 3073, 3074):
+        cfg = OmegaConf.create(OmegaConf.to_container(reference))
+        original_seed = RUNNER.apply_training_seed(cfg, seed)
+        assert original_seed == 3072
+        assert int(cfg.seed) == (3072 if seed is None else seed)
+        expected = OmegaConf.to_container(reference)
+        expected["seed"] = 3072 if seed is None else seed
+        assert OmegaConf.to_container(cfg) == expected
