@@ -1,0 +1,323 @@
+{
+  "schema": "contextworld.pldm_t2_t3_matched_training_identity.v1",
+  "sources": {
+    "training_study": "/opt/huawei/explorer-env/dataset/ag_data/code/ContextWorld/docs/research/data/icl_training_study_v2.json",
+    "training_study_sha256": "4c9fa5824b8663192ed41e01bb80383fbd069d1b5d89ba173ac39865463885de",
+    "run_files": "Each record identity_path and config_path"
+  },
+  "records": [
+    {
+      "id": "contact_friction/pldm/joint/s3072",
+      "run_dir": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/pldm-contextworld-v1/checkpoints/contact_friction_pldm_num32k_v1_warmstart3073_s3072",
+      "checkpoint": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/pldm-contextworld-v1/checkpoints/contact_friction_pldm_num32k_v1_warmstart3073_s3072/weights_epoch_10.pt",
+      "checkpoint_sha256": "49d95172e823ee185f6da1adaa5b294ca9bb1b7a711669761234d4cff5e2d2c1",
+      "checkpoint_sha256_verified": true,
+      "training_study_checkpoint_sha256": "49d95172e823ee185f6da1adaa5b294ca9bb1b7a711669761234d4cff5e2d2c1",
+      "init_weights_sha256": "8227ebb275f1a7ce0348b863b87b5c1fc534068eced1e352c060738d3c96dc04",
+      "initialization_semantics": "model_weights_only_fresh_optimizer",
+      "training_dataset_manifest_sha256": "0fd65ad420367d1e3bd00ac0a9bee75f512ad7ee286e31fab34e43c1ee61f9bf",
+      "training_dataset_id": "pusht-contact-friction",
+      "training_dataset_root": "/opt/huawei/dataset/ag_data/data/world_model/ContextWorld-contact-friction-32k-v1",
+      "training_pair_count": 32768,
+      "mix_weights": {
+        "original": 0.5,
+        "synthetic": 0.5
+      },
+      "seed": 3072,
+      "epochs": 10,
+      "train_split": 0.9,
+      "batch_size": 128,
+      "drop_last": true,
+      "accumulate_grad_batches": 1,
+      "optimizer": {
+        "type": "AdamW",
+        "lr": 5e-05,
+        "weight_decay": 0.001
+      },
+      "precision": "bf16",
+      "gradient_clip_val": 1.0,
+      "history_size": 3,
+      "num_preds": 1,
+      "frameskip": 5,
+      "model_target": "stable_worldmodel.wm.pldm.pldm.PLDM",
+      "freeze_encoder": null,
+      "stablewm_source_sha256": "2083d9d83d475f50e50cc9c7e9fa4f7a2c1477fd44208e62223d1950e7de9038",
+      "training_entry_sha256": "af3db1a0076c1aedaa4e8143159010f15fdfa8cce8dcdcbdf50883b1b79942d3",
+      "initialization_implementation_sha256": "9c565f68e24b0a2caf612dd8469f53198a13c46667495e2bc682914d5c810a84",
+      "identity_path": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/pldm-contextworld-v1/checkpoints/contact_friction_pldm_num32k_v1_warmstart3073_s3072/contextworld_training_identity_v1.json",
+      "config_path": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/pldm-contextworld-v1/checkpoints/contact_friction_pldm_num32k_v1_warmstart3073_s3072/config.json",
+      "study_record_checks": {
+        "init_sha_match": true,
+        "manifest_sha_match": true,
+        "epochs_match": true,
+        "seed_match": true,
+        "history_match": true
+      }
+    },
+    {
+      "id": "contact_friction/pldm/frozen/s3072",
+      "run_dir": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/lewm-contextworld-v1/checkpoints/contact_friction_pldm_encoder_frozen_v1_s3072",
+      "checkpoint": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/lewm-contextworld-v1/checkpoints/contact_friction_pldm_encoder_frozen_v1_s3072/weights_epoch_10.pt",
+      "checkpoint_sha256": "9a9ee650ba7fd16ecaf9b4b04f94cc84e97d01fbaa94ac9c1d5008bd4585bfb4",
+      "checkpoint_sha256_verified": true,
+      "training_study_checkpoint_sha256": "9a9ee650ba7fd16ecaf9b4b04f94cc84e97d01fbaa94ac9c1d5008bd4585bfb4",
+      "init_weights_sha256": "8227ebb275f1a7ce0348b863b87b5c1fc534068eced1e352c060738d3c96dc04",
+      "initialization_semantics": "model_weights_only_fresh_optimizer",
+      "training_dataset_manifest_sha256": "0fd65ad420367d1e3bd00ac0a9bee75f512ad7ee286e31fab34e43c1ee61f9bf",
+      "training_dataset_id": "pusht-contact-friction",
+      "training_dataset_root": "/opt/huawei/dataset/ag_data/data/world_model/ContextWorld-contact-friction-32k-v1",
+      "training_pair_count": 32768,
+      "mix_weights": {
+        "original": 0.5,
+        "synthetic": 0.5
+      },
+      "seed": 3072,
+      "epochs": 10,
+      "train_split": 0.9,
+      "batch_size": 128,
+      "drop_last": true,
+      "accumulate_grad_batches": 1,
+      "optimizer": {
+        "type": "AdamW",
+        "lr": 5e-05,
+        "weight_decay": 0.001
+      },
+      "precision": "bf16",
+      "gradient_clip_val": 1.0,
+      "history_size": 3,
+      "num_preds": 1,
+      "frameskip": 5,
+      "model_target": "stable_worldmodel.wm.pldm.pldm.PLDM",
+      "freeze_encoder": {
+        "family": "pldm",
+        "implementation": {
+          "path": "/opt/huawei/dataset/ag_data/code/ContextWorld/contextworld/training/encoder_policy.py",
+          "sha256": "8ea5da32aee0a20ac9af3be190b2899c882fb544fc4fb561d3bf00418181f15e"
+        },
+        "modules": [
+          "encoder"
+        ],
+        "policy": "freeze_encoder_v1",
+        "semantics": "full_model_warmstart_encoder_only_frozen",
+        "train_behavior": "eval_mode_every_training_batch_including_buffers"
+      },
+      "stablewm_source_sha256": "2083d9d83d475f50e50cc9c7e9fa4f7a2c1477fd44208e62223d1950e7de9038",
+      "training_entry_sha256": "9cf896359f2005954c5dbf604f2cc2180b8e8a8653ff832d42c35f497e3ddf28",
+      "initialization_implementation_sha256": "74863e5b8201f1612fd1663965cf56b0386ca8e0139c46068d57dc8f2bd8ab06",
+      "identity_path": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/lewm-contextworld-v1/checkpoints/contact_friction_pldm_encoder_frozen_v1_s3072/contextworld_training_identity_v1.json",
+      "config_path": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/lewm-contextworld-v1/checkpoints/contact_friction_pldm_encoder_frozen_v1_s3072/config.json",
+      "study_record_checks": {
+        "init_sha_match": true,
+        "manifest_sha_match": true,
+        "epochs_match": true,
+        "seed_match": true,
+        "history_match": true
+      }
+    },
+    {
+      "id": "motion_damping/pldm/joint/s3072",
+      "run_dir": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/pldm-contextworld-v1/checkpoints/motion_damping_pldm_num32k_v1_warmstart3073_s3072",
+      "checkpoint": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/pldm-contextworld-v1/checkpoints/motion_damping_pldm_num32k_v1_warmstart3073_s3072/weights_epoch_10.pt",
+      "checkpoint_sha256": "2f71a802a3d7bacf305c7e8257c2f76b526ab04ab2676d7ffe0ee6dbe94bcb66",
+      "checkpoint_sha256_verified": true,
+      "training_study_checkpoint_sha256": "2f71a802a3d7bacf305c7e8257c2f76b526ab04ab2676d7ffe0ee6dbe94bcb66",
+      "init_weights_sha256": "8227ebb275f1a7ce0348b863b87b5c1fc534068eced1e352c060738d3c96dc04",
+      "initialization_semantics": "model_weights_only_fresh_optimizer",
+      "training_dataset_manifest_sha256": "b73d0fb88089a8d792a31e440e67841c1d7b623c7277b4b5e6dca0b165c3403d",
+      "training_dataset_id": "pusht-motion-damping",
+      "training_dataset_root": "/opt/huawei/dataset/ag_data/data/world_model/ContextWorld-motion-damping-32k-v1",
+      "training_pair_count": 32768,
+      "mix_weights": {
+        "original": 0.5,
+        "synthetic": 0.5
+      },
+      "seed": 3072,
+      "epochs": 10,
+      "train_split": 0.9,
+      "batch_size": 128,
+      "drop_last": true,
+      "accumulate_grad_batches": 1,
+      "optimizer": {
+        "type": "AdamW",
+        "lr": 5e-05,
+        "weight_decay": 0.001
+      },
+      "precision": "bf16",
+      "gradient_clip_val": 1.0,
+      "history_size": 3,
+      "num_preds": 1,
+      "frameskip": 5,
+      "model_target": "stable_worldmodel.wm.pldm.pldm.PLDM",
+      "freeze_encoder": null,
+      "stablewm_source_sha256": "2083d9d83d475f50e50cc9c7e9fa4f7a2c1477fd44208e62223d1950e7de9038",
+      "training_entry_sha256": "af3db1a0076c1aedaa4e8143159010f15fdfa8cce8dcdcbdf50883b1b79942d3",
+      "initialization_implementation_sha256": "9c565f68e24b0a2caf612dd8469f53198a13c46667495e2bc682914d5c810a84",
+      "identity_path": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/pldm-contextworld-v1/checkpoints/motion_damping_pldm_num32k_v1_warmstart3073_s3072/contextworld_training_identity_v1.json",
+      "config_path": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/pldm-contextworld-v1/checkpoints/motion_damping_pldm_num32k_v1_warmstart3073_s3072/config.json",
+      "study_record_checks": {
+        "init_sha_match": true,
+        "manifest_sha_match": true,
+        "epochs_match": true,
+        "seed_match": true,
+        "history_match": true
+      }
+    },
+    {
+      "id": "motion_damping/pldm/frozen/s3072",
+      "run_dir": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/lewm-contextworld-v1/checkpoints/motion_damping_pldm_encoder_frozen_v1_s3072",
+      "checkpoint": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/lewm-contextworld-v1/checkpoints/motion_damping_pldm_encoder_frozen_v1_s3072/weights_epoch_10.pt",
+      "checkpoint_sha256": "58229053b8b49e1e652ffcb172e33e53373411727c378c0a4cc745ad73cb99a6",
+      "checkpoint_sha256_verified": true,
+      "training_study_checkpoint_sha256": "58229053b8b49e1e652ffcb172e33e53373411727c378c0a4cc745ad73cb99a6",
+      "init_weights_sha256": "8227ebb275f1a7ce0348b863b87b5c1fc534068eced1e352c060738d3c96dc04",
+      "initialization_semantics": "model_weights_only_fresh_optimizer",
+      "training_dataset_manifest_sha256": "b73d0fb88089a8d792a31e440e67841c1d7b623c7277b4b5e6dca0b165c3403d",
+      "training_dataset_id": "pusht-motion-damping",
+      "training_dataset_root": "/opt/huawei/dataset/ag_data/data/world_model/ContextWorld-motion-damping-32k-v1",
+      "training_pair_count": 32768,
+      "mix_weights": {
+        "original": 0.5,
+        "synthetic": 0.5
+      },
+      "seed": 3072,
+      "epochs": 10,
+      "train_split": 0.9,
+      "batch_size": 128,
+      "drop_last": true,
+      "accumulate_grad_batches": 1,
+      "optimizer": {
+        "type": "AdamW",
+        "lr": 5e-05,
+        "weight_decay": 0.001
+      },
+      "precision": "bf16",
+      "gradient_clip_val": 1.0,
+      "history_size": 3,
+      "num_preds": 1,
+      "frameskip": 5,
+      "model_target": "stable_worldmodel.wm.pldm.pldm.PLDM",
+      "freeze_encoder": {
+        "family": "pldm",
+        "implementation": {
+          "path": "/opt/huawei/dataset/ag_data/code/ContextWorld/contextworld/training/encoder_policy.py",
+          "sha256": "8ea5da32aee0a20ac9af3be190b2899c882fb544fc4fb561d3bf00418181f15e"
+        },
+        "modules": [
+          "encoder"
+        ],
+        "policy": "freeze_encoder_v1",
+        "semantics": "full_model_warmstart_encoder_only_frozen",
+        "train_behavior": "eval_mode_every_training_batch_including_buffers"
+      },
+      "stablewm_source_sha256": "2083d9d83d475f50e50cc9c7e9fa4f7a2c1477fd44208e62223d1950e7de9038",
+      "training_entry_sha256": "9cf896359f2005954c5dbf604f2cc2180b8e8a8653ff832d42c35f497e3ddf28",
+      "initialization_implementation_sha256": "74863e5b8201f1612fd1663965cf56b0386ca8e0139c46068d57dc8f2bd8ab06",
+      "identity_path": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/lewm-contextworld-v1/checkpoints/motion_damping_pldm_encoder_frozen_v1_s3072/contextworld_training_identity_v1.json",
+      "config_path": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/lewm-contextworld-v1/checkpoints/motion_damping_pldm_encoder_frozen_v1_s3072/config.json",
+      "study_record_checks": {
+        "init_sha_match": true,
+        "manifest_sha_match": true,
+        "epochs_match": true,
+        "seed_match": true,
+        "history_match": true
+      }
+    }
+  ],
+  "within_task_comparisons": {
+    "contact_friction": {
+      "same": {
+        "init_weights_sha256": "8227ebb275f1a7ce0348b863b87b5c1fc534068eced1e352c060738d3c96dc04",
+        "initialization_semantics": "model_weights_only_fresh_optimizer",
+        "training_dataset_manifest_sha256": "0fd65ad420367d1e3bd00ac0a9bee75f512ad7ee286e31fab34e43c1ee61f9bf",
+        "training_dataset_id": "pusht-contact-friction",
+        "training_dataset_root": "/opt/huawei/dataset/ag_data/data/world_model/ContextWorld-contact-friction-32k-v1",
+        "training_pair_count": 32768,
+        "mix_weights": {
+          "original": 0.5,
+          "synthetic": 0.5
+        },
+        "seed": 3072,
+        "epochs": 10,
+        "train_split": 0.9,
+        "batch_size": 128,
+        "drop_last": true,
+        "accumulate_grad_batches": 1,
+        "optimizer": {
+          "type": "AdamW",
+          "lr": 5e-05,
+          "weight_decay": 0.001
+        },
+        "precision": "bf16",
+        "gradient_clip_val": 1.0,
+        "history_size": 3,
+        "num_preds": 1,
+        "frameskip": 5,
+        "model_target": "stable_worldmodel.wm.pldm.pldm.PLDM",
+        "stablewm_source_sha256": "2083d9d83d475f50e50cc9c7e9fa4f7a2c1477fd44208e62223d1950e7de9038"
+      },
+      "different": {
+        "training_entry_sha256": {
+          "T2_joint": "af3db1a0076c1aedaa4e8143159010f15fdfa8cce8dcdcbdf50883b1b79942d3",
+          "T3_frozen": "9cf896359f2005954c5dbf604f2cc2180b8e8a8653ff832d42c35f497e3ddf28"
+        },
+        "initialization_implementation_sha256": {
+          "T2_joint": "9c565f68e24b0a2caf612dd8469f53198a13c46667495e2bc682914d5c810a84",
+          "T3_frozen": "74863e5b8201f1612fd1663965cf56b0386ca8e0139c46068d57dc8f2bd8ab06"
+        }
+      },
+      "intentional_policy_difference": {
+        "T2_joint": "encoder trainable",
+        "T3_frozen": "encoder frozen and eval mode every training batch, including buffers"
+      }
+    },
+    "motion_damping": {
+      "same": {
+        "init_weights_sha256": "8227ebb275f1a7ce0348b863b87b5c1fc534068eced1e352c060738d3c96dc04",
+        "initialization_semantics": "model_weights_only_fresh_optimizer",
+        "training_dataset_manifest_sha256": "b73d0fb88089a8d792a31e440e67841c1d7b623c7277b4b5e6dca0b165c3403d",
+        "training_dataset_id": "pusht-motion-damping",
+        "training_dataset_root": "/opt/huawei/dataset/ag_data/data/world_model/ContextWorld-motion-damping-32k-v1",
+        "training_pair_count": 32768,
+        "mix_weights": {
+          "original": 0.5,
+          "synthetic": 0.5
+        },
+        "seed": 3072,
+        "epochs": 10,
+        "train_split": 0.9,
+        "batch_size": 128,
+        "drop_last": true,
+        "accumulate_grad_batches": 1,
+        "optimizer": {
+          "type": "AdamW",
+          "lr": 5e-05,
+          "weight_decay": 0.001
+        },
+        "precision": "bf16",
+        "gradient_clip_val": 1.0,
+        "history_size": 3,
+        "num_preds": 1,
+        "frameskip": 5,
+        "model_target": "stable_worldmodel.wm.pldm.pldm.PLDM",
+        "stablewm_source_sha256": "2083d9d83d475f50e50cc9c7e9fa4f7a2c1477fd44208e62223d1950e7de9038"
+      },
+      "different": {
+        "training_entry_sha256": {
+          "T2_joint": "af3db1a0076c1aedaa4e8143159010f15fdfa8cce8dcdcbdf50883b1b79942d3",
+          "T3_frozen": "9cf896359f2005954c5dbf604f2cc2180b8e8a8653ff832d42c35f497e3ddf28"
+        },
+        "initialization_implementation_sha256": {
+          "T2_joint": "9c565f68e24b0a2caf612dd8469f53198a13c46667495e2bc682914d5c810a84",
+          "T3_frozen": "74863e5b8201f1612fd1663965cf56b0386ca8e0139c46068d57dc8f2bd8ab06"
+        }
+      },
+      "intentional_policy_difference": {
+        "T2_joint": "encoder trainable",
+        "T3_frozen": "encoder frozen and eval mode every training batch, including buffers"
+      }
+    }
+  },
+  "cross_task_boundary": "Friction and Damping have different Training dataset manifests and task conditions; they share initialization SHA, model architecture, run hyperparameters, and policy implementation by regime. This supports matched within-task T2/T3 contrasts but does not equate task difficulty or label effects.",
+  "training_panel_membership": "The diagnostic panel samples 512 queries from each task Training Lance catalogue (scripts/build_task_mechanism_panels.py). Actual run config has train_split=0.9 and stablewm_bundle.py uses torch random_split when conditional_relations is None. The panel does not reconstruct split indices; its rows are Training-source, not verified individually seen by the gradient-training subset.",
+  "encoder_weight_comparison": "Not performed; this file compares declared training identity and checkpoint SHA only."
+}

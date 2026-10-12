@@ -904,9 +904,9 @@ python scripts/evaluate_fixed_target_control.py \
 
 <a id="fixed-target-confirmation"></a>
 
-### 固定终点的 Test 与训练重复
+### 固定终点的 Test 验证
 
-[评价方案](../configs/benchmark/fixed_target_confirmation_v1.json)绑定两项任务的原环境初始化、已完成的最终检查点、参考训练配置、评分程序及 Test 来源文件身份。补充训练只改变第二阶段随机种子（3073／3074）；原环境 T0 权重、数据、10 epoch 预算和训练目标保持一致。`--seed` 不改变初始化权重；缺省时沿用参考配置的种子。
+[评价方案](../configs/benchmark/fixed_target_confirmation_v1.json)绑定两项任务的原环境初始化、已完成的最终检查点、参考训练配置、评分程序及 Test 来源文件身份。本次使用已经完成的第 10 epoch 权重补齐 Test；评测本身不需要新增训练。原环境 T0 权重、数据和评分身份由该方案固定。
 
 Test 使用 `ContextWorld-v1-full` 注册的两张表，每任务保留全部 256 对，不重新合成、不按结果筛选。数据读取前验证所选 Lance 文件的大小与 SHA256；动作标准化沿用 Training 的统计量。历史图像取轨迹第 0／5／10 步，目标为第 15 步，即当前状态后 5 个物理步。交换历史图像及历史动作，保持当前图像和查询动作不变。评分与 Development 完全相同，模型状态与目标表示在评测前后保持不变。
 
@@ -922,9 +922,37 @@ python scripts/evaluate_fixed_target_control.py \
   --splits test --device cuda:0 --output /path/to/test_result
 ```
 
-另一任务使用 `robot_arm_mass`。`scripts/run_fixed_target_confirmation.py --protocol <protocol.json>`按固定配置依次执行补充训练和最终 Test，拒绝覆盖未完成运行。`scripts/summarize_fixed_target_confirmation.py --render-doc`汇总全部已完成重复，`--check --render-doc`核对发布表；命令中的本地权重、原始面板和模型清单需要另行提供，当前不等于已具备公开端到端下载复现。
+另一任务使用 `robot_arm_mass`。`scripts/summarize_fixed_target_confirmation.py --render-doc`汇总全部已完成结果，`--check --render-doc`核对发布表；命令中的本地权重、原始面板和模型清单需要另行提供，当前不等于已具备公开端到端下载复现。
 
 同一任务的 T0 是共用参照，不作为多个独立模型重复计数。训练后读数跨种子等权平均，报告样本标准差；每个种子的 95% 差值区间按来源组配对重采样 2,000 次，两种不确定性分别记录。Public Test 已用于历史基线，本次是预先选定新检查点的最终验证，不宣称全新密封测试，也不修改 v3 成绩。
+
+<a id="native-policy-contrast"></a>
+
+## 同初始化训练方案的原生查询诊断
+
+本诊断比较 PLDM 在接触摩擦、运动阻尼上的原环境模型（T0）、加载原环境权重后的联合训练（T2）和冻结 Encoder 训练（T3）。它只运行已有权重，采用当前状态后的第 5 个物理步，不增加世界模型训练，也不读取 Test。结果及解释见[表示训练对照](ICL_Metric_Study.md#native-policy-contrast)。
+
+**面板与历史对照。** 复用 `build_task_mechanism_panels.py` 生成的原生面板：每任务 512 对 Training 来源、全部 256 对 Development 查询。摩擦每对为一个来源组，阻尼的正反方向两对共用一个来源组。各对当前图像与全部动作逐项相同，只交换两条件的历史；独立调用正式 adapter 核对首、末行预测。Training 面板从数据包 Training 划分抽取，未重建训练器内部 90/10 拆分，因此不声称每条查询实际参与过梯度更新。
+
+**误差分解。** 对每对样本，B 为真实目标到两条件均值的平方距离和；E、W 分别为匹配、错配历史预测的总平方误差。令预测和目标各自沿条件维度中心化，中心化残差能量为 R，均值残差能量为 C，则 E=C+R，响应 NRE=R/B，历史收益 G=(W−E)/B。先累计能量再求比值；按独立来源组重采样 2,000 次计算区间。共同误差不单独当作新的独立分数。所有诊断保留目标表示变化这一因素，不作跨编码器的物理精度排名。
+
+**辅助读出。** 历史表示采用首帧与逐帧差分的可逆坐标。线性读出为 Training 标准化加 Ridge（alpha=1）；非线性读出为 ExtraTrees（200 棵树、最小叶样本数 2、sqrt 特征子采样、随机种子 20261011）。均只输入视觉表示，不输入隐藏标签或历史动作；标签仅用于读出器训练与评分。当前图像读出为负对照。读出器配置不根据 Development 选择，成功分类不等于足以预测完整未来。
+
+```bash
+python scripts/diagnose_native_policy_contrast.py \
+  --task motion_damping --family pldm --regime frozen \
+  --models /path/to/models.json --panels /path/to/native_panels \
+  --device cuda:0 --output /path/to/diagnostics --save-latents
+
+python scripts/summarize_native_policy_contrast.py \
+  --input-dir /path/to/diagnostics \
+  --output-dir docs/research/data/native_policy_contrast_v1 --render-doc
+
+python scripts/summarize_native_policy_contrast.py \
+  --output-dir docs/research/data/native_policy_contrast_v1 --check --render-doc
+```
+
+对两任务和 `original/joint/frozen` 三种方案分别执行首条命令，再汇总六组结果。公开 JSON 与逐查询充分统计量支持无 GPU 复算；重新推理仍需要对应权重、模型清单与原生图像面板，当前尚无稳定公共下载。归档同时保留初始化、数据身份、推理校验和模型状态未改变的记录。本次复算与原归档的选择率最大相差 0.391 个百分点、NRE 最大相差 0.00071；保留复算原值，不回写正式成绩。
 
 <a id="response-intervention"></a>
 
