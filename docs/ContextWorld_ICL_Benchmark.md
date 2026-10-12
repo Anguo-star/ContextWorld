@@ -474,9 +474,12 @@ python -m contextworld.benchmarks.external_model_cli \
 | 冻结 v3 | 已完成的内部参考；Training / Development 来自 `ContextWorld-v1`，Test 来自 `ContextWorld-v1-full`。`ContextWorld-v3-hf` 已在本地组装并验证为发布候选。 | 固定结果与种子范围见[参考附录](reference/Benchmark_Result_Provenance.md)；不随扩量研究改写。 |
 | 扩量训练研究 | 六项任务采用扩量 Training，其余三项沿用基础 Training；Development / Test 面板固定。本文训练对照与补充多步结果为已测 Development 结果。 | 按[结果文件](research/data/icl_training_study_v2.json)记录实际任务、方案和训练重复；不继承 v3 的种子覆盖，也不是最终 Test 成绩。 |
 | 固定表示机制对照 | LeWM 的 Friction、Mass 已完成预先选定最终检查点的 Public Test；训练重复按实际完成情况单独汇总。 | 仅覆盖两任务、当前状态后第 5 个物理步；见[结果与范围](ICL_Metric_Study.md#fixed-target-training-results)。不表示九任务最新方案已完成 Test。 |
-| 扩量数据发布计划 | [当前清单](research/data/expanded_training_release_plan.json)仅核对元数据与来源；尚未完成文件逐字节验证、整包加载和公开发布。 | 不等同于 v3 已验证的本地候选。HF 尚未上传，公共固定 revision 未提供；见[发布准备](Expanded_Training_Release.md)。 |
+| 当前九任务 Test | 已[锁定 136 个原生接口检查点](../configs/benchmark/current_reference_test_v1.json)，覆盖 86 个模型／方案／任务组合；最终 Test 结果待报告。 | 保留全部可比训练重复，包含低分结果；与上述两任务机制对照分别报告。 |
+| 扩量数据发布候选 | 九任务、27 个任务／划分组合已组装；7,106 个数据文件通过完整哈希验证，全部注册 Lance 表及 ContextWorld 加载入口通过检查。 | [验证记录](research/data/expanded_training_release_validation_v1.json)确认本地可加载；尚无 HF 公共固定 revision，见[发布说明](Expanded_Training_Release.md)。 |
 
 报告至少注明数据版本与划分、训练数据和比例、初始化、更新模块、训练预算、检查点及评测版本。表格与 CSV 从同一份 JSON 生成，检查点和数据哈希用于追溯来源；九任务结果按 §5.1 汇总全部可比训练重复。当前补充多步表含 136 个检查点×任务单元，汇总为 86 个模型／训练方案／任务组合；冻结权重与数据身份检查全部通过。缺少同协议检查点的组合保留为空，不补零。
+
+九任务 Test 补测复用当前已评测的原生接口检查点；在执行前固定权重哈希、数据清单、评分依赖和任务集合，不根据 Test 分数筛选模型。相同组合的训练种子等权汇总；未完成组合保留缺项。该补测使用既有公开 Test，并非新建立的未接触留出集；扩展动作的多步 Test 仍不在本次范围内。复算入口为 `scripts/run_current_reference_test.py` 与 `scripts/summarize_current_reference_test.py`。
 
 正式成绩的有效性取决于输入合法、数据隔离及评测时权重不变。方法在 Development 上确定后，Test 应报告预先确定的同一任务集合，包含低分结果；Development 能力门是否通过不作为 Test 报告前提。冻结 v3 的结果保持原样，见[参考附录](reference/Benchmark_Result_Provenance.md)。
 

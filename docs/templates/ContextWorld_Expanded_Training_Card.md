@@ -12,7 +12,7 @@ viewer: false
 
 # ContextWorld — expanded training data (release candidate)
 
-**Unpublished preparation draft.** This card describes a proposed nine-task package. Package validation and the final release revision are pending. It does not replace the frozen ContextWorld v3 reference results.
+**Unpublished preparation draft.** This card describes a proposed nine-task package. Local package validation and the final release revision are pending. It does not replace the frozen ContextWorld v3 reference results.
 
 ## Dataset description
 
@@ -28,9 +28,9 @@ Use Training for optimization, Development for model and recipe selection, and T
 
 ## Available evidence and limitations
 
-The [ContextWorld technical report](https://github.com/Anguo-star/ContextWorld/blob/main/docs/ContextWorld_ICL_Benchmark.md#training-comparison) is the single source for reported results and their interpretation. It includes all nine tasks with three-model native ICL scratch results and eight-task LeWM/PLDM comparisons of full-model warmstart versus freezing the encoder. It also reports DINO-WM full predictor warmstarts for Speed, Motion Damping and Cube Carry. These are single-training-seed Development results; missing regimes are explicitly marked.
+The [ContextWorld technical report](https://github.com/Anguo-star/ContextWorld/blob/main/docs/ContextWorld_ICL_Benchmark.md#training-comparison) is the source for reported model results and their interpretation. The package includes a frozen v3 reference result for provenance; that result does not measure models trained on this expanded candidate. No Test model evaluation was performed as part of packaging.
 
-New DINO-WM original models use only pixels and actions. Older projected-initialization results are retained separately and must not be presented as complete weight transfer from these new models. Changes in data coverage, representation updates and training initialization affect different tasks differently; the results do not establish sample count as the sole cause of failure or a universal scaling law.
+Training coverage, representation and initialization differ across the reported studies. The package inventory establishes data identity and loadability, not a causal effect of more Training examples or a new benchmark score.
 
 ## License and attribution
 
