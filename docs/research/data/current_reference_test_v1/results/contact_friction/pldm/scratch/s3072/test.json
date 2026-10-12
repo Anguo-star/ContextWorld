@@ -1,0 +1,231 @@
+{
+  "adapter_spec": "pldm",
+  "bundle": {
+    "artifact_root": "artifacts/synthesis/pusht_contact_friction_h3_release_v3",
+    "bundle_root": "/opt/huawei/explorer-env/dataset/ag_data/data/world_model/ContextWorld-v1-full",
+    "component_ids": [
+      "speed",
+      "door",
+      "action_delay",
+      "action_strength",
+      "contact_friction",
+      "motion_damping",
+      "robot_arm_mass",
+      "portal_exit",
+      "cube_gripper_carry"
+    ],
+    "manifest_payload_files": 3,
+    "manifest_sha256": "81eb29d8eeaefb91750187831b9120b9241c78b4903047cd4b720a186c7f6d97",
+    "public_test_policy": "public_offline_final_reporting",
+    "release_status": "staging_not_public_release",
+    "schema_version": "contextworld.bundle-resolution.v1",
+    "selection_policy": "development_only_model_selection_test_final_reporting",
+    "task": "contact_friction",
+    "task_registry_sha256": "26b78ae7d3bbaa2c170080bc1eb8791582a9183e7d606322aaf6bae1b01dcbdd"
+  },
+  "evaluation_split": "test",
+  "model_name": "pldm-scratch-s3072",
+  "note": "Produced offline from the public ContextWorld-v1 Test split after model and recipe selection. The frozen task metrics and gate are retained, but this is not a centrally verified hosted-scoreboard row and must not be fed back into tuning.",
+  "official_scoreboard_row": false,
+  "result": {
+    "benchmark": "pusht_history3_contact_friction_icl_v1",
+    "data": {
+      "condition_count": 512,
+      "effective_contact_friction_values": [
+        0.05,
+        0.8
+      ],
+      "history_tokens": 3,
+      "online_environment_calls": 0,
+      "pair_count": 256,
+      "root": "/opt/huawei/explorer-env/dataset/ag_data/data/world_model/ContextWorld-v1-full/artifacts/synthesis/pusht_contact_friction_h3_release_v3"
+    },
+    "gate": {
+      "checks": {
+        "context_switch_rate": false,
+        "correct_future_rate": false,
+        "correct_history_rate": false,
+        "normalized_response_error": false,
+        "response_gain": false,
+        "target_latent_separation": true,
+        "worst_friction_correct_future_rate": false
+      },
+      "passed": false
+    },
+    "metrics": {
+      "context_switch_rate": 0.5078125,
+      "correct_future_mse_mean": 0.018684515729546547,
+      "correct_future_rate": 0.5,
+      "correct_history_rate": 0.486328125,
+      "current_frame_only_accuracy_bound": 0.5,
+      "decision_count": 512,
+      "high_friction_correct_future_rate": 0.5078125,
+      "joint_icl_pair_success_rate": 0.0,
+      "latent_response": {
+        "calibrated_response_success_baseline": {
+          "name": "no_history_response",
+          "normalized_response_error": 1.0,
+          "pair_success_criterion": "normalized_response_error < 1.0",
+          "prediction_response": "zero"
+        },
+        "calibrated_response_success_rate": 0.484375,
+        "ideal_values": {
+          "calibrated_response_success_rate": 1.0,
+          "normalized_response_error": 0.0,
+          "response_alignment": 1.0,
+          "response_gain": 1.0
+        },
+        "normalized_response_error": 1.0011809180911828,
+        "response_alignment": 0.009150891341390285,
+        "response_gain": 0.00040916294654402927,
+        "target_latent_separation": {
+          "criterion": "finite_and_nonidentical_for_every_pair",
+          "mean_target_response_mse": 0.021502846668013567,
+          "median_target_response_mse": 0.002274199348816814,
+          "minimum_target_response_mse": 0.00015598652776832155,
+          "passed": true,
+          "zero_separation_pair_count": 0
+        }
+      },
+      "low_friction_correct_future_rate": 0.4921875,
+      "other_future_mse_mean": 0.018693314865231514,
+      "other_minus_correct_mse_margin_mean": 8.798204362392426e-06,
+      "pair_count": 256,
+      "worst_friction_correct_future_rate": 0.4921875
+    },
+    "model": {
+      "adapter": {
+        "adapter_class": "contextworld.benchmarks.adapters.StableWorldModelPLDMContactFrictionAdapter",
+        "adapter_id": "stable_worldmodel_pldm_contact_friction_v1",
+        "checkpoint": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/pldm-contextworld-v1/checkpoints/contact_friction_pldm_num32k_v1_scratch_s3072/weights_epoch_10.pt",
+        "checkpoint_sha256": "a38fddcce2121d218719c224b4849f41866488b9c296ab627db4d4a6b49c573f",
+        "device": "cuda:4",
+        "model_class": "stable_worldmodel.wm.pldm.pldm.PLDM",
+        "parameters": 18034478,
+        "protocol": {
+          "action_block_raw_steps": 5,
+          "action_dim": 2,
+          "decoder_required": false,
+          "future_action_blocks": 5,
+          "history_tokens": 3,
+          "native_target_encoder": true
+        },
+        "stable_worldmodel_commit": "c34a107e787133468369e08f8f3efa2a43db67a2",
+        "stable_worldmodel_repo": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/pldm-contextworld-v1/.contextworld/stable-worldmodel/c34a107e787133468369e08f8f3efa2a43db67a2"
+      },
+      "name": "pldm-scratch-s3072",
+      "state_sha256_after": "508c98292e3797ddd27eb68098b7b5cb64bf978d6435cbf5f25b87870a3f5919",
+      "state_sha256_before": "508c98292e3797ddd27eb68098b7b5cb64bf978d6435cbf5f25b87870a3f5919",
+      "training_recipe": "scratch",
+      "training_seed": 3072
+    },
+    "release": {
+      "data_manifest_sha256": "cbb9b1a1c030a3c66ea8acbf25c5e1a302f1c43907beeadcdc9d8bd1e989f3d5",
+      "release_config_sha256": "bc7d1a4be16311b57b969f18fdfc99e77df2caf748125c36337ded4275adb564",
+      "release_id": "contextworld_pusht_contact_friction_icl_history3_v1",
+      "sealed_test_included": false
+    },
+    "schema_version": 1,
+    "status": "completed",
+    "submission_kind": "single_checkpoint"
+  },
+  "result_kind": "public_test_offline_final_report_v1",
+  "runtime_fingerprint": {
+    "evidence_kind": "captured_in_evaluation_process",
+    "executable": "/tmp/cw-strength-ablation-20260922/venv/bin/python",
+    "packages": {
+      "Pillow": "9.2.0",
+      "numpy": "1.24.4",
+      "pyarrow": "25.0.1",
+      "pylance": "11.0.0",
+      "stable-pretraining": "0.1.8",
+      "stable-worldmodel": null,
+      "torch": "2.9.1",
+      "torchvision": "0.24.1",
+      "transformers": "4.57.1"
+    },
+    "platform": "Linux-5.15.0-92-generic-x86_64-with-glibc2.35",
+    "python": "3.10.12",
+    "requirements_frozen_sha256": "2b001bd25f9be4bb2932d7419f55edc3f3299e86389b0ad9de25b912e1f2b8e3",
+    "schema_version": 1,
+    "torch": {
+      "cuda_available": true,
+      "cuda_build": "12.8",
+      "cudnn_benchmark": false,
+      "cudnn_deterministic": false,
+      "cudnn_version": 91002,
+      "deterministic_algorithms": false,
+      "devices": [
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 0,
+          "name": "NVIDIA H800"
+        },
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 1,
+          "name": "NVIDIA H800"
+        },
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 2,
+          "name": "NVIDIA H800"
+        },
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 3,
+          "name": "NVIDIA H800"
+        },
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 4,
+          "name": "NVIDIA H800"
+        },
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 5,
+          "name": "NVIDIA H800"
+        },
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 6,
+          "name": "NVIDIA H800"
+        },
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 7,
+          "name": "NVIDIA H800"
+        }
+      ],
+      "float32_matmul_precision": "high",
+      "version": "2.9.1+cu128"
+    }
+  },
+  "schema_version": 1,
+  "selection_policy": "development_only_model_selection_test_final_reporting",
+  "task": "contact_friction"
+}

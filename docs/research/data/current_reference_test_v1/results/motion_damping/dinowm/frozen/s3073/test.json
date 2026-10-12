@@ -1,0 +1,185 @@
+{
+  "adapter_spec": "prejepa",
+  "bundle": {
+    "artifact_root": "artifacts/synthesis/pusht_motion_damping_h3_release_v4",
+    "bundle_root": "/opt/huawei/explorer-env/dataset/ag_data/data/world_model/ContextWorld-v1-full",
+    "component_ids": [
+      "speed",
+      "door",
+      "action_delay",
+      "action_strength",
+      "contact_friction",
+      "motion_damping",
+      "robot_arm_mass",
+      "portal_exit",
+      "cube_gripper_carry"
+    ],
+    "manifest_payload_files": 3,
+    "manifest_sha256": "81eb29d8eeaefb91750187831b9120b9241c78b4903047cd4b720a186c7f6d97",
+    "public_test_policy": "public_offline_final_reporting",
+    "release_status": "staging_not_public_release",
+    "schema_version": "contextworld.bundle-resolution.v1",
+    "selection_policy": "development_only_model_selection_test_final_reporting",
+    "task": "motion_damping",
+    "task_registry_sha256": "26b78ae7d3bbaa2c170080bc1eb8791582a9183e7d606322aaf6bae1b01dcbdd"
+  },
+  "evaluation_split": "test",
+  "model_name": "dinowm-frozen-s3073",
+  "note": "Produced offline from the public ContextWorld-v1 Test split after model and recipe selection. The frozen task metrics and gate are retained, but this is not a centrally verified hosted-scoreboard row and must not be fed back into tuning.",
+  "official_scoreboard_row": false,
+  "result": {
+    "benchmark": "pusht_history3_motion_damping_icl",
+    "data": {
+      "condition_count": 512,
+      "history_tokens": 3,
+      "motion_damping_values": [
+        0.2,
+        1.0
+      ],
+      "online_environment_calls": 0,
+      "pair_count": 256,
+      "root": "/tmp/contextworld-damping-audit-overlay/ContextWorld/artifacts/synthesis/pusht_motion_damping_h3_release_v4"
+    },
+    "gate": {
+      "checks": {
+        "context_switch_rate": false,
+        "correct_future_rate": false,
+        "correct_history_rate": false,
+        "normalized_response_error": false,
+        "response_gain": false,
+        "target_latent_separation": true,
+        "worst_damping_correct_future_rate": false
+      },
+      "passed": false
+    },
+    "metrics": {
+      "context_switch_rate": 0.796875,
+      "correct_future_mse_mean": 0.06341119110584259,
+      "correct_future_rate": 0.552734375,
+      "correct_history_rate": 0.611328125,
+      "current_frame_only_accuracy_bound": 0.5,
+      "decision_count": 512,
+      "faster_decay_correct_future_rate": 0.71875,
+      "joint_icl_pair_success_rate": 0.04296875,
+      "latent_response": {
+        "calibrated_response_success_baseline": {
+          "name": "no_history_response",
+          "normalized_response_error": 1.0,
+          "pair_success_criterion": "normalized_response_error < 1.0",
+          "prediction_response": "zero"
+        },
+        "calibrated_response_success_rate": 0.47265625,
+        "ideal_values": {
+          "calibrated_response_success_rate": 1.0,
+          "normalized_response_error": 0.0,
+          "response_alignment": 1.0,
+          "response_gain": 1.0
+        },
+        "normalized_response_error": 1.1112869575927873,
+        "response_alignment": 0.060555974366190535,
+        "response_gain": 0.024198447082296813,
+        "target_latent_separation": {
+          "criterion": "finite_and_nonidentical_for_every_pair",
+          "mean_target_response_mse": 0.05022969167535958,
+          "median_target_response_mse": 0.041914810683256795,
+          "minimum_target_response_mse": 0.013878863243570154,
+          "passed": true,
+          "zero_separation_pair_count": 0
+        }
+      },
+      "no_extra_decay_correct_future_rate": 0.38671875,
+      "other_future_mse_mean": 0.06462667137384415,
+      "other_minus_correct_mse_margin_mean": 0.0012154802680015564,
+      "pair_count": 256,
+      "worst_damping_correct_future_rate": 0.38671875
+    },
+    "model": {
+      "adapter": {
+        "adapter_class": "contextworld.benchmarks.prejepa_adapters.StableWorldModelPreJEPAMotionDampingAdapter",
+        "adapter_id": "stable_worldmodel_prejepa_motion_damping_v2",
+        "checkpoint": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/dino-wm-pixels-action-v1/checkpoints/motion_damping_prejepa_pixels_action_warmstart_v1_s3073/weights_epoch_10.pt",
+        "checkpoint_sha256": "05603ddd7243332be89f50408152bbf837ea98848ed0268209cc8cfe82043346",
+        "device": "cuda",
+        "model_class": "stable_worldmodel.wm.prejepa.prejepa.PreJEPA",
+        "parameters": 41752426,
+        "protocol": {
+          "action_block_raw_steps": 5,
+          "action_dim": 2,
+          "decoder_required": false,
+          "future_action_blocks": 5,
+          "history_tokens": 3,
+          "native_target_encoder": true
+        },
+        "stable_worldmodel_commit": "1763bc582fc8ebb2f157859abbee979543dec1d1",
+        "stable_worldmodel_repo": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/lewm-contextworld-v1/.contextworld/stable-worldmodel/1763bc582fc8ebb2f157859abbee979543dec1d1"
+      },
+      "name": "dinowm-frozen-s3073",
+      "state_sha256_after": "c138e6d846df735e72d5405b02bf55ad1458b7a191c997da0f2bfbeeedcf9f6c",
+      "state_sha256_before": "c138e6d846df735e72d5405b02bf55ad1458b7a191c997da0f2bfbeeedcf9f6c",
+      "training_recipe": "frozen",
+      "training_seed": 3073
+    },
+    "release": {
+      "data_manifest_sha256": "48246aa4ae4a13d5b1c9677ba37a92fe114129027745f8e258137a016899563b",
+      "release_config_sha256": "1795717d8bfa1d1cfcc01a69931b6241b0e7759dcf43553a6c4cca225ec9326b",
+      "release_id": "contextworld_pusht_motion_damping_icl_history3_v1",
+      "sealed_test_included": false
+    },
+    "schema_version": 1,
+    "status": "completed",
+    "submission_kind": "single_checkpoint"
+  },
+  "result_kind": "public_test_offline_final_report_v1",
+  "runtime_compatibility": {
+    "artifact_root": null,
+    "damping_overlay": {
+      "audit_passed": true,
+      "overlay_root": "/tmp/contextworld-damping-audit-overlay/ContextWorld",
+      "validation_files": 3
+    },
+    "wrapper": "scripts.run_current_reference_test_compat",
+    "wrapper_sha256": "60fadd8bc661df1f3fc0806eb9ac4a34ebe110a105d3466658d9f5b7f0a58de7"
+  },
+  "runtime_fingerprint": {
+    "evidence_kind": "captured_in_evaluation_process",
+    "executable": "/tmp/cw-strength-ablation-20260922/venv/bin/python",
+    "packages": {
+      "Pillow": "9.2.0",
+      "numpy": "1.24.4",
+      "pyarrow": "25.0.1",
+      "pylance": "11.0.0",
+      "stable-pretraining": "0.1.8",
+      "stable-worldmodel": null,
+      "torch": "2.9.1",
+      "torchvision": "0.24.1",
+      "transformers": "4.57.1"
+    },
+    "platform": "Linux-5.15.0-92-generic-x86_64-with-glibc2.35",
+    "python": "3.10.12",
+    "requirements_frozen_sha256": "2b001bd25f9be4bb2932d7419f55edc3f3299e86389b0ad9de25b912e1f2b8e3",
+    "schema_version": 1,
+    "torch": {
+      "cuda_available": true,
+      "cuda_build": "12.8",
+      "cudnn_benchmark": false,
+      "cudnn_deterministic": false,
+      "cudnn_version": 91002,
+      "deterministic_algorithms": false,
+      "devices": [
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 0,
+          "name": "NVIDIA H800"
+        }
+      ],
+      "float32_matmul_precision": "high",
+      "version": "2.9.1+cu128"
+    }
+  },
+  "schema_version": 1,
+  "selection_policy": "development_only_model_selection_test_final_reporting",
+  "task": "motion_damping"
+}

@@ -1,0 +1,201 @@
+{
+  "adapter_spec": "lewm",
+  "bundle": {
+    "artifact_root": "artifacts/synthesis/cube_gripper_carry_rule_h3_v4r1_release_projection_v1",
+    "bundle_root": "/opt/huawei/explorer-env/dataset/ag_data/data/world_model/ContextWorld-v1-full",
+    "component_ids": [
+      "speed",
+      "door",
+      "action_delay",
+      "action_strength",
+      "contact_friction",
+      "motion_damping",
+      "robot_arm_mass",
+      "portal_exit",
+      "cube_gripper_carry"
+    ],
+    "manifest_payload_files": 3,
+    "manifest_sha256": "81eb29d8eeaefb91750187831b9120b9241c78b4903047cd4b720a186c7f6d97",
+    "public_test_policy": "public_offline_final_reporting",
+    "release_status": "staging_not_public_release",
+    "schema_version": "contextworld.bundle-resolution.v1",
+    "selection_policy": "development_only_model_selection_test_final_reporting",
+    "task": "cube_gripper_carry",
+    "task_registry_sha256": "26b78ae7d3bbaa2c170080bc1eb8791582a9183e7d606322aaf6bae1b01dcbdd"
+  },
+  "evaluation_split": "test",
+  "model_name": "lewm-original-s3074",
+  "note": "Produced offline from the public ContextWorld-v1 Test split after model and recipe selection. The frozen task metrics and gate are retained, but this is not a centrally verified hosted-scoreboard row and must not be fed back into tuning.",
+  "official_scoreboard_row": false,
+  "result": {
+    "benchmark": "cube_history3_gripper_carry_icl_v4r1",
+    "claim_boundary": {
+      "external_evaluation_allowed": true,
+      "external_result": true,
+      "formal_reference_mutation": false,
+      "formal_scoreboard_eligible": false,
+      "reference_rerun": false
+    },
+    "data": {
+      "artifact_layout": "bundle",
+      "condition_count": 512,
+      "context_transitions": 2,
+      "flattened_action_input_dim": 25,
+      "grasp_modes": [
+        "cannot_hold",
+        "can_hold"
+      ],
+      "history_tokens": 3,
+      "logical_root": "artifacts/synthesis/cube_gripper_carry_rule_h3_v4r1_release_projection_v1",
+      "online_environment_calls": 0,
+      "pair_count": 256,
+      "prediction_horizon_action_blocks": 1,
+      "raw_action_dim": 5,
+      "raw_steps_per_action_block": 5
+    },
+    "gate": {
+      "checks": {
+        "context_switch_rate": true,
+        "context_switch_rate_bootstrap_lower_bound": true,
+        "correct_future_rate": false,
+        "correct_future_rate_bootstrap_lower_bound": false,
+        "correct_history_rate": false,
+        "correct_history_rate_bootstrap_lower_bound": true,
+        "normalized_response_error": true,
+        "response_gain": false,
+        "target_latent_separation": true,
+        "worst_rule_correct_future_rate": false
+      },
+      "passed": false
+    },
+    "metrics": {
+      "can_hold_correct_future_rate": 0.5546875,
+      "cannot_hold_correct_future_rate": 0.5078125,
+      "context_switch_rate": 1.0,
+      "correct_future_mse_mean": 0.009996325708925724,
+      "correct_future_rate": 0.53125,
+      "correct_history_rate": 0.740234375,
+      "current_frame_only_accuracy_bound": 0.5,
+      "decision_count": 512,
+      "joint_icl_pair_success_rate": 0.05078125,
+      "latent_response": {
+        "calibrated_response_success_baseline": {
+          "name": "no_history_response",
+          "normalized_response_error": 1.0,
+          "pair_success_criterion": "normalized_response_error < 1.0",
+          "prediction_response": "zero"
+        },
+        "calibrated_response_success_rate": 1.0,
+        "ideal_values": {
+          "calibrated_response_success_rate": 1.0,
+          "normalized_response_error": 0.0,
+          "response_alignment": 1.0,
+          "response_gain": 1.0
+        },
+        "normalized_response_error": 0.8759858386218525,
+        "response_alignment": 0.8249757220787424,
+        "response_gain": 0.06512276408121119,
+        "target_latent_separation": {
+          "criterion": "finite_and_nonidentical_for_every_pair",
+          "mean_target_response_mse": 0.004477253634052611,
+          "median_target_response_mse": 0.0030394793892366727,
+          "minimum_target_response_mse": 0.00012497490936753085,
+          "passed": true,
+          "zero_separation_pair_count": 0
+        }
+      },
+      "other_future_mse_mean": 0.010287896730005741,
+      "other_minus_correct_mse_margin_mean": 0.0002915711665991694,
+      "pair_count": 256,
+      "paired_bootstrap_95_lower_bound": {
+        "context_switch_rate": 1.0,
+        "correct_future_rate": 0.517578125,
+        "correct_history_rate": 0.708984375
+      },
+      "worst_rule_correct_future_rate": 0.5078125
+    },
+    "model": {
+      "adapter": {
+        "adapter_class": "contextworld.benchmarks.adapters.StableWorldModelLeWMCubeGraspRuleAdapter",
+        "adapter_id": "stable_worldmodel_lewm_cube_grasp_rule_v1",
+        "checkpoint": "/opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-cube/ckpt/cube_lewm_baseline_seed3074/cube_lewm_baseline_seed3074_weights.ckpt",
+        "checkpoint_sha256": "b574dd80325163b275445715a673f1542f444e5bd763d74aebda9bdf8964be4b",
+        "device": "cuda",
+        "model_class": "stable_worldmodel.wm.lewm.lewm.LeWM",
+        "parameters": 18034628,
+        "protocol": {
+          "action_block_raw_steps": 5,
+          "action_dim": 5,
+          "decoder_required": false,
+          "future_action_blocks": 5,
+          "history_tokens": 3,
+          "native_target_encoder": true
+        },
+        "stable_worldmodel_commit": "875e607fc08aa72eacb94d5d178127804134cc06",
+        "stable_worldmodel_repo": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/original-baseline-v1/.contextworld/stable-worldmodel/875e607fc08aa72eacb94d5d178127804134cc06"
+      },
+      "name": "lewm-original-s3074",
+      "state_sha256_after": "1d97655f4b95de2d278b7d8d370318a138da908e888b059699ea1e960674c8c9",
+      "state_sha256_before": "1d97655f4b95de2d278b7d8d370318a138da908e888b059699ea1e960674c8c9",
+      "training_recipe": "original",
+      "training_seed": 3074
+    },
+    "release": {
+      "portable_provenance_sha256": "90b7a21fbcbdbc6c49911cececc687fbe35a3d2f1fb62eb01750175d5667550d",
+      "release_config_sha256": "731375aea1fa6cf61f58e5dacfc7fc7135cf3df0cb7c04233192d5da8a7364f4",
+      "release_id": "contextworld_cube_gripper_carry_icl_history3_v4r1"
+    },
+    "schema_version": 1,
+    "status": "completed",
+    "submission_kind": "external_single_checkpoint"
+  },
+  "result_kind": "public_test_offline_final_report_v1",
+  "runtime_compatibility": {
+    "artifact_root": "/opt/huawei/explorer-env/dataset/ag_data/data/world_model/context_world",
+    "damping_overlay": null,
+    "wrapper": "scripts.run_current_reference_test_compat",
+    "wrapper_sha256": "60fadd8bc661df1f3fc0806eb9ac4a34ebe110a105d3466658d9f5b7f0a58de7"
+  },
+  "runtime_fingerprint": {
+    "evidence_kind": "captured_in_evaluation_process",
+    "executable": "/tmp/cw-strength-ablation-20260922/venv/bin/python",
+    "packages": {
+      "Pillow": "9.2.0",
+      "numpy": "1.24.4",
+      "pyarrow": "25.0.1",
+      "pylance": "11.0.0",
+      "stable-pretraining": "0.1.8",
+      "stable-worldmodel": null,
+      "torch": "2.9.1",
+      "torchvision": "0.24.1",
+      "transformers": "4.57.1"
+    },
+    "platform": "Linux-5.15.0-92-generic-x86_64-with-glibc2.35",
+    "python": "3.10.12",
+    "requirements_frozen_sha256": "2b001bd25f9be4bb2932d7419f55edc3f3299e86389b0ad9de25b912e1f2b8e3",
+    "schema_version": 1,
+    "torch": {
+      "cuda_available": true,
+      "cuda_build": "12.8",
+      "cudnn_benchmark": false,
+      "cudnn_deterministic": false,
+      "cudnn_version": 91002,
+      "deterministic_algorithms": false,
+      "devices": [
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 0,
+          "name": "NVIDIA H800"
+        }
+      ],
+      "float32_matmul_precision": "high",
+      "version": "2.9.1+cu128"
+    }
+  },
+  "schema_version": 1,
+  "selection_policy": "development_only_model_selection_test_final_reporting",
+  "task": "cube_gripper_carry"
+}

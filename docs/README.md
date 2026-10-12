@@ -13,7 +13,7 @@
 
 九项任务按隐藏动力学类型组织。主表只列各任务的原协议主指标和训练重复数；附录分别列出匹配历史胜率、响应 NRE、多步完整误差比 E/B 与原环境 CEM。正确／错误历史对照用于解释历史作用，不将辨别、预测与规划混成一个总分。
 
-任务成绩与补充诊断见[九任务总表](ContextWorld_ICL_Benchmark.md#training-comparison)。补充多步评测覆盖九任务主分布的 2,436 个 Development 场景；Speed 限于未见速度插值，Test 尚未评测。相同配置的全部可用训练重复参与汇总，[JSON](research/data/multistep_prediction_coverage_v2.json) 与 [CSV](research/data/multistep_prediction_coverage_v2.csv) 提供逐次与汇总结果。公开汇总可检查，但数据面板与权重尚无稳定下载 revision，外部端到端复现尚不可用。指标计算、正反例、物理校准和规划诊断见[ICL 评测指标研究](ICL_Metric_Study.md)。
+Public Test 任务成绩与 Development 对照见[九任务总表](ContextWorld_ICL_Benchmark.md#training-comparison)。补充多步评测覆盖九任务主分布的 2,436 个 Development 场景；Speed 限于未见速度插值；这套扩展动作的多步诊断尚未评测 Test。相同配置的全部可用训练重复参与汇总，[JSON](research/data/multistep_prediction_coverage_v2.json) 与 [CSV](research/data/multistep_prediction_coverage_v2.csv) 提供逐次与汇总结果。公开汇总可检查，但数据面板与权重尚无稳定下载 revision，外部端到端复现尚不可用。指标计算、正反例、物理校准和规划诊断见[ICL 评测指标研究](ICL_Metric_Study.md)。
 
 ## 指标研究
 
@@ -41,7 +41,7 @@
 - `archive/`：已经结束的实验阶段材料；
 - `reference/`：第三方工程、运行环境和结果来源说明。
 
-这些材料用于复核已报告结果。冻结 v3、当前 Development 训练研究及扩量发布候选的
+这些材料用于复核已报告结果。冻结 v3、当前训练对照的 Development / Public Test 以及扩量发布候选的
 证据范围和发布状态见[主报告的状态表](ContextWorld_ICL_Benchmark.md#8-可复现性与结果报告)。
 
 ## 仓库维护与发布
@@ -50,7 +50,7 @@
 文件校验和上传后固定 revision 的下载验证。独立外部复现与新增模型覆盖单独维护，
 不修改已冻结的历史基线。
 
-v3 与九任务扩量数据均已组装为本地发布候选；扩量包已通过完整文件哈希与加载检查，见[验证记录](research/data/expanded_training_release_validation_v1.json)。
+v3 与九任务扩量数据均已组装为本地发布候选；扩量包的文件与加载检查见[发布说明](Expanded_Training_Release.md)，检查范围不等同于独立端到端复现。
 两者均未上传 HF，缺少公共固定 revision 和公开权重，当前无法从公开材料端到端复跑。
 
 扩量训练数据的打包与发布准备见[发布说明](Expanded_Training_Release.md)。研究结果仍以统一技术报告为准。

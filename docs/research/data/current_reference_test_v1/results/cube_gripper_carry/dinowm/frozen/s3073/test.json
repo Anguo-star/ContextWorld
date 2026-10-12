@@ -1,0 +1,251 @@
+{
+  "adapter_spec": "prejepa",
+  "bundle": {
+    "artifact_root": "artifacts/synthesis/cube_gripper_carry_rule_h3_v4r1_release_projection_v1",
+    "bundle_root": "/opt/huawei/explorer-env/dataset/ag_data/data/world_model/ContextWorld-v1-full",
+    "component_ids": [
+      "speed",
+      "door",
+      "action_delay",
+      "action_strength",
+      "contact_friction",
+      "motion_damping",
+      "robot_arm_mass",
+      "portal_exit",
+      "cube_gripper_carry"
+    ],
+    "manifest_payload_files": 3,
+    "manifest_sha256": "81eb29d8eeaefb91750187831b9120b9241c78b4903047cd4b720a186c7f6d97",
+    "public_test_policy": "public_offline_final_reporting",
+    "release_status": "staging_not_public_release",
+    "schema_version": "contextworld.bundle-resolution.v1",
+    "selection_policy": "development_only_model_selection_test_final_reporting",
+    "task": "cube_gripper_carry",
+    "task_registry_sha256": "26b78ae7d3bbaa2c170080bc1eb8791582a9183e7d606322aaf6bae1b01dcbdd"
+  },
+  "evaluation_split": "test",
+  "model_name": "dinowm-frozen-s3073",
+  "note": "Produced offline from the public ContextWorld-v1 Test split after model and recipe selection. The frozen task metrics and gate are retained, but this is not a centrally verified hosted-scoreboard row and must not be fed back into tuning.",
+  "official_scoreboard_row": false,
+  "result": {
+    "benchmark": "cube_history3_gripper_carry_icl_v4r1",
+    "claim_boundary": {
+      "external_evaluation_allowed": true,
+      "external_result": true,
+      "formal_reference_mutation": false,
+      "formal_scoreboard_eligible": false,
+      "reference_rerun": false
+    },
+    "data": {
+      "artifact_layout": "bundle",
+      "condition_count": 512,
+      "context_transitions": 2,
+      "flattened_action_input_dim": 25,
+      "grasp_modes": [
+        "cannot_hold",
+        "can_hold"
+      ],
+      "history_tokens": 3,
+      "logical_root": "artifacts/synthesis/cube_gripper_carry_rule_h3_v4r1_release_projection_v1",
+      "online_environment_calls": 0,
+      "pair_count": 256,
+      "prediction_horizon_action_blocks": 1,
+      "raw_action_dim": 5,
+      "raw_steps_per_action_block": 5
+    },
+    "gate": {
+      "checks": {
+        "context_switch_rate": true,
+        "context_switch_rate_bootstrap_lower_bound": true,
+        "correct_future_rate": false,
+        "correct_future_rate_bootstrap_lower_bound": false,
+        "correct_history_rate": true,
+        "correct_history_rate_bootstrap_lower_bound": true,
+        "normalized_response_error": true,
+        "response_gain": false,
+        "target_latent_separation": true,
+        "worst_rule_correct_future_rate": false
+      },
+      "passed": false
+    },
+    "metrics": {
+      "can_hold_correct_future_rate": 0.5390625,
+      "cannot_hold_correct_future_rate": 0.71875,
+      "context_switch_rate": 0.94921875,
+      "correct_future_mse_mean": 0.0876099169254303,
+      "correct_future_rate": 0.62890625,
+      "correct_history_rate": 0.802734375,
+      "current_frame_only_accuracy_bound": 0.5,
+      "decision_count": 512,
+      "joint_icl_pair_success_rate": 0.234375,
+      "latent_response": {
+        "calibrated_response_success_baseline": {
+          "name": "no_history_response",
+          "normalized_response_error": 1.0,
+          "pair_success_criterion": "normalized_response_error < 1.0",
+          "prediction_response": "zero"
+        },
+        "calibrated_response_success_rate": 0.87890625,
+        "ideal_values": {
+          "calibrated_response_success_rate": 1.0,
+          "normalized_response_error": 0.0,
+          "response_alignment": 1.0,
+          "response_gain": 1.0
+        },
+        "normalized_response_error": 0.8710242893967626,
+        "response_alignment": 0.36836047426106483,
+        "response_gain": 0.10550695998356407,
+        "target_latent_separation": {
+          "criterion": "finite_and_nonidentical_for_every_pair",
+          "mean_target_response_mse": 0.02279463343019674,
+          "median_target_response_mse": 0.020857035605557732,
+          "minimum_target_response_mse": 0.007867094122379122,
+          "passed": true,
+          "zero_separation_pair_count": 0
+        }
+      },
+      "other_future_mse_mean": 0.09001491218805313,
+      "other_minus_correct_mse_margin_mean": 0.0024049929343163967,
+      "pair_count": 256,
+      "paired_bootstrap_95_lower_bound": {
+        "context_switch_rate": 0.921875,
+        "correct_future_rate": 0.6015625,
+        "correct_history_rate": 0.7734375
+      },
+      "worst_rule_correct_future_rate": 0.5390625
+    },
+    "model": {
+      "adapter": {
+        "adapter_class": "contextworld.benchmarks.prejepa_adapters.StableWorldModelPreJEPACubeGraspRuleAdapter",
+        "adapter_id": "stable_worldmodel_prejepa_cube_grasp_rule_v2",
+        "checkpoint": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/dino-wm-pixels-action-v1/checkpoints/cube_gripper_carry_prejepa_pixels_action_warmstart_v1_s3073/weights_epoch_10.pt",
+        "checkpoint_sha256": "009ae0366585b9d449a9999218f5a0d1dd738c35349e8ad94b66c822227a2442",
+        "device": "cuda:5",
+        "model_class": "stable_worldmodel.wm.prejepa.prejepa.PreJEPA",
+        "parameters": 41752576,
+        "protocol": {
+          "action_block_raw_steps": 5,
+          "action_dim": 5,
+          "decoder_required": false,
+          "future_action_blocks": 5,
+          "history_tokens": 3,
+          "native_target_encoder": true
+        },
+        "stable_worldmodel_commit": "1763bc582fc8ebb2f157859abbee979543dec1d1",
+        "stable_worldmodel_repo": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/lewm-contextworld-v1/.contextworld/stable-worldmodel/1763bc582fc8ebb2f157859abbee979543dec1d1"
+      },
+      "name": "dinowm-frozen-s3073",
+      "state_sha256_after": "c9a5cde07d4eb10c4b4f98dd33bf1bc76d6c0e24d428501f570284e0cb76cfca",
+      "state_sha256_before": "c9a5cde07d4eb10c4b4f98dd33bf1bc76d6c0e24d428501f570284e0cb76cfca",
+      "training_recipe": "frozen",
+      "training_seed": 3073
+    },
+    "release": {
+      "portable_provenance_sha256": "90b7a21fbcbdbc6c49911cececc687fbe35a3d2f1fb62eb01750175d5667550d",
+      "release_config_sha256": "731375aea1fa6cf61f58e5dacfc7fc7135cf3df0cb7c04233192d5da8a7364f4",
+      "release_id": "contextworld_cube_gripper_carry_icl_history3_v4r1"
+    },
+    "schema_version": 1,
+    "status": "completed",
+    "submission_kind": "external_single_checkpoint"
+  },
+  "result_kind": "public_test_offline_final_report_v1",
+  "runtime_fingerprint": {
+    "evidence_kind": "captured_in_evaluation_process",
+    "executable": "/tmp/cw-strength-ablation-20260922/venv/bin/python",
+    "packages": {
+      "Pillow": "9.2.0",
+      "numpy": "1.24.4",
+      "pyarrow": "25.0.1",
+      "pylance": "11.0.0",
+      "stable-pretraining": "0.1.8",
+      "stable-worldmodel": null,
+      "torch": "2.9.1",
+      "torchvision": "0.24.1",
+      "transformers": "4.57.1"
+    },
+    "platform": "Linux-5.15.0-92-generic-x86_64-with-glibc2.35",
+    "python": "3.10.12",
+    "requirements_frozen_sha256": "2b001bd25f9be4bb2932d7419f55edc3f3299e86389b0ad9de25b912e1f2b8e3",
+    "schema_version": 1,
+    "torch": {
+      "cuda_available": true,
+      "cuda_build": "12.8",
+      "cudnn_benchmark": false,
+      "cudnn_deterministic": false,
+      "cudnn_version": 91002,
+      "deterministic_algorithms": false,
+      "devices": [
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 0,
+          "name": "NVIDIA H800"
+        },
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 1,
+          "name": "NVIDIA H800"
+        },
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 2,
+          "name": "NVIDIA H800"
+        },
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 3,
+          "name": "NVIDIA H800"
+        },
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 4,
+          "name": "NVIDIA H800"
+        },
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 5,
+          "name": "NVIDIA H800"
+        },
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 6,
+          "name": "NVIDIA H800"
+        },
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 7,
+          "name": "NVIDIA H800"
+        }
+      ],
+      "float32_matmul_precision": "high",
+      "version": "2.9.1+cu128"
+    }
+  },
+  "schema_version": 1,
+  "selection_policy": "development_only_model_selection_test_final_reporting",
+  "task": "cube_gripper_carry"
+}

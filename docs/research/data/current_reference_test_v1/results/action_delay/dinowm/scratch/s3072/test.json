@@ -1,0 +1,4351 @@
+{
+  "adapter_spec": "prejepa",
+  "bundle": {
+    "artifact_root": "artifacts/evaluation/history7/action_delay_validation_v1",
+    "bundle_root": "/opt/huawei/explorer-env/dataset/ag_data/data/world_model/ContextWorld-v1-full",
+    "component_ids": [
+      "speed",
+      "door",
+      "action_delay",
+      "action_strength",
+      "contact_friction",
+      "motion_damping",
+      "robot_arm_mass",
+      "portal_exit",
+      "cube_gripper_carry"
+    ],
+    "manifest_payload_files": 304,
+    "manifest_sha256": "81eb29d8eeaefb91750187831b9120b9241c78b4903047cd4b720a186c7f6d97",
+    "public_test_policy": "public_offline_final_reporting",
+    "release_status": "staging_not_public_release",
+    "schema_version": "contextworld.bundle-resolution.v1",
+    "selection_policy": "development_only_model_selection_test_final_reporting",
+    "task": "action_delay",
+    "task_registry_sha256": "26b78ae7d3bbaa2c170080bc1eb8791582a9183e7d606322aaf6bae1b01dcbdd"
+  },
+  "evaluation_split": "test",
+  "model_name": "dinowm-scratch-s3072",
+  "note": "Produced offline from the public ContextWorld-v1 Test split after model and recipe selection. The frozen task metrics and gate are retained, but this is not a centrally verified hosted-scoreboard row and must not be fed back into tuning.",
+  "official_scoreboard_row": false,
+  "result": {
+    "benchmark": "tworoom_history7_action_delay_icl_v1",
+    "core_h1": {
+      "aggregation": "equal physical-group mean within query, then query mean",
+      "by_physical_group": {
+        "0": {
+          "accuracy": 0.18,
+          "delays": [
+            0
+          ],
+          "history_conditions": 300
+        },
+        "1": {
+          "accuracy": 0.07,
+          "delays": [
+            1
+          ],
+          "history_conditions": 300
+        },
+        "2": {
+          "accuracy": 0.17333333333333334,
+          "delays": [
+            2
+          ],
+          "history_conditions": 300
+        },
+        "3": {
+          "accuracy": 0.12666666666666668,
+          "delays": [
+            3
+          ],
+          "history_conditions": 300
+        },
+        "4": {
+          "accuracy": 0.19666666666666666,
+          "delays": [
+            4
+          ],
+          "history_conditions": 300
+        },
+        "5": {
+          "accuracy": 0.25,
+          "delays": [
+            5,
+            6,
+            7,
+            8,
+            9,
+            10
+          ],
+          "history_conditions": 1800
+        }
+      },
+      "confusion_counts": {
+        "0": {
+          "0": 54,
+          "1": 21,
+          "2": 52,
+          "3": 38,
+          "4": 59,
+          "5": 76
+        },
+        "1": {
+          "0": 54,
+          "1": 21,
+          "2": 52,
+          "3": 38,
+          "4": 59,
+          "5": 76
+        },
+        "2": {
+          "0": 54,
+          "1": 21,
+          "2": 52,
+          "3": 38,
+          "4": 59,
+          "5": 76
+        },
+        "3": {
+          "0": 53,
+          "1": 22,
+          "2": 52,
+          "3": 38,
+          "4": 59,
+          "5": 76
+        },
+        "4": {
+          "0": 54,
+          "1": 21,
+          "2": 52,
+          "3": 38,
+          "4": 59,
+          "5": 76
+        },
+        "5": {
+          "0": 324,
+          "1": 126,
+          "2": 318,
+          "3": 228,
+          "4": 354,
+          "5": 450
+        }
+      },
+      "eval_seed_query_counts": {
+        "42": 50,
+        "43": 50,
+        "44": 50,
+        "45": 50,
+        "46": 50,
+        "47": 50
+      },
+      "history_conditions": 3300,
+      "minimum_physical_group_accuracy": 0.07,
+      "paired_query_bootstrap_95_percent_interval": {
+        "lower": 0.16499999999999998,
+        "random_seed": 2026073002,
+        "resamples": 10000,
+        "upper": 0.16666666666666666
+      },
+      "physical_group_macro_accuracy": 0.1661111111111111,
+      "physical_groups": 6,
+      "queries": 300,
+      "query_metrics": [
+        {
+          "eval_seed": 42,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 1.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s42-q00"
+        },
+        {
+          "eval_seed": 42,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 1.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s42-q01"
+        },
+        {
+          "eval_seed": 42,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 1.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s42-q02"
+        },
+        {
+          "eval_seed": 42,
+          "physical_group_accuracy": {
+            "0": 1.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s42-q03"
+        },
+        {
+          "eval_seed": 42,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 1.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s42-q04"
+        },
+        {
+          "eval_seed": 42,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 1.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s42-q05"
+        },
+        {
+          "eval_seed": 42,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 1.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s42-q06"
+        },
+        {
+          "eval_seed": 42,
+          "physical_group_accuracy": {
+            "0": 1.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s42-q07"
+        },
+        {
+          "eval_seed": 42,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 1.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s42-q08"
+        },
+        {
+          "eval_seed": 42,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 1.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s42-q09"
+        },
+        {
+          "eval_seed": 42,
+          "physical_group_accuracy": {
+            "0": 1.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s42-q10"
+        },
+        {
+          "eval_seed": 42,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 1.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s42-q11"
+        },
+        {
+          "eval_seed": 42,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 1.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s42-q12"
+        },
+        {
+          "eval_seed": 42,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 1.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s42-q13"
+        },
+        {
+          "eval_seed": 42,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 1.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s42-q14"
+        },
+        {
+          "eval_seed": 42,
+          "physical_group_accuracy": {
+            "0": 1.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s42-q15"
+        },
+        {
+          "eval_seed": 42,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 1.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s42-q16"
+        },
+        {
+          "eval_seed": 42,
+          "physical_group_accuracy": {
+            "0": 1.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s42-q17"
+        },
+        {
+          "eval_seed": 42,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 1.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s42-q18"
+        },
+        {
+          "eval_seed": 42,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 1.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s42-q19"
+        },
+        {
+          "eval_seed": 42,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 1.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s42-q20"
+        },
+        {
+          "eval_seed": 42,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 1.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s42-q21"
+        },
+        {
+          "eval_seed": 42,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 1.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s42-q22"
+        },
+        {
+          "eval_seed": 42,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 1.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s42-q23"
+        },
+        {
+          "eval_seed": 42,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 1.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s42-q24"
+        },
+        {
+          "eval_seed": 42,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 1.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s42-q25"
+        },
+        {
+          "eval_seed": 42,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 1.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s42-q26"
+        },
+        {
+          "eval_seed": 42,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 1.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s42-q27"
+        },
+        {
+          "eval_seed": 42,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 1.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s42-q28"
+        },
+        {
+          "eval_seed": 42,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 1.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s42-q29"
+        },
+        {
+          "eval_seed": 42,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 1.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s42-q30"
+        },
+        {
+          "eval_seed": 42,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 1.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s42-q31"
+        },
+        {
+          "eval_seed": 42,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 1.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s42-q32"
+        },
+        {
+          "eval_seed": 42,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 1.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s42-q33"
+        },
+        {
+          "eval_seed": 42,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 1.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s42-q34"
+        },
+        {
+          "eval_seed": 42,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 1.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s42-q35"
+        },
+        {
+          "eval_seed": 42,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 1.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s42-q36"
+        },
+        {
+          "eval_seed": 42,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 1.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s42-q37"
+        },
+        {
+          "eval_seed": 42,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 1.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s42-q38"
+        },
+        {
+          "eval_seed": 42,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 1.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s42-q39"
+        },
+        {
+          "eval_seed": 42,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 1.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s42-q40"
+        },
+        {
+          "eval_seed": 42,
+          "physical_group_accuracy": {
+            "0": 1.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s42-q41"
+        },
+        {
+          "eval_seed": 42,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 1.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s42-q42"
+        },
+        {
+          "eval_seed": 42,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 1.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s42-q43"
+        },
+        {
+          "eval_seed": 42,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 1.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s42-q44"
+        },
+        {
+          "eval_seed": 42,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 1.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s42-q45"
+        },
+        {
+          "eval_seed": 42,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 1.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s42-q46"
+        },
+        {
+          "eval_seed": 42,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 1.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s42-q47"
+        },
+        {
+          "eval_seed": 42,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 1.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s42-q48"
+        },
+        {
+          "eval_seed": 42,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 1.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s42-q49"
+        },
+        {
+          "eval_seed": 43,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 1.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s43-q00"
+        },
+        {
+          "eval_seed": 43,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 1.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s43-q01"
+        },
+        {
+          "eval_seed": 43,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 1.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s43-q02"
+        },
+        {
+          "eval_seed": 43,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 1.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s43-q03"
+        },
+        {
+          "eval_seed": 43,
+          "physical_group_accuracy": {
+            "0": 1.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s43-q04"
+        },
+        {
+          "eval_seed": 43,
+          "physical_group_accuracy": {
+            "0": 1.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s43-q05"
+        },
+        {
+          "eval_seed": 43,
+          "physical_group_accuracy": {
+            "0": 1.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s43-q06"
+        },
+        {
+          "eval_seed": 43,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 1.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s43-q07"
+        },
+        {
+          "eval_seed": 43,
+          "physical_group_accuracy": {
+            "0": 1.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s43-q08"
+        },
+        {
+          "eval_seed": 43,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 1.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s43-q09"
+        },
+        {
+          "eval_seed": 43,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 1.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s43-q10"
+        },
+        {
+          "eval_seed": 43,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 1.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s43-q11"
+        },
+        {
+          "eval_seed": 43,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 1.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s43-q12"
+        },
+        {
+          "eval_seed": 43,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 1.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s43-q13"
+        },
+        {
+          "eval_seed": 43,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 1.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s43-q14"
+        },
+        {
+          "eval_seed": 43,
+          "physical_group_accuracy": {
+            "0": 1.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s43-q15"
+        },
+        {
+          "eval_seed": 43,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 1.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s43-q16"
+        },
+        {
+          "eval_seed": 43,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 1.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s43-q17"
+        },
+        {
+          "eval_seed": 43,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 1.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s43-q18"
+        },
+        {
+          "eval_seed": 43,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 1.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s43-q19"
+        },
+        {
+          "eval_seed": 43,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 1.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s43-q20"
+        },
+        {
+          "eval_seed": 43,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 1.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s43-q21"
+        },
+        {
+          "eval_seed": 43,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 1.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s43-q22"
+        },
+        {
+          "eval_seed": 43,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 1.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s43-q23"
+        },
+        {
+          "eval_seed": 43,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 1.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s43-q24"
+        },
+        {
+          "eval_seed": 43,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 1.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s43-q25"
+        },
+        {
+          "eval_seed": 43,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 1.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s43-q26"
+        },
+        {
+          "eval_seed": 43,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 1.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s43-q27"
+        },
+        {
+          "eval_seed": 43,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 1.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s43-q28"
+        },
+        {
+          "eval_seed": 43,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 1.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s43-q29"
+        },
+        {
+          "eval_seed": 43,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 1.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s43-q30"
+        },
+        {
+          "eval_seed": 43,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 1.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s43-q31"
+        },
+        {
+          "eval_seed": 43,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 1.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s43-q32"
+        },
+        {
+          "eval_seed": 43,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 1.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s43-q33"
+        },
+        {
+          "eval_seed": 43,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 1.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s43-q34"
+        },
+        {
+          "eval_seed": 43,
+          "physical_group_accuracy": {
+            "0": 1.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s43-q35"
+        },
+        {
+          "eval_seed": 43,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 1.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s43-q36"
+        },
+        {
+          "eval_seed": 43,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 1.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s43-q37"
+        },
+        {
+          "eval_seed": 43,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 1.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s43-q38"
+        },
+        {
+          "eval_seed": 43,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 1.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s43-q39"
+        },
+        {
+          "eval_seed": 43,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 1.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s43-q40"
+        },
+        {
+          "eval_seed": 43,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 1.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s43-q41"
+        },
+        {
+          "eval_seed": 43,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 1.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s43-q42"
+        },
+        {
+          "eval_seed": 43,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 1.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s43-q43"
+        },
+        {
+          "eval_seed": 43,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 1.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s43-q44"
+        },
+        {
+          "eval_seed": 43,
+          "physical_group_accuracy": {
+            "0": 1.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s43-q45"
+        },
+        {
+          "eval_seed": 43,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 1.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s43-q46"
+        },
+        {
+          "eval_seed": 43,
+          "physical_group_accuracy": {
+            "0": 1.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s43-q47"
+        },
+        {
+          "eval_seed": 43,
+          "physical_group_accuracy": {
+            "0": 1.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s43-q48"
+        },
+        {
+          "eval_seed": 43,
+          "physical_group_accuracy": {
+            "0": 1.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s43-q49"
+        },
+        {
+          "eval_seed": 44,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 1.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s44-q00"
+        },
+        {
+          "eval_seed": 44,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 1.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s44-q01"
+        },
+        {
+          "eval_seed": 44,
+          "physical_group_accuracy": {
+            "0": 1.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s44-q02"
+        },
+        {
+          "eval_seed": 44,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 1.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s44-q03"
+        },
+        {
+          "eval_seed": 44,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 1.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s44-q04"
+        },
+        {
+          "eval_seed": 44,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 1.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s44-q05"
+        },
+        {
+          "eval_seed": 44,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 1.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s44-q06"
+        },
+        {
+          "eval_seed": 44,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 1.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s44-q07"
+        },
+        {
+          "eval_seed": 44,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 1.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s44-q08"
+        },
+        {
+          "eval_seed": 44,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 1.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s44-q09"
+        },
+        {
+          "eval_seed": 44,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 1.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s44-q10"
+        },
+        {
+          "eval_seed": 44,
+          "physical_group_accuracy": {
+            "0": 1.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s44-q11"
+        },
+        {
+          "eval_seed": 44,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 1.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s44-q12"
+        },
+        {
+          "eval_seed": 44,
+          "physical_group_accuracy": {
+            "0": 1.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s44-q13"
+        },
+        {
+          "eval_seed": 44,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 1.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s44-q14"
+        },
+        {
+          "eval_seed": 44,
+          "physical_group_accuracy": {
+            "0": 1.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s44-q15"
+        },
+        {
+          "eval_seed": 44,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 1.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s44-q16"
+        },
+        {
+          "eval_seed": 44,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 1.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s44-q17"
+        },
+        {
+          "eval_seed": 44,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 1.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s44-q18"
+        },
+        {
+          "eval_seed": 44,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 1.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s44-q19"
+        },
+        {
+          "eval_seed": 44,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 1.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s44-q20"
+        },
+        {
+          "eval_seed": 44,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 1.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s44-q21"
+        },
+        {
+          "eval_seed": 44,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 1.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s44-q22"
+        },
+        {
+          "eval_seed": 44,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 1.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s44-q23"
+        },
+        {
+          "eval_seed": 44,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 1.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s44-q24"
+        },
+        {
+          "eval_seed": 44,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 1.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s44-q25"
+        },
+        {
+          "eval_seed": 44,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 1.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s44-q26"
+        },
+        {
+          "eval_seed": 44,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 1.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s44-q27"
+        },
+        {
+          "eval_seed": 44,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 1.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s44-q28"
+        },
+        {
+          "eval_seed": 44,
+          "physical_group_accuracy": {
+            "0": 1.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s44-q29"
+        },
+        {
+          "eval_seed": 44,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 1.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s44-q30"
+        },
+        {
+          "eval_seed": 44,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 1.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s44-q31"
+        },
+        {
+          "eval_seed": 44,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 1.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s44-q32"
+        },
+        {
+          "eval_seed": 44,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 1.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s44-q33"
+        },
+        {
+          "eval_seed": 44,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 1.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s44-q34"
+        },
+        {
+          "eval_seed": 44,
+          "physical_group_accuracy": {
+            "0": 1.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s44-q35"
+        },
+        {
+          "eval_seed": 44,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 1.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s44-q36"
+        },
+        {
+          "eval_seed": 44,
+          "physical_group_accuracy": {
+            "0": 1.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s44-q37"
+        },
+        {
+          "eval_seed": 44,
+          "physical_group_accuracy": {
+            "0": 1.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s44-q38"
+        },
+        {
+          "eval_seed": 44,
+          "physical_group_accuracy": {
+            "0": 1.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s44-q39"
+        },
+        {
+          "eval_seed": 44,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 1.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s44-q40"
+        },
+        {
+          "eval_seed": 44,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 1.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s44-q41"
+        },
+        {
+          "eval_seed": 44,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 1.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s44-q42"
+        },
+        {
+          "eval_seed": 44,
+          "physical_group_accuracy": {
+            "0": 1.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s44-q43"
+        },
+        {
+          "eval_seed": 44,
+          "physical_group_accuracy": {
+            "0": 1.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s44-q44"
+        },
+        {
+          "eval_seed": 44,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 1.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s44-q45"
+        },
+        {
+          "eval_seed": 44,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 1.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s44-q46"
+        },
+        {
+          "eval_seed": 44,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 1.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s44-q47"
+        },
+        {
+          "eval_seed": 44,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 1.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s44-q48"
+        },
+        {
+          "eval_seed": 44,
+          "physical_group_accuracy": {
+            "0": 1.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s44-q49"
+        },
+        {
+          "eval_seed": 45,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 1.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s45-q00"
+        },
+        {
+          "eval_seed": 45,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 1.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s45-q01"
+        },
+        {
+          "eval_seed": 45,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 1.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s45-q02"
+        },
+        {
+          "eval_seed": 45,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 1.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s45-q03"
+        },
+        {
+          "eval_seed": 45,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 1.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s45-q04"
+        },
+        {
+          "eval_seed": 45,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 1.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s45-q05"
+        },
+        {
+          "eval_seed": 45,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 1.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s45-q06"
+        },
+        {
+          "eval_seed": 45,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 1.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s45-q07"
+        },
+        {
+          "eval_seed": 45,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 1.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s45-q08"
+        },
+        {
+          "eval_seed": 45,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 1.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s45-q09"
+        },
+        {
+          "eval_seed": 45,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 1.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s45-q10"
+        },
+        {
+          "eval_seed": 45,
+          "physical_group_accuracy": {
+            "0": 1.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s45-q11"
+        },
+        {
+          "eval_seed": 45,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 1.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s45-q12"
+        },
+        {
+          "eval_seed": 45,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 1.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s45-q13"
+        },
+        {
+          "eval_seed": 45,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 1.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s45-q14"
+        },
+        {
+          "eval_seed": 45,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 1.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s45-q15"
+        },
+        {
+          "eval_seed": 45,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 1.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s45-q16"
+        },
+        {
+          "eval_seed": 45,
+          "physical_group_accuracy": {
+            "0": 1.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s45-q17"
+        },
+        {
+          "eval_seed": 45,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 1.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s45-q18"
+        },
+        {
+          "eval_seed": 45,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 1.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s45-q19"
+        },
+        {
+          "eval_seed": 45,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 1.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s45-q20"
+        },
+        {
+          "eval_seed": 45,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 1.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s45-q21"
+        },
+        {
+          "eval_seed": 45,
+          "physical_group_accuracy": {
+            "0": 1.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s45-q22"
+        },
+        {
+          "eval_seed": 45,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 1.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s45-q23"
+        },
+        {
+          "eval_seed": 45,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 1.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s45-q24"
+        },
+        {
+          "eval_seed": 45,
+          "physical_group_accuracy": {
+            "0": 1.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s45-q25"
+        },
+        {
+          "eval_seed": 45,
+          "physical_group_accuracy": {
+            "0": 1.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s45-q26"
+        },
+        {
+          "eval_seed": 45,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 1.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s45-q27"
+        },
+        {
+          "eval_seed": 45,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 1.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s45-q28"
+        },
+        {
+          "eval_seed": 45,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 1.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s45-q29"
+        },
+        {
+          "eval_seed": 45,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 1.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s45-q30"
+        },
+        {
+          "eval_seed": 45,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 1.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s45-q31"
+        },
+        {
+          "eval_seed": 45,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 1.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s45-q32"
+        },
+        {
+          "eval_seed": 45,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 1.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s45-q33"
+        },
+        {
+          "eval_seed": 45,
+          "physical_group_accuracy": {
+            "0": 1.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s45-q34"
+        },
+        {
+          "eval_seed": 45,
+          "physical_group_accuracy": {
+            "0": 1.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s45-q35"
+        },
+        {
+          "eval_seed": 45,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 1.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s45-q36"
+        },
+        {
+          "eval_seed": 45,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.0,
+          "query_id": "action-delay-h7-val-s45-q37"
+        },
+        {
+          "eval_seed": 45,
+          "physical_group_accuracy": {
+            "0": 1.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s45-q38"
+        },
+        {
+          "eval_seed": 45,
+          "physical_group_accuracy": {
+            "0": 1.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s45-q39"
+        },
+        {
+          "eval_seed": 45,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 1.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s45-q40"
+        },
+        {
+          "eval_seed": 45,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 1.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s45-q41"
+        },
+        {
+          "eval_seed": 45,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 1.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s45-q42"
+        },
+        {
+          "eval_seed": 45,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 1.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s45-q43"
+        },
+        {
+          "eval_seed": 45,
+          "physical_group_accuracy": {
+            "0": 1.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s45-q44"
+        },
+        {
+          "eval_seed": 45,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 1.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s45-q45"
+        },
+        {
+          "eval_seed": 45,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 1.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s45-q46"
+        },
+        {
+          "eval_seed": 45,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 1.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s45-q47"
+        },
+        {
+          "eval_seed": 45,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 1.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s45-q48"
+        },
+        {
+          "eval_seed": 45,
+          "physical_group_accuracy": {
+            "0": 1.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s45-q49"
+        },
+        {
+          "eval_seed": 46,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 1.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s46-q00"
+        },
+        {
+          "eval_seed": 46,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 1.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s46-q01"
+        },
+        {
+          "eval_seed": 46,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 1.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s46-q02"
+        },
+        {
+          "eval_seed": 46,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 1.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s46-q03"
+        },
+        {
+          "eval_seed": 46,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 1.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s46-q04"
+        },
+        {
+          "eval_seed": 46,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 1.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s46-q05"
+        },
+        {
+          "eval_seed": 46,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 1.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s46-q06"
+        },
+        {
+          "eval_seed": 46,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 1.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s46-q07"
+        },
+        {
+          "eval_seed": 46,
+          "physical_group_accuracy": {
+            "0": 1.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s46-q08"
+        },
+        {
+          "eval_seed": 46,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 1.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s46-q09"
+        },
+        {
+          "eval_seed": 46,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 1.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s46-q10"
+        },
+        {
+          "eval_seed": 46,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 1.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s46-q11"
+        },
+        {
+          "eval_seed": 46,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 1.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s46-q12"
+        },
+        {
+          "eval_seed": 46,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 1.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s46-q13"
+        },
+        {
+          "eval_seed": 46,
+          "physical_group_accuracy": {
+            "0": 1.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s46-q14"
+        },
+        {
+          "eval_seed": 46,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 1.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s46-q15"
+        },
+        {
+          "eval_seed": 46,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 1.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s46-q16"
+        },
+        {
+          "eval_seed": 46,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 1.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s46-q17"
+        },
+        {
+          "eval_seed": 46,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 1.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s46-q18"
+        },
+        {
+          "eval_seed": 46,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 1.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s46-q19"
+        },
+        {
+          "eval_seed": 46,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 1.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s46-q20"
+        },
+        {
+          "eval_seed": 46,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 1.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s46-q21"
+        },
+        {
+          "eval_seed": 46,
+          "physical_group_accuracy": {
+            "0": 1.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s46-q22"
+        },
+        {
+          "eval_seed": 46,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 1.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s46-q23"
+        },
+        {
+          "eval_seed": 46,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 1.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s46-q24"
+        },
+        {
+          "eval_seed": 46,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 1.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s46-q25"
+        },
+        {
+          "eval_seed": 46,
+          "physical_group_accuracy": {
+            "0": 1.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s46-q26"
+        },
+        {
+          "eval_seed": 46,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 1.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s46-q27"
+        },
+        {
+          "eval_seed": 46,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 1.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s46-q28"
+        },
+        {
+          "eval_seed": 46,
+          "physical_group_accuracy": {
+            "0": 1.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s46-q29"
+        },
+        {
+          "eval_seed": 46,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 1.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s46-q30"
+        },
+        {
+          "eval_seed": 46,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 1.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s46-q31"
+        },
+        {
+          "eval_seed": 46,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 1.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s46-q32"
+        },
+        {
+          "eval_seed": 46,
+          "physical_group_accuracy": {
+            "0": 1.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s46-q33"
+        },
+        {
+          "eval_seed": 46,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 1.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s46-q34"
+        },
+        {
+          "eval_seed": 46,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 1.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s46-q35"
+        },
+        {
+          "eval_seed": 46,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 1.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s46-q36"
+        },
+        {
+          "eval_seed": 46,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 1.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s46-q37"
+        },
+        {
+          "eval_seed": 46,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 1.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s46-q38"
+        },
+        {
+          "eval_seed": 46,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 1.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s46-q39"
+        },
+        {
+          "eval_seed": 46,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 1.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s46-q40"
+        },
+        {
+          "eval_seed": 46,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 1.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s46-q41"
+        },
+        {
+          "eval_seed": 46,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 1.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s46-q42"
+        },
+        {
+          "eval_seed": 46,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 1.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s46-q43"
+        },
+        {
+          "eval_seed": 46,
+          "physical_group_accuracy": {
+            "0": 1.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s46-q44"
+        },
+        {
+          "eval_seed": 46,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 1.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s46-q45"
+        },
+        {
+          "eval_seed": 46,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 1.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s46-q46"
+        },
+        {
+          "eval_seed": 46,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 1.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s46-q47"
+        },
+        {
+          "eval_seed": 46,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 1.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s46-q48"
+        },
+        {
+          "eval_seed": 46,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 1.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s46-q49"
+        },
+        {
+          "eval_seed": 47,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 1.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s47-q00"
+        },
+        {
+          "eval_seed": 47,
+          "physical_group_accuracy": {
+            "0": 1.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s47-q01"
+        },
+        {
+          "eval_seed": 47,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 1.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s47-q02"
+        },
+        {
+          "eval_seed": 47,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 1.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s47-q03"
+        },
+        {
+          "eval_seed": 47,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 1.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s47-q04"
+        },
+        {
+          "eval_seed": 47,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 1.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s47-q05"
+        },
+        {
+          "eval_seed": 47,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 1.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s47-q06"
+        },
+        {
+          "eval_seed": 47,
+          "physical_group_accuracy": {
+            "0": 1.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s47-q07"
+        },
+        {
+          "eval_seed": 47,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 1.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s47-q08"
+        },
+        {
+          "eval_seed": 47,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 1.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s47-q09"
+        },
+        {
+          "eval_seed": 47,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 1.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s47-q10"
+        },
+        {
+          "eval_seed": 47,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 1.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s47-q11"
+        },
+        {
+          "eval_seed": 47,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 1.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s47-q12"
+        },
+        {
+          "eval_seed": 47,
+          "physical_group_accuracy": {
+            "0": 1.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s47-q13"
+        },
+        {
+          "eval_seed": 47,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 1.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s47-q14"
+        },
+        {
+          "eval_seed": 47,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 1.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s47-q15"
+        },
+        {
+          "eval_seed": 47,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 1.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s47-q16"
+        },
+        {
+          "eval_seed": 47,
+          "physical_group_accuracy": {
+            "0": 1.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s47-q17"
+        },
+        {
+          "eval_seed": 47,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 1.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s47-q18"
+        },
+        {
+          "eval_seed": 47,
+          "physical_group_accuracy": {
+            "0": 1.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s47-q19"
+        },
+        {
+          "eval_seed": 47,
+          "physical_group_accuracy": {
+            "0": 1.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s47-q20"
+        },
+        {
+          "eval_seed": 47,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 1.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s47-q21"
+        },
+        {
+          "eval_seed": 47,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 1.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s47-q22"
+        },
+        {
+          "eval_seed": 47,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 1.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s47-q23"
+        },
+        {
+          "eval_seed": 47,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 1.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s47-q24"
+        },
+        {
+          "eval_seed": 47,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 1.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s47-q25"
+        },
+        {
+          "eval_seed": 47,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 1.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s47-q26"
+        },
+        {
+          "eval_seed": 47,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 1.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s47-q27"
+        },
+        {
+          "eval_seed": 47,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 1.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s47-q28"
+        },
+        {
+          "eval_seed": 47,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 1.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s47-q29"
+        },
+        {
+          "eval_seed": 47,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 1.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s47-q30"
+        },
+        {
+          "eval_seed": 47,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 1.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s47-q31"
+        },
+        {
+          "eval_seed": 47,
+          "physical_group_accuracy": {
+            "0": 1.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s47-q32"
+        },
+        {
+          "eval_seed": 47,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 1.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s47-q33"
+        },
+        {
+          "eval_seed": 47,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 1.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s47-q34"
+        },
+        {
+          "eval_seed": 47,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 1.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s47-q35"
+        },
+        {
+          "eval_seed": 47,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 1.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s47-q36"
+        },
+        {
+          "eval_seed": 47,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 1.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s47-q37"
+        },
+        {
+          "eval_seed": 47,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 1.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s47-q38"
+        },
+        {
+          "eval_seed": 47,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 1.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s47-q39"
+        },
+        {
+          "eval_seed": 47,
+          "physical_group_accuracy": {
+            "0": 1.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s47-q40"
+        },
+        {
+          "eval_seed": 47,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 1.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s47-q41"
+        },
+        {
+          "eval_seed": 47,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 1.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s47-q42"
+        },
+        {
+          "eval_seed": 47,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 1.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s47-q43"
+        },
+        {
+          "eval_seed": 47,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 1.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s47-q44"
+        },
+        {
+          "eval_seed": 47,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 1.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s47-q45"
+        },
+        {
+          "eval_seed": 47,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 1.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s47-q46"
+        },
+        {
+          "eval_seed": 47,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 1.0,
+            "3": 0.0,
+            "4": 0.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s47-q47"
+        },
+        {
+          "eval_seed": 47,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 1.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s47-q48"
+        },
+        {
+          "eval_seed": 47,
+          "physical_group_accuracy": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 1.0,
+            "5": 0.0
+          },
+          "physical_group_macro_accuracy": 0.16666666666666666,
+          "query_id": "action-delay-h7-val-s47-q49"
+        }
+      ]
+    },
+    "data": {
+      "catalog": "/opt/huawei/explorer-env/dataset/ag_data/data/world_model/ContextWorld-v1-full/artifacts/evaluation/history7/action_delay_validation_v1/catalog.json",
+      "catalog_sha256": "5a3fc1a53c05cc4e6f97f7b7544c48aaaf6033550b70a63899eab35ee46fafca",
+      "content_manifest_sha256": "e8d75d1ac1496dd340ce0a504e51e976dddff667915b3f9a49fe2a6e6c323923",
+      "delay_values": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10
+      ],
+      "eval_seeds": [
+        42,
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "full_protocol": true,
+      "history_tokens": 7,
+      "online_environment_calls": 0,
+      "queries": 300,
+      "queries_per_eval_seed": 50
+    },
+    "gate": {
+      "checks": {
+        "bootstrap_lower_bound": false,
+        "minimum_physical_group_accuracy": false,
+        "physical_group_macro_accuracy": false
+      },
+      "passed": false
+    },
+    "gate_completion": {
+      "additive_only": true,
+      "checks": {
+        "context_switch_rate": false,
+        "correct_history_rate": false,
+        "normalized_response_error": false,
+        "response_gain": false,
+        "target_latent_separation": true
+      },
+      "component": "action_delay",
+      "metrics": {
+        "context_switch_rate": 0.4428333333333334,
+        "correct_history_rate": 0.19575757575757577,
+        "correct_history_rate_definition": "matching-history latent loss strictly below every physically distinguishable delay at the gate horizon",
+        "delay_pairs": [
+          "0>1",
+          "0>2",
+          "0>3",
+          "0>4",
+          "0>5",
+          "0>6",
+          "0>7",
+          "0>8",
+          "0>9",
+          "0>10",
+          "1>2",
+          "1>3",
+          "1>4",
+          "1>5",
+          "1>6",
+          "1>7",
+          "1>8",
+          "1>9",
+          "1>10",
+          "2>3",
+          "2>4",
+          "2>5",
+          "2>6",
+          "2>7",
+          "2>8",
+          "2>9",
+          "2>10",
+          "3>4",
+          "3>5",
+          "3>6",
+          "3>7",
+          "3>8",
+          "3>9",
+          "3>10",
+          "4>5",
+          "4>6",
+          "4>7",
+          "4>8",
+          "4>9",
+          "4>10"
+        ],
+        "gate_horizon": 1,
+        "latent_response": {
+          "calibrated_response_success_baseline": {
+            "name": "no_history_response",
+            "normalized_response_error": 1.0,
+            "pair_success_criterion": "normalized_response_error < 1.0",
+            "prediction_response": "zero"
+          },
+          "calibrated_response_success_rate": 0.34125,
+          "ideal_values": {
+            "calibrated_response_success_rate": 1.0,
+            "normalized_response_error": 0.0,
+            "response_alignment": 1.0,
+            "response_gain": 1.0
+          },
+          "normalized_response_error": 1.0001230119665665,
+          "response_alignment": -0.0021814535375262317,
+          "response_gain": -1.9899474322776413e-05,
+          "target_latent_separation": {
+            "criterion": "finite_and_nonidentical_for_every_pair",
+            "mean_target_response_mse": 0.14063340283252201,
+            "median_target_response_mse": 0.12867158808970214,
+            "minimum_target_response_mse": 0.018336250797986207,
+            "passed": true,
+            "zero_separation_pair_count": 0
+          }
+        },
+        "pair_count": 12000,
+        "queries": 300
+      },
+      "passed": false,
+      "schema_version": 1,
+      "threshold_provenance": "configs/benchmark/reacher_arm_mass_icl_release_v1.yaml (scoring.hidden_future_prediction.gates + uncertainty.lower_bound_minimum); the only six-gate component family with a multi-level hidden dynamics parameter read from history, as delay is.  Flagged as a new threshold for action delay.  The existing primary_gate in tworoom_action_delay_icl_release_v1.yaml is untouched.",
+      "threshold_source": {
+        "config_path": "/opt/huawei/explorer-env/dataset/ag_data/code/ContextWorld/configs/benchmark/contextworld_test_gate_completion_v1.yaml",
+        "config_sha256": "d0b4aa0ec26cb968e568b179772ad9a23ed6dd13ae9f88c6b37c2c2b73f5d7a1",
+        "release_id": "contextworld_test_gate_completion_v1",
+        "status": "accepted_additive_test_gate_completion"
+      },
+      "uncertainty": {
+        "confidence_level": 0.95,
+        "lower_bounds": {
+          "context_switch_rate": 0.41258333333333314,
+          "correct_history_rate": 0.17757575757575844
+        },
+        "method": "paired_query_bootstrap",
+        "random_seed": 2026073003,
+        "resamples": 10000,
+        "unit": "query"
+      }
+    },
+    "model": {
+      "adapter": {
+        "adapter_class": "contextworld.benchmarks.prejepa_adapters.StableWorldModelPreJEPAHistory7Adapter",
+        "adapter_id": "stable_worldmodel_prejepa_history7_v2",
+        "checkpoint": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/dino-wm-contextworld-v1/checkpoints/action_delay_prejepa_joint_scratch_v1_s3072/weights_epoch_10.pt",
+        "checkpoint_sha256": "2b8a8a7395a7845f44355261e0d89fe0b8af6bee78504d0b3a9cb1f65791d94d",
+        "device": "cuda:0",
+        "model_class": "stable_worldmodel.wm.prejepa.prejepa.PreJEPA",
+        "parameters": 42155882,
+        "protocol": {
+          "action_block_raw_steps": 5,
+          "action_dim": 2,
+          "decoder_required": false,
+          "future_action_blocks": 3,
+          "history_tokens": 7,
+          "native_target_encoder": true
+        },
+        "stable_worldmodel_commit": "6ab823fdc6921c95089992ed49c39e431e21ca4a",
+        "stable_worldmodel_repo": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/dino-wm-contextworld-v1/.contextworld/stable-worldmodel/6ab823fdc6921c95089992ed49c39e431e21ca4a"
+      },
+      "name": "dinowm-scratch-s3072",
+      "state_sha256_after": "70042b2d6d1b8f68089de6fb7983a42153bc0945bcc46a1f3529e2caccccff1d",
+      "state_sha256_before": "70042b2d6d1b8f68089de6fb7983a42153bc0945bcc46a1f3529e2caccccff1d",
+      "training_recipe": "scratch",
+      "training_seed": 3072
+    },
+    "release": {
+      "catalog_sha256": "5a3fc1a53c05cc4e6f97f7b7544c48aaaf6033550b70a63899eab35ee46fafca",
+      "content_manifest_sha256": "e8d75d1ac1496dd340ce0a504e51e976dddff667915b3f9a49fe2a6e6c323923",
+      "normalizer_sha256": "a9e4b443bbac0d7a4e2d9d9f84d40ac40936556ffadfc7af0b0ce4fe4afed42c",
+      "release_config_sha256": "6ca831dca5c976e1408e5df4d972d92c5ae1d08e2a2ed49adcdeb13d44b39ba7",
+      "release_id": "contextworld_tworoom_action_delay_icl_history7_v1",
+      "sealed_test_included": false
+    },
+    "schema_version": 1,
+    "score_audit": {
+      "horizon_loss_records": 108900,
+      "model_predictions": 3300,
+      "model_visible_fields": [
+        "pixels",
+        "action"
+      ],
+      "online_environment_calls": 0,
+      "privileged_fields_passed_to_adapter": [],
+      "queries": 300,
+      "target_encodings": 9900,
+      "trajectory_comparisons": 36300
+    },
+    "status": "completed",
+    "submission_kind": "single_checkpoint"
+  },
+  "result_kind": "public_test_offline_final_report_v1",
+  "runtime_fingerprint": {
+    "evidence_kind": "captured_in_evaluation_process",
+    "executable": "/tmp/cw-strength-ablation-20260922/venv/bin/python",
+    "packages": {
+      "Pillow": "9.2.0",
+      "numpy": "1.24.4",
+      "pyarrow": "25.0.1",
+      "pylance": "11.0.0",
+      "stable-pretraining": "0.1.8",
+      "stable-worldmodel": null,
+      "torch": "2.9.1",
+      "torchvision": "0.24.1",
+      "transformers": "4.57.1"
+    },
+    "platform": "Linux-5.15.0-92-generic-x86_64-with-glibc2.35",
+    "python": "3.10.12",
+    "requirements_frozen_sha256": "2b001bd25f9be4bb2932d7419f55edc3f3299e86389b0ad9de25b912e1f2b8e3",
+    "schema_version": 1,
+    "torch": {
+      "cuda_available": true,
+      "cuda_build": "12.8",
+      "cudnn_benchmark": false,
+      "cudnn_deterministic": false,
+      "cudnn_version": 91002,
+      "deterministic_algorithms": false,
+      "devices": [
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 0,
+          "name": "NVIDIA H800"
+        },
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 1,
+          "name": "NVIDIA H800"
+        },
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 2,
+          "name": "NVIDIA H800"
+        },
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 3,
+          "name": "NVIDIA H800"
+        },
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 4,
+          "name": "NVIDIA H800"
+        },
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 5,
+          "name": "NVIDIA H800"
+        },
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 6,
+          "name": "NVIDIA H800"
+        },
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 7,
+          "name": "NVIDIA H800"
+        }
+      ],
+      "float32_matmul_precision": "high",
+      "version": "2.9.1+cu128"
+    }
+  },
+  "schema_version": 1,
+  "selection_policy": "development_only_model_selection_test_final_reporting",
+  "task": "action_delay"
+}

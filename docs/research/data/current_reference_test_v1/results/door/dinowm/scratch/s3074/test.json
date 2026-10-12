@@ -1,0 +1,1312 @@
+{
+  "adapter_spec": "prejepa",
+  "bundle": {
+    "artifact_root": "artifacts/evaluation/history3/hidden_passage_validation_v2",
+    "bundle_root": "/opt/huawei/explorer-env/dataset/ag_data/data/world_model/ContextWorld-v1-full",
+    "component_ids": [
+      "speed",
+      "door",
+      "action_delay",
+      "action_strength",
+      "contact_friction",
+      "motion_damping",
+      "robot_arm_mass",
+      "portal_exit",
+      "cube_gripper_carry"
+    ],
+    "manifest_payload_files": 303,
+    "manifest_sha256": "81eb29d8eeaefb91750187831b9120b9241c78b4903047cd4b720a186c7f6d97",
+    "public_test_policy": "public_offline_final_reporting",
+    "release_status": "staging_not_public_release",
+    "schema_version": "contextworld.bundle-resolution.v1",
+    "selection_policy": "development_only_model_selection_test_final_reporting",
+    "task": "door",
+    "task_registry_sha256": "26b78ae7d3bbaa2c170080bc1eb8791582a9183e7d606322aaf6bae1b01dcbdd"
+  },
+  "evaluation_split": "test",
+  "model_name": "dinowm-scratch-s3074",
+  "note": "Produced offline from the public ContextWorld-v1 Test split after model and recipe selection. The frozen task metrics and gate are retained, but this is not a centrally verified hosted-scoreboard row and must not be fed back into tuning.",
+  "official_scoreboard_row": false,
+  "result": {
+    "benchmark": "tworoom_history3_door_rule_icl_v1",
+    "data": {
+      "catalog": "/opt/huawei/explorer-env/dataset/ag_data/data/world_model/ContextWorld-v1-full/artifacts/evaluation/history3/hidden_passage_validation_v2/catalog.json",
+      "catalog_sha256": "d5356582f658070bb41972873720e29add04e2d6ca2e637bc0bc7bd57f204551",
+      "eval_seeds": [
+        42,
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "full_protocol": true,
+      "history_conditions": [
+        "observed_passable",
+        "observed_blocked",
+        "did_not_attempt_crossing"
+      ],
+      "loss_records": 1800,
+      "model_predictions": 900,
+      "model_visible_fields": [
+        "pixels",
+        "action"
+      ],
+      "online_environment_calls": 0,
+      "queries": 300,
+      "queries_per_eval_seed": 50,
+      "track": "unseen_door_positions",
+      "true_next_frame_rules": [
+        "passable",
+        "blocked"
+      ]
+    },
+    "formal_checkpoint_passed": true,
+    "full_protocol": true,
+    "gate_completion": {
+      "additive_only": true,
+      "checks": {
+        "context_switch_rate": true,
+        "normalized_response_error": true,
+        "response_gain": true,
+        "target_latent_separation": true,
+        "worst_rule_correct_target_choice_rate": true
+      },
+      "component": "door",
+      "full_protocol": true,
+      "metrics": {
+        "context_switch_rate": 1.0,
+        "correct_history_rate": 1.0,
+        "correct_target_choice_rate_by_true_rule": {
+          "blocked": 1.0,
+          "passable": 1.0
+        },
+        "decision_count": 600,
+        "latent_response": {
+          "calibrated_response_success_baseline": {
+            "name": "no_history_response",
+            "normalized_response_error": 1.0,
+            "pair_success_criterion": "normalized_response_error < 1.0",
+            "prediction_response": "zero"
+          },
+          "calibrated_response_success_rate": 1.0,
+          "ideal_values": {
+            "calibrated_response_success_rate": 1.0,
+            "normalized_response_error": 0.0,
+            "response_alignment": 1.0,
+            "response_gain": 1.0
+          },
+          "normalized_response_error": 0.21366408232906398,
+          "response_alignment": 0.8871532077917889,
+          "response_gain": 0.7634869979362306,
+          "target_latent_separation": {
+            "criterion": "finite_and_nonidentical_for_every_pair",
+            "mean_target_response_mse": 0.622495364734077,
+            "median_target_response_mse": 0.62457807860321,
+            "minimum_target_response_mse": 0.485807198799435,
+            "passed": true,
+            "zero_separation_pair_count": 0
+          }
+        },
+        "pair_count": 300,
+        "queries": 300,
+        "response_pair_count": 300,
+        "worst_rule_correct_target_choice_rate": 1.0
+      },
+      "passed": true,
+      "schema_version": 1,
+      "threshold_provenance": "configs/benchmark/cube_gripper_carry_icl_release_v1.yaml (scoring.hidden_future_prediction.gates); the six-gate component with the same capability type (two discrete rules revealed by history).  Flagged as a new threshold for door.  The existing gates in tworoom_door_icl_release_v1.yaml are untouched.",
+      "threshold_source": {
+        "config_path": "/opt/huawei/explorer-env/dataset/ag_data/code/ContextWorld/configs/benchmark/contextworld_test_gate_completion_v1.yaml",
+        "config_sha256": "d0b4aa0ec26cb968e568b179772ad9a23ed6dd13ae9f88c6b37c2c2b73f5d7a1",
+        "release_id": "contextworld_test_gate_completion_v1",
+        "status": "accepted_additive_test_gate_completion"
+      },
+      "uncertainty": {
+        "confidence_level": 0.95,
+        "lower_bounds": {
+          "context_switch_rate": 1.0,
+          "worst_rule_correct_target_choice_rate": 1.0
+        },
+        "method": "paired_static_query_bootstrap",
+        "random_seed": 20260726,
+        "resamples": 10000,
+        "unit": "static_query"
+      }
+    },
+    "model": {
+      "adapter": {
+        "adapter_class": "contextworld.benchmarks.prejepa_adapters.StableWorldModelPreJEPAAdapter",
+        "adapter_id": "stable_worldmodel_prejepa_v2",
+        "checkpoint": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/dino-wm-contextworld-v1/checkpoints/door_prejepa_joint_scratch_v1_s3074/weights_epoch_10.pt",
+        "checkpoint_sha256": "d69ffa6f7a08826f39e7339ae7e78b1838343e3f8d16b8b87fa62787733a9f66",
+        "device": "cuda:7",
+        "model_class": "stable_worldmodel.wm.prejepa.prejepa.PreJEPA",
+        "parameters": 41752426,
+        "protocol": {
+          "action_block_raw_steps": 5,
+          "action_dim": 2,
+          "decoder_required": false,
+          "future_action_blocks": 5,
+          "history_tokens": 3,
+          "native_target_encoder": true
+        },
+        "stable_worldmodel_commit": "5396eb6677167eb3e6703d93e7521e9e7338a8fd",
+        "stable_worldmodel_repo": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/dino-wm-contextworld-v1/.contextworld/stable-worldmodel/5396eb6677167eb3e6703d93e7521e9e7338a8fd"
+      },
+      "name": "dinowm-scratch-s3074",
+      "training_recipe": "scratch",
+      "training_seed": 3074
+    },
+    "release": {
+      "catalog_sha256": "d5356582f658070bb41972873720e29add04e2d6ca2e637bc0bc7bd57f204551",
+      "content_manifest_sha256": "c23f079e6e9119fd4320d6209f992ca98b1d81a889c6127ade087a447c2aea0c",
+      "normalizer_sha256": "a9e4b443bbac0d7a4e2d9d9f84d40ac40936556ffadfc7af0b0ce4fe4afed42c",
+      "release_config_sha256": "392186f5a11dd39eccc719251b60a2e8baf2c00451ee05ce6d7a7e831ce6cf20",
+      "release_id": "contextworld_tworoom_door_rule_icl_history3_v1",
+      "sealed_test_included": false
+    },
+    "schema_version": 1,
+    "score_audit": {
+      "adapter_protocol": {
+        "checks": {
+          "action_block_raw_steps": true,
+          "action_dim": true,
+          "at_least_one_future": true,
+          "history_tokens": true
+        },
+        "passed": true
+      },
+      "expected_records": 1800,
+      "frozen_state_hash_after": "d4efa741278dedc817019c1c6c14bea0cf6349d6398419c9f0f51852e85e4d27",
+      "frozen_state_hash_before": "d4efa741278dedc817019c1c6c14bea0cf6349d6398419c9f0f51852e85e4d27",
+      "model_input_keys": [
+        "pixels",
+        "action"
+      ],
+      "model_predictions": 900,
+      "online_environment_calls": 0,
+      "passed": true,
+      "privileged_fields_passed_to_adapter": [],
+      "records": 1800,
+      "target_encodings": 600,
+      "target_latent_separation": {
+        "collapsed_queries_at_default_epsilon": 0,
+        "maximum_mse": 0.7089423406340193,
+        "mean_mse": 0.622495364734077,
+        "median_mse": 0.62457807860321,
+        "minimum_mse": 0.485807198799435,
+        "passed_at_default_epsilon": true
+      },
+      "two_target_ties": {
+        "tie_rate": 0.0,
+        "ties": 0,
+        "unique_predictions": 900
+      },
+      "unique_queries": 300
+    },
+    "status": "completed",
+    "submission_kind": "single_checkpoint",
+    "summary": {
+      "by_true_rule": {
+        "blocked": {
+          "by_direction": {
+            "left_to_right": {
+              "matching_vs_opposite_history_win_rate": 1.0,
+              "native_latent_mse": {
+                "no_crossing_attempt_history": 0.06597162009135456,
+                "other_rule_history": 0.5220516691501731,
+                "same_rule_history": 0.05606372268685526
+              },
+              "paired_advantage": {
+                "same_vs_no_crossing_attempt": 0.009907897404499301,
+                "same_vs_other_rule_history": 0.46598794646331765
+              },
+              "pairs": 150,
+              "same_history_two_target_accuracy": 1.0,
+              "strict_win_rate": 0.8333333333333334,
+              "symmetric_contrast": {
+                "same_vs_no_crossing_attempt": 0.06580432708914687,
+                "same_vs_other_rule_history": 0.8048276710238818
+              }
+            },
+            "right_to_left": {
+              "matching_vs_opposite_history_win_rate": 1.0,
+              "native_latent_mse": {
+                "no_crossing_attempt_history": 0.08170496271539816,
+                "other_rule_history": 0.5297565208426916,
+                "same_rule_history": 0.05504143242317239
+              },
+              "paired_advantage": {
+                "same_vs_no_crossing_attempt": 0.02666353029222575,
+                "same_vs_other_rule_history": 0.4747150884195192
+              },
+              "pairs": 150,
+              "same_history_two_target_accuracy": 1.0,
+              "strict_win_rate": 0.9466666666666667,
+              "symmetric_contrast": {
+                "same_vs_no_crossing_attempt": 0.1217413484490791,
+                "same_vs_other_rule_history": 0.8094025494462047
+              }
+            }
+          },
+          "by_eval_seed": {
+            "42": {
+              "matching_vs_opposite_history_win_rate": 1.0,
+              "native_latent_mse": {
+                "no_crossing_attempt_history": 0.06590289498011938,
+                "other_rule_history": 0.5338319877922533,
+                "same_rule_history": 0.05588160940630486
+              },
+              "paired_advantage": {
+                "same_vs_no_crossing_attempt": 0.01002128557381452,
+                "same_vs_other_rule_history": 0.4779503783859484
+              },
+              "pairs": 50,
+              "same_history_two_target_accuracy": 1.0,
+              "strict_win_rate": 0.88,
+              "symmetric_contrast": {
+                "same_vs_no_crossing_attempt": 0.061302886889577586,
+                "same_vs_other_rule_history": 0.8092945481124025
+              }
+            },
+            "43": {
+              "matching_vs_opposite_history_win_rate": 1.0,
+              "native_latent_mse": {
+                "no_crossing_attempt_history": 0.10116509372510622,
+                "other_rule_history": 0.5246957539122087,
+                "same_rule_history": 0.05616538267393615
+              },
+              "paired_advantage": {
+                "same_vs_no_crossing_attempt": 0.04499971105117007,
+                "same_vs_other_rule_history": 0.4685303712382725
+              },
+              "pairs": 50,
+              "same_history_two_target_accuracy": 1.0,
+              "strict_win_rate": 0.9,
+              "symmetric_contrast": {
+                "same_vs_no_crossing_attempt": 0.16788013350440578,
+                "same_vs_other_rule_history": 0.8047208524372045
+              }
+            },
+            "44": {
+              "matching_vs_opposite_history_win_rate": 1.0,
+              "native_latent_mse": {
+                "no_crossing_attempt_history": 0.06822854729267833,
+                "other_rule_history": 0.5122736801837479,
+                "same_rule_history": 0.057618092068611404
+              },
+              "paired_advantage": {
+                "same_vs_no_crossing_attempt": 0.010610455224066924,
+                "same_vs_other_rule_history": 0.45465558811513646
+              },
+              "pairs": 50,
+              "same_history_two_target_accuracy": 1.0,
+              "strict_win_rate": 0.86,
+              "symmetric_contrast": {
+                "same_vs_no_crossing_attempt": 0.07269587086463043,
+                "same_vs_other_rule_history": 0.7962421851699406
+              }
+            },
+            "45": {
+              "matching_vs_opposite_history_win_rate": 1.0,
+              "native_latent_mse": {
+                "no_crossing_attempt_history": 0.07108145964293965,
+                "other_rule_history": 0.5285990101371743,
+                "same_rule_history": 0.054589223704954025
+              },
+              "paired_advantage": {
+                "same_vs_no_crossing_attempt": 0.016492235937985652,
+                "same_vs_other_rule_history": 0.47400978643222025
+              },
+              "pairs": 50,
+              "same_history_two_target_accuracy": 1.0,
+              "strict_win_rate": 0.92,
+              "symmetric_contrast": {
+                "same_vs_no_crossing_attempt": 0.0959347200105379,
+                "same_vs_other_rule_history": 0.8108144871761911
+              }
+            },
+            "46": {
+              "matching_vs_opposite_history_win_rate": 1.0,
+              "native_latent_mse": {
+                "no_crossing_attempt_history": 0.06713905204150433,
+                "other_rule_history": 0.5316881189761841,
+                "same_rule_history": 0.052712073101442616
+              },
+              "paired_advantage": {
+                "same_vs_no_crossing_attempt": 0.014426978940061723,
+                "same_vs_other_rule_history": 0.47897604587474146
+              },
+              "pairs": 50,
+              "same_history_two_target_accuracy": 1.0,
+              "strict_win_rate": 0.88,
+              "symmetric_contrast": {
+                "same_vs_no_crossing_attempt": 0.08848358087012248,
+                "same_vs_other_rule_history": 0.818102114625822
+              }
+            },
+            "47": {
+              "matching_vs_opposite_history_win_rate": 1.0,
+              "native_latent_mse": {
+                "no_crossing_attempt_history": 0.0695127007379102,
+                "other_rule_history": 0.5243360189770256,
+                "same_rule_history": 0.05634908437483392
+              },
+              "paired_advantage": {
+                "same_vs_no_crossing_attempt": 0.013163616363076279,
+                "same_vs_other_rule_history": 0.4679869346021917
+              },
+              "pairs": 50,
+              "same_history_two_target_accuracy": 1.0,
+              "strict_win_rate": 0.9,
+              "symmetric_contrast": {
+                "same_vs_no_crossing_attempt": 0.07633983447540377,
+                "same_vs_other_rule_history": 0.8035164738886991
+              }
+            }
+          },
+          "by_eval_seed_and_direction": {
+            "s42/left_to_right": {
+              "matching_vs_opposite_history_win_rate": 1.0,
+              "native_latent_mse": {
+                "no_crossing_attempt_history": 0.07016815205012103,
+                "other_rule_history": 0.5242432551898237,
+                "same_rule_history": 0.05995175149580218
+              },
+              "paired_advantage": {
+                "same_vs_no_crossing_attempt": 0.010216400554318848,
+                "same_vs_other_rule_history": 0.4642915036940216
+              },
+              "pairs": 25,
+              "same_history_two_target_accuracy": 1.0,
+              "strict_win_rate": 0.76,
+              "symmetric_contrast": {
+                "same_vs_no_crossing_attempt": 0.06721806074511619,
+                "same_vs_other_rule_history": 0.7942417190448231
+              }
+            },
+            "s42/right_to_left": {
+              "matching_vs_opposite_history_win_rate": 1.0,
+              "native_latent_mse": {
+                "no_crossing_attempt_history": 0.06163763791011774,
+                "other_rule_history": 0.5434207203946827,
+                "same_rule_history": 0.051811467316807545
+              },
+              "paired_advantage": {
+                "same_vs_no_crossing_attempt": 0.009826170593310193,
+                "same_vs_other_rule_history": 0.49160925307787523
+              },
+              "pairs": 25,
+              "same_history_two_target_accuracy": 1.0,
+              "strict_win_rate": 1.0,
+              "symmetric_contrast": {
+                "same_vs_no_crossing_attempt": 0.05538771303403898,
+                "same_vs_other_rule_history": 0.8243473771799819
+              }
+            },
+            "s43/left_to_right": {
+              "matching_vs_opposite_history_win_rate": 1.0,
+              "native_latent_mse": {
+                "no_crossing_attempt_history": 0.06805928269981676,
+                "other_rule_history": 0.5262194963634701,
+                "same_rule_history": 0.05364596936997615
+              },
+              "paired_advantage": {
+                "same_vs_no_crossing_attempt": 0.014413313329840612,
+                "same_vs_other_rule_history": 0.4725735269934939
+              },
+              "pairs": 25,
+              "same_history_two_target_accuracy": 1.0,
+              "strict_win_rate": 0.84,
+              "symmetric_contrast": {
+                "same_vs_no_crossing_attempt": 0.0811256071116308,
+                "same_vs_other_rule_history": 0.8135733810822718
+              }
+            },
+            "s43/right_to_left": {
+              "matching_vs_opposite_history_win_rate": 1.0,
+              "native_latent_mse": {
+                "no_crossing_attempt_history": 0.13427090475039566,
+                "other_rule_history": 0.5231720114609473,
+                "same_rule_history": 0.05868479597789616
+              },
+              "paired_advantage": {
+                "same_vs_no_crossing_attempt": 0.07558610877249952,
+                "same_vs_other_rule_history": 0.46448721548305116
+              },
+              "pairs": 25,
+              "same_history_two_target_accuracy": 1.0,
+              "strict_win_rate": 0.96,
+              "symmetric_contrast": {
+                "same_vs_no_crossing_attempt": 0.2546346598971807,
+                "same_vs_other_rule_history": 0.7958683237921371
+              }
+            },
+            "s44/left_to_right": {
+              "matching_vs_opposite_history_win_rate": 1.0,
+              "native_latent_mse": {
+                "no_crossing_attempt_history": 0.06295016829160277,
+                "other_rule_history": 0.5120050778826709,
+                "same_rule_history": 0.05733904914847909
+              },
+              "paired_advantage": {
+                "same_vs_no_crossing_attempt": 0.005611119143123677,
+                "same_vs_other_rule_history": 0.4546660287341918
+              },
+              "pairs": 25,
+              "same_history_two_target_accuracy": 1.0,
+              "strict_win_rate": 0.8,
+              "symmetric_contrast": {
+                "same_vs_no_crossing_attempt": 0.051152044356106305,
+                "same_vs_other_rule_history": 0.7972913639700968
+              }
+            },
+            "s44/right_to_left": {
+              "matching_vs_opposite_history_win_rate": 1.0,
+              "native_latent_mse": {
+                "no_crossing_attempt_history": 0.07350692629375388,
+                "other_rule_history": 0.5125422824848246,
+                "same_rule_history": 0.05789713498874372
+              },
+              "paired_advantage": {
+                "same_vs_no_crossing_attempt": 0.01560979130501017,
+                "same_vs_other_rule_history": 0.4546451474960809
+              },
+              "pairs": 25,
+              "same_history_two_target_accuracy": 1.0,
+              "strict_win_rate": 0.92,
+              "symmetric_contrast": {
+                "same_vs_no_crossing_attempt": 0.09423969737315457,
+                "same_vs_other_rule_history": 0.795193006369784
+              }
+            },
+            "s45/left_to_right": {
+              "matching_vs_opposite_history_win_rate": 1.0,
+              "native_latent_mse": {
+                "no_crossing_attempt_history": 0.062077039498494864,
+                "other_rule_history": 0.5335062066988179,
+                "same_rule_history": 0.053995231738075786
+              },
+              "paired_advantage": {
+                "same_vs_no_crossing_attempt": 0.008081807760419073,
+                "same_vs_other_rule_history": 0.4795109749607422
+              },
+              "pairs": 25,
+              "same_history_two_target_accuracy": 1.0,
+              "strict_win_rate": 0.88,
+              "symmetric_contrast": {
+                "same_vs_no_crossing_attempt": 0.05591407481751388,
+                "same_vs_other_rule_history": 0.815607842260637
+              }
+            },
+            "s45/right_to_left": {
+              "matching_vs_opposite_history_win_rate": 1.0,
+              "native_latent_mse": {
+                "no_crossing_attempt_history": 0.08008587978738445,
+                "other_rule_history": 0.5236918135755306,
+                "same_rule_history": 0.05518321567183224
+              },
+              "paired_advantage": {
+                "same_vs_no_crossing_attempt": 0.024902664115552225,
+                "same_vs_other_rule_history": 0.4685085979036983
+              },
+              "pairs": 25,
+              "same_history_two_target_accuracy": 1.0,
+              "strict_win_rate": 0.96,
+              "symmetric_contrast": {
+                "same_vs_no_crossing_attempt": 0.13595536520356194,
+                "same_vs_other_rule_history": 0.8060211320917449
+              }
+            },
+            "s46/left_to_right": {
+              "matching_vs_opposite_history_win_rate": 1.0,
+              "native_latent_mse": {
+                "no_crossing_attempt_history": 0.07133265292391121,
+                "other_rule_history": 0.5221292519282116,
+                "same_rule_history": 0.05620287976441779
+              },
+              "paired_advantage": {
+                "same_vs_no_crossing_attempt": 0.015129773159493418,
+                "same_vs_other_rule_history": 0.46592637216379373
+              },
+              "pairs": 25,
+              "same_history_two_target_accuracy": 1.0,
+              "strict_win_rate": 0.84,
+              "symmetric_contrast": {
+                "same_vs_no_crossing_attempt": 0.09080727851474263,
+                "same_vs_other_rule_history": 0.8038598244510023
+              }
+            },
+            "s46/right_to_left": {
+              "matching_vs_opposite_history_win_rate": 1.0,
+              "native_latent_mse": {
+                "no_crossing_attempt_history": 0.06294545115909747,
+                "other_rule_history": 0.5412469860241566,
+                "same_rule_history": 0.04922126643846745
+              },
+              "paired_advantage": {
+                "same_vs_no_crossing_attempt": 0.013724184720630028,
+                "same_vs_other_rule_history": 0.4920257195856891
+              },
+              "pairs": 25,
+              "same_history_two_target_accuracy": 1.0,
+              "strict_win_rate": 0.92,
+              "symmetric_contrast": {
+                "same_vs_no_crossing_attempt": 0.08615988322550228,
+                "same_vs_other_rule_history": 0.8323444048006415
+              }
+            },
+            "s47/left_to_right": {
+              "matching_vs_opposite_history_win_rate": 1.0,
+              "native_latent_mse": {
+                "no_crossing_attempt_history": 0.06124242508418074,
+                "other_rule_history": 0.5142067268380434,
+                "same_rule_history": 0.05524745460438057
+              },
+              "paired_advantage": {
+                "same_vs_no_crossing_attempt": 0.005994970479800181,
+                "same_vs_other_rule_history": 0.4589592722336628
+              },
+              "pairs": 25,
+              "same_history_two_target_accuracy": 1.0,
+              "strict_win_rate": 0.88,
+              "symmetric_contrast": {
+                "same_vs_no_crossing_attempt": 0.048608896989771395,
+                "same_vs_other_rule_history": 0.8043918953344594
+              }
+            },
+            "s47/right_to_left": {
+              "matching_vs_opposite_history_win_rate": 1.0,
+              "native_latent_mse": {
+                "no_crossing_attempt_history": 0.07778297639163964,
+                "other_rule_history": 0.5344653111160078,
+                "same_rule_history": 0.05745071414528727
+              },
+              "paired_advantage": {
+                "same_vs_no_crossing_attempt": 0.02033226224635238,
+                "same_vs_other_rule_history": 0.4770145969707205
+              },
+              "pairs": 25,
+              "same_history_two_target_accuracy": 1.0,
+              "strict_win_rate": 0.92,
+              "symmetric_contrast": {
+                "same_vs_no_crossing_attempt": 0.10407077196103615,
+                "same_vs_other_rule_history": 0.8026410524429387
+              }
+            }
+          },
+          "overall": {
+            "matching_vs_opposite_history_win_rate": 1.0,
+            "native_latent_mse": {
+              "no_crossing_attempt_history": 0.07383829140337636,
+              "other_rule_history": 0.5259040949964322,
+              "same_rule_history": 0.05555257755501383
+            },
+            "paired_advantage": {
+              "same_vs_no_crossing_attempt": 0.018285713848362525,
+              "same_vs_other_rule_history": 0.4703515174414184
+            },
+            "pairs": 300,
+            "same_history_two_target_accuracy": 1.0,
+            "strict_win_rate": 0.89,
+            "symmetric_contrast": {
+              "same_vs_no_crossing_attempt": 0.09377283776911298,
+              "same_vs_other_rule_history": 0.8071151102350433
+            }
+          },
+          "overall_both_paired_effects_positive": true,
+          "overall_required_paired_effects_positive": true
+        },
+        "passable": {
+          "by_direction": {
+            "left_to_right": {
+              "matching_vs_opposite_history_win_rate": 1.0,
+              "native_latent_mse": {
+                "no_crossing_attempt_history": 0.5738482666302667,
+                "other_rule_history": 0.5923585380528833,
+                "same_rule_history": 0.1077518588813901
+              },
+              "paired_advantage": {
+                "same_vs_no_crossing_attempt": 0.46609640774887673,
+                "same_vs_other_rule_history": 0.4846066791714933
+              },
+              "pairs": 150,
+              "same_history_two_target_accuracy": 1.0,
+              "strict_win_rate": 1.0,
+              "symmetric_contrast": {
+                "same_vs_no_crossing_attempt": 0.6825483386817912,
+                "same_vs_other_rule_history": 0.6924633258388704
+              }
+            },
+            "right_to_left": {
+              "matching_vs_opposite_history_win_rate": 1.0,
+              "native_latent_mse": {
+                "no_crossing_attempt_history": 0.5424974072651627,
+                "other_rule_history": 0.5852333871711713,
+                "same_rule_history": 0.10947463222534426
+              },
+              "paired_advantage": {
+                "same_vs_no_crossing_attempt": 0.43302277503981845,
+                "same_vs_other_rule_history": 0.47575875494582703
+              },
+              "pairs": 150,
+              "same_history_two_target_accuracy": 1.0,
+              "strict_win_rate": 1.0,
+              "symmetric_contrast": {
+                "same_vs_no_crossing_attempt": 0.6572367190195859,
+                "same_vs_other_rule_history": 0.6845399848071674
+              }
+            }
+          },
+          "by_eval_seed": {
+            "42": {
+              "matching_vs_opposite_history_win_rate": 1.0,
+              "native_latent_mse": {
+                "no_crossing_attempt_history": 0.5742082651484758,
+                "other_rule_history": 0.5944471842724152,
+                "same_rule_history": 0.11230199641664398
+              },
+              "paired_advantage": {
+                "same_vs_no_crossing_attempt": 0.46190626873183194,
+                "same_vs_other_rule_history": 0.48214518785577104
+              },
+              "pairs": 50,
+              "same_history_two_target_accuracy": 1.0,
+              "strict_win_rate": 1.0,
+              "symmetric_contrast": {
+                "same_vs_no_crossing_attempt": 0.6708241911571,
+                "same_vs_other_rule_history": 0.683023793606764
+              }
+            },
+            "43": {
+              "matching_vs_opposite_history_win_rate": 1.0,
+              "native_latent_mse": {
+                "no_crossing_attempt_history": 0.5237682458387516,
+                "other_rule_history": 0.581707602208335,
+                "same_rule_history": 0.1093110407734264
+              },
+              "paired_advantage": {
+                "same_vs_no_crossing_attempt": 0.4144572050653251,
+                "same_vs_other_rule_history": 0.47239656143490855
+              },
+              "pairs": 50,
+              "same_history_two_target_accuracy": 1.0,
+              "strict_win_rate": 1.0,
+              "symmetric_contrast": {
+                "same_vs_no_crossing_attempt": 0.6440685972978535,
+                "same_vs_other_rule_history": 0.683632596267397
+              }
+            },
+            "44": {
+              "matching_vs_opposite_history_win_rate": 1.0,
+              "native_latent_mse": {
+                "no_crossing_attempt_history": 0.5515549250011086,
+                "other_rule_history": 0.5765336899185065,
+                "same_rule_history": 0.11022858586064692
+              },
+              "paired_advantage": {
+                "same_vs_no_crossing_attempt": 0.44132633914046165,
+                "same_vs_other_rule_history": 0.46630510405785963
+              },
+              "pairs": 50,
+              "same_history_two_target_accuracy": 1.0,
+              "strict_win_rate": 1.0,
+              "symmetric_contrast": {
+                "same_vs_no_crossing_attempt": 0.663941045657461,
+                "same_vs_other_rule_history": 0.6779767066228695
+              }
+            },
+            "45": {
+              "matching_vs_opposite_history_win_rate": 1.0,
+              "native_latent_mse": {
+                "no_crossing_attempt_history": 0.5686846742011383,
+                "other_rule_history": 0.5933313452471848,
+                "same_rule_history": 0.10731653873330935
+              },
+              "paired_advantage": {
+                "same_vs_no_crossing_attempt": 0.461368135467829,
+                "same_vs_other_rule_history": 0.4860148065138754
+              },
+              "pairs": 50,
+              "same_history_two_target_accuracy": 1.0,
+              "strict_win_rate": 1.0,
+              "symmetric_contrast": {
+                "same_vs_no_crossing_attempt": 0.6798564373135325,
+                "same_vs_other_rule_history": 0.6938435268464496
+              }
+            },
+            "46": {
+              "matching_vs_opposite_history_win_rate": 1.0,
+              "native_latent_mse": {
+                "no_crossing_attempt_history": 0.5693080630701384,
+                "other_rule_history": 0.5983823740997514,
+                "same_rule_history": 0.10476994008902177
+              },
+              "paired_advantage": {
+                "same_vs_no_crossing_attempt": 0.46453812298111663,
+                "same_vs_other_rule_history": 0.49361243401072963
+              },
+              "pairs": 50,
+              "same_history_two_target_accuracy": 1.0,
+              "strict_win_rate": 1.0,
+              "symmetric_contrast": {
+                "same_vs_no_crossing_attempt": 0.68536693508182,
+                "same_vs_other_rule_history": 0.7017949933908109
+              }
+            },
+            "47": {
+              "matching_vs_opposite_history_win_rate": 1.0,
+              "native_latent_mse": {
+                "no_crossing_attempt_history": 0.5615128484266756,
+                "other_rule_history": 0.5883735799259714,
+                "same_rule_history": 0.1077513714471546
+              },
+              "paired_advantage": {
+                "same_vs_no_crossing_attempt": 0.453761476979521,
+                "same_vs_other_rule_history": 0.4806222084788166
+              },
+              "pairs": 50,
+              "same_history_two_target_accuracy": 1.0,
+              "strict_win_rate": 1.0,
+              "symmetric_contrast": {
+                "same_vs_no_crossing_attempt": 0.6752979665963649,
+                "same_vs_other_rule_history": 0.6907383152038226
+              }
+            }
+          },
+          "by_eval_seed_and_direction": {
+            "s42/left_to_right": {
+              "matching_vs_opposite_history_win_rate": 1.0,
+              "native_latent_mse": {
+                "no_crossing_attempt_history": 0.567281994461871,
+                "other_rule_history": 0.5916989908121415,
+                "same_rule_history": 0.12118631737701561
+              },
+              "paired_advantage": {
+                "same_vs_no_crossing_attempt": 0.4460956770848555,
+                "same_vs_other_rule_history": 0.470512673435126
+              },
+              "pairs": 25,
+              "same_history_two_target_accuracy": 1.0,
+              "strict_win_rate": 1.0,
+              "symmetric_contrast": {
+                "same_vs_no_crossing_attempt": 0.6475870583326002,
+                "same_vs_other_rule_history": 0.6614284547956989
+              }
+            },
+            "s42/right_to_left": {
+              "matching_vs_opposite_history_win_rate": 1.0,
+              "native_latent_mse": {
+                "no_crossing_attempt_history": 0.5811345358350806,
+                "other_rule_history": 0.5971953777326887,
+                "same_rule_history": 0.1034176754562724
+              },
+              "paired_advantage": {
+                "same_vs_no_crossing_attempt": 0.4777168603788082,
+                "same_vs_other_rule_history": 0.4937777022764163
+              },
+              "pairs": 25,
+              "same_history_two_target_accuracy": 1.0,
+              "strict_win_rate": 1.0,
+              "symmetric_contrast": {
+                "same_vs_no_crossing_attempt": 0.6940613239815996,
+                "same_vs_other_rule_history": 0.7046191324178287
+              }
+            },
+            "s43/left_to_right": {
+              "matching_vs_opposite_history_win_rate": 1.0,
+              "native_latent_mse": {
+                "no_crossing_attempt_history": 0.5730456626261597,
+                "other_rule_history": 0.5940911099606042,
+                "same_rule_history": 0.10526561947671327
+              },
+              "paired_advantage": {
+                "same_vs_no_crossing_attempt": 0.4677800431494464,
+                "same_vs_other_rule_history": 0.4888254904838909
+              },
+              "pairs": 25,
+              "same_history_two_target_accuracy": 1.0,
+              "strict_win_rate": 1.0,
+              "symmetric_contrast": {
+                "same_vs_no_crossing_attempt": 0.6875374559416904,
+                "same_vs_other_rule_history": 0.6985898510084236
+              }
+            },
+            "s43/right_to_left": {
+              "matching_vs_opposite_history_win_rate": 1.0,
+              "native_latent_mse": {
+                "no_crossing_attempt_history": 0.47449082905134327,
+                "other_rule_history": 0.5693240944560658,
+                "same_rule_history": 0.1133564620701395
+              },
+              "paired_advantage": {
+                "same_vs_no_crossing_attempt": 0.3611343669812037,
+                "same_vs_other_rule_history": 0.45596763238592636
+              },
+              "pairs": 25,
+              "same_history_two_target_accuracy": 1.0,
+              "strict_win_rate": 1.0,
+              "symmetric_contrast": {
+                "same_vs_no_crossing_attempt": 0.6005997386540165,
+                "same_vs_other_rule_history": 0.6686753415263705
+              }
+            },
+            "s44/left_to_right": {
+              "matching_vs_opposite_history_win_rate": 1.0,
+              "native_latent_mse": {
+                "no_crossing_attempt_history": 0.5667146748648247,
+                "other_rule_history": 0.5838495628263989,
+                "same_rule_history": 0.10581493275133996
+              },
+              "paired_advantage": {
+                "same_vs_no_crossing_attempt": 0.46089974211348467,
+                "same_vs_other_rule_history": 0.478034630075059
+              },
+              "pairs": 25,
+              "same_history_two_target_accuracy": 1.0,
+              "strict_win_rate": 1.0,
+              "symmetric_contrast": {
+                "same_vs_no_crossing_attempt": 0.6848418811404632,
+                "same_vs_other_rule_history": 0.6933065945134506
+              }
+            },
+            "s44/right_to_left": {
+              "matching_vs_opposite_history_win_rate": 1.0,
+              "native_latent_mse": {
+                "no_crossing_attempt_history": 0.5363951751373925,
+                "other_rule_history": 0.5692178170106141,
+                "same_rule_history": 0.11464223896995383
+              },
+              "paired_advantage": {
+                "same_vs_no_crossing_attempt": 0.4217529361674387,
+                "same_vs_other_rule_history": 0.4545755780406602
+              },
+              "pairs": 25,
+              "same_history_two_target_accuracy": 1.0,
+              "strict_win_rate": 1.0,
+              "symmetric_contrast": {
+                "same_vs_no_crossing_attempt": 0.6430402101744588,
+                "same_vs_other_rule_history": 0.6626468187322883
+              }
+            },
+            "s45/left_to_right": {
+              "matching_vs_opposite_history_win_rate": 1.0,
+              "native_latent_mse": {
+                "no_crossing_attempt_history": 0.6050680934106585,
+                "other_rule_history": 0.6081964229507214,
+                "same_rule_history": 0.10428422827940065
+              },
+              "paired_advantage": {
+                "same_vs_no_crossing_attempt": 0.5007838651312579,
+                "same_vs_other_rule_history": 0.5039121946713209
+              },
+              "pairs": 25,
+              "same_history_two_target_accuracy": 1.0,
+              "strict_win_rate": 1.0,
+              "symmetric_contrast": {
+                "same_vs_no_crossing_attempt": 0.7058918274169624,
+                "same_vs_other_rule_history": 0.7074432275688963
+              }
+            },
+            "s45/right_to_left": {
+              "matching_vs_opposite_history_win_rate": 1.0,
+              "native_latent_mse": {
+                "no_crossing_attempt_history": 0.5323012549916182,
+                "other_rule_history": 0.578466267543648,
+                "same_rule_history": 0.11034884918721807
+              },
+              "paired_advantage": {
+                "same_vs_no_crossing_attempt": 0.4219524058044002,
+                "same_vs_other_rule_history": 0.46811741835643
+              },
+              "pairs": 25,
+              "same_history_two_target_accuracy": 1.0,
+              "strict_win_rate": 1.0,
+              "symmetric_contrast": {
+                "same_vs_no_crossing_attempt": 0.6538210472101023,
+                "same_vs_other_rule_history": 0.6802438261240026
+              }
+            },
+            "s46/left_to_right": {
+              "matching_vs_opposite_history_win_rate": 1.0,
+              "native_latent_mse": {
+                "no_crossing_attempt_history": 0.5644769594009753,
+                "other_rule_history": 0.5923407463506033,
+                "same_rule_history": 0.10683529626936618
+              },
+              "paired_advantage": {
+                "same_vs_no_crossing_attempt": 0.4576416631316091,
+                "same_vs_other_rule_history": 0.48550545008123713
+              },
+              "pairs": 25,
+              "same_history_two_target_accuracy": 1.0,
+              "strict_win_rate": 1.0,
+              "symmetric_contrast": {
+                "same_vs_no_crossing_attempt": 0.678345461747869,
+                "same_vs_other_rule_history": 0.6943493514824535
+              }
+            },
+            "s46/right_to_left": {
+              "matching_vs_opposite_history_win_rate": 1.0,
+              "native_latent_mse": {
+                "no_crossing_attempt_history": 0.5741391667393015,
+                "other_rule_history": 0.6044240018488993,
+                "same_rule_history": 0.10270458390867734
+              },
+              "paired_advantage": {
+                "same_vs_no_crossing_attempt": 0.47143458283062406,
+                "same_vs_other_rule_history": 0.501719417940222
+              },
+              "pairs": 25,
+              "same_history_two_target_accuracy": 1.0,
+              "strict_win_rate": 1.0,
+              "symmetric_contrast": {
+                "same_vs_no_crossing_attempt": 0.6923884084157705,
+                "same_vs_other_rule_history": 0.7092406352991684
+              }
+            },
+            "s47/left_to_right": {
+              "matching_vs_opposite_history_win_rate": 1.0,
+              "native_latent_mse": {
+                "no_crossing_attempt_history": 0.5665022150171112,
+                "other_rule_history": 0.5839743954168305,
+                "same_rule_history": 0.1031247591345048
+              },
+              "paired_advantage": {
+                "same_vs_no_crossing_attempt": 0.46337745588260637,
+                "same_vs_other_rule_history": 0.48084963628232563
+              },
+              "pairs": 25,
+              "same_history_two_target_accuracy": 1.0,
+              "strict_win_rate": 1.0,
+              "symmetric_contrast": {
+                "same_vs_no_crossing_attempt": 0.6910863475111616,
+                "same_vs_other_rule_history": 0.6996624756642998
+              }
+            },
+            "s47/right_to_left": {
+              "matching_vs_opposite_history_win_rate": 1.0,
+              "native_latent_mse": {
+                "no_crossing_attempt_history": 0.5565234818362401,
+                "other_rule_history": 0.5927727644351122,
+                "same_rule_history": 0.11237798375980444
+              },
+              "paired_advantage": {
+                "same_vs_no_crossing_attempt": 0.44414549807643566,
+                "same_vs_other_rule_history": 0.4803947806753077
+              },
+              "pairs": 25,
+              "same_history_two_target_accuracy": 1.0,
+              "strict_win_rate": 1.0,
+              "symmetric_contrast": {
+                "same_vs_no_crossing_attempt": 0.6595095856815679,
+                "same_vs_other_rule_history": 0.6818141547433453
+              }
+            }
+          },
+          "overall": {
+            "matching_vs_opposite_history_win_rate": 1.0,
+            "native_latent_mse": {
+              "no_crossing_attempt_history": 0.5581728369477147,
+              "other_rule_history": 0.5887959626120273,
+              "same_rule_history": 0.10861324555336717
+            },
+            "paired_advantage": {
+              "same_vs_no_crossing_attempt": 0.44955959139434754,
+              "same_vs_other_rule_history": 0.48018271705866017
+            },
+            "pairs": 300,
+            "same_history_two_target_accuracy": 1.0,
+            "strict_win_rate": 1.0,
+            "symmetric_contrast": {
+              "same_vs_no_crossing_attempt": 0.6698925288506886,
+              "same_vs_other_rule_history": 0.6885016553230188
+            }
+          },
+          "overall_both_paired_effects_positive": true,
+          "overall_required_paired_effects_positive": true
+        }
+      },
+      "count_audit": {
+        "checks": {
+          "exact_paired_rows": true,
+          "exact_record_count": true,
+          "fifty_records_per_seed_matrix_cell": true,
+          "six_matrix_cells": true,
+          "three_hundred_records_per_matrix_cell": true,
+          "twenty_five_per_seed_direction_matrix_cell": true
+        },
+        "matrix_cells": 6,
+        "paired_rows": 600,
+        "passed": true,
+        "records": 1800,
+        "records_per_matrix_cell": {
+          "blocked/did_not_attempt_crossing": 300,
+          "blocked/observed_blocked": 300,
+          "blocked/observed_passable": 300,
+          "passable/did_not_attempt_crossing": 300,
+          "passable/observed_blocked": 300,
+          "passable/observed_passable": 300
+        }
+      },
+      "decision": {
+        "both_effects_positive_for_each_true_rule": true,
+        "both_effects_positive_in_every_seed_direction_cell": true,
+        "checks": {
+          "matching_history_beats_opposite_history_for_each_true_rule": true,
+          "matching_history_beats_opposite_history_in_every_seed_direction_cell": true,
+          "matching_history_beats_opposite_history_on_majority_queries_for_each_rule": true,
+          "matching_history_target_accuracy_above_threshold_for_each_rule": true,
+          "matching_history_target_accuracy_above_threshold_in_every_seed_direction_cell": true,
+          "required_bootstrap_lower_bounds_above_threshold": true,
+          "target_latents_are_separated_for_every_query": true
+        },
+        "decision_contract": "informative_history_rule_switch_v2",
+        "failed_checks": [],
+        "passed": true,
+        "scope": "checkpoint-level Validation only; training attribution still requires three paired training seeds and single-rule controls",
+        "thresholds": {
+          "bootstrap_confidence": 0.95,
+          "bootstrap_resamples": 10000,
+          "bootstrap_seed": 20260725,
+          "decision_contract": "informative_history_rule_switch_v2",
+          "minimum_bootstrap_lower_bound_exclusive": 0.0,
+          "minimum_matching_vs_opposite_history_win_rate_exclusive": 0.5,
+          "minimum_same_history_two_target_accuracy_exclusive": 0.5,
+          "minimum_strict_win_rate_exclusive": 0.5,
+          "minimum_target_pair_latent_mse_exclusive": 1e-12,
+          "required_bootstrap_metrics": [
+            "passable/same_vs_other_rule_history",
+            "blocked/same_vs_other_rule_history",
+            "passable/matching_history_two_target_margin",
+            "blocked/matching_history_two_target_margin"
+          ]
+        }
+      },
+      "metric_contract": {
+        "cross_checkpoint_quantities": [
+          "paired symmetric contrast",
+          "strict win rate",
+          "two-target accuracy",
+          "seed and direction sign consistency"
+        ],
+        "decision_contract": "informative_history_rule_switch_v2",
+        "no_crossing_attempt_role": "auxiliary_default_tendency_only",
+        "primary": "frozen_true_next_frame_native_latent_mse",
+        "raw_latent_mse_cross_checkpoint_comparison_allowed": false,
+        "unchanged_query_relative_loss_used": false
+      },
+      "overall": {
+        "matching_vs_opposite_history_win_rate": 1.0,
+        "native_latent_mse": {
+          "no_crossing_attempt_history": 0.31600556417554554,
+          "other_rule_history": 0.5573500288042298,
+          "same_rule_history": 0.0820829115541905
+        },
+        "paired_advantage": {
+          "same_vs_no_crossing_attempt": 0.233922652621355,
+          "same_vs_other_rule_history": 0.47526711725003934
+        },
+        "pairs": 600,
+        "same_history_two_target_accuracy": 1.0,
+        "strict_win_rate": 0.945,
+        "symmetric_contrast": {
+          "same_vs_no_crossing_attempt": 0.3818326833099008,
+          "same_vs_other_rule_history": 0.7478083827790311
+        }
+      },
+      "paired_static_query_bootstrap": {
+        "confidence": 0.95,
+        "method": "paired_percentile_bootstrap",
+        "metrics": {
+          "blocked/matching_history_two_target_margin": {
+            "lower": 0.5276605394566034,
+            "mean": 0.5332433850570136,
+            "upper": 0.5388170988973507
+          },
+          "blocked/same_vs_other_rule_history": {
+            "lower": 0.4643303071824954,
+            "mean": 0.47035151744141823,
+            "upper": 0.47637072425328636
+          },
+          "passable/matching_history_two_target_margin": {
+            "lower": 0.41033211418132814,
+            "mean": 0.4172908494430648,
+            "upper": 0.42421149095040583
+          },
+          "passable/same_vs_other_rule_history": {
+            "lower": 0.4739572694530293,
+            "mean": 0.4801827170586598,
+            "upper": 0.48623636601866316
+          }
+        },
+        "resamples": 10000,
+        "seed": 20260725,
+        "strata": {
+          "s42/left_to_right": 25,
+          "s42/right_to_left": 25,
+          "s43/left_to_right": 25,
+          "s43/right_to_left": 25,
+          "s44/left_to_right": 25,
+          "s44/right_to_left": 25,
+          "s45/left_to_right": 25,
+          "s45/right_to_left": 25,
+          "s46/left_to_right": 25,
+          "s46/right_to_left": 25,
+          "s47/left_to_right": 25,
+          "s47/right_to_left": 25
+        },
+        "unique_static_queries": 300,
+        "unit": "static_query_within_eval_seed_direction"
+      },
+      "target_latent_separation": {
+        "maximum_mse": 0.7089423406340193,
+        "mean_mse": 0.622495364734077,
+        "median_mse": 0.62457807860321,
+        "minimum_mse": 0.485807198799435,
+        "queries": 300
+      },
+      "two_target_discrimination": {
+        "blocked": {
+          "did_not_attempt_crossing": {
+            "mean_two_target_margin": 0.48433454554433836,
+            "records": 300,
+            "true_target_closer_rate": 0.9866666666666667
+          },
+          "observed_blocked": {
+            "mean_two_target_margin": 0.5332433850570135,
+            "records": 300,
+            "true_target_closer_rate": 1.0
+          },
+          "observed_passable": {
+            "mean_two_target_margin": -0.4172908494430651,
+            "records": 300,
+            "true_target_closer_rate": 0.0
+          }
+        },
+        "passable": {
+          "did_not_attempt_crossing": {
+            "mean_two_target_margin": -0.48433454554433836,
+            "records": 300,
+            "true_target_closer_rate": 0.013333333333333334
+          },
+          "observed_blocked": {
+            "mean_two_target_margin": -0.5332433850570135,
+            "records": 300,
+            "true_target_closer_rate": 0.0
+          },
+          "observed_passable": {
+            "mean_two_target_margin": 0.4172908494430651,
+            "records": 300,
+            "true_target_closer_rate": 1.0
+          }
+        }
+      },
+      "two_target_ties": {
+        "tie_rate": 0.0,
+        "ties": 0,
+        "unique_predictions": 900
+      }
+    }
+  },
+  "result_kind": "public_test_offline_final_report_v1",
+  "runtime_fingerprint": {
+    "evidence_kind": "captured_in_evaluation_process",
+    "executable": "/tmp/cw-strength-ablation-20260922/venv/bin/python",
+    "packages": {
+      "Pillow": "9.2.0",
+      "numpy": "1.24.4",
+      "pyarrow": "25.0.1",
+      "pylance": "11.0.0",
+      "stable-pretraining": "0.1.8",
+      "stable-worldmodel": null,
+      "torch": "2.9.1",
+      "torchvision": "0.24.1",
+      "transformers": "4.57.1"
+    },
+    "platform": "Linux-5.15.0-92-generic-x86_64-with-glibc2.35",
+    "python": "3.10.12",
+    "requirements_frozen_sha256": "2b001bd25f9be4bb2932d7419f55edc3f3299e86389b0ad9de25b912e1f2b8e3",
+    "schema_version": 1,
+    "torch": {
+      "cuda_available": true,
+      "cuda_build": "12.8",
+      "cudnn_benchmark": false,
+      "cudnn_deterministic": false,
+      "cudnn_version": 91002,
+      "deterministic_algorithms": false,
+      "devices": [
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 0,
+          "name": "NVIDIA H800"
+        },
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 1,
+          "name": "NVIDIA H800"
+        },
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 2,
+          "name": "NVIDIA H800"
+        },
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 3,
+          "name": "NVIDIA H800"
+        },
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 4,
+          "name": "NVIDIA H800"
+        },
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 5,
+          "name": "NVIDIA H800"
+        },
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 6,
+          "name": "NVIDIA H800"
+        },
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 7,
+          "name": "NVIDIA H800"
+        }
+      ],
+      "float32_matmul_precision": "high",
+      "version": "2.9.1+cu128"
+    }
+  },
+  "schema_version": 1,
+  "selection_policy": "development_only_model_selection_test_final_reporting",
+  "task": "door"
+}

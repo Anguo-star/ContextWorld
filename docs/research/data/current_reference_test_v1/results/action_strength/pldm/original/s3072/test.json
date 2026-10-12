@@ -1,0 +1,183 @@
+{
+  "adapter_spec": "pldm",
+  "bundle": {
+    "artifact_root": "artifacts/evaluation/history3/pusht_action_strength_h3_public_test_v1",
+    "bundle_root": "/opt/huawei/explorer-env/dataset/ag_data/data/world_model/ContextWorld-v1-full",
+    "component_ids": [
+      "speed",
+      "door",
+      "action_delay",
+      "action_strength",
+      "contact_friction",
+      "motion_damping",
+      "robot_arm_mass",
+      "portal_exit",
+      "cube_gripper_carry"
+    ],
+    "manifest_payload_files": 7,
+    "manifest_sha256": "81eb29d8eeaefb91750187831b9120b9241c78b4903047cd4b720a186c7f6d97",
+    "public_test_policy": "public_offline_final_reporting",
+    "release_status": "staging_not_public_release",
+    "schema_version": "contextworld.bundle-resolution.v1",
+    "selection_policy": "development_only_model_selection_test_final_reporting",
+    "task": "action_strength",
+    "task_registry_sha256": "26b78ae7d3bbaa2c170080bc1eb8791582a9183e7d606322aaf6bae1b01dcbdd"
+  },
+  "evaluation_split": "test",
+  "model_name": "pldm-original-s3072",
+  "note": "Produced offline from the public ContextWorld-v1 Test split after model and recipe selection. The frozen task metrics and gate are retained, but this is not a centrally verified hosted-scoreboard row and must not be fed back into tuning.",
+  "official_scoreboard_row": false,
+  "result": {
+    "benchmark": "pusht_history3_action_strength_icl_v1",
+    "data": {
+      "condition_count": 512,
+      "history_tokens": 3,
+      "online_environment_calls": 0,
+      "pair_count": 256,
+      "root": "/opt/huawei/explorer-env/dataset/ag_data/data/world_model/ContextWorld-v1-full/artifacts/evaluation/history3/pusht_action_strength_h3_public_test_v1",
+      "strength_values": [
+        60,
+        140
+      ]
+    },
+    "gate": {
+      "checks": {
+        "correct_future_rate": false,
+        "correct_history_rate": false,
+        "normalized_response_error": false,
+        "response_gain": false,
+        "rule_switch_rate": false,
+        "target_latent_separation": true,
+        "worst_strength_correct_future_rate": false
+      },
+      "passed": false
+    },
+    "metrics": {
+      "correct_future_mse_mean": 0.2097809761762619,
+      "correct_future_rate": 0.435546875,
+      "correct_history_rate": 0.052734375,
+      "current_frame_only_accuracy_bound": 0.5,
+      "decision_count": 512,
+      "high_strength_correct_future_rate": 0.46484375,
+      "joint_icl_pair_success_rate": 0.0,
+      "latent_response": {
+        "calibrated_response_success_baseline": {
+          "name": "no_history_response",
+          "normalized_response_error": 1.0,
+          "pair_success_criterion": "normalized_response_error < 1.0",
+          "prediction_response": "zero"
+        },
+        "calibrated_response_success_rate": 0.0390625,
+        "ideal_values": {
+          "calibrated_response_success_rate": 1.0,
+          "normalized_response_error": 0.0,
+          "response_alignment": 1.0,
+          "response_gain": 1.0
+        },
+        "normalized_response_error": 1.069914133680243,
+        "response_alignment": -0.6322366514205393,
+        "response_gain": -0.03354915985161849,
+        "target_latent_separation": {
+          "criterion": "finite_and_nonidentical_for_every_pair",
+          "mean_target_response_mse": 0.4768017088498868,
+          "median_target_response_mse": 0.4235187722631259,
+          "minimum_target_response_mse": 0.08617441856570747,
+          "passed": true,
+          "zero_separation_pair_count": 0
+        }
+      },
+      "low_strength_correct_future_rate": 0.40625,
+      "other_future_mse_mean": 0.1937846690416336,
+      "other_minus_correct_mse_margin_mean": -0.01599629782140255,
+      "pair_count": 256,
+      "rule_switch_rate": 0.0390625,
+      "worst_strength_correct_future_rate": 0.40625
+    },
+    "model": {
+      "adapter": {
+        "adapter_class": "contextworld.benchmarks.adapters.StableWorldModelPLDMActionStrengthAdapter",
+        "adapter_id": "stable_worldmodel_pldm_action_strength_v1",
+        "checkpoint": "/opt/huawei/explorer-env/dataset/ag_data/data/world_model/quentinll/lewm-pusht/ckpt/pusht_pldm_baseline/pusht_pldm_baseline_weights.ckpt",
+        "checkpoint_sha256": "913e02728f6638409dc3931069caf34815a8ad0618bb40f690cb4a59a6bdc8ad",
+        "device": "cuda",
+        "model_class": "stable_worldmodel.wm.pldm.pldm.PLDM",
+        "parameters": 18034478,
+        "protocol": {
+          "action_block_raw_steps": 5,
+          "action_dim": 2,
+          "decoder_required": false,
+          "future_action_blocks": 5,
+          "history_tokens": 3,
+          "native_target_encoder": true
+        },
+        "stable_worldmodel_commit": "875e607fc08aa72eacb94d5d178127804134cc06",
+        "stable_worldmodel_repo": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/original-baseline-v1/.contextworld/stable-worldmodel/875e607fc08aa72eacb94d5d178127804134cc06"
+      },
+      "name": "pldm-original-s3072",
+      "state_sha256_after": "e51c497092f69146724bf76709cb9542baa16cee99ffba9bb345cd9d821a03fa",
+      "state_sha256_before": "e51c497092f69146724bf76709cb9542baa16cee99ffba9bb345cd9d821a03fa",
+      "training_recipe": "original",
+      "training_seed": 3072
+    },
+    "release": {
+      "confirmation_manifest_sha256": "5abb504ea57f9525944fdbc75c418cfba2bc4afbe1a8f0b3fea2c489b3f62092",
+      "prediction_contract_sha256": "1d222cbce949dd1fb883a9503d806e0b98f0e71be21eec227c10657095b12969",
+      "release_config_sha256_at_evaluation": "94b8df3fa1c28280c7e740de085b4757f45934097bffc4279d986740f1794ba3",
+      "release_id": "contextworld_pusht_action_strength_icl_history3_v1",
+      "sealed_test_included": false,
+      "training_manifest_sha256": "61551e3aba02d33b4411548bbdc123c3926191f0892bb1f8aac8b8736d4531f0"
+    },
+    "schema_version": 1,
+    "status": "completed",
+    "submission_kind": "single_checkpoint"
+  },
+  "result_kind": "public_test_offline_final_report_v1",
+  "runtime_compatibility": {
+    "artifact_root": "/opt/huawei/explorer-env/dataset/ag_data/data/world_model/context_world",
+    "damping_overlay": null,
+    "wrapper": "scripts.run_current_reference_test_compat",
+    "wrapper_sha256": "60fadd8bc661df1f3fc0806eb9ac4a34ebe110a105d3466658d9f5b7f0a58de7"
+  },
+  "runtime_fingerprint": {
+    "evidence_kind": "captured_in_evaluation_process",
+    "executable": "/tmp/cw-strength-ablation-20260922/venv/bin/python",
+    "packages": {
+      "Pillow": "9.2.0",
+      "numpy": "1.24.4",
+      "pyarrow": "25.0.1",
+      "pylance": "11.0.0",
+      "stable-pretraining": "0.1.8",
+      "stable-worldmodel": null,
+      "torch": "2.9.1",
+      "torchvision": "0.24.1",
+      "transformers": "4.57.1"
+    },
+    "platform": "Linux-5.15.0-92-generic-x86_64-with-glibc2.35",
+    "python": "3.10.12",
+    "requirements_frozen_sha256": "2b001bd25f9be4bb2932d7419f55edc3f3299e86389b0ad9de25b912e1f2b8e3",
+    "schema_version": 1,
+    "torch": {
+      "cuda_available": true,
+      "cuda_build": "12.8",
+      "cudnn_benchmark": false,
+      "cudnn_deterministic": false,
+      "cudnn_version": 91002,
+      "deterministic_algorithms": false,
+      "devices": [
+        {
+          "capability": [
+            9,
+            0
+          ],
+          "index": 0,
+          "name": "NVIDIA H800"
+        }
+      ],
+      "float32_matmul_precision": "high",
+      "version": "2.9.1+cu128"
+    }
+  },
+  "schema_version": 1,
+  "selection_policy": "development_only_model_selection_test_final_reporting",
+  "task": "action_strength"
+}

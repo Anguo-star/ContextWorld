@@ -12,6 +12,7 @@ import argparse
 import csv
 import hashlib
 import json
+import shutil
 import sys
 from collections import defaultdict
 from pathlib import Path
@@ -52,8 +53,9 @@ def _validate_native_result(payload: dict, run: dict) -> None:
     if (model.get("name") != expected_name or recipe != regime or
             model.get("training_seed") != seed or
             adapter.get("checkpoint_sha256") != run["checkpoint_sha256"] or
-            not isinstance(adapter.get("checkpoint"), str) or
-            Path(adapter["checkpoint"]).resolve() != Path(run["checkpoint"]).resolve()):
+            not isinstance(adapter.get("checkpoint"), str)):
+        # SHA256 fixes checkpoint content. Absolute source paths are provenance,
+        # and may resolve differently when the result archive is downloaded.
         raise ValueError("native model, seed, or checkpoint differs from frozen plan")
     protocol = adapter.get("protocol")
     adapter_id = adapter.get("adapter_id")
@@ -71,6 +73,13 @@ def _validate_native_result(payload: dict, run: dict) -> None:
         if (not isinstance(audit, dict) or audit.get("passed") is not True or
                 not audit.get("state_hash_before") or
                 audit.get("state_hash_before") != audit.get("state_hash_after")):
+            raise ValueError("model state changed or audit is missing")
+    elif task == "door":
+        audit = result.get("score_audit")
+        if (not isinstance(audit, dict) or audit.get("passed") is not True or
+                not audit.get("frozen_state_hash_before") or
+                audit.get("frozen_state_hash_before") !=
+                audit.get("frozen_state_hash_after")):
             raise ValueError("model state changed or audit is missing")
     elif (not model.get("state_sha256_before") or
           model.get("state_sha256_before") != model.get("state_sha256_after")):
@@ -113,8 +122,10 @@ def summarize(plan_path: Path, results_root: Path) -> dict:
                 result_path = results_root / run_id / "test.json"
                 if receipt.get("returncode") != 0:
                     raise ValueError(f"evaluator exit code {receipt.get('returncode')}")
-                if (not isinstance(receipt.get("result"), str) or
-                        Path(receipt["result"]).resolve() != result_path.resolve() or
+                recorded = receipt.get("result")
+                suffix = (*run_id.split("/"), "test.json")
+                if (not isinstance(recorded, str) or
+                        tuple(Path(recorded).parts[-5:]) != suffix or
                         not result_path.is_file()):
                     raise ValueError("successful receipt lacks expected Test result")
                 digest = sha256(result_path)
@@ -122,9 +133,10 @@ def summarize(plan_path: Path, results_root: Path) -> dict:
                     raise ValueError("Test result hash differs from receipt")
                 payload = json.loads(result_path.read_text())
                 _validate_native_result(payload, run)
-                score = _extract_score(payload, task, "test")
-                if not 0 <= score <= 100:
-                    raise ValueError("main score outside percent range")
+                rate = _extract_score(payload, task, "test")
+                if not 0 <= rate <= 1:
+                    raise ValueError("native main score outside unit interval")
+                score = 100 * rate
                 record.update(status="completed", main_score=score, scores={"main": score},
                               result=str(result_path), result_sha256=digest)
             except (OSError, ValueError, KeyError, TypeError) as exc:
@@ -202,11 +214,51 @@ def render_markdown(summary: dict, task: str | None = None) -> str:
     return "\n".join(lines) + "\n"
 
 
+def render_public_table(summary: dict) -> str:
+    """Compact Test table for the public report; full SD stays in JSON/CSV."""
+    by_key = {(c["task"], c["family"], c["regime"]): c for c in summary["cells"]}
+    lines = ["| 模型 | 方案 | " + " | ".join(TASK_ZH[t] for t in TASK_ORDER) + " |",
+             "|---|---|" + "---:|" * len(TASK_ORDER)]
+    for family in MODEL_ORDER:
+        for regime in REGIME_ORDER:
+            if not any((t, family, regime) in by_key for t in TASK_ORDER):
+                continue
+            values = []
+            for task in TASK_ORDER:
+                cell = by_key.get((task, family, regime))
+                if cell is None:
+                    values.append("—")
+                elif cell["status"] != "complete":
+                    raise ValueError("public table requires complete frozen cells")
+                else:
+                    values.append(f"{cell['main']['mean']:.2f} (n={cell['completed']})")
+            lines.append("| " + " | ".join([MODEL_ZH[family], REGIME_ZH[regime], *values]) + " |")
+    return "\n".join(lines)
+
+
+def sync_report(summary: dict, path: Path, *, check: bool = False) -> None:
+    if (summary["completed_runs"] != summary["expected_runs"] or summary["failures"]):
+        raise ValueError("public report requires every frozen Test run")
+    begin, end = "<!-- BEGIN CURRENT_REFERENCE_TEST -->", "<!-- END CURRENT_REFERENCE_TEST -->"
+    text = path.read_text()
+    if text.count(begin) != 1 or text.count(end) != 1:
+        raise ValueError("expected one Test report marker pair")
+    start, stop = text.index(begin) + len(begin), text.index(end)
+    if stop < start:
+        raise ValueError("Test report markers are reversed")
+    rendered = text[:start] + "\n" + render_public_table(summary) + "\n" + text[stop:]
+    if check:
+        if rendered != text:
+            raise ValueError("public Test table is stale")
+    else:
+        path.write_text(rendered)
+
+
 def write_outputs(summary: dict, output_dir: Path, task: str | None = None) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
     (output_dir / "summary.json").write_text(json.dumps(summary, indent=2, ensure_ascii=False) + "\n")
     with (output_dir / "summary.csv").open("w", newline="") as stream:
-        writer = csv.DictWriter(stream, fieldnames=["task", "family", "regime", "completed",
+        writer = csv.DictWriter(stream, lineterminator="\n", fieldnames=["task", "family", "regime", "completed",
                           "expected", "failed", "status", "main_mean", "main_std"])
         writer.writeheader()
         for cell in summary["cells"]:
@@ -218,15 +270,58 @@ def write_outputs(summary: dict, output_dir: Path, task: str | None = None) -> N
         render_markdown(summary, task))
 
 
+def archive_complete(plan_path: Path, results_root: Path, archive_dir: Path,
+                     *, expected_runs: int = 136) -> dict:
+    """Copy a verified complete cohort, then regenerate its report from the copy."""
+    source = summarize(plan_path, results_root)
+    if (source["expected_runs"] != expected_runs or
+            source["completed_runs"] != expected_runs or
+            source["complete_cells"] != source["expected_cells"] or
+            source["failures"]):
+        raise ValueError("archive requires every frozen Test run to be complete")
+    if archive_dir.exists():
+        raise ValueError("archive directory already exists")
+    archive_dir.mkdir(parents=True)
+    shutil.copyfile(plan_path, archive_dir / "plan.json")
+    archived_root = archive_dir / "results"
+    for cell in source["cells"]:
+        for run in cell["runs"]:
+            run_id = run["id"]
+            dest = archived_root / run_id
+            dest.mkdir(parents=True)
+            for name in ("test.json", "receipt.json"):
+                shutil.copyfile(results_root / run_id / name, dest / name)
+    archived = summarize(archive_dir / "plan.json", archived_root)
+    if archived["completed_runs"] != expected_runs or archived["failures"]:
+        raise ValueError("copied archive failed verification")
+    write_outputs(archived, archive_dir)
+    return archived
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--plan", type=Path, required=True)
     parser.add_argument("--results-root", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--task", choices=TASK_ORDER)
+    parser.add_argument("--archive-dir", type=Path,
+                        help="copy a complete frozen 136-run cohort and regenerate its report")
+    parser.add_argument("--report-doc", type=Path,
+                        help="update the public report's generated Test table")
+    parser.add_argument("--check-doc", action="store_true",
+                        help="check the public table without writing any files")
     args = parser.parse_args()
+    if args.check_doc and args.report_doc is None:
+        parser.error("--check-doc requires --report-doc")
+    if args.check_doc and args.archive_dir is not None:
+        parser.error("--check-doc cannot create an archive")
     summary = summarize(args.plan, args.results_root)
-    write_outputs(summary, args.output_dir, args.task)
+    if not args.check_doc:
+        write_outputs(summary, args.output_dir, args.task)
+    if args.report_doc is not None:
+        sync_report(summary, args.report_doc, check=args.check_doc)
+    if args.archive_dir is not None:
+        archive_complete(args.plan, args.results_root, args.archive_dir)
     print(json.dumps({"completed_runs": summary["completed_runs"],
                       "expected_runs": summary["expected_runs"],
                       "complete_cells": summary["complete_cells"]}))

@@ -678,7 +678,7 @@ Friction、Cube、Strength 的 T3 目标条件差异占比上升、响应 NRE �
 
 [学习曲线 JSON](research/data/fixed_target_control_v1/summary.json)与[CSV](research/data/fixed_target_control_v1/summary.csv)保存 Training／Development 的三个检查点及配对差值区间。每任务曲线来自一个固定训练运行；来源组重采样区间描述场景抽样差异，不覆盖训练随机性。
 
-**最终检查点的 Public Test 验证。** [固定评价方案](../configs/benchmark/fixed_target_confirmation_v1.json)在本次读取 Test 之前确定两项任务、第 10 epoch 终点、全部 256 对查询以及训练种子 3072／3073／3074。不从 Test 挑选任务、检查点或样本，也不按能力门槛排除低分。表中只汇总已经完成训练和评测的重复；其余重复未完成时不计入。所有第二阶段训练共用对应任务的同一份 T0 权重，因此这里检验第二阶段训练随机性，不覆盖原环境预训练随机性。
+**最终检查点的 Public Test 验证。** [固定评价方案](../configs/benchmark/fixed_target_confirmation_v1.json)在本次读取 Test 之前确定两项任务、第 10 epoch 终点、全部 256 对查询以及训练种子 3072／3073／3074。不从 Test 挑选任务、检查点或样本，也不按能力门槛排除低分。目前每项任务仅种子 3072 完成训练与评测，因此表中各有一个训练重复；其余预定种子不计入结果，也不作为九任务 Test 评测的前置条件。所有第二阶段训练共用对应任务的同一份 T0 权重，因此这里不能检验跨种子稳定性，也不覆盖原环境预训练随机性。
 
 <!-- BEGIN FIXED_TARGET_CONFIRMATION -->
 | 任务 | 训练种子 n | 响应 NRE ↓ T0→训练后 | 完整 E/B ↓ T0→训练后 | 历史收益 G ↑ 训练后 |

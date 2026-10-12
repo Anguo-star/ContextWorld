@@ -17,7 +17,53 @@ TASKS = ('speed', 'door', 'action_delay', 'action_strength', 'contact_friction',
          'motion_damping', 'robot_arm_mass', 'cube_gripper_carry', 'portal_exit')
 BASE = 'ContextWorld-v1'
 TEST = 'ContextWorld-v1-full'
-VERSION = 'contextworld-expanded-training-v1-hf-rc1'
+VERSION = 'contextworld-expanded-training-v1-hf-rc2'
+SPEED_TEST_SOURCE = 'context_world_speed_multistep_extrap_v5'
+SPEED_TEST_REL = 'artifacts/evaluation/history3/speed_multistep_extrap_v5'
+SPEED_TEST_SOURCE_REL = 'context_world/evaluation/history3/speed_multistep_extrap_v5'
+
+
+def speed_test_payload_rows(dataset_root, frozen_test):
+    """Close the frozen Speed catalogs over their SHA-pinned NPZ payloads."""
+    prefix = SPEED_TEST_REL + '/payloads/'
+    source_root = dataset_root / SPEED_TEST_SOURCE_REL
+    frozen_rows = {row['path']: row for row in frozen_test['rows']}
+    seen = set()
+    selected = []
+    for track in ('seen_for_multi', 'unseen_interpolation', 'extrapolation_low',
+                  'extrapolation_high'):
+        catalog_rel = f'{SPEED_TEST_REL}/catalogs/{track}.json'
+        catalog_row = frozen_rows.get(catalog_rel)
+        if not catalog_row or catalog_row.get('role') != 'dataset_payload':
+            raise ValueError(f'Missing frozen Speed catalog: {catalog_rel}')
+        catalog_path = frozen_test['root'] / catalog_rel
+        if v3.sha256_file(catalog_path) != (catalog_row['bytes'], catalog_row['sha256']):
+            raise ValueError(f'Frozen Speed catalog hash differs: {catalog_rel}')
+        catalog = json.loads(catalog_path.read_text())
+        if catalog.get('track') != track or not catalog.get('bundles'):
+            raise ValueError(f'Invalid Speed catalog track: {catalog_rel}')
+        for entry in catalog['bundles']:
+            rel = entry.get('payload')
+            digest = entry.get('payload_sha256')
+            if (not v3.is_safe_rel(rel) or not rel.startswith(prefix)
+                    or not isinstance(digest, str) or len(digest) != 64
+                    or rel in seen):
+                raise ValueError(f'Unsafe, duplicate, or unpinned Speed payload: {rel}')
+            seen.add(rel)
+            source_rel = rel[len(SPEED_TEST_REL) + 1:]
+            source = v3.regular_file(source_root, source_rel)
+            size, observed = v3.sha256_file(source)
+            if observed != digest:
+                raise ValueError(f'Speed catalog payload hash differs: {rel}')
+            selected.append({'path': rel, 'bytes': size, 'sha256': digest,
+                             'role': 'dataset_payload', 'component': 'speed', 'split': 'test',
+                             'source_bundle': SPEED_TEST_SOURCE, 'source_path': source_rel,
+                             'source_sha256': digest})
+    actual = {f'{SPEED_TEST_REL}/{p.relative_to(source_root).as_posix()}'
+              for p in (source_root / 'payloads').rglob('*.npz') if p.is_file()}
+    if actual != seen:
+        raise ValueError(f'Speed source/catalog payload mismatch: {len(actual ^ seen)} paths')
+    return selected
 
 
 def inventory(root, name, pin=None):
@@ -76,6 +122,11 @@ def plan(root):
                     raise ValueError(f'{task}/{split}: unregistered payload path {row["path"]}')
                 selected.append({**row, 'source_bundle': name, 'source_path': row['path'],
                                  'source_sha256': row['sha256']})
+    speed_extra = speed_test_payload_rows(root, bundles[TEST])
+    selected.extend(speed_extra)
+    speed_test_payload = next(p for p in components['speed']['payloads'] if p['split'] == 'test')
+    speed_test_payload['file_count'] += len(speed_extra)
+    speed_test_payload['total_bytes'] += sum(row['bytes'] for row in speed_extra)
     if len({r['path'] for r in selected}) != len(selected):
         raise ValueError('Destination paths collide')
     merged = json.loads(json.dumps(bundles[BASE]['registry']))
@@ -122,7 +173,10 @@ def render_card(expanded):
         'Open each Lance table at the paths in `task_registry.json` with `lance.dataset(path)`. Collection payloads list individual table paths in `members`.')
     card += '\n## Package inventory\n\n' + '\n'.join(
         f'- `{task}`: Training `{expanded.get(task, (BASE, None))[0]}`; Development `{BASE}`; Test `{TEST}`.'
-        for task in sorted(TASKS)) + '\n\nThe inherited `registry_contract.json` files describe Development only.\n'
+        for task in sorted(TASKS)) + ('\n\nThe Speed Test directory also includes every NPZ payload referenced by its four frozen catalogs. '
+                                      'The inherited `registry_contract.json` files describe Development only.\n\n'
+                                      'Local manifest and payload loading checks do not establish a self-contained Test runtime. '
+                                      'The Motion Damping Test still depends on historical release source identity and runtime artifacts under separate review.\n')
     return card
 
 
@@ -133,6 +187,9 @@ def render_version(bundles, expanded):
             'source_bundles': {name: {'manifest_sha256': bundle['manifest_sha256'],
                                      'task_registry_sha256': bundle['registry_sha256']}
                                for name, bundle in sorted(bundles.items())},
+            'supplemental_sources': {SPEED_TEST_SOURCE: {
+                'source_relative_root': SPEED_TEST_SOURCE_REL,
+                'identity': 'payload_sha256 in the four frozen Speed Test catalogs'}},
             'training_sources': {task: expanded.get(task, (BASE, None))[0] for task in TASKS},
             'baseline_id': v3.BASELINE_ID, 'baseline_sha256': v3.PINS['baseline']}
 
@@ -155,7 +212,9 @@ def execute(root, output, workers):
     marker.write_text('candidate incomplete\n')
     try:
         with ThreadPoolExecutor(max_workers=workers) as pool:
-            list(pool.map(lambda r: copy_verified(bundles[r['source_bundle']]['root'] / r['path'],
+            list(pool.map(lambda r: copy_verified((root / SPEED_TEST_SOURCE_REL / r['source_path'])
+                                                 if r['source_bundle'] == SPEED_TEST_SOURCE else
+                                                 (bundles[r['source_bundle']]['root'] / r['source_path']),
                                                  output / r['path'], r), selected))
         write_json(output / 'task_registry.json', registry)
         write_json(output / 'VERSION.json', render_version(bundles, expanded))

@@ -2,7 +2,7 @@
 
 ContextWorld 检验世界模型能否在**权重不更新**时，通过上下文学习（in-context learning，ICL）利用近期图像和动作辨认当前隐藏动力学，并预测给定动作的后果。九项任务覆盖速度、动作幅度、机械臂质量、动作延迟、摩擦、阻尼、夹爪携带、门通行和传送门出口。评测输入只有图像与动作；模型输出未来表示（latent），用该模型自己的冻结目标编码器编码真实未来后评分。不同模型的表示空间可以不同。
 
-**任务主指标测预测层面的上下文适应，不是规划成功率。** 首页表格展示逐任务的 Development 分数；冻结的 `contextworld_joint_scratch_v1_reference_results_freeze_v3` 是独立保存的固定参考，不随新实验改写。扩量训练、多步预测和原环境规划保持结果是后续 Development 研究，不能称为 v3 Test 排行榜。
+**任务主指标测预测层面的上下文适应，不是规划成功率。** 首页报告当前训练方案在 Public Test 上的逐任务结果，Development 对照与补充诊断另列。冻结的 `contextworld_joint_scratch_v1_reference_results_freeze_v3` 是独立保存的历史参考，新结果不覆盖其数值。
 
 NRE 是归一化响应误差；E/B 是完整预测误差与条件均值参照误差之比；CEM 是交叉熵法（cross-entropy method）规划器。下文分别给出定义，三者不能互换。
 
@@ -15,13 +15,46 @@ NRE 是归一化响应误差；E/B 是完整预测误差与条件均值参照误
 
 这些读数的单位、参照和查询分布不同，不合成总分；一个任务的高判别分数不等于准确的完整轨迹或可用的规划。任务定义、数据、协议、结果、使用方法和局限依次见下文；逐任务完整数值与训练规模实验见[结果附录](reference/ContextWorld_Expanded_Training_Results.md)，冻结 v3 结果与评分身份见[参考附录](reference/Benchmark_Result_Provenance.md)。
 
-## 结果速览（Development）
+## 结果速览（Public Test）
 
 <a id="training-comparison"></a>
 
 下表每行是**一个模型家族与一种训练方案**，但九列分别来自逐任务训练的检查点，并非单个九任务模型。T0 仅用原环境数据；T1 直接混合原环境与任务 ICL 数据；T2 在 T0 基础上继续混合训练并更新图像编码器；T3 同样从 T0 出发，但冻结图像编码器。DINO-WM 的预训练视觉编码器始终冻结，因此无 T2。完整配方见[§5.1](#51-训练方案与实验设置)。
 
-每格为**该任务原协议主指标均值（%，越高越好）和有效训练重复数 n**。Speed 取未见速度插值；Delay 的 T0† 是三帧历史投影参考，不能当作七帧模型的训练前分数。`—` 表示缺少可比成绩。各任务的随机参照不同，不能跨列平均；逐任务比较时还应看[响应与完整预测诊断](reference/ContextWorld_Expanded_Training_Results.md#九任务明细)。原环境 CEM 有[独立表](reference/ContextWorld_Expanded_Training_Results.md#原环境-cem)，不混入单元格。
+每格为**任务主指标均值（%，越高越好）和已评测训练重复数 n**；相同配置的全部已有重复等权汇总。Speed 取未见速度插值；Delay 只报告原生七帧接口。`—` 表示缺少同协议检查点，不填零。各任务的随机参照不同，不计算跨任务总分。该表测原协议查询中的未来辨别，不能替代[响应与完整预测诊断](reference/ContextWorld_Expanded_Training_Results.md#九任务明细)。
+
+<!-- BEGIN CURRENT_REFERENCE_TEST -->
+| 模型 | 方案 | 速度 | 推手移动幅度 | 机械臂质量 | 动作延迟 | 接触摩擦 | 运动阻尼 | Cube 夹爪携带 | 门通行规则 | 传送门出口 |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| LeWM | T0 | 58.04 (n=3) | 48.96 (n=3) | 50.07 (n=3) | — | 49.93 (n=3) | 50.00 (n=3) | 52.21 (n=3) | 50.33 (n=3) | 50.07 (n=3) |
+| LeWM | T1 | 98.19 (n=3) | 50.78 (n=1) | 85.74 (n=1) | 97.70 (n=3) | 50.00 (n=1) | 50.00 (n=1) | 50.00 (n=1) | 99.83 (n=3) | 50.78 (n=1) |
+| LeWM | T2 | 96.89 (n=1) | 91.80 (n=1) | 87.30 (n=1) | — | 50.39 (n=1) | 50.00 (n=1) | 50.00 (n=1) | 99.83 (n=1) | 50.39 (n=1) |
+| LeWM | T3 | 98.44 (n=1) | 97.46 (n=1) | 77.15 (n=1) | — | 86.13 (n=1) | 53.91 (n=1) | 76.37 (n=1) | 100.00 (n=1) | 77.93 (n=1) |
+| PLDM | T0 | 48.41 (n=3) | 45.57 (n=3) | 51.82 (n=3) | — | 50.00 (n=3) | 50.26 (n=3) | 50.78 (n=3) | 50.06 (n=3) | 50.07 (n=3) |
+| PLDM | T1 | 96.78 (n=3) | 56.25 (n=1) | 91.02 (n=1) | 100.00 (n=3) | 50.00 (n=1) | 58.20 (n=1) | 49.80 (n=1) | 100.00 (n=3) | 72.27 (n=1) |
+| PLDM | T2 | 98.33 (n=1) | 59.18 (n=1) | 84.77 (n=1) | — | 50.00 (n=1) | 79.88 (n=1) | 50.20 (n=1) | 100.00 (n=1) | 52.54 (n=1) |
+| PLDM | T3 | 96.44 (n=1) | 98.63 (n=1) | 81.84 (n=1) | — | 73.63 (n=1) | 54.49 (n=1) | 52.93 (n=1) | 100.00 (n=1) | 91.21 (n=1) |
+| DINO-WM | T0 | 57.11 (n=1) | 38.48 (n=1) | 50.78 (n=1) | — | 50.39 (n=1) | 49.80 (n=1) | 50.00 (n=1) | 50.00 (n=1) | 50.78 (n=1) |
+| DINO-WM | T1 | 59.41 (n=3) | 97.66 (n=1) | 78.32 (n=1) | 16.65 (n=3) | 84.18 (n=1) | 56.45 (n=1) | 60.16 (n=1) | 100.00 (n=3) | 100.00 (n=1) |
+| DINO-WM | T3 | 84.78 (n=1) | — | — | — | — | 55.27 (n=1) | 62.89 (n=1) | — | — |
+<!-- END CURRENT_REFERENCE_TEST -->
+
+完整逐次结果、样本标准差与评测身份见 [Test JSON](research/data/current_reference_test_v1/summary.json)、[CSV](research/data/current_reference_test_v1/summary.csv)及[固定检查点集合](../configs/benchmark/current_reference_test_v1.json)。本次使用既有 Public Test，不是新建立的盲测集；权重和评分协议在执行前锁定，能力低分也保留。
+
+**Test 保留了主要的任务与训练方案差异。**
+
+- **任务依赖：** Delay 的 T1 中 LeWM / PLDM / DINO-WM 分别为 97.70% / 100.00% / 16.65%；Door 则均接近 100%。
+- **冻结并非通用解法：** Friction 的 LeWM T2→T3 从 50.39% 提高到 86.13%，Damping 的 PLDM T2→T3 却从 79.88% 降到 54.49%。
+- **初始化需求不同：** Mass 的 LeWM / PLDM T1 已达 85.74% / 91.02%；Strength 的相同方案仅为 50.78% / 56.25%，T3 则达 97.46% / 98.63%。这说明训练策略的作用随任务变化，尚不能单独归因到数据、表示或优化。
+
+全部 86 个组合与 Development 表使用同一组检查点。最大的跨划分主分变化为 LeWM Cube T3 的 +5.66 个百分点；PLDM Mass 的 T2/T3 局部排序发生变化。这些已测差异为根因分析提供了任务与训练方案对照，解释时还需结合响应和完整预测诊断；高判别分仍不等于完整动力学预测或规划已经准确。
+
+
+<details>
+<summary>Development 对照表（方法选择与已有诊断的参照）</summary>
+
+此表保留相同训练方案在 Development 上的原始报告。Delay 的 T0† 是三帧历史投影诊断，不计入上面的原生七帧 Test 对比。原环境 CEM 单独见[能力保持表](reference/ContextWorld_Expanded_Training_Results.md#原环境-cem)。
+
 
 <!-- BEGIN TRAINING_COMPARISON_OVERVIEW -->
 | 模型 | 方案 | [速度](#task-speed) | [推手移动幅度](#task-action-strength) | [机械臂质量](#task-robot-arm-mass) | [动作延迟](#task-action-delay) | [接触摩擦](#task-contact-friction) | [运动阻尼](#task-motion-damping) | [Cube 夹爪携带](#task-cube-gripper-carry) | [门通行规则](#task-door) | [传送门出口](#task-portal-exit) |
@@ -39,7 +72,9 @@ NRE 是归一化响应误差；E/B 是完整预测误差与条件均值参照误
 | DINO-WM | T3 | 86.00 (n=1) | — | — | — | — | 57.62 (n=1) | 62.30 (n=1) | — | — |
 <!-- END TRAINING_COMPARISON_OVERVIEW -->
 
-**读表例子。** LeWM T3 与 PLDM T3 的推手移动幅度主指标分别为 97.27% 和 98.05%，但对应多步完整误差比 E/B 为 1.464 和 1.445；这支持“会选原协议的下一状态，但扩展动作下的完整未来仍不准”，不能推出规划收益。PLDM 运动阻尼 T2/T3 分别为 77.54%/56.05%，说明冻结编码器并非普遍有效。结果是 Development 上的已测现象，不能单独归因于数据、表示或训练目标。
+</details>
+
+**Development 诊断的读表例子。** LeWM T3 与 PLDM T3 的推手移动幅度主指标分别为 97.27% 和 98.05%，但对应多步完整误差比 E/B 为 1.464 和 1.445；这支持“会选原协议的下一状态，但扩展动作下的完整未来仍不准”，不能推出规划收益。PLDM 运动阻尼 T2/T3 分别为 77.54%/56.05%，说明冻结编码器并非普遍有效。结果是 Development 上的已测现象，不能单独归因于数据、表示或训练目标。
 
 ## 1. Benchmark 概览
 
@@ -65,7 +100,7 @@ TwoRoom 承载四项任务，但它们分别考察连续响应、时间延迟和
 
 ## 2. 数据与划分
 
-数据由物理模拟器生成。每项任务改变一个隐藏动力学因素，保存连续交互轨迹、查询动作及真实未来。Training 用于训练，Development 用于实现检查与方法选择，Test 用于方法固定后的最终报告。表中的训练方式比较统一使用 Development；其分数不作为 Test 成绩报告。
+数据由物理模拟器生成。每项任务改变一个隐藏动力学因素，保存连续交互轨迹、查询动作及真实未来。Training 用于训练，Development 用于实现检查与方法选择，Test 用于方法固定后的最终报告。首页报告 Public Test；Development 的结果保留在对照表与诊断附录中，两者不混合汇总。
 
 **六项二值配对任务以训练配对数表示规模：2k=2,048，8k=8,192，32k=32,768；Cube 的 10k=10,000。** 一对包含两种隐藏条件下的轨迹，不等于两个独立来源 episode。速度、动作延迟和门通行规则另列各自的覆盖单位。
 
@@ -319,6 +354,8 @@ LeWM / PLDM 在八项任务上的 T2 / T3 使用相同任务数据、混合比�
 
 ### 5.2 结果范围与详细数值
 
+[Public Test 总表](#training-comparison)使用执行前锁定的 136 个检查点，覆盖 86 个模型／方案／任务组合；[Test JSON](research/data/current_reference_test_v1/summary.json)与[CSV](research/data/current_reference_test_v1/summary.csv)保留每项结果和汇总。测试采用原协议查询，未重新训练，也不因 Development 能力门未通过而排除结果。
+
 [九任务结果附录](reference/ContextWorld_Expanded_Training_Results.md#九任务明细)按任务列出主指标、匹配历史胜率、响应 NRE、多步完整误差比 E/B、场景区间和训练重复数；[多步总表](reference/ContextWorld_Expanded_Training_Results.md#多步完整预测)及[原环境 CEM 表](reference/ContextWorld_Expanded_Training_Results.md#原环境-cem)分开展示。训练对照的源文件是 [JSON](research/data/icl_training_study_v2.json) 与同源 [CSV](research/data/icl_training_study_v2.csv)；多步扩展评测另由 [JSON](research/data/multistep_prediction_coverage_v2.json) 与 [CSV](research/data/multistep_prediction_coverage_v2.csv) 提供。
 
 主指标使用原协议的一步查询；多步诊断使用扩展候选动作和第 5–25 物理步。后者覆盖 2,436 个 Development 源场景、86/99 个可定义的模型×方案×任务组合；缺项不填零。Speed 只覆盖未见速度插值，不含 Test。两套分数不互相替代。
@@ -472,14 +509,14 @@ python -m contextworld.benchmarks.external_model_cli \
 | 范围 | 当前证据与状态 | 结果身份 |
 |---|---|---|
 | 冻结 v3 | 已完成的内部参考；Training / Development 来自 `ContextWorld-v1`，Test 来自 `ContextWorld-v1-full`。`ContextWorld-v3-hf` 已在本地组装并验证为发布候选。 | 固定结果与种子范围见[参考附录](reference/Benchmark_Result_Provenance.md)；不随扩量研究改写。 |
-| 扩量训练研究 | 六项任务采用扩量 Training，其余三项沿用基础 Training；Development / Test 面板固定。本文训练对照与补充多步结果为已测 Development 结果。 | 按[结果文件](research/data/icl_training_study_v2.json)记录实际任务、方案和训练重复；不继承 v3 的种子覆盖，也不是最终 Test 成绩。 |
+| 扩量训练研究 | 六项任务采用扩量 Training，其余三项沿用基础 Training；Development / Test 面板固定。本文分别报告原协议 Development / Public Test；补充多步诊断仍限于 Development。 | 按[结果文件](research/data/icl_training_study_v2.json)记录实际任务、方案和训练重复；不继承 v3 的训练重复覆盖；每项结果标明评测划分。 |
 | 固定表示机制对照 | LeWM 的 Friction、Mass 已完成预先选定最终检查点的 Public Test；训练重复按实际完成情况单独汇总。 | 仅覆盖两任务、当前状态后第 5 个物理步；见[结果与范围](ICL_Metric_Study.md#fixed-target-training-results)。不表示九任务最新方案已完成 Test。 |
-| 当前九任务 Test | 已[锁定 136 个原生接口检查点](../configs/benchmark/current_reference_test_v1.json)，覆盖 86 个模型／方案／任务组合；最终 Test 结果待报告。 | 保留全部可比训练重复，包含低分结果；与上述两任务机制对照分别报告。 |
-| 扩量数据发布候选 | 九任务、27 个任务／划分组合已组装；7,106 个数据文件通过完整哈希验证，全部注册 Lance 表及 ContextWorld 加载入口通过检查。 | [验证记录](research/data/expanded_training_release_validation_v1.json)确认本地可加载；尚无 HF 公共固定 revision，见[发布说明](Expanded_Training_Release.md)。 |
+| 当前九任务 Test | [锁定的 136 个原生接口检查点](../configs/benchmark/current_reference_test_v1.json)全部完成评测，覆盖 86 个模型／方案／任务组合；结果见[首页总表](#training-comparison)。 | 保留全部可比训练重复，包含低分结果；与上述两任务机制对照分别报告。 |
+| 扩量数据发布候选 | 九任务、27 个任务／划分组合已组装；11,306 个数据文件通过完整哈希验证，包含 Speed 测试目录引用的全部 4,200 个 NPZ；全部注册 Lance 表通过加载检查。 | [验证记录](research/data/expanded_training_release_validation_v2.json)限定了加载检查的范围；Damping Test 仍依赖单独的历史来源快照，尚无 HF 公共固定 revision，见[发布说明](Expanded_Training_Release.md)。 |
 
 报告至少注明数据版本与划分、训练数据和比例、初始化、更新模块、训练预算、检查点及评测版本。表格与 CSV 从同一份 JSON 生成，检查点和数据哈希用于追溯来源；九任务结果按 §5.1 汇总全部可比训练重复。当前补充多步表含 136 个检查点×任务单元，汇总为 86 个模型／训练方案／任务组合；冻结权重与数据身份检查全部通过。缺少同协议检查点的组合保留为空，不补零。
 
-九任务 Test 补测复用当前已评测的原生接口检查点；在执行前固定权重哈希、数据清单、评分依赖和任务集合，不根据 Test 分数筛选模型。相同组合的训练种子等权汇总；未完成组合保留缺项。该补测使用既有公开 Test，并非新建立的未接触留出集；扩展动作的多步 Test 仍不在本次范围内。复算入口为 `scripts/run_current_reference_test.py` 与 `scripts/summarize_current_reference_test.py`。
+九任务 Test 补测复用当前已评测的原生接口检查点；在执行前固定权重哈希、数据清单、评分依赖和任务集合，不根据 Test 分数筛选模型。相同组合的训练种子等权汇总；缺少同协议检查点的组合保留缺项。该补测使用既有公开 Test，并非新建立的未接触留出集；扩展动作的多步 Test 仍不在本次范围内。原始结果与汇总公开保存在 [Test 归档](research/data/current_reference_test_v1/overview.md)。复算汇总不需要重新训练或运行 GPU，入口为 `scripts/summarize_current_reference_test.py`；加载依赖与执行步骤见[发布说明](Expanded_Training_Release.md)。
 
 正式成绩的有效性取决于输入合法、数据隔离及评测时权重不变。方法在 Development 上确定后，Test 应报告预先确定的同一任务集合，包含低分结果；Development 能力门是否通过不作为 Test 报告前提。冻结 v3 的结果保持原样，见[参考附录](reference/Benchmark_Result_Provenance.md)。
 
@@ -487,7 +524,7 @@ python -m contextworld.benchmarks.external_model_cli \
 
 ## 9. 适用范围与限制
 
-- **数据范围：** 多步表覆盖九任务主分布的 2,436 个 Development 源场景，Speed 只含未见速度插值。任务主指标使用原查询动作；两者的动作分布与预测时域不同，不可直接相减，也都不是 Test 成绩。
+- **数据范围：** 多步表覆盖九任务主分布的 2,436 个 Development 源场景，Speed 只含未见速度插值。任务主指标使用原查询动作；两者的动作分布与预测时域不同，不可直接相减。首页的 Public Test 是原协议主指标，不包含这套多步诊断。
 - **模型范围：** 每项 ICL 任务分别训练；总表的一行不是一个统一九任务模型。不同模型保留各自的架构、目标和优化器，跨模型差异不能唯一归因到架构。
 - **测量范围：** 完整误差包含共同预测偏差，但仍在各检查点自身表示中归一化。历史对照检验上下文收益，物理读出检验选定坐标，并单独检查其可见性；两者不能消除编码器几何差异及读出器对分布外预测的误差。历史收益为正也不表示完整预测已准确，详见 §4.3–4.5。
 - **决策范围：** 此前独立的决策与观测替换诊断覆盖 134 个场景与 70 个检查点×任务单元，使用固定候选和物理代价；部分目标、候选和时域尚不具备足够的决策区分度。Speed 闭环实验仅覆盖六个场景，其他任务和完整场景集的闭环收益尚未确定。原环境 CEM 仅衡量能力保持。

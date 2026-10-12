@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Wait for fixed-target confirmations, then evaluate the locked nine-task Test cohort."""
+"""Evaluate the locked nine-task Test cohort, optionally waiting for a training queue."""
 from __future__ import annotations
 import argparse
 from datetime import datetime, timezone
@@ -50,11 +50,13 @@ def upstream_ready(status, protocol_sha):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--plan', type=Path, required=True)
-    parser.add_argument('--upstream-status', type=Path, required=True)
-    parser.add_argument('--upstream-protocol', type=Path, required=True)
+    parser.add_argument('--upstream-status', type=Path)
+    parser.add_argument('--upstream-protocol', type=Path)
     parser.add_argument('--output-root', type=Path, required=True)
     parser.add_argument('--devices', default='0,1,2,3,4,5,6,7')
     args = parser.parse_args()
+    if bool(args.upstream_status) != bool(args.upstream_protocol):
+        parser.error('provide both upstream status and protocol, or neither for direct Test')
     devices = [int(d) for d in args.devices.split(',')]
     if len(devices) != len(set(devices)) or not devices or min(devices) < 0:
         parser.error('devices must be distinct non-negative GPU indices')
@@ -62,16 +64,17 @@ def main():
     root.mkdir(parents=True, exist_ok=True)
     lock = (root / 'followup.lock').open('a')
     fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-    protocol_sha = sha256(args.upstream_protocol)
+    protocol_sha = sha256(args.upstream_protocol) if args.upstream_protocol else None
     plan_sha = sha256(args.plan)
-    status = dict(status='waiting_for_training', pid=os.getpid(), plan=str(args.plan),
+    status = dict(status='waiting_for_training' if args.upstream_status else 'starting',
+                  pid=os.getpid(), plan=str(args.plan),
                   plan_sha256=plan_sha, upstream_protocol_sha256=protocol_sha, devices=devices)
     state_path = root / 'followup_status.json'
     atomic_json(state_path, status)
     children = []
     logs = []
     try:
-        while True:
+        while args.upstream_status:
             if sha256(args.plan) != plan_sha or sha256(args.upstream_protocol) != protocol_sha:
                 raise ValueError('locked plan or training protocol changed')
             upstream = json.loads(args.upstream_status.read_text())
@@ -80,6 +83,8 @@ def main():
             status['upstream_status'] = upstream['status']
             atomic_json(state_path, status)
             time.sleep(60)
+        if sha256(args.plan) != plan_sha:
+            raise ValueError('locked plan changed')
         status['status'] = 'evaluating'
         atomic_json(state_path, status)
         for shard, device in enumerate(devices):
