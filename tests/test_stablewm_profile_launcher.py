@@ -2646,14 +2646,19 @@ class TestLoggingAndLossBoundaries:
         assert pairs["swanlab.config.project"] == "contextworld"
         assert pairs["swanlab.config.experiment_name"] == "run"
 
-    def test_prejepa_swanlab_login_precedes_the_training_process(
+    @pytest.mark.parametrize("mode", ["cloud", "offline"])
+    @pytest.mark.parametrize("family", ["pldm", "prejepa"])
+    def test_swanlab_login_only_in_cloud_mode(
         self,
         stablewm_repo: Path,
         dataset: Path,
         monkeypatch: pytest.MonkeyPatch,
+        mode: str,
+        family: str,
     ) -> None:
         _enable_prejepa_common_logger(stablewm_repo)
         monkeypatch.setenv("SWANLAB_API_KEY", "injected-secret")
+        monkeypatch.setenv("CW_SWANLAB_MODE", mode)
         events: list[str] = []
 
         def login(environment: dict[str, str]) -> None:
@@ -2663,7 +2668,8 @@ class TestLoggingAndLossBoundaries:
         class Completed:
             returncode = 0
 
-        def run(*_args: object, **_kwargs: object) -> Completed:
+        def run(command, **_kwargs: object) -> Completed:
+            assert f"swanlab.config.mode={mode}" in command
             events.append("train")
             return Completed()
 
@@ -2673,7 +2679,7 @@ class TestLoggingAndLossBoundaries:
         status = launcher.main(
             [
                 "--family",
-                "prejepa",
+                family,
                 "--component",
                 "speed",
                 "--dataset",
@@ -2690,7 +2696,7 @@ class TestLoggingAndLossBoundaries:
         )
 
         assert status == 0
-        assert events == ["login", "train"]
+        assert events == (["train"] if mode == "offline" else ["login", "train"])
 
     def test_viswm_is_an_independent_family_with_method_owned_options(
             self, stablewm_repo: Path, dataset: Path) -> None:

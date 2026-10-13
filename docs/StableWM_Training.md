@@ -330,6 +330,15 @@ commands, Hydra configuration and launcher logs. Non-secret settings use
 `CW_SWANLAB_PROJECT`, `CW_SWANLAB_WORKSPACE`, `CW_TRACKER_NAME`,
 `CW_TRACKER_ID`, `CW_SWANLAB_LOGDIR` and `CW_SWANLAB_MODE`.
 
+If the SwanLab service is unavailable, submit a fresh process with
+`CW_SWANLAB_MODE=offline` while keeping `CW_LOGGER=swanlab`. The launcher
+skips cloud login and passes offline mode to the SDK, which saves metrics
+locally instead of uploading them. This changes logging only. After a failed
+cloud initialization, do not retry initialization in the same process: SDK
+resources may be partially initialized. A step-zero failure can be resubmitted
+with `CW_RESUME=reset`; for a run that made training progress, use the
+[resume procedure](#resume-behavior) to preserve that progress.
+
 WandB uses the standard `WANDB_API_KEY` environment variable, plus
 `CW_WANDB_PROJECT`, `CW_WANDB_ENTITY`, `CW_TRACKER_NAME` and `CW_TRACKER_ID`.
 
