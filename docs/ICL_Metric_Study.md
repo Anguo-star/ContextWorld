@@ -823,6 +823,16 @@ T0 是各训练种子共用的固定基线，只显示一次；训练后 ± 为�
 
 [Test 结果 JSON](research/data/fixed_target_confirmation_v1/summary.json)与[CSV](research/data/fixed_target_confirmation_v1/summary.csv)记录实际完成的训练重复、全部计划重复及配对区间；复现步骤见[数据与评价方法](Data_Generation.md#fixed-target-confirmation)。
 
+<a id="pldm-target-gradient-protocol"></a>
+
+### 4.12 待验证：PLDM 目标端预测梯度对照
+
+**问题。** 现有 Friction／Damping T2→T3 的 Development 响应 NRE 分别为 1.004→0.604、0.221→0.882；训练策略效应方向相反，尚不能归因于目标端梯度。[§4.9 的短程干预](#pldm-fixed-representation-intervention)固定表示并改变损失权重，未检验完整原生训练中的该梯度路径。
+
+**设计。** 两任务各从相同原环境预训练权重启动成对 PLDM 训练；对照臂沿用 T2，干预臂仅停止预测损失直接回传至真实未来目标嵌入。两臂保持数据、批次顺序、优化器、原生损失其余项与 10 epoch 预算一致。Encoder 仍可经历史输入侧的预测梯度及辅助损失更新，projector 也可经其他原生路径更新；这不是固定目标几何。
+
+**判读。** 比较相同保存点、Training 来源与独立 Development 的首个预测端点响应 NRE、完整 E/B、历史收益，并检查目标表示变化。各运行在自身目标空间与分母下评分；差值不能当作共同物理精度。本节是实验设计，尚无结果。
+
 <a id="physical-readout-methods"></a>
 
 ## 5. 辅助物理读出与候选评分方法

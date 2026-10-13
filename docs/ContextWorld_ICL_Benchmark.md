@@ -385,6 +385,8 @@ LeWM / PLDM 在八项任务上的 T2 / T3 使用相同任务数据、混合比�
 
 [规模对照完整表](reference/ContextWorld_Expanded_Training_Results.md#训练数据规模对照)单列较小与扩量 Training 的结果。配对数不等于独立 episode 数；扩量同时可能改变覆盖、重复曝光和每轮更新次数，因此这些对照不构成普适 scaling law。
 
+[模型容量对照](reference/ContextWorld_Expanded_Training_Results.md#模型容量对照)在相同 32k 数据和 seed 下，将 LeWM／PLDM 的 Encoder、表示宽度及预测器合计从约 18M 扩至约 183M 参数。摩擦与阻尼四项 Development 对照的未来选择率变化为 −8.01 至 +0.20 个百分点，训练终点的原环境 CEM 均下降。逐轮训练／Development 曲线没有共同的后期过拟合轨迹；这只限定当前固定训练配方，不排除其他容量与调参组合。
+
 <a id="rollout-error-diagnostic"></a>
 
 <a id="cross-task-decisions"></a>
