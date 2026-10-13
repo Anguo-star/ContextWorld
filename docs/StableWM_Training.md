@@ -175,7 +175,9 @@ keys. Equivalent command-line flags are shown by `--help`.
 | variable | purpose |
 |---|---|
 | `CW_SEEDS` | one seed, or a comma-separated sequence of seeds |
-| `CW_TRAINING_TRACK` | `joint_scratch_v1` (default) or explicit `historical_release` for old LeWM/PLDM protocol evidence |
+| `CW_TRAINING_TRACK` | Run-name label; custom labels retain the current recipe. `historical_release` explicitly selects the old frozen recipe. |
+| `CW_INIT_CHECKPOINT` | Optional full model weights for component warmstart; omit for default initialization. Optimizer and epoch state are fresh; `CW_RESUME` controls full-state continuation separately. |
+| `CW_FREEZE_ENCODER` | Set to `1` after warmstart to freeze the LeWM/PLDM image encoder or PreJEPA backbone; projector and predictor remain trainable. Default `0`. |
 | `CW_RUN_NAME` | model name and checkpoint subdirectory |
 | `CW_MAX_EPOCHS` | training epochs |
 | `CW_BATCH_SIZE`, `CW_NUM_WORKERS` | input throughput |
@@ -228,6 +230,15 @@ and predictor internal width. They are optional scalar values and preserve
 native defaults when omitted. The standard predictor width follows
 `CW_EMBED_DIM`; an explicit hidden width changes only the predictor interior,
 not the visual target width. PreJEPA does not expose these options.
+
+For current PLDM training, `CW_PREDICTION_TARGET_STOP_GRAD=1` detaches the
+future embedding in the native prediction loss; `0` explicitly keeps its
+gradient. Omit the variable for the native default (`0`).
+`CW_CHECKPOINT_EPOCH_INTERVAL=1` exports `weights_epoch_1.pt`,
+`weights_epoch_2.pt`, and so on, so epochs 1, 5 and 10 can be retained.
+The default interval is 5. Both are scalar cloud parameters and are unavailable
+for frozen `historical_release` runs. Give each recipe a distinct
+`CW_TRAINING_TRACK` or `CW_RUN_NAME` when comparing runs.
 
 Advanced users may repeat `--override KEY=VALUE` or supply a JSON array of
 these strings through `CW_OVERRIDES` in the cloud GUI. Explicit CLI entries

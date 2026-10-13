@@ -697,6 +697,16 @@ class TestTheCloudContract:
         ).read_text(encoding="utf-8").splitlines()[0] == frozen_ref
 
         source.write_text("revision = 2\n", encoding="utf-8")
+        dirty = subprocess.run(["bash", str(SCRIPTS / "cloud_train.sh")], cwd=ROOT, env=environment, capture_output=True, text=True)
+        assert dirty.returncode == 0, dirty.stdout + dirty.stderr
+        dirty_snapshot = Path(next(line.removeprefix("EFFECTIVE=") for line in dirty.stdout.splitlines() if line.startswith("EFFECTIVE=")))
+        assert dirty_snapshot != snapshot
+        assert (dirty_snapshot / "stable_worldmodel/__init__.py").read_text() == "revision = 2\n"
+        assert (snapshot / "stable_worldmodel/__init__.py").read_text() == "revision = 1\n"
+        repeated = subprocess.run(["bash", str(SCRIPTS / "cloud_train.sh")], cwd=ROOT, env=environment, capture_output=True, text=True)
+        assert repeated.returncode == 0, repeated.stdout + repeated.stderr
+        assert f"EFFECTIVE={dirty_snapshot}" in repeated.stdout
+        assert extraction_observations.read_text().splitlines() == [str(snapshot), str(dirty_snapshot)]
         git("add", ".")
         git("commit", "-q", "-m", "advance live checkout")
         environment["CW_STABLEWM_REF"] = frozen_ref

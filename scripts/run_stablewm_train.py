@@ -563,7 +563,7 @@ def _validate_method(args: argparse.Namespace, contract: dict[str, Any]) -> None
             f"{families!r}; requested {args.family!r}."
         )
     tracks = profile.get("training_tracks")
-    if not isinstance(tracks, list) or args.training_track not in tracks:
+    if not isinstance(tracks, list) or _base_training_track(args) not in tracks:
         raise SystemExit(
             f"{args.method} is registered only for training tracks "
             f"{tracks!r}; requested {args.training_track!r}."
@@ -627,7 +627,7 @@ def _rollout_recipe(
             "Autoregressive rollout training currently requires a registered "
             "benchmark component"
         )
-    if args.training_track not in rollout.get("training_tracks", []):
+    if _base_training_track(args) not in rollout.get("training_tracks", []):
         raise SystemExit(
             "Autoregressive rollout training is unavailable on training track "
             f"{args.training_track!r}"
@@ -1095,6 +1095,20 @@ def _validate_args(
                          "explicit --eval-epoch.")
 
 
+def _swanlab_run_id(run_name: str, explicit_id: str | None = None) -> str:
+    """Keep display/path names intact while giving SwanLab a stable <=64-char ID."""
+    if explicit_id is not None:
+        if not 1 <= len(explicit_id) <= 64:
+            raise SystemExit("CW_TRACKER_ID for SwanLab must contain 1-64 characters")
+        return explicit_id
+    if len(run_name) <= 64:
+        return run_name
+    # The suffix includes the entire name (including seed), so equal prefixes
+    # do not merge experiments. Avoid Python hash(), which changes per process.
+    suffix = hashlib.sha256(run_name.encode("utf-8")).hexdigest()[:16]
+    return f"{run_name[:47]}_{suffix}"
+
+
 def _logger_overrides(
     args: argparse.Namespace,
     *,
@@ -1166,7 +1180,7 @@ def _logger_overrides(
             ("project", args.swanlab_project),
             ("workspace", args.swanlab_workspace),
             ("experiment_name", args.tracker_name or run_name),
-            ("id", args.tracker_id or run_name),
+            ("id", _swanlab_run_id(run_name, args.tracker_id)),
             ("logdir", args.swanlab_logdir),
             ("mode", args.swanlab_mode),
         ):
@@ -1368,6 +1382,14 @@ def build_overrides(
             _validate_dataset_payload(item_path)
             _add(entries, f"data.dataset.items.{int(index)}.name", item_path)
 
+    if family == "pldm" and getattr(args, "prediction_target_stop_grad", None) is not None:
+        if "prediction_target_stop_grad" not in upstream_config:
+            raise SystemExit("The selected PLDM checkout does not support prediction_target_stop_grad")
+        _add(entries, "prediction_target_stop_grad", args.prediction_target_stop_grad)
+    if family == "pldm" and getattr(args, "checkpoint_epoch_interval", None) is not None:
+        if "checkpoint_epoch_interval" not in upstream_config:
+            raise SystemExit("The selected PLDM checkout does not support checkpoint_epoch_interval")
+        _add(entries, "checkpoint_epoch_interval", args.checkpoint_epoch_interval)
     if family == "lewm":
         _add(entries, "loss.sigreg.weight", args.lewm_sigreg_weight)
     if family == "viswm":
@@ -1485,6 +1507,8 @@ def _run_name(args: argparse.Namespace, target: Target, seed: int,
         # A different objective must not share a run directory (and therefore
         # an immutable training identity) with its native counterpart.
         default_base = f"{default_base}_{method}"
+    if getattr(args, "prediction_target_stop_grad", None) is True:
+        default_base = f"{default_base}_target_stopgrad"
     if args.rollout_steps > 1:
         default_base = f"{default_base}_rollout{args.rollout_steps}"
         if args.rollout_context != "sliding":
@@ -1703,6 +1727,29 @@ def _training_identity_document(
         "training_dependencies": _training_dependency_identity(),
         "hydra_overrides": overrides,
     }
+    if getattr(args, "prediction_target_stop_grad", None) is not None:
+        identity["prediction_target_stop_grad"] = args.prediction_target_stop_grad
+    if getattr(args, "checkpoint_epoch_interval", None) is not None:
+        identity["checkpoint_epoch_interval"] = args.checkpoint_epoch_interval
+    if args.training_track not in {"joint_scratch_v1", "historical_release"}:
+        identity["base_training_recipe"] = _base_training_track(args)
+    if getattr(args, "initialization_identity", None) is not None:
+        initializer_source = REPO_ROOT / "contextworld/training/initialization.py"
+        identity["initialization"] = args.initialization_identity
+        identity["base_training_recipe"] = "joint_scratch_v1"
+        identity["initialization_implementation"] = {
+            "path": str(initializer_source),
+            "sha256": _sha256_file(initializer_source),
+        }
+    if getattr(args, "encoder_freeze_identity", None) is not None:
+        policy_source = REPO_ROOT / "contextworld/training/encoder_policy.py"
+        identity["freeze_encoder"] = {
+            **args.encoder_freeze_identity,
+            "implementation": {
+                "path": str(policy_source),
+                "sha256": _sha256_file(policy_source),
+            },
+        }
     if args.rollout_steps > 1:
         identity["contextworld_rollout_entry"] = {
             "path": str(ROLLOUT_ENTRY_SCRIPT),
@@ -2585,10 +2632,12 @@ def _post_eval_command(
         # A component suite always attempts its Development ICL cell. When
         # the matching original dataset is available it also runs CEM
         # retention; the evaluator records CEM as skipped only when no such
-        # dataset was supplied. ``--icl-only`` is reserved for explicit
-        # repair jobs.
+        # dataset was supplied. Explicit CW_EVAL_ICL_ONLY requests omit
+        # CEM for Development-only research or repair jobs.
         command.extend(("--component", target.label))
-    if original_dataset is not None:
+    if getattr(args, "eval_icl_only", False):
+        command.append("--icl-only")
+    elif original_dataset is not None:
         command.extend(("--dataset", str(original_dataset)))
     if args.eval_result_subdir:
         command.extend(("--result-subdir", args.eval_result_subdir))
@@ -2769,15 +2818,32 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--component", default=_env("CW_COMPONENT"))
     parser.add_argument(
         "--training-track",
-        choices=("joint_scratch_v1", "historical_release"),
         default=_env("CW_TRAINING_TRACK", "joint_scratch_v1"),
         help=(
-            "Component-training route (env: CW_TRAINING_TRACK). The default "
-            "uses the public ContextWorld-v1 mixture and no task checkpoint; "
-            "historical_release explicitly selects the old frozen LeWM/PLDM "
-            "reproduction recipe."
+            "Experiment label included in the default component run name "
+            "(env: CW_TRAINING_TRACK). Custom labels use the current joint "
+            "training recipe; historical_release selects the frozen historical "
+            "recipe. Optional --init-checkpoint controls model initialization."
         ),
     )
+    parser.add_argument("--init-checkpoint", default=_env("CW_INIT_CHECKPOINT"),
+                        help="Optional absolute model checkpoint path; omitted or empty preserves default model initialization. Independent of resume.")
+    parser.add_argument(
+        "--prediction-target-stop-grad", action=argparse.BooleanOptionalAction,
+        default=_env_bool("CW_PREDICTION_TARGET_STOP_GRAD"),
+        help="Detach the PLDM native prediction target (env: CW_PREDICTION_TARGET_STOP_GRAD).",
+    )
+    parser.add_argument(
+        "--checkpoint-epoch-interval", type=int,
+        default=_env_int("CW_CHECKPOINT_EPOCH_INTERVAL"),
+        help="Export PLDM weights every N epochs (env: CW_CHECKPOINT_EPOCH_INTERVAL).",
+    )
+    parser.add_argument("--freeze-encoder", action="store_true",
+                        default=bool(_env_bool("CW_FREEZE_ENCODER") or False),
+                        help="After full CW_INIT_CHECKPOINT warmstart, freeze only LeWM/PLDM encoder or PreJEPA backbone; projector, predictor, action and auxiliary heads remain trainable (env: CW_FREEZE_ENCODER).")
+    parser.add_argument("--eval-icl-only", action="store_true",
+                        default=bool(_env_bool("CW_EVAL_ICL_ONLY") or False),
+                        help="Run only component Development ICL after training; omit CEM.")
     parser.add_argument(
         "--method",
         choices=sorted(contract.get("methods") or {"native": {}}),
@@ -3077,6 +3143,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     return args
 
 
+def _base_training_track(args: argparse.Namespace) -> str:
+    """Resolve training behavior independently of the experiment's name."""
+    return "historical_release" if args.training_track == "historical_release" else "joint_scratch_v1"
+
+
 def _uses_release_recipe(args: argparse.Namespace) -> bool:
     """Return whether this is a frozen LeWM/PLDM component reproduction."""
 
@@ -3086,6 +3157,64 @@ def _uses_release_recipe(args: argparse.Namespace) -> bool:
 def _validate_training_track(args: argparse.Namespace) -> None:
     """Keep current joint training and historical release evidence disjoint."""
 
+    if getattr(args, "eval_icl_only", False) and (args.original_env or not args.component):
+        raise SystemExit("CW_EVAL_ICL_ONLY requires a benchmark component")
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,127}", args.training_track):
+        raise SystemExit("CW_TRAINING_TRACK must use letters, digits, '.', '_' or '-' and start with a letter or digit")
+    init_checkpoint = getattr(args, "init_checkpoint", None)
+    args.initialization_identity = None
+    args.encoder_freeze_identity = None
+    freeze_encoder = bool(getattr(args, "freeze_encoder", False))
+    if getattr(args, "checkpoint_epoch_interval", None) is not None:
+        if args.family != "pldm":
+            raise SystemExit("CW_CHECKPOINT_EPOCH_INTERVAL is only valid for PLDM")
+        if _uses_release_recipe(args):
+            raise SystemExit("CW_CHECKPOINT_EPOCH_INTERVAL cannot change the frozen historical_release recipe")
+        if args.checkpoint_epoch_interval <= 0:
+            raise SystemExit("CW_CHECKPOINT_EPOCH_INTERVAL must be a positive integer")
+    if getattr(args, "prediction_target_stop_grad", None) is not None:
+        if args.family != "pldm":
+            raise SystemExit("CW_PREDICTION_TARGET_STOP_GRAD is only valid for PLDM")
+        if _uses_release_recipe(args):
+            raise SystemExit("CW_PREDICTION_TARGET_STOP_GRAD cannot change the frozen historical_release recipe")
+    if init_checkpoint and _uses_release_recipe(args):
+        raise SystemExit("CW_INIT_CHECKPOINT cannot change the frozen historical_release recipe")
+    if init_checkpoint:
+        from contextworld.training.initialization import (
+            INITIALIZATION_FAMILIES, validate_initialization,
+        )
+        if (args.family not in INITIALIZATION_FAMILIES or not args.component
+                or args.original_env or args.method != "native" or args.rollout_steps != 1):
+            raise SystemExit(
+                "Initialization research currently supports native one-step component training "
+                f"for registered families {sorted(INITIALIZATION_FAMILIES)}")
+        # A supplied checkpoint always means a full-model warmstart. There is
+        # intentionally no selectable tensor scope: the only partial-training
+        # operation is the explicit encoder-only freeze below.
+        try:
+            args.initialization_identity = validate_initialization(init_checkpoint)
+        except (ValueError, OSError) as exc:
+            raise SystemExit(f"Invalid research initialization: {exc}") from exc
+    if freeze_encoder:
+        from contextworld.training.encoder_policy import (
+            FREEZE_ENCODER_FAMILIES, validate_encoder_freeze_policy,
+        )
+        if args.family not in FREEZE_ENCODER_FAMILIES:
+            raise SystemExit(
+                "CW_FREEZE_ENCODER currently supports only families "
+                f"{sorted(FREEZE_ENCODER_FAMILIES)}"
+            )
+        if not init_checkpoint:
+            raise SystemExit(
+                "CW_FREEZE_ENCODER=1 requires a full-model CW_INIT_CHECKPOINT"
+            )
+        try:
+            args.encoder_freeze_identity = validate_encoder_freeze_policy(
+                family=args.family, checkpoint=init_checkpoint)
+        except ValueError as exc:
+            raise SystemExit(f"Invalid encoder freeze policy: {exc}") from exc
+    if init_checkpoint:
+        return
     if args.training_track != "historical_release":
         return
     if args.resume == "reset":
@@ -3239,7 +3368,7 @@ def main(argv: list[str] | None = None) -> int:
     # ICL-only even when CONTEXTWORLD_DATASET_ROOT was available.
     original_eval_dataset: Path | None = (
         _original_dataset_for_post_eval(args, contract, target)
-        if args.post_eval or args.eval_only
+        if (args.post_eval or args.eval_only) and not args.eval_icl_only
         else None
     )
 
@@ -3249,6 +3378,8 @@ def main(argv: list[str] | None = None) -> int:
         "CONTEXTWORLD_SPT_RUN_NAME",
         "CONTEXTWORLD_SPT_IDENTITY_SHA256",
         "CONTEXTWORLD_SPT_RESUME_CHECKPOINT",
+        "CONTEXTWORLD_RESEARCH_INITIALIZATION",
+        "CONTEXTWORLD_RESEARCH_FREEZE_ENCODER",
         "CONTEXTWORLD_STABLEWM_BUNDLE",
         "CONTEXTWORLD_DATALOADER_START_METHOD",
         "CONTEXTWORLD_ROLLOUT_TRAINER_SCRIPT",
@@ -3441,6 +3572,12 @@ def main(argv: list[str] | None = None) -> int:
     print("[stablewm-train] dataset_cache="
           f"{environment.get('LOCAL_DATASET_DIR', '<upstream default>')}")
     print(f"[stablewm-train] logger={args.logger} resume={args.resume}")
+    if getattr(args, "initialization_identity", None) is not None:
+        print("[stablewm-train] research_initialization=" + json.dumps(
+            args.initialization_identity, sort_keys=True))
+    if getattr(args, "encoder_freeze_identity", None) is not None:
+        print("[stablewm-train] research_encoder_freeze=" + json.dumps(
+            args.encoder_freeze_identity, sort_keys=True))
     print(
         f"[stablewm-train] mode={'eval-only' if args.eval_only else 'train'} "
         f"training_track={args.training_track} method={args.method} "
@@ -3564,7 +3701,15 @@ def main(argv: list[str] | None = None) -> int:
                 environment["PYTHONPATH"],
             ])
             training_environment["CONTEXTWORLD_SPT_BRIDGE"] = "1"
+            if getattr(args, "initialization_identity", None) is not None:
+                training_environment["CONTEXTWORLD_RESEARCH_INITIALIZATION"] = json.dumps(
+                    args.initialization_identity, sort_keys=True)
+            if getattr(args, "encoder_freeze_identity", None) is not None:
+                training_environment["CONTEXTWORLD_RESEARCH_FREEZE_ENCODER"] = "1"
             training_environment["CONTEXTWORLD_SPT_RUN_NAME"] = run_name
+            # The DDP bootstrap needs the model family to select encoder vs
+            # PreJEPA backbone while applying the encoder-only freeze.
+            training_environment["CW_FAMILY"] = args.family
             training_environment["CONTEXTWORLD_SPT_IDENTITY_SHA256"] = (
                 training_identity["identity_sha256"]
             )

@@ -2529,6 +2529,52 @@ class TestRecoveryPaths:
 
 class TestLoggingAndLossBoundaries:
 
+    @pytest.mark.parametrize("length", [1, 63, 64, 65, 73, 128])
+    def test_swanlab_id_length_boundary_and_restart_stability(self, length):
+        name = "r" * length
+        result = launcher._swanlab_run_id(name)
+        assert 1 <= len(result) <= 64
+        assert result == launcher._swanlab_run_id(name)
+        if length <= 64:
+            assert result == name  # Existing valid run IDs keep their identity.
+
+    def test_swanlab_long_names_preserve_seed_distinctions(self):
+        prefix = "action_strength_lewm_init_form_pusht_lewm_baseline_seed3073_weights"
+        ids = [launcher._swanlab_run_id(f"{prefix}_s{seed}") for seed in (3072, 3073, 3074)]
+        assert len(set(ids)) == 3
+        assert all(len(value) == 64 for value in ids)
+
+    @pytest.mark.parametrize("explicit", ["existing_run", "r" * 64])
+    def test_explicit_swanlab_id_is_preserved(self, explicit):
+        assert launcher._swanlab_run_id("r" * 128, explicit) == explicit
+
+    @pytest.mark.parametrize("explicit", ["", "r" * 65])
+    def test_explicit_oversized_swanlab_id_fails_before_training(self, explicit):
+        with pytest.raises(SystemExit, match="CW_TRACKER_ID"):
+            launcher._swanlab_run_id("run", explicit)
+
+    @pytest.mark.parametrize("family", ["lewm", "pldm", "prejepa"])
+    def test_cloud_long_track_shortens_only_swanlab_id(self, stablewm_repo, dataset, family):
+        if family == "prejepa":
+            _enable_prejepa_common_logger(stablewm_repo)
+        track = "init_form_pusht_lewm_baseline_seed3073_weights"
+        request = _args(stablewm_repo, dataset, "--family", family,
+            "--component", "action_strength", "--training-track", track,
+            "--logger", "swanlab", "--output", str(dataset.parent / "output"))
+        contract = launcher.load_profile_contract()
+        target = launcher.resolve_target(request, contract)
+        name = launcher._run_name(request, target, 3072, (3072,))
+        entries = launcher.build_overrides(request, contract, target,
+            run_name=name, seed=3072, stablewm_repo=stablewm_repo)
+        pairs = _pairs(entries)
+        assert pairs["swanlab.config.experiment_name"] == name
+        assert pairs["swanlab.config.id"] == launcher._swanlab_run_id(name)
+        assert len(pairs["swanlab.config.id"]) <= 64
+        assert pairs["output_model_name"] == name
+        assert pairs["subdir"] == name
+        assert pairs["hydra.run.dir"].endswith("/" + name)
+        assert launcher._evaluation_checkpoint(dataset.parent, name, 10).parent.name == name
+
     def test_swanlab_is_profiled_without_putting_the_key_in_argv(
         self,
         stablewm_repo: Path,
@@ -3908,3 +3954,106 @@ class TestTrainingMethodOverlay:
             launcher._validate_method(args, contract)
 
         assert "training tracks" in str(failure.value)
+
+
+class TestCustomTrackInitialization:
+    def test_custom_track_passes_bound_initializer_to_training_process(
+        self, stablewm_repo, dataset, tmp_path, monkeypatch,
+    ):
+        from types import SimpleNamespace
+        import torch
+        source = tmp_path / 'source.pt'
+        torch.save(torch.nn.Linear(2, 2).state_dict(), source)
+        track = 'init_form_pusht_lewm_baseline_seed3073_weights'
+        name = f'action_strength_lewm_{track}_s3072'
+        checkpoint_root = tmp_path / 'research'
+        calls = []
+        monkeypatch.delenv('SLURM_JOB_ID', raising=False)
+        monkeypatch.delenv('SLURM_RESTART_COUNT', raising=False)
+        monkeypatch.setattr(launcher, '_stablewm_source_identity', lambda *_: {'fixture': True})
+        monkeypatch.setattr(launcher, '_training_dependency_identity', lambda: {'fixture': True})
+        def run(command, **kwargs):
+            calls.append((command, kwargs['env']))
+            return SimpleNamespace(returncode=0)
+        monkeypatch.setattr(launcher.subprocess, 'run', run)
+        assert launcher.main([
+            '--family', 'lewm', '--component', 'action_strength', '--dataset', str(dataset),
+            '--stablewm-repo', str(stablewm_repo), '--checkpoint-root', str(checkpoint_root),
+            '--training-track', track, '--init-checkpoint', str(source),
+            '--seeds', '3072', '--resume', 'never', '--logger', 'none',
+        ]) == 0
+        assert len(calls) == 1
+        env = calls[0][1]
+        spec = json.loads(env['CONTEXTWORLD_RESEARCH_INITIALIZATION'])
+        assert spec['mode'] == 'warmstart'
+        assert spec['checkpoint'] == str(source)
+        assert env['CONTEXTWORLD_SPT_RUN_NAME'] == name
+        recorded = json.loads((checkpoint_root / 'checkpoints' / name / launcher.TRAINING_IDENTITY_FILENAME).read_text())
+        assert recorded['identity']['initialization'] == spec
+        assert recorded['identity']['base_training_recipe'] == 'joint_scratch_v1'
+        assert recorded['identity']['training_track'] == track
+
+
+@pytest.mark.parametrize("enabled,expected", [("0", "false"), ("1", "true")])
+def test_pldm_prediction_target_stop_grad_cloud_scalar(
+    monkeypatch: pytest.MonkeyPatch, stablewm_repo: Path, dataset: Path,
+    enabled: str, expected: str,
+) -> None:
+    config = stablewm_repo / "scripts/train/config/pldm.yaml"
+    payload = yaml.safe_load(config.read_text(encoding="utf-8"))
+    payload["prediction_target_stop_grad"] = False
+    config.write_text(yaml.safe_dump(payload), encoding="utf-8")
+    monkeypatch.setenv("CW_PREDICTION_TARGET_STOP_GRAD", enabled)
+    monkeypatch.delenv("CW_OVERRIDES", raising=False)
+    args = _args(stablewm_repo, dataset, "--family", "pldm")
+    launcher._validate_training_track(args)
+    target, pairs, entries = _build(args, stablewm_repo)
+    assert args.override == []
+    assert pairs["prediction_target_stop_grad"] == expected
+    assert entries.count(f"prediction_target_stop_grad={expected}") == 1
+    assert ("_target_stopgrad" in launcher._run_name(args, target, 3072, (3072,))) is (enabled == "1")
+
+
+def test_pldm_prediction_target_stop_grad_defaults_to_native(
+    monkeypatch: pytest.MonkeyPatch, stablewm_repo: Path, dataset: Path,
+) -> None:
+    monkeypatch.delenv("CW_PREDICTION_TARGET_STOP_GRAD", raising=False)
+    args = _args(stablewm_repo, dataset, "--family", "pldm")
+    assert args.prediction_target_stop_grad is None
+    _, pairs, _ = _build(args, stablewm_repo)
+    assert "prediction_target_stop_grad" not in pairs
+
+
+@pytest.mark.parametrize("family,track", [("lewm", "joint_scratch_v1"), ("pldm", "historical_release")])
+def test_pldm_prediction_target_stop_grad_rejects_other_recipes(
+    monkeypatch: pytest.MonkeyPatch, stablewm_repo: Path, dataset: Path,
+    family: str, track: str,
+) -> None:
+    monkeypatch.setenv("CW_PREDICTION_TARGET_STOP_GRAD", "1")
+    args = _args(stablewm_repo, dataset, "--family", family, "--training-track", track)
+    with pytest.raises(SystemExit, match="CW_PREDICTION_TARGET_STOP_GRAD"):
+        launcher._validate_training_track(args)
+
+@pytest.mark.parametrize("interval", [1, 5, 10])
+def test_pldm_checkpoint_epoch_interval_cloud_scalar(
+    monkeypatch: pytest.MonkeyPatch, stablewm_repo: Path, dataset: Path,
+    interval: int,
+) -> None:
+    config = stablewm_repo / "scripts/train/config/pldm.yaml"
+    payload = yaml.safe_load(config.read_text(encoding="utf-8"))
+    payload["checkpoint_epoch_interval"] = 5
+    config.write_text(yaml.safe_dump(payload), encoding="utf-8")
+    monkeypatch.setenv("CW_CHECKPOINT_EPOCH_INTERVAL", str(interval))
+    args = _args(stablewm_repo, dataset, "--family", "pldm")
+    launcher._validate_training_track(args)
+    _, pairs, _ = _build(args, stablewm_repo)
+    assert pairs["checkpoint_epoch_interval"] == str(interval)
+
+
+def test_pldm_checkpoint_epoch_interval_rejects_nonpositive(
+    monkeypatch: pytest.MonkeyPatch, stablewm_repo: Path, dataset: Path,
+) -> None:
+    monkeypatch.setenv("CW_CHECKPOINT_EPOCH_INTERVAL", "0")
+    args = _args(stablewm_repo, dataset, "--family", "pldm")
+    with pytest.raises(SystemExit, match="positive integer"):
+        launcher._validate_training_track(args)

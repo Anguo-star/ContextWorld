@@ -8,6 +8,7 @@ rank zero without modifying the StableWM checkout.
 
 from __future__ import annotations
 
+import json
 import multiprocessing as mp
 import os
 import sys
@@ -41,10 +42,22 @@ if os.environ.get("CONTEXTWORLD_SPT_BRIDGE") == "1":
         from scripts.run_stablewm_family_entry import _install_manager_bridge
 
         resume_value = os.environ.get("CONTEXTWORLD_SPT_RESUME_CHECKPOINT")
+        initialization_value = os.environ.get("CONTEXTWORLD_RESEARCH_INITIALIZATION")
+        initialization = json.loads(initialization_value) if initialization_value else None
+        freeze_encoder_value = os.environ.get(
+            "CONTEXTWORLD_RESEARCH_FREEZE_ENCODER"
+        )
+        if freeze_encoder_value not in (None, "", "0", "1"):
+            raise RuntimeError(
+                "CONTEXTWORLD_RESEARCH_FREEZE_ENCODER must be 0 or 1"
+            )
         _install_manager_bridge(
             run_name=os.environ["CONTEXTWORLD_SPT_RUN_NAME"],
             identity_sha256=os.environ["CONTEXTWORLD_SPT_IDENTITY_SHA256"],
             resume_checkpoint=Path(resume_value) if resume_value else None,
+            initialization=initialization,
+            freeze_encoder=freeze_encoder_value == "1",
+            family=os.environ.get("CW_FAMILY", "lewm"),
         )
     except BaseException as exc:
         # Python normally reports an Exception raised by sitecustomize and

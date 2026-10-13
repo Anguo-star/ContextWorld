@@ -2,12 +2,14 @@
 """Run an upstream StableWM trainer with portable SPT resume wiring.
 
 Stable-WorldModel remains the owner of the trainer, model, objective and
-optimizer.  This bootstrap only supplies two pieces of orchestration that the
+optimizer.  This bootstrap supplies the orchestration pieces that the
 three upstream family entrypoints do not expose consistently:
 
 * identify the StablePretraining UUID run that belongs to a ContextWorld run;
 * on a newly submitted job, pass its ``last.ckpt`` back to ``spt.Manager``
   with ``weights_only=False``.
+* optionally load a complete model warmstart and freeze only the visual
+  encoder/backbone before optimizer construction.
 
 The same-job SLURM requeue path is untouched and remains owned by
 StablePretraining.
@@ -119,9 +121,16 @@ def _install_manager_bridge(
     run_name: str,
     identity_sha256: str,
     resume_checkpoint: Path | None,
+    initialization: dict[str, Any] | None = None,
+    freeze_encoder: bool = False,
+    family: str | None = None,
 ) -> None:
     """Wrap ``spt.Manager`` without replacing the upstream training loop."""
 
+    if freeze_encoder and initialization is None:
+        raise RuntimeError(
+            "CW_FREEZE_ENCODER=1 requires the full-model initialization spec"
+        )
     _prepare_optional_flash_attention()
     import stable_pretraining as spt
 
@@ -137,6 +146,34 @@ def _install_manager_bridge(
 
     class ContextWorldManager(original_manager):  # type: ignore[misc, valid-type]
         def __init__(self, *args: Any, **kwargs: Any) -> None:
+            self._contextworld_initialization_receipt = None
+            self._contextworld_encoder_freeze_record = None
+            module = None
+            trainer = None
+            if initialization is not None or freeze_encoder:
+                bound = inspect.signature(original_manager.__init__).bind_partial(
+                    self, *args, **kwargs)
+                module = bound.arguments.get("module")
+                trainer = bound.arguments.get("trainer")
+                if module is None or not hasattr(module, "model"):
+                    raise RuntimeError(
+                        "Research initialization and encoder freeze require an "
+                        "instantiated SPT Module.model"
+                    )
+            if initialization is not None:
+                from contextworld.training.initialization import apply_initialization
+                # Load model weights before Manager creates/restores training
+                # state. A subsequent full-state resume always takes precedence.
+                self._contextworld_initialization_receipt = apply_initialization(
+                    module.model, initialization)
+            if freeze_encoder:
+                from contextworld.training.encoder_policy import freeze_encoder as _freeze_encoder
+                # Full model initialization has already happened above. Freeze
+                # only the encoder/backbone before optimizer construction;
+                # projector, predictor, action and auxiliary heads remain
+                # trainable with their loaded checkpoint state.
+                self._contextworld_encoder_freeze_record = _freeze_encoder(
+                    module.model, family=family or os.environ.get("CW_FAMILY", "lewm"))
             if resume_checkpoint is not None:
                 # PreJEPA and PLDM currently pass their inference-weight path
                 # with Manager's default weights-only semantics.  A portable
@@ -145,6 +182,12 @@ def _install_manager_bridge(
                 kwargs["ckpt_path"] = str(resume_checkpoint)
                 kwargs["weights_only"] = False
             super().__init__(*args, **kwargs)
+            if freeze_encoder:
+                from contextworld.training.encoder_policy import attach_encoder_freeze
+                attach_encoder_freeze(
+                    trainer, module.model,
+                    family=family or os.environ.get("CW_FAMILY", "lewm"),
+                )
 
         def _resolve_run_dir(self) -> Path | None:
             resolved = super()._resolve_run_dir()
@@ -167,6 +210,32 @@ def _install_manager_bridge(
                     identity_sha256=identity_sha256,
                     require_existing=native_requeue,
                 )
+                receipt = self._contextworld_initialization_receipt
+                if receipt is not None:
+                    receipt = dict(receipt)
+                    encoder_record = self._contextworld_encoder_freeze_record
+                    if encoder_record is not None:
+                        receipt["freeze_encoder_policy"] = encoder_record["policy"]
+                        receipt["freeze_encoder"] = encoder_record
+                    path = Path(resolved) / "contextworld_initialization_v1.json"
+                    if path.exists():
+                        existing = json.loads(path.read_text(encoding="utf-8"))
+                        if (existing.get("initialization")
+                                != receipt["initialization"]
+                                or existing.get("freeze_encoder_policy")
+                                != receipt.get("freeze_encoder_policy")):
+                            raise RuntimeError(f"Initialization identity changed: {path}")
+                    else:
+                        temporary = path.with_name(f".{path.name}.{os.getpid()}.tmp")
+                        try:
+                            with temporary.open("x", encoding="utf-8") as stream:
+                                json.dump(receipt, stream, indent=2, sort_keys=True)
+                                stream.write("\n")
+                                stream.flush()
+                                os.fsync(stream.fileno())
+                            os.replace(temporary, path)
+                        finally:
+                            temporary.unlink(missing_ok=True)
             return resolved
 
     ContextWorldManager.__name__ = original_manager.__name__

@@ -13,6 +13,13 @@
 #   CW_TASK=original   CW_ENV=tworoom   CW_FAMILY=prejepa
 #   CW_SEEDS=3072
 #   CW_METHOD=native|coja_v1   (optional; defaults to native)
+#   CW_TRAINING_TRACK=my_experiment (optional run-name label; default joint_scratch_v1)
+#   CW_INIT_CHECKPOINT=/absolute/original_weights.ckpt (optional; absent = default init)
+#   CW_FREEZE_ENCODER=0|1 (optional; default 0; after a full-model
+#                 CW_INIT_CHECKPOINT warmstart, freeze only LeWM/PLDM encoder
+#                 or PreJEPA backbone; projector/predictor/action/auxiliary
+#                 heads remain trainable)
+#   CW_EVAL_ICL_ONLY=1  (component Development ICL without CEM)
 #   CW_ROLLOUT_STEPS=1|3|...|10 (optional; defaults to one-step training)
 #   CW_ROLLOUT_CONTEXT=sliding|expanding (optional; default sliding)
 #
@@ -129,13 +136,10 @@ fi
 # is the only cloud route that still needs the private artifact tree.
 CW_TARGET="${CW_TASK:-${CW_COMPONENT:-}}"
 CW_TRAINING_TRACK="${CW_TRAINING_TRACK:-joint_scratch_v1}"
-case "$CW_TRAINING_TRACK" in
-  joint_scratch_v1|historical_release) ;;
-  *)
-    echo "[cloud-train] CW_TRAINING_TRACK must be joint_scratch_v1 or historical_release" >&2
-    exit 2
-    ;;
-esac
+if [[ ! "$CW_TRAINING_TRACK" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$ ]]; then
+  echo "[cloud-train] CW_TRAINING_TRACK must be a safe name: letters, digits, '.', '_' or '-'" >&2
+  exit 2
+fi
 export CW_TRAINING_TRACK
 HISTORICAL_RELEASE=0
 if [ "$CW_TRAINING_TRACK" = "historical_release" ]; then
@@ -158,6 +162,17 @@ fi
 # The Python launcher owns method validation and fails closed from the profile.
 CW_METHOD="${CW_METHOD:-native}"
 export CW_METHOD
+
+# Optional encoder-only freeze after a full-model warmstart.
+CW_FREEZE_ENCODER="${CW_FREEZE_ENCODER:-0}"
+case "$CW_FREEZE_ENCODER" in
+  0|1) ;;
+  *)
+    echo "[cloud-train] CW_FREEZE_ENCODER must be 0 or 1" >&2
+    exit 2
+    ;;
+esac
+export CW_FREEZE_ENCODER
 
 # The clean Hugging Face export is a multi-table benchmark bundle, not one
 # raw StableWM table. run_stablewm_train.py turns it into a lazy registered
@@ -410,6 +425,18 @@ if [ "$HISTORICAL_RELEASE" = "0" ] && [ "$PRINT_ONLY" = "0" ]; then
   else
     STABLEWM_REF="${STABLEWM_SOURCE_SHA256:0:40}"
     STABLEWM_REF_KIND="content-sha256-prefix"
+  fi
+  # Source uploads may retain Git HEAD. Use a separate content identity when
+  # that HEAD already names different bytes; all snapshot checks below remain.
+  if [ -z "${CW_STABLEWM_REF:-}" ] && [ -n "$OBSERVED_STABLEWM_HEAD" ]; then
+    PREVIOUS_SOURCE_SHA256="$(sed -n '1p' \
+      "$STABLEWM_HOME/.contextworld/stable-worldmodel/$STABLEWM_REF/.contextworld_source_sha256" \
+      2>/dev/null || true)"
+    if [[ "$PREVIOUS_SOURCE_SHA256" =~ ^[0-9a-f]{64}$ ]] && \
+       [ "$PREVIOUS_SOURCE_SHA256" != "$STABLEWM_SOURCE_SHA256" ]; then
+      STABLEWM_REF="${STABLEWM_SOURCE_SHA256:0:40}"
+      STABLEWM_REF_KIND="content-sha256-prefix"
+    fi
   fi
   if [[ ! "$STABLEWM_REF" =~ ^[0-9a-f]{40}$ ]]; then
     echo "[cloud-train] CW_STABLEWM_REF must be a 40-digit lowercase SHA" >&2
