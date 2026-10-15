@@ -1,0 +1,150 @@
+{
+  "schema": "contextworld.pldm_target_gradient_control.v1",
+  "status": "complete",
+  "training_replicates_per_arm": 1,
+  "native_evaluation": {
+    "epochs": [
+      0,
+      1,
+      5,
+      10
+    ],
+    "test_accessed": false,
+    "initialization_sha256": "8227ebb275f1a7ce0348b863b87b5c1fc534068eced1e352c060738d3c96dc04",
+    "task_panel_sha256": {
+      "contact_friction": "47b389da0cc615aa2ed3a82f2c80d20c67d4ae7a83a60c30abfe3f95e82ab14b",
+      "motion_damping": "a4b1167f1361e42ada6804b233aea99a74e16d96cc79595767347f89fd46ac13"
+    },
+    "source_group_bootstrap": {
+      "draws": 2000,
+      "interval": "percentile 95%",
+      "seed": 20261012,
+      "unit": "paired source group"
+    },
+    "note": "Fixed 512 Training and 256 Development query pairs per task; unified full-precision native-target evaluation. Epoch 0 is a shared baseline reused across arms."
+  },
+  "comparability": {
+    "single_training_effective_config_difference": "prediction_target_stop_grad",
+    "source_revision_difference": "SwanLab finalization and tests only; inspected training math, model, configuration, and data files match",
+    "minibatch_byte_hash_verified": false,
+    "note": "Matching data identities, seed, and training configuration do not prove identical sampled minibatch bytes."
+  },
+  "runs": {
+    "contact_friction/native": {
+      "run_name": "contact_friction_pldm_targetgrad_v1_warmstart3073_s3072",
+      "checkpoint_sha256": "34ca65ebfb59f77d754f38de386fbc67e89ef4c35e272d1ded7c9b9ff21f9f41",
+      "source_ref": "195d3d1dc8ba6fd2da579ef7b4ed60f36abe0488",
+      "initialization_sha256": "8227ebb275f1a7ce0348b863b87b5c1fc534068eced1e352c060738d3c96dc04",
+      "dataset_manifest_sha256": "0fd65ad420367d1e3bd00ac0a9bee75f512ad7ee286e31fab34e43c1ee61f9bf",
+      "dataset_member_list_sha256": "aac033b818316e665bd8db9338206783d2daad09795c52d9920727dd892857c6",
+      "training_seed": 3072,
+      "epochs": 10,
+      "global_steps": 34830,
+      "observed_worker_runs": 8,
+      "cloud_icl": {
+        "development_pairs": 256,
+        "main_percent": 49.8046875,
+        "response_nre": 1.0159550493579275
+      },
+      "cem": {
+        "mean_success_percent": 70.33333333333333,
+        "success_percent_by_seed": {
+          "42": 72.0,
+          "43": 66.0,
+          "44": 66.0,
+          "45": 74.0,
+          "46": 80.0,
+          "47": 64.0
+        },
+        "episodes_per_seed": 50
+      }
+    },
+    "contact_friction/stopgrad": {
+      "run_name": "contact_friction_pldm_targetgrad_v1_warmstart3073_target_stopgrad_s3072",
+      "checkpoint_sha256": "e2ef044ef39c6a60b673a5049c156b64a8adf3be44f6cff3b39161f424648451",
+      "source_ref": "195d3d1dc8ba6fd2da579ef7b4ed60f36abe0488",
+      "initialization_sha256": "8227ebb275f1a7ce0348b863b87b5c1fc534068eced1e352c060738d3c96dc04",
+      "dataset_manifest_sha256": "0fd65ad420367d1e3bd00ac0a9bee75f512ad7ee286e31fab34e43c1ee61f9bf",
+      "dataset_member_list_sha256": "aac033b818316e665bd8db9338206783d2daad09795c52d9920727dd892857c6",
+      "training_seed": 3072,
+      "epochs": 10,
+      "global_steps": 34830,
+      "observed_worker_runs": 8,
+      "cloud_icl": {
+        "development_pairs": 256,
+        "main_percent": 50.1953125,
+        "response_nre": 0.9975254134007401
+      },
+      "cem": {
+        "mean_success_percent": 65.66666666666667,
+        "success_percent_by_seed": {
+          "42": 68.0,
+          "43": 62.0,
+          "44": 56.00000000000001,
+          "45": 72.0,
+          "46": 70.0,
+          "47": 66.0
+        },
+        "episodes_per_seed": 50
+      }
+    },
+    "motion_damping/native": {
+      "run_name": "motion_damping_pldm_targetgrad_v1_warmstart3073_s3072",
+      "checkpoint_sha256": "ccabbd329f16b49a3bd013da8f05ebc3efe89fcae3b1f09c2f30ddce749d8132",
+      "source_ref": "195d3d1dc8ba6fd2da579ef7b4ed60f36abe0488",
+      "initialization_sha256": "8227ebb275f1a7ce0348b863b87b5c1fc534068eced1e352c060738d3c96dc04",
+      "dataset_manifest_sha256": "b73d0fb88089a8d792a31e440e67841c1d7b623c7277b4b5e6dca0b165c3403d",
+      "dataset_member_list_sha256": "be1d64820504b877292da2eca9229b357fca162fd583cb2d1ca4ab64b05ff55e",
+      "training_seed": 3072,
+      "epochs": 10,
+      "global_steps": 34830,
+      "observed_worker_runs": 8,
+      "cloud_icl": {
+        "development_pairs": 256,
+        "main_percent": 74.21875,
+        "response_nre": 0.2597903682398485
+      },
+      "cem": {
+        "mean_success_percent": 71.66666666666667,
+        "success_percent_by_seed": {
+          "42": 76.0,
+          "43": 64.0,
+          "44": 68.0,
+          "45": 74.0,
+          "46": 76.0,
+          "47": 72.0
+        },
+        "episodes_per_seed": 50
+      }
+    },
+    "motion_damping/stopgrad": {
+      "run_name": "motion_damping_pldm_targetgrad_v1_warmstart3073_target_stopgrad_s3072",
+      "checkpoint_sha256": "199b90631bc1d8a3d2dc016c0e8d3b687c8cf0b62a8d7e5b8184b1e6f6c4ac20",
+      "source_ref": "ba8379e78304e8fd16ad363f417222796f124bee",
+      "initialization_sha256": "8227ebb275f1a7ce0348b863b87b5c1fc534068eced1e352c060738d3c96dc04",
+      "dataset_manifest_sha256": "b73d0fb88089a8d792a31e440e67841c1d7b623c7277b4b5e6dca0b165c3403d",
+      "dataset_member_list_sha256": "be1d64820504b877292da2eca9229b357fca162fd583cb2d1ca4ab64b05ff55e",
+      "training_seed": 3072,
+      "epochs": 10,
+      "global_steps": 34830,
+      "observed_worker_runs": 8,
+      "cloud_icl": {
+        "development_pairs": 256,
+        "main_percent": 58.984375,
+        "response_nre": 0.7549402932273666
+      },
+      "cem": {
+        "mean_success_percent": 71.33333333333333,
+        "success_percent_by_seed": {
+          "42": 84.0,
+          "43": 66.0,
+          "44": 66.0,
+          "45": 72.0,
+          "46": 68.0,
+          "47": 72.0
+        },
+        "episodes_per_seed": 50
+      }
+    }
+  }
+}
