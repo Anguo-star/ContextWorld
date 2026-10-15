@@ -373,13 +373,11 @@ LeWM / PLDM 在八项任务上的 T2 / T3 使用相同任务数据、混合比�
 
 **多步诊断补充了判别表看不到的信息。** Speed 插值中，LeWM 的 T0 / T1 / T3 完整误差比分别为 1.498 / 0.363 / 0.144，PLDM 为 3.377 / 0.520 / 0.302。对 DINO-WM，同一冻结视觉表示下，Strength 的 T0→T1 为 3.300→1.996，Door 为 4.233→1.329：自身表示中的误差减小，但仍高于条件均值参照。LeWM / PLDM 的跨方案比较还包含表示变化，不能直接换算为物理误差改善。
 
-**历史信息可读，不等于已被预测器充分利用。** [PLDM 的 Development 对照](ICL_Metric_Study.md#native-policy-contrast)显示，冻结 Encoder 后的阻尼模型仍能由辅助读出器识别历史规律（96.3%），但自身响应 NRE 为 0.882；联合训练的响应 NRE 为 0.221。因此，弱响应不能直接归因为历史表示完全没有规律信息。摩擦则在冻结训练后同时保留了较高的历史可读性和较强响应。[LeWM 四任务对照](ICL_Metric_Study.md#matched-encoder-contrast)也观察到训练策略的任务差异。上述诊断限定于各模型自身表示；它们同时涉及表示与优化轨迹变化，尚不能指定单一模块为根因。
+**已有干预支持任务差异，尚未得到共同根因。** [同初始化的冻结对照](ICL_Metric_Study.md#matched-encoder-contrast)对 Friction 和 Mass／Damping 的作用方向不同。[PLDM 完整训练](ICL_Metric_Study.md#pldm-target-gradient-protocol)进一步显示，停止目标端预测梯度未恢复 Friction 的条件响应，并损害 Damping，未能复现 Friction 的冻结收益。辅助读出能识别历史规律也不保证原生预测准确；[跨任务证据表](ICL_Metric_Study.md#root-cause-evidence-synthesis)统一列出扩量、容量、初始化、冻结和损失干预各自支持的判断与边界。
 
-**单纯加强响应损失尚未解决预测问题。** 在相同 PLDM T3 表示内、固定 256 次预测器更新的[受控对照](ICL_Metric_Study.md#pldm-fixed-representation-intervention)中，响应加权降低了摩擦与阻尼的训练误差，但 Development 收益有限：阻尼响应 NRE 相对普通视觉 MSE 对照由 0.885 降至 0.862，摩擦由 0.596 降至 0.590（差值区间包含零）。两项完整预测误差均上升。该短干预不能代替完整训练，也没有定位到数据、表示或容量中的单一根因。
+**弱响应并不全是过拟合。** [训练检查点比较](ICL_Metric_Study.md#native-epoch-checkpoints)既有训练查询本身缺少响应的情况，也有后期 Development 退化的情况。[短程响应损失加权](ICL_Metric_Study.md#pldm-fixed-representation-intervention)还可能改善部分响应却增加完整误差，不能用单一误差或学习曲线给所有弱任务同一个解释。
 
-**后期泛化退化与训练查询上的响应不足同时存在。** [现存第 5／10 epoch 检查点对照](ICL_Metric_Study.md#native-epoch-checkpoints)中，PLDM 摩擦联合训练的训练／Development 响应 NRE 始终接近 1；冻结训练则同步改善。阻尼冻结训练也继续改善，但第 10 epoch 训练 NRE 仍为 0.867，说明不只是未见样本上的问题。已有 Strength 联合训练则呈现后期 Development 退化。因而不能将所有弱任务统一归因为过拟合、数据不足或训练不足。
-
-**固定目标空间的补充对照已观察到真实学习收益。** 在 LeWM 的 Friction 与 Mass 中，固定原环境模型的 Encoder 和目标 projector 后继续混合训练，Development 一步响应 NRE 分别由 1.004／0.980 降至 0.589／0.478，匹配历史收益同时增加。完整 E/B 仍为 2.818／2.531。固定终点的 Public Test 响应 NRE 为 0.547／0.476，呈现同方向改善，但完整 E/B 仍为 2.742／2.664；条件响应改善尚不等于完整未来预测准确。这是第 5 个物理步的机制对照，不能替代多步或规划成绩，详见[固定表示结果](ICL_Metric_Study.md#fixed-target-training-results)。
+**固定目标空间下可以学到可迁移响应。** LeWM 的 Friction、Mass 固定原环境 Encoder 和目标 projector 后混合训练，预定终点的 Public Test 响应 NRE 从 0.998／0.978 降至 0.547／0.476，与 Development 的改善方向一致。完整 E/B 仍为 2.742／2.664，因此支持条件响应改善，尚不支持完整未来已预测准确。该对照只测第 5 个物理步，详见[固定表示结果](ICL_Metric_Study.md#fixed-target-training-results)。
 
 ### 5.4 训练数据规模对照
 
@@ -425,7 +423,7 @@ LeWM / PLDM 在八项任务上的 T2 / T3 使用相同任务数据、混合比�
 
 ### 5.7 评分适用范围
 
-任务主指标比较对应判别问题；NRE 与 E/B 补充响应和完整误差，History 描述历史胜率。各自的定义见 §4，跨模型、分布和归因边界集中见 §9。指标验证及物理读出实验独立维护在 [ICL 评测指标研究](ICL_Metric_Study.md)，不直接改写冻结成绩。
+任务主指标比较对应判别问题；NRE 与 E/B 补充响应和完整误差，History 描述历史胜率。各自的定义见 §4，跨模型、分布和归因边界集中见 §9。评分验证、训练机制及物理读出实验独立维护在 [ICL 研究报告](ICL_Metric_Study.md)，不直接改写冻结成绩。
 
 ## 6. 任务说明
 
@@ -542,4 +540,4 @@ python -m contextworld.benchmarks.external_model_cli \
 
 ## 11. 后续研究
 
-后续根因分析以可比任务中的能力差异为入口，分别检验数据覆盖、表示、训练目标和递推过程。[研究文档](ICL_Metric_Study.md#root-cause-entry)维护相关对照与机制证据，本报告只维护任务、协议、结果及其解释边界。
+根因研究以可比任务中的能力差异为入口，区分首步条件学习与后续递推。已有证据不支持把数据量、模型容量、Encoder 冻结或目标端梯度中的某一项视为九任务的共同解释。[研究报告的证据总表](ICL_Metric_Study.md#root-cause-evidence-synthesis)汇总已完成干预及尚未区分的因素；本报告维护任务、协议、成绩与已验证现象，不将候选机制写成确定根因。

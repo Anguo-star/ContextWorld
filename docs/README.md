@@ -13,11 +13,13 @@
 
 九项任务按隐藏动力学类型组织。主表只列各任务的原协议主指标和训练重复数；附录分别列出匹配历史胜率、响应 NRE、多步完整误差比 E/B 与原环境 CEM。正确／错误历史对照用于解释历史作用，不将辨别、预测与规划混成一个总分。
 
-Public Test 任务成绩与 Development 对照见[九任务总表](ContextWorld_ICL_Benchmark.md#training-comparison)。补充多步评测覆盖九任务主分布的 2,436 个 Development 场景；Speed 限于未见速度插值；这套扩展动作的多步诊断尚未评测 Test。相同配置的全部可用训练重复参与汇总，[JSON](research/data/multistep_prediction_coverage_v2.json) 与 [CSV](research/data/multistep_prediction_coverage_v2.csv) 提供逐次与汇总结果。公开汇总可检查，但数据面板与权重尚无稳定下载 revision，外部端到端复现尚不可用。指标计算、正反例、物理校准和规划诊断见[ICL 评测指标研究](ICL_Metric_Study.md)。
+Public Test 任务成绩与 Development 对照见[九任务总表](ContextWorld_ICL_Benchmark.md#training-comparison)。补充多步评测覆盖九任务主分布的 2,436 个 Development 场景；Speed 限于未见速度插值；这套扩展动作的多步诊断尚未评测 Test。相同配置的全部可用训练重复参与汇总，[JSON](research/data/multistep_prediction_coverage_v2.json) 与 [CSV](research/data/multistep_prediction_coverage_v2.csv) 提供逐次与汇总结果。公开汇总可检查，但数据面板与权重尚无稳定下载 revision，外部端到端复现尚不可用。指标计算、正反例、物理校准和规划诊断见[ICL 评分验证与训练机制研究](ICL_Metric_Study.md)。
 
-## 指标研究
+<a id="指标研究"></a>
 
-[ICL 评测指标研究](ICL_Metric_Study.md) 集中维护计算方式的研究问题、验证证据和局限；按“验证评分 → 统一重评与根因分析 → 更新 benchmark 报告”的顺序推进。候选公式与探索结论不写入主报告作为正式协议。
+## 评分验证与训练机制
+
+[ICL 研究报告](ICL_Metric_Study.md) 维护评分验证、训练干预和机制解释的边界。[跨任务证据表](ICL_Metric_Study.md#root-cause-evidence-synthesis)综合已有数据扩量、模型容量、初始化与冻结、训练目标对照；九任务结果和具体实验由表内链接展开。主报告只纳入已验证现象，候选公式不作为正式协议，未证实的机制不作为根因结论。
 
 ## 任务导航
 
