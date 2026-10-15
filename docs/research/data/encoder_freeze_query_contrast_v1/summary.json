@@ -1,0 +1,336 @@
+{
+  "schema": "contextworld.encoder_freeze_query_contrast.v1",
+  "source_summary": {
+    "path": "docs/research/data/native_epoch_checkpoints_v1/summary.csv",
+    "sha256": "f8d51909df97b827036b37a99bdf975814752da91df9145025294aa6ac57062a"
+  },
+  "source_rule": "For each source and arm, native source NRE = sum(R)/sum(B) across its query rows; compare T3 with T2, preserving Damping forward/reverse mirrors as one source.",
+  "ratio_rule": "Each query ratio is R/B in its own checkpoint target space. Aggregate NRE is sum(R)/sum(B); query mean and median are unweighted.",
+  "scope": "Existing PLDM training-source and Development endpoint caches only; no new model inference, training, or bootstrap.",
+  "rows": [
+    {
+      "task": "contact_friction",
+      "epoch": 5,
+      "split": "training",
+      "queries": 512,
+      "sources": 512,
+      "arms": {
+        "joint": {
+          "checkpoint_sha256": "ee5609245bb69fe2f8da1a218116bb581cd8d27db737c2a2ed012d75cdef4b01",
+          "npz": {
+            "path": "docs/research/data/native_epoch_checkpoints_v1/sources/epoch5/contact_friction/pldm/joint/training_query_stats.npz",
+            "sha256": "7a9326ad5cf058236038db0e5d546105d7f0e0af2767820e9929e21322d9c7ed"
+          },
+          "aggregate_nre": 1.0086650415436544,
+          "query_mean_ratio": 1.0087096512683411,
+          "query_median_ratio": 0.9992642390577917
+        },
+        "frozen": {
+          "checkpoint_sha256": "e951e60f663dd2de1d69598e004a09854eea9d7106a85996946cafc3c2da947c",
+          "npz": {
+            "path": "docs/research/data/native_epoch_checkpoints_v1/sources/epoch5/contact_friction/pldm/frozen/training_query_stats.npz",
+            "sha256": "9fe7705f2fd3f07526d2ceeccd32fcbd17a183478f74c01eced509f386d94bc7"
+          },
+          "aggregate_nre": 0.6741274515771735,
+          "query_mean_ratio": 0.7259981385388343,
+          "query_median_ratio": 0.724171917410654
+        }
+      },
+      "t3_lower_sources": 464,
+      "t3_higher_sources": 48,
+      "tied_sources": 0,
+      "t3_lower_source_percent": 90.625
+    },
+    {
+      "task": "contact_friction",
+      "epoch": 5,
+      "split": "development",
+      "queries": 256,
+      "sources": 256,
+      "arms": {
+        "joint": {
+          "checkpoint_sha256": "ee5609245bb69fe2f8da1a218116bb581cd8d27db737c2a2ed012d75cdef4b01",
+          "npz": {
+            "path": "docs/research/data/native_epoch_checkpoints_v1/sources/epoch5/contact_friction/pldm/joint/development_query_stats.npz",
+            "sha256": "4c7061ababb12953be27435da22094306fc71ddb9dd267fc8c525c5146a775f9"
+          },
+          "aggregate_nre": 0.972402010529442,
+          "query_mean_ratio": 0.9979448271551268,
+          "query_median_ratio": 0.9969406010676584
+        },
+        "frozen": {
+          "checkpoint_sha256": "e951e60f663dd2de1d69598e004a09854eea9d7106a85996946cafc3c2da947c",
+          "npz": {
+            "path": "docs/research/data/native_epoch_checkpoints_v1/sources/epoch5/contact_friction/pldm/frozen/development_query_stats.npz",
+            "sha256": "af5eba94569c91e2badda42f105e464654eda92ed28ddc9f4b8cb5717810aba7"
+          },
+          "aggregate_nre": 0.6923010318072735,
+          "query_mean_ratio": 0.7394041197533848,
+          "query_median_ratio": 0.7240274353270497
+        }
+      },
+      "t3_lower_sources": 228,
+      "t3_higher_sources": 28,
+      "tied_sources": 0,
+      "t3_lower_source_percent": 89.0625
+    },
+    {
+      "task": "contact_friction",
+      "epoch": 10,
+      "split": "training",
+      "queries": 512,
+      "sources": 512,
+      "arms": {
+        "joint": {
+          "checkpoint_sha256": "49d95172e823ee185f6da1adaa5b294ca9bb1b7a711669761234d4cff5e2d2c1",
+          "npz": {
+            "path": "docs/research/data/native_epoch_checkpoints_v1/sources/epoch10/contact_friction/pldm/joint/training_query_stats.npz",
+            "sha256": "3b883e7f8addeef2937d58920d1b3db93c9528353e327cc9e609c6923d6a2cb0"
+          },
+          "aggregate_nre": 1.01131745549885,
+          "query_mean_ratio": 1.0046845308280097,
+          "query_median_ratio": 1.0022900712315
+        },
+        "frozen": {
+          "checkpoint_sha256": "9a9ee650ba7fd16ecaf9b4b04f94cc84e97d01fbaa94ac9c1d5008bd4585bfb4",
+          "npz": {
+            "path": "docs/research/data/native_epoch_checkpoints_v1/sources/epoch10/contact_friction/pldm/frozen/training_query_stats.npz",
+            "sha256": "55b155bf0398c7f609f433da5bec188c70c2452ff7355a50a82d8ccf09247362"
+          },
+          "aggregate_nre": 0.5871894851835535,
+          "query_mean_ratio": 0.6478971668711523,
+          "query_median_ratio": 0.6027004521507631
+        }
+      },
+      "t3_lower_sources": 474,
+      "t3_higher_sources": 38,
+      "tied_sources": 0,
+      "t3_lower_source_percent": 92.578125
+    },
+    {
+      "task": "contact_friction",
+      "epoch": 10,
+      "split": "development",
+      "queries": 256,
+      "sources": 256,
+      "arms": {
+        "joint": {
+          "checkpoint_sha256": "49d95172e823ee185f6da1adaa5b294ca9bb1b7a711669761234d4cff5e2d2c1",
+          "npz": {
+            "path": "docs/research/data/native_epoch_checkpoints_v1/sources/epoch10/contact_friction/pldm/joint/development_query_stats.npz",
+            "sha256": "0a6e74f80b9e7a3af0164f116f006cc4793666dd74e49148fe81c2234d6ebc37"
+          },
+          "aggregate_nre": 1.0041518842565045,
+          "query_mean_ratio": 1.007807395169787,
+          "query_median_ratio": 1.0021637159965913,
+          "top_two_query_ratios": [
+            {
+              "query_id": "pcf-loader-validation-000274",
+              "ratio": 1.788233433271511,
+              "B": 0.33996922479476677,
+              "contribution_to_query_mean": 0.00698528684871684
+            },
+            {
+              "query_id": "pcf-loader-validation-000107",
+              "ratio": 1.2524528906089665,
+              "B": 0.6211829910226329,
+              "contribution_to_query_mean": 0.004892394103941275
+            }
+          ],
+          "top_two_fraction_of_query_mean": 0.011785665603949119
+        },
+        "frozen": {
+          "checkpoint_sha256": "9a9ee650ba7fd16ecaf9b4b04f94cc84e97d01fbaa94ac9c1d5008bd4585bfb4",
+          "npz": {
+            "path": "docs/research/data/native_epoch_checkpoints_v1/sources/epoch10/contact_friction/pldm/frozen/development_query_stats.npz",
+            "sha256": "a116d39b3a7a55beb62dff3adbc6f9a5ff6c2115c5a7e079e76d7c0916ea2bcf"
+          },
+          "aggregate_nre": 0.6038420246276801,
+          "query_mean_ratio": 0.6558831636524404,
+          "query_median_ratio": 0.6226480955543026,
+          "top_two_query_ratios": [
+            {
+              "query_id": "pcf-loader-validation-000329",
+              "ratio": 2.6081743829459487,
+              "B": 0.4780256638433875,
+              "contribution_to_query_mean": 0.010188181183382612
+            },
+            {
+              "query_id": "pcf-loader-validation-000045",
+              "ratio": 1.6482421671712768,
+              "B": 1.0491381192345712,
+              "contribution_to_query_mean": 0.0064384459655128
+            }
+          ],
+          "top_two_fraction_of_query_mean": 0.025349983152953812
+        }
+      },
+      "t3_lower_sources": 236,
+      "t3_higher_sources": 20,
+      "tied_sources": 0,
+      "t3_lower_source_percent": 92.1875
+    },
+    {
+      "task": "motion_damping",
+      "epoch": 5,
+      "split": "training",
+      "queries": 512,
+      "sources": 256,
+      "arms": {
+        "joint": {
+          "checkpoint_sha256": "995957d8b969f72fdb59da8f73fdf7388f010380f3149de7b9e53c0b59709dfe",
+          "npz": {
+            "path": "docs/research/data/native_epoch_checkpoints_v1/sources/epoch5/motion_damping/pldm/joint/training_query_stats.npz",
+            "sha256": "82052748f40f74fa0d2b6d3fcf5dcff0668a41e161b65db5dbacc15f61f05181"
+          },
+          "aggregate_nre": 0.23633140409769457,
+          "query_mean_ratio": 2.864307352742191,
+          "query_median_ratio": 0.1524137969866699
+        },
+        "frozen": {
+          "checkpoint_sha256": "46effc85e0cd261efe743df0d2a7c6cf9070685aaa9ef7b492d02254b84ec1ef",
+          "npz": {
+            "path": "docs/research/data/native_epoch_checkpoints_v1/sources/epoch5/motion_damping/pldm/frozen/training_query_stats.npz",
+            "sha256": "8c61a9f21a8d5bc2b739b5601f7f781447d19e5467a12ebb8ce35a7f253051f5"
+          },
+          "aggregate_nre": 0.9399091008417445,
+          "query_mean_ratio": 0.9734815198859289,
+          "query_median_ratio": 0.953877156509567
+        }
+      },
+      "t3_lower_sources": 11,
+      "t3_higher_sources": 245,
+      "tied_sources": 0,
+      "t3_lower_source_percent": 4.296875
+    },
+    {
+      "task": "motion_damping",
+      "epoch": 5,
+      "split": "development",
+      "queries": 256,
+      "sources": 128,
+      "arms": {
+        "joint": {
+          "checkpoint_sha256": "995957d8b969f72fdb59da8f73fdf7388f010380f3149de7b9e53c0b59709dfe",
+          "npz": {
+            "path": "docs/research/data/native_epoch_checkpoints_v1/sources/epoch5/motion_damping/pldm/joint/development_query_stats.npz",
+            "sha256": "b52d5a96e924fc5dde13ef57b2964ac19dc718accca0159abaeff78b8e781666"
+          },
+          "aggregate_nre": 0.2612799559801786,
+          "query_mean_ratio": 0.814086647157231,
+          "query_median_ratio": 0.1885330594774448
+        },
+        "frozen": {
+          "checkpoint_sha256": "46effc85e0cd261efe743df0d2a7c6cf9070685aaa9ef7b492d02254b84ec1ef",
+          "npz": {
+            "path": "docs/research/data/native_epoch_checkpoints_v1/sources/epoch5/motion_damping/pldm/frozen/development_query_stats.npz",
+            "sha256": "3c3b33e0efb21fab7098cf63549fbcecdda2cf977bd3d6c81cbec4a5b6112ee7"
+          },
+          "aggregate_nre": 0.9587507942301463,
+          "query_mean_ratio": 0.9924846961423769,
+          "query_median_ratio": 0.9413109355720314
+        }
+      },
+      "t3_lower_sources": 9,
+      "t3_higher_sources": 119,
+      "tied_sources": 0,
+      "t3_lower_source_percent": 7.03125
+    },
+    {
+      "task": "motion_damping",
+      "epoch": 10,
+      "split": "training",
+      "queries": 512,
+      "sources": 256,
+      "arms": {
+        "joint": {
+          "checkpoint_sha256": "2f71a802a3d7bacf305c7e8257c2f76b526ab04ab2676d7ffe0ee6dbe94bcb66",
+          "npz": {
+            "path": "docs/research/data/native_epoch_checkpoints_v1/sources/epoch10/motion_damping/pldm/joint/training_query_stats.npz",
+            "sha256": "61583d947763bb345266d76829101a659bc897223c833942068a96b55b74357a"
+          },
+          "aggregate_nre": 0.1969547715181752,
+          "query_mean_ratio": 2.0976940718740646,
+          "query_median_ratio": 0.11726378621287631
+        },
+        "frozen": {
+          "checkpoint_sha256": "58229053b8b49e1e652ffcb172e33e53373411727c378c0a4cc745ad73cb99a6",
+          "npz": {
+            "path": "docs/research/data/native_epoch_checkpoints_v1/sources/epoch10/motion_damping/pldm/frozen/training_query_stats.npz",
+            "sha256": "c0f7d7aff7789e102fcffaba659cd31fc09121478d426519fc518d3e4c84fd76"
+          },
+          "aggregate_nre": 0.8672062010913809,
+          "query_mean_ratio": 0.8959977171793008,
+          "query_median_ratio": 0.865475698292286
+        }
+      },
+      "t3_lower_sources": 15,
+      "t3_higher_sources": 241,
+      "tied_sources": 0,
+      "t3_lower_source_percent": 5.859375
+    },
+    {
+      "task": "motion_damping",
+      "epoch": 10,
+      "split": "development",
+      "queries": 256,
+      "sources": 128,
+      "arms": {
+        "joint": {
+          "checkpoint_sha256": "2f71a802a3d7bacf305c7e8257c2f76b526ab04ab2676d7ffe0ee6dbe94bcb66",
+          "npz": {
+            "path": "docs/research/data/native_epoch_checkpoints_v1/sources/epoch10/motion_damping/pldm/joint/development_query_stats.npz",
+            "sha256": "9aaa447c9a8d9f5ae5edf3b830f41f4544a292a7510d216bf603a47796861502"
+          },
+          "aggregate_nre": 0.22128386746306516,
+          "query_mean_ratio": 1.0630918171018662,
+          "query_median_ratio": 0.14397039387167265,
+          "top_two_query_ratios": [
+            {
+              "query_id": "pmd-loader-validation-000122-forward",
+              "ratio": 129.46726752388344,
+              "B": 0.05075281361665646,
+              "contribution_to_query_mean": 0.5057315137651697
+            },
+            {
+              "query_id": "pmd-loader-validation-000148-forward",
+              "ratio": 41.88517836128268,
+              "B": 0.05281709426243722,
+              "contribution_to_query_mean": 0.16361397797376045
+            }
+          ],
+          "top_two_fraction_of_query_mean": 0.6296215256022358
+        },
+        "frozen": {
+          "checkpoint_sha256": "58229053b8b49e1e652ffcb172e33e53373411727c378c0a4cc745ad73cb99a6",
+          "npz": {
+            "path": "docs/research/data/native_epoch_checkpoints_v1/sources/epoch10/motion_damping/pldm/frozen/development_query_stats.npz",
+            "sha256": "8bf26dac7201249cae5b88e43ee2227df9f027f8a262d325c939895969f6783f"
+          },
+          "aggregate_nre": 0.8821042205052394,
+          "query_mean_ratio": 0.8997746414094789,
+          "query_median_ratio": 0.8724793457273792,
+          "top_two_query_ratios": [
+            {
+              "query_id": "pmd-loader-validation-000111-reverse",
+              "ratio": 2.940050706286628,
+              "B": 0.15943533426425927,
+              "contribution_to_query_mean": 0.011484573071432141
+            },
+            {
+              "query_id": "pmd-loader-validation-000128-forward",
+              "ratio": 2.496966619513724,
+              "B": 0.4732572067163414,
+              "contribution_to_query_mean": 0.009753775857475484
+            }
+          ],
+          "top_two_fraction_of_query_mean": 0.023604075900203386
+        }
+      },
+      "t3_lower_sources": 6,
+      "t3_higher_sources": 122,
+      "tied_sources": 0,
+      "t3_lower_source_percent": 4.6875
+    }
+  ]
+}

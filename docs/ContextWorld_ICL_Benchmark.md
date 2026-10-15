@@ -373,7 +373,7 @@ LeWM / PLDM 在八项任务上的 T2 / T3 使用相同任务数据、混合比�
 
 **多步诊断补充了判别表看不到的信息。** Speed 插值中，LeWM 的 T0 / T1 / T3 完整误差比分别为 1.498 / 0.363 / 0.144，PLDM 为 3.377 / 0.520 / 0.302。对 DINO-WM，同一冻结视觉表示下，Strength 的 T0→T1 为 3.300→1.996，Door 为 4.233→1.329：自身表示中的误差减小，但仍高于条件均值参照。LeWM / PLDM 的跨方案比较还包含表示变化，不能直接换算为物理误差改善。
 
-**已有干预支持任务差异，尚未得到共同根因。** [同初始化的冻结对照](ICL_Metric_Study.md#matched-encoder-contrast)对 Friction 和 Mass／Damping 的作用方向不同。[PLDM 完整训练](ICL_Metric_Study.md#pldm-target-gradient-protocol)进一步显示，停止目标端预测梯度未恢复 Friction 的条件响应，并损害 Damping，未能复现 Friction 的冻结收益。辅助读出能识别历史规律也不保证原生预测准确；[跨任务证据表](ICL_Metric_Study.md#root-cause-evidence-synthesis)统一列出扩量、容量、初始化、冻结和损失干预各自支持的判断与边界。
+**已有干预支持任务差异，尚未得到共同根因。** [同初始化的冻结对照](ICL_Metric_Study.md#matched-encoder-contrast)对 Friction 和 Mass／Damping 的作用方向不同。 PLDM 的[来源级比较](ICL_Metric_Study.md#pldm-freeze-query-coverage)确认 Friction／Damping 的相反方向覆盖多数来源，且在训练中期已出现。[PLDM 完整训练](ICL_Metric_Study.md#pldm-target-gradient-protocol)进一步显示，停止目标端预测梯度未恢复 Friction 的条件响应，并损害 Damping，未能复现 Friction 的冻结收益。辅助读出能识别历史规律也不保证原生预测准确；[跨任务证据表](ICL_Metric_Study.md#root-cause-evidence-synthesis)统一列出扩量、容量、初始化、冻结和损失干预各自支持的判断与边界。
 
 **弱响应并不全是过拟合。** [训练检查点比较](ICL_Metric_Study.md#native-epoch-checkpoints)既有训练查询本身缺少响应的情况，也有后期 Development 退化的情况。[短程响应损失加权](ICL_Metric_Study.md#pldm-fixed-representation-intervention)还可能改善部分响应却增加完整误差，不能用单一误差或学习曲线给所有弱任务同一个解释。
 
