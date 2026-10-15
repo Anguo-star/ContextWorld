@@ -365,7 +365,8 @@ LeWM / PLDM 在八项任务上的 T2 / T3 使用相同任务数据、混合比�
 | 关键观察 | 代表性对照与评测划分 | 支持的判断 |
 |---|---|---|
 | 同一任务，不同模型获得的能力不同 | **Public Test**：Delay T1 的 LeWM / PLDM / DINO-WM 为 97.70% / 100.00% / 16.65%；Door T1 三者为 99.83%–100.00% | 差异具有任务特异性，不能概括为某个模型全面更强 |
-| 训练方案的收益随任务变化 | **Public Test**：Strength T3 的 LeWM / PLDM 为 97.46% / 98.63%；Damping PLDM T2 / T3 为 79.88% / 54.49% | 原环境初始化与 Encoder 冻结均非通用解法；须逐任务看响应误差 |
+| 训练方案的收益随任务变化 | **Public Test**：PLDM 联合更新→冻结 Encoder，Friction 为 50.00%→73.63%，Damping 为 79.88%→54.49% | 相同初始化下，冻结在两任务上作用相反，不是通用解法 |
+| 训练损失持续下降，条件响应仍不足 | **Training**：PLDM Friction 联合训练第 5–10 轮的总 loss／预测 loss 均值和中位数逐轮下降，均值累计下降约 9.4%／18.0%；第 5／10 轮训练查询 NRE 为 1.009／1.011 | 整体损失改善不足以保证条件响应改善；弱响应已在训练域内出现，不能只归因于测试泛化 |
 | 高判别表现不保证完整预测准确 | **Development**：LeWM / PLDM 的 Strength T3 主指标接近 98%，多步 E/B 为 1.464 / 1.445 | 对原查询选对未来，不等于对扩展动作和较长时域预测准确 |
 | 多步失准不只有一种形式 | **Development**：Strength T3 的真实观测替换明显降低末步误差；DINO-WM Delay T1 的首步误差已经较大 | 递推后失准与首步残差应分别研究，不能给所有失败同一个解释 |
 
@@ -373,9 +374,9 @@ LeWM / PLDM 在八项任务上的 T2 / T3 使用相同任务数据、混合比�
 
 **多步诊断补充了判别表看不到的信息。** Speed 插值中，LeWM 的 T0 / T1 / T3 完整误差比分别为 1.498 / 0.363 / 0.144，PLDM 为 3.377 / 0.520 / 0.302。对 DINO-WM，同一冻结视觉表示下，Strength 的 T0→T1 为 3.300→1.996，Door 为 4.233→1.329：自身表示中的误差减小，但仍高于条件均值参照。LeWM / PLDM 的跨方案比较还包含表示变化，不能直接换算为物理误差改善。
 
-**已有干预支持任务差异，尚未得到共同根因。** [同初始化的冻结对照](ICL_Metric_Study.md#matched-encoder-contrast)对 Friction 和 Mass／Damping 的作用方向不同。 PLDM 的[来源级比较](ICL_Metric_Study.md#pldm-freeze-query-coverage)确认 Friction／Damping 的相反方向覆盖多数来源，且在训练中期已出现。[PLDM 完整训练](ICL_Metric_Study.md#pldm-target-gradient-protocol)进一步显示，停止目标端预测梯度未恢复 Friction 的条件响应，并损害 Damping，未能复现 Friction 的冻结收益。辅助读出能识别历史规律也不保证原生预测准确；[跨任务证据表](ICL_Metric_Study.md#root-cause-evidence-synthesis)统一列出扩量、容量、初始化、冻结和损失干预各自支持的判断与边界。
+**训练域内的弱响应是直接观测，具体训练机制仍有多种解释。** 上表 loss 来自已记录混合训练批次，NRE 来自固定的 512 对训练查询；NRE=1 是零条件响应参照，两者的平均范围不同。这里的结论是整体优化进展没有保证所测条件响应改善。第 10 轮 Friction 的联合／冻结训练 NRE 为 1.011／0.587；Damping 则为 0.197／0.867，独立 Development 的方向一致。完整曲线与波动范围见[损失与能力对照](ICL_Metric_Study.md#training-loss-evidence)。
 
-**部分弱响应已出现在训练查询上，不能只归因于泛化。** [PLDM 检查点比较](ICL_Metric_Study.md#native-epoch-checkpoints)中，摩擦联合训练到第 10 epoch 的训练子集 NRE 仍为 1.011；冻结 Encoder 后为 0.587。阻尼则是联合训练更好，训练子集 NRE 为 0.197，冻结后为 0.867；独立 Development 的方向一致。同一摩擦联合训练在第 5–10 轮的总 loss、预测 loss 均值和中位数逐轮下降，累计降幅约 9.4%／18.0%，训练 NRE 却保持在约 1.01；[原生 loss 对照](ICL_Metric_Study.md#training-loss-evidence)确认总体优化进展不保证条件响应改善。该结果将部分能力不足定位到训练过程，尚不能唯一归因于损失公式、表示或优化器。
+**单项干预尚未成为共同修复。** 停止目标端预测梯度没有恢复 Friction 的条件响应，在 Damping 上也弱于保留梯度的对照；它不能单独解释 Friction 的冻结收益。短预算响应损失加权、数据扩量和模型扩容也未在各自已测范围内统一改善弱项。各项证据与归因边界集中见[研究结论](ICL_Metric_Study.md#root-cause-evidence-synthesis)。
 
 **固定目标空间下可以学到可迁移响应。** LeWM 的 Friction、Mass 固定原环境 Encoder 和目标 projector 后混合训练，预定终点的 Public Test 响应 NRE 从 0.998／0.978 降至 0.547／0.476，与 Development 的改善方向一致。完整 E/B 仍为 2.742／2.664，因此支持条件响应改善，尚不支持完整未来已预测准确。该对照只测第 5 个物理步，详见[固定表示结果](ICL_Metric_Study.md#fixed-target-training-results)。
 
@@ -540,4 +541,6 @@ python -m contextworld.benchmarks.external_model_cli \
 
 ## 11. 研究结论与开放问题
 
-ContextWorld 区分了未来辨别、条件响应、完整预测与决策收益，并揭示部分条件能力不足已发生在训练域内。已有对照支持“当前训练方案不能稳定保证所需条件能力”这一结论；尚不能证明某个损失项或模块是九任务的共同根因。表示学习、优化与数据覆盖的具体作用，以及预测改善何时转化为规划收益，仍是开放问题。[研究报告](ICL_Metric_Study.md#root-cause-evidence-synthesis)集中说明各项干预的证据与归因边界。
+ContextWorld 的九任务对照表明，隐藏动力学适应取决于任务、模型与训练方案，不能用单一的“会／不会 ICL”概括。未来辨别、条件响应、完整预测与决策收益分别报告，使高选择率下仍存在的响应不足和推演误差可被识别。
+
+**核心训练发现是：整体训练损失的改善，不足以保证条件动力学能力的获得。** PLDM Friction 的训练损失持续下降，但训练查询的条件响应仍接近零响应参照；冻结 Encoder 的收益又在 Friction 与 Damping 之间反转。证据支持将部分失败定位到已测试训练过程对条件能力的学习不足，不能仅用测试分布变化解释。这里的“约束不足”是对当前训练效果的解释，不表示预测损失在理论上不能学会正确动力学，也未排除数据覆盖、容量和优化的相互作用。某个损失项或模块的唯一因果作用、通用修复方法，以及预测改善何时转化为规划收益，仍未确定。[研究报告](ICL_Metric_Study.md#root-cause-evidence-synthesis)集中列出支持证据和反例。
