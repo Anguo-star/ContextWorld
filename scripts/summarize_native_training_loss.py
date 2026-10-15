@@ -18,7 +18,7 @@ METRICS = ('fit__loss', 'fit__pred_loss', 'fit__std_loss', 'fit__std_t_loss',
 WEIGHTS = {'fit__pred_loss': 1., 'fit__std_loss': 18., 'fit__std_t_loss': .7,
            'fit__cov_loss': 12., 'fit__temp_align_loss': .2}
 FIELDS = ('run', 'cloud_id', 'cohort', 'task', 'variant', 'metric', 'checkpoint_epoch',
-          'mean', 'median', 'n', 'step_min', 'step_max', 'unmatched_metric_steps')
+          'mean', 'median', 'n', 'step_min', 'step_max', 'unmatched_metric_steps', 'q25', 'q75')
 
 
 def identity(name):
@@ -112,7 +112,9 @@ def make_outputs():
                 vals = [v for _, v in pairs]
                 rows.append(dict(zip(FIELDS, (name, run['cuid'], cohort, task, label, metric, e,
                                               statistics.mean(vals), statistics.median(vals), len(vals),
-                                              pairs[0][0], pairs[-1][0], 0))))
+                                              pairs[0][0], pairs[-1][0], 0,
+                                              statistics.quantiles(vals, n=4, method='inclusive')[0],
+                                              statistics.quantiles(vals, n=4, method='inclusive')[2]))))
         common = set(epoch).intersection(*(set(curves[m]) for m in METRICS))
         residuals = []
         for step in sorted(common):
@@ -147,7 +149,7 @@ def make_outputs():
                              ensure_ascii=False, indent=2) + '\n').encode()
     lines = ['# PLDM 原生训练损失与条件响应', '',
              '损失为该轮已记录训练批次的均值，非整轮全样本均值；NRE 越低越好。'
-             '箭头表示第 5 → 10 轮。训练 NRE 与 Development NRE 来自既有 ICL 评测。'
+             '箭头仅描述第 5 → 10 轮端点变化；趋势判断另看全曲线幅度与波动，不代表显著性检验。训练 NRE 与 Development NRE 来自既有 ICL 评测。'
              '训练前检查点没有对应训练损失。', '',
              '| 对照 | 任务 | 方案 | 总 loss ↓ | 预测 loss ↓ | 训练 NRE ↓ | Development NRE ↓ |',
              '|---|---|---|---:|---:|---:|---:|']
@@ -161,14 +163,78 @@ def make_outputs():
     lines += ['', '来源：本目录 `raw/` 与 `manifest.json`；训练实现 `stable-worldmodel/scripts/train/pldm.py`；'
               'ICL 数据 `native_epoch_checkpoints_v1/summary.csv` 和 `pldm_target_gradient_control_v1/summary.csv`。'
               '仅在六条 loss 曲线的共同 step 上以 bf16 容差核对加权式，不作精确重构或因果解释。', '']
+    trends = []
+    for name in sorted(by_run):
+        for metric in ('fit__loss', 'fit__pred_loss'):
+            series = sorted((r for r in rows if r['run'] == name and r['metric'] == metric
+                             and r['checkpoint_epoch'] >= 5), key=lambda r: r['checkpoint_epoch'])
+            first, last = series[0], series[-1]
+            trends.append({'run': name, 'metric': metric,
+                           'mean_change_percent': 100 * (last['mean'] / first['mean'] - 1),
+                           'median_change_percent': 100 * (last['median'] / first['median'] - 1),
+                           'adjacent_mean_decreases': sum(b['mean'] < a['mean'] for a, b in zip(series, series[1:])),
+                           'adjacent_mean_increases': sum(b['mean'] > a['mean'] for a, b in zip(series, series[1:])),
+                           'adjacent_median_decreases': sum(b['median'] < a['median'] for a, b in zip(series, series[1:])),
+                           'adjacent_median_increases': sum(b['median'] > a['median'] for a, b in zip(series, series[1:]))})
+    trend_csv = io.StringIO(newline='')
+    writer = csv.DictWriter(trend_csv, fieldnames=list(trends[0]), lineterminator='\n')
+    writer.writeheader(); writer.writerows(trends)
     return {'summary.csv': csv_bytes, 'summary.json': json_bytes,
+            'trend_summary.csv': trend_csv.getvalue().encode(),
             'table.md': '\n'.join(lines).encode()}
+
+
+
+def plot_trends(rows):
+    """Show within-run changes on shared scales; bands are batch IQR, not CIs."""
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+    from matplotlib.lines import Line2D
+    names = sorted({r['run'] for r in rows}, key=lambda n: (
+        0 if 'targetgrad' not in n else 1, 0 if n.startswith('contact') else 1,
+        1 if ('frozen' in n or 'stopgrad' in n) else 0))
+    fig, axes = plt.subplots(4, 2, figsize=(11, 11), sharex=True, sharey=True)
+    for ax, name in zip(axes.flat, names):
+        task = 'Friction' if name.startswith('contact') else 'Damping'
+        cohort = 'Encoder control' if 'targetgrad' not in name else 'Target-gradient control'
+        variant = ('frozen' if 'frozen' in name else 'joint') if 'targetgrad' not in name else ('stop-gradient' if 'stopgrad' in name else 'native')
+        for metric, color in [('fit__loss', '#2864b4'), ('fit__pred_loss', '#c15d13')]:
+            series = sorted((r for r in rows if r['run'] == name and r['metric'] == metric
+                             and r['checkpoint_epoch'] >= 5), key=lambda r:r['checkpoint_epoch'])
+            scale = series[0]['mean']
+            x = [r['checkpoint_epoch'] for r in series]
+            ax.fill_between(x, [r['q25']/scale for r in series], [r['q75']/scale for r in series], color=color, alpha=.16)
+            ax.plot(x, [r['mean']/scale for r in series], color=color, linewidth=1.7)
+            ax.plot(x, [r['median']/scale for r in series], color=color, linewidth=1, linestyle='--')
+        ax.axhline(1, color='#777777', linewidth=.7, linestyle=':')
+        ax.set_title(f'{task}: {cohort} / {variant}', fontsize=10)
+        ax.set_ylim(.75, 1.95)
+        ax.set_xticks(range(5, 11))
+        ax.grid(alpha=.18)
+        ax.spines[['top', 'right']].set_visible(False)
+    for ax in axes[-1]:ax.set_xlabel('Completed epoch')
+    for ax in axes[:, 0]:ax.set_ylabel('Loss / epoch-5 mean')
+    fig.legend(handles=[Line2D([0],[0],color='#2864b4',label='Total loss'),
+                        Line2D([0],[0],color='#c15d13',label='Prediction loss'),
+                        Line2D([0],[0],color='black',label='Epoch mean'),
+                        Line2D([0],[0],color='black',linestyle='--',label='Epoch median')],
+               loc='upper center', ncol=4, frameon=False)
+    fig.suptitle('Recorded training batches: magnitude and persistence of late-training changes', y=.955, fontsize=12)
+    fig.text(.5, .01, 'Shading: within-epoch batch IQR, not a confidence interval. Shared axes; no smoothing or interpolation.', ha='center', fontsize=9)
+    fig.tight_layout(rect=[0,.03,1,.93])
+    fig.savefig(DATA / 'loss_trends.svg', metadata={'Date': None})
+    fig.savefig('/tmp/cw-loss-trends.png', dpi=120)
+    plt.close(fig)
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--check', action='store_true', help='validate sources and compare generated files without writing')
+    parser.add_argument('--plot', action='store_true', help='render an optional figure (requires matplotlib)')
     args = parser.parse_args()
+    if args.check and args.plot:
+        parser.error('--check and --plot cannot be combined')
     outputs = make_outputs()
     for name, content in outputs.items():
         path = DATA / name
@@ -177,6 +243,8 @@ def main():
                 raise SystemExit(f'out of date: {path}')
         else:
             path.write_bytes(content)
+    if args.plot:
+        plot_trends(json.loads(outputs['summary.json'])['rows'])
     doc = BASE / 'docs/ICL_Metric_Study.md'
     text = doc.read_text()
     begin = '<!-- BEGIN NATIVE_TRAINING_LOSS -->'
