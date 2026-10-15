@@ -375,7 +375,7 @@ LeWM / PLDM 在八项任务上的 T2 / T3 使用相同任务数据、混合比�
 
 **已有干预支持任务差异，尚未得到共同根因。** [同初始化的冻结对照](ICL_Metric_Study.md#matched-encoder-contrast)对 Friction 和 Mass／Damping 的作用方向不同。 PLDM 的[来源级比较](ICL_Metric_Study.md#pldm-freeze-query-coverage)确认 Friction／Damping 的相反方向覆盖多数来源，且在训练中期已出现。[PLDM 完整训练](ICL_Metric_Study.md#pldm-target-gradient-protocol)进一步显示，停止目标端预测梯度未恢复 Friction 的条件响应，并损害 Damping，未能复现 Friction 的冻结收益。辅助读出能识别历史规律也不保证原生预测准确；[跨任务证据表](ICL_Metric_Study.md#root-cause-evidence-synthesis)统一列出扩量、容量、初始化、冻结和损失干预各自支持的判断与边界。
 
-**部分弱响应已出现在训练查询上，不能只归因于泛化。** [PLDM 检查点比较](ICL_Metric_Study.md#native-epoch-checkpoints)中，摩擦联合训练到第 10 epoch 的训练子集 NRE 仍为 1.011；冻结 Encoder 后为 0.587。阻尼则是联合训练更好，训练子集 NRE 为 0.197，冻结后为 0.867；独立 Development 的方向一致。这将部分能力不足定位到训练过程，但尚不能唯一归因于损失公式、表示或优化器，详见[高层解释与证据边界](ICL_Metric_Study.md#training-objective-interpretation)。
+**部分弱响应已出现在训练查询上，不能只归因于泛化。** [PLDM 检查点比较](ICL_Metric_Study.md#native-epoch-checkpoints)中，摩擦联合训练到第 10 epoch 的训练子集 NRE 仍为 1.011；冻结 Encoder 后为 0.587。阻尼则是联合训练更好，训练子集 NRE 为 0.197，冻结后为 0.867；独立 Development 的方向一致。同一摩擦联合训练在第 5→10 轮的已记录批次总 loss 从 0.487 降至 0.441，预测 loss 从 0.0245 降至 0.0201，训练 NRE 却保持在约 1.01；[原生 loss 对照](ICL_Metric_Study.md#training-loss-evidence)确认总体优化进展不保证条件响应改善。该结果将部分能力不足定位到训练过程，尚不能唯一归因于损失公式、表示或优化器。
 
 **固定目标空间下可以学到可迁移响应。** LeWM 的 Friction、Mass 固定原环境 Encoder 和目标 projector 后混合训练，预定终点的 Public Test 响应 NRE 从 0.998／0.978 降至 0.547／0.476，与 Development 的改善方向一致。完整 E/B 仍为 2.742／2.664，因此支持条件响应改善，尚不支持完整未来已预测准确。该对照只测第 5 个物理步，详见[固定表示结果](ICL_Metric_Study.md#fixed-target-training-results)。
 
