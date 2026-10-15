@@ -19,7 +19,7 @@ Public Test 任务成绩与 Development 对照见[九任务总表](ContextWorld_
 
 ## 评分验证与训练机制
 
-[ICL 研究报告](ICL_Metric_Study.md) 维护评分验证、训练干预和机制解释的边界。[跨任务证据表](ICL_Metric_Study.md#root-cause-evidence-synthesis)综合已有数据扩量、模型容量、初始化与冻结、训练目标对照；九任务结果和具体实验由表内链接展开。主报告只纳入已验证现象，候选公式不作为正式协议，未证实的机制不作为根因结论。
+[ICL 研究报告](ICL_Metric_Study.md) 维护评分验证、训练干预和机制解释的边界。[跨任务结论与证据表](ICL_Metric_Study.md#root-cause-evidence-synthesis)综合数据扩量、模型容量、初始化与冻结、训练目标对照，并区分训练域能力不足的观测与训练目标约束不足的解释；九任务结果和具体实验由表内链接展开。主报告只纳入已验证现象，候选公式不作为正式协议，未证实的机制不作为根因结论。
 
 ## 任务导航
 
