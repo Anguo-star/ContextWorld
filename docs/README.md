@@ -1,11 +1,11 @@
 # ContextWorld 文档导航
 
-**先读 [ContextWorld 主报告](ContextWorld_ICL_Benchmark.md)。** 它说明任务、数据、评分与训练对照；[结果附录](reference/ContextWorld_Expanded_Training_Results.md)保存完整数值，冻结 v3 另见[参考附录](reference/Benchmark_Result_Provenance.md)。
+**先读 [ContextWorld 主报告](ContextWorld_ICL_Benchmark.md)。** 它完整说明任务定义、数据构建、评分、训练对照与高层机制证据；[结果附录](reference/ContextWorld_Expanded_Training_Results.md)保存完整数值，冻结 v3 另见[参考附录](reference/Benchmark_Result_Provenance.md)。
 
 ## 公开使用
 
 1. [项目首页](../README.md)：任务概览、安装和最短运行示例；
-2. [主报告](ContextWorld_ICL_Benchmark.md)：数据、指标、九任务训练对照、评分协议、结果解释与适用边界；[结果附录](reference/ContextWorld_Expanded_Training_Results.md)保存任务明细与补充诊断；
+2. [主报告](ContextWorld_ICL_Benchmark.md)：任务定义、构建流程、评分公式、九任务对照与[高层根因分析](ContextWorld_ICL_Benchmark.md#training-mechanism-findings)；[结果附录](reference/ContextWorld_Expanded_Training_Results.md)保存任务明细与补充诊断；
 3. [数据生成方法](Data_Generation.md)：连续仿真、配对构造、拆分隔离和九项任务的生成来源；
 4. [HF 数据集指南](HF_Dataset_Export.md)：数据包格式与加载方式；稳定公共下载尚未发布；
 5. [外部模型 Adapter 规范](External_Model_Adapter_Contract.md)：接入新模型所需的统一接口；
@@ -19,7 +19,7 @@ Public Test 任务成绩与 Development 对照见[九任务总表](ContextWorld_
 
 ## 评分验证与训练机制
 
-[ICL 研究报告](ICL_Metric_Study.md)说明评分适用范围与训练机制证据。主要发现是：部分模型的整体训练损失持续下降，但训练查询上的条件响应仍不足；冻结编码器等训练选择的作用又随任务改变。[结论与证据表](ICL_Metric_Study.md#root-cause-evidence-synthesis)集中列出数据扩量、模型容量、初始化、冻结与损失干预的支持证据和反例。九任务比较给出问题范围，具体机制不超出直接对照所覆盖的任务和模型；候选评分公式不进入正式协议。
+[主报告的高层根因分析](ContextWorld_ICL_Benchmark.md#training-mechanism-findings)给出理解结论所需的训练对照表；[ICL 研究报告](ICL_Metric_Study.md)提供评分验证、完整曲线与具体干预细节。主要发现是：部分模型的整体训练损失持续下降，但训练查询上的条件响应仍不足；冻结编码器等训练选择的作用又随任务改变。[结论与证据表](ICL_Metric_Study.md#root-cause-evidence-synthesis)集中列出数据扩量、模型容量、初始化、冻结与损失干预的支持证据和反例。九任务比较给出问题范围，具体机制不超出直接对照所覆盖的任务和模型；候选评分公式不进入正式协议。
 
 ## 任务导航
 

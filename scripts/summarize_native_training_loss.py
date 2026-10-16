@@ -160,6 +160,31 @@ def make_outputs():
         a, b = by_run[name][5], by_run[name][10]
         arrow = lambda k: (f'{a[k]:.5f} → {b[k]:.5f}' if k == 'pred_loss' else f'{a[k]:.4f} → {b[k]:.4f}' if k == 'loss' else f'{a[k]:.3f} → {b[k]:.3f}')
         lines.append(f"| {a['cohort']} | { {'contact_friction': '接触摩擦', 'motion_damping': '运动阻尼'}[a['task']] } | {a['variant']} | {arrow('loss')} | {arrow('pred_loss')} | {arrow('train_NRE')} | {arrow('dev_NRE')} |")
+    main_lines = [
+        '| 任务 | 训练方案 | 总 loss 均值变化（%） | 预测 loss 均值变化（%） | 训练 NRE ↓（5→10 轮） | Development NRE ↓（5→10 轮） |',
+        '|---|---|---:|---:|---:|---:|',
+    ]
+    encoder_runs = sorted((name for name in by_run if by_run[name][5]['cohort'] == 'Encoder冻结对照'),
+                          key=lambda name: (0 if name.startswith('contact') else 1,
+                                            1 if by_run[name][5]['variant'].startswith('T3') else 0))
+    if len(encoder_runs) != 4:
+        raise ValueError(f'expected four Encoder control runs, got {len(encoder_runs)}')
+    for name in encoder_runs:
+        a, b = by_run[name][5], by_run[name][10]
+        change = lambda key: f"{100 * (b[key] / a[key] - 1):+.2f}"
+        nre = lambda key: f"{a[key]:.3f} → {b[key]:.3f}"
+        task = {'contact_friction': '接触摩擦', 'motion_damping': '运动阻尼'}[a['task']]
+        main_lines.append(f"| {task} | {a['variant']} | {change('loss')} | {change('pred_loss')} | {nre('train_NRE')} | {nre('dev_NRE')} |")
+    main_lines += [
+        '',
+        'T2：加载原环境权重并联合更新；T3：加载相同权重并冻结 Encoder。'
+        'loss 为各轮已记录训练批次的均值；变化率 =（第 10 轮均值 / 第 5 轮均值 − 1）× 100%，正值表示上升。'
+        'NRE 越低越好，箭头为第 5 → 10 轮端点；四行覆盖接触摩擦和运动阻尼各两种训练方案。',
+        '来源：`docs/research/data/native_training_loss_v1/summary.json`（训练损失）与'
+        '`docs/research/data/native_epoch_checkpoints_v1/summary.csv`（ICL NRE）；'
+        '完整曲线见 `docs/research/data/native_training_loss_v1/loss_trends.svg`，其他对照见同目录 `table.md`。',
+        '',
+    ]
     lines += ['', '来源：本目录 `raw/` 与 `manifest.json`；训练实现 `stable-worldmodel/scripts/train/pldm.py`；'
               'ICL 数据 `native_epoch_checkpoints_v1/summary.csv` 和 `pldm_target_gradient_control_v1/summary.csv`。'
               '仅在六条 loss 曲线的共同 step 上以 bf16 容差核对加权式，不作精确重构或因果解释。', '']
@@ -181,7 +206,8 @@ def make_outputs():
     writer.writeheader(); writer.writerows(trends)
     return {'summary.csv': csv_bytes, 'summary.json': json_bytes,
             'trend_summary.csv': trend_csv.getvalue().encode(),
-            'table.md': '\n'.join(lines).encode()}
+            'table.md': '\n'.join(lines).encode(),
+            'main_table.md': '\n'.join(main_lines).encode()}
 
 
 
@@ -258,7 +284,20 @@ def main():
             raise SystemExit('out of date: native training loss documentation block')
         if not args.check:
             doc.write_text(expected)
-    print('verified 8 runs, 56 source CSVs, 480 metric-epochs, and 16 matched ICL checkpoints' if args.check else 'wrote summary.csv, summary.json, table.md')
+    main_doc = BASE / 'docs/ContextWorld_ICL_Benchmark.md'
+    main_text = main_doc.read_text()
+    main_begin = '<!-- BEGIN NATIVE_TRAINING_LOSS_SUMMARY -->'
+    main_end = '<!-- END NATIVE_TRAINING_LOSS_SUMMARY -->'
+    if main_begin in main_text and main_end in main_text:
+        main_table = outputs['main_table.md'].decode().split('\n\n', 1)[0].rstrip()
+        main_block = main_begin + '\n' + main_table + '\n' + main_end
+        start, stop = main_text.index(main_begin), main_text.index(main_end) + len(main_end)
+        expected = main_text[:start] + main_block + main_text[stop:]
+        if args.check and expected != main_text:
+            raise SystemExit('out of date: native training loss summary documentation block')
+        if not args.check:
+            main_doc.write_text(expected)
+    print('verified 8 runs, 56 source CSVs, 480 metric-epochs, and 16 matched ICL checkpoints' if args.check else 'wrote summary.csv, summary.json, table.md, main_table.md')
 
 
 if __name__ == '__main__':
