@@ -10,30 +10,34 @@ tags:
 viewer: false
 ---
 
-# ContextWorld — expanded training data (release candidate)
+# ContextWorld: visual world-model adaptation to hidden dynamics
 
-**Unpublished preparation draft.** This card describes a proposed nine-task package. Local package validation and the final release revision are pending. It does not replace the frozen ContextWorld v3 reference results.
+ContextWorld evaluates whether a world model can use image and action history to identify hidden dynamics and predict action outcomes without updating its weights. It contains nine tasks across TwoRoom, PushT, Reacher and Cube. Task scores, conditional-response diagnostics, complete prediction errors and planning results are reported separately.
 
-## Dataset description
+## Data and splits
 
-ContextWorld evaluates whether a world model can infer hidden dynamics from observation/action history and use them to predict conditional futures. It separates prediction accuracy, history-conditioned response and planning evaluation.
+| Task | Training coverage |
+|---|---|
+| Action Strength, Contact Friction, Motion Damping, Robot Arm Mass, Portal Exit | 32,768 pairs per task |
+| Cube Gripper Carry | 10,000 pairs from 10,000 distinct source episodes |
+| Speed | 32 speed settings |
+| Action Delay | Delays 0–10 |
+| Door | 96 door positions |
 
-The candidate expands Training data for Action Strength, Contact Friction, Motion Damping, Robot Arm Mass, Cube Gripper Carry and Portal Exit. Speed, Action Delay and Door retain their previous Training data. All Development and Test data are inherited from the frozen sources. Training sampling units differ across tasks; pair counts are not interchangeable with independent source-episode counts.
+Pairs, independent source episodes and parameter settings are different units. The [technical report](https://github.com/Anguo-star/ContextWorld/blob/main/docs/ContextWorld_ICL_Benchmark.md) defines the sampling units, split sizes and pairing constraints.
 
-## Format and use
+Use Training for optimization, Development for method and checkpoint selection, and public Test for final offline reporting. Preserve source grouping and split boundaries. Models receive images and actions only; hidden parameters and simulator states are available to the evaluator, not to the model.
 
-Data remain in native Lance format. `task_registry.json` defines task payloads and evaluation contracts; `manifest.jsonl` records file sizes and SHA256 hashes. Use the ContextWorld loader rather than assuming Hugging Face `datasets.load_dataset` support. Final download and loader commands will be added after the assembled package is validated and a release revision is assigned.
+## Format and loading
 
-Use Training for optimization, Development for model and recipe selection, and Test for final reporting. Preserve grouping and split boundaries. The original-environment CEM evaluation measures planning retention; it does not by itself establish history-conditioned planning improvements.
+Files use native Lance, JSON and NPZ formats. `task_registry.json` identifies task payloads and evaluation contracts; `manifest.jsonl` records file sizes and SHA-256 hashes. Use the ContextWorld loader as described in the [loading guide](https://github.com/Anguo-star/ContextWorld/blob/main/docs/HF_Dataset_Export.md). The package does not provide a Hugging Face `datasets.load_dataset()` script or dataset viewer.
 
-## Available evidence and limitations
+The assembled package has passed local integrity and loading checks. Data download availability, model checkpoints and reproduction instructions are documented in the [dataset guide](https://github.com/Anguo-star/ContextWorld/blob/main/docs/Expanded_Training_Release.md).
 
-The [ContextWorld technical report](https://github.com/Anguo-star/ContextWorld/blob/main/docs/ContextWorld_ICL_Benchmark.md#training-comparison) is the source for reported model results and their interpretation. The package includes a frozen v3 reference result for provenance; that result does not measure models trained on this expanded candidate. No Test model evaluation was performed as part of packaging.
+## Results and scope
 
-Training coverage, representation and initialization differ across the reported studies. The package inventory establishes data identity and loadability, not a causal effect of more Training examples or a new benchmark score.
+The technical report provides task definitions, scoring formulas and model comparisons. Each task is trained separately. High future-selection accuracy does not by itself establish accurate full-trajectory prediction or improved planning. Native latent-space errors are not a shared physical accuracy scale across different encoders. Original-environment CEM measures planning retention, separately from hidden-dynamics adaptation.
 
 ## License and attribution
 
-Synthetic data use CC BY 4.0; code uses its separate MIT license. Preserve `DATA_LICENSE`, `LICENSE` and `NOTICE`. External original-environment datasets and pretrained weights retain their own terms and are not relicensed by this card.
-
-See the ContextWorld repository's release preparation guide and training study for exact source identities, results and outstanding acceptance checks.
+Synthetic data use CC BY 4.0; code uses its separate MIT license. Preserve `DATA_LICENSE`, `LICENSE` and `NOTICE`. Original-environment datasets and pretrained weights are external dependencies with their own terms and are not included or relicensed by this package.

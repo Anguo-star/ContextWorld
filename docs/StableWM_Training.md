@@ -99,21 +99,18 @@ training, or run evaluation.
 |---|---|
 | `CW_DATASET` | optional exact source H5/HDF5 file or `.lance` table; bypasses the automatic benchmark view |
 | `CONTEXTWORLD_DATASET_ROOT` | root containing the four original datasets below `quentinll/` |
-| `CONTEXTWORLD_BENCHMARK_ROOT` | canonical ICL benchmark bundle `ContextWorld-v3-hf`; resolved by the precedence rules below |
+| `CONTEXTWORLD_BENCHMARK_ROOT` | absolute path to the ICL benchmark bundle; set explicitly as shown below |
 | `CW_DATASET_CACHE_ROOT` | Stable-WorldModel download/data cache (`LOCAL_DATASET_DIR`) |
 | `CW_CHECKPOINT_ROOT` | Stable-WorldModel storage root; models are written below `<root>/checkpoints/` |
 | `SPT_CACHE_DIR` | StablePretraining full-state/requeue storage; the launcher sets it equal to `CW_CHECKPOINT_ROOT` |
 | `CW_OUTPUT` | Hydra logs and run files, written below `<output>/<run-name>/` |
 | `HF_HUB_CACHE` | pretrained backbone cache, used by PreJEPA |
 
-Benchmark root resolution: an explicit `CONTEXTWORLD_BENCHMARK_ROOT` (or
-`--benchmark-root`) wins; otherwise the launcher uses
-`<CONTEXTWORLD_DATASET_ROOT>/ContextWorld-v3-hf`. Store the complete data outside
-the code checkout, under the existing `data/world_model` root. Missing configuration
-or an incomplete bundle is an error; neither repository staging nor old
-`ContextWorld-v1` is an automatic fallback. An explicit root may use any directory
-name. Local data and a downloaded immutable HF snapshot use the same setting:
-`CONTEXTWORLD_BENCHMARK_ROOT="$CONTEXTWORLD_DATASET_ROOT/ContextWorld-v3-hf"`.
+Set `CONTEXTWORLD_BENCHMARK_ROOT` (or `--benchmark-root`) explicitly to the complete
+bundle. This takes precedence over the inferred default. Keep the data outside
+the code checkout; the directory name is arbitrary. An incomplete bundle is an error.
+Use the same setting for local data and a downloaded snapshot:
+`CONTEXTWORLD_BENCHMARK_ROOT=/absolute/path/to/ContextWorld-bundle`.
 Both keep the identical native Lance+JSON/NPZ layout, with no conversion. The bundle does not
 replace the original H5 datasets: naive training, original/synthetic
 mixtures and CEM still read them below `CONTEXTWORLD_DATASET_ROOT`, which
@@ -202,14 +199,11 @@ All three supported trainers require `CW_NUM_WORKERS` to be positive: their
 active persistent-worker or prefetch settings are incompatible with zero
 workers in PyTorch.
 
-PreJEPA Action Delay is the only History=7 component. Three independent
-`16-mixed` runs made finite progress and then produced a non-finite loss at
-different epochs and batches. The launcher therefore selects `bf16-mixed` for
-that one family/component pair when no precision is supplied. This is a
-numerical-stability safeguard, not a reported benchmark result; a completed
-rerun is still required. Set `CW_PRECISION` explicitly to override it.
+For PreJEPA Action Delay (History=7), the launcher defaults to `bf16-mixed`
+for numerical stability when no precision is supplied. Set `CW_PRECISION`
+explicitly to override it.
 
-The public `ContextWorld-v3-hf` reader opens Lance data lazily inside
+The ContextWorld dataset reader opens Lance data lazily inside
 each worker and uses Python's `spawn` start method; Lance handles must not be
 inherited through Linux `fork`. Its default is two workers per DDP process.
 Because `CW_NUM_WORKERS` is a per-process value, setting it to 16 on eight
@@ -274,7 +268,7 @@ CW_TASK=action_strength
 CW_FAMILY=lewm
 CW_TRAINING_TRACK=joint_scratch_v1
 CONTEXTWORLD_DATASET_ROOT=/absolute/path/data/world_model
-CONTEXTWORLD_BENCHMARK_ROOT=/absolute/path/data/world_model/ContextWorld-v3-hf
+CONTEXTWORLD_BENCHMARK_ROOT=/absolute/path/data/world_model/ContextWorld-bundle
 CW_CHECKPOINT_ROOT=/absolute/path/checkpoints/lewm-contextworld
 ```
 
@@ -416,8 +410,7 @@ terminal state and prints a per-seed summary. The same evaluation script can
 be invoked later against an existing checkpoint; training does not contain a
 second copy of the evaluation logic.
 
-The suite needs `CONTEXTWORLD_BENCHMARK_ROOT`, the canonical
-`ContextWorld-v3-hf` bundle. Its ICL commands read only the registered
+The suite reads the benchmark bundle selected by `CONTEXTWORLD_BENCHMARK_ROOT`. Its ICL commands read only the registered
 Development payloads from
 that bundle. They never read Public Test or the private `context_world` tree.
 The matching original H5 dataset remains the input for CEM.
@@ -525,7 +518,7 @@ python scripts/run_stablewm_eval.py --suite \
   --family prejepa \
   --original-env tworoom \
   --dataset /absolute/path/to/tworoom.h5 \
-  --benchmark-root /absolute/path/to/ContextWorld-v3-hf \
+  --benchmark-root /absolute/path/to/ContextWorld-bundle \
   --checkpoint /absolute/path/to/checkpoints/run/weights_epoch_10.pt \
   --stablewm-repo /absolute/path/to/stable-worldmodel \
   --training-seed 3072

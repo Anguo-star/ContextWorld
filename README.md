@@ -1,18 +1,10 @@
 # ContextWorld
 
-ContextWorld 评测世界模型能否从最近几步真实交互中识别隐藏动力学，并据此预测未来。模型只接收图像与动作，不读取速度、延迟、质量、接触属性或空间转移规则等隐藏变量，也不更新参数。
+ContextWorld 评测世界模型能否在**不更新权重**的情况下，从近期真实交互的图像与动作中辨认当前隐藏动力学，并预测给定动作的未来。九项任务覆盖连续响应、动作延迟、接触与附着规则、空间转移。模型只接收历史图像、已执行动作和查询动作；隐藏参数、模拟器状态与任务标签不进入模型输入。
 
-预测分在每个参评模型自己的冻结 latent 表示中计算，不要求图像解码器或像素重建。它提供统一的相对预测指标，不是跨模型统一物理单位的准确率。因此，JEPA、LeWM、PLDM、PreJEPA 及其他 latent 世界模型都可接入同一协议。
+**[技术报告](docs/ContextWorld_ICL_Benchmark.md)** 给出数据构建、评测协议和三种模型的九任务训练对照。[Public Test 总表](docs/ContextWorld_ICL_Benchmark.md#training-comparison)报告各任务的协议主指标和训练重复数；[结果附录](docs/reference/ContextWorld_Expanded_Training_Results.md)单列历史作用、条件响应、多步完整预测与原环境规划诊断。各项指标回答不同问题，不合成为一个总分。
 
-## 从这里开始
-
-- **[ContextWorld 统一技术报告](docs/ContextWorld_ICL_Benchmark.md)**：任务、数据版本、评分协议、九任务三模型训练方式对比与主要发现。
-- [直接查看训练对照表](docs/ContextWorld_ICL_Benchmark.md#training-comparison)：按任务横向比较 T0–T3 的原协议主指标与训练重复数；[多步预测和原环境 CEM](docs/reference/ContextWorld_Expanded_Training_Results.md)分别列在结果附录。
-- [文档导航](docs/README.md)：数据生成、模型接入、训练和结果复现。
-
-## 九项任务
-
-任务按模型需要识别的隐藏动力学类型组织。环境只是任务的物理载体，不构成类别权重。
+## 任务与评分
 
 | 能力类型 | 任务 | 环境 | 历史长度 | 模型需要判断什么 |
 |---|---|---|---:|---|
@@ -26,134 +18,37 @@ ContextWorld 评测世界模型能否从最近几步真实交互中识别隐藏�
 | 隐藏结构转移 | 门通行规则 | TwoRoom | 3 帧 | 外观相同的门能否通过 |
 | 隐藏结构转移 | 传送门出口位置 | TwoRoom | 3 帧 | 进入同一入口后会从哪里离开 |
 
-九项任务分别报告多步完整预测分。原环境 CEM 与历史诊断另列，用于区分预测质量与规划表现。
+历史长度包含当前帧。参评模型输出未来 latent，评分器用该模型的冻结目标编码器编码真实未来；各模型可以使用不同的表示空间。任务主指标衡量[任务协议查询](docs/ContextWorld_ICL_Benchmark.md#task-scoring)中的未来辨别，速度、延迟和门通行规则有各自的判断方式与随机参照。多步完整误差比 E/B 是 Development 上的补充预测诊断，不是九任务 Public Test 主分，也不能直接视为物理准确率或规划成功率。
 
 ## 数据与评测
 
-`ContextWorld-v3-hf` 是面向 Hugging Face 的发布候选目录，包含九项任务的 Training、
-Development 和 Test 数据、任务注册表、数据卡与文件完整性清单。它组合 v3 已冻结的
-`ContextWorld-v1` Training/Development 与 `ContextWorld-v1-full` Test，保留原始数据字节。
-稳定的公共下载地址与 revision 尚未发布。
+数据来自模拟器中的连续交互轨迹，每项任务改变一个隐藏动力学因素，并保存历史、查询动作和真实未来。[数据生成方法](docs/Data_Generation.md)说明配对构造与划分隔离。[HF 数据集指南](docs/HF_Dataset_Export.md)说明本地数据包格式与加载方式。
 
-这些样本来自环境模拟器的连续真实轨迹：生成器改变待识别的隐藏规律，连续执行历史与
-查询动作，并保存模拟器产生的真实未来。图像不是由生成式模型合成或编辑的。配对规则、
-拆分隔离和九项任务的生成入口见[数据生成方法](docs/Data_Generation.md)。
+Training 用于训练；Development 用于检查接口、选择方法、训练预算与检查点；Public Test 用于方法固定后的最终离线报告。Test 采用公开离线评测，没有托管提交服务。当前[九任务 Public Test 结果](docs/ContextWorld_ICL_Benchmark.md#training-comparison)使用事前固定的检查点与评分协议，报告全部预定组合，包括低分结果。扩展动作的多步诊断只覆盖九任务主分布的 2,436 个 Development 源场景，其中速度限于未见速度插值。该诊断的结果在 Development 上报告。
 
-Development 用于实现检查、模型开发、训练配方选择和消融；Test 只用于选定方法后的最终
-报告，不应反馈到调参或模型选择。本地候选包已组装两者，可用冻结评分器离线复算；但候选
-包尚无稳定公开下载地址或固定 revision，因此外部读者目前不能从稳定公开工件端到端复现。
-当前不提供托管提交服务，离线 Test 结果也不是服务器集中验证的排行榜条目。
+训练对照使用 T0–T3：T0 仅用原环境数据，T1 从模型默认初始化直接混合原环境与任务 ICL 数据，T2 从 T0 权重继续混合训练并更新 Encoder，T3 从同一 T0 权重继续混合训练但冻结 Encoder。DINO-WM 的预训练视觉 Encoder 始终冻结，因此没有 T2。各任务分别训练检查点；总表一行不代表同一模型同时掌握九项任务。配方与初始化细节见[技术报告的训练方案](docs/ContextWorld_ICL_Benchmark.md#training-schemes)。
 
-主报告用九项任务各自的原协议主指标展示三种模型与训练方案；[结果附录](docs/reference/ContextWorld_Expanded_Training_Results.md)保留训练重复、响应、多步预测及原环境 CEM 的完整数值。多步诊断覆盖九任务主分布的 2,436 个 Development 场景；Speed 限于未见速度插值，尚未评测 Test。预测层面的历史利用不等于动作选择收益；[指标研究](docs/ICL_Metric_Study.md)单独记录物理读出和决策诊断。
+## 本地接入
 
-## 快速开始
-
-以下命令使用本地 `ContextWorld-v3-hf` 候选包，不会自动下载数据或模型检查点。
+安装与评测需要本地数据包和模型检查点；软件依赖的安装不会下载这些制品。下例是 Development 任务协议评测入口，完整的数组形状、历史对齐和外部模型实现见[Adapter 规范](docs/External_Model_Adapter_Contract.md)。
 
 ```bash
-# Benchmark 配置和通用 Adapter 接口
-pip install -e .
-
-# 数据读取与评分
 pip install -e ".[eval]"
 
-# 内置 LeWM、PLDM 和 PreJEPA 集成
-pip install -e ".[stablewm]"
-
-# 完整数据放在仓库外的原 data 目录；按实际挂载路径设置。
-export CONTEXTWORLD_DATASET_ROOT=/absolute/path/data/world_model
-export CONTEXTWORLD_BENCHMARK_ROOT="$CONTEXTWORLD_DATASET_ROOT/ContextWorld-v3-hf"
-
-contextworld-benchmark info
-
 python -m contextworld.benchmarks.external_model_cli \
-  --benchmark-root "$CONTEXTWORLD_BENCHMARK_ROOT" \
+  --benchmark-root /path/to/ContextWorld-bundle \
   --evaluation-split development \
   --task action_strength \
-  --adapter prejepa \
-  --checkpoint /path/to/model.ckpt \
+  --adapter lewm \
+  --checkpoint /path/to/weights.pt \
   --model-name my-model \
   --output /path/to/development-result.json
-
-# 方法与训练配方固定后，才运行公开 Test：
-python -m contextworld.benchmarks.external_model_cli \
-  --benchmark-root "$CONTEXTWORLD_BENCHMARK_ROOT" \
-  --evaluation-split test \
-  --task action_strength \
-  --adapter prejepa \
-  --checkpoint /path/to/model.ckpt \
-  --model-name my-model \
-  --output /path/to/test-result.json
 ```
 
-这些 Python extras 只安装软件依赖；数据和模型检查点单独分发。
+参评模型实现 `contextworld.benchmarks.adapters.LatentWorldModelAdapter`。方法与检查点在 Development 上确定后，按相同任务协议报告 Test；命令参数和评测范围见[技术报告的接入说明](docs/ContextWorld_ICL_Benchmark.md#7-接入与复现)。
 
-### Public Test 最终报告
+## 结果与发布状态
 
-单个模型的临时评测用上面的 `external_model_cli`；成批、需要留下证据的最终报告用
-`contextworld-public-test-report`，输入一份冻结的检查点清单（JSON，逐单元声明组件、
-检查点、输出路径与 `admission.cleared_development`），按 `plan` → `run` → `verify`
-三步执行：
+[Public Test 汇总](docs/research/data/current_reference_test_v1/overview.md)和[机器可读结果](docs/research/data/current_reference_test_v1/summary.json)已公开，可复算汇总。完整数据、模型权重和逐查询输出尚无稳定公共下载版本，因此外部读者目前无法仅凭公开制品端到端复跑全部实验。各项证据的覆盖范围与限制见[技术报告的发布状态](docs/ContextWorld_ICL_Benchmark.md#8-可复现性与结果报告)。
 
-```bash
-# 事前核对：列出将要执行的单元与跳过原因，不跑任何评测
-contextworld-public-test-report plan --manifest frozen_checkpoints.json
-
-# 执行全部单元的公开 Test 评测，并写出回执（含各文件 sha256）
-contextworld-public-test-report run --manifest frozen_checkpoints.json
-
-# 事后核对：按回执复核产出文件是否仍在且 sha256 一致
-contextworld-public-test-report verify --receipt public_test_report_<report_id>.json
-```
-
-准入闸门：未清过 Development 的单元会被拒绝执行（回执记为 `skipped_not_admitted`），
-公开 Test 只用于最终报告，不参与模型选择或调参。
-
-当前参考使用 `schema_version: 2` 的清单。每个单元的 `admission` 除
-`cleared_development` 外，还须提供 `development_result: {"path": "/absolute/result.json",
-"sha256": "..."}`。入口核对任务、训练种子、检查点和源文件哈希，再按统一门槛重新判定；
-手填通过标志不能绕过检查。旧 v1 清单保留历史语义，不代表已经经过当前参考的准入核验。
-
-### 结果如何组织
-
-[主报告](docs/ContextWorld_ICL_Benchmark.md)区分两类结果：冻结 v3 保留既有数据、评分与三种子参考；较新的训练方式研究报告扩量数据、完整原始初始化和冻结 Encoder 的 Development 结果，并按各配置可用的训练重复汇总。后者不覆盖前者，也不自动成为新的正式 Test 排行榜。[完整明细](docs/reference/ContextWorld_Expanded_Training_Results.md)单独保存。
-
-已有研究显示，固定数据和原始初始化时，冻结 Encoder 可明显改善部分任务，却使另一些任务退步。数据量、模型和表示更新方式需要分别检验；条件预测与原环境规划也可能不同步。具体分数、响应幅值、反例和解释边界均在技术报告维护。
-
-```bash
-# 检查冻结参考与当前研究表分别是否和各自数据源一致
-python scripts/render_current_reference_tables.py --check
-python scripts/render_training_comparison.py --check
-```
-
-固定 v3 的验收与复现细节见[参考结果附录](docs/reference/Benchmark_Result_Provenance.md)。新方法与新的训练数据使用独立结果身份；任务定义、评分合同或评测数据变化需建立新版本，不能回写冻结数字。
-
-## 接入其他模型
-
-数据包不限制模型必须属于内置模型族。外部模型只需实现
-`contextworld.benchmarks.adapters.LatentWorldModelAdapter`，把自己的编码器和 latent
-rollout 接口转换为统一输入格式。评分器不要求解码器，也不会提供隐藏模拟器状态。
-
-接口方法、数组形状和运行示例见
-[外部模型 Adapter 规范](docs/External_Model_Adapter_Contract.md)。
-
-## 文档
-
-- [主报告](docs/ContextWorld_ICL_Benchmark.md)：任务、数据、训练对照、发现与报告规则；[结果附录](docs/reference/ContextWorld_Expanded_Training_Results.md)保存完整数值；
-- [数据生成方法](docs/Data_Generation.md)：连续仿真、配对构造、拆分隔离和九项任务的生成来源；
-- [HF 数据集指南](docs/HF_Dataset_Export.md)：v3 发布目录、加载方式和维护者打包流程；
-- [Stable-WorldModel 训练](docs/StableWM_Training.md)：内置参考模型的可复现训练入口；
-- [文档导航](docs/README.md)：公开指南、结果复现附录和历史协议。
-
-`docs/protocols/` 和 `docs/archive/` 保存详细实验协议与历史材料，用于复核已经报告的结果，
-不是运行公开 Training 或 Development 工作流的前置要求。
-
-## 发布状态
-
-历史 v3 研究基线已冻结；对应 HF 发布候选沿用其数据、评分与参考结果。
-扩量训练比较和多步预测方案另行标明版本，尚不作为已发布的新冻结基准。
-正式发布需确定 HF 数据集仓库、上传后固定 revision，并完成从该 revision 下载与加载的
-验证。Test 使用公开离线评测合同；外部独立复现作为单独的证据工作记录。
-
-剩余发布条件见
-[v3 发布需求与验收](docs/ContextWorld_Public_v1_Release_Readiness.md)。
+更多入口见[文档导航](docs/README.md)，包括[训练指南](docs/StableWM_Training.md)与[指标研究](docs/ICL_Metric_Study.md)。
