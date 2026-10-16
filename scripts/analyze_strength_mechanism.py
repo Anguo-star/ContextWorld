@@ -186,7 +186,7 @@ def build(data=DATA):
 
 
 def render(summary):
-    lines = ['| 方案 | 历史规则识别率 Ridge（%，95% CI） | ExtraTrees（%，95% CI） | 原查询响应 NRE ↓ |',
+    lines = ['| 方案 | 历史规则识别率 Ridge（%，95% CI） | ExtraTrees（%，95% CI） | 任务查询响应 NRE ↓ |',
              '|---|---:|---:|---:|']
     def score(value):
         lo,hi=value['source_group_bootstrap']['balanced_accuracy_95ci']

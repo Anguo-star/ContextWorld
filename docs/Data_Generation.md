@@ -4,13 +4,17 @@
 这些数据如何进入分发包。目标是让读者能够判断样本是否真正来自连续物理过程、隐藏
 规律是否可能由无关线索泄漏，并找到每项任务对应的实现入口。任务定义、评分与参考结果见
 [Benchmark 规范](ContextWorld_ICL_Benchmark.md)，目录和加载方式见
-[ContextWorld-v1 数据集指南](HF_Dataset_Export.md)。
+[数据集使用指南](HF_Dataset_Export.md)。
 
-当前训练比较使用扩量后的 Training 与固定的 Development / Test。多步预测从九任务主分布的注册 Development 查询扩展未来候选，原评测数据字节不变。各任务规模见[技术报告 §2](ContextWorld_ICL_Benchmark.md#2-数据与划分)。
+训练比较使用扩量后的 Training 与固定的 Development / Test。多步预测从九任务主分布的注册 Development 查询扩展未来候选；任务评测数据字节不变。各任务规模见[技术报告 §2](ContextWorld_ICL_Benchmark.md#2-数据与划分)。
 
-Training、Development 和 Test 已在本地组装为发布候选，但稳定公共下载地址与固定 revision 尚未公布；因此公开汇总可检查，外部端到端复现暂不可用。Test 与其他划分隔离，仅用于离线最终报告。配置与 manifest 记录各数据版本身份，打包进度见[发布说明](Expanded_Training_Release.md)。
+Training、Development 和 Test 已完成本地组装，但稳定公共下载地址与固定 revision 尚未公布；因此公开汇总可检查，外部端到端复现暂不可用。Test 与其他划分隔离，仅用于离线最终报告。配置与 manifest 记录各数据版本身份，获取状态见[数据包与结果复现](Expanded_Training_Release.md)。
 
-## 从隐藏规律到本地发布候选
+本指南依次说明[连续轨迹](#连续因果轨迹)、[匹配与划分隔离](#匹配起点交换与划分隔离)、[九项组件的生成入口](#九项组件的生成入口)及[审计与导出](#审计冻结与-clean-export)。后半部分是 Development 诊断的构造与复算方法：先看[九任务多步面板](#九任务的动作选择与多步预测诊断)和[历史与物理校准](#历史对照与物理校准)，再按任务查阅 [Speed 诊断](#speed-单任务诊断复算)及[训练机制对照](#九任务的历史表示与原生预测目标诊断)。这些诊断与九任务主评分分别报告。
+
+<a id="从隐藏规律到本地发布候选"></a>
+
+## 数据构造与分发流程
 
 九项任务共享同一条构造链：
 
@@ -27,13 +31,13 @@ Training、Development 和 Test 已在本地组装为发布候选，但稳定公
         ↓
 冻结的组件工件
         ↓
-冻结组件的 clean export 候选
+冻结组件的 clean export
 ```
 
 生成器改变速度、延迟、质量、接触属性或结构转移规则，然后让真实环境模拟器执行动作。
 保存的图像和真实未来均由模拟器渲染，不由图像生成模型合成、补帧或编辑。clean exporter
-只把已经审计的文件复制到候选目录并生成 manifest；它不会重新仿真，也不会改变样本语义。
-当前候选尚未发布为带固定 revision 的公共下载包。
+只把已经审计的文件复制到导出目录并生成 manifest；它不会重新仿真，也不会改变样本语义。
+导出包尚未发布为带固定 revision 的公共下载包。
 
 ## 连续因果轨迹
 
@@ -63,10 +67,10 @@ query 画面、query 动作和允许比较的可观测状态一致，只让历�
 生成 seed、场景或动作 profile；各任务还检查 query 图像、pair 内容和任务相关模板的交集
 为零。具体隔离键因环境而异，但不会只依赖目录名来声明拆分独立。
 
-旧一步协议的 Speed Development 使用结构配对：不同速度共享当前状态和查询动作，评分要求正确速度的
+Speed Development 使用结构配对：不同速度共享当前状态和查询动作，评分要求正确速度的
 历史预测优于该组其余全部历史。四种速度分布分别评测，每个参考速度有 300 个查询。
-早期的 288 个 history-utility case 不是当前主表的数据来源；完整历史与单帧输入的差值
-仅作为补充诊断，不代替严格历史比较。Development 成绩与 Test 成绩始终分别报告。
+288 个 history-utility case 不计入主表；完整历史与单帧输入的差值
+仅作为补充诊断，不代替严格历史比较。Development 成绩与 Test 成绩分别报告。
 
 ## 模型可见字段与审计字段
 
@@ -104,12 +108,12 @@ query 匹配，却不能成为模型识别标签的捷径。
 
 ### Cube 的四模板约束
 
-Cube v4r1 使用 `endpoint4`、`plateau`、`ramp4` 和 `front_hold` 四个 anchor。每个 anchor
+Cube 的登记数据版本使用 `endpoint4`、`plateau`、`ramp4` 和 `front_hold` 四个 anchor。每个 anchor
 在 Training 和 Development 内分别等量出现，具体扰动由 split 专用 seed 生成，因此相同
 profile 不跨 split 复用。对长度为 5 的 probe `p`，每个扰动必须精确满足
 `sum(p)=0` 和 `p[-1]=0`；动作块按 `[p, -p, p, 0]` 排列。构造器还固定加权位移矩并限制
 扰动系数，避免“净漂移”或最后一步动作直接泄漏携带标签。完整约束见
-[Cube v4r1 数据恢复协议](protocols/Cube_Gripper_Carry_History3_Development_v4r1_Recovery_Protocol.md)。
+[Cube 数据构造约束](protocols/Cube_Gripper_Carry_History3_Development_v4r1_Recovery_Protocol.md)。
 
 ## 审计、冻结与 clean export
 
@@ -122,7 +126,7 @@ profile 不跨 split 复用。对长度为 5 的 probe `p`，每个扰动必须�
 5. **文件完整性**：发布配置与 manifest 固定文件路径、大小和 SHA-256。
 
 通过组件级检查后，`configs/benchmark/contextworld_hf_clean_export_v1.yaml` 把明确登记的
-Training、Development 和 Test 工件映射到 clean export 候选目录。`scripts/export_contextworld_hf_clean.py`
+Training、Development 和 Test 工件映射到 clean export 目录。`scripts/export_contextworld_hf_clean.py`
 拒绝符号链接、凭据样文本、未登记目录和已有目标，复制后重新校验每个文件，并生成
 `task_registry.json`、`manifest.jsonl` 与 `manifest.sha256`。原始环境数据、模型检查点、
 训练日志、上游源码、历史模型输出和内部 Test `score_receipts` 均不进入 clean export。
@@ -131,18 +135,20 @@ Training、Development 和 Test 工件映射到 clean export 候选目录。`scr
 Training/Development/Test 字节。重新运行 exporter 不能替代生成审计，也不会生成新的
 测试数据。
 
-## 诊断数据的补充复现
+<a id="诊断数据的补充复现"></a>
 
-多步主分覆盖九项任务共 2,436 个 Development 场景，Speed 仅含未见速度插值。下方展开项记录候选动作、模型输入校验及逐查询复算；这些诊断不改变主分。完整面板与全部权重尚无稳定公开下载，当前汇总不能替代端到端复现。
+## Development 诊断数据与复算
+
+多步预测诊断覆盖九项任务共 2,436 个 Development 场景，Speed 仅含未见速度插值。下方展开项记录候选动作、模型输入校验及逐查询复算；这项诊断与九任务主指标分别报告。完整面板与全部权重尚无稳定公开下载，公开汇总不能替代端到端复现。
 
 <details>
-<summary>动作选择、模型输入校验与预测误差复算（展开）</summary>
+<summary>九任务多步面板：动作、输入校验与预测误差（展开）</summary>
 
 <a id="speed-action-selection"></a>
 
 ## 九任务的动作选择与多步预测诊断
 
-多步数据从现有 Development 查询扩展未来候选，不增加训练样本，不访问 Test，也不改变隐藏参数。当前版本覆盖九任务主分布的全部注册源查询，共 2,436 个；Speed 仅覆盖未见速度插值。它与原一步评测分别报告，不覆盖原数据。
+多步数据从 Development 查询扩展未来候选，不增加训练样本，不访问 Test，也不改变隐藏参数。面板覆盖九任务主分布的全部注册源查询，共 2,436 个；Speed 仅覆盖未见速度插值。它与一步评测分别报告，不覆盖任务数据。
 
 | 任务 | 源场景 | 隐藏条件 | 区间重采样单位 |
 |---|---:|---:|---|
@@ -156,7 +162,7 @@ Training/Development/Test 字节。重新运行 exporter 不能替代生成审�
 | 门通行规则 | 300 | 2 档 | 源查询，保留两种规则 |
 | 传送门出口 | 256 | 2 档 | 源查询 |
 
-所有源场景保留，不按模型成绩或目标可达性筛选。当前完整覆盖结果使用 `multistep_development_coverage_v2` 数据版本。最初 134 场景子集的公式与候选规则不变，原结果保存在 `multistep_prediction_v1.json`；扩展后逐项检查这 134 个场景的历史、动作与真实未来未变。新的置信区间将已知同源窗口和镜像样本成组抽样，不更改点估计的等权规则。
+所有源场景保留，不按模型成绩或目标可达性筛选。完整覆盖结果使用 `multistep_development_coverage_v2` 数据版本。与 `multistep_prediction_v1.json` 所记录的 134 个场景相比，公式、候选规则、历史、动作与真实未来一致。置信区间将已知同源窗口和镜像样本成组抽样，点估计仍对场景等权。
 
 ### 候选、目标与真实代价
 
@@ -258,7 +264,7 @@ python scripts/summarize_cross_task_decisions.py \
 
 像素检查进一步比较同一时刻的完整图像，以及包含全部五个时刻的图像序列。先按哈希分组，再逐字节确认一致，记录同图但几何不同的反例及最大距离。完全相同的目标图像无法通过确定性图像编码区分；未找到精确反例也不证明充分可观测。所有场景均保留，不根据模型成绩删样。
 
-本次覆盖 LeWM、PLDM 的 T0–T3 各一个已登记检查点，每项任务各 256 个场景。DINO-WM 现有辅助特征缓存经过 patch 池化，不能替代主分所用的完整表示，故不纳入这项原生距离诊断。低反序率只说明这些真实目标之间的排序较一致，不能证明模型输出的预测 latent 已具有可靠物理精度。结果见[统一报告](ContextWorld_ICL_Benchmark.md#true-target-geometry-calibration)。
+该诊断覆盖 LeWM、PLDM 的 T0–T3 各一个已登记检查点，每项任务各 256 个场景。DINO-WM 的辅助特征缓存经过 patch 池化，不能替代主指标所用的完整表示，故不纳入这项原生距离诊断。低反序率只说明这些真实目标之间的排序较一致，不能证明模型输出的预测 latent 已具有可靠物理精度。结果见[统一报告](ContextWorld_ICL_Benchmark.md#true-target-geometry-calibration)。
 
 复算需要已生成的真实轨迹面板及原生目标特征缓存；公开结果文件提供逐场景统计，尚不能替代这些原始输入。
 
@@ -279,7 +285,7 @@ python scripts/render_target_geometry_calibration.py --check
 
 ### 画布内对照
 
-画布内版本复用 Strength 的 256 个来源场景、243 个来源组，保留历史图像、历史动作、隐藏条件和评分时刻。未来动作按已有生成规则缩放，使推手与方块轮廓在两种条件的全部 25 步内均位于 `[2, 510]`；实际候选去重后每场景为 8–11 条，不补齐重复候选。它改变了未来动作分布，所以新旧差值不能单独归因于可见性。
+画布内版本复用 Strength 的 256 个来源场景、243 个来源组，保留历史图像、历史动作、隐藏条件和评分时刻。未来动作按已有生成规则缩放，使推手与方块轮廓在两种条件的全部 25 步内均位于 `[2, 510]`；实际候选去重后每场景为 8–11 条，不补齐重复候选。它改变了未来动作分布，所以与基准面板的差值不能单独归因于可见性。
 
 对照使用 LeWM 的 T0 与 T3 各一份检查点，两套数据内逐一匹配相同 SHA256。每条真实轨迹依次作为参照，其他轨迹之间仍按上述规则计算反序率；推手 xy 为任务相关几何，全六维几何作为补充。两套数据共享来源组 bootstrap 抽样，输出配对差值区间。另保留动作完全不变、每场景至少三个唯一候选的子集，仅作一致性检查，不替代完整数据结果。
 
@@ -380,7 +386,7 @@ python -m scripts.summarize_observable_targets \
 
 **校验范围。** `check_visible_future_panel.py` 检查来源覆盖、历史与目标身份、动作映射、逐步状态、完整形状边界和生成器的连续重放记录；它不另行重跑全部物理仿真。条件信号用两条件真实坐标的距离衡量：先对来源内的唯一候选与五个时刻平均，再对来源等权平均，以免候选数变化造成虚假差异。推手使用平面位置距离，方块使用位置及半径 40 px 的角度弦长合成距离。另搜索精确同图像但物理坐标相差超过两个渲染像素的反例；未发现反例不等于证明无遮挡或充分可辨识。
 
-三个任务使用与原轨迹匹配的环境版本：Strength 与 Friction 为 `6ab823fdc6921c95089992ed49c39e431e21ca4a`，Damping 为 `875e607fc08aa72eacb94d5d178127804134cc06`。Damping 的方块几何必须保持原版本，不能用更改后的环境代替。生成还需原 Development 数据、来源合成记录与旧多步面板；这些输入尚无稳定公共下载，命令用于说明本地复现接口。
+三个任务使用与基准轨迹匹配的环境版本：Strength 与 Friction 为 `6ab823fdc6921c95089992ed49c39e431e21ca4a`，Damping 为 `875e607fc08aa72eacb94d5d178127804134cc06`。Damping 的方块几何必须保持该版本，不能用更改后的环境代替。生成还需 Development 数据、来源合成记录与基准多步面板；这些输入尚无稳定公共下载，命令用于说明本地复现接口。
 
 ```bash
 python scripts/builder_visible_strength.py \
@@ -413,7 +419,7 @@ python scripts/check_visible_future_panel.py \
   --output /path/to/visible_validation.json
 ```
 
-已有检查点使用同一套完整预测误差和正确／错误历史对照，参数保持冻结。辅助物理读出在新真实未来上重新按来源组交叉拟合，配置沿用前述设置；真实 latent 的校准误差与预测 latent 的读出误差分别报告，二者不能相减解释为纯模型误差。新旧面板的得分变化也不能当作模型进步。结果见技术报告的[测量范围与验证](ContextWorld_ICL_Benchmark.md#main-score-interpretation-and-auxiliary-physical-readout)。
+冻结检查点使用同一套完整预测误差和正确／错误历史对照。辅助物理读出在画布内真实未来上按来源组交叉拟合，配置沿用前述设置；真实 latent 的校准误差与预测 latent 的读出误差分别报告，二者不能相减解释为纯模型误差。画布内面板与基准面板的得分变化不能当作模型进步。结果见技术报告的[测量范围与验证](ContextWorld_ICL_Benchmark.md#main-score-interpretation-and-auxiliary-physical-readout)。
 
 ## Speed 单任务诊断复算
 
@@ -553,7 +559,7 @@ python scripts/build_speed_cem_panel.py \
 
 模型对照复用 12 组检查点的缓存预测。原来源组折分、读出参数和拟合样本保持固定；从缓存重建辅助读出器，只是为了导出逐场景坐标。所有校准及预测的逐维 RMSE 与原记录一致。阻尼的 256 场景按 128 个来源组重采样，不能将镜像场景当成独立样本。
 
-**复现。** 将下例变量设置为对应数据和输出目录。清单中的缓存路径应按本地位置调整，保留相应的检查点、面板和来源身份。`RUN` 仅存本次验证产物。
+**复现。** 将下例变量设置为对应数据和输出目录。清单中的缓存路径应按本地位置调整，保留相应的检查点、面板和来源身份。`RUN` 保存验证输出。
 
 ```bash
 # 在仓库根目录执行；复用既有缓存，不运行世界模型。
@@ -574,7 +580,7 @@ python scripts/summarize_prediction_accuracy.py \
 
 批量入口接受包含 `settings` 和 `units` 的 [读出清单](research/data/prediction_accuracy_readout_manifest_v1.json)。每项列明任务、特征缓存、原校准结果及面板路径。Strength 的当前状态旁文件来自原 Development 的历史末帧；全部 256 个来源的历史图像与动作已逐项核对，未从未来状态反推当前状态。旁文件与指定面板绑定，不能移用于其他划分。
 
-[逐容差对照](research/data/prediction_accuracy_controls_v1.csv)、[固定容差子集敏感性](research/data/prediction_accuracy_threshold_sensitivity_v1.csv)和[逐场景模型分数](research/data/prediction_accuracy_validation_v1_queries.json.gz)支持复算。公开文件包含验证统计与来源身份；面板、权重和特征缓存尚无稳定公共下载地址，完整端到端复现仍需这些输入。该候选分尚未通过统一物理准确率的测量验证，不替换冻结结果。
+[逐容差对照](research/data/prediction_accuracy_controls_v1.csv)、[固定容差子集敏感性](research/data/prediction_accuracy_threshold_sensitivity_v1.csv)和[逐场景模型分数](research/data/prediction_accuracy_validation_v1_queries.json.gz)支持复算。公开文件包含验证统计与来源身份；面板、权重和特征缓存尚无稳定公共下载地址，完整端到端复现仍需这些输入。多容差准确率仅用于测量验证；它尚未通过统一物理准确率的验证，因此不是九任务主指标。
 
 
 <a id="paired-scoring-controls"></a>
@@ -698,7 +704,7 @@ OPENBLAS_NUM_THREADS=1 python scripts/analyze_delay_train_development.py \
 OPENBLAS_NUM_THREADS=1 python scripts/analyze_delay_train_development.py --check
 ```
 
-第一条命令汇总已有九份推理结果，第二条仅从公开充分统计量复算结果与文档表格，不需 GPU。来源记录同时保留检查点的历史身份与当前镜像身份：成员名单和适配器字节匹配，整体发布哈希不同，因此不能据此宣称所有数据字节与历史训练时完全一致。结果与解释见[训练域与迁移对照](ICL_Metric_Study.md#delay-first-step-mechanism)。
+第一条命令汇总九份推理结果，第二条仅从公开充分统计量复算结果与文档表格，不需 GPU。来源记录同时保留检查点登记身份与所用镜像身份：成员名单和适配器字节匹配，但整体发布哈希不同。因此现有核对不能证明全部数据字节与训练时完全一致；训练集对照的解释受此限制。结果与解释见[训练域与迁移对照](ICL_Metric_Study.md#delay-first-step-mechanism)。
 
 
 <a id="training-curve-reproduction"></a>
@@ -781,7 +787,7 @@ python scripts/analyze_expanded_history_reference.py --check
 
 原生 Encoder 的每帧 192 维输出组成 `[z0, z1-z0, z2-z1]`，保留完整三帧信息。固定 `StandardScaler + RidgeClassifier(alpha=1)` 与 256 棵 `ExtraTrees` 在 Training 拟合，不使用 Development 选择参数或分类器。区间对 243 个 Development 来源进行 2,000 次成组重采样；三方案差值共用重采样索引。Training 分数是参考分类器的拟合集表现。
 
-梯度面板取选定 Training 查询顺序中的前 16 个不同来源，每来源取第一对。H3 原生监督的三个目标为第 5、10、15 帧，视觉 MSE 对全部条件、位置与 latent 维度平均。最后位置的条件中心化误差与共同偏差各保留 1/3 权重，前两个位置保留其原权重。仅对主预测器求导；Encoder、动作编码器和其他目标项不参与本次梯度测量。响应 NRE 按目标能量汇总，不平均逐对误差比。关闭 TF32 后，在每个检查点的首个查询上核对公开 RGB Adapter，直接预测的端点差不超过 `1.1e-6`；损失与梯度分解均核对闭合，模型状态保持不变。
+梯度面板取选定 Training 查询顺序中的前 16 个不同来源，每来源取第一对。H3 原生监督的三个目标为第 5、10、15 帧，视觉 MSE 对全部条件、位置与 latent 维度平均。最后位置的条件中心化误差与共同偏差各保留 1/3 权重，前两个位置保留其原权重。仅对主预测器求导；Encoder、动作编码器和其他目标项不参与该梯度测量。响应 NRE 按目标能量汇总，不平均逐对误差比。关闭 TF32 后，在每个检查点的首个查询上核对公开 RGB Adapter，直接预测的端点差不超过 `1.1e-6`；损失与梯度分解均核对闭合，模型状态保持不变。
 
 运行脚本为 `scripts/diagnose_strength_history_readout.py` 与 `scripts/diagnose_strength_native_objective.py`，汇总脚本为 `scripts/analyze_strength_mechanism.py`。面板 JSON 记录选定查询、来源、数据与检查点哈希；原始 RGB 与 latent 缓存保存在运行输出中，不包含在公开汇总记录内。
 
@@ -906,7 +912,7 @@ python scripts/evaluate_fixed_target_control.py \
 
 ### 固定终点的 Test 验证
 
-[评价方案](../configs/benchmark/fixed_target_confirmation_v1.json)绑定两项任务的原环境初始化、已完成的最终检查点、参考训练配置、评分程序及 Test 来源文件身份。本次使用已经完成的第 10 epoch 权重补齐 Test；评测本身不需要新增训练。原环境 T0 权重、数据和评分身份由该方案固定。
+[评价方案](../configs/benchmark/fixed_target_confirmation_v1.json)绑定两项任务的原环境初始化、第 10 epoch 检查点、参考训练配置、评分程序及 Test 来源文件身份。Test 评价使用已完成训练的第 10 epoch 权重，不新增训练。原环境 T0 权重、数据和评分身份由该方案固定。
 
 Test 使用 `ContextWorld-v1-full` 注册的两张表，每任务保留全部 256 对，不重新合成、不按结果筛选。数据读取前验证所选 Lance 文件的大小与 SHA256；动作标准化沿用 Training 的统计量。历史图像取轨迹第 0／5／10 步，目标为第 15 步，即当前状态后 5 个物理步。交换历史图像及历史动作，保持当前图像和查询动作不变。评分与 Development 完全相同，模型状态与目标表示在评测前后保持不变。
 
@@ -952,7 +958,7 @@ python scripts/summarize_native_policy_contrast.py \
   --output-dir docs/research/data/native_policy_contrast_v1 --check --render-doc
 ```
 
-对两任务和 `original/joint/frozen` 三种方案分别执行首条命令，再汇总六组结果。公开 JSON 与逐查询充分统计量支持无 GPU 复算；重新推理仍需要对应权重、模型清单与原生图像面板，当前尚无稳定公共下载。归档同时保留初始化、数据身份、推理校验和模型状态未改变的记录。本次复算与原归档的选择率最大相差 0.391 个百分点、NRE 最大相差 0.00071；保留复算原值，不回写正式成绩。
+对两任务和 `original/joint/frozen` 三种方案分别执行首条命令，再汇总六组结果。公开 JSON 与逐查询充分统计量支持无 GPU 复算；重新推理仍需要对应权重、模型清单与原生图像面板，当前尚无稳定公共下载。归档同时保留初始化、数据身份、推理校验和模型状态未改变的记录。诊断复算与正式归档的选择率最大相差 0.391 个百分点、NRE 最大相差 0.00071；九任务主表使用正式归档成绩，诊断结果保留其复算值。
 
 <a id="response-intervention"></a>
 

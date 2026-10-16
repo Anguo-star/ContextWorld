@@ -1,7 +1,7 @@
 # Stable-WorldModel training
 
-ContextWorld provides one public training command for LeWM, PLDM and PreJEPA
-(DINO-WM):
+ContextWorld provides one public training command for LeWM, PLDM and
+Stable-WorldModel's PreJEPA family, used here for the DINO-WM reference model:
 
 ```bash
 python scripts/run_stablewm_train.py --help
@@ -38,11 +38,9 @@ that checkout. Optional ContextWorld research extensions such as VISReg are a
 separate capability: the launcher detects their YAML fields and rejects the
 request when the selected public checkout does not implement them.
 
-Portable full-state recovery requires `stable-pretraining>=0.1.8`. For an
-offline cloud installation, keep one compatible `stable_pretraining` wheel in
-the package directory; multiple versions allow pip to select a runtime that
-does not provide the required Manager interface. Version 0.1.8 also requires
-Kornia. On Python 3.10, the verified offline set is
+Portable full-state recovery requires `stable-pretraining>=0.1.8` and its
+dependencies, including Kornia. For an offline installation, provide one
+compatible `stable_pretraining` wheel. On Python 3.10, a compatible set is
 `stable-pretraining==0.1.8`, `kornia==0.8.2`, and `kornia_rs==0.1.14`.
 
 ## Cloud entry
@@ -60,6 +58,7 @@ For original-data training, the minimal job variables are:
 CW_TASK=original
 CW_ENV=tworoom
 CW_FAMILY=prejepa
+CW_MODEL_INPUTS=pixels_action
 CONTEXTWORLD_DATASET_ROOT=/absolute/path/data/world_model
 CW_CHECKPOINT_ROOT=/absolute/path/stablewm-runs
 CONTEXTWORLD_STABLE_WORLDMODEL_REPO=/absolute/path/stable-worldmodel
@@ -69,20 +68,25 @@ Change only `CW_ENV` for the other original tasks: `pusht`, `reacher`, or
 `cube`. The default `CW_SEEDS=3072` runs one seed. Submit seeds 3072, 3073 and
 3074 as separate scheduler jobs so each task keeps its recovery state separate.
 A comma-separated list remains available for non-SLURM serial sweeps.
-`CW_DATASET` is a higher-priority one-off override when the standard root
+`CW_DATASET` is a higher-priority exact-path override when the standard root
 layout is not used.
 
-For the DINO-WM comparison run, use the checked-in cloud template:
+For an original-environment DINO-WM run with the benchmark's RGB-and-action
+input contract, use the checked-in template:
 
 ```text
-configs/training/dinowm_original_cloud_v1.env.example
+configs/training/dinowm_original_pixels_action.env.example
 ```
 
-It makes the scientific settings explicit: 10 epochs, history 3, one-step
-prediction, frameskip 5, per-device batch 128, and an effective global batch
-of 1024 on eight GPUs. On four GPUs set `CW_ACCUMULATE=2`; on two GPUs set it
-to 4. These changes retain the effective batch while adapting only to the
-available hardware.
+This profile removes the upstream state encoder and state loss. Its pretrained
+visual backbone remains frozen; the predictor and action encoder start from
+their native initialization unless an eligible initialization checkpoint is
+explicitly supplied. History 3 does not cover Action Delay, which requires
+history 7. The template contains site-specific path examples: replace them
+with paths in your environment. The separate
+[`dinowm_original_cloud_v1.env.example`](../configs/training/dinowm_original_cloud_v1.env.example)
+uses native original-data inputs, including state, and its checkpoints do not
+satisfy the official RGB-and-action ICL input contract.
 
 Before allocating a GPU, render and validate the final upstream command:
 
@@ -172,8 +176,9 @@ keys. Equivalent command-line flags are shown by `--help`.
 | variable | purpose |
 |---|---|
 | `CW_SEEDS` | one seed, or a comma-separated sequence of seeds |
-| `CW_TRAINING_TRACK` | Run-name label; custom labels retain the current recipe. `historical_release` explicitly selects the old frozen recipe. |
-| `CW_INIT_CHECKPOINT` | Optional full model weights for component warmstart; omit for default initialization. Optimizer and epoch state are fresh; `CW_RESUME` controls full-state continuation separately. |
+| `CW_TRAINING_TRACK` | Run-name label for the selected recipe; changing the label does not change initialization. |
+| `CW_MODEL_INPUTS` | `native` (default) or `pixels_action` for original-data PreJEPA; the latter removes state inputs and matches the benchmark predictor input contract. |
+| `CW_INIT_CHECKPOINT` | Optional model weights for eligible native one-step component training; omit for family initialization. Optimizer and epoch state remain fresh. See [initialization compatibility](#initialization-compatibility). |
 | `CW_FREEZE_ENCODER` | Set to `1` after warmstart to freeze the LeWM/PLDM image encoder or PreJEPA backbone; projector and predictor remain trainable. Default `0`. |
 | `CW_RUN_NAME` | model name and checkpoint subdirectory |
 | `CW_MAX_EPOCHS` | training epochs |
@@ -230,9 +235,9 @@ future embedding in the native prediction loss; `0` explicitly keeps its
 gradient. Omit the variable for the native default (`0`).
 `CW_CHECKPOINT_EPOCH_INTERVAL=1` exports `weights_epoch_1.pt`,
 `weights_epoch_2.pt`, and so on, so epochs 1, 5 and 10 can be retained.
-The default interval is 5. Both are scalar cloud parameters and are unavailable
-for frozen `historical_release` runs. Give each recipe a distinct
-`CW_TRAINING_TRACK` or `CW_RUN_NAME` when comparing runs.
+The default interval is 5. These options apply to current PLDM family-profile
+runs. Give each recipe a distinct `CW_TRAINING_TRACK` or `CW_RUN_NAME` when
+comparing runs.
 
 Advanced users may repeat `--override KEY=VALUE` or supply a JSON array of
 these strings through `CW_OVERRIDES` in the cloud GUI. Explicit CLI entries
@@ -253,10 +258,20 @@ selected checkout actually declares those fields. The pinned public upstream
 supports native SIGReg but does not contain the full ContextWorld VISReg and
 conditional-regularizer extension; unsupported requests fail before GPU work.
 
-Frozen historical LeWM/PLDM recipes remain available as protocol evidence, but
-they are not the current cross-family comparison. The current component route
-uses the same public bundle view and task-level from-scratch rule for LeWM,
-PLDM and PreJEPA while retaining each family's native objective and optimizer.
+The component route uses the same public bundle view for LeWM, PLDM and
+PreJEPA while retaining each family's native objective and optimizer.
+
+### Initialization compatibility
+
+`CW_INIT_CHECKPOINT` loads model weights for native one-step component training;
+`CW_RESUME` separately restores full training state. A state-conditioned
+PreJEPA source can be converted to an RGB/action target by retaining its
+visual and action parameter subspace and dropping state-related channels.
+The conversion is recorded in the initialization metadata and is not
+function-equivalent to the source. Such a converted checkpoint is a separate
+initialization choice, not the strict image/action T3 initialization reported
+for the DINO-WM reference model. For that comparison, use a compatible
+RGB/action source checkpoint and the matching task geometry.
 
 ## Benchmark joint-scratch data view
 
@@ -277,12 +292,12 @@ default data-root location above. The task profile supplies the history length, 
 dimension, payload and mixture, so `CW_DATASET` is normally omitted.
 
 The default comparison view uses 50% original data and 50% synthetic component
-data for all nine components. No original-environment task checkpoint is
-loaded: a run starts from that family's native initialization, or resumes only
-an identity-matched interrupted run of the same recipe. Action Delay selects its `full`
+data for all nine components. Without `CW_INIT_CHECKPOINT`, a run starts from
+that family's native initialization; PreJEPA still uses its pretrained visual
+backbone. An identity-matched interrupted run can resume through `CW_RESUME`.
+Action Delay selects its `full`
 payload and balances the physical groups `0`, `1`, `2`, `3`, `4`, and `5–10`
-equally. This current single-stage recipe is intentionally different from the
-historical two-stage LeWM/PLDM curriculum. Advanced experiments can override the payload
+equally. Advanced experiments can override the payload
 or weights with `CW_COMPONENT_PAYLOAD`, `CW_MIX_ORIGINAL_WEIGHT`, and
 `CW_MIX_SYNTHETIC_WEIGHT`. Such overrides define a new recipe and are recorded
 in the checkpoint identity.
@@ -426,12 +441,9 @@ This `50 × 6` geometry applies only to CEM. ICL reads each component's
 manifest-bound Development selection (288 Speed diagnostic cases, 288 Door
 pairs, 300 Action Delay pairs, or 256 pairs for each remaining component).
 
-This automatic hand-off applies to current family-profile runs: every
-original-environment run and every `joint_scratch_v1` component run. A
-historical LeWM/PLDM component reproduction selected explicitly with
-`CW_TRAINING_TRACK=historical_release` keeps its frozen evaluator and does not accept
-`CW_POST_TRAIN_EVAL`; that evaluator is part of the historical release
-protocol.
+This automatic hand-off applies to family-profile runs: every
+original-environment run and every `joint_scratch_v1` component run. Set
+`CW_POST_TRAIN_EVAL=1` to request the applicable suite after training.
 
 With `CW_RESUME=auto` or `required`, an existing target-epoch weight can skip
 training only when two records are present: StableWM's resolved `config.yaml`

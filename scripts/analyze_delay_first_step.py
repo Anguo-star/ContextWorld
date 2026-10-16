@@ -92,7 +92,7 @@ def summarize(raw):
       'queue_check':{'scenes':len(qr),'nonzero_pending_commands':sum(r['nonzero_pending_commands'] for r in qr),'note':'Queue length varies with delay but every pending command at the query is zero; queue-length metadata is never given to the model.'}}
 
 def render(d):
-    lines=['| 模型 | 原查询选择率 (%) ↑ | 原查询响应 NRE ↓ | 扩展动作响应误差 ↓ | 扩展动作响应幅度比（理想为 1） | 扩展动作方向增益（理想为 1） |','|---|---:|---:|---:|---:|---:|']
+    lines=['| 模型 | 任务查询选择率 (%) ↑ | 任务查询响应 NRE ↓ | 扩展动作响应误差 ↓ | 扩展动作响应幅度比（理想为 1） | 扩展动作方向增益（理想为 1） |','|---|---:|---:|---:|---:|---:|']
     for r in d['rows']:
         m=r['metrics'];amp=m['response_amplitude_ratio'];lo,hi=amp['ci95']
         vals=[MODEL_ZH[r['family']],f"{r['original_choice']['mean']:.2f}",f"{r['original_response_nre']['mean']:.5f}",f"{m['response_error']['mean']:.5f}",f"{amp['mean']:.5f} [{lo:.5f}, {hi:.5f}]",f"{m['response_gain']['mean']:.6f}"]

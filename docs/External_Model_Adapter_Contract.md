@@ -4,7 +4,7 @@ This document defines the runtime interface that an external latent world
 model implements to use ContextWorld Development and Test scorers. The checks described
 below are enforced by `contextworld-external-eval`.
 
-The `ContextWorld-v1` bundle does not restrict evaluation to LeWM, PLDM or
+The ContextWorld bundle does not restrict evaluation to LeWM, PLDM or
 PreJEPA. Those names identify built-in reference integrations. An external
 model may train with its own code and data loader; to use the public
 Development/Test scorers it supplies the adapter below. The adapter translates
@@ -72,8 +72,8 @@ So the practical shape is one class parameterised by
   Latent width and model family are deliberately unconstrained.
 - **No pixel reconstruction, no reward, no value head.**
 
-This is what makes DINO-WM a clean fit: the frozen-DINO-encoder-plus-latent-
-predictor shape is exactly the shape the benchmark expects.
+This permits DINO-WM's DINOv2 visual encoder and latent predictor. Checkpoint
+input streams and temporal geometry must still match the task contract.
 
 ## Array shapes
 
@@ -145,32 +145,32 @@ guarantee.
 own preprocessing, checkpoint loading and latent representation. Use this
 only when the model cannot be expressed as a Stable-WorldModel family.
 
-### DINO-WM / PreJEPA
+<a id="dino-wm--prejepa"></a>
 
-Stable-WorldModel provides the DINOv2-based `prejepa` family. ContextWorld
-includes a native PreJEPA adapter for checkpoints that satisfy the official v1
-input interface.
+### DINO-WM through PreJEPA
+
+The benchmark calls its DINOv2-based reference model DINO-WM; in
+Stable-WorldModel, that model is trained by the `prejepa` family and selected
+with `--adapter prejepa` for evaluation. ContextWorld includes a native
+PreJEPA adapter for checkpoints that satisfy the benchmark input interface.
 
 That contract is intentionally narrow: the ICL scorer supplies RGB history
 and raw actions only. A checkpoint is eligible only when its predictor
 requires no additional context stream and its trained history length, action
 block, and action dimension match the selected task. In particular,
-original-data PreJEPA checkpoints that require `proprio` or `observation`
-cannot be scored through the official v1 interface. The result records the
+original-data PreJEPA checkpoints trained with native inputs that require
+`proprio` or `observation` cannot be scored through the benchmark interface.
+The result records the
 machine-readable status `not_compatible`, meaning that the checkpoint's input
 requirements do not match the benchmark interface. It is not a model failure
 or a benchmark score. A direct evaluation request rejects such a checkpoint by
 default.
 
-For diagnostic comparison only, callers may explicitly set
-`--prejepa-missing-context-policy normalized_zero`. The adapter then supplies
-zeros in each missing stream's normalized model-input space. The output is
-labelled `external_diagnostic_non_frozen_v1` so downstream tools cannot confuse
-it with an official result. This route does not expose simulator state or
-change model weights. It must be reported as an auxiliary analysis, not as an
-official v1 ICL score. A History=3 PreJEPA
-checkpoint can be evaluated by the History=7 Action Delay scorer only with the
-additional explicit `--history-adapter h3_tail_projection` option.
+For original-data training intended to use this interface, select
+`CW_MODEL_INPUTS=pixels_action`. The default `native` profile can require a
+state stream, so matching history and action dimensions alone is insufficient.
+The trained RGB/action checkpoint must also use history 7 for Action Delay;
+history 3 covers the other matching task geometries.
 
 For an eligible native `.pt` checkpoint with its accompanying `config.json`,
 the built-in adapter loads Stable-WorldModel's public `encode` and `rollout`
@@ -191,6 +191,17 @@ python -m contextworld.benchmarks.external_model_cli --task speed --adapter prej
     --checkpoint /path/to/weights_epoch_10.pt --model-name dino-wm
 ```
 
+#### Compatibility diagnostics outside official scoring
+
+For diagnostic comparison only, callers may explicitly set
+`--prejepa-missing-context-policy normalized_zero`. The adapter then supplies
+zeros in each missing stream's normalized model-input space. The output is
+labelled `external_diagnostic_non_frozen_v1`; it is not an official ICL
+score. This route does not expose simulator state or change model weights.
+A History=3 checkpoint can be evaluated by the History=7 Action Delay scorer
+only with the additional explicit `--history-adapter h3_tail_projection`
+option. Report these outputs as auxiliary analysis.
+
 An original state-conditioned checkpoint can be inspected diagnostically with:
 
 ```bash
@@ -198,6 +209,11 @@ python -m contextworld.benchmarks.external_model_cli --task speed --adapter prej
     --checkpoint /path/to/weights_epoch_10.pt --model-name dino-wm \
     --prejepa-missing-context-policy normalized_zero
 ```
+
+An optional conversion of state-conditioned source weights into an
+action-only PreJEPA target transfers parameter subspaces and is not
+function-equivalent to the source. Identify that initialization separately
+from the reported strict image/action T3 initialization.
 
 ContextWorld's training launcher delegates to the selected model family's
 native trainer. The adapter and evaluator do not replace the model's training

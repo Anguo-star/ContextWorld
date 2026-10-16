@@ -112,7 +112,7 @@ def render(payload):
     lines = []
     for task in TASK_ORDER:
         lines += [f'<details>\n<summary>{TASK_ZH[task]}：模型与训练方案</summary>\n',
-          '| 模型 | 方案 | 重复数 | 原协议选择率 (%) ↑ | 多步响应误差 ↓ | 完整误差 ↓ | 历史收益 ↑ | 完整误差：第5 → 25步 / 真实输入第25步 |',
+          '| 模型 | 方案 | 重复数 | 任务主指标 (%) ↑ | 多步响应误差 ↓ | 完整误差 ↓ | 历史收益 ↑ | 完整误差：第5 → 25步 / 真实输入第25步 |',
           '|---|---|---:|---:|---:|---:|---:|---:|']
         for r in payload['rows']:
             if r['task'] != task: continue

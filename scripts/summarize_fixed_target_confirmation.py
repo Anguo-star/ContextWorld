@@ -194,7 +194,7 @@ def render_table(archive):
         a = item['aggregate']
         lines.append(f"| {names.get(task, task)} | {item['n']} | {fmt(a['nre_t0'])} → {fmt(a['nre_after'])} | {fmt(a['eb_t0'])} → {fmt(a['eb_after'])} | {fmt(a['g_after'])} |")
     lines.append('')
-    lines.append('T0 是各训练种子共用的固定基线，只显示一次；训练后 ± 为训练种子间样本标准差（仅 n>1）。逐种子配对来源组 bootstrap 区间单独保存在 [JSON](research/data/fixed_target_confirmation_v1/summary.json)，不表示训练重复间变异。缺少的种子不补零。')
+    lines.append('T0 是各任务固定的训练前检查点；n 为训练重复数，训练后 ± 为样本标准差（仅 n>1）。配对来源组 bootstrap 区间见 [JSON](research/data/fixed_target_confirmation_v1/summary.json)，描述给定检查点下的场景不确定性。')
     return '\n'.join(lines) + '\n'
 
 

@@ -98,7 +98,7 @@ def build():
  lines=['| 任务 | 模型 | 历史读出 | 全量响应 NRE ↓ | 梯度比 | 平均余弦 |','|---|---|---:|---:|---:|---:|']
  for x in rows:
   h=x['history_readout'];g=x['gradient'];v=(f"{h['value']:.2f}*" if x['task']=='speed' else f"{100*(h['six_physical_group_balanced_accuracy'] if x['task']=='action_delay' else h['value']):.1f}%"+('†' if x['task']=='action_delay' else ''));lines.append(f"| {TASK_NAMES[x['task']]} | {MODEL_NAMES[x['family']]} | {v} | {x['original_protocol']['full_development_response_nre']:.3f} | {g['mean_response_to_native_gradient_norm_percent']:.3g}% | {g['mean_vector_cosine']:+.3f} |")
- lines+=['',r'\* 速度读出为 MAE（越低越好）；其余为平衡识别率（越高越好）。','† 延迟读出采用六个首段物理响应组；精确 11 延迟标签读出见 JSON／CSV。','全量响应 NRE 来自完整 Development 原协议；梯度比与平均余弦只使用每模型 16 个 Development 查询。','']
+ lines+=['',r'\* 速度读出为 MAE（越低越好）；其余为平衡识别率（越高越好）。','† 延迟读出采用六个首段物理响应组；精确 11 延迟标签读出见 JSON／CSV。','全量响应 NRE 来自完整 Development 任务查询；梯度比与平均余弦只使用每模型 16 个 Development 查询。','']
  add(outputs,RAW/'table.md','\n'.join(lines).encode());return outputs
 
 def marked_document(doc,table):

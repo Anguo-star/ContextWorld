@@ -102,7 +102,7 @@ def csv_text(rows: list[dict]) -> str:
 def table(rows: list[dict]) -> str:
     labels = {'action_strength': '推手移动幅度', 'contact_friction': '接触摩擦', 'cube_gripper_carry': 'Cube 夹爪携带', 'robot_arm_mass': '机械臂质量'}
     lines = [
-        '| 任务 | 目标条件差异占比（%） | 历史线性读出（%） | 原生响应 NRE ↓ | 原协议主分（%） ↑ | 多步完整 E/B ↓ |',
+        '| 任务 | 目标条件差异占比（%） | 历史线性读出（%） | 原生响应 NRE ↓ | 任务主指标（%） ↑ | 多步完整 E/B ↓ |',
         '| --- | ---: | ---: | ---: | ---: | ---: |',
     ]
     for task in TASKS:
