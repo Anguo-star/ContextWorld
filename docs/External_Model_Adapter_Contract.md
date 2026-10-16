@@ -188,6 +188,8 @@ For example, a compatible state-free checkpoint can be evaluated with:
 
 ```bash
 python -m contextworld.benchmarks.external_model_cli --task speed --adapter prejepa \
+    --benchmark-root /absolute/path/to/ContextWorld-bundle \
+    --evaluation-split development \
     --checkpoint /path/to/weights_epoch_10.pt --model-name dino-wm
 ```
 
@@ -206,6 +208,8 @@ An original state-conditioned checkpoint can be inspected diagnostically with:
 
 ```bash
 python -m contextworld.benchmarks.external_model_cli --task speed --adapter prejepa \
+    --benchmark-root /absolute/path/to/ContextWorld-bundle \
+    --evaluation-split development \
     --checkpoint /path/to/weights_epoch_10.pt --model-name dino-wm \
     --prejepa-missing-context-policy normalized_zero
 ```
@@ -232,11 +236,12 @@ adapter base class.
 
 ```bash
 python -m contextworld.benchmarks.external_model_cli \
+    --benchmark-root /absolute/path/to/ContextWorld-bundle \
     --evaluation-split development \
     --task speed \
     --adapter your_package.module:YourAdapter \
     --checkpoint /path/to/weights.pt \
-    --model-name dino-wm
+    --model-name my-model
 ```
 
 `--adapter` accepts a built-in name (`lewm`, `pldm`, `prejepa`), an import path

@@ -140,7 +140,7 @@ CEM 不参与 ICL 主分，只衡量原环境规划能力保持。该表复用�
 
 未来选择率和 NRE 来自各模型原生 latent 目标空间的 Development 第 5 个物理步诊断；选择率以 50% 为两候选随机水平，NRE=1 是零条件响应参照。这些不是统一物理误差，也不能跨模型直接比较绝对误差。CEM 是另行评测的原环境规划成功率，每个终点使用六个种子、每种子 50 次；不参与主分。[终点机器读数](../research/data/model_capacity_scaling_v1/final_comparison.json)保存逐种子 CEM。
 
-[逐轮数据](../research/data/model_capacity_scaling_v1/all_epochs.csv)与[曲线图](../research/data/model_capacity_scaling_v1/curves.png)比较固定的 512 对 Training 查询和全部 256 对 Development 查询。LeWM 大模型有第 1–10 epoch 保存点，PLDM 大模型及两种小模型只有第 5、10 epoch 保存点；只连接实际保存点。曲线统一以 FP32 重评，不替换上表的云侧原始终点读数；接近零响应时，严格胜负比较可有少量数值差异。LeWM 在两个任务的训练查询上也未形成准确条件响应。PLDM 有训练／Development 响应差距，但大模型第 5→10 epoch 的 Development NRE 未上升：摩擦 1.115→1.107，阻尼 2.017→1.536。因此没有共同的“训练已学好、因数据未扩量而过拟合”轨迹；PLDM 更早 epoch 未保存，不能排除更早变化。曲线中的每个检查点使用自身目标表示，跨点数值变化不等于共同物理空间内的误差变化。
+[逐轮数据](../research/data/model_capacity_scaling_v1/all_epochs.csv)与[曲线图](../research/data/model_capacity_scaling_v1/curves.png)比较固定的 512 对 Training 查询和全部 256 对 Development 查询。LeWM 大模型有第 1–10 epoch 保存点，PLDM 大模型及两种小模型只有第 5、10 epoch 保存点；只连接实际保存点。逐轮诊断统一使用 FP32；上表终点值使用各检查点结果文件中的评测配置。两组读数分开报告：接近零响应时，严格胜负比较对数值精度敏感，可有少量分数差异。LeWM 在两个任务的训练查询上也未形成准确条件响应。PLDM 有训练／Development 响应差距，但大模型第 5→10 epoch 的 Development NRE 未上升：摩擦 1.115→1.107，阻尼 2.017→1.536。因此没有共同的“训练已学好、因数据未扩量而过拟合”轨迹；PLDM 更早 epoch 未保存，不能排除更早变化。曲线中的每个检查点使用自身目标表示，跨点数值变化不等于共同物理空间内的误差变化。
 
 这组固定配方、单训练种子的对照削弱了“只需约十倍参数”作为两任务通用修复的解释；它不能排除其他容量配置、更充分调参或训练数据覆盖改善的收益，也不足以拟合 scaling law。曲线没有逐 epoch CEM，不用于解释终点 CEM 下降。
 
@@ -175,7 +175,7 @@ CEM 不参与 ICL 主分，只衡量原环境规划能力保持。该表复用�
 
 64 对训练样本只能诊断局部现象；响应分也受各检查点的表示变化影响，不能单独分离 Encoder 与预测器的作用。[训练过程结果](../research/data/icl_training_dynamics_v1.json)提供逐配置测量与配对区间。
 
-样本成员资格和归档值的复测差异见[数值复现说明](../Data_Generation.md#training-curve-reproduction)。
+训练样本的划分依据及诊断表与任务表的数值可比性见[数值复现说明](../Data_Generation.md#training-curve-reproduction)。
 
 </details>
 

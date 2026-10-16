@@ -91,7 +91,7 @@ def render(payload: dict) -> str:
     return '\n'.join(lines)+'\n'
 
 def render_data(payload: dict) -> str:
-    lines=['| 任务 | 来源数 | 唯一候选数 / 来源 | 越界候选数 | 推手条件距离：旧 → 新 | 方块条件距离：旧 → 新 |',
+    lines=['| 任务 | 来源数 | 唯一候选数 / 来源 | 越界候选数 | 推手条件距离：扩展动作 → 画布内动作 | 方块条件距离：扩展动作 → 画布内动作 |',
            '|---|---:|---:|---:|---:|---:|']
     for r in sorted(payload['data_validation'],key=lambda x:list(TASK_NAMES).index(x['task'])):
         g=r['gaps']; low,high=r['unique_candidates_range']

@@ -46,7 +46,7 @@ The first command prints a plan without copying data. `--execute` requires an ou
 
 The [validation record](research/data/expanded_training_release_validation_v2.json) reports 11,306 payload files (53,902,593,727 bytes; 50.20 GiB) across all nine tasks and three splits. Its package manifest SHA-256 is `000558936acf89c12bfbfb407b70c5cd57ecfd7f06c0e9d90e7edb7c4f4d4eb4`. Checks covered file sizes and SHA-256 hashes, all 1,316 registered Lance tables, three directory-format Test payloads, ten Training views, all nine Development normalizers, public Test bindings, and one Training and Development model-input row per task. The Speed Test catalogs' 4,200 referenced NPZ files were included and hash checked. These checks establish package integrity and loading behavior; they do not rerun model inference or prove independent end-to-end reproduction.
 
-The [Test archive](research/data/current_reference_test_v1/overview.md) identifies the checkpoints, results, receipts and aggregate table used by the report. From the checkout, the aggregate can be recomputed without weights:
+The [Public Test results](research/data/current_reference_test_v1/overview.md) provide the aggregate table. The [checkpoint manifest](research/data/current_reference_test_v1/plan.json) and [per-run records](research/data/current_reference_test_v1/results/) identify the checkpoints, scores and evaluation receipts. From the checkout, the aggregate can be recomputed without weights:
 
 ```bash
 python scripts/summarize_current_reference_test.py \
@@ -55,4 +55,4 @@ python scripts/summarize_current_reference_test.py \
   --output-dir /tmp/contextworld-test-summary
 ```
 
-Rerunning inference requires the checkpoints and source dependencies recorded in that plan. Motion Damping scoring also requires its exact-hash [runtime provenance receipt](research/data/current_reference_test_v1/damping_runtime_provenance.json) and matching Test files. The [Test archive](research/data/current_reference_test_v1/overview.md) contains the technical runtime and receipt details. The package validation alone does not constitute a model Test result.
+Rerunning inference requires the checkpoints and source dependencies recorded in that plan. Motion Damping scoring also requires its exact-hash [runtime provenance receipt](research/data/current_reference_test_v1/damping_runtime_provenance.json) and matching Test files. That receipt records the runtime and data-file identities for the evaluation. Package validation alone does not constitute a model Test result.

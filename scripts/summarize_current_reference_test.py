@@ -177,19 +177,22 @@ def _cell_text(cell: dict | None) -> str:
     value = f"{score['mean']:.2f}"
     if score["std"] is not None:
         value += f" ± {score['std']:.2f}"
-    return f"{value} (n={coverage})"
+    return f"{value} (n={cell['completed']})"
 
 
 def render_markdown(summary: dict, task: str | None = None) -> str:
     by_key = {(c["task"], c["family"], c["regime"]): c for c in summary["cells"]}
-    lines = ["# Current reference: offline Public Test", "",
-             "Native task main scores (%), equal weight per completed training seed. "
-             "Cells show a score only when all frozen runs in that cell completed. "
-             "CEM remains in the separate Development study.", "",
-             f"Coverage: {summary['completed_runs']}/{summary['expected_runs']} runs; "
-             f"{summary['complete_cells']}/{summary['expected_cells']} complete cells.", ""]
+    lines = ["# ContextWorld Public Test 结果", "",
+             "各任务主指标均值（%，越高越好），相同配置的训练重复等权汇总。"
+             "± 为训练重复的样本标准差，n 为已评测训练重复数；只有一次训练时不显示标准差。"
+             "每项任务分别使用对应检查点，一行不代表同一份权重同时掌握九项任务。", "",
+             "训练方案、任务定义及缺项说明见[技术报告](../../../ContextWorld_ICL_Benchmark.md#training-comparison)。"
+             "原环境 CEM 与预测诊断见[结果附录](../../../reference/ContextWorld_Expanded_Training_Results.md)。"
+             "仅对预先确定的全部重复均完成评测的组合报告均值，未完成的组合标明覆盖数；未设可比检查点的单元记为 —。", "",
+             f"已评测 {summary['completed_runs']} 个检查点，覆盖 {summary['complete_cells']} 个完整模型／方案／任务组合。"
+             "逐次结果、统计量与评测身份见 [JSON](summary.json)、[CSV](summary.csv) 和[检查点清单](plan.json)。", ""]
     if task is None:
-        lines += ["| Model | Regime | " + " | ".join(TASK_ZH[t] for t in TASK_ORDER) + " |",
+        lines += ["| 模型 | 方案 | " + " | ".join(TASK_ZH[t] for t in TASK_ORDER) + " |",
                   "|---|---|" + "---:|" * len(TASK_ORDER)]
         for family in MODEL_ORDER:
             for regime in REGIME_ORDER:

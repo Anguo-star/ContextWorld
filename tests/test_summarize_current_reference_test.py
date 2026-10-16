@@ -62,7 +62,7 @@ def test_complete_cell_uses_equal_seed_mean_and_sample_std(tmp_path: Path) -> No
     with (output / "summary.csv").open() as stream:
         row = next(csv.DictReader(stream))
     assert row["main_mean"] == "50.0"
-    assert "50.00 ± 30.00 (n=3/3)" in (output / "overview.md").read_text()
+    assert "50.00 ± 30.00 (n=3)" in (output / "overview.md").read_text()
 
 
 def test_native_fraction_is_rendered_as_percent(tmp_path: Path) -> None:
@@ -73,7 +73,7 @@ def test_native_fraction_is_rendered_as_percent(tmp_path: Path) -> None:
     _result(root, run, 0.974609, plan)
     data = summary.summarize(plan, root)
     assert data["cells"][0]["main"]["mean"] == pytest.approx(97.4609)
-    assert "97.46 (n=1/1)" in summary.render_markdown(data)
+    assert "97.46 (n=1)" in summary.render_markdown(data)
 
 
 def test_incomplete_and_invalid_runs_are_not_rankable(tmp_path: Path) -> None:
@@ -92,7 +92,7 @@ def test_incomplete_and_invalid_runs_are_not_rankable(tmp_path: Path) -> None:
     assert len(data["failures"]) == 1
     assert "待完成 (1/3)" in summary.render_markdown(data)
     assert "60.00" not in summary.render_markdown(data)
-    assert "CEM remains" in summary.render_markdown(data)
+    assert "原环境 CEM" in summary.render_markdown(data)
 
 
 def test_duplicate_frozen_run_rejected(tmp_path: Path) -> None:

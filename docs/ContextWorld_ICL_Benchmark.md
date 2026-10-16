@@ -387,7 +387,7 @@ T2 / T3 加载模型权重后重新建立优化器，不接续 T0 的优化器�
 
 DINO-WM 的 T1 也使用预训练视觉 Encoder，不能解释为整个模型都从随机权重开始。它的 T3 加载在原环境训练过的预测器等模块，视觉 Encoder 仍保持冻结；本报告没有更新其 Encoder 的 T2 方案。T0 与 T3 的预测器均遵守图像与动作输入约定。
 
-本报告的对比配方各阶段使用 **8 张 GPU、每卡 batch size 128、梯度累积 1（全局 batch size 1024）**。输入为图像与动作；通常使用 3 帧历史、帧间隔 5、预测下一帧，动作延迟的 ICL 训练使用 7 帧历史。训练目标沿用各模型的原生目标，未添加 COJA 辅助损失。T3 改变 Encoder 的更新方式，其余原生损失保留。入口与参数映射见[训练配置](../configs/training/stablewm_family_profiles_v1.yaml)及[模型训练指南](StableWM_Training.md)。
+本报告的对比配方各阶段使用 **8 张 GPU、每卡 batch size 128、梯度累积 1（全局 batch size 1024）**。输入为图像与动作；通常使用 3 帧历史、帧间隔 5、预测下一帧，动作延迟的 ICL 训练使用 7 帧历史。训练目标沿用各模型的原生目标，未添加额外辅助损失。T3 改变 Encoder 的更新方式，其余原生损失保留。入口与参数映射见[训练配置](../configs/training/stablewm_family_profiles_v1.yaml)及[模型训练指南](StableWM_Training.md)。
 
 **数据来源与混合方式。**
 

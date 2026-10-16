@@ -26,10 +26,13 @@ Stable-WorldModel fork. Use the public checkout and revision recorded by the
 profile:
 
 ```bash
+# Run from the ContextWorld checkout. The subshell preserves that directory.
 git clone https://github.com/galilai-group/stable-worldmodel
-cd stable-worldmodel
-git checkout addbab40377da680dadbfbc90250fe749f6f57e3
-uv sync --extra all
+(
+  cd stable-worldmodel
+  git checkout addbab40377da680dadbfbc90250fe749f6f57e3
+  uv sync --extra all
+)
 ```
 
 Run the ContextWorld entry from an environment containing the upstream
