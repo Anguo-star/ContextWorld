@@ -1,6 +1,6 @@
 # ContextWorld dataset: format and loading
 
-The current ContextWorld dataset contains Training, Development and public Test data for nine tasks. The complete bundle is assembled and verified locally, but no stable public download revision or model checkpoints are available yet. This guide describes how to use a complete local bundle; see the [dataset package guide](Expanded_Training_Release.md) to build and verify one from the source bundles.
+ContextWorld packages Training, Development and Test data for nine tasks. The complete bundle is prepared locally; a public Hugging Face repository and download revision have not yet been published. The commands below explain how to download a published revision and use the same package locally. Model weights are distributed separately from the dataset. See the [package guide](Expanded_Training_Release.md) for composition and verification results.
 
 ## Bundle and splits
 
@@ -8,7 +8,28 @@ The bundle keeps its native Lance and JSON files. `task_registry.json` is the en
 
 The bundle does not provide a `datasets.load_dataset()` script or a Hugging Face dataset viewer. Original-environment H5 datasets, model weights and training logs are separate dependencies and are not included in this package. Dataset metadata describe the payloads; model scores are reported separately in the [report's Public Test table](ContextWorld_ICL_Benchmark.md#training-comparison) and its linked result files.
 
+## Download a fixed revision
+
+Once the dataset is published, use its announced repository ID and commit hash. These placeholders are not an existing download address:
+
+```bash
+pip install huggingface_hub
+export CW_HF_DATASET_ID=your-account/ContextWorld
+export CW_HF_REVISION=published-commit-hash
+export CONTEXTWORLD_BENCHMARK_ROOT=/absolute/path/to/ContextWorld
+hf download "$CW_HF_DATASET_ID" --repo-type dataset \
+  --revision "$CW_HF_REVISION" --local-dir "$CONTEXTWORLD_BENCHMARK_ROOT"
+```
+
+Download the complete repository, including manifests, registries and normalizers. Native Lance tables contain several interdependent files. Reserve at least 55 GiB for the dataset; model weights and runtime dependencies require additional space.
+
 ## Load a local bundle
+
+From a ContextWorld code checkout, install the readers:
+
+```bash
+pip install -e ".[eval]"
+```
 
 Set an absolute path to the complete bundle, regardless of its directory name:
 
@@ -36,15 +57,15 @@ Original-environment H5 files used by original-data training, mixed training and
 
 ## Verify a bundle
 
-From the ContextWorld repository, with the source bundles available under a separate data root, run:
+Run these commands from the ContextWorld checkout:
 
 ```bash
-export CONTEXTWORLD_DATASET_ROOT=/path/to/source-data-root
-python scripts/package_expanded_training_release.py \
-  --dataset-root "$CONTEXTWORLD_DATASET_ROOT" \
-  --output "$CONTEXTWORLD_BENCHMARK_ROOT" --verify
+contextworld-benchmark audit --full \
+  --benchmark-root "$CONTEXTWORLD_BENCHMARK_ROOT"
 python scripts/validate_expanded_training_release_loads.py \
   --release-root "$CONTEXTWORLD_BENCHMARK_ROOT"
 ```
 
-The package check compares the bundle with pinned source manifests; the loading check opens the registered payloads and loader entry points. The [release guide](Expanded_Training_Release.md) gives the build command, exact validation scope and publication status.
+Both commands use only the downloaded bundle. The first checks the manifest, file sizes and SHA-256 hashes; omitting `--full` gives a faster size and metadata check. The second opens registered tables, validates split bindings and normalizers, and reads sample Training and Development inputs. These are data checks, not model scores. The source-build verifier is for maintainers rebuilding from the original source bundles; downloaders do not need those sources.
+
+For final Test scoring, the public entry point verifies the selected task's Test files and scoring configuration against the bundle before running the task scorer. Images and actions are read from the bundle, while the installed ContextWorld checkout provides the scoring code. Record both the dataset commit and code commit with each result. A complete rerun of the report additionally requires its model checkpoints and model-runtime dependencies.

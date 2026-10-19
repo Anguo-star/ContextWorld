@@ -55,9 +55,9 @@ from contextworld.benchmarks.bundle_development import (
     evaluate_bundle_development_model,
     resolve_development_payload,
 )
+from contextworld.benchmarks.bundle_test import verify_public_test_bundle
 from contextworld.paths import repository_root, resolve_contextworld_path
 from contextworld.synthesis.manifest import write_json
-from contextworld.training.stablewm_bundle import resolve_contextworld_bundle
 
 
 ROOT = repository_root()
@@ -220,8 +220,8 @@ TASKS: dict[str, TaskBinding] = {
             "load_motion_damping_icl_release"
         ),
         scorer=(
-            f"{_SCORE}.motion_damping_icl_score."
-            "evaluate_motion_damping_icl_model"
+            f"{_SCORE}.motion_damping_bundle_score."
+            "evaluate_motion_damping_bundle_model"
         ),
         builtins=_families("MotionDamping"),
         action_source="statistics",
@@ -468,100 +468,10 @@ def _benchmark_root(args: argparse.Namespace) -> Path:
     return Path(str(path))
 
 
-def _public_test_bundle_binding(
-    bundle_root: Path, *, task: str
-) -> dict[str, Any]:
-    """Validate the manifest-bound public Test payload for one task."""
+def _public_test_bundle_binding(bundle_root: Path, *, task: str) -> dict[str, Any]:
+    """Compatibility entry point for selected-task bundle verification."""
 
-    identity = resolve_contextworld_bundle(bundle_root)
-    registry_path = bundle_root / "task_registry.json"
-    registry = json.loads(registry_path.read_text(encoding="utf-8"))
-    public = registry.get("public_test")
-    if (
-        not isinstance(public, dict)
-        or public.get("included") is not True
-        or public.get("policy") != PUBLIC_TEST_POLICY
-    ):
-        raise ValueError(
-            "ContextWorld-v1 bundle does not publish the offline Test split"
-        )
-    matches = [
-        component
-        for component in registry.get("components", [])
-        if component.get("component_id") == task
-    ]
-    if len(matches) != 1:
-        raise ValueError(f"Unknown or duplicate ContextWorld component: {task}")
-    evaluation = matches[0].get("public_test_evaluation")
-    if (
-        not isinstance(evaluation, dict)
-        or evaluation.get("schema_version")
-        != PUBLIC_TEST_EVALUATION_SCHEMA_VERSION
-        or evaluation.get("status") != PUBLIC_TEST_EVALUATION_STATUS
-        or evaluation.get("split") != "test"
-    ):
-        raise ValueError(f"Invalid public Test contract for {task}")
-    relative_root = Path(str(evaluation.get("artifact_root", "")))
-    if (
-        relative_root.is_absolute()
-        or ".." in relative_root.parts
-        or not relative_root.parts
-        or relative_root.parts[0] != "artifacts"
-    ):
-        raise ValueError(f"Unsafe public Test artifact root for {task}")
-    artifact_root = bundle_root / relative_root
-    if not artifact_root.exists():
-        raise ValueError(f"Missing public Test payload for {task}: {artifact_root}")
-
-    payloads = evaluation.get("payloads")
-    if not isinstance(payloads, list) or not payloads:
-        raise ValueError(f"Public Test contract has no payload binding for {task}")
-    prefixes: list[str] = []
-    for payload in payloads:
-        if not isinstance(payload, dict):
-            raise ValueError(f"Invalid public Test payload binding for {task}")
-        public_path = Path(str(payload.get("public_path", "")))
-        if (
-            public_path.is_absolute()
-            or ".." in public_path.parts
-            or (public_path != relative_root and relative_root not in public_path.parents)
-        ):
-            raise ValueError(f"Public Test payload escapes artifact root for {task}")
-        if not (bundle_root / public_path).exists():
-            raise ValueError(f"Missing public Test payload binding for {task}")
-        prefixes.append(public_path.as_posix().rstrip("/") + "/")
-
-    covered = [False] * len(prefixes)
-    manifest_rows = 0
-    with (bundle_root / "manifest.jsonl").open("r", encoding="utf-8") as stream:
-        for line_number, line in enumerate(stream, 1):
-            try:
-                row = json.loads(line)
-            except json.JSONDecodeError as exc:
-                raise ValueError(
-                    f"Malformed manifest.jsonl record at line {line_number}"
-                ) from exc
-            if row.get("role") != "dataset_payload" or row.get("split") != "test":
-                continue
-            if row.get("component") != task:
-                continue
-            path = str(row.get("path", ""))
-            if "score_receipts/" in path:
-                raise ValueError("Internal score receipts entered the public Test bundle")
-            for index, prefix in enumerate(prefixes):
-                if path == prefix[:-1] or path.startswith(prefix):
-                    covered[index] = True
-                    manifest_rows += 1
-                    break
-    if not all(covered):
-        raise ValueError(f"Manifest does not bind every public Test payload for {task}")
-    return {
-        **identity,
-        "task": task,
-        "artifact_root": relative_root.as_posix(),
-        "manifest_payload_files": manifest_rows,
-        "selection_policy": evaluation.get("selection_policy"),
-    }
+    return verify_public_test_bundle(bundle_root, task=task)
 
 
 def _public_model_cache_root(args: argparse.Namespace) -> Path:
@@ -699,10 +609,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             include_records=bool(getattr(args, "include_records", False)),
         )
     else:
-        payload = binding.load_scorer()(
-            adapter=adapter,
-            **_scorer_keywords(binding, args, repo_root=bundle_root),
-        )
+        score_keywords = _scorer_keywords(binding, args, repo_root=bundle_root)
+        if binding.task == "motion_damping":
+            score_keywords["test_bundle_root"] = bundle_root
+        payload = binding.load_scorer()(adapter=adapter, **score_keywords)
 
     # Stamped, not merged into the evaluator payload keys, so a public
     # Development run cannot be replayed as a held-out Public-Test result.

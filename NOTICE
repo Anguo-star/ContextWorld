@@ -29,25 +29,14 @@ them from their original source. Their MIT terms govern their use.
 
 
 --------------------------------------------------------------------------
-2. Baseline checkpoints — this repository's own output
+2. Models and pretrained components
 --------------------------------------------------------------------------
 
-The eight fixed baseline checkpoints (LeWM and PLDM, across TwoRoom, PushT,
-Reacher and Cube) were TRAINED IN THIS REPOSITORY from the datasets in
-section 1, following LeWM's baseline recipe for 10 epochs, evaluated at the
-end-of-training weights. No fine-tuning, continued training, or score-based
-checkpoint selection was performed.
-
-They are NOT LeWM's published pretrained weights, and must not be described
-as such. An earlier version of this repository's documentation made that
-claim; it was incorrect and was withdrawn. The correction and its evidence
-are recorded in
-`configs/benchmark/contextworld_icl_suite_v2_baseline_provenance_correction_v1.yaml`.
-
-One upstream pretrained checkpoint was downloaded during development
-(`quentinll/lewm-reacher/ckpt_hf/weights.pt`). It is not among the baselines,
-is referenced by no preregistration or scoreboard row, and contributes to no
-published number. It is not redistributed here.
+The benchmark compares LeWM, PLDM and DINO-WM using the training schemes
+specified in the technical report. Project-trained checkpoints and upstream
+pretrained components are distinguished there. Model weights are not included
+in the dataset package and are not covered by its generated-data license.
+Upstream pretrained components retain their original terms and attribution.
 
 
 --------------------------------------------------------------------------
@@ -56,11 +45,11 @@ published number. It is not redistributed here.
 
     https://github.com/galilai-group/stable-worldmodel
     License: MIT
-    Pinned commit: 875e607fc08aa72eacb94d5d178127804134cc06
 
 Provides the world-model implementations and simulator backends that the
-benchmark's adapters load. Referenced by pinned commit and installed as a
-dependency; NOT REDISTRIBUTED by this repository.
+benchmark's adapters load. Installed as a separate dependency; NOT REDISTRIBUTED in the data package.
+The training and evaluation records identify the runtime revision used for
+each reported result.
 
 
 --------------------------------------------------------------------------

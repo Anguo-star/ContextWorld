@@ -17,7 +17,7 @@ TASKS = ('speed', 'door', 'action_delay', 'action_strength', 'contact_friction',
          'motion_damping', 'robot_arm_mass', 'cube_gripper_carry', 'portal_exit')
 BASE = 'ContextWorld-v1'
 TEST = 'ContextWorld-v1-full'
-VERSION = 'contextworld-expanded-training-v1-hf-rc2'
+VERSION = 'contextworld-benchmark-v1'
 SPEED_TEST_SOURCE = 'context_world_speed_multistep_extrap_v5'
 SPEED_TEST_REL = 'artifacts/evaluation/history3/speed_multistep_extrap_v5'
 SPEED_TEST_SOURCE_REL = 'context_world/evaluation/history3/speed_multistep_extrap_v5'
@@ -133,7 +133,7 @@ def plan(root):
     merged['components'] = [components[c['component_id']] for c in merged['components']]
     merged['public_test'] = bundles[TEST]['registry']['public_test']
     merged['export_id'] = VERSION
-    merged['release_status'] = 'staging_not_public_release'
+    merged['release_status'] = 'ready_for_upload'
     return bundles, selected, merged, expanded
 
 
@@ -163,26 +163,13 @@ def package_file_paths(output):
     return [path for path in output.rglob('*') if path.is_file() and path not in excluded]
 
 
-def render_card(expanded):
-    card = (REPO / 'docs/templates/ContextWorld_Expanded_Training_Card.md').read_text()
-    card = card.replace(
-        '**Unpublished preparation draft.** This card describes a proposed nine-task package. Local package validation and the final release revision are pending.',
-        f'**Unpublished release candidate `{VERSION}`.** This package contains nine tasks and passed local manifest and payload loading checks.')
-    card = card.replace(
-        'Final download and loader commands will be added after the assembled package is validated and a release revision is assigned.',
-        'Open each Lance table at the paths in `task_registry.json` with `lance.dataset(path)`. Collection payloads list individual table paths in `members`.')
-    card += '\n## Package inventory\n\n' + '\n'.join(
-        f'- `{task}`: Training `{expanded.get(task, (BASE, None))[0]}`; Development `{BASE}`; Test `{TEST}`.'
-        for task in sorted(TASKS)) + ('\n\nThe Speed Test directory also includes every NPZ payload referenced by its four frozen catalogs. '
-                                      'The inherited `registry_contract.json` files describe Development only.\n\n'
-                                      'Local manifest and payload loading checks do not establish a self-contained Test runtime. '
-                                      'The Motion Damping Test still depends on historical release source identity and runtime artifacts under separate review.\n')
-    return card
+def render_card(expanded=None):
+    return (REPO / 'docs/templates/ContextWorld_Expanded_Training_Card.md').read_text()
 
 
 def render_version(bundles, expanded):
     return {'schema_version': 1, 'dataset_version': VERSION,
-            'representation': 'native_lance_snapshot', 'release_status': 'staging_not_public_release',
+            'representation': 'native_lance_snapshot', 'release_status': 'ready_for_upload',
             'public_test_included': True, 'evaluation_source_policy': 'frozen_development_and_test',
             'source_bundles': {name: {'manifest_sha256': bundle['manifest_sha256'],
                                      'task_registry_sha256': bundle['registry_sha256']}
@@ -190,8 +177,7 @@ def render_version(bundles, expanded):
             'supplemental_sources': {SPEED_TEST_SOURCE: {
                 'source_relative_root': SPEED_TEST_SOURCE_REL,
                 'identity': 'payload_sha256 in the four frozen Speed Test catalogs'}},
-            'training_sources': {task: expanded.get(task, (BASE, None))[0] for task in TASKS},
-            'baseline_id': v3.BASELINE_ID, 'baseline_sha256': v3.PINS['baseline']}
+            'training_sources': {task: expanded.get(task, (BASE, None))[0] for task in TASKS}}
 
 
 def render_inventory(selected):
@@ -233,16 +219,10 @@ def execute(root, output, workers):
             if not row or row['role'] != 'release_metadata':
                 raise ValueError(f'Missing normalizer/contract metadata: {rel}')
             copy_verified(bundles[BASE]['root'] / rel, output / rel, row)
-        ref = REPO / v3.BASELINE_REL
-        dst = output / 'reference' / ref.name
-        dst.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(ref, dst)
-        if v3.sha256_file(dst)[1] != v3.PINS['baseline']:
-            raise ValueError('Reference baseline pin mismatch')
         for name in v3.LEGAL_FILES:
             shutil.copyfile(REPO / name, output / name)
         (output / 'README.md').write_text(render_card(expanded))
-        (output / '.gitattributes').write_text('*.lance filter=lfs diff=lfs merge=lfs -text\n*.txn filter=lfs diff=lfs merge=lfs -text\n*.manifest filter=lfs diff=lfs merge=lfs -text\n')
+        (output / '.gitattributes').write_text(lfs_attributes())
         manifest = []
         payload_by_path = {r['path']: r for r in selected}
         for path in package_file_paths(output):
@@ -295,6 +275,107 @@ def verify(root, output, workers):
             'component_split_count': len({(r['component'], r['split']) for r in expected})}
 
 
+def lfs_attributes():
+    return ''.join(f'*.{ext} filter=lfs diff=lfs merge=lfs -text\n'
+                   for ext in ('lance', 'txn', 'manifest', 'npz'))
+
+
+def prepare_from(source, output, workers):
+    """Verify a complete local candidate and reuse its native payloads in a final package."""
+    if workers < 1:
+        raise ValueError('workers must be positive')
+    if output.exists() or output.is_symlink():
+        raise ValueError(f'Output exists: {output}')
+    if (source.resolve() in output.resolve().parents or output.resolve() in source.resolve().parents
+            or source.resolve() == output.resolve() or (source / '.build_in_progress').exists()):
+        raise ValueError('Source candidate is incomplete or output overlaps source')
+    manifest_path = v3.regular_file(source, 'manifest.jsonl')
+    sidecar = v3.regular_file(source, 'manifest.sha256').read_text().split()
+    data = manifest_path.read_bytes()
+    if sidecar != [hashlib.sha256(data).hexdigest(), 'manifest.jsonl']:
+        raise ValueError('Source manifest sidecar mismatch')
+    rows = [json.loads(line) for line in data.splitlines() if line.strip()]
+    paths = [row.get('path') for row in rows]
+    if (any(not v3.is_safe_rel(p) for p in paths)
+            or len(set(paths)) != len(paths)
+            or any(row.get('role') not in ('dataset_payload', 'release_metadata') for row in rows)):
+        raise ValueError('Source manifest has duplicate or unsafe paths')
+    listed = set(paths) | {'manifest.jsonl', 'manifest.sha256'}
+    found = {p.relative_to(source).as_posix() for p in source.rglob('*') if p.is_file()}
+    if found != listed:
+        raise ValueError('Source candidate has unlisted or missing files')
+
+    def check(row):
+        path = v3.regular_file(source, row['path'])
+        if v3.sha256_file(path) != (row['bytes'], row['sha256']):
+            raise ValueError(f'Source candidate hash mismatch: {row["path"]}')
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        list(pool.map(check, rows))
+
+    payloads = [row for row in rows if row['role'] == 'dataset_payload']
+    registry = json.loads(v3.regular_file(source, 'task_registry.json').read_text())
+    version = json.loads(v3.regular_file(source, 'VERSION.json').read_text())
+    inventory_data = json.loads(v3.regular_file(source, 'inventory.json').read_text())
+    registry['export_id'] = VERSION
+    registry['release_status'] = 'ready_for_upload'
+    version['dataset_version'] = VERSION
+    version['release_status'] = 'ready_for_upload'
+    version.pop('baseline_id', None)
+    version.pop('baseline_sha256', None)
+    inventory_data['dataset_version'] = VERSION
+    omitted = {row['path'] for row in rows if row['path'].startswith('reference/')}
+    replaced = {'task_registry.json', 'VERSION.json', 'inventory.json', 'README.md',
+                '.gitattributes', *v3.LEGAL_FILES}
+    output.mkdir(parents=True)
+    marker = output / '.build_in_progress'
+    marker.write_text('final package incomplete\n')
+    try:
+        for row in rows:
+            rel = row['path']
+            if rel in omitted or rel in replaced:
+                continue
+            dst = output / rel
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            src = source / rel
+            if row['role'] == 'dataset_payload':
+                try:
+                    os.link(src, dst)
+                except OSError:
+                    copy_verified(src, dst, row)
+            else:
+                shutil.copyfile(src, dst)
+        write_json(output / 'task_registry.json', registry)
+        write_json(output / 'VERSION.json', version)
+        write_json(output / 'inventory.json', inventory_data)
+        (output / 'README.md').write_text(render_card())
+        (output / '.gitattributes').write_text(lfs_attributes())
+        for name in v3.LEGAL_FILES:
+            shutil.copyfile(REPO / name, output / name)
+        payload_by_path = {row['path']: row for row in payloads}
+        manifest = []
+        for path in package_file_paths(output):
+            rel = path.relative_to(output).as_posix()
+            old = payload_by_path.get(rel)
+            size, digest = ((old['bytes'], old['sha256']) if old else v3.sha256_file(path))
+            manifest.append({'path': rel, 'bytes': size, 'sha256': digest,
+                             'role': 'dataset_payload' if old else 'release_metadata',
+                             **({key: old[key] for key in ('component', 'split', 'source_bundle',
+                                                            'source_path', 'source_sha256')}
+                                if old else {})})
+        data = ''.join(json.dumps(row, sort_keys=True) + '\n'
+                       for row in sorted(manifest, key=lambda row: row['path'])).encode()
+        (output / 'manifest.jsonl').write_bytes(data)
+        digest = hashlib.sha256(data).hexdigest()
+        (output / 'manifest.sha256').write_text(f'{digest}  manifest.jsonl\n')
+        marker.unlink()
+        return {'status': 'passed', 'output': str(output), 'payload_files': len(payloads),
+                'payload_bytes': sum(row['bytes'] for row in payloads),
+                'manifest_sha256': digest}
+    except BaseException:
+        print(f'Incomplete final package retained at {output}', file=sys.stderr)
+        raise
+
+
 def finalize(root, output, workers):
     """Finish a complete copy interrupted while writing its metadata manifest."""
     if not (output / '.build_in_progress').is_file() or (output / 'manifest.jsonl').exists():
@@ -325,7 +406,8 @@ def finalize(root, output, workers):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument('--dataset-root', type=Path, required=True)
+    ap.add_argument('--dataset-root', type=Path)
+    ap.add_argument('--prepare-from', type=Path)
     ap.add_argument('--output', type=Path, required=True)
     ap.add_argument('--execute', action='store_true')
     ap.add_argument('--verify', action='store_true')
@@ -333,7 +415,13 @@ def main():
     ap.add_argument('--workers', type=int, default=8)
     args = ap.parse_args()
     try:
-        if args.finalize:
+        if args.prepare_from:
+            if args.execute or args.verify or args.finalize or args.dataset_root:
+                raise ValueError('--prepare-from cannot be combined with source-build options')
+            result = prepare_from(args.prepare_from, args.output, args.workers)
+        elif not args.dataset_root:
+            raise ValueError('--dataset-root is required except with --prepare-from')
+        elif args.finalize:
             result = finalize(args.dataset_root, args.output, args.workers)
         elif args.execute:
             result = execute(args.dataset_root, args.output, args.workers)
