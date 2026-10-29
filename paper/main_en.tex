@@ -206,13 +206,13 @@ We count the prediction from the matching history as correct only when its error
 For action delay, the prediction horizon is five simulator steps.
 Delays 0--4 form five separate response groups, while delays 5--10 form one group because the action has not yet taken effect.
 We assign each prediction to the group containing the closest true future, compute accuracy for each group, and report the mean across the six groups.
-Appendix~\ref{app:prediction-accuracy} gives the detailed scoring rules.
+Appendix~\ref{app:evaluation-details} gives the detailed scoring rules.
 
 \paragraph{Multi-step prediction error.}
 High prediction accuracy does not guarantee low prediction error.
 We therefore evaluate predictions over multiple steps, using the same future action sequences for all dynamics conditions in each scene.
 Models roll out from the observed interaction history without receiving further ground-truth observations.
-We measure errors at 5, 10, 15, 20, and 25 simulator steps.
+We evaluate five successive predictions, up to 25 simulator steps ahead (Appendix~\ref{app:evaluation-details}).
 
 We normalize the error by a reference computed from the true futures.
 For a given scene, action sequence, and prediction time, the mean future minimizes squared error among predictions that are identical across conditions, when those conditions are weighted equally.
@@ -410,8 +410,8 @@ Hidden dynamics values, simulator states, and pair identifiers are retained for 
 They are not passed to the prediction model, which receives only the visual observations and actions defined in Sec.~\ref{sec:problem}.
 
 
-\section{Prediction Accuracy Details}
-\label{app:prediction-accuracy}
+\section{Evaluation Details}
+\label{app:evaluation-details}
 
 \paragraph{Paired tasks.}
 The strict comparisons in Eq.~\ref{eq:future-score} do not count ties as correct.
@@ -434,5 +434,9 @@ The final accuracy is the mean over cases.
 For a prediction made with matching history, we compare the mean squared errors to the passage and blockage futures.
 The prediction is correct only if the error to the true future is strictly smaller than the error to the alternative future.
 Accuracy is averaged over cases and the two rules; ties do not count as correct.
+
+\paragraph{Multi-step prediction horizons.}
+Each prediction step advances five simulator steps.
+We measure prediction errors at 5, 10, 15, 20, and 25 simulator steps after the current observation.
 
 \end{document}
