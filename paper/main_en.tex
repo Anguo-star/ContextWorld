@@ -214,8 +214,8 @@ We therefore evaluate predictions over multiple steps, using the same future act
 Models roll out from the observed interaction history without receiving further ground-truth observations.
 We evaluate five successive predictions, up to 25 simulator steps ahead (Appendix~\ref{app:evaluation-details}).
 
-We normalize the error by a reference computed from the true futures.
-For a given scene, action sequence, and prediction time, the mean future minimizes squared error among predictions that are identical across conditions, when those conditions are weighted equally.
+We normalize prediction error by a reference error, following the principle of forecast skill evaluation~\cite{murphy1988skill}.
+For a given scene, action sequence, and prediction time, the mean future minimizes squared error among predictions that are identical across conditions, when those conditions are weighted equally~\cite{gneiting2011point}.
 For scene $q$, this mean is $\bar z_{qct}=K_q^{-1}\sum_k z_{qkct}$.
 Here, $K_q$ is the number of conditions, $C_q$ is the number of shared action sequences, and $T=5$ is the number of evaluation times.
 The true and predicted representations for condition $k$, action sequence $c$, and evaluation time $t$ are $z_{qkct}$ and $\hat z_{qkct}$.
@@ -235,7 +235,8 @@ When conditions share the current observation and future actions and are equally
 This ratio measures complete prediction error, but does not establish whether matching history helps more than mismatched history.
 
 \paragraph{History controls.}
-We replace the history with one from a different dynamics condition in the same scene, while keeping the current observation, future actions, and scoring target unchanged.
+Prior work evaluates reliance on context by perturbing observations in the history~\cite{wang2026context}.
+Here, we replace the history with one from a different dynamics condition in the same scene, while keeping the current observation, future actions, and scoring target unchanged.
 The target remains the true future of the original condition; replacing the model's input does not change the environment being predicted.
 History (\%) reports how often matching history gives strictly lower prediction error than mismatched history.
 Speed also uses this strict comparison as its task score.
@@ -275,7 +276,7 @@ Training analyses therefore describe each checkpoint in its own target space; er
 The metrics describe different aspects of the same predictions and are not independent pieces of evidence.
 
 We weight training runs with the same settings equally and report their standard deviation.
-For multi-step errors, bootstrap resampling~\cite{efron1993bootstrap} groups samples by source trajectory or scene, retaining related samples together.
+For multi-step errors, cluster bootstrap resampling~\cite{efron1993bootstrap,field2007cluster} groups samples by source trajectory or scene, retaining related samples together.
 These intervals describe scene-sampling uncertainty for the evaluated checkpoints.
 We report planning performance with the cross-entropy method (CEM)~\cite{deboer2005cem} in the original environments separately to measure retention of planning ability.
 Since these environments need not require adaptation to changing dynamics, their planning scores do not replace the adaptation evaluation.
