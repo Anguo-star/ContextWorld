@@ -14,23 +14,7 @@
 \maketitle
 
 \begin{abstract}
-Visual world models learn environment dynamics, which describe how states change in response to actions, to predict future states.
-Latent world models encode visual observations as latent states and predict their evolution.
-Under different dynamics, the same current observation and action sequence can lead to different outcomes.
-Interaction history can provide evidence about the environment's hidden dynamics.
-However, a model can achieve low prediction error without using interaction history.
-We therefore introduce ContextWorld, a benchmark for in-context dynamics adaptation.
-We replace the interaction history while holding the current observation and future actions fixed.
-We then measure prediction changes and evaluate prediction accuracy.
-The benchmark includes nine tasks across four environments and provides separate training and evaluation data.
-Evaluation data come from continuous interactions and include paired samples with histories and ground-truth future states under different dynamics.
-With weights fixed, models receive only a history of visual observations and executed actions, together with a future action sequence.
-Our evaluation of widely used latent world models shows that models trained only under fixed dynamics make limited use of interaction history.
-Mixing ContextWorld training data with the original data improves this ability, with gains from data scaling varying across tasks.
-Different models excel on different tasks, and effective training strategies vary across models and tasks.
-ContextWorld reveals these differences in history use and prediction accuracy.
-Further analysis shows that, under some training strategies, models make limited use of history even on the training set, despite decreasing training loss.
-This suggests that existing training objectives may not sufficiently encourage in-context dynamics adaptation.
+Latent world models predict future states from visual observations and actions. However, when environment dynamics vary, accurate prediction requires inferring hidden physical properties from interaction history. Because models can often exploit immediate visual shortcuts or predict average dynamics to achieve low loss without history conditioning, conventional prediction accuracy fails to reveal true adaptation. We introduce ContextWorld, a benchmark evaluating in-context dynamics adaptation under strictly frozen weights. ContextWorld employs paired counterfactual evaluations---varying interaction histories while holding the current observation and future action sequence fixed---to concurrently quantify history sensitivity (whether predictions respond to altered context) and adaptation accuracy (whether predictions match ground-truth futures under the true dynamics). It encompasses nine tasks across four environments, equipped with paired rollouts across diverse dynamics. Our evaluation of representative latent world models yields three key findings: First, models trained under fixed dynamics make negligible use of interaction history. Second, mixing multi-dynamics data improves history responsiveness, but gains from data scaling and architectures are highly inconsistent across tasks. Third, under certain training schemes, models fail to effectively leverage history even on the training distribution, despite steadily decreasing training loss. These results reveal a fundamental objective misalignment: standard prediction losses do not inherently drive in-context dynamics adaptation, underscoring the need for objectives and benchmarks explicitly targeted at context-driven physical reasoning.
 \end{abstract}
 
 \section{Introduction}
