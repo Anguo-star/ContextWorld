@@ -1,0 +1,454 @@
+% English manuscript.
+% Chinese title: ContextWorld：潜在空间视觉世界模型的上下文动力学适应基准
+\documentclass[10pt,twocolumn,letterpaper]{article}
+\usepackage[pagenumbers]{cvpr}
+\usepackage{tabularx}
+\definecolor{cvprblue}{rgb}{0.21,0.49,0.74}
+\usepackage[pagebackref,breaklinks,colorlinks,allcolors=cvprblue]{hyperref}
+\def\paperID{*****}
+\def\confName{CVPR}
+\def\confYear{2027}
+\title{ContextWorld: Benchmarking In-Context Dynamics Adaptation in Latent Visual World Models}
+\author{}
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Visual world models learn environment dynamics, which describe how states change in response to actions, to predict future states.
+Latent world models encode visual observations as latent states and predict their evolution.
+Under different dynamics, the same current observation and action sequence can lead to different outcomes.
+Interaction history can provide evidence about the environment's hidden dynamics.
+However, a model can achieve low prediction error without using interaction history.
+We therefore introduce ContextWorld, a benchmark for in-context dynamics adaptation.
+We replace the interaction history while holding the current observation and future actions fixed.
+We then measure prediction changes and evaluate prediction accuracy.
+The benchmark includes nine tasks across four environments and provides separate training and evaluation data.
+Evaluation data come from continuous interactions and include paired samples with histories and ground-truth future states under different dynamics.
+With weights fixed, models receive only a history of visual observations and executed actions, together with a future action sequence.
+Our evaluation of widely used latent world models shows that models trained only under fixed dynamics make limited use of interaction history.
+Mixing ContextWorld training data with the original data improves this ability, with gains from data scaling varying across tasks.
+Different models excel on different tasks, and effective training strategies vary across models and tasks.
+ContextWorld reveals these differences in history use and prediction accuracy.
+Further analysis shows that, under some training strategies, models make limited use of history even on the training set, despite decreasing training loss.
+This suggests that existing training objectives may not sufficiently encourage in-context dynamics adaptation.
+\end{abstract}
+
+\section{Introduction}
+\label{sec:introduction}
+
+Visual world models learn environment dynamics and predict future states~\cite{ha2018worldmodels}.
+Latent world models make these predictions in a learned representation of visual observations~\cite{hafner2019planet,hafner2020dreamer}.
+A model trained under fixed dynamics may predict accurately without using interaction history to adapt its predictions to the current dynamics.
+Such predictions may fail when the dynamics change~\cite{wang2026context}.
+For example, visually identical objects can move different distances under the same push if friction differs.
+Interaction history can provide evidence about these hidden conditions.
+We ask whether models can use this evidence to predict future states under the current dynamics without updating their weights, an ability we call \emph{in-context dynamics adaptation}.
+
+Physical prediction benchmarks test whether observed interactions help models predict outcomes governed by hidden properties~\cite{baradel2020cophy,tung2023physionpp}.
+We introduce ContextWorld to evaluate this ability directly in action-conditioned latent world models, using their existing predictors without training a separate classifier for future events.
+The benchmark covers nine tasks across four environments and provides separate training and evaluation data.
+In its paired tasks, two dynamics conditions share the same current observation and future actions but produce different true futures.
+Interaction history is therefore necessary to distinguish the two outcomes.
+We first measure the error between each prediction and its corresponding true future.
+When the dynamics change, the same actions can lead to different outcomes.
+We test whether the model predicts these differences accurately.
+To test whether interaction history helps prediction, we replace it with history from the other dynamics setting.
+In this control, we retain the original future as the scoring target: an increase in error indicates that the original history helped predict this future.
+Prediction errors are measured within each model's latent space.
+Histories and true futures come from continuous simulator interactions; models receive only visual observations and actions, and their weights remain fixed during evaluation.
+The training data allow us to examine whether exposure to varied dynamics helps models acquire this ability.
+
+We evaluate LeWM~\cite{maes2026leworldmodel}, PLDM~\cite{sobal2025pldm}, and DINO-WM~\cite{zhou2025dinowm} and find limited use of interaction history on most tasks after training under fixed dynamics.
+To examine how this ability can be learned, we mix ContextWorld training data with the original data and compare training from scratch with fine-tuning models pretrained under fixed dynamics.
+We train models separately for each task; DINO-WM retains its frozen pretrained visual encoder in both settings.
+We scale up the ContextWorld training data and examine how freezing the visual encoder during fine-tuning affects the use of interaction history in LeWM and PLDM.
+Data scaling improves history use on several tasks, while the most effective model and training strategy vary by task.
+For example, starting from the same pretrained weights, freezing PLDM's visual encoder improves its ability to distinguish future states when contact friction varies, but reduces this ability when motion damping varies.
+
+To examine why some models make limited use of history, we compare their predictions on training and held-out data.
+Under some training strategies, training loss decreases while models still make limited use of interaction history, even on the training data.
+These failures cannot be explained by generalization alone and suggest that the training objectives may not sufficiently encourage models to use interaction history for prediction.
+
+Our contributions are:
+\begin{enumerate}
+\item \textbf{The ContextWorld benchmark.} We introduce ContextWorld, a benchmark with training and evaluation data for nine hidden-dynamics tasks across four environments. It measures history use and prediction accuracy directly from action-conditioned latent predictions, with model weights fixed and no additional learned readout.
+\item \textbf{A systematic comparison of models and training strategies.} We compare three latent world models across data scales and training strategies. Data scaling improves history use on several tasks, while the most effective model and training strategy vary by task.
+\item \textbf{Evidence of adaptation failures during training.} We find that, under some training strategies, training loss decreases while models still make limited use of interaction history on the training data. These failures cannot be explained by generalization alone.
+\end{enumerate}
+
+
+\section{Related Work}
+\label{sec:related-work}
+
+\paragraph{Visual world models.}
+World models learn environment dynamics to predict future states.
+The World Models framework~\cite{ha2018worldmodels} combines a learned visual representation with recurrent dynamics to support policy training inside the learned model.
+PlaNet~\cite{hafner2019planet} uses learned latent dynamics to select actions through online planning.
+Dreamer~\cite{hafner2020dreamer} instead learns policies from imagined latent trajectories.
+These methods use image reconstruction to learn their visual representations.
+Joint-embedding predictive architectures (JEPAs)~\cite{lecun2022path} offer a different training objective: predicting target representations without reconstructing pixels.
+I-JEPA~\cite{assran2023ijepa} applies this principle to masked image regions, and V-JEPA~\cite{bardes2024vjepa} extends it to video representation learning.
+To support robotic planning, V-JEPA~2~\cite{assran2025vjepa2} adds an action-conditioned predictor trained on robot interactions using pretrained video representations.
+Action-conditioned world models also differ in how they obtain their visual representations.
+DINO-WM~\cite{zhou2025dinowm} trains a predictor on frozen pretrained features for planning from offline trajectories.
+PLDM~\cite{sobal2025pldm} jointly learns the encoder and predictor from reward-free offline data.
+To stabilize joint training, LeWM~\cite{maes2026leworldmodel} simplifies the objective to a latent prediction loss and a single representation regularizer.
+
+\paragraph{In-context adaptation.}
+Environment dynamics can differ between training and deployment.
+Interaction history can support adaptation without costly retraining.
+Meta-reinforcement learning~\cite{beck2025metarl} trains agents across tasks to adapt from limited experience.
+RL$^2$~\cite{duan2016rl2} stores interaction history in a recurrent network's hidden state, while PEARL~\cite{rakelly2019pearl} infers a task representation from experience to condition a policy.
+Large language models can learn from examples in context without updating their weights~\cite{brown2020fewshot,dong2024icl}.
+In world models, context can guide predictions of action outcomes in a new environment.
+OSWM~\cite{ferreira2024oswm} pretrains a transformer on synthetic dynamics and uses observed state transitions as context to predict future states in new environments.
+L2World~\cite{wang2026context} distinguishes using context to identify environments learned during training from learning dynamics directly from context.
+It studies the effects of context length and the diversity of training environments using multi-step prediction errors and context perturbations.
+For robotic control, ICWM~\cite{wang2026icwm} uses task-agnostic interaction history to adapt policies to new camera viewpoints without weight updates.
+Its ablations compare correct, absent, and mismatched interaction context.
+
+\paragraph{Benchmarks.}
+To evaluate adaptation across environments, existing benchmarks introduce controlled changes in dynamics, appearance, or task rules.
+Meta-World~\cite{yu2020metaworld} and Procgen~\cite{cobbe2020procgen} test generalization across manipulation tasks and procedurally generated levels, respectively.
+CausalWorld~\cite{ahmed2021causalworld} and CARL~\cite{benjamins2023context} vary environment properties, while XLand-MiniGrid~\cite{nikulin2024xland} and XLand-100B~\cite{nikulin2025xland100b} evaluate adaptation from interaction history across tasks.
+For physical prediction, CoPhy~\cite{baradel2020cophy} asks models to predict outcomes after changes to a scene's initial configuration, using the original trajectory as evidence about hidden properties.
+Filtered-CoPhy~\cite{janny2022filteredcophy} requires the observed trajectory to contain enough information to predict the counterfactual outcome.
+ComPhy~\cite{chen2022comphy} tests reasoning about hidden mass and charge through predictive and counterfactual questions about videos.
+Physion++~\cite{tung2023physionpp} tests whether interaction history helps predict future contact in paired trials with the same current observation but different physical properties.
+Beyond visual prediction, a recent time-series benchmark~\cite{zhang2026mechanism} reports that low prediction error can coexist with incorrect response directions when actions change.
+A remaining question is when action-conditioned latent world models learn to use history for accurate prediction.
+ContextWorld addresses this question through controlled comparisons across models, tasks, data scales, and training strategies.
+
+
+\section{ContextWorld Benchmark}
+\label{sec:benchmark}
+
+ContextWorld tests whether models use interaction history to accurately predict future states given an action sequence.
+This section defines the prediction setting, describes how we construct the tasks and datasets, and explains the evaluation protocol and metrics.
+
+\subsection{Problem Formulation}
+\label{sec:problem}
+
+To evaluate adaptation through interaction history, we keep model weights $\theta$ fixed and provide only visual observations and actions.
+For each prediction, the model receives an interaction history $H_t$ and a future action sequence $A_{t:t+\tau-1}$.
+The history contains visual observations up to and including time $t$, together with the actions executed between them.
+The prediction and its target are
+\begin{equation}
+\begin{aligned}
+\hat z_{t+\tau} &= f_\theta(H_t,A_{t:t+\tau-1}),\\
+z_{t+\tau} &= e_\theta(o_{t+\tau}).
+\end{aligned}
+\label{eq:prediction-setting}
+\end{equation}
+Here, $o_{t+\tau}$ is the ground-truth observation at time $t+\tau$, and $e_\theta$ is the model's target encoder, also fixed during evaluation.
+Predictions are evaluated against the encoded targets in latent space.
+
+\subsection{Task Design}
+\label{sec:tasks}
+
+We construct nine tasks by varying the dynamics of four environments. The tasks cover changes in physical parameters and interaction rules. They build on the TwoRoom navigation environment used in DINO-WM~\cite{zhou2025dinowm}, the PushT pushing environment~\cite{chi2023diffusionpolicy}, Reacher from the DeepMind Control Suite~\cite{tassa2018control}, and Cube from OGBench~\cite{park2025ogbench}. Table~\ref{tab:tasks} summarizes the nine tasks.
+
+\begin{table*}[t]
+\centering
+\caption{The nine tasks test whether interaction history helps models predict the effects of hidden dynamics. History length $h$ counts observation frames, including the current frame; sampling details are given in Appendix~\ref{app:input-sampling}.}
+\label{tab:tasks}
+\begin{tabularx}{\textwidth}{@{}llcX@{}}
+\toprule
+Task & Environment & $h$ & What history helps the model predict \\
+\midrule
+Speed & TwoRoom & 3 & How far the agent moves under the same action \\
+Pusher displacement & PushT & 3 & Whether the same action moves the pusher a shorter or longer distance \\
+Arm mass & Reacher & 3 & How the same torque changes arm motion \\
+Action delay & TwoRoom & 7 & When an action takes effect \\
+Contact friction & PushT & 3 & How friction changes object motion during contact \\
+Motion damping & PushT & 3 & How quickly object motion decays after contact ends \\
+Gripper carry rule & Cube & 3 & Whether a closed gripper carries the cube \\
+Door traversability & TwoRoom & 3 & Whether a visually identical door permits passage \\
+Portal exit & TwoRoom & 3 & Where the agent emerges after entering the same portal \\
+\bottomrule
+\end{tabularx}
+\end{table*}
+
+To test whether models use interaction history for prediction, we construct paired samples for six tasks: pusher displacement, arm mass, contact friction, motion damping, gripper carry rule, and portal exit.
+The paired samples share the current observation and future action sequence, but have different hidden dynamics.
+For each sample, we generate the history and ground-truth future in one continuous simulation with fixed dynamics.
+The two futures differ, so accurate prediction requires information from the history.
+Construction checks are detailed in Appendix~\ref{app:trajectory-pairing}.
+
+The speed task tests whether models can use history to predict motion at unseen speeds.
+We hold the current observation and future actions fixed and provide histories recorded at different speeds.
+Action delay covers several delay values to test predictions before and after an action takes effect.
+For example, with delays of six or ten simulator steps, no movement occurs within the next five steps.
+These delays produce the same future state, so we score them as one response group and weight all groups equally (Appendix~\ref{app:delay-groups}).
+For the door task, we test whether the model correctly predicts passage or blockage from the interaction history.
+
+\subsection{Dataset}
+\label{sec:data}
+
+For each task, we provide Training, Development, and Test splits with no shared interaction trajectories.
+The Development split is used to select methods and checkpoints.
+These splits may share dynamics parameter values or interaction rules.
+The speed task also tests speeds not used in training, both within the training range (interpolation) and outside it (extrapolation).
+
+The paired tasks provide 32,768 training pairs per task, except for gripper carry, which provides 10,000.
+Each has 256 Development pairs and 256 Test pairs.
+Appendix~\ref{app:dataset-splits} provides complete dataset statistics, dynamics settings, and split checks for all nine tasks.
+
+\subsection{Evaluation}
+\label{sec:evaluation}
+
+A model can change its predictions with the interaction history and still predict the wrong future.
+We therefore evaluate whether predictions distinguish the true futures under different dynamics, measure prediction error, and compare errors with matching and mismatched histories.
+We report benchmark results on the Test split.
+
+\paragraph{Prediction accuracy.}
+We use task-specific accuracy rules to account for differences in the dynamics conditions and distinguishable future states.
+For the six paired tasks and door traversability, we compare each prediction with both true futures.
+A prediction using the history from condition A is counted as correct only if it is closer to A's true future than to B's, and vice versa.
+For pair $i$, $z_i^A$ and $z_i^B$ denote the true future representations, and $\hat z_i^A$ and $\hat z_i^B$ denote the corresponding predictions.
+Using mean squared error $d$, we report accuracy as the percentage of correct predictions across both conditions in $N$ pairs:
+\begin{equation}
+\begin{aligned}
+A_{\mathrm{future}}&=\frac{100}{2N}\sum_{i=1}^{N}(I_i^A+I_i^B),\\
+I_i^A&=\mathbf{1}\{d(\hat z_i^A,z_i^A)<d(\hat z_i^A,z_i^B)\},\\
+I_i^B&=\mathbf{1}\{d(\hat z_i^B,z_i^B)<d(\hat z_i^B,z_i^A)\}.
+\end{aligned}
+\label{eq:future-score}
+\end{equation}
+
+Speed and action delay involve more than two dynamics conditions.
+For each tested speed, we compare predictions from different histories with the true future at that speed.
+We count the prediction from the matching history as correct only when its error is lower than that of every other prediction.
+For action delay, the prediction horizon is five simulator steps.
+Delays 0--4 form five separate response groups, while delays 5--10 form one group because the action has not yet taken effect.
+We assign each prediction to the group containing the closest true future, compute accuracy for each group, and report the mean across the six groups.
+Appendix~\ref{app:prediction-accuracy} gives the detailed scoring rules.
+
+\paragraph{Complete prediction error.}
+A prediction can be closer to the correct future yet still misrepresent position or motion.
+To measure this error, we give every hidden condition in a scene the same future action sequences.
+Models roll out from real interaction history without receiving any further ground-truth observations.
+We compare predictions with true futures at 5, 10, 15, 20, and 25 simulator steps.
+
+We normalize the error by a reference computed from the true futures.
+For a given scene, action sequence, and prediction time, the mean future minimizes squared error among predictions that are identical across conditions, when those conditions are weighted equally.
+For scene $q$, this mean is $\bar z_{qct}=K_q^{-1}\sum_k z_{qkct}$.
+Here, $K_q$ is the number of conditions, $C_q$ is the number of shared action sequences, and $T=5$ is the number of evaluation times.
+The true and predicted representations for condition $k$, action sequence $c$, and evaluation time $t$ are $z_{qkct}$ and $\hat z_{qkct}$.
+We average over conditions, actions, and times within each scene before aggregating:
+\begin{equation}
+\begin{aligned}
+L_q&=\frac{1}{K_qC_qT}\sum_{k,c,t}\|\hat z_{qkct}-z_{qkct}\|^2,\\
+B_q&=\frac{1}{K_qC_qT}\sum_{k,c,t}\|z_{qkct}-\bar z_{qct}\|^2,\\
+E/B&=\frac{\sum_q L_q}{\sum_q B_q}.
+\end{aligned}
+\label{eq:complete-error}
+\end{equation}
+
+Lower $E/B$ is better: 0 denotes an exact prediction in the target representation, 1 denotes the same error as the mean-future reference, and values above 1 indicate greater error.
+The reference is used only for scoring and is never provided to the model; the denominator must be positive.
+When conditions share the current observation and future actions and are equally weighted, a deterministic model that ignores history cannot achieve $E/B<1$.
+This ratio measures complete prediction error, but does not establish whether matching history helps more than mismatched history.
+
+\paragraph{History controls.}
+We replace the history with one from a different dynamics condition in the same scene, while keeping the current observation, future actions, and scoring target unchanged.
+The target remains the true future of the original condition; replacing the model's input does not change the environment being predicted.
+History (\%) reports how often matching history gives strictly lower prediction error than mismatched history.
+Speed also uses this strict comparison as its task score.
+
+This rate records wins, not the size of the improvement.
+Let $L_q^+=L_q$ be the scene error with matching history and $L_q^-$ the error with mismatched history, averaged equally over the alternatives when there is more than one.
+Using the same weights over conditions, actions, and times, define $E_+=\sum_q L_q^+$, $E_-=\sum_q L_q^-$, and $B=\sum_q B_q>0$.
+The normalized error reduction is
+\begin{equation}
+G_H=\frac{E_--E_+}{B}.
+\label{eq:history-gain}
+\end{equation}
+A positive $G_H$ means that matching history reduces error.
+The remaining prediction error is still measured by $E/B$.
+
+\paragraph{Conditional response error.}
+Prediction loss can fall as errors shared by both conditions decrease, even if the predicted difference between conditions remains inaccurate.
+To examine this distinction during training, we compare the true and predicted differences between futures.
+For a two-condition query, let $\Delta z_i=z_i^B-z_i^A$ and $\Delta\hat z_i=\hat z_i^B-\hat z_i^A$.
+The normalized response error (NRE) is
+\begin{equation}
+\mathrm{NRE}=\frac{\sum_i\|\Delta\hat z_i-\Delta z_i\|^2}
+{\sum_i\|\Delta z_i\|^2}.
+\label{eq:response-error}
+\end{equation}
+Lower NRE is better.
+A value of 0 denotes an exact conditional response; 1 is the error of predicting no difference between conditions.
+Subtracting predictions removes errors common to both conditions, so NRE cannot replace complete prediction error.
+Conversely, NRE equal to 1 does not by itself show that a model ignores history.
+We specify the prediction horizon for each analysis and define NRE only when its denominator is positive.
+
+\paragraph{Interpreting and aggregating results.}
+Task scores measure the distinctions specified by each task.
+Both $E/B$ and NRE are computed in each checkpoint's own target representation and do not provide a common measure of physical accuracy for comparing models.
+If the target encoder changes during training, comparisons across checkpoints also reflect changes in the representation.
+Training analyses therefore describe each checkpoint in its own target space; error comparisons are more direct when that space is fixed.
+The metrics describe different aspects of the same predictions and are not independent pieces of evidence.
+
+We weight training runs with the same settings equally and report their standard deviation.
+For multi-step errors, bootstrap resampling~\cite{efron1993bootstrap} groups samples by source trajectory or scene, retaining related samples together.
+These intervals describe scene-sampling uncertainty for the evaluated checkpoints.
+We report planning performance with the cross-entropy method (CEM)~\cite{deboer2005cem} in the original environments separately to measure retention of planning ability.
+Since these environments need not require adaptation to changing dynamics, their planning scores do not replace the adaptation evaluation.
+
+\section{Experiments}
+\label{sec:experiments}
+
+\subsection{Experimental Setup}
+\label{sec:experimental-setup}
+
+For baseline training and mixed-data training, we use the original-environment datasets released with LeWM~\cite{maes2026leworldmodel}.
+For mixed-data training, we sample equal proportions of trajectory windows from these datasets and the corresponding task's ContextWorld Training split.
+
+{\small
+\bibliographystyle{ieeenat_fullname}
+\bibliography{references}
+}
+
+\clearpage
+\appendix
+\section{Input Sampling}
+\label{app:input-sampling}
+
+Observations are typically sampled every five simulator steps.
+The actions executed between consecutive observations are included in the interaction history.
+
+\section{Trajectory Construction and Pairing}
+\label{app:trajectory-pairing}
+
+\paragraph{Continuous trajectories.}
+Each sample follows a continuous simulator trajectory from its history through its future, without intermediate resets or state overrides.
+Identical current observations may still conceal differences in velocity or contact state, so we perform task-specific checks of physical-state matching at the start of prediction.
+For action delay, we retain the actual queue of pending actions.
+
+\paragraph{Starting positions.}
+For tasks in which the two dynamics conditions cannot naturally share a starting position, we exchange their starting positions during generation and verify that the two conditions have identical sets of starting images.
+This check reduces the possibility that the starting image alone reveals the condition.
+
+\paragraph{Predictions without history.}
+Consider a complete, balanced pair with distinguishable encoded targets.
+A deterministic model that ignores history receives the same current observation and future action sequence for both samples and therefore produces the same prediction.
+This prediction cannot be strictly closer to each sample's own target than to the other target.
+Consequently, such a model scores at most 50\% on the paired future-selection metric in Eq.~\ref{eq:future-score}; ties count as failures.
+
+\section{Action Delay Response Groups}
+\label{app:delay-groups}
+
+The delay data retain all 11 delays from 0 to 10 simulator steps.
+At the five-step horizon used for the main one-step score, delays of 5--10 produce the same stationary response and are grouped together.
+This score therefore uses six distinguishable response groups: 0, 1, 2, 3, 4, and 5--10.
+
+\section{Dataset Statistics and Splits}
+\label{app:dataset-splits}
+
+\subsection{Dataset Sizes}
+
+Table~\ref{tab:dataset-sizes} lists the task data used in the training and evaluation comparisons.
+Training sizes exclude the original-environment data used for mixed training.
+A pair contains two trajectories with different dynamics conditions; a trajectory count refers to recorded episodes, not to the number of training windows sampled from them.
+An evaluation case fixes the current observation and future action sequence and can include histories and targets from several dynamics conditions.
+
+\begin{table*}[!t]
+\centering
+\small
+\caption{Dataset sizes and condition coverage.}
+\label{tab:dataset-sizes}
+\begin{tabularx}{\textwidth}{@{}lXXX@{}}
+\toprule
+Task & Training & Development & Test \\
+\midrule
+Speed & 16,384 trajectories; 32 speeds & 300 cases per speed & 300 cases per speed \\
+Pusher displacement & 32,768 pairs & 256 pairs & 256 pairs \\
+Arm mass & 32,768 pairs & 256 pairs & 256 pairs \\
+Action delay & 56,320 trajectories; 11 delays & 300 cases $\times$ 11 delays & 300 cases $\times$ 11 delays \\
+Contact friction & 32,768 pairs & 256 pairs & 256 pairs \\
+Motion damping & 32,768 pairs & 256 pairs & 256 pairs \\
+Gripper carry rule & 10,000 pairs & 256 pairs & 256 pairs \\
+Door traversability & 15,360 trajectories; 96 door positions & 300 cases; 16 door positions & 300 cases; 42 door positions \\
+Portal exit & 32,768 pairs & 256 pairs & 256 pairs \\
+\bottomrule
+\end{tabularx}
+\end{table*}
+
+The action delay counts refer to the dataset covering all delays from 0 to 10 simulator steps.
+Its Training split contains 5,120 base cases, each simulated under all 11 delays, giving 56,320 trajectories.
+Development and Test each contain 300 base cases, again evaluated under all 11 delays.
+Door Training contains 7,680 trajectories for each of the passable and blocked rules.
+
+Several examples can share a source episode: pusher displacement can use multiple action windows from one episode, and forward and mirrored damping examples can share a source.
+The 10,000 gripper carry training pairs use 10,000 distinct source episodes.
+
+\subsection{Speed Values and Door Positions}
+
+Table~\ref{tab:speed-values} lists the speed values used for Training and evaluation.
+Development and Test use the same evaluation speeds but different interaction trajectories.
+Each split contains 300 cases for each of the 14 evaluated speeds, or 4,200 cases in total before comparing histories from different speeds.
+The main task results use the unseen speeds within the training range.
+
+\begin{table}[!ht]
+\centering
+\small
+\caption{Speed values in the benchmark. The four evaluation groups are used in both Development and Test. Interpolation values lie within the Training range but are absent from Training.}
+\label{tab:speed-values}
+\begin{tabularx}{\linewidth}{@{}lX@{}}
+\toprule
+Setting & Speed values \\
+\midrule
+Training & 2.6, 2.7, 2.8, 2.9, 3.1, 3.3, 3.5, 3.7, 3.8, 3.9, 4.1, 4.2, 4.4, 4.5, 4.7, 5.0, 5.1, 5.3, 5.5, 5.7, 5.9, 6.1, 6.2, 6.3, 6.6, 6.7, 6.8, 7.0, 7.2, 7.3, 7.8, 7.9 \\
+\midrule
+Seen speeds & 3.1, 5.1, 7.0 \\
+Interpolation & 3.4, 4.8, 6.9 \\
+Lower extrapolation & 1.75, 1.95, 2.15, 2.35 \\
+Upper extrapolation & 8.25, 8.75, 9.5, 10.25 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Door position is specified by an integer coordinate along the wall.
+Test uses the 42 positions $30+4k$, where $k=0,\ldots,41$.
+Development uses the 16 positions 65, 77, 79, 87, 112, 115, 131, 152, 167, 169, 171, 172, 175, 180, 183, 185.
+Training uses the integers from 36 through 188 after excluding all Development and Test positions and the additional unused positions 40, 127, and 132, leaving 96 positions.
+The three position sets are disjoint.
+Both passable and blocked rules are used across the splits; the test distinction is the door position, not a new rule.
+
+\subsection{Split Checks and Model Inputs}
+
+Split checks use source episode identifiers, trajectory template identifiers, or observation hashes, as appropriate for each task.
+Speed Development uses independently generated initial configurations and excludes initial states and current observations that duplicate Test cases.
+For Door, we also check the position sets listed above for overlap.
+
+Hidden dynamics values, simulator states, and pair identifiers are retained for data generation, validation, and scoring.
+They are not passed to the prediction model, which receives only the visual observations and actions defined in Sec.~\ref{sec:problem}.
+
+
+\section{Prediction Accuracy Details}
+\label{app:prediction-accuracy}
+
+\paragraph{Paired tasks.}
+The strict comparisons in Eq.~\ref{eq:future-score} do not count ties as correct.
+The two comparisons within a pair are dependent.
+Appendix~\ref{app:trajectory-pairing} explains the upper bound for a deterministic model that ignores history.
+
+\paragraph{Speed.}
+For each target speed, accuracy is the proportion of cases in which matching history gives strictly lower prediction error than every alternative history.
+We then average accuracy equally across target speeds.
+Ties do not count as correct: if all histories produce the same prediction, accuracy is zero.
+The main results use the interpolation speeds listed in Appendix~\ref{app:dataset-splits}.
+
+\paragraph{Action delay.}
+We select the candidate true future with the lowest mean squared error, resolving ties in favor of the smaller delay.
+The prediction is correct when the selected delay and the true delay belong to the same response group.
+Within each case, we first average correctness over delays in each group, then average equally across the six groups defined in Appendix~\ref{app:delay-groups}.
+The final accuracy is the mean over cases.
+
+\paragraph{Door traversability.}
+For a prediction made with matching history, we compare the mean squared errors to the passage and blockage futures.
+The prediction is correct only if the error to the true future is strictly smaller than the error to the alternative future.
+Accuracy is averaged over cases and the two rules; ties do not count as correct.
+
+\end{document}
