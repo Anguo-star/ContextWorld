@@ -186,8 +186,8 @@ We therefore evaluate whether predictions distinguish the true futures under dif
 We report benchmark results on the Test split.
 
 \paragraph{Prediction accuracy.}
-We use task-specific accuracy rules to account for differences in the dynamics conditions and distinguishable future states.
-For the six paired tasks and door traversability, we compare each prediction with both true futures.
+All tasks except Speed and action delay use the same accuracy rule.
+For these tasks, we compare each prediction with both true futures.
 A prediction using the history from condition A is counted as correct only if it is closer to A's true future than to B's, and vice versa.
 For pair $i$, $z_i^A$ and $z_i^B$ denote the true future representations, and $\hat z_i^A$ and $\hat z_i^B$ denote the corresponding predictions.
 Using mean squared error $d$, we report accuracy as the percentage of correct predictions across both conditions in $N$ pairs:
