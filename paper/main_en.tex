@@ -208,11 +208,11 @@ Delays 0--4 form five separate response groups, while delays 5--10 form one grou
 We assign each prediction to the group containing the closest true future, compute accuracy for each group, and report the mean across the six groups.
 Appendix~\ref{app:prediction-accuracy} gives the detailed scoring rules.
 
-\paragraph{Complete prediction error.}
-A prediction can be closer to the correct future yet still misrepresent position or motion.
-To measure this error, we give every hidden condition in a scene the same future action sequences.
-Models roll out from real interaction history without receiving any further ground-truth observations.
-We compare predictions with true futures at 5, 10, 15, 20, and 25 simulator steps.
+\paragraph{Multi-step prediction error.}
+High prediction accuracy does not guarantee low prediction error.
+We therefore evaluate predictions over multiple steps, using the same future action sequences for all dynamics conditions in each scene.
+Models roll out from the observed interaction history without receiving further ground-truth observations.
+We measure errors at 5, 10, 15, 20, and 25 simulator steps.
 
 We normalize the error by a reference computed from the true futures.
 For a given scene, action sequence, and prediction time, the mean future minimizes squared error among predictions that are identical across conditions, when those conditions are weighted equally.
