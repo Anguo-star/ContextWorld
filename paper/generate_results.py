@@ -75,7 +75,7 @@ for task,name in TASKS:
     if task in ['speed','action_delay','door']:continue
     for family,model in FAMILIES:
         for regime,label in LABELS.items():
-            selected=[r for r in STUDY['rows'] if r['task']==task and r['model']==family and r['regime']==regime and (r['comparison_variant'] or not r['comparison_variant']) and r.get('training_pair_count')]
+            selected=[r for r in STUDY['rows'] if r['task']==task and r['model']==family and r['regime']==regime and r.get('training_pair_count')]
             # Only show schemes with an actual size comparison.
             selected=[r for r in selected if not r['comparison_variant'] or r['comparison_variant'].startswith('scale_')]
             if len({r['training_pair_count'] for r in selected})<2:continue

@@ -31,6 +31,21 @@
 
 写作与逐段整改遵循 [论文写作要求](AGENTS.md)。
 
+## 图表与结果复算
+
+正文实验按实验设置、任务适应结果、训练影响分析三个小节组织。详细预测诊断、数据与容量对照放在英文稿附录。
+
+`generate_results.py` 从仓库中已保存的 Test／Development 研究结果生成附录表格，`generate_figures.py` 生成协议示意图与训练损失／条件响应图。它们不训练模型、不重新评测检查点。在仓库根目录运行：
+
+```bash
+python paper/generate_results.py
+python paper/generate_figures.py
+```
+
+结果表读取 `docs/research/data/icl_training_study_v2.json`、`multistep_prediction_coverage_v2.json` 和 `model_capacity_scaling_v1/final_comparison.json`；训练图读取 `native_training_loss_v1/summary.csv` 与 `native_epoch_checkpoints_v1/summary.csv`。九任务 Test 主表依据 `current_reference_test_v1/summary.json`。图形生成需要 Matplotlib；编译论文直接使用已保存的 PDF 图，无需执行这些脚本。
+
+本地 `contextworld-cvpr.zip` 保存编译所需论文源文件与图形。复算图表需要完整仓库中的上述结果文件，单独编译源包不需要原始数据或权重。
+
 ## 编译与预览
 
 使用 TeX Live 2025 和 `latexmk`，在本目录编译英文稿：

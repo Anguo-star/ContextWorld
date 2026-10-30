@@ -54,7 +54,7 @@ Because this failure occurs on the training data, it cannot be explained by out-
 Our contributions are:
 \begin{enumerate}
 \item \textbf{The ContextWorld benchmark.} We introduce nine hidden-dynamics tasks across four environments, with separate training and evaluation data. Paired counterfactual evaluations measure future discrimination and the benefit of matching history directly from latent predictions, without weight updates or auxiliary readouts.
-\item \textbf{Systematic empirical comparison.} We benchmark representative latent world models across data scales, training strategies (scratch vs. fine-tuning), and visual encoder freezing schemes, demonstrating that scaling benefits and optimal adaptation strategies depend heavily on the underlying physical regime.
+\item \textbf{Systematic empirical comparison.} We benchmark representative latent world models across data scales, training strategies (scratch vs. fine-tuning), and visual encoder freezing schemes, demonstrating that scaling benefits and effective training strategies depend on the task.
 \item \textbf{Empirical evidence of adaptation failures during training.} We show that training loss can steadily decrease even when models fail to leverage interaction history on the training data, providing empirical evidence that standard prediction losses do not reliably drive in-context dynamics adaptation.
 \end{enumerate}
 
@@ -438,11 +438,13 @@ Data scaling helps some training schemes, while the tested capacity increase doe
 Training-query analysis further shows that prediction loss can decrease without recovering the conditional response.
 These findings motivate evaluating adaptation directly rather than treating loss reduction as evidence that it has been learned.
 
+\newpage
 The benchmark measures predictions in each model's representation, not a shared physical error space.
 Most tasks test adaptation among dynamics conditions represented in training; Speed additionally tests unseen values.
 The results concern task-specific checkpoints, and original-environment planning does not establish planning gains under hidden dynamics.
 These boundaries define the scope of the comparisons and leave multi-task learning, broader dynamics generalization, and decision benefits for further study.
 
+\clearpage
 {\small
 \bibliographystyle{ieeenat_fullname}
 \bibliography{references}
@@ -520,6 +522,16 @@ Door Training contains 7,680 trajectories for each of the passable and blocked r
 
 Several examples can share a source episode: pusher displacement can use multiple action windows from one episode, and forward and mirrored damping examples can share a source.
 The 10,000 gripper carry training pairs use 10,000 distinct source episodes.
+
+\subsection{Paired Dynamics Conditions}
+
+Pusher displacement uses action gains of 60 and 140.
+Contact friction uses coefficients 0.05 and 0.80 between the pusher and the object.
+Motion damping fixes effective contact friction at 0.25 and uses simulator damping settings 0.2 and 1.0; here 0.2 gives faster decay, while 1.0 applies no additional decay.
+Arm mass uses densities of 500 and 1,500 for the MuJoCo arm link and finger geometry; the hand link retains its original density.
+Gripper carry changes whether the closed gripper carries the cube.
+Portal exit uses two exit rules for the same entrance, with paired trajectories reaching the shared query state before entering it.
+The numeric settings are simulator parameters, not additional model inputs.
 
 \subsection{Speed Values and Door Positions}
 
