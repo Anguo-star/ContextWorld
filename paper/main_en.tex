@@ -338,6 +338,14 @@ On pusher displacement, the ordering reverses: DINO-WM reaches 97.66\%, while Le
 All three models reach at least 99.83\% on door traversability.
 These contrasts show why adaptation should be evaluated across different dynamics rather than summarized by a single model ranking.
 
+Task accuracy alone does not establish how well the model uses history or predicts the complete future state.
+We therefore examine history controls and prediction errors on Development.
+For LeWM on pusher displacement, Original $\rightarrow$ Mixed (Frozen Encoder) raises History from 34.05\% to 98.05\% and reduces NRE from 1.015 to 0.144 relative to Original.
+Thus, matching history more often improves prediction, and the predicted response to changing dynamics is closer to the true response in the evaluated representations.
+However, on the extended action sequences used for multi-step evaluation, this model has $E/B=1.464$; the corresponding PLDM model has $E/B=1.445$.
+Both exceed the mean-future reference error.
+These multi-step queries differ from the one-step task queries: successful discrimination on the latter does not establish accurate prediction over longer action sequences.
+
 \begin{table*}[t]
 \centering
 \scriptsize
