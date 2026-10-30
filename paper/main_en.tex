@@ -394,6 +394,19 @@ We jointly expand the encoder, representation width, and predictor of LeWM and P
 Across the four Development comparisons, task accuracy changes by $-8.01$ to $+0.20$ percentage points, and original-environment CEM success decreases in all four.
 This result limits a simple capacity explanation for these runs; it does not rule out gains with different optimization settings or training budgets.
 
+To determine whether weak adaptation arises only at evaluation time, we also score fixed queries from the training data.
+Figure~\ref{fig:training-evidence} compares PLDM's Joint and Frozen Encoder schemes on friction and damping, using 512 training pairs and 256 Development pairs per task.
+In friction joint training, the recorded prediction loss decreases by 18.05\% between epochs 5 and 10, with both its mean and median decreasing at every recorded epoch.
+Yet training-query NRE remains near the zero-response reference, at 1.009 and 1.011.
+The model therefore fails to recover the conditional response even on these training queries; a shift to the evaluation distribution cannot explain this failure alone.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=.94\textwidth]{figures/training_evidence.pdf}
+\caption{\textbf{Lower training loss does not guarantee a more accurate conditional response.} PLDM Joint and Frozen Encoder start from the same original-environment checkpoint within each task. Top: recorded prediction-loss means, normalized by each run's epoch-5 mean; shading shows the batch interquartile range, not a confidence interval. Bottom: NRE on fixed training and Development queries at the two evaluated checkpoints, predicting five simulator steps ahead. Lines connect measured points and do not show intermediate NRE values. NRE = 1 is the zero-response reference. Loss averages mixed training batches; NRE uses paired task queries.}
+\label{fig:training-evidence}
+\end{figure*}
+
 {\small
 \bibliographystyle{ieeenat_fullname}
 \bibliography{references}
