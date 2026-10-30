@@ -110,6 +110,13 @@ ContextWorld addresses this gap by directly evaluating latent predictors through
 ContextWorld is designed to evaluate in-context dynamics adaptation---specifically, whether models leverage interaction history to accurately predict future states conditioned on an action sequence.
 This section formalizes the prediction setting, describes how we construct the tasks and datasets, and explains the paired evaluation protocol and metrics.
 
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/protocol_overview.pdf}
+\caption{\textbf{Controlled prediction and history comparisons.} In the paired tasks, histories from two dynamics conditions end at the same current observation and share future actions, but lead to different true futures. We score predictions against their corresponding targets and then swap the input histories while retaining each target to test whether matching history reduces error. The same model weights are used throughout.}
+\label{fig:protocol}
+\end{figure*}
+
 \subsection{Problem Formulation}
 \label{sec:problem}
 
@@ -160,7 +167,7 @@ Portal exit & TwoRoom & 3 & Where the agent emerges after entering the same port
 To test whether models use interaction history for prediction, we construct paired samples for six tasks: pusher displacement, arm mass, contact friction, motion damping, gripper carry rule, and portal exit.
 The paired samples share the current observation and future action sequence, but have different hidden dynamics.
 For each sample, we generate the history and ground-truth future in one continuous simulation with fixed dynamics.
-The two futures differ, so accurate prediction requires information from the history.
+The two futures differ, so accurate prediction requires information from the history (Fig.~\ref{fig:protocol}).
 Construction checks are detailed in Appendix~\ref{app:trajectory-pairing}.
 
 The speed task tests whether models can use history to predict motion at unseen speeds.
@@ -605,6 +612,28 @@ The metrics describe different aspects of the same predictions and are not indep
 
 \clearpage
 \onecolumn
+\section{Scoring Controls}
+\label{app:scoring-controls}
+
+We validate the paired scorer using constructed predictions on 256 Development pusher-displacement scenes, separately in the target representations of LeWM Original and Original $\rightarrow$ Mixed (Frozen Encoder).
+The queries use a nonzero action candidate and the five-step prediction horizon; the predictor is not run for this check.
+Both representations give the results below.
+With $m=(z_A+z_B)/2$, even predictions $m+0.001(z_k-m)$ select the correct future while recovering only a tiny fraction of the true response.
+This control explains why we report response error alongside task accuracy.
+It verifies the scorer on these queries, not physical calibration across all representations.
+
+\begin{center}\small
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+Constructed prediction & Accuracy (\%) & History (\%) & NRE\\
+\midrule
+True target for each condition & 100 & 100 & 0\\
+Same target $z_A$ for both conditions & 50 & 0 & 1\\
+Same midpoint $m$ for both conditions & 0 & 0 & 1\\
+Swapped true targets & 0 & 0 & 4\\
+$m+0.001(z_k-m)$ for condition $k$ & 100 & 100 & 0.998001\\
+\bottomrule\end{tabular}\end{center}
+
 \section{Training and Diagnostic Settings}
 \label{app:training-settings}
 

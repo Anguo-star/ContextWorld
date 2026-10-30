@@ -66,6 +66,37 @@ def training_evidence():
     plt.close(fig)
 
 
+def protocol_overview():
+    from matplotlib.patches import FancyBboxPatch
+    fig, ax = plt.subplots(figsize=(7.1, 1.7))
+    ax.set_xlim(0, 10); ax.set_ylim(0, 3); ax.axis('off')
+    def box(x, y, w, h, text, color='#f5f6f8', size=8):
+        ax.add_patch(FancyBboxPatch((x,y),w,h,boxstyle='round,pad=0.06',
+                                    linewidth=.8,edgecolor='#687384',facecolor=color))
+        ax.text(x+w/2,y+h/2,text,ha='center',va='center',fontsize=size)
+    def arrow(a,b,color='#596676',style='-'):
+        ax.annotate('',xy=b,xytext=a,arrowprops=dict(arrowstyle='->',lw=1,color=color,linestyle=style))
+    ax.text(1.6,2.82,'Paired interaction histories',ha='center',weight='bold')
+    box(.15,1.7,2.6,.55,'History A: dynamics A', '#eaf2fb')
+    box(.15,.75,2.6,.55,'History B: dynamics B', '#fff0e4')
+    box(3.3,2.05,2.65,.55,'Same current observation\nand future actions',size=7.5)
+    box(3.55,.85,2.15,.7,'Same world model\nSeparate calls; fixed weights')
+    arrow((4.62,2.04),(4.62,1.62))
+    arrow((2.82,1.98),(3.48,1.38),'#2765a8')
+    arrow((2.82,1.02),(3.48,1.08),'#c46124')
+    box(6.35,1.65,3.35,.55,'Compare prediction A with true future A','#eaf2fb',7.5)
+    box(6.35,.7,3.35,.55,'Compare prediction B with true future B','#fff0e4',7.5)
+    arrow((5.77,1.38),(6.28,1.92),'#2765a8')
+    arrow((5.77,1.08),(6.28,.98),'#c46124')
+    ax.text(8.02,2.82,'Score predictions and history benefit',ha='center',weight='bold')
+    ax.text(4.98,.13,'History control: swap A and B at the input; keep each scoring target fixed.',
+            ha='center',fontsize=8)
+    fig.tight_layout(pad=.2)
+    fig.savefig(OUT/'protocol_overview.pdf')
+    plt.close(fig)
+
+
 if __name__ == '__main__':
     OUT.mkdir(exist_ok=True)
     training_evidence()
+    protocol_overview()
