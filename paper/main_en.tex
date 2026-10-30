@@ -382,6 +382,18 @@ Each comparison uses the same task data, mixture, initialization, and training d
 Freezing therefore changes the outcome of training in a task-dependent way; it is not a general solution to weak adaptation.
 Because the projector and other trainable modules still update, this comparison does not isolate the role of a fixed target representation.
 
+More training data can improve adaptation, but the gain depends on the training scheme.
+For LeWM on pusher displacement, increasing the training set from 2,048 to 8,192 to 32,768 pairs raises Development accuracy from 55.66\% to 82.42\% to 90.82\% with Original $\rightarrow$ Mixed (Joint); NRE falls from 0.810 to 0.390 to 0.222.
+In contrast, Mixed training scores 50.00\% with 2,048 pairs and 50.78\% with 32,768 pairs.
+The additional data therefore help the pretrained model in this comparison but do not produce a similar gain with direct mixed training.
+These experiments keep the number of epochs fixed, so increasing the dataset can also increase training updates and change trajectory coverage.
+They do not isolate the effect of data quantity at a fixed compute budget.
+
+Increasing model capacity alone does not resolve the weak performance in our tested setting.
+We jointly expand the encoder, representation width, and predictor of LeWM and PLDM from approximately 18M to 183M parameters, using Mixed training on the same 32k friction and damping datasets for 10 epochs.
+Across the four Development comparisons, task accuracy changes by $-8.01$ to $+0.20$ percentage points, and original-environment CEM success decreases in all four.
+This result limits a simple capacity explanation for these runs; it does not rule out gains with different optimization settings or training budgets.
+
 {\small
 \bibliographystyle{ieeenat_fullname}
 \bibliography{references}
