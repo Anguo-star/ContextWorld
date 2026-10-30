@@ -231,10 +231,9 @@ E/B&=\frac{\sum_q L_q}{\sum_q B_q}.
 \label{eq:complete-error}
 \end{equation}
 
-Lower $E/B$ is better: 0 denotes an exact prediction in the target representation, 1 denotes the same error as the mean-future reference, and values above 1 indicate greater error.
-The reference is used only for scoring and is never provided to the model; the denominator must be positive.
-When conditions share the current observation and future actions and are equally weighted, a deterministic model that ignores history cannot achieve $E/B<1$.
-This ratio measures complete prediction error, but does not establish whether matching history helps more than mismatched history.
+Lower $E/B$ is better: 0 means an exact prediction in the target representation, and 1 matches the error of the mean-future reference.
+Values below 1 outperform this reference; values above 1 indicate larger errors.
+To measure the benefit of matching history, we also compare errors with matching and mismatched histories.
 
 \paragraph{History controls.}
 Prior work evaluates reliance on context by perturbing observations in the history~\cite{wang2026context}.
@@ -441,5 +440,10 @@ Accuracy is averaged over cases and the two rules; ties do not count as correct.
 \paragraph{Multi-step prediction horizons.}
 Each prediction step advances five simulator steps.
 We measure prediction errors at 5, 10, 15, 20, and 25 simulator steps after the current observation.
+
+\paragraph{Mean-future reference.}
+The reference in Eq.~\ref{eq:complete-error} is used only for scoring and is never provided to the model.
+The ratio is defined only when $\sum_q B_q>0$.
+When conditions share the current observation and future actions and are equally weighted, a deterministic model that ignores history cannot achieve $E/B<1$: it must make the same prediction across conditions, and the mean-future reference minimizes the error of such a prediction.
 
 \end{document}
