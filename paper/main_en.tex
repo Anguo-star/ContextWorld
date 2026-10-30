@@ -3,6 +3,7 @@
 \documentclass[10pt,twocolumn,letterpaper]{article}
 \usepackage[pagenumbers]{cvpr}
 \usepackage{tabularx}
+\usepackage{longtable}
 \definecolor{cvprblue}{rgb}{0.21,0.49,0.74}
 \usepackage[pagebackref,breaklinks,colorlinks,allcolors=cvprblue]{hyperref}
 \def\paperID{*****}
@@ -297,6 +298,7 @@ Table~\ref{tab:training-schemes} defines the four training schemes used in the c
 Original and Mixed each train for 10 epochs.
 The two Original $\rightarrow$ Mixed schemes start from the same Original checkpoint and train for another 10 epochs on mixed data, either updating or freezing the visual encoder.
 Each mixed-data model is trained for one task, so a row of nine task results represents separate task-specific checkpoints.
+Optimization and sampling details appear in Appendix~\ref{app:training-settings}.
 
 \begin{table*}[t]
 \centering
@@ -345,6 +347,7 @@ Thus, matching history more often improves prediction, and the predicted respons
 However, on the extended action sequences used for multi-step evaluation, this model has $E/B=1.464$; the corresponding PLDM model has $E/B=1.445$.
 Both exceed the mean-future reference error.
 These multi-step queries differ from the one-step task queries: successful discrimination on the latter does not establish accurate prediction over longer action sequences.
+Appendix~\ref{app:additional-results} reports the full diagnostics and original-environment CEM results.
 
 \begin{table*}[t]
 \centering
@@ -599,5 +602,253 @@ These intervals describe scene-sampling uncertainty for the evaluated checkpoint
 
 \paragraph{Interpreting multiple metrics.}
 The metrics describe different aspects of the same predictions and are not independent pieces of evidence.
+
+\clearpage
+\onecolumn
+\section{Training and Diagnostic Settings}
+\label{app:training-settings}
+
+\paragraph{Optimization.}
+Each training stage runs for 10 epochs on eight GPUs, with 128 windows per device and no gradient accumulation, giving a global batch size of 1,024.
+LeWM and PLDM use AdamW with learning rate $5\times10^{-5}$ and weight decay 0.001.
+DINO-WM uses learning rate $5\times10^{-4}$ and zero weight decay; its pretrained DINOv2-small visual encoder remains frozen.
+The models retain their respective prediction and regularization losses.
+The Original $\rightarrow$ Mixed schemes load model weights but reset optimizer state.
+Encoder freezing fixes both parameters and training-state buffers; it does not freeze the projector or action encoder.
+
+\paragraph{Input and sampling.}
+The standard setup uses three observation frames, five simulator steps between frames, and a one-frame prediction target.
+Action delay mixed training instead uses seven-frame history.
+The original-environment data are the TwoRoom, PushT, Reacher, and Cube datasets released with LeWM; each task uses only the dataset for its environment.
+Only the ContextWorld Training split is mixed into training.
+For component lengths $N_{\mathrm{orig}}$ and $N_{\mathrm{CW}}$, the mixture has a nominal epoch length of $2\max(N_{\mathrm{orig}},N_{\mathrm{CW}})$ windows before partitioning and batching, with equal counts from the two components.
+The smaller component is sampled repeatedly.
+Consequently, equal epoch counts do not guarantee equal update counts across data scales, and the two-stage schemes include additional original-environment training.
+
+\paragraph{Prediction diagnostics.}
+The main task comparison uses Test.
+The multi-step and history diagnostics below use Development, with the same checkpoint identities where the input protocol is comparable.
+Multi-step evaluation covers 2,436 source scenes across the nine tasks and predicts at 5, 10, 15, 20, and 25 simulator steps using only the initial observed history.
+The candidate actions and multi-step targets extend the one-step task queries.
+Each checkpoint is scored separately, and matching training repetitions are then averaged equally.
+Intervals use 4,000 source-cluster bootstrap samples; all conditions, actions, and times from a source remain together.
+They condition on the evaluated checkpoints and do not estimate variation from retraining the model.
+Original action-delay checkpoints do not have the native seven-frame interface and are excluded from this comparison.
+DINO-WM has no jointly updated visual-encoder scheme; its comparable Original $\rightarrow$ Mixed results cover Speed, damping, and gripper carry.
+
+\paragraph{Planning evaluation.}
+CEM results measure success in the original environments, with no hidden-dynamics history intervention.
+Most checkpoint evaluations use six evaluation seeds with 50 episodes each; some original LeWM and PLDM references use three sets of 100 episodes or an aggregated 300-episode result.
+Evaluation repetitions are pooled within each checkpoint, then training repetitions are averaged equally.
+A single original-environment checkpoint supplies the reference for all tasks from that environment; these repeated entries are not independent experiments.
+
+\paragraph{Training-query analysis.}
+The friction and damping comparisons use 32,768 training pairs, identical original-environment initialization within each task, and the same 50/50 mixture, batch size, and duration.
+We evaluate 512 fixed training pairs and 256 Development pairs per task at epochs 5 and 10, predicting the next observation five simulator steps ahead.
+Loss summaries use the logged mixed-training batches, approximately 50--70 records per epoch, rather than every training batch.
+Checkpoints and logs are aligned by update step.
+The curves show recorded means and batch interquartile ranges; loss medians give the same monotonic direction for friction joint training from epochs 5 to 10.
+NRE is evaluated in each checkpoint's target representation and is not a common physical error across checkpoints.
+For damping with the encoder frozen, prediction loss changes by only $-0.39\%$ between these endpoints and fluctuates in between; we describe it as approximately constant.
+
+\section{Additional Results}
+\label{app:additional-results}
+
+The following tables separate prediction diagnostics from original-environment planning.
+History measures strict error reduction from matching history on the task queries; NRE measures the conditional response on those queries.
+$E/B$ uses the extended multi-step action panels and includes errors shared by both conditions.
+Because the query sets and prediction horizons differ, these columns should not be treated as measurements of the same event.
+All latent errors are computed in the checkpoint's own target representation.
+
+% BEGIN GENERATED PAPER RESULTS
+\begingroup
+\small
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.15}
+\begin{longtable}{@{}p{1.8cm}lp{3.65cm}rrrp{2.5cm}r@{}}
+\caption{Development prediction diagnostics and original-environment CEM. Entries average the available training repetitions; $E/B$ intervals are 95\% source-bootstrap intervals. History and CEM are percentages. Scheme names match the main text.}\\
+\toprule
+Task & Model & Scheme & History $\uparrow$ & NRE $\downarrow$ & $E/B$ $\downarrow$ & $E/B$ interval & CEM $\uparrow$\\
+\midrule
+\endfirsthead
+\toprule
+Task & Model & Scheme & History $\uparrow$ & NRE $\downarrow$ & $E/B$ $\downarrow$ & $E/B$ interval & CEM $\uparrow$\\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+Speed & LeWM & Original & 59.15 & 0.896 & 1.498 & [1.478, 1.517] & 92.44 \\
+Speed & LeWM & Mixed & 98.00 & 0.042 & 0.363 & [0.345, 0.381] & 97.44 \\
+Speed & LeWM & Original $\rightarrow$ Mixed (Joint) & 96.67 & 0.055 & 0.406 & [0.384, 0.429] & 97.00 \\
+Speed & LeWM & Original $\rightarrow$ Mixed (Frozen Encoder) & 98.56 & 0.030 & 0.144 & [0.132, 0.156] & 95.00 \\
+Speed & PLDM & Original & 48.48 & 0.925 & 3.377 & [3.309, 3.445] & 90.56 \\
+Speed & PLDM & Mixed & 97.19 & 0.084 & 0.520 & [0.498, 0.544] & 96.89 \\
+Speed & PLDM & Original $\rightarrow$ Mixed (Joint) & 98.89 & 0.046 & 0.353 & [0.327, 0.379] & 96.33 \\
+Speed & PLDM & Original $\rightarrow$ Mixed (Frozen Encoder) & 95.56 & 0.065 & 0.302 & [0.285, 0.319] & 98.00 \\
+Speed & DINO-WM & Original & 58.56 & 0.928 & 1.973 & [1.954, 1.991] & 100.00 \\
+Speed & DINO-WM & Mixed & 56.56 & 0.967 & 2.101 & [2.070, 2.133] & 99.89 \\
+Speed & DINO-WM & Original $\rightarrow$ Mixed (Frozen Encoder) & 86.00 & 0.411 & 0.886 & [0.847, 0.927] & 100.00 \\
+\midrule
+Pusher displacement & LeWM & Original & 34.05 & 1.015 & 2.378 & [2.284, 2.481] & 82.22 \\
+Pusher displacement & LeWM & Mixed & 73.63 & 0.981 & 3.572 & [3.421, 3.741] & 78.67 \\
+Pusher displacement & LeWM & Original $\rightarrow$ Mixed (Joint) & 97.46 & 0.222 & 2.504 & [2.425, 2.586] & 86.00 \\
+Pusher displacement & LeWM & Original $\rightarrow$ Mixed (Frozen Encoder) & 98.05 & 0.144 & 1.464 & [1.396, 1.537] & 73.67 \\
+Pusher displacement & PLDM & Original & 15.89 & 1.048 & 2.471 & [2.395, 2.552] & 75.67 \\
+Pusher displacement & PLDM & Mixed & 66.60 & 0.896 & 6.533 & [6.241, 6.847] & 61.33 \\
+Pusher displacement & PLDM & Original $\rightarrow$ Mixed (Joint) & 73.83 & 0.798 & 3.811 & [3.664, 3.968] & 72.00 \\
+Pusher displacement & PLDM & Original $\rightarrow$ Mixed (Frozen Encoder) & 99.61 & 0.115 & 1.445 & [1.388, 1.506] & 59.33 \\
+Pusher displacement & DINO-WM & Original & 14.65 & 1.113 & 3.300 & [3.166, 3.446] & 76.67 \\
+Pusher displacement & DINO-WM & Mixed & 98.63 & 0.432 & 1.996 & [1.941, 2.055] & 76.67 \\
+\midrule
+Arm mass & LeWM & Original & 50.98 & 0.977 & 687.381 & [571.339, 816.332] & 55.89 \\
+Arm mass & LeWM & Mixed & 91.60 & 0.048 & 51.291 & [45.684, 56.751] & 58.00 \\
+Arm mass & LeWM & Original $\rightarrow$ Mixed (Joint) & 91.80 & 0.039 & 47.152 & [41.802, 52.374] & 59.00 \\
+Arm mass & LeWM & Original $\rightarrow$ Mixed (Frozen Encoder) & 88.28 & 0.338 & 31.814 & [27.581, 35.547] & 59.67 \\
+Arm mass & PLDM & Original & 66.80 & 0.922 & 18.594 & [16.630, 20.929] & 69.67 \\
+Arm mass & PLDM & Mixed & 92.19 & 0.033 & 13.617 & [12.780, 14.631] & 51.67 \\
+Arm mass & PLDM & Original $\rightarrow$ Mixed (Joint) & 91.02 & 0.077 & 44.421 & [38.659, 50.208] & 58.67 \\
+Arm mass & PLDM & Original $\rightarrow$ Mixed (Frozen Encoder) & 92.38 & 0.211 & 16.644 & [15.067, 18.031] & 89.00 \\
+Arm mass & DINO-WM & Original & 59.38 & 0.980 & 48.246 & [45.632, 51.198] & 90.67 \\
+Arm mass & DINO-WM & Mixed & 89.26 & 0.658 & 14.246 & [13.770, 14.655] & 75.00 \\
+\midrule
+Action delay & LeWM & Mixed & 99.00 & 0.012 & 1.462 & [1.439, 1.487] & 87.33 \\
+Action delay & PLDM & Mixed & 99.99 & 0.007 & 1.807 & [1.795, 1.820] & 90.89 \\
+Action delay & DINO-WM & Mixed & 21.14 & 1.000 & 65.764 & [64.835, 66.676] & 33.56 \\
+\midrule
+Contact friction & LeWM & Original & 50.59 & 1.001 & 2.753 & [2.680, 2.834] & 82.22 \\
+Contact friction & LeWM & Mixed & 50.00 & 0.999 & 2.693 & [2.642, 2.747] & 76.67 \\
+Contact friction & LeWM & Original $\rightarrow$ Mixed (Joint) & 57.23 & 0.999 & 2.714 & [2.674, 2.758] & 86.00 \\
+Contact friction & LeWM & Original $\rightarrow$ Mixed (Frozen Encoder) & 92.77 & 0.448 & 2.891 & [2.833, 2.953] & 83.33 \\
+Contact friction & PLDM & Original & 49.28 & 1.012 & 3.869 & [3.753, 3.992] & 75.67 \\
+Contact friction & PLDM & Mixed & 50.00 & 1.001 & 6.269 & [5.975, 6.602] & 65.67 \\
+Contact friction & PLDM & Original $\rightarrow$ Mixed (Joint) & 51.37 & 1.004 & 7.086 & [6.828, 7.366] & 73.33 \\
+Contact friction & PLDM & Original $\rightarrow$ Mixed (Frozen Encoder) & 85.94 & 0.604 & 4.499 & [4.391, 4.618] & 79.67 \\
+Contact friction & DINO-WM & Original & 48.63 & 1.019 & 6.109 & [5.850, 6.372] & 76.67 \\
+Contact friction & DINO-WM & Mixed & 93.16 & 0.684 & 3.673 & [3.603, 3.744] & 75.67 \\
+\midrule
+Motion damping & LeWM & Original & 49.09 & 0.995 & 5.308 & [5.042, 5.616] & 82.22 \\
+Motion damping & LeWM & Mixed & 49.61 & 1.002 & 291.614 & [253.071, 335.959] & 78.00 \\
+Motion damping & LeWM & Original $\rightarrow$ Mixed (Joint) & 50.20 & 1.001 & 95.787 & [83.792, 110.333] & 88.33 \\
+Motion damping & LeWM & Original $\rightarrow$ Mixed (Frozen Encoder) & 58.79 & 0.997 & 8.202 & [7.657, 8.832] & 84.33 \\
+Motion damping & PLDM & Original & 51.69 & 0.957 & 5.973 & [5.668, 6.318] & 75.67 \\
+Motion damping & PLDM & Mixed & 58.59 & 1.521 & 25.424 & [22.201, 29.444] & 61.00 \\
+Motion damping & PLDM & Original $\rightarrow$ Mixed (Joint) & 79.10 & 0.221 & 8.247 & [7.957, 8.547] & 70.00 \\
+Motion damping & PLDM & Original $\rightarrow$ Mixed (Frozen Encoder) & 62.11 & 0.882 & 5.553 & [5.276, 5.871] & 78.33 \\
+Motion damping & DINO-WM & Original & 52.34 & 1.001 & 8.465 & [8.122, 8.825] & 76.67 \\
+Motion damping & DINO-WM & Mixed & 66.21 & 1.021 & 7.273 & [7.077, 7.482] & 76.67 \\
+Motion damping & DINO-WM & Original $\rightarrow$ Mixed (Frozen Encoder) & 65.62 & 1.083 & 6.927 & [6.731, 7.135] & 76.00 \\
+\midrule
+Gripper carry rule & LeWM & Original & 74.80 & 0.911 & 11.678 & [10.728, 12.783] & 65.44 \\
+Gripper carry rule & LeWM & Mixed & 49.61 & 1.001 & 198.472 & [166.622, 241.013] & 61.33 \\
+Gripper carry rule & LeWM & Original $\rightarrow$ Mixed (Joint) & 52.34 & 0.998 & 13.085 & [11.613, 14.946] & 71.00 \\
+Gripper carry rule & LeWM & Original $\rightarrow$ Mixed (Frozen Encoder) & 78.12 & 0.320 & 11.937 & [11.096, 12.883] & 67.00 \\
+Gripper carry rule & PLDM & Original & 57.62 & 0.923 & 15.350 & [12.126, 22.152] & 53.44 \\
+Gripper carry rule & PLDM & Mixed & 52.54 & 0.985 & 147.591 & [121.468, 184.796] & 55.00 \\
+Gripper carry rule & PLDM & Original $\rightarrow$ Mixed (Joint) & 54.49 & 0.985 & 26.553 & [24.128, 29.592] & 56.67 \\
+Gripper carry rule & PLDM & Original $\rightarrow$ Mixed (Frozen Encoder) & 58.01 & 0.594 & 29.969 & [21.538, 46.388] & 56.67 \\
+Gripper carry rule & DINO-WM & Original & 49.80 & 1.001 & 42.857 & [41.696, 44.068] & 72.67 \\
+Gripper carry rule & DINO-WM & Mixed & 80.66 & 0.890 & 11.789 & [11.454, 12.141] & 71.67 \\
+Gripper carry rule & DINO-WM & Original $\rightarrow$ Mixed (Frozen Encoder) & 82.03 & 0.874 & 11.747 & [11.417, 12.082] & 73.67 \\
+\midrule
+Door traversability & LeWM & Original & 45.72 & 0.997 & 4.676 & [4.568, 4.784] & 92.44 \\
+Door traversability & LeWM & Mixed & 100.00 & 0.045 & 2.981 & [2.938, 3.024] & 95.11 \\
+Door traversability & LeWM & Original $\rightarrow$ Mixed (Joint) & 100.00 & 0.047 & 2.427 & [2.378, 2.478] & 97.67 \\
+Door traversability & LeWM & Original $\rightarrow$ Mixed (Frozen Encoder) & 100.00 & 0.036 & 2.442 & [2.400, 2.483] & 94.00 \\
+Door traversability & PLDM & Original & 52.22 & 0.997 & 7.520 & [7.323, 7.718] & 90.56 \\
+Door traversability & PLDM & Mixed & 100.00 & 0.021 & 2.404 & [2.384, 2.424] & 95.78 \\
+Door traversability & PLDM & Original $\rightarrow$ Mixed (Joint) & 100.00 & 0.027 & 2.349 & [2.302, 2.397] & 99.33 \\
+Door traversability & PLDM & Original $\rightarrow$ Mixed (Frozen Encoder) & 100.00 & 0.049 & 2.455 & [2.419, 2.491] & 98.67 \\
+Door traversability & DINO-WM & Original & 61.00 & 0.986 & 4.233 & [4.143, 4.321] & 100.00 \\
+Door traversability & DINO-WM & Mixed & 100.00 & 0.223 & 1.329 & [1.303, 1.354] & 97.56 \\
+\midrule
+Portal exit & LeWM & Original & 51.82 & 0.990 & 822.254 & [587.576, 1303.713] & 92.44 \\
+Portal exit & LeWM & Mixed & 77.54 & 0.918 & 58.552 & [47.450, 74.465] & 98.33 \\
+Portal exit & LeWM & Original $\rightarrow$ Mixed (Joint) & 66.21 & 0.919 & 61.538 & [49.099, 81.373] & 95.67 \\
+Portal exit & LeWM & Original $\rightarrow$ Mixed (Frozen Encoder) & 93.16 & 0.253 & 13.286 & [10.625, 17.147] & 89.33 \\
+Portal exit & PLDM & Original & 51.63 & 0.996 & 1056.976 & [789.611, 1513.078] & 90.56 \\
+Portal exit & PLDM & Mixed & 78.71 & 0.121 & 37.556 & [35.991, 39.195] & 97.00 \\
+Portal exit & PLDM & Original $\rightarrow$ Mixed (Joint) & 62.11 & 0.694 & 21.881 & [20.065, 24.077] & 98.67 \\
+Portal exit & PLDM & Original $\rightarrow$ Mixed (Frozen Encoder) & 98.24 & 0.203 & 10.485 & [9.219, 12.101] & 98.67 \\
+Portal exit & DINO-WM & Original & 54.69 & 0.995 & 41.991 & [40.909, 43.144] & 100.00 \\
+Portal exit & DINO-WM & Mixed & 100.00 & 0.143 & 8.092 & [8.005, 8.181] & 100.00 \\
+\end{longtable}\endgroup
+\subsection{Data Scale}
+These comparisons use Development and hold training epochs fixed.
+The sample counts describe pairs, not necessarily independent source episodes.
+Pusher displacement uses 2,048, 8,192, and 32,768 pairs; friction and damping compare 8,192 with 32,768; mass and portal exit compare 2,048 with 32,768.
+Gripper carry expands from 2,048 to 10,000 source episodes.
+Portal expansion also broadens initial distances and action magnitudes, so its comparison changes coverage as well as size.
+\begingroup\small
+\setlength{\tabcolsep}{4pt}
+\begin{longtable}{@{}p{2cm}lp{4cm}rrrr@{}}
+\caption{Data-scale comparisons on Development. $n$ counts training repetitions contributing to task accuracy and NRE. Planning repetitions can differ and are not counted as additional training runs.}\\
+\toprule
+Task & Model & Scheme & Pairs & $n$ & Accuracy (\%) & NRE\\
+\midrule\endfirsthead
+\toprule
+Task & Model & Scheme & Pairs & $n$ & Accuracy (\%) & NRE\\
+\midrule\endhead
+\bottomrule\endfoot
+Pusher displacement & LeWM & Mixed & 2,048 & 3 & 50.00 & 1.000 \\
+Pusher displacement & LeWM & Mixed & 32,768 & 1 & 50.78 & 0.981 \\
+Pusher displacement & LeWM & Original $\rightarrow$ Mixed (Joint) & 2,048 & 1 & 55.66 & 0.810 \\
+Pusher displacement & LeWM & Original $\rightarrow$ Mixed (Joint) & 8,192 & 1 & 82.42 & 0.390 \\
+Pusher displacement & LeWM & Original $\rightarrow$ Mixed (Joint) & 32,768 & 1 & 90.82 & 0.222 \\
+Pusher displacement & PLDM & Mixed & 2,048 & 3 & 50.07 & 1.003 \\
+Pusher displacement & PLDM & Mixed & 32,768 & 1 & 56.64 & 0.896 \\
+Pusher displacement & DINO-WM & Mixed & 2,048 & 3 & 89.19 & 0.583 \\
+Pusher displacement & DINO-WM & Mixed & 32,768 & 1 & 96.09 & 0.432 \\
+Arm mass & LeWM & Mixed & 2,048 & 3 & 85.35 & 0.132 \\
+Arm mass & LeWM & Mixed & 32,768 & 1 & 87.11 & 0.048 \\
+Arm mass & PLDM & Mixed & 2,048 & 3 & 52.60 & 1.054 \\
+Arm mass & PLDM & Mixed & 32,768 & 1 & 91.21 & 0.033 \\
+Arm mass & DINO-WM & Mixed & 2,048 & 3 & 51.37 & 0.999 \\
+Arm mass & DINO-WM & Mixed & 32,768 & 1 & 80.47 & 0.658 \\
+Contact friction & LeWM & Mixed & 8,192 & 3 & 50.07 & 1.000 \\
+Contact friction & LeWM & Mixed & 32,768 & 1 & 50.00 & 0.999 \\
+Contact friction & PLDM & Mixed & 8,192 & 3 & 50.13 & 1.001 \\
+Contact friction & PLDM & Mixed & 32,768 & 1 & 50.20 & 1.001 \\
+Contact friction & DINO-WM & Mixed & 8,192 & 3 & 49.61 & 1.025 \\
+Contact friction & DINO-WM & Mixed & 32,768 & 1 & 81.84 & 0.684 \\
+Motion damping & LeWM & Mixed & 8,192 & 3 & 50.07 & 0.999 \\
+Motion damping & LeWM & Mixed & 32,768 & 1 & 49.80 & 1.002 \\
+Motion damping & PLDM & Mixed & 8,192 & 3 & 51.89 & 2.122 \\
+Motion damping & PLDM & Mixed & 32,768 & 1 & 58.40 & 1.521 \\
+Motion damping & DINO-WM & Mixed & 8,192 & 3 & 50.13 & 1.014 \\
+Motion damping & DINO-WM & Mixed & 32,768 & 1 & 57.42 & 1.021 \\
+Gripper carry rule & LeWM & Mixed & 2,048 & 3 & 49.93 & 1.001 \\
+Gripper carry rule & LeWM & Mixed & 10,000 & 1 & 50.00 & 1.001 \\
+Gripper carry rule & PLDM & Mixed & 2,048 & 3 & 50.00 & 0.996 \\
+Gripper carry rule & PLDM & Mixed & 10,000 & 1 & 50.00 & 0.985 \\
+Gripper carry rule & DINO-WM & Mixed & 2,048 & 3 & 50.33 & 0.995 \\
+Gripper carry rule & DINO-WM & Mixed & 10,000 & 1 & 61.33 & 0.890 \\
+Portal exit & LeWM & Mixed & 2,048 & 3 & 50.91 & 0.925 \\
+Portal exit & LeWM & Mixed & 32,768 & 1 & 51.95 & 0.918 \\
+Portal exit & PLDM & Mixed & 2,048 & 3 & 69.53 & 0.155 \\
+Portal exit & PLDM & Mixed & 32,768 & 1 & 73.63 & 0.121 \\
+Portal exit & DINO-WM & Mixed & 2,048 & 3 & 99.41 & 0.554 \\
+Portal exit & DINO-WM & Mixed & 32,768 & 1 & 100.00 & 0.143 \\
+\end{longtable}\endgroup
+\subsection{Model Capacity}
+Both model sizes use the same 32,768-pair datasets, training seed, Mixed initialization, and 10-epoch recipe.
+The larger model changes the visual backbone from ViT-Tiny to ViT-Base, the representation width from 192 to 768, and predictor depth from six to nine layers.
+This is a joint expansion of the encoder and predictor, not a predictor-only intervention.
+\begin{center}\small
+\begin{tabular}{@{}llrrrrrr@{}}
+\toprule
+& & \multicolumn{2}{c}{Accuracy (\%)} & \multicolumn{2}{c}{NRE} & \multicolumn{2}{c}{CEM (\%)}\\
+Task & Model & 18M & 183M & 18M & 183M & 18M & 183M\\
+\midrule
+Contact friction & LeWM & 50.00 & 49.80 & 0.999 & 1.000 & 76.67 & 74.00 \\
+Motion damping & LeWM & 49.80 & 50.00 & 1.002 & 1.000 & 78.00 & 71.33 \\
+Contact friction & PLDM & 50.20 & 49.80 & 1.001 & 1.107 & 65.67 & 47.33 \\
+Motion damping & PLDM & 58.40 & 50.39 & 1.521 & 1.536 & 61.00 & 50.33 \\
+\bottomrule\end{tabular}\end{center}
+The four endpoint comparisons do not show a consistent improvement from increasing capacity under this recipe.
+Only measured checkpoints are used in the training-curve analysis: epochs 1--10 for the large LeWM models and epochs 5 and 10 for the other models.
+There is no shared trajectory of accurate training responses followed by worsening Development response error across these runs.
+This does not exclude earlier overfitting where checkpoints are unavailable, or gains from retuning the larger models.
+
+% END GENERATED PAPER RESULTS
 
 \end{document}
