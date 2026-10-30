@@ -292,8 +292,8 @@ To study how training data affect adaptation, we compare training on original-en
 We use the original-environment datasets released with LeWM~\cite{maes2026leworldmodel}.
 For each task, mixed training samples 50\% of its trajectory windows from the corresponding original-environment dataset and 50\% from the task's ContextWorld Training split.
 
-We report planning performance with the cross-entropy method (CEM)~\cite{deboer2005cem} in the original environments separately to measure retention of planning ability.
-Since these environments need not require adaptation to changing dynamics, their planning scores do not replace the adaptation evaluation.
+We also evaluate planning with the cross-entropy method (CEM)~\cite{deboer2005cem} in the original environments to test whether models retain their planning ability after training on mixed data.
+These scores measure performance in the original environments, not adaptation to hidden dynamics.
 
 {\small
 \bibliographystyle{ieeenat_fullname}
