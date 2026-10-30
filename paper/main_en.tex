@@ -246,16 +246,17 @@ We evaluate both predictions against the true future of the original sample.
 History (\%) is the percentage of comparisons in which matching history gives strictly lower prediction error than mismatched history.
 Speed also uses this strict comparison as its task score.
 
-This rate records wins, not the size of the improvement.
-Let $L_q^+=L_q$ be the scene error with matching history and $L_q^-$ the error with mismatched history, averaged equally over the alternatives when there is more than one.
-Using the same weights over conditions, actions, and times, define $E_+=\sum_q L_q^+$, $E_-=\sum_q L_q^-$, and $B=\sum_q B_q>0$.
-The normalized error reduction is
+History (\%) measures how often matching history reduces error, but not by how much.
+We therefore also report the reduction relative to the same reference error used for $E/B$.
+Let $E_+$ and $E_-$ be the summed scene errors with matching and mismatched histories, respectively, using the averaging over conditions, actions, and times in Eq.~\ref{eq:complete-error}.
+For each sample, errors from multiple mismatched histories are averaged equally.
+With $B=\sum_q B_q>0$, the normalized error reduction is
 \begin{equation}
 G_H=\frac{E_--E_+}{B}.
 \label{eq:history-gain}
 \end{equation}
-A positive $G_H$ means that matching history reduces error.
-The remaining prediction error is still measured by $E/B$.
+A positive $G_H$ means that matching history reduces error, but does not imply that the predictions are accurate.
+Their overall error is measured by $E/B$.
 
 \paragraph{Conditional response error.}
 Prediction loss can fall as errors shared by both conditions decrease, even if the predicted difference between conditions remains inaccurate.
