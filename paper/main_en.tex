@@ -279,11 +279,8 @@ Changes across training checkpoints can also reflect changes in the target encod
 A fixed target representation removes this source of variation.
 
 \paragraph{Reporting results.}
-We weight training runs with the same settings equally and report their standard deviation.
-For multi-step errors, cluster bootstrap resampling~\cite{efron1993bootstrap,field2007cluster} groups samples by source trajectory or scene, retaining related samples together.
-These intervals describe scene-sampling uncertainty for the evaluated checkpoints.
-We report planning performance with the cross-entropy method (CEM)~\cite{deboer2005cem} in the original environments separately to measure retention of planning ability.
-Since these environments need not require adaptation to changing dynamics, their planning scores do not replace the adaptation evaluation.
+We report the mean and standard deviation across training runs with the same settings, weighting each run equally.
+For multi-step errors, we also report confidence intervals that reflect variation across sampled scenes or source trajectories, rather than across training runs (Appendix~\ref{app:result-uncertainty}).
 
 \section{Experiments}
 \label{sec:experiments}
@@ -293,6 +290,9 @@ Since these environments need not require adaptation to changing dynamics, their
 
 For baseline training and mixed-data training, we use the original-environment datasets released with LeWM~\cite{maes2026leworldmodel}.
 For mixed-data training, we sample equal proportions of trajectory windows from these datasets and the corresponding task's ContextWorld Training split.
+
+We report planning performance with the cross-entropy method (CEM)~\cite{deboer2005cem} in the original environments separately to measure retention of planning ability.
+Since these environments need not require adaptation to changing dynamics, their planning scores do not replace the adaptation evaluation.
 
 {\small
 \bibliographystyle{ieeenat_fullname}
@@ -452,6 +452,11 @@ When conditions share the current observation and future actions and are equally
 \paragraph{Response error settings.}
 We specify the prediction horizon for each NRE analysis.
 The ratio in Eq.~\ref{eq:response-error} is defined only when $\sum_i\|\Delta z_i\|^2>0$.
+
+\paragraph{Uncertainty estimates.}
+\label{app:result-uncertainty}
+For multi-step errors, we use cluster bootstrap resampling~\cite{efron1993bootstrap,field2007cluster} at the level of source trajectories or scenes, retaining related samples together.
+These intervals describe scene-sampling uncertainty for the evaluated checkpoints, not variability across training runs.
 
 \paragraph{Interpreting multiple metrics.}
 The metrics describe different aspects of the same predictions and are not independent pieces of evidence.
