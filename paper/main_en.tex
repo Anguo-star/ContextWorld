@@ -288,8 +288,9 @@ For multi-step errors, we also report confidence intervals that reflect variatio
 \subsection{Experimental Setup}
 \label{sec:experimental-setup}
 
-For baseline training and mixed-data training, we use the original-environment datasets released with LeWM~\cite{maes2026leworldmodel}.
-For mixed-data training, we sample equal proportions of trajectory windows from these datasets and the corresponding task's ContextWorld Training split.
+To study how training data affect adaptation, we compare training on original-environment data alone with training on a mixture of original-environment and ContextWorld data.
+We use the original-environment datasets released with LeWM~\cite{maes2026leworldmodel}.
+For each task, mixed training samples 50\% of its trajectory windows from the corresponding original-environment dataset and 50\% from the task's ContextWorld Training split.
 
 We report planning performance with the cross-entropy method (CEM)~\cite{deboer2005cem} in the original environments separately to measure retention of planning ability.
 Since these environments need not require adaptation to changing dynamics, their planning scores do not replace the adaptation evaluation.
