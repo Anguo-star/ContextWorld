@@ -272,13 +272,13 @@ Lower NRE is better: 0 means that the predicted difference exactly matches the t
 Predicting no difference gives NRE = 1, although other incorrect predictions can produce the same value.
 Errors shared by both predictions cancel when we subtract them, so a low NRE does not guarantee that either predicted future is accurate.
 
-\paragraph{Interpreting and aggregating results.}
-Task scores measure the distinctions specified by each task.
-Both $E/B$ and NRE are computed in each checkpoint's own target representation and do not provide a common measure of physical accuracy for comparing models.
-If the target encoder changes during training, comparisons across checkpoints also reflect changes in the representation.
-Training analyses therefore describe each checkpoint in its own target space; error comparisons are more direct when that space is fixed.
-The metrics describe different aspects of the same predictions and are not independent pieces of evidence.
+\paragraph{Comparing prediction errors.}
+$E/B$ and NRE measure errors in each checkpoint's target representation.
+Normalization does not make these representations equivalent, so lower values across models do not necessarily indicate more accurate physical predictions.
+Changes across training checkpoints can also reflect changes in the target encoder.
+A fixed target representation removes this source of variation.
 
+\paragraph{Reporting results.}
 We weight training runs with the same settings equally and report their standard deviation.
 For multi-step errors, cluster bootstrap resampling~\cite{efron1993bootstrap,field2007cluster} groups samples by source trajectory or scene, retaining related samples together.
 These intervals describe scene-sampling uncertainty for the evaluated checkpoints.
@@ -452,5 +452,8 @@ When conditions share the current observation and future actions and are equally
 \paragraph{Response error settings.}
 We specify the prediction horizon for each NRE analysis.
 The ratio in Eq.~\ref{eq:response-error} is defined only when $\sum_i\|\Delta z_i\|^2>0$.
+
+\paragraph{Interpreting multiple metrics.}
+The metrics describe different aspects of the same predictions and are not independent pieces of evidence.
 
 \end{document}
