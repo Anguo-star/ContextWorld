@@ -217,10 +217,11 @@ We evaluate five successive predictions, up to 25 simulator steps ahead (Appendi
 We compare prediction errors with a reference that makes the same prediction across dynamics conditions~\cite{murphy1988skill}.
 For each scene, action sequence, and prediction time, this reference is the mean of the true future representations.
 With equally weighted conditions, this mean gives the lowest squared error among predictions that do not distinguish the conditions~\cite{gneiting2011point}.
-For scene $q$, this mean is $\bar z_{qct}=K_q^{-1}\sum_k z_{qkct}$.
-Here, $K_q$ is the number of conditions, $C_q$ is the number of shared action sequences, and $T=5$ is the number of evaluation times.
-The true and predicted representations for condition $k$, action sequence $c$, and evaluation time $t$ are $z_{qkct}$ and $\hat z_{qkct}$.
-We average over conditions, actions, and times within each scene before aggregating:
+For scene $q$, let $z_{qkct}$ and $\hat z_{qkct}$ denote the true and predicted future representations for dynamics condition $k$, action sequence $c$, and prediction time $t$.
+The reference prediction is $\bar z_{qct}=K_q^{-1}\sum_k z_{qkct}$, where $K_q$ is the number of dynamics conditions.
+We average the model's squared errors within each scene to obtain $L_q$, and the reference errors to obtain $B_q$.
+Both averages cover all $K_q$ conditions, $C_q$ action sequences, and $T=5$ prediction times.
+We then report the ratio of the summed model errors to the summed reference errors:
 \begin{equation}
 \begin{aligned}
 L_q&=\frac{1}{K_qC_qT}\sum_{k,c,t}\|\hat z_{qkct}-z_{qkct}\|^2,\\
