@@ -214,8 +214,9 @@ We therefore evaluate predictions over multiple steps, using the same future act
 Models roll out from the observed interaction history without receiving further ground-truth observations.
 We evaluate five successive predictions, up to 25 simulator steps ahead (Appendix~\ref{app:evaluation-details}).
 
-We normalize prediction error by a reference error, following the principle of forecast skill evaluation~\cite{murphy1988skill}.
-For a given scene, action sequence, and prediction time, the mean future minimizes squared error among predictions that are identical across conditions, when those conditions are weighted equally~\cite{gneiting2011point}.
+We compare prediction errors with a reference that makes the same prediction across dynamics conditions~\cite{murphy1988skill}.
+For each scene, action sequence, and prediction time, this reference is the mean of the true future representations.
+With equally weighted conditions, this mean gives the lowest squared error among predictions that do not distinguish the conditions~\cite{gneiting2011point}.
 For scene $q$, this mean is $\bar z_{qct}=K_q^{-1}\sum_k z_{qkct}$.
 Here, $K_q$ is the number of conditions, $C_q$ is the number of shared action sequences, and $T=5$ is the number of evaluation times.
 The true and predicted representations for condition $k$, action sequence $c$, and evaluation time $t$ are $z_{qkct}$ and $\hat z_{qkct}$.
