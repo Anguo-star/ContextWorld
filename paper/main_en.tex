@@ -294,28 +294,29 @@ For each task, mixed training samples 50\% of its trajectory windows from the co
 
 We evaluate LeWM~\cite{maes2026leworldmodel}, PLDM~\cite{sobal2025pldm}, and DINO-WM~\cite{zhou2025dinowm} to examine how original-environment pretraining and visual encoder updates affect adaptation.
 Table~\ref{tab:training-schemes} defines the four training schemes used in the comparisons.
-T0 and T1 each train for 10 epochs; T2 and T3 start from the same T0 weights and train for another 10 epochs on mixed data.
+Original and Mixed each train for 10 epochs.
+The two Original $\rightarrow$ Mixed schemes start from the same Original checkpoint and train for another 10 epochs on mixed data, either updating or freezing the visual encoder.
 Each mixed-data model is trained for one task, so a row of nine task results represents separate task-specific checkpoints.
 
 \begin{table*}[t]
 \centering
 \small
-\caption{Training schemes. Original data come from the corresponding environment; mixed data use the 50/50 sampling described in the text. LeWM and PLDM start T0 and T1 from random weights. DINO-WM starts with a pretrained, frozen visual encoder and a randomly initialized predictor.}
+\caption{Training schemes. Original data come from the corresponding environment; mixed data use the 50/50 sampling described in the text. LeWM and PLDM start Original and Mixed from random weights. DINO-WM starts with a pretrained, frozen visual encoder and a randomly initialized predictor.}
 \label{tab:training-schemes}
-\begin{tabularx}{\textwidth}{@{}llXXX@{}}
+\begin{tabularx}{\textwidth}{@{}p{0.23\textwidth}p{0.18\textwidth}XXX@{}}
 \toprule
 Scheme & Starting weights & Training data & Visual encoder & Other trainable modules \\
 \midrule
-T0 & Model initialization & Original only & Updated$^\dagger$ & Updated \\
-T1 & Model initialization & Mixed & Updated$^\dagger$ & Updated \\
-T2 & T0 checkpoint & Mixed & Updated & Updated \\
-T3 & Same T0 checkpoint & Mixed & Frozen & Updated \\
+Original & Model initialization & Original only & Updated$^\dagger$ & Updated \\
+Mixed & Model initialization & Mixed & Updated$^\dagger$ & Updated \\
+Original $\rightarrow$ Mixed (Joint) & Original checkpoint & Mixed & Updated & Updated \\
+Original $\rightarrow$ Mixed (Frozen Encoder) & Same Original checkpoint & Mixed & Frozen & Updated \\
 \bottomrule
 \end{tabularx}
 \par\smallskip
 \begin{minipage}{\textwidth}
 \footnotesize
-$^\dagger$DINO-WM's visual encoder remains frozen in all experiments, so it has no T2 comparison. In T3, only the visual encoder is frozen; the remaining trainable modules, including any projector and action encoder, continue to update. All schemes retain the model's original training losses.
+$^\dagger$DINO-WM's visual encoder remains frozen in all experiments, so Original $\rightarrow$ Mixed (Joint) is not evaluated for this model. In Original $\rightarrow$ Mixed (Frozen Encoder), only the visual encoder is frozen; the remaining trainable modules, including any projector and action encoder, continue to update. All schemes retain the model's original training losses.
 \end{minipage}
 \end{table*}
 
