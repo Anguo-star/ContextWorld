@@ -323,6 +323,42 @@ $^\dagger$DINO-WM's visual encoder remains frozen in all experiments, so Origina
 We also evaluate planning with the cross-entropy method (CEM)~\cite{deboer2005cem} in the original environments to test whether models retain their planning ability after training on mixed data.
 These scores measure performance in the original environments, not adaptation to hidden dynamics.
 
+
+\subsection{Adaptation Results}
+\label{sec:adaptation-results}
+
+Table~\ref{tab:test-results} compares task accuracy on the Test split.
+With Original training, scores on the seven binary tasks range from 38.48\% to 52.21\%, close to or below the 50\% reference level.
+Mixed training improves performance on several tasks: for example, arm mass accuracy rises from 50.07\% to 85.74\% for LeWM and from 51.82\% to 91.02\% for PLDM.
+These gains show that training with ContextWorld data can improve task accuracy, although the benefits vary across tasks and models.
+
+\begin{table*}[t]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\caption{Test task accuracy (\%, higher is better). Entries report means across available training runs; a second line gives the sample standard deviation where three runs are available. Other entries use one run. Speed reports unseen speeds within the training range; action delay uses seven-frame history. A dash denotes no comparable checkpoint. Each task uses its own checkpoint.}
+\label{tab:test-results}
+\begin{tabularx}{\textwidth}{@{}lp{3.25cm}*{9}{>{\centering\arraybackslash}X}@{}}
+\toprule
+Model & Training scheme & Speed & Pusher displacement & Arm mass & Action delay & Contact friction & Motion damping & Gripper carry rule & Door\newline traversability & Portal exit \\
+\midrule
+LeWM & Original & \shortstack{58.04\\$\pm$1.70} & \shortstack{48.96\\$\pm$1.00} & \shortstack{50.07\\$\pm$0.11} & --- & \shortstack{49.93\\$\pm$0.23} & \shortstack{50.00\\$\pm$0.00} & \shortstack{52.21\\$\pm$1.11} & \shortstack{50.33\\$\pm$0.00} & \shortstack{50.07\\$\pm$0.11} \\\addlinespace[2pt]
+LeWM & Mixed & \shortstack{98.19\\$\pm$0.57} & 50.78 & 85.74 & \shortstack{97.70\\$\pm$0.59} & 50.00 & 50.00 & 50.00 & \shortstack{99.83\\$\pm$0.29} & 50.78 \\\addlinespace[2pt]
+LeWM & Original $\rightarrow$ Mixed (Joint) & 96.89 & 91.80 & 87.30 & --- & 50.39 & 50.00 & 50.00 & 99.83 & 50.39 \\\addlinespace[2pt]
+LeWM & Original $\rightarrow$ Mixed\newline (Frozen Encoder) & 98.44 & 97.46 & 77.15 & --- & 86.13 & 53.91 & 76.37 & 100.00 & 77.93 \\\addlinespace[2pt]
+\midrule
+PLDM & Original & \shortstack{48.41\\$\pm$4.33} & \shortstack{45.57\\$\pm$1.88} & \shortstack{51.82\\$\pm$1.30} & --- & \shortstack{50.00\\$\pm$0.34} & \shortstack{50.26\\$\pm$0.30} & \shortstack{50.78\\$\pm$0.20} & \shortstack{50.06\\$\pm$0.10} & \shortstack{50.07\\$\pm$0.11} \\\addlinespace[2pt]
+PLDM & Mixed & \shortstack{96.78\\$\pm$2.02} & 56.25 & 91.02 & \shortstack{100.00\\$\pm$0.00} & 50.00 & 58.20 & 49.80 & \shortstack{100.00\\$\pm$0.00} & 72.27 \\\addlinespace[2pt]
+PLDM & Original $\rightarrow$ Mixed (Joint) & 98.33 & 59.18 & 84.77 & --- & 50.00 & 79.88 & 50.20 & 100.00 & 52.54 \\\addlinespace[2pt]
+PLDM & Original $\rightarrow$ Mixed\newline (Frozen Encoder) & 96.44 & 98.63 & 81.84 & --- & 73.63 & 54.49 & 52.93 & 100.00 & 91.21 \\\addlinespace[2pt]
+\midrule
+DINO-WM & Original & 57.11 & 38.48 & 50.78 & --- & 50.39 & 49.80 & 50.00 & 50.00 & 50.78 \\\addlinespace[2pt]
+DINO-WM & Mixed & \shortstack{59.41\\$\pm$3.87} & 97.66 & 78.32 & \shortstack{16.65\\$\pm$0.03} & 84.18 & 56.45 & 60.16 & \shortstack{100.00\\$\pm$0.00} & 100.00 \\\addlinespace[2pt]
+DINO-WM & Original $\rightarrow$ Mixed\newline (Frozen Encoder) & 84.78 & --- & --- & --- & --- & 55.27 & 62.89 & --- & --- \\\addlinespace[2pt]
+\bottomrule
+\end{tabularx}
+\end{table*}
+
 {\small
 \bibliographystyle{ieeenat_fullname}
 \bibliography{references}
