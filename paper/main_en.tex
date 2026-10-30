@@ -373,6 +373,15 @@ DINO-WM & Original $\rightarrow$ Mixed\newline (Frozen Encoder) & 84.78 & --- & 
 \end{tabularx}
 \end{table*}
 
+\subsection{Analysis of Training Effects}
+\label{sec:training-effects}
+
+Freezing the visual encoder helps some tasks and hurts others, even when the starting weights are the same.
+For PLDM, Original $\rightarrow$ Mixed (Frozen Encoder) increases contact friction Test accuracy from 50.00\% to 73.63\% relative to joint training, but reduces motion damping accuracy from 79.88\% to 54.49\%.
+Each comparison uses the same task data, mixture, initialization, and training duration.
+Freezing therefore changes the outcome of training in a task-dependent way; it is not a general solution to weak adaptation.
+Because the projector and other trainable modules still update, this comparison does not isolate the role of a fixed target representation.
+
 {\small
 \bibliographystyle{ieeenat_fullname}
 \bibliography{references}
