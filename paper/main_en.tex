@@ -407,6 +407,32 @@ The model therefore fails to recover the conditional response even on these trai
 \label{fig:training-evidence}
 \end{figure*}
 
+The positive controls also matter: with the encoder frozen, friction training-query NRE falls from 0.674 to 0.587, while joint training gives the stronger response on damping.
+Development shows the same ordering between these schemes.
+Thus, the training data support better conditional responses under some schemes, even when another scheme remains weak on training queries.
+This does not establish that every aspect of the future state has been learned accurately.
+
+Together, these results show that reducing the training objective is not a sufficient indicator of acquiring the measured adaptation ability.
+The loss averages prediction errors across mixed data and prediction positions, whereas the response metric tests differences between paired futures.
+Their behavior can therefore differ, and the learned target representation can also change during training.
+Our evidence identifies a gap between optimization progress and conditional prediction, but does not attribute that gap to a unique loss term or representation component.
+The direct training-query evidence is limited to the tested configurations; it is not a common causal explanation for all nine tasks.
+
+\section{Conclusion}
+\label{sec:conclusion}
+
+ContextWorld evaluates whether latent visual world models use interaction history to predict under hidden dynamics.
+Its nine tasks combine controlled history comparisons with task accuracy and prediction-error measurements, separating successful discrimination from accurate conditional prediction.
+Across three model families, training on mixed data improves performance on several tasks, but model advantages and the effects of encoder freezing depend on the task.
+Data scaling helps some training schemes, while the tested capacity increase does not consistently improve weak tasks.
+Training-query analysis further shows that prediction loss can decrease without recovering the conditional response.
+These findings motivate evaluating adaptation directly rather than treating loss reduction as evidence that it has been learned.
+
+The benchmark measures predictions in each model's representation, not a shared physical error space.
+Most tasks test adaptation among dynamics conditions represented in training; Speed additionally tests unseen values.
+The results concern task-specific checkpoints, and original-environment planning does not establish planning gains under hidden dynamics.
+These boundaries define the scope of the comparisons and leave multi-task learning, broader dynamics generalization, and decision benefits for further study.
+
 {\small
 \bibliographystyle{ieeenat_fullname}
 \bibliography{references}
