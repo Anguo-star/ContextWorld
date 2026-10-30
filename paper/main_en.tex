@@ -259,10 +259,10 @@ A positive $G_H$ means that matching history reduces error, but does not imply t
 Their overall error is measured by $E/B$.
 
 \paragraph{Conditional response error.}
-Prediction loss can fall as errors shared by both conditions decrease, even if the predicted difference between conditions remains inaccurate.
-To examine this distinction during training, we compare the true and predicted differences between futures.
-For a two-condition query, let $\Delta z_i=z_i^B-z_i^A$ and $\Delta\hat z_i=\hat z_i^B-\hat z_i^A$.
-The normalized response error (NRE) is
+Training loss can decrease even when the model does not accurately predict how different dynamics change the future.
+We therefore compare the difference between the two predicted futures with the difference between the two true futures.
+For pair $i$, let $\Delta z_i=z_i^B-z_i^A$ denote the true difference and $\Delta\hat z_i=\hat z_i^B-\hat z_i^A$ the predicted difference.
+We define normalized response error (NRE) as the summed squared error between these differences, divided by the summed squared magnitude of the true differences:
 \begin{equation}
 \mathrm{NRE}=\frac{\sum_i\|\Delta\hat z_i-\Delta z_i\|^2}
 {\sum_i\|\Delta z_i\|^2}.
