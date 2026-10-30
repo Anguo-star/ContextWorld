@@ -1,0 +1,12 @@
+# Paper writing and revision
+
+- Use `main_en.tex` as the current manuscript. Preserve separate author drafts and the Chinese reference unless explicitly asked to change them.
+- Write for external readers: clear, natural English; no internal terminology, progress logs, or disconnected lists of experiments. Explain why a design is needed before defining it.
+- Revise one paragraph at a time unless the user approves a specific broader edit. First identify concrete problems, then explain the proposed changes, apply them, and review the result in context.
+- Treat approved author wording as the baseline. Correct factual errors and unsupported claims with the smallest necessary changes; do not rewrite a good sentence to fix one overstated word. Leave clear passages alone.
+- Give each paragraph one purpose and each section a distinct role. Introduce the work in the Introduction, relate it to prior work in Related Work, and define its implementation in the method section. Remove repeated contribution claims without deleting necessary motivation or transitions.
+- Prefer specific verbs and direct wording. Remove modifiers that add no information; do not mechanically replace technical terms or flatten the author's voice.
+- Define notation before use. Explain what a metric measures, why its reference is appropriate, and how results are aggregated. Keep essential interpretation in the main text; place detailed settings, validity conditions, and derivations in the appendix when they interrupt the argument.
+- Preserve experimental facts, scope, and metric meanings. Distinguish future discrimination, prediction error, and history benefit. Do not turn limited history use into total failure, task-specific findings into universal mechanisms, or encoder freezing into a claim that the entire representation is fixed.
+- Use the source documents linked in `README.md` for results. Preserve each result's actual split, model, training strategy, and prediction horizon. Verify literature claims against primary sources; distinguish a method's general foundation from the paper's own metric definition.
+- After editing, reread the affected paragraph and its neighbors for continuity, precision, repetition, and unintended changes in meaning. Compile the English PDF and check references and layout. When updating the existing source ZIP, preserve its other entries. Commit and publish only authorized paper changes; keep unrelated workspace edits separate.

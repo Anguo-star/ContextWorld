@@ -239,10 +239,11 @@ Values below 1 outperform this reference; values above 1 indicate larger errors.
 To measure the benefit of matching history, we also compare errors with matching and mismatched histories.
 
 \paragraph{History controls.}
-Prior work evaluates reliance on context by perturbing observations in the history~\cite{wang2026context}.
-Here, we replace the history with one from a different dynamics condition in the same scene, while keeping the current observation, future actions, and scoring target unchanged.
-The target remains the true future of the original condition; replacing the model's input does not change the environment being predicted.
-History (\%) reports how often matching history gives strictly lower prediction error than mismatched history.
+To test whether matching history helps prediction, we perturb the input history~\cite{wang2026context}.
+For each sample, we replace the history with one from a different dynamics condition in the same scene.
+The current observation and future actions remain unchanged.
+We evaluate both predictions against the true future of the original sample.
+History (\%) is the percentage of comparisons in which matching history gives strictly lower prediction error than mismatched history.
 Speed also uses this strict comparison as its task score.
 
 This rate records wins, not the size of the improvement.
