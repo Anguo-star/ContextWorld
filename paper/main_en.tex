@@ -268,11 +268,9 @@ We define normalized response error (NRE) as the summed squared error between th
 {\sum_i\|\Delta z_i\|^2}.
 \label{eq:response-error}
 \end{equation}
-Lower NRE is better.
-A value of 0 denotes an exact conditional response; 1 is the error of predicting no difference between conditions.
-Subtracting predictions removes errors common to both conditions, so NRE cannot replace complete prediction error.
-Conversely, NRE equal to 1 does not by itself show that a model ignores history.
-We specify the prediction horizon for each analysis and define NRE only when its denominator is positive.
+Lower NRE is better: 0 means that the predicted difference exactly matches the true difference.
+Predicting no difference gives NRE = 1, although other incorrect predictions can produce the same value.
+Errors shared by both predictions cancel when we subtract them, so a low NRE does not guarantee that either predicted future is accurate.
 
 \paragraph{Interpreting and aggregating results.}
 Task scores measure the distinctions specified by each task.
@@ -450,5 +448,9 @@ We measure prediction errors at 5, 10, 15, 20, and 25 simulator steps after the 
 The reference in Eq.~\ref{eq:complete-error} is used only for scoring and is never provided to the model.
 The ratio is defined only when $\sum_q B_q>0$.
 When conditions share the current observation and future actions and are equally weighted, a deterministic model that ignores history cannot achieve $E/B<1$: it must make the same prediction across conditions, and the mean-future reference minimizes the error of such a prediction.
+
+\paragraph{Response error settings.}
+We specify the prediction horizon for each NRE analysis.
+The ratio in Eq.~\ref{eq:response-error} is defined only when $\sum_i\|\Delta z_i\|^2>0$.
 
 \end{document}
