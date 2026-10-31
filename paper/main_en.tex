@@ -182,109 +182,52 @@ Each paired task provides up to 32,768 training pairs, with 256 balanced pairs i
 Development supports method and checkpoint selection; Test is reserved for final evaluation.
 Comprehensive dataset statistics, dynamics settings, and split checks appear in Table~\ref{tab:dataset-sizes} and Appendix~\ref{app:dataset-splits}.
 
-\subsection{Evaluation}
+\subsection{Evaluation Protocol and Metrics}
 \label{sec:evaluation}
+Evaluating latent in-context dynamics adaptation requires disentangling genuine context utilization from predictive shortcuts.
+In learned latent spaces, models can achieve low prediction loss by averaging over dynamics conditions or minimizing prediction errors shared across dynamics conditions, without adapting to the underlying physical properties.
+To rigorously evaluate models under strictly frozen weights, we establish an evaluation protocol structured around four complementary questions: (1) Does the prediction distinguish diverging physical futures? (2) How accurate is the multi-step trajectory rollout? (3) Does the supplied history reliably reduce prediction error? and (4) Is the differential response to varying dynamics accurately recovered?
 
-A model can change its predictions with the interaction history and still predict the wrong future.
-We therefore evaluate whether predictions distinguish the true futures under different dynamics, measure prediction error, and compare errors with matching and mismatched histories.
-We report benchmark results on the Test split.
-
-\paragraph{Prediction accuracy.}
-All tasks except Speed and action delay use the same accuracy rule.
-For these tasks, we compare each prediction with both true futures.
-A prediction using the history from condition A is counted as correct only if it is closer to A's true future than to B's, and vice versa.
-For pair $i$, $z_i^A$ and $z_i^B$ denote the true future representations, and $\hat z_i^A$ and $\hat z_i^B$ denote the corresponding predictions.
-Using mean squared error $d$, we report accuracy as the percentage of correct predictions across both conditions in $N$ pairs:
+\paragraph{Adaptation Accuracy ($A_{\mathrm{future}}$).}
+To test whether predictions distinguish diverging physical outcomes, we evaluate paired counterfactual predictions against latent ground-truth targets.
+For pair $i$ in a set of $N$ pairs, with latent targets $z_i^A, z_i^B$ and predictions $\hat{z}_i^A, \hat{z}_i^B$, a prediction is scored as correct only if it is strictly closer in MSE ($d$) to its corresponding future than to the alternative: $I_i^A = \mathbf{1}[d(\hat{z}_i^A, z_i^A) < d(\hat{z}_i^A, z_i^B)]$, with $I_i^B$ defined symmetrically.
+The paired adaptation accuracy is:
 \begin{equation}
-\begin{aligned}
-A_{\mathrm{future}}&=\frac{100}{2N}\sum_{i=1}^{N}(I_i^A+I_i^B),\\
-I_i^A&=\mathbf{1}\{d(\hat z_i^A,z_i^A)<d(\hat z_i^A,z_i^B)\},\\
-I_i^B&=\mathbf{1}\{d(\hat z_i^B,z_i^B)<d(\hat z_i^B,z_i^A)\}.
-\end{aligned}
+A_{\mathrm{future}} = \frac{100}{2N} \sum_{i=1}^{N} \left( I_i^A + I_i^B \right).
 \label{eq:future-score}
 \end{equation}
+Ties count as failures; thus, any deterministic model that ignores history receives identical inputs and scores at most 50\%.
+For multi-condition tasks, Speed requires the matching history to yield lower error than all alternative speed contexts, while Action Delay evaluates classification across six latency response groups (Appendix~\ref{app:evaluation-details}).
 
-Speed and action delay involve more than two dynamics conditions.
-For each tested speed, we compare predictions from different histories with the true future at that speed.
-We count the prediction from the matching history as correct only when its error is lower than that of every other prediction.
-For action delay, the prediction horizon is five simulator steps.
-Delays 0--4 form five separate response groups, while delays 5--10 form one group because the action has not yet taken effect.
-We assign each prediction to the group containing the closest true future, compute accuracy for each group, and report the mean across the six groups.
-Appendix~\ref{app:evaluation-details} gives the detailed scoring rules.
-
-\paragraph{Multi-step prediction error.}
-High prediction accuracy does not guarantee low prediction error.
-We therefore evaluate predictions over multiple steps, using the same future action sequences for all dynamics conditions in each scene.
-Models roll out from the observed interaction history without receiving further ground-truth observations.
-We evaluate five successive predictions, up to 25 simulator steps ahead (Appendix~\ref{app:evaluation-details}).
-
-We compare prediction errors with a reference that makes the same prediction across dynamics conditions~\cite{murphy1988skill}.
-For each scene, action sequence, and prediction time, this reference is the mean of the true future representations.
-With equally weighted conditions, this mean gives the lowest squared error among predictions that do not distinguish the conditions~\cite{gneiting2011point}.
-For scene $q$, this mean is $\bar z_{qct}=K_q^{-1}\sum_k z_{qkct}$.
-Here, $K_q$ is the number of conditions, $C_q$ is the number of shared action sequences, and $T=5$ is the number of evaluation times.
-The true and predicted representations for condition $k$, action sequence $c$, and evaluation time $t$ are $z_{qkct}$ and $\hat z_{qkct}$.
-We average over conditions, actions, and times within each scene before aggregating:
+\paragraph{Multi-Step Prediction Error ($E/B$) and History Controls.}
+Because high classification accuracy does not guarantee low trajectory error---as even minute perturbations toward the correct target can yield 100\% accuracy (Appendix~\ref{app:scoring-controls})---we measure complete autoregressive rollouts across up to 25 simulator steps without intermediate ground-truth observations.
+We normalize the aggregate rollout error across scenes by a reference that does not distinguish dynamics conditions~\cite{murphy1988skill}:
 \begin{equation}
-\begin{aligned}
-L_q&=\frac{1}{K_qC_qT}\sum_{k,c,t}\|\hat z_{qkct}-z_{qkct}\|^2,\\
-B_q&=\frac{1}{K_qC_qT}\sum_{k,c,t}\|z_{qkct}-\bar z_{qct}\|^2,\\
-E/B&=\frac{\sum_q L_q}{\sum_q B_q}.
-\end{aligned}
+E/B = \frac{\sum_{q} L_q}{\sum_{q} B_q}.
 \label{eq:complete-error}
 \end{equation}
+For scene $q$, $L_q$ denotes the mean squared prediction error averaged over $K_q$ dynamics conditions, $C_q$ shared action sequences, and $T=5$ rollout steps, while $B_q$ is the corresponding error of the mean-future reference $\bar{z}_{qct} = K_q^{-1} \sum_k z_{qkct}$.
+For equally weighted conditions sharing the current observation and future actions, this mean future minimizes squared error among predictions that do not distinguish the conditions~\cite{gneiting2011point}; consequently, any deterministic model that ignores history cannot achieve $E/B < 1$.
+Lower $E/B$ is better, with $E/B = 0$ denoting exact prediction.
 
-Lower $E/B$ is better: 0 denotes an exact prediction in the target representation, 1 denotes the same error as the mean-future reference, and values above 1 indicate greater error.
-The reference is used only for scoring and is never provided to the model; the denominator must be positive.
-When conditions share the current observation and future actions and are equally weighted, a deterministic model that ignores history cannot achieve $E/B<1$.
-This ratio measures complete prediction error, but does not establish whether matching history helps more than mismatched history.
+To isolate the effect of the supplied history on prediction error, we swap histories across dynamics conditions while keeping the current observation, future actions, and target fixed.
+We report \textbf{History (\%)} (the win-rate where matched history yields strictly lower error than mismatched history) and the normalized error reduction $G_H = (E_- - E_+) / B$, where $E_-$ and $E_+$ are aggregate errors under mismatched and matched histories, respectively, and $B = \sum_q B_q$.
 
-\paragraph{History controls.}
-Prior work evaluates reliance on context by perturbing observations in the history~\cite{wang2026context}.
-Here, we replace the history with one from a different dynamics condition in the same scene, while keeping the current observation, future actions, and scoring target unchanged.
-The target remains the true future of the original condition; replacing the model's input does not change the environment being predicted.
-History (\%) reports how often matching history gives strictly lower prediction error than mismatched history.
-Speed also uses this strict comparison as its task score.
-
-This rate records wins, not the size of the improvement.
-Let $L_q^+=L_q$ be the scene error with matching history and $L_q^-$ the error with mismatched history, averaged equally over the alternatives when there is more than one.
-Using the same weights over conditions, actions, and times, define $E_+=\sum_q L_q^+$, $E_-=\sum_q L_q^-$, and $B=\sum_q B_q>0$.
-The normalized error reduction is
+\paragraph{Normalized Response Error (NRE).}
+Prediction loss can decrease as errors shared across conditions shrink, even when the predicted difference between conditions remains inaccurate.
+To isolate the model's conditional response to physical differences, we define the Normalized Response Error (NRE) over true difference vectors $\Delta z_i = z_i^B - z_i^A$ and predicted differences $\Delta \hat{z}_i = \hat{z}_i^B - \hat{z}_i^A$:
 \begin{equation}
-G_H=\frac{E_--E_+}{B}.
-\label{eq:history-gain}
-\end{equation}
-A positive $G_H$ means that matching history reduces error.
-The remaining prediction error is still measured by $E/B$.
-
-\paragraph{Conditional response error.}
-Prediction loss can fall as errors shared by both conditions decrease, even if the predicted difference between conditions remains inaccurate.
-To examine this distinction during training, we compare the true and predicted differences between futures.
-For a two-condition query, let $\Delta z_i=z_i^B-z_i^A$ and $\Delta\hat z_i=\hat z_i^B-\hat z_i^A$.
-The normalized response error (NRE) is
-\begin{equation}
-\mathrm{NRE}=\frac{\sum_i\|\Delta\hat z_i-\Delta z_i\|^2}
-{\sum_i\|\Delta z_i\|^2}.
+\mathrm{NRE} = \frac{\sum_{i} \|\Delta \hat{z}_i - \Delta z_i\|^2}{\sum_{i} \|\Delta z_i\|^2}.
 \label{eq:response-error}
 \end{equation}
-Lower NRE is better.
-A value of 0 denotes an exact conditional response; 1 is the error of predicting no difference between conditions.
-Subtracting predictions removes errors common to both conditions, so NRE cannot replace complete prediction error.
-Conversely, NRE equal to 1 does not by itself show that a model ignores history.
-We specify the prediction horizon for each analysis and define NRE only when its denominator is positive.
+$\mathrm{NRE} = 0$ denotes an exact differential response, whereas $\mathrm{NRE} = 1$ is the baseline of predicting zero difference.
+Subtracting predictions removes condition-invariant errors, measuring how accurately the model predicts the difference between dynamics conditions.
 
-\paragraph{Interpreting and aggregating results.}
-Task scores measure the distinctions specified by each task.
-Both $E/B$ and NRE are computed in each checkpoint's own target representation and do not provide a common measure of physical accuracy for comparing models.
-If the target encoder changes during training, comparisons across checkpoints also reflect changes in the representation.
-Training analyses therefore describe each checkpoint in its own target space; error comparisons are more direct when that space is fixed.
-The metrics describe different aspects of the same predictions and are not independent pieces of evidence.
-
-We weight training runs with the same settings equally and report their standard deviation.
-For multi-step errors, cluster bootstrap resampling~\cite{efron1993bootstrap,field2007cluster} groups samples by source trajectory or scene, retaining related samples together.
-These intervals describe scene-sampling uncertainty for the evaluated checkpoints.
-We report planning performance with the cross-entropy method (CEM)~\cite{deboer2005cem} in the original environments separately to measure retention of planning ability.
-Since these environments need not require adaptation to changing dynamics, their planning scores do not replace the adaptation evaluation.
+\paragraph{Evaluation Boundaries.}
+Both $E/B$ and NRE are evaluated in each checkpoint's target representation, not a shared physical space.
+Changes in that representation must also be considered when comparing training schemes or checkpoints.
+We report means and standard deviations across runs, with multi-step trajectory intervals estimated via source-cluster bootstrap resampling (Appendix~\ref{app:evaluation-details}).
+Retention of control capabilities in the original environments is evaluated separately via CEM planning (Section~\ref{sec:experiments}).
 
 \section{Experiments}
 \label{sec:experiments}
@@ -606,6 +549,21 @@ Accuracy is averaged over cases and the two rules; ties do not count as correct.
 Each prediction step advances five simulator steps.
 We measure prediction errors at 5, 10, 15, 20, and 25 simulator steps after the current observation.
 
+\paragraph{Within-scene aggregation.}
+Let $z_{qkct}$ and $\hat z_{qkct}$ denote the true and predicted future representations for scene $q$, dynamics condition $k$, action sequence $c$, and prediction time $t$.
+With $K_q$ conditions, $C_q$ shared action sequences, and $T=5$ prediction times, the errors used in Eq.~\ref{eq:complete-error} are
+\[
+\begin{aligned}
+L_q&=\frac{1}{K_qC_qT}\sum_{k,c,t}\|\hat z_{qkct}-z_{qkct}\|^2,\\
+B_q&=\frac{1}{K_qC_qT}\sum_{k,c,t}\|z_{qkct}-\bar z_{qct}\|^2,\\
+\bar z_{qct}&=\frac{1}{K_q}\sum_k z_{qkct}.
+\end{aligned}
+\]
+L2World tests history dependence by shuffling context observations~\cite{wang2026context}; our controls instead swap histories between dynamics conditions.
+For history controls, $E_+$ and $E_-$ sum the matching- and mismatched-history scene errors using the same averaging over conditions, action sequences, and prediction times.
+When a sample has multiple mismatched histories, their errors are averaged equally.
+A positive $G_H$ indicates that matching history reduces error; it does not imply a low complete prediction error.
+
 \paragraph{Mean-future reference.}
 The reference in Eq.~\ref{eq:complete-error} is used only for scoring and is never provided to the model.
 The ratio is defined only when $\sum_q B_q>0$.
@@ -614,6 +572,8 @@ When conditions share the current observation and future actions and are equally
 \paragraph{Response error settings.}
 We specify the prediction horizon for each NRE analysis.
 The ratio in Eq.~\ref{eq:response-error} is defined only when $\sum_i\|\Delta z_i\|^2>0$.
+NRE equal to 1 does not by itself show that a model ignores history.
+Errors shared by both predictions cancel in the difference, so an exact conditional response does not imply exact complete predictions.
 
 \paragraph{Uncertainty estimates.}
 \label{app:result-uncertainty}
