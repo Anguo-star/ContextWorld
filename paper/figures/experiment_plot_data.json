@@ -1,0 +1,260 @@
+{
+  "multistep": {
+    "split": "development",
+    "task": "action_strength",
+    "metric": "sum of prediction energies / sum of mean-future energies at each horizon; equal mean over training runs",
+    "interval": "95% source-cluster bootstrap; 4000 resamples; conditional on checkpoints",
+    "rows": [
+      {
+        "family": "lewm",
+        "regime": "original",
+        "run_ids": [
+          "action_strength/lewm/original/s3072",
+          "action_strength/lewm/original/s3073",
+          "action_strength/lewm/original/s3074"
+        ],
+        "horizons": [
+          5,
+          10,
+          15,
+          20,
+          25
+        ],
+        "per_horizon_ratio": [
+          1.8807807334679607,
+          2.0216211719136186,
+          2.2808471854185854,
+          2.5259703870786114,
+          2.764738092618749
+        ],
+        "ci95": [
+          [
+            1.7929774811048815,
+            1.9768823886961162
+          ],
+          [
+            1.940265776842868,
+            2.1102145387274565
+          ],
+          [
+            2.1904728601353707,
+            2.3814856477872954
+          ],
+          [
+            2.4222356864322587,
+            2.639733625167853
+          ],
+          [
+            2.6511446205313463,
+            2.8906670232700176
+          ]
+        ],
+        "aggregate_ratio": 2.3784045909640525
+      },
+      {
+        "family": "lewm",
+        "regime": "frozen",
+        "run_ids": [
+          "action_strength/lewm/frozen/s3072"
+        ],
+        "horizons": [
+          5,
+          10,
+          15,
+          20,
+          25
+        ],
+        "per_horizon_ratio": [
+          0.6048152012416764,
+          0.976642355805199,
+          1.4257670929201485,
+          1.7485896503385636,
+          1.9759386943332693
+        ],
+        "ci95": [
+          [
+            0.5362504052686583,
+            0.6844659906849122
+          ],
+          [
+            0.91221830874578,
+            1.047575622097356
+          ],
+          [
+            1.3534856741164505,
+            1.5016597462149364
+          ],
+          [
+            1.6708990660570284,
+            1.8288996281544077
+          ],
+          [
+            1.8956662335491432,
+            2.0624434460724976
+          ]
+        ],
+        "aggregate_ratio": 1.4636110061103282
+      },
+      {
+        "family": "pldm",
+        "regime": "original",
+        "run_ids": [
+          "action_strength/pldm/original/s3072",
+          "action_strength/pldm/original/s3073",
+          "action_strength/pldm/original/s3074"
+        ],
+        "horizons": [
+          5,
+          10,
+          15,
+          20,
+          25
+        ],
+        "per_horizon_ratio": [
+          1.9888714095524225,
+          2.1811409596731566,
+          2.412206855956875,
+          2.615495992428451,
+          2.7890973435232342
+        ],
+        "ci95": [
+          [
+            1.8950390505275432,
+            2.092428985954562
+          ],
+          [
+            2.105216121701549,
+            2.2627283455882115
+          ],
+          [
+            2.3385804617961026,
+            2.492238371302185
+          ],
+          [
+            2.5385216398351216,
+            2.6982018462553468
+          ],
+          [
+            2.7065887981372576,
+            2.880529449637584
+          ]
+        ],
+        "aggregate_ratio": 2.4707388306170572
+      },
+      {
+        "family": "pldm",
+        "regime": "frozen",
+        "run_ids": [
+          "action_strength/pldm/frozen/s3072"
+        ],
+        "horizons": [
+          5,
+          10,
+          15,
+          20,
+          25
+        ],
+        "per_horizon_ratio": [
+          0.4684832667467938,
+          0.9887613430762515,
+          1.4500407290371762,
+          1.7649256074679394,
+          1.962029042358648
+        ],
+        "ci95": [
+          [
+            0.4153126986628136,
+            0.5275282645844316
+          ],
+          [
+            0.9320764620202218,
+            1.0498276150044203
+          ],
+          [
+            1.3894501325501685,
+            1.5151712561638198
+          ],
+          [
+            1.7033290780730992,
+            1.8320143161873919
+          ],
+          [
+            1.8960856661035699,
+            2.033374933826536
+          ]
+        ],
+        "aggregate_ratio": 1.4451743802435015
+      }
+    ]
+  },
+  "scaling": {
+    "split": "development",
+    "data": [
+      {
+        "regime": "scratch",
+        "pairs": 2048,
+        "accuracy": 50.0,
+        "n": 3,
+        "sd": 0.0
+      },
+      {
+        "regime": "scratch",
+        "pairs": 32768,
+        "accuracy": 50.78125,
+        "n": 1,
+        "sd": null
+      },
+      {
+        "regime": "joint",
+        "pairs": 2048,
+        "accuracy": 55.6640625,
+        "n": 1,
+        "sd": null
+      },
+      {
+        "regime": "joint",
+        "pairs": 8192,
+        "accuracy": 82.421875,
+        "n": 1,
+        "sd": null
+      },
+      {
+        "regime": "joint",
+        "pairs": 32768,
+        "accuracy": 90.8203125,
+        "n": 1,
+        "sd": null
+      }
+    ],
+    "capacity": [
+      {
+        "task": "contact_friction",
+        "family": "lewm",
+        "small": 50.0,
+        "large": 49.8046875,
+        "delta": -0.1953125
+      },
+      {
+        "task": "motion_damping",
+        "family": "lewm",
+        "small": 49.8046875,
+        "large": 50.0,
+        "delta": 0.1953125
+      },
+      {
+        "task": "contact_friction",
+        "family": "pldm",
+        "small": 50.1953125,
+        "large": 49.8046875,
+        "delta": -0.390625
+      },
+      {
+        "task": "motion_damping",
+        "family": "pldm",
+        "small": 58.3984375,
+        "large": 50.390625,
+        "delta": -8.0078125
+      }
+    ]
+  }
+}

@@ -4,6 +4,7 @@
 \usepackage[pagenumbers]{cvpr}
 \usepackage{tabularx}
 \usepackage{longtable}
+\usepackage{placeins}
 \definecolor{cvprblue}{rgb}{0.21,0.49,0.74}
 \usepackage[pagebackref,breaklinks,colorlinks,allcolors=cvprblue]{hyperref}
 \def\paperID{*****}
@@ -234,108 +235,114 @@ Retention of control capabilities in the original environments is evaluated sepa
 
 \subsection{Experimental Setup}
 \label{sec:experimental-setup}
-\noindent\textbf{Evaluated Models.}
-We evaluate three representative latent world models with different representation-learning strategies: (1) \textbf{LeWM}~\cite{maes2026leworldmodel}, an end-to-end JEPA trained with a latent prediction loss and representation regularization; (2) \textbf{PLDM}~\cite{sobal2025pldm}, which jointly learns visual representations and latent dynamics from reward-free offline data; and (3) \textbf{DINO-WM}~\cite{zhou2025dinowm}, which trains an action-conditioned predictor exclusively atop frozen pre-trained visual representations (DINOv2). All models operate strictly under frozen weights during evaluation.
+We evaluate three latent world models with different representation-learning strategies: LeWM~\cite{maes2026leworldmodel} combines latent prediction with representation regularization; PLDM~\cite{sobal2025pldm} jointly learns visual representations and latent dynamics; and DINO-WM~\cite{zhou2025dinowm} trains its predictor on frozen DINOv2 features. All weights remain frozen during evaluation.
 
-\noindent\textbf{Training Regimes and Hypotheses.}
-Models trained solely on fixed-dynamics environments can achieve high prediction accuracy without utilizing interaction context. To investigate how adaptation ability is acquired and how it interacts with visual representations, we evaluate four comparative training schemes across three axes (summarized in Table~\ref{tab:training-schemes}):
-\textit{(1) Data composition and pre-training transfer:} We compare training from scratch on single-dynamics data (\textit{Original}) against a 50/50 mixture of trajectory windows drawn from the original environment and ContextWorld (\textit{Mixed}). Original-environment data are obtained from the datasets released with LeWM~\cite{maes2026leworldmodel}. We retain original-environment data during mixed training to support adaptation while preserving performance in the original environment. To test whether single-dynamics priors facilitate adaptation, we fine-tune pre-trained Original checkpoints on mixed data (\textit{Original $\to$ Mixed}).
-\textit{(2) Visual encoder updates:} Joint fine-tuning (\textit{Joint}) allows the visual encoder to adapt to mixed data, whereas freezing preserves its pre-trained features. Starting from the same Original checkpoint, we compare these choices to test whether updating the visual encoder helps adaptation.
-\textit{(3) Downstream capability retention:} We evaluate planning with the cross-entropy method (CEM)~\cite{deboer2005cem} in the original environments to test whether training for adaptation preserves the models' existing planning ability.
+Table~\ref{tab:training-schemes} defines four schemes for testing how data composition, pretraining, and visual encoder updates affect adaptation. Original uses the fixed-dynamics datasets released with LeWM; Mixed samples equal numbers of trajectory windows from those datasets and ContextWorld to support adaptation while retaining original-environment performance. Comparing Mixed with Original $\to$ Mixed tests the benefit of pretraining. Within the latter, Joint and Frozen Encoder start from the same checkpoint to test whether updating the visual encoder helps. Mixed-data training is performed separately for each task. CEM planning~\cite{deboer2005cem} in the original environments measures capability retention. Optimization and evaluation settings appear in Appendix~\ref{app:training-settings}.
 
-Each task is trained independently; DINO-WM's visual encoder remains frozen throughout.
-Optimization, sampling, and planning details appear in Appendix~\ref{app:training-settings}.
-
-\begin{table*}[t]
+\begin{table}[!ht]
 \centering
-\small
-\caption{Training schemes for comparing data composition, pretraining, and visual encoder updates. Mixed data combine equal numbers of trajectory windows from the original environment and ContextWorld. Within each task, the two Original $\rightarrow$ Mixed schemes start from the same Original checkpoint.}
+\footnotesize
+\caption{Training schemes. Mixed samples original-environment and ContextWorld trajectory windows equally.}
 \label{tab:training-schemes}
-\begin{tabularx}{\textwidth}{@{}p{0.23\textwidth}p{0.18\textwidth}XXX@{}}
+\begin{tabularx}{\columnwidth}{@{}p{.38\columnwidth}XXc@{}}
 \toprule
-Scheme & Starting weights & Training data & Visual encoder & Other trainable modules \\
+Scheme & Start & Data & Encoder \\
 \midrule
-Original & Model initialization & Original only & Updated$^\dagger$ & Updated \\
-Mixed & Model initialization & Mixed & Updated$^\dagger$ & Updated \\
-Original $\rightarrow$ Mixed (Joint) & Original checkpoint & Mixed & Updated & Updated \\
-Original $\rightarrow$ Mixed (Frozen Encoder) & Same Original checkpoint & Mixed & Frozen & Updated \\
+Original & Initial & Original & Updated$^\dagger$ \\
+Mixed & Initial & Mixed & Updated$^\dagger$ \\
+Original $\to$ Mixed (Joint) & Original & Mixed & Updated \\
+Original $\to$ Mixed (Frozen Encoder) & Same Original & Mixed & Frozen \\
 \bottomrule
 \end{tabularx}
 \par\smallskip
-\begin{minipage}{\textwidth}
+\begin{minipage}{\columnwidth}
 \footnotesize
-For Original and Mixed, LeWM and PLDM start from random weights; DINO-WM uses a pretrained visual encoder and a randomly initialized predictor.
-$^\dagger$DINO-WM's visual encoder is always frozen, so it is not evaluated with Original $\rightarrow$ Mixed (Joint).
-Frozen Encoder leaves the remaining modules trainable, including any projector and action encoder. All schemes retain the model's original training losses.
+Initial weights are random for LeWM and PLDM. DINO-WM uses a pretrained visual encoder and a random predictor.
+$^\dagger$Its encoder is always frozen, so Joint does not apply.
+Other modules remain trainable; native training losses are retained.
 \end{minipage}
-\end{table*}
+\end{table}
 
-\subsection{Adaptation Results}
-\label{sec:adaptation-results}
-\noindent\textbf{Adaptation Emergence and Task Heterogeneity.}
-Table~\ref{tab:test-results} presents test-set adaptation accuracy across all nine tasks. Under \textit{Original} training, models score near or below the 50\% reference level on the seven binary tasks (ranging from 38.48\% to 52.21\%), showing limited ability to distinguish futures under different dynamics after training on fixed-dynamics data. Incorporating ContextWorld data (\textit{Mixed}) improves adaptation across several domains; for instance, arm mass accuracy increases from 50.07\% to 85.74\% for LeWM and from 51.82\% to 91.02\% for PLDM. However, the magnitude of these gains varies substantially across environments and training schemes, indicating that data mixing alone does not universally guarantee effective context conditioning.
 
-\noindent\textbf{Task-Dependent Model Advantages.}
-Relative model performance is highly task-dependent, exhibiting pronounced rank reversals across environments. Under \textit{Mixed} training, LeWM and PLDM achieve 97.70\% and 100.00\% accuracy on action delay, whereas DINO-WM scores 16.65\%. Conversely, on pusher displacement, the ordering reverses: DINO-WM achieves 97.66\% accuracy, while LeWM and PLDM reach only 50.78\% and 56.25\%. Meanwhile, all three models achieve near-perfect accuracy on door traversability ($\ge$99.83\%). These cross-task disparities highlight that no single architecture consistently dominates in-context dynamics adaptation, underscoring the necessity of evaluating across diverse physical mechanisms rather than relying on a single representative benchmark.
-
-\noindent\textbf{One-Step Adaptation and Multi-Step Prediction.}
-Strong one-step history benefits and conditional responses do not necessarily imply accurate multi-step prediction. We examine history controls and multi-step prediction errors on the Development split (Table~\ref{tab:dev-diagnostics} in Appendix~\ref{app:additional-results}). For LeWM on pusher displacement, \textit{Original $\to$ Mixed (Frozen Encoder)} substantially improves history benefit, raising the History win-rate from 34.05\% to 98.05\% and reducing NRE from 1.015 to 0.144 relative to the Original checkpoint. Thus, matching history more often reduces one-step prediction error, and the predicted differences between conditions more closely match the target differences in the evaluated representations. However, when evaluated over extended action sequences up to 25 simulator steps without intermediate ground-truth observations, this checkpoint yields $E/B = 1.464$ (and the corresponding PLDM model yields $E/B = 1.445$), both exceeding the error of the mean-future reference ($E/B = 1$). Because these multi-step queries employ extended action sequences alongside longer prediction horizons, successful discrimination on one-step task queries does not establish accurate trajectory rollout over extended horizons. Full diagnostic metrics and original-environment CEM results are documented in Appendix~\ref{app:additional-results}.
 
 \begin{table*}[t]
 \centering
 \scriptsize
-\setlength{\tabcolsep}{3pt}
-\caption{Test task accuracy (\%, higher is better). Entries report means across available training runs; a second line gives the sample standard deviation where three runs are available. Other entries use one run. Speed reports unseen speeds within the training range; action delay uses seven-frame history. A dash denotes no comparable checkpoint. Each task uses its own checkpoint.}
+\setlength{\tabcolsep}{2pt}
+\caption{Test task accuracy (\%, higher is better). Entries report means across available training runs; a second line gives the sample standard deviation where three runs are available. Other entries use one run. Speed reports unseen speeds within the training range; action delay uses seven-frame history. A dash denotes no comparable checkpoint. Each task uses its own checkpoint. Bold marks the highest displayed mean per task, not statistical significance.}
 \label{tab:test-results}
-\begin{tabularx}{\textwidth}{@{}lp{3.25cm}*{9}{>{\centering\arraybackslash}X}@{}}
+\begin{tabularx}{\textwidth}{@{}lp{2.9cm}*{9}{>{\centering\arraybackslash}X}@{}}
 \toprule
 Model & Training scheme & Speed & Pusher displacement & Arm mass & Action delay & Contact friction & Motion damping & Gripper carry rule & Door\newline travers\-ability & Portal exit \\
 \midrule
 LeWM & Original & \shortstack{58.04\\$\pm$1.70} & \shortstack{48.96\\$\pm$1.00} & \shortstack{50.07\\$\pm$0.11} & --- & \shortstack{49.93\\$\pm$0.23} & \shortstack{50.00\\$\pm$0.00} & \shortstack{52.21\\$\pm$1.11} & \shortstack{50.33\\$\pm$0.00} & \shortstack{50.07\\$\pm$0.11} \\\addlinespace[2pt]
 LeWM & Mixed & \shortstack{98.19\\$\pm$0.57} & 50.78 & 85.74 & \shortstack{97.70\\$\pm$0.59} & 50.00 & 50.00 & 50.00 & \shortstack{99.83\\$\pm$0.29} & 50.78 \\\addlinespace[2pt]
 LeWM & Original $\rightarrow$ Mixed (Joint) & 96.89 & 91.80 & 87.30 & --- & 50.39 & 50.00 & 50.00 & 99.83 & 50.39 \\\addlinespace[2pt]
-LeWM & Original $\rightarrow$ Mixed\newline (Frozen Encoder) & 98.44 & 97.46 & 77.15 & --- & 86.13 & 53.91 & 76.37 & 100.00 & 77.93 \\\addlinespace[2pt]
+LeWM & Original $\rightarrow$ Mixed\newline (Frozen Encoder) & \textbf{98.44} & 97.46 & 77.15 & --- & \textbf{86.13} & 53.91 & \textbf{76.37} & \textbf{100.00} & 77.93 \\\addlinespace[2pt]
 \midrule
 PLDM & Original & \shortstack{48.41\\$\pm$4.33} & \shortstack{45.57\\$\pm$1.88} & \shortstack{51.82\\$\pm$1.30} & --- & \shortstack{50.00\\$\pm$0.34} & \shortstack{50.26\\$\pm$0.30} & \shortstack{50.78\\$\pm$0.20} & \shortstack{50.06\\$\pm$0.10} & \shortstack{50.07\\$\pm$0.11} \\\addlinespace[2pt]
-PLDM & Mixed & \shortstack{96.78\\$\pm$2.02} & 56.25 & 91.02 & \shortstack{100.00\\$\pm$0.00} & 50.00 & 58.20 & 49.80 & \shortstack{100.00\\$\pm$0.00} & 72.27 \\\addlinespace[2pt]
-PLDM & Original $\rightarrow$ Mixed (Joint) & 98.33 & 59.18 & 84.77 & --- & 50.00 & 79.88 & 50.20 & 100.00 & 52.54 \\\addlinespace[2pt]
-PLDM & Original $\rightarrow$ Mixed\newline (Frozen Encoder) & 96.44 & 98.63 & 81.84 & --- & 73.63 & 54.49 & 52.93 & 100.00 & 91.21 \\\addlinespace[2pt]
+PLDM & Mixed & \shortstack{96.78\\$\pm$2.02} & 56.25 & \textbf{91.02} & \shortstack{\textbf{100.00}\\$\pm$0.00} & 50.00 & 58.20 & 49.80 & \shortstack{\textbf{100.00}\\$\pm$0.00} & 72.27 \\\addlinespace[2pt]
+PLDM & Original $\rightarrow$ Mixed (Joint) & 98.33 & 59.18 & 84.77 & --- & 50.00 & \textbf{79.88} & 50.20 & \textbf{100.00} & 52.54 \\\addlinespace[2pt]
+PLDM & Original $\rightarrow$ Mixed\newline (Frozen Encoder) & 96.44 & \textbf{98.63} & 81.84 & --- & 73.63 & 54.49 & 52.93 & \textbf{100.00} & 91.21 \\\addlinespace[2pt]
 \midrule
 DINO-WM & Original & 57.11 & 38.48 & 50.78 & --- & 50.39 & 49.80 & 50.00 & 50.00 & 50.78 \\\addlinespace[2pt]
-DINO-WM & Mixed & \shortstack{59.41\\$\pm$3.87} & 97.66 & 78.32 & \shortstack{16.65\\$\pm$0.03} & 84.18 & 56.45 & 60.16 & \shortstack{100.00\\$\pm$0.00} & 100.00 \\\addlinespace[2pt]
+DINO-WM & Mixed & \shortstack{59.41\\$\pm$3.87} & 97.66 & 78.32 & \shortstack{16.65\\$\pm$0.03} & 84.18 & 56.45 & 60.16 & \shortstack{\textbf{100.00}\\$\pm$0.00} & \textbf{100.00} \\\addlinespace[2pt]
 DINO-WM & Original $\rightarrow$ Mixed\newline (Frozen Encoder) & 84.78 & --- & --- & --- & --- & 55.27 & 62.89 & --- & --- \\\addlinespace[2pt]
 \bottomrule
 \end{tabularx}
 \end{table*}
 
-\subsection{Analysis of Training Effects}
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{figures/multistep_prediction.pdf}
+\caption{\textbf{Multi-step prediction on pusher displacement (Development).} At each horizon $t$, $E_t/B_t$ compares prediction error with the mean-future error at that horizon; 1 marks the reference. Ratios are computed within each checkpoint's representation, then averaged over runs. Shading gives pointwise 95\% source-bootstrap intervals. These extended action queries differ from the one-step tasks.}
+\label{fig:multistep-prediction}
+\end{figure}
+
+\subsection{Adaptation Results}
+\label{sec:adaptation-results}
+Models trained on fixed-dynamics data show limited ability to distinguish futures under different dynamics: Original scores near or below 50\% on the seven binary tasks (Table~\ref{tab:test-results}). Adding ContextWorld data improves several tasks, including arm mass for LeWM and PLDM, but does not produce uniformly strong adaptation.
+
+Model advantages also depend on the task. With Mixed training, LeWM and PLDM achieve near-perfect action-delay accuracy, whereas DINO-WM scores 16.65\%. On pusher displacement, DINO-WM leads at 97.66\%, while LeWM and PLDM remain much closer to the 50\% reference. All three reach near-perfect door-traversability accuracy. These rank reversals motivate evaluation across diverse dynamics rather than a single representative task.
+
+Strong one-step adaptation does not establish accurate multi-step prediction. On pusher displacement, LeWM and PLDM trained with Original $\to$ Mixed (Frozen Encoder) exceed 98\% History win-rate and substantially reduce NRE (Appendix~\ref{app:additional-results}). Yet Figure~\ref{fig:multistep-prediction} shows that their prediction errors on extended action sequences exceed the corresponding mean-future reference at later horizons, despite improving on Original. Aggregate $E/B$ remains above 1.4 for both models. These queries extend both the actions and prediction horizon relative to the one-step tasks; the contrast does not isolate a single cause of rollout error.
+
+
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/scaling_comparisons.pdf}
+\caption{\textbf{Data and capacity comparisons on Development.} (a) LeWM pusher-displacement accuracy improves with data scale under Original $\to$ Mixed (Joint), but not comparably under Mixed. Only measured sizes are marked; lines connect them. Points average available runs; the 2k Mixed standard deviation is zero and other points use one run. (b) Joint encoder and predictor expansion from 18M to 183M under Mixed gives no consistent gain across four comparisons; labels show changes in percentage points. Both comparisons keep epoch counts fixed.}
+\label{fig:scaling-comparisons}
+\end{figure*}
+\FloatBarrier
+
+\subsection{Effects of Training Choices}
 \label{sec:training-effects}
-\noindent\textbf{Impact of Visual Encoder Updates.}
-We first test whether preserving the pretrained visual encoder improves adaptation compared with updating it on mixed data. As shown in Table~\ref{tab:test-results}, the effect of encoder freezing is task-dependent. For PLDM initialized from the same Original checkpoint, \textit{Original $\to$ Mixed (Frozen Encoder)} improves contact friction test accuracy from 50.00\% to 73.63\% relative to joint training, but reduces motion damping accuracy from 79.88\% to 54.49\%. Under identical data mixtures, initializations, and training duration, freezing the encoder does not provide a universal remedy for weak adaptation. Because downstream projectors and action encoders remain trainable, this intervention alters optimization dynamics rather than strictly isolating a static target representation.
+Freezing the pretrained visual encoder helps some tasks and hurts others. For PLDM, it improves contact friction Test accuracy from 50.00\% to 73.63\% relative to joint training, but reduces motion damping accuracy from 79.88\% to 54.49\% (Table~\ref{tab:test-results}). Each comparison holds the data, initialization, and training duration fixed. Because projectors and action encoders remain trainable, this intervention does not isolate a static target representation.
 
-\noindent\textbf{Effects of Data and Model Scaling.}
-We next examine whether scaling data volume or model capacity mitigates weak adaptation.
-\textit{(1) Data scaling:} Expanding training data yields substantial gains when fine-tuning pretrained models, but this benefit depends heavily on the training scheme. For LeWM on pusher displacement, scaling from 2,048 to 32,768 pairs under \textit{Original $\to$ Mixed (Joint)} raises Development accuracy from 55.66\% to 90.82\% and reduces NRE from 0.810 to 0.222 (Table~\ref{tab:data-scale} in Appendix~\ref{app:data-scale}). Conversely, direct \textit{Mixed} training from scratch remains near chance across the same range (50.00\% to 50.78\%). Because training epochs are fixed, increasing dataset size can also increase total gradient updates, confounding changes in sample coverage with optimization budget.
-\textit{(2) Model capacity:} Jointly expanding the encoder, latent width, and predictor from 18M to 183M parameters for LeWM and PLDM across friction and damping yields no consistent improvement: Development accuracy shifts by $-8.01$ to $+0.20$ percentage points, while original-environment CEM planning success degrades across all comparisons (Appendix~\ref{app:model-capacity}). While this does not rule out gains under different optimization schedules, simple capacity expansion fails to resolve weak adaptation under the tested configuration.
-
-\noindent\textbf{Disconnect Between Prediction Loss and Conditional Adaptation.}
-Weak evaluation performance may reflect poor generalization or conditional responses that were never learned during training. We therefore evaluate fixed queries directly from the training data across training epochs to distinguish these possibilities.
-Figure~\ref{fig:training-evidence} presents training trajectories for PLDM on contact friction and motion damping. Under joint training on friction, the recorded prediction loss steadily decreases by 18.05\% between epochs 5 and 10, with batch means and medians decreasing at each recorded epoch. Crucially, training-query NRE remains near the zero-response reference ($\text{NRE} \approx 1.01$), showing that the model fails to capture the conditional response even on its own training distribution. Under motion damping with the encoder frozen, prediction loss approaches convergence (shifting by only $-0.39\%$ from epochs 5 to 10), while training-query NRE improves from 0.940 to 0.867 but remains high. Changing the training scheme can assist conditional learning---with the encoder frozen, friction training NRE falls from 0.674 to 0.587 between epochs 5 and 10, whereas joint training achieves a stronger response on damping, with Development showing the same ordering---yet neither strategy consistently outperforms the other across both tasks.
+Figure~\ref{fig:scaling-comparisons} examines whether more data or capacity resolves weak adaptation. For LeWM on pusher displacement, data scaling substantially benefits Original $\to$ Mixed (Joint), whereas Mixed stays near chance. NRE also improves with joint fine-tuning (Appendix~\ref{app:data-scale}). Fixed epochs allow update counts to change with data size, so this is not a fixed-compute comparison. Increasing LeWM and PLDM from 18M to 183M parameters provides no consistent accuracy improvement on friction and damping; original-environment CEM success decreases in all four comparisons (Appendix~\ref{app:model-capacity}). These results limit a simple capacity explanation under the tested recipe, without excluding gains from different optimization settings.
 
 \begin{figure*}[t]
 \centering
 \includegraphics[width=.94\textwidth]{figures/training_evidence.pdf}
-\caption{\textbf{Optimizing prediction loss does not ensure accurate conditional responses.} PLDM Joint and Frozen Encoder start from the same original-environment checkpoint within each task. Top: recorded prediction-loss means, normalized by each run's epoch-5 mean; shading shows the batch interquartile range, not a confidence interval. Bottom: NRE on fixed training and Development queries at the two evaluated checkpoints, predicting five simulator steps ahead. Lines connect measured points and do not show intermediate NRE values. NRE = 1 is the zero-response reference. Loss averages mixed training batches; NRE uses paired task queries.}
+\caption{\textbf{Optimizing prediction loss does not ensure accurate conditional responses.} Within each task, PLDM Joint and Frozen Encoder share Original initialization. Top: logged prediction loss relative to epoch 5; shading shows batch interquartile ranges. Bottom: training and Development NRE at epochs 5 and 10; lines connect measured points only. Loss uses mixed batches, whereas NRE uses fixed paired task queries.}
 \label{fig:training-evidence}
 \end{figure*}
 
-These results expose a disconnect between prediction-loss optimization and history-conditioned adaptation: conditional responses can remain poorly learned even on training queries as prediction loss steadily decreases or approaches convergence. The standard prediction loss aggregates errors across mixed training data, whereas NRE directly isolates errors in the predicted differences between physical conditions. Minimizing the prediction loss therefore does not ensure an accurate conditional response. This discrepancy reveals insufficient constraints on history-conditioned dynamics in the evaluated prediction objectives and training recipes, highlighting the need for objectives and benchmarks explicitly targeted at in-context dynamics adaptation.
+\FloatBarrier
+\subsection{Prediction Loss and Adaptation}
+\label{sec:loss-adaptation}
+Weak evaluation performance may reflect poor generalization or conditional responses that were not learned well during training. We compare prediction loss with NRE on fixed training queries at epochs 5 and 10 (Figure~\ref{fig:training-evidence}).
+
+On friction, PLDM joint training reduces prediction loss by 18.05\%, yet training-query NRE remains near the zero-response reference. On damping with the encoder frozen, loss approaches convergence while NRE improves but remains high. Changing the scheme helps: freezing yields a stronger conditional response on friction, whereas joint training performs better on damping, with Development showing the same task-dependent ordering.
+
+These results expose a disconnect between prediction-loss optimization and history-conditioned adaptation, even on training data. Prediction loss aggregates errors across mixed data, whereas NRE directly measures error in the predicted differences between conditions. Optimizing the former does not ensure an accurate conditional response. This finding identifies insufficient constraints on history-conditioned dynamics in the evaluated training objectives and strategies.
 
 \section{Conclusion}
 \label{sec:conclusion}
 ContextWorld establishes a standardized benchmark to evaluate in-context dynamics adaptation in action-conditioned latent visual world models under strictly frozen weights. Across nine tasks spanning four simulated environments, our paired history comparisons decouple whether models condition their predictions on interaction history from how accurately they forecast the resulting futures. Systematic evaluations of LeWM, PLDM, and DINO-WM demonstrate that while training on multi-dynamics data can improve adaptation, relative model advantages and the impact of visual encoder freezing remain task-dependent. Crucially, our training-distribution diagnostics expose a disconnect between prediction-loss optimization and in-context adaptation: conditional responses can remain poorly captured even as training loss steadily decreases or approaches convergence. These findings identify insufficient constraints on history-conditioned dynamics within the evaluated training objectives and strategies, underscoring the need for direct adaptation benchmarks and formulations that explicitly constrain history-conditioned responses.
 
-\newpage
 Our findings are framed by specific diagnostic boundaries. Predictions are evaluated in each model's native representation rather than a shared physical error space; most tasks examine adaptation among dynamics conditions represented in training, while Speed evaluates unseen parameter values; and mixed-data checkpoints are trained independently per task, with planning experiments quantifying capability retention in unperturbed environments. These boundaries outline clear avenues for future research: establishing complementary cross-model evaluation in grounded physical coordinates, scaling toward generalist multi-task world models that generalize across broader dynamics, and examining closed-loop planning to test whether history-conditioned latent predictions translate directly into improved decision-making.
 
 \clearpage
@@ -582,6 +589,7 @@ The main task comparison uses Test.
 The multi-step and history diagnostics below use Development, with the same checkpoint identities where the input protocol is comparable.
 Multi-step evaluation covers 2,436 source scenes across the nine tasks and predicts at 5, 10, 15, 20, and 25 simulator steps using only the initial observed history.
 The candidate actions and multi-step targets extend the one-step task queries.
+Figure~\ref{fig:multistep-prediction} reports $E_t/B_t$: prediction and mean-future errors are summed over queries separately at each horizon, normalized within each checkpoint, then averaged equally over training repetitions. The aggregate $E/B$ instead combines errors over all horizons before division; it is not the arithmetic mean of these per-horizon ratios. The pointwise intervals use the same source-cluster bootstrap protocol.
 Each checkpoint is scored separately, and matching training repetitions are then averaged equally.
 Intervals use 4,000 source-cluster bootstrap samples; all conditions, actions, and times from a source remain together.
 They condition on the evaluated checkpoints and do not estimate variation from retraining the model.
