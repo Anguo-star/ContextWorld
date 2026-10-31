@@ -333,20 +333,10 @@ These results expose a disconnect between prediction-loss optimization and histo
 
 \section{Conclusion}
 \label{sec:conclusion}
-
-ContextWorld evaluates whether latent visual world models use interaction history to predict under hidden dynamics.
-Its nine tasks combine controlled history comparisons with task accuracy and prediction-error measurements, separating successful discrimination from accurate conditional prediction.
-Across three model families, training on mixed data improves performance on several tasks, but model advantages and the effects of encoder freezing depend on the task.
-Data scaling helps some training schemes, while the tested capacity increase does not consistently improve weak tasks.
-Training-set analysis reveals a limitation of current training objectives and strategies: history-conditioned responses can remain weak even as prediction loss decreases or approaches convergence.
-This finding motivates both direct adaptation evaluation and training objectives that better constrain these responses.
+ContextWorld establishes a standardized benchmark to evaluate in-context dynamics adaptation in action-conditioned latent visual world models under strictly frozen weights. Across nine tasks spanning four simulated environments, our paired history comparisons decouple whether models condition their predictions on interaction history from how accurately they forecast the resulting futures. Systematic evaluations of LeWM, PLDM, and DINO-WM demonstrate that while training on multi-dynamics data can improve adaptation, relative model advantages and the impact of visual encoder freezing remain task-dependent. Crucially, our training-distribution diagnostics expose a disconnect between prediction-loss optimization and in-context adaptation: conditional responses can remain poorly captured even as training loss steadily decreases or approaches convergence. These findings identify insufficient constraints on history-conditioned dynamics within the evaluated training objectives and strategies, underscoring the need for direct adaptation benchmarks and formulations that explicitly constrain history-conditioned responses.
 
 \newpage
-The benchmark measures predictions in each model's representation, not a shared physical error space.
-Most tasks test adaptation among dynamics conditions represented in training; Speed additionally tests unseen values.
-Mixed-data checkpoints are trained separately for each task; Original checkpoints are shared across tasks from the same environment.
-Original-environment planning does not establish planning gains under hidden dynamics.
-These boundaries define the scope of the comparisons and leave multi-task learning, broader dynamics generalization, and decision benefits for further study.
+Our findings are framed by specific diagnostic boundaries. Predictions are evaluated in each model's native representation rather than a shared physical error space; most tasks examine adaptation among dynamics conditions represented in training, while Speed evaluates unseen parameter values; and mixed-data checkpoints are trained independently per task, with planning experiments quantifying capability retention in unperturbed environments. These boundaries outline clear avenues for future research: establishing complementary cross-model evaluation in grounded physical coordinates, scaling toward generalist multi-task world models that generalize across broader dynamics, and examining closed-loop planning to test whether history-conditioned latent predictions translate directly into improved decision-making.
 
 \clearpage
 {\small
