@@ -176,8 +176,8 @@ Finally, the door traversability task tests whether the model correctly infers p
 \subsection{Dataset Construction and Splits}
 \label{sec:data}
 
-To evaluate whether models infer dynamics from context rather than memorizing visual trajectories, all tasks provide trajectory-disjoint Training, Development, and Test splits.
-The dataset design covers two facets of dynamics adaptation: (1) in-context mode disambiguation, where paired physical-parameter tasks such as friction, mass, and damping share parameter settings across splits but evaluate models on unseen counterfactual trajectories; and (2) continuous parameter generalization, exemplified by Speed, which evaluates interpolation and extrapolation to speeds held out during training.
+To evaluate whether models infer dynamics from context rather than simply recalling training trajectories, all tasks provide trajectory-disjoint Training, Development, and Test splits.
+The dataset design covers two facets of dynamics adaptation: (1) \textbf{in-context mode disambiguation}, where paired physical-parameter tasks such as friction, mass, and damping share parameter settings across splits but evaluate models on unseen counterfactual trajectories; and (2) \textbf{continuous parameter generalization}, exemplified by Speed, which evaluates interpolation and extrapolation to speeds held out during training.
 Each paired task provides up to 32,768 training pairs, with 256 balanced pairs in each of Development and Test.
 Development supports method and checkpoint selection; Test is reserved for final evaluation.
 Comprehensive dataset statistics, dynamics settings, and split checks appear in Table~\ref{tab:dataset-sizes} and Appendix~\ref{app:dataset-splits}.
