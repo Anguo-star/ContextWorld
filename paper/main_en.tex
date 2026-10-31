@@ -310,7 +310,7 @@ Optimization and sampling details appear in Appendix~\ref{app:training-settings}
 \begin{table*}[t]
 \centering
 \small
-\caption{Training schemes. Original data come from the corresponding environment; mixed data use the 50/50 sampling described in the text. LeWM and PLDM start Original and Mixed from random weights. DINO-WM starts with a pretrained, frozen visual encoder and a randomly initialized predictor.}
+\caption{Training schemes. Original data come from the corresponding environment; mixed data use the 50/50 sampling described in the text. LeWM and PLDM start Original and Mixed from random weights. For Original and Mixed, DINO-WM starts with a pretrained, frozen visual encoder and a randomly initialized predictor.}
 \label{tab:training-schemes}
 \begin{tabularx}{\textwidth}{@{}p{0.23\textwidth}p{0.18\textwidth}XXX@{}}
 \toprule
@@ -423,7 +423,7 @@ Thus, the training data support better conditional responses under some schemes,
 This does not establish that every aspect of the future state has been learned accurately.
 
 Together, these results show that reducing the training objective is not a sufficient indicator of acquiring the measured adaptation ability.
-The loss averages prediction errors across mixed data and prediction positions, whereas the response metric tests differences between paired futures.
+The prediction term averages errors across mixed data and prediction positions, whereas the response metric tests differences between paired futures.
 Their behavior can therefore differ, and the learned target representation can also change during training.
 Our evidence identifies a gap between optimization progress and conditional prediction, but does not attribute that gap to a unique loss term or representation component.
 The direct training-query evidence is limited to the tested configurations; it is not a common causal explanation for all nine tasks.
@@ -441,7 +441,8 @@ These findings motivate evaluating adaptation directly rather than treating loss
 \newpage
 The benchmark measures predictions in each model's representation, not a shared physical error space.
 Most tasks test adaptation among dynamics conditions represented in training; Speed additionally tests unseen values.
-The results concern task-specific checkpoints, and original-environment planning does not establish planning gains under hidden dynamics.
+Mixed-data checkpoints are trained separately for each task; Original checkpoints are shared across tasks from the same environment.
+Original-environment planning does not establish planning gains under hidden dynamics.
 These boundaries define the scope of the comparisons and leave multi-task learning, broader dynamics generalization, and decision benefits for further study.
 
 \clearpage
@@ -650,7 +651,7 @@ $m+0.001(z_k-m)$ for condition $k$ & 100 & 100 & 0.998001\\
 \label{app:training-settings}
 
 \paragraph{Optimization.}
-Each training stage runs for 10 epochs on eight GPUs, with 128 windows per device and no gradient accumulation, giving a global batch size of 1,024.
+The training recipe specifies 10 epochs per stage on eight GPUs, with 128 windows per device and no gradient accumulation, giving a global batch size of 1,024.
 LeWM and PLDM use AdamW with learning rate $5\times10^{-5}$ and weight decay 0.001.
 DINO-WM uses learning rate $5\times10^{-4}$ and zero weight decay; its pretrained DINOv2-small visual encoder remains frozen.
 The models retain their respective prediction and regularization losses.
