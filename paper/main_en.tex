@@ -173,17 +173,14 @@ For example, delays of six or ten simulator steps both result in zero movement w
 Because these yield identical future states, they are scored as a single response group, with all groups weighted equally (Appendix~\ref{app:delay-groups}).
 Finally, the door traversability task tests whether the model correctly infers passage or blockage from preceding interactions.
 
-\subsection{Dataset}
+\subsection{Dataset Construction and Splits}
 \label{sec:data}
 
-For each task, we provide Training, Development, and Test splits with no shared interaction trajectories.
-The Development split is used to select methods and checkpoints.
-These splits may share dynamics parameter values or interaction rules.
-The speed task also tests speeds not used in training, both within the training range (interpolation) and outside it (extrapolation).
-
-The paired tasks provide 32,768 training pairs per task, except for gripper carry, which provides 10,000.
-Each has 256 Development pairs and 256 Test pairs.
-Appendix~\ref{app:dataset-splits} provides complete dataset statistics, dynamics settings, and split checks for all nine tasks.
+To evaluate whether models infer dynamics from context rather than memorizing visual trajectories, all tasks provide trajectory-disjoint Training, Development, and Test splits.
+The dataset design covers two facets of dynamics adaptation: (1) in-context mode disambiguation, where paired physical-parameter tasks such as friction, mass, and damping share parameter settings across splits but evaluate models on unseen counterfactual trajectories; and (2) continuous parameter generalization, exemplified by Speed, which evaluates interpolation and extrapolation to speeds held out during training.
+Each paired task provides up to 32,768 training pairs, with 256 balanced pairs in each of Development and Test.
+Development supports method and checkpoint selection; Test is reserved for final evaluation.
+Comprehensive dataset statistics, dynamics settings, and split checks appear in Table~\ref{tab:dataset-sizes} and Appendix~\ref{app:dataset-splits}.
 
 \subsection{Evaluation}
 \label{sec:evaluation}
