@@ -310,31 +310,17 @@ DINO-WM & Original $\rightarrow$ Mixed\newline (Frozen Encoder) & 84.78 & --- & 
 
 \subsection{Analysis of Training Effects}
 \label{sec:training-effects}
+\noindent\textbf{Impact of Visual Encoder Updates.}
+We first test whether preserving the pretrained visual encoder improves adaptation compared with updating it on mixed data. As shown in Table~\ref{tab:test-results}, the effect of encoder freezing is task-dependent. For PLDM initialized from the same Original checkpoint, \textit{Original $\to$ Mixed (Frozen Encoder)} improves contact friction test accuracy from 50.00\% to 73.63\% relative to joint training, but reduces motion damping accuracy from 79.88\% to 54.49\%. Under identical data mixtures, initializations, and training duration, freezing the encoder does not provide a universal remedy for weak adaptation. Because downstream projectors and action encoders remain trainable, this intervention alters optimization dynamics rather than strictly isolating a static target representation.
 
-Freezing the visual encoder helps some tasks and hurts others, even when the starting weights are the same.
-For PLDM, Original $\rightarrow$ Mixed (Frozen Encoder) increases contact friction Test accuracy from 50.00\% to 73.63\% relative to joint training, but reduces motion damping accuracy from 79.88\% to 54.49\%.
-Each comparison uses the same task data, mixture, initialization, and training duration.
-Freezing therefore changes the outcome of training in a task-dependent way; it is not a general solution to weak adaptation.
-Because the projector and other trainable modules still update, this comparison does not isolate the role of a fixed target representation.
+\noindent\textbf{Effects of Data and Model Scaling.}
+We next examine whether scaling data volume or model capacity mitigates weak adaptation.
+\textit{(1) Data scaling:} Expanding training data yields substantial gains when fine-tuning pretrained models, but this benefit depends heavily on the training scheme. For LeWM on pusher displacement, scaling from 2,048 to 32,768 pairs under \textit{Original $\to$ Mixed (Joint)} raises Development accuracy from 55.66\% to 90.82\% and reduces NRE from 0.810 to 0.222 (Table~\ref{tab:data-scale} in Appendix~\ref{app:data-scale}). Conversely, direct \textit{Mixed} training from scratch remains near chance across the same range (50.00\% to 50.78\%). Because training epochs are fixed, increasing dataset size can also increase total gradient updates, confounding changes in sample coverage with optimization budget.
+\textit{(2) Model capacity:} Jointly expanding the encoder, latent width, and predictor from 18M to 183M parameters for LeWM and PLDM across friction and damping yields no consistent improvement: Development accuracy shifts by $-8.01$ to $+0.20$ percentage points, while original-environment CEM planning success degrades across all comparisons (Appendix~\ref{app:model-capacity}). While this does not rule out gains under different optimization schedules, simple capacity expansion fails to resolve weak adaptation under the tested configuration.
 
-More training data can improve adaptation, but the gain depends on the training scheme.
-For LeWM on pusher displacement, increasing the training set from 2,048 to 8,192 to 32,768 pairs raises Development accuracy from 55.66\% to 82.42\% to 90.82\% with Original $\rightarrow$ Mixed (Joint); NRE falls from 0.810 to 0.390 to 0.222.
-In contrast, Mixed training scores 50.00\% with 2,048 pairs and 50.78\% with 32,768 pairs.
-The additional data therefore help the pretrained model in this comparison but do not produce a similar gain with direct mixed training.
-These experiments keep the number of epochs fixed, so increasing the dataset can also increase training updates and change trajectory coverage.
-They do not isolate the effect of data quantity at a fixed compute budget.
-
-Increasing model capacity alone does not resolve the weak performance in our tested setting.
-We jointly expand the encoder, representation width, and predictor of LeWM and PLDM from approximately 18M to 183M parameters, using Mixed training on the same 32k friction and damping datasets for 10 epochs.
-Across the four Development comparisons, task accuracy changes by $-8.01$ to $+0.20$ percentage points, and original-environment CEM success decreases in all four.
-This result limits a simple capacity explanation for these runs; it does not rule out gains with different optimization settings or training budgets.
-
-To determine whether weak adaptation arises only at evaluation time, we also score fixed queries from the training data.
-Figure~\ref{fig:training-evidence} compares PLDM's Joint and Frozen Encoder schemes on friction and damping, using 512 training pairs and 256 Development pairs per task.
-In friction joint training, the recorded prediction loss decreases by 18.05\% between epochs 5 and 10, with both its mean and median decreasing at every recorded epoch.
-Yet training-query NRE remains near the zero-response reference, at 1.009 and 1.011.
-The model therefore fails to recover the conditional response even on these training queries; a shift to the evaluation distribution cannot explain this failure alone.
-Damping with the encoder frozen exhibits a different loss trajectory: prediction loss approaches convergence, changing by only $-0.39\%$ from epochs 5 to 10, while training-query NRE remains high at 0.940 and 0.867.
+\noindent\textbf{Disconnect Between Prediction Loss and Conditional Adaptation.}
+Weak evaluation performance may reflect poor generalization or conditional responses that were never learned during training. We therefore evaluate fixed queries directly from the training data across training epochs to distinguish these possibilities.
+Figure~\ref{fig:training-evidence} presents training trajectories for PLDM on contact friction and motion damping. Under joint training on friction, the recorded prediction loss steadily decreases by 18.05\% between epochs 5 and 10, with batch means and medians decreasing at each recorded epoch. Crucially, training-query NRE remains near the zero-response reference ($\text{NRE} \approx 1.01$), showing that the model fails to capture the conditional response even on its own training distribution. Under motion damping with the encoder frozen, prediction loss approaches convergence (shifting by only $-0.39\%$ from epochs 5 to 10), while training-query NRE improves from 0.940 to 0.867 but remains high. Changing the training scheme can assist conditional learning---with the encoder frozen, friction training NRE falls from 0.674 to 0.587 between epochs 5 and 10, whereas joint training achieves a stronger response on damping, with Development showing the same ordering---yet neither strategy consistently outperforms the other across both tasks.
 
 \begin{figure*}[t]
 \centering
@@ -343,15 +329,7 @@ Damping with the encoder frozen exhibits a different loss trajectory: prediction
 \label{fig:training-evidence}
 \end{figure*}
 
-Changing the training scheme helps, but its effect depends on the task.
-With the encoder frozen, friction training-query NRE falls from 0.674 to 0.587, whereas joint training gives the stronger response on damping.
-Development shows the same ordering between these schemes.
-Neither scheme consistently produces the better conditional response across both tasks.
-
-The weak runs reveal insufficient constraints on history-conditioned responses in the tested training schemes: prediction loss decreases or approaches convergence, yet these responses remain poorly learned even on the training set.
-The prediction term averages errors across mixed data and prediction positions, whereas NRE measures the error in the predicted difference between paired futures.
-This distinction helps explain why improving the training objective need not improve the measured response.
-The evidence identifies a limitation of the training objective and strategy, rather than a single responsible loss term or representation component.
+These results expose a disconnect between prediction-loss optimization and history-conditioned adaptation: conditional responses can remain poorly learned even on training queries as prediction loss steadily decreases or approaches convergence. The standard prediction loss aggregates errors across mixed training data, whereas NRE directly isolates errors in the predicted differences between physical conditions. Minimizing the prediction loss therefore does not ensure an accurate conditional response. This discrepancy reveals insufficient constraints on history-conditioned dynamics in the evaluated prediction objectives and training recipes, highlighting the need for objectives and benchmarks explicitly targeted at context-driven physical reasoning.
 
 \section{Conclusion}
 \label{sec:conclusion}
@@ -757,6 +735,7 @@ Portal exit & DINO-WM & Original & 54.69 & 0.995 & 41.991 & [40.909, 43.144] & 1
 Portal exit & DINO-WM & Mixed & 100.00 & 0.143 & 8.092 & [8.005, 8.181] & 100.00 \\
 \end{longtable}\endgroup
 \subsection{Data Scale}
+\label{app:data-scale}
 These comparisons use Development and hold training epochs fixed.
 The sample counts describe pairs, not necessarily independent source episodes.
 Pusher displacement uses 2,048, 8,192, and 32,768 pairs; friction and damping compare 8,192 with 32,768; mass and portal exit compare 2,048 with 32,768.
@@ -765,7 +744,7 @@ Portal expansion also broadens initial distances and action magnitudes, so its c
 \begingroup\small
 \setlength{\tabcolsep}{4pt}
 \begin{longtable}{@{}p{2cm}lp{4cm}rrrr@{}}
-\caption{Data-scale comparisons on Development. $n$ counts training repetitions contributing to task accuracy and NRE. Planning repetitions can differ and are not counted as additional training runs.}\\
+\caption{Data-scale comparisons on Development. $n$ counts training repetitions contributing to task accuracy and NRE. Planning repetitions can differ and are not counted as additional training runs.}\label{tab:data-scale}\\
 \toprule
 Task & Model & Scheme & Pairs & $n$ & Accuracy (\%) & NRE\\
 \midrule\endfirsthead
@@ -814,6 +793,7 @@ Portal exit & DINO-WM & Mixed & 2,048 & 3 & 99.41 & 0.554 \\
 Portal exit & DINO-WM & Mixed & 32,768 & 1 & 100.00 & 0.143 \\
 \end{longtable}\endgroup
 \subsection{Model Capacity}
+\label{app:model-capacity}
 Both model sizes use the same 32,768-pair datasets, training seed, Mixed initialization, and 10-epoch recipe.
 The larger model changes the visual backbone from ViT-Tiny to ViT-Base, the representation width from 192 to 768, and predictor depth from six to nine layers.
 This is a joint expansion of the encoder and predictor, not a predictor-only intervention.

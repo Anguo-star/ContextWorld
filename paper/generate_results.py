@@ -55,6 +55,7 @@ for task,name in TASKS:
     text.append(r'\midrule')
 text[-1]=r'\end{longtable}\endgroup'
 text.append(r'''\subsection{Data Scale}
+\label{app:data-scale}
 These comparisons use Development and hold training epochs fixed.
 The sample counts describe pairs, not necessarily independent source episodes.
 Pusher displacement uses 2,048, 8,192, and 32,768 pairs; friction and damping compare 8,192 with 32,768; mass and portal exit compare 2,048 with 32,768.
@@ -63,7 +64,7 @@ Portal expansion also broadens initial distances and action magnitudes, so its c
 \begingroup\small
 \setlength{\tabcolsep}{4pt}
 \begin{longtable}{@{}p{2cm}lp{4cm}rrrr@{}}
-\caption{Data-scale comparisons on Development. $n$ counts training repetitions contributing to task accuracy and NRE. Planning repetitions can differ and are not counted as additional training runs.}\\
+\caption{Data-scale comparisons on Development. $n$ counts training repetitions contributing to task accuracy and NRE. Planning repetitions can differ and are not counted as additional training runs.}\label{tab:data-scale}\\
 \toprule
 Task & Model & Scheme & Pairs & $n$ & Accuracy (\%) & NRE\\
 \midrule\endfirsthead
@@ -85,6 +86,7 @@ for task,name in TASKS:
 text.append(r'\end{longtable}\endgroup')
 cap=read('model_capacity_scaling_v1/final_comparison.json')
 text.append(r'''\subsection{Model Capacity}
+\label{app:model-capacity}
 Both model sizes use the same 32,768-pair datasets, training seed, Mixed initialization, and 10-epoch recipe.
 The larger model changes the visual backbone from ViT-Tiny to ViT-Base, the representation width from 192 to 768, and predictor depth from six to nine layers.
 This is a joint expansion of the encoder and predictor, not a predictor-only intervention.
