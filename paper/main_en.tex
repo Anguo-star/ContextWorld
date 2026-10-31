@@ -296,9 +296,9 @@ For multi-step errors, we also report confidence intervals that reflect variatio
 \subsection{Experimental Setup}
 \label{sec:experimental-setup}
 
-To study how training data affect adaptation, we compare training on original-environment data alone with training on a mixture of original-environment and ContextWorld data.
-We use the original-environment datasets released with LeWM~\cite{maes2026leworldmodel}.
-For each task, mixed training samples 50\% of its trajectory windows from the corresponding original-environment dataset and 50\% from the task's ContextWorld Training split.
+We test whether adding training data with varied dynamics improves in-context adaptation.
+We use the original-environment datasets released with LeWM~\cite{maes2026leworldmodel} as the baseline training data.
+For each task, mixed training draws half of its trajectory windows from the corresponding original-environment dataset and half from the task's ContextWorld Training split.
 
 We evaluate LeWM~\cite{maes2026leworldmodel}, PLDM~\cite{sobal2025pldm}, and DINO-WM~\cite{zhou2025dinowm} to examine how original-environment pretraining and visual encoder updates affect adaptation.
 Table~\ref{tab:training-schemes} defines the four training schemes used in the comparisons.
