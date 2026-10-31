@@ -37,7 +37,7 @@
 
 正文实验按实验设置、任务适应结果、训练选择、预测损失与适应四个小节组织。完整九任务 Test 主表保留在正文；多步预测、数据与容量对照、训练损失与条件响应分别由图表展示。详细结果与评测设置保留在附录。
 
-数据与容量图采用成组柱状图：分别比较数据从 2,048 增至 32,768 对、模型从 18M 增至 183M 前后的准确率。两组采用相同准确率刻度，并标注变化的百分点；中间数据规模及重复次数见附录。训练图按任务分列，上排显示 loss，下排只显示两个实测时点的 NRE 散点；训练方案颜色与 NRE 数据划分使用独立图例。多步预测图用浅色背景标出误差高于均值未来参照的区域，该区域不表示历史信息完全失效。
+数据与容量图采用成组柱状图：分别比较数据从 2,048 增至 32,768 对、模型从 18M 增至 183M 前后的准确率。两组采用相同准确率刻度，并标注变化的百分点；中间数据规模及重复次数见附录。正文训练图只展示 PLDM 摩擦任务的联合训练案例：蓝色折线显示六个 epoch 的预测损失，橙色散点显示两个实测时点的训练集 NRE；两个任务、两种训练方案及 Development 对照保留在附录。主图使用真实 Cube 配对观测，并在帧间画出历史动作指令。多步预测图用浅色背景标出误差高于均值未来参照的区域，该区域不表示历史信息完全失效。
 
 `generate_results.py` 从仓库中已保存的 Test／Development 研究结果生成附录表格，`generate_figures.py` 生成协议示意图、多步预测图、数据与容量对照图，以及训练损失／条件响应图。它们不训练模型、不重新评测检查点。在仓库根目录运行：
 
@@ -48,7 +48,7 @@ python paper/generate_figures.py
 
 结果表读取 `docs/research/data/icl_training_study_v2.json`、`multistep_prediction_coverage_v2.json` 和 `model_capacity_scaling_v1/final_comparison.json`；训练图读取 `native_training_loss_v1/summary.csv` 与 `native_epoch_checkpoints_v1/summary.csv`。九任务 Test 主表依据 `current_reference_test_v1/summary.json`。多步图从 `multistep_prediction_coverage_v2_queries.json.gz` 复算逐时域误差比：各时域分别汇总预测误差与均值未来参照误差，再在检查点内取比值，最后对训练重复取均值。该曲线与先汇总所有时域再取比值的整体 `E/B` 不同。新图使用的数值、运行标识和区间保存于 `figures/experiment_plot_data.json`，可随脚本重新生成。
 
-图形生成需要 Matplotlib 和 NumPy；编译论文直接使用已保存的 PDF 图，无需执行这些脚本。
+全部图形生成需要 Matplotlib、NumPy，以及用于 SVG 导出的 Node.js、Playwright 和 Chromium；配置见 [图形说明](design/README.md)。编译论文直接使用已保存的 PDF 图，无需执行这些脚本。
 
 本地 `contextworld-cvpr.zip` 保存编译所需论文源文件与图形。复算图表需要完整仓库中的上述结果文件，单独编译源包不需要原始数据或权重。
 

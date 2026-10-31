@@ -10,14 +10,14 @@
 \onecolumn
 \noindent\includegraphics[width=\textwidth]{design/benchmark_overview.pdf}
 
-{\small\noindent\textbf{Figure 1. ContextWorld pairs interaction histories to test dynamics adaptation.} A: Real PushT observations show two action gains. The current observation and future actions are identical, but the true futures differ. All images use the same crop; colored arrows mark the pusher's displacement from the shared current position. B: The same frozen model makes separate latent predictions. Matrix entries are MSEs between predicted and encoded true futures. Rows compare possible futures; columns compare histories for a fixed target. The displayed inequalities illustrate condition A; both conditions are scored.}
+{\small\noindent\textbf{Figure 1. Controlled prediction and history comparisons.} A: A real Cube pair. A lift command and its reverse expose whether the cube is carried, then return both conditions to the same current observation. Repeating the lift command produces different futures. Images share a crop around the gripper. Red traces show the five recorded vertical commands per interval. B: The frozen model receives observations and actions and produces latent predictions. Rows compare futures for a fixed prediction; columns compare histories for a fixed target.}
 
 \vspace{14pt}
 \noindent\begin{minipage}[t]{0.48\textwidth}
 \vspace{0pt}
 \includegraphics[width=\linewidth]{design/training_two_panels.pdf}
 
-{\small\textbf{Figure 4. Prediction loss and conditional response.} PLDM is trained on contact friction and motion damping, with the visual encoder jointly updated or frozen. Loss is normalized to epoch 5; bands show batch interquartile ranges. Training-query NRE is measured at epochs 5 and 10 only; 1 marks the zero-response reference. Within each task, both schemes start from the same Original checkpoint.}
+{\small\textbf{Figure 4. Prediction loss and conditional response.} PLDM on contact friction, Original $\to$ Mixed (Joint). Recorded prediction loss falls by 18.05\% from epochs 5 to 10, while training-query NRE stays near the zero-response reference of 1. Loss uses mixed training batches; NRE is measured on fixed paired training queries at the two endpoints. Full task and scheme comparisons remain in the manuscript appendix.}
 \end{minipage}\hfill\begin{minipage}[t]{0.48\textwidth}
 \vspace{0pt}
 \textbf{Prediction Loss and Adaptation}

@@ -1,45 +1,50 @@
+"""Reproduce the reference's single-case loss/NRE panel with measured data."""
 from pathlib import Path
 import csv,json
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-from matplotlib.lines import Line2D
-ROOT=Path(__file__).resolve().parents[2]
-OUT=Path(__file__).resolve().parent
-loss=list(csv.DictReader((ROOT/'docs/research/data/native_training_loss_v1/summary.csv').open()))
-nre=list(csv.DictReader((ROOT/'docs/research/data/native_epoch_checkpoints_v1/summary.csv').open()))
-plt.rcParams.update({'font.family':'DejaVu Sans','font.size':7,'pdf.fonttype':42,'svg.fonttype':'none','axes.spines.top':False,'axes.spines.right':False})
-fig,axs=plt.subplots(1,2,figsize=(3.45,2.15),gridspec_kw={'wspace':.40})
-fig.subplots_adjust(left=.12,right=.98,bottom=.34,top=.84)
-colors={'contact_friction':'#1778c8','motion_damping':'#ed7922'}
-handles=[];records=[]
-for task,title in [('contact_friction','Friction'),('motion_damping','Damping')]:
- for regime,label,style,marker in [('joint','Joint','-','o'),('frozen','Frozen encoder','--','s')]:
-  suffix='num32k_v1_warmstart3073_s3072' if regime=='joint' else 'encoder_frozen_v1_s3072'
-  run=f'{task}_pldm_{suffix}'
-  rows=sorted([r for r in loss if r['run']==run and r['metric']=='fit__pred_loss' and 5<=int(r['checkpoint_epoch'])<=10],key=lambda r:int(r['checkpoint_epoch']))
-  assert len(rows)==6
-  base=float(rows[0]['mean']); xs=[int(r['checkpoint_epoch']) for r in rows]; ys=[float(r['mean'])/base for r in rows]
-  c=colors[task];face=c if regime=='joint' else 'white'
-  axs[0].plot(xs,ys,color=c,ls=style,marker=marker,markersize=3.5,markerfacecolor=face,lw=1.5)
-  axs[0].fill_between(xs,[float(r['q25'])/base for r in rows],[float(r['q75'])/base for r in rows],color=c,alpha=.07,lw=0)
-  nr=sorted([r for r in nre if r['task']==task and r['family']=='pldm' and r['regime']==regime and r['split']=='loader_fit'],key=lambda r:int(r['epoch']))
-  assert [int(r['epoch']) for r in nr]==[5,10]
-  ny=[float(r['NRE']) for r in nr]
-  axs[1].plot([5,10],ny,color=c,ls='none',marker=marker,markerfacecolor=face,markersize=4.7,markeredgewidth=1)
-  handles.append(Line2D([],[],color=c,ls=style,marker=marker,markerfacecolor=face,markersize=3.8,lw=1.3,label=f'{title} · {label}'))
-  records.append({'task':task,'regime':regime,'loss_epochs':xs,'relative_loss':ys,'NRE_epochs':[5,10],'training_NRE':ny})
-for ax in axs:
- ax.set_xlim(4.7,10.3);ax.set_xticks([5,6,7,8,9,10]);ax.set_xlabel('Epoch',labelpad=3)
- ax.grid(color='#e7e9ec',lw=.6);ax.set_axisbelow(True);ax.tick_params(length=2.7,pad=2)
- for sp in ax.spines.values():sp.set_linewidth(.7)
-axs[0].set_title('Prediction loss',fontweight='semibold',pad=7)
-axs[0].set_ylim(.78,1.04);axs[0].set_yticks([.8,.9,1]);axs[0].set_ylabel('Relative loss',labelpad=4)
-axs[1].set_title('Response error (NRE)',fontweight='semibold',pad=7)
-axs[1].set_ylim(0,1.18);axs[1].set_yticks([0,.5,1]);axs[1].set_ylabel('NRE',labelpad=3)
-axs[1].axhline(1,color='#737982',ls='--',lw=.85,zorder=1)
-axs[1].text(7.5,1.075,'Zero-response reference',fontsize=5.9,ha='center',color='#555b65')
-fig.legend(handles=handles,loc='lower center',bbox_to_anchor=(.54,.02),ncol=2,frameon=False,fontsize=6.2,handlelength=1.8,columnspacing=1.6,labelspacing=.65)
-for ext in ['pdf','svg','png']:fig.savefig(OUT/f'training_two_panels.{ext}',dpi=230,bbox_inches='tight',pad_inches=.035)
-(OUT/'training_two_panels.json').write_text(json.dumps(records,indent=2))
-print('Saved two-panel scientific plot draft')
+from svg_style import SVG
+BLUE, ORANGE, DARK_BLUE = "#0078ff", "#ff780a", "#064789"
+
+HERE=Path(__file__).resolve().parent
+ROOT=HERE.parents[1]
+rows=list(csv.DictReader((ROOT/'docs/research/data/native_training_loss_v1/summary.csv').open()))
+run='contact_friction_pldm_num32k_v1_warmstart3073_s3072'
+loss=sorted([r for r in rows if r['run']==run and r['metric']=='fit__pred_loss' and 5<=int(r['checkpoint_epoch'])<=10],key=lambda r:int(r['checkpoint_epoch']))
+assert [int(r['checkpoint_epoch']) for r in loss]==list(range(5,11))
+rows=list(csv.DictReader((ROOT/'docs/research/data/native_epoch_checkpoints_v1/summary.csv').open()))
+nre=sorted([r for r in rows if r['task']=='contact_friction' and r['family']=='pldm' and r['regime']=='joint' and r['split']=='loader_fit'],key=lambda r:int(r['epoch']))
+assert [int(r['epoch']) for r in nre]==[5,10]
+ys=[float(r['mean']) for r in loss];nr=[float(r['NRE']) for r in nre]
+reduction=100*(1-ys[-1]/ys[0])
+s=SVG(660,340)
+s.rect(1,1,658,338,'white','#69717d',1.1,12)
+s.text(192,29,'Prediction loss',20,weight=700,anchor='middle')
+s.text(512,29,'Response error (NRE)',20,weight=700,anchor='middle')
+
+def plot_frame(x,y,w,h,lo,hi,ticks,label):
+    xf=lambda t:x+(t-4.7)/5.6*w
+    yf=lambda v:y+h-(v-lo)/(hi-lo)*h
+    for t in range(5,11):
+        xx=xf(t);s.line(xx,y,xx,y+h,'#e4e5e8',1.1);s.line(xx,y+h,xx,y+h+6,'#171a1d',1.5);s.text(xx,y+h+24,str(t),16,anchor='middle')
+    for val,lab in ticks:
+        yy=yf(val);s.line(x,yy,x+w,yy,'#e4e5e8',1.1);s.line(x-5,yy,x,yy,'#171a1d',1.5);s.text(x-10,yy+5,lab,15,anchor='end')
+    s.line(x,y,x,y+h,'#171a1d',1.5);s.line(x,y+h,x+w,y+h,'#171a1d',1.5)
+    s.text(x+w/2,y+h+49,'Epoch',18,anchor='middle')
+    s.text(x-51,y+h/2,label,18,anchor='middle',transform=f'rotate(-90 {x-51} {y+h/2})')
+    return xf,yf
+
+xf,yf=plot_frame(70,56,245,170,.019,.027,[(.020,'0.020'),(.022,'0.022'),(.024,'0.024'),(.026,'0.026')],'Loss')
+s.line(70,yf(ys[0]),315,yf(ys[0]),BLUE,1.5,'6 3')
+pts=' '.join(f'{xf(t)},{yf(v)}' for t,v in zip(range(5,11),ys))
+s.raw(f'<polyline points="{pts}" fill="none" stroke="{BLUE}" stroke-width="2.2"/>')
+for t,v in zip(range(5,11),ys):s.circle(xf(t),yf(v),5.0,BLUE,DARK_BLUE,.8)
+s.arrow(306,yf(ys[0])+2,306,yf(ys[-1])-3,BLUE,2.4,9)
+s.text(309,yf(ys[0])-11,f'−{reduction:.2f}%',19,DARK_BLUE,700,'end')
+xf,yf=plot_frame(390,56,245,170,0,1.5,[(0,'0.0'),(.5,'0.5'),(1,'1.0'),(1.5,'1.5')],'NRE')
+s.line(390,yf(1),635,yf(1),'#626a75',1.5,'6 3')
+s.text(512,yf(1)-14,'zero-response reference = 1',14,'#525b69',anchor='middle')
+for t,v in zip([5,10],nr):s.circle(xf(t),yf(v),5.8,ORANGE,'white',.6)
+s.rect(13,287,634,42,'#e9ebef','none',r=11)
+s.text(330,314,'Lower prediction loss does not ensure an accurate conditional response.',15.7,'#414b59',700,'middle')
+s.save(HERE/'training_two_panels.svg')
+(HERE/'training_two_panels.json').write_text(json.dumps({'task':'contact_friction','family':'pldm','scheme':'Original → Mixed (Joint)','loss_run':run,'loss_epochs':list(range(5,11)),'prediction_loss':ys,'loss_reduction_percent':reduction,'NRE_epochs':[5,10],'training_NRE':nr},indent=2)+'\n')
+print('Single-case measured training panel saved')
