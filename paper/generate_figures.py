@@ -181,69 +181,62 @@ def multistep_prediction():
 
 
 def scaling_comparisons():
+    """Paired endpoint scores; both panels use the same accuracy scale."""
     import json
-    import numpy as np
     data = ROOT/'docs/research/data'
     study = json.loads((data/'icl_training_study_v2.json').read_text())
     capacity = json.loads((data/'model_capacity_scaling_v1/final_comparison.json').read_text())
-    fig = plt.figure(figsize=(3.45, 3.1))
-    axes = [fig.add_axes([.15, .63, .81, .27]),
-            fig.add_axes([.35, .13, .61, .28])]
-    colors = {'scratch':'#777777','joint':'#2765a8'}
     data_records = []
-    ax = axes[0]
-    for regime,label in [('scratch','Mixed'),('joint','Original → Mixed (Joint)')]:
+    for regime in ['scratch', 'joint']:
         rows = [r for r in study['rows'] if r['task']=='action_strength' and r['model']=='lewm'
                 and r['regime']==regime and r.get('training_pair_count')
                 and (not r['comparison_variant'] or r['comparison_variant'].startswith('scale_'))]
         rows.sort(key=lambda r:r['training_pair_count'])
-        xs = [r['training_pair_count'] for r in rows]
-        ys = [r['statistics']['scores']['main']['mean'] for r in rows]
-        assert len(xs)==len(set(xs))
-        ax.plot(xs,ys,color=colors[regime],marker='s' if regime=='scratch' else 'o',
-                markersize=4,label=label,linewidth=1.5)
-        for x,y,r in zip(xs,ys,rows):
+        assert len(rows)==len({r['training_pair_count'] for r in rows})
+        for r in rows:
             st=r['statistics']['scores']['main']
-            if st['n']>1 and st.get('std') is not None:
-                ax.errorbar(x,y,yerr=st['std'],color=colors[regime],capsize=2,linewidth=.8)
-            ax.annotate(f'{y:.1f}',(x,y),xytext=(0,5 if regime=='joint' and x!=8192 else -11),
-                        textcoords='offset points',ha='center',fontsize=7,color=colors[regime])
-            data_records.append(dict(regime=regime,pairs=x,accuracy=y,n=st['n'],sd=st.get('std')))
-    ax.axhline(50,color='.65',ls=':',lw=.7,zorder=0)
-    ax.set_xscale('log',base=2)
-    ax.set_xticks([2048,8192,32768],['2,048','8,192','32,768'])
-    ax.set_xlim(1500,45000); ax.set_ylim(35,102)
-    ax.set_yticks([50,75,100]); ax.set_xlabel('Training pairs', labelpad=3)
-    ax.set_ylabel('Accuracy (%)', labelpad=3, fontsize=7.5)
-    fig.text(.02, .985, '(a) Data scale', fontsize=8.5, weight='semibold', va='top')
-    ax.legend(loc='upper left', bbox_to_anchor=(.015,1.01), fontsize=6.6,
-              frameon=False, ncol=1, handlelength=1.3, borderaxespad=0, labelspacing=.2)
-    ax.grid(axis='y',color='#e8ebef',linewidth=.6)
-    ax=axes[1]
-    labels=[]; capacity_records=[]
-    for y,r in enumerate(capacity['rows']):
+            data_records.append(dict(regime=regime,pairs=r['training_pair_count'],
+                                     accuracy=st['mean'],n=st['n'],sd=st.get('std')))
+    capacity_records=[]
+    for r in capacity['rows']:
         small=r['small']['main_percent'];large=r['scaling10x']['main_percent']
-        delta=large-small
-        labels.append(('LeWM' if r['model']=='lewm' else 'PLDM')+' · '+
-                      ('friction' if r['task']=='contact_friction' else 'damping'))
-        ax.hlines(y, min(0,delta), max(0,delta), color='#647589', linewidth=2)
-        ax.scatter([delta],[y],color='#344b65',s=24,zorder=3)
-        ax.annotate(f'{delta:+.2f}',(delta,y),xytext=(-6 if delta < -1 else 6,0),
-                    textcoords='offset points',ha='right' if delta < -1 else 'left',
-                    va='center',fontsize=7,color='#344b65')
-        capacity_records.append(dict(task=r['task'],family=r['model'],small=small,large=large,delta=delta))
-    ax.set_yticks(range(len(labels)),labels,fontsize=7)
-    ax.set_ylim(3.55,-.55); ax.set_xlim(-10.7,2.5)
-    ax.set_xticks([-10,-5,0]); ax.axvline(0,color='.5',ls=':',lw=.8,zorder=0)
-    ax.set_xlabel('Accuracy change (pp)', labelpad=3, fontsize=7.5)
-    fig.text(.02, .49, '(b) Capacity: 18M → 183M', fontsize=8.5, weight='semibold', va='top')
-    ax.grid(axis='x',color='#e8ebef',linewidth=.6)
-    for ax in axes:
+        capacity_records.append(dict(task=r['task'],family=r['model'],small=small,
+                                     large=large,delta=large-small))
+    fig = plt.figure(figsize=(3.45, 3.25))
+    axes = [fig.add_axes([.15, .59, .81, .27]),
+            fig.add_axes([.15, .13, .81, .27])]
+    before_data, after_data = [], []
+    for regime in ['scratch', 'joint']:
+        small, = [r for r in data_records if r['regime']==regime and r['pairs']==2048]
+        large, = [r for r in data_records if r['regime']==regime and r['pairs']==32768]
+        before_data.append(small['accuracy']); after_data.append(large['accuracy'])
+    def bars(ax, before, after, labels):
+        import numpy as np
+        x = np.arange(len(before))
+        ax.bar(x-.16, before, .27, color='#b9c1c9', label='Smaller scale', zorder=3)
+        ax.bar(x+.16, after, .27, color='#426d99', label='Larger scale', zorder=3)
+        ax.set_ylim(0,110); ax.set_yticks([0,50,100])
+        ax.set_ylabel('Accuracy (%)',fontsize=7.5,labelpad=3)
+        ax.set_xticks(x, labels, fontsize=7)
+        ax.tick_params(length=2.5,labelsize=7)
+        ax.grid(axis='y',color='#e8ebef',linewidth=.6)
         ax.set_axisbelow(True)
-        ax.tick_params(labelsize=7.5, length=2.5)
         for spine in ax.spines.values():
-            spine.set_linewidth(.65)
-    fig.savefig(OUT/'scaling_comparisons.pdf', pad_inches=.035)
+            spine.set_linewidth(.6)
+        for i,(small,large) in enumerate(zip(before,after)):
+            ax.text(i,max(small,large)+4,f'Δ {large-small:+.2f}'.replace('-', '−'),
+                    ha='center',fontsize=6.6)
+    bars(axes[0],before_data,after_data,['Mixed','Original → Mixed\n(Joint)'])
+    labels=[('LeWM' if r['family']=='lewm' else 'PLDM')+'\n'+
+            ('friction' if r['task']=='contact_friction' else 'damping') for r in capacity_records]
+    bars(axes[1],[r['small'] for r in capacity_records],
+         [r['large'] for r in capacity_records],labels)
+    fig.text(.15,.99,'(a) Data: 2,048 → 32,768 pairs',fontsize=8,va='top')
+    fig.text(.15,.48,'(b) Models: 18M → 183M',fontsize=8,va='top')
+    fig.legend(*axes[0].get_legend_handles_labels(),loc='upper left',
+               bbox_to_anchor=(.13,.94),ncol=2,frameon=False,fontsize=7,
+               handlelength=1.1,columnspacing=1.5,borderaxespad=0)
+    fig.savefig(OUT/'scaling_comparisons.pdf',pad_inches=.035)
     plt.close(fig)
     return dict(split='development',data=data_records,capacity=capacity_records)
 
