@@ -301,11 +301,11 @@ We therefore examine whether adding ContextWorld training data improves this abi
 The baseline uses the original-environment datasets released with LeWM~\cite{maes2026leworldmodel}.
 For each task, mixed training draws half of its trajectory windows from the corresponding original-environment dataset and half from the task's ContextWorld Training split.
 
-We evaluate LeWM~\cite{maes2026leworldmodel}, PLDM~\cite{sobal2025pldm}, and DINO-WM~\cite{zhou2025dinowm} to examine how original-environment pretraining and visual encoder updates affect adaptation.
-Table~\ref{tab:training-schemes} defines the four training schemes used in the comparisons.
-Original and Mixed each train for 10 epochs.
-The two Original $\rightarrow$ Mixed schemes start from the same Original checkpoint and train for another 10 epochs on mixed data, either updating or freezing the visual encoder.
-Each mixed-data model is trained for one task, so a row of nine task results represents separate task-specific checkpoints.
+Mixed data can be used from the start of training or after pretraining in the original environment.
+We compare these approaches and test whether freezing the pretrained visual encoder helps adaptation.
+We evaluate LeWM~\cite{maes2026leworldmodel}, PLDM~\cite{sobal2025pldm}, and DINO-WM~\cite{zhou2025dinowm} using the schemes in Table~\ref{tab:training-schemes}.
+Original and Mixed each train for 10 epochs; the two Original $\rightarrow$ Mixed schemes share the same Original checkpoint and train for a further 10 epochs on mixed data.
+Mixed-data training is performed separately for each task, so the nine-task results do not represent a single multitask model.
 Optimization and sampling details appear in Appendix~\ref{app:training-settings}.
 
 \begin{table*}[t]
