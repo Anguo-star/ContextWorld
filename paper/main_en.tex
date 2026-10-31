@@ -296,8 +296,9 @@ For multi-step errors, we also report confidence intervals that reflect variatio
 \subsection{Experimental Setup}
 \label{sec:experimental-setup}
 
-We test whether adding training data with varied dynamics improves in-context adaptation.
-We use the original-environment datasets released with LeWM~\cite{maes2026leworldmodel} as the baseline training data.
+Models trained under fixed dynamics may predict future states without learning to adapt to different dynamics from interaction history.
+We therefore examine whether adding ContextWorld training data improves this ability.
+The baseline uses the original-environment datasets released with LeWM~\cite{maes2026leworldmodel}.
 For each task, mixed training draws half of its trajectory windows from the corresponding original-environment dataset and half from the task's ContextWorld Training split.
 
 We evaluate LeWM~\cite{maes2026leworldmodel}, PLDM~\cite{sobal2025pldm}, and DINO-WM~\cite{zhou2025dinowm} to examine how original-environment pretraining and visual encoder updates affect adaptation.
