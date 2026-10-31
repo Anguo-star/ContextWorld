@@ -4,7 +4,6 @@
 \usepackage[pagenumbers]{cvpr}
 \usepackage{tabularx}
 \usepackage{longtable}
-\usepackage{placeins}
 \definecolor{cvprblue}{rgb}{0.21,0.49,0.74}
 \usepackage[pagebackref,breaklinks,colorlinks,allcolors=cvprblue]{hyperref}
 \def\paperID{*****}
@@ -309,13 +308,19 @@ Strong one-step adaptation does not establish accurate multi-step prediction. On
 
 
 
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{figures/scaling_comparisons.pdf}
+\caption{\textbf{Data and capacity comparisons on Development.} (a) LeWM on pusher displacement; points mark measured sizes. (b) Accuracy change in percentage points (pp) when expanding from 18M to 183M under Mixed. Epoch counts are fixed. Run counts and full scores appear in Appendix~\ref{app:data-scale}--\ref{app:model-capacity}.}
+\label{fig:scaling-comparisons}
+\end{figure}
+
 \begin{figure*}[t]
 \centering
-\includegraphics[width=\textwidth]{figures/scaling_comparisons.pdf}
-\caption{\textbf{Data and capacity comparisons on Development.} (a) LeWM pusher-displacement accuracy improves with data scale under Original $\to$ Mixed (Joint), but not comparably under Mixed. Only measured sizes are marked; lines connect them. Points average available runs; the 2k Mixed standard deviation is zero and other points use one run. (b) Joint encoder and predictor expansion from 18M to 183M under Mixed gives no consistent gain across four comparisons; labels show changes in percentage points. Both comparisons keep epoch counts fixed.}
-\label{fig:scaling-comparisons}
+\includegraphics[width=\textwidth]{figures/training_evidence.pdf}
+\caption{\textbf{Optimizing prediction loss does not ensure accurate conditional responses.} Within each task, PLDM Joint and Frozen Encoder share Original initialization. Loss is normalized to epoch 5; shading shows batch interquartile ranges. NRE is measured only at epochs 5 and 10, with lines connecting those points. NRE = 1 marks the zero-response reference. Loss uses mixed batches, whereas NRE uses fixed paired task queries.}
+\label{fig:training-evidence}
 \end{figure*}
-\FloatBarrier
 
 \subsection{Effects of Training Choices}
 \label{sec:training-effects}
@@ -323,14 +328,6 @@ Freezing the pretrained visual encoder helps some tasks and hurts others. For PL
 
 Figure~\ref{fig:scaling-comparisons} examines whether more data or capacity resolves weak adaptation. For LeWM on pusher displacement, data scaling substantially benefits Original $\to$ Mixed (Joint), whereas Mixed stays near chance. NRE also improves with joint fine-tuning (Appendix~\ref{app:data-scale}). Fixed epochs allow update counts to change with data size, so this is not a fixed-compute comparison. Increasing LeWM and PLDM from 18M to 183M parameters provides no consistent accuracy improvement on friction and damping; original-environment CEM success decreases in all four comparisons (Appendix~\ref{app:model-capacity}). These results limit a simple capacity explanation under the tested recipe, without excluding gains from different optimization settings.
 
-\begin{figure*}[t]
-\centering
-\includegraphics[width=.94\textwidth]{figures/training_evidence.pdf}
-\caption{\textbf{Optimizing prediction loss does not ensure accurate conditional responses.} Within each task, PLDM Joint and Frozen Encoder share Original initialization. Top: logged prediction loss relative to epoch 5; shading shows batch interquartile ranges. Bottom: training and Development NRE at epochs 5 and 10; lines connect measured points only. Loss uses mixed batches, whereas NRE uses fixed paired task queries.}
-\label{fig:training-evidence}
-\end{figure*}
-
-\FloatBarrier
 \subsection{Prediction Loss and Adaptation}
 \label{sec:loss-adaptation}
 Weak evaluation performance may reflect poor generalization or conditional responses that were not learned well during training. We compare prediction loss with NRE on fixed training queries at epochs 5 and 10 (Figure~\ref{fig:training-evidence}).
@@ -345,7 +342,6 @@ ContextWorld establishes a standardized benchmark to evaluate in-context dynamic
 
 Our findings are framed by specific diagnostic boundaries. Predictions are evaluated in each model's native representation rather than a shared physical error space; most tasks examine adaptation among dynamics conditions represented in training, while Speed evaluates unseen parameter values; and mixed-data checkpoints are trained independently per task, with planning experiments quantifying capability retention in unperturbed environments. These boundaries outline clear avenues for future research: establishing complementary cross-model evaluation in grounded physical coordinates, scaling toward generalist multi-task world models that generalize across broader dynamics, and examining closed-loop planning to test whether history-conditioned latent predictions translate directly into improved decision-making.
 
-\clearpage
 {\small
 \bibliographystyle{ieeenat_fullname}
 \bibliography{references}

@@ -18,10 +18,15 @@ def training_evidence():
         loss = list(csv.DictReader(f))
     with (ROOT / 'docs/research/data/native_epoch_checkpoints_v1/summary.csv').open() as f:
         nre = list(csv.DictReader(f))
-    fig, axes = plt.subplots(2, 2, figsize=(7.1, 3.6), sharex='col')
+    # Adjacent loss/response panels for each task, with identical metric scales.
+    fig = plt.figure(figsize=(7.1, 2.2))
+    grid = fig.add_gridspec(1, 5, width_ratios=[1, 1, .18, 1, 1],
+                           left=.055, right=.99, bottom=.26, top=.77, wspace=.39)
+    axes = [fig.add_subplot(grid[0, i]) for i in [0, 1, 3, 4]]
     colors = {'joint': '#2765a8', 'frozen': '#c46124'}
-    for col, (task, title) in enumerate([('contact_friction', 'Contact friction'),
-                                        ('motion_damping', 'Motion damping')]):
+    for group, (task, title) in enumerate([('contact_friction', 'Contact friction'),
+                                          ('motion_damping', 'Motion damping')]):
+        loss_ax, nre_ax = axes[2*group:2*group+2]
         for regime in ['joint', 'frozen']:
             suffix = 'num32k_v1_warmstart3073_s3072' if regime == 'joint' else 'encoder_frozen_v1_s3072'
             run = f'{task}_pldm_{suffix}'
@@ -32,37 +37,47 @@ def training_evidence():
             assert [int(r['checkpoint_epoch']) for r in values] == list(range(5, 11))
             base = float(values[0]['mean'])
             xs = list(range(5, 11))
-            axes[0, col].plot(xs, [float(r['mean'])/base for r in values],
-                              color=colors[regime], marker='o', markersize=3)
-            axes[0, col].fill_between(xs, [float(r['q25'])/base for r in values],
-                                      [float(r['q75'])/base for r in values],
-                                      color=colors[regime], alpha=.12, linewidth=0)
+            loss_ax.plot(xs, [float(r['mean'])/base for r in values],
+                         color=colors[regime], marker='o', markersize=2.6, linewidth=1.35)
+            loss_ax.fill_between(xs, [float(r['q25'])/base for r in values],
+                                 [float(r['q75'])/base for r in values],
+                                 color=colors[regime], alpha=.12, linewidth=0)
             for split, linestyle, marker in [('loader_fit', '-', 'o'), ('development', '--', 's')]:
                 rows = sorted([r for r in nre if r['task'] == task and r['family'] == 'pldm'
                                and r['regime'] == regime and r['split'] == split],
                               key=lambda r: int(r['epoch']))
                 assert [int(r['epoch']) for r in rows] == [5, 10]
-                axes[1, col].plot([5, 10], [float(r['NRE']) for r in rows],
-                                  color=colors[regime], linestyle=linestyle, marker=marker,
-                                  markersize=4)
-        axes[0, col].set_title(title)
-        axes[0, col].set_ylim(.75, 1.08)
-        axes[1, col].set_ylim(0, 1.13)
-        axes[1, col].axhline(1, color='.5', linewidth=.7, linestyle=':')
-        axes[1, col].set_xlabel('Training epoch')
-        axes[1, col].set_xticks(range(5, 11))
-        for ax in axes[:, col]:
-            ax.grid(axis='y', alpha=.15)
-    axes[0, 0].set_ylabel('Prediction loss\n/ epoch 5')
-    axes[1, 0].set_ylabel('Response error\n(NRE)')
+                nre_ax.plot([5, 10], [float(r['NRE']) for r in rows],
+                            color=colors[regime], linestyle=linestyle, marker=marker,
+                            markersize=3.4, linewidth=1.25,
+                            markerfacecolor=colors[regime] if split=='loader_fit' else 'white')
+        loss_ax.set_title('Prediction loss', fontsize=8, pad=5)
+        loss_ax.set_ylim(.76, 1.05)
+        loss_ax.set_yticks([.8, .9, 1.0])
+        loss_ax.set_xticks([5, 7, 10])
+        nre_ax.set_title('Response error (NRE)', fontsize=8, pad=5)
+        nre_ax.set_ylim(0, 1.12)
+        nre_ax.set_yticks([0, .5, 1.0])
+        nre_ax.axhline(1, color='.5', linewidth=.7, linestyle=':', zorder=0)
+        nre_ax.set_xticks([5, 10])
+        for ax in [loss_ax, nre_ax]:
+            ax.set_xlim(4.7, 10.3)
+            ax.grid(axis='y', color='#e8ebef', linewidth=.6)
+            ax.set_axisbelow(True)
+            ax.tick_params(labelsize=7, pad=2, length=2.5)
+            for spine in ax.spines.values():
+                spine.set_linewidth(.65)
+        center = (loss_ax.get_position().x0+nre_ax.get_position().x1)/2
+        fig.text(center, .97, title, ha='center', va='top', fontsize=9, weight='semibold')
+    fig.text(.52, .13, 'Training epoch', ha='center', fontsize=8)
     handles = [Line2D([], [], color=colors['joint'], label='Joint'),
                Line2D([], [], color=colors['frozen'], label='Frozen Encoder'),
-               Line2D([], [], color='.3', marker='o', label='Training queries'),
-               Line2D([], [], color='.3', marker='s', linestyle='--', label='Development')]
-    fig.legend(handles=handles, loc='lower center', ncol=4, frameon=False,
-               bbox_to_anchor=(.5, -.015))
-    fig.tight_layout(rect=(0, .055, 1, 1))
-    fig.savefig(OUT / 'training_evidence.pdf')
+               Line2D([], [], color='.3', marker='o', markersize=3, label='Training queries'),
+               Line2D([], [], color='.3', marker='s', markerfacecolor='white', markersize=3,
+                      linestyle='--', label='Development')]
+    fig.legend(handles=handles, loc='lower center', ncol=4, frameon=False, fontsize=7.5,
+               bbox_to_anchor=(.52, -.045), handlelength=1.7, columnspacing=1.8)
+    fig.savefig(OUT / 'training_evidence.pdf', pad_inches=.035)
     plt.close(fig)
 
 
@@ -171,7 +186,9 @@ def scaling_comparisons():
     data = ROOT/'docs/research/data'
     study = json.loads((data/'icl_training_study_v2.json').read_text())
     capacity = json.loads((data/'model_capacity_scaling_v1/final_comparison.json').read_text())
-    fig, axes = plt.subplots(1,2,figsize=(7.1,2.2),gridspec_kw={'width_ratios':[1,1.15]})
+    fig = plt.figure(figsize=(3.45, 3.1))
+    axes = [fig.add_axes([.15, .63, .81, .27]),
+            fig.add_axes([.35, .13, .61, .28])]
     colors = {'scratch':'#777777','joint':'#2765a8'}
     data_records = []
     ax = axes[0]
@@ -184,47 +201,49 @@ def scaling_comparisons():
         ys = [r['statistics']['scores']['main']['mean'] for r in rows]
         assert len(xs)==len(set(xs))
         ax.plot(xs,ys,color=colors[regime],marker='s' if regime=='scratch' else 'o',
-                markersize=4,label=label,linewidth=1.4)
+                markersize=4,label=label,linewidth=1.5)
         for x,y,r in zip(xs,ys,rows):
             st=r['statistics']['scores']['main']
             if st['n']>1 and st.get('std') is not None:
                 ax.errorbar(x,y,yerr=st['std'],color=colors[regime],capsize=2,linewidth=.8)
-            ax.annotate(f'{y:.1f}',(x,y),xytext=(0,5 if regime=='joint' else -11),
+            ax.annotate(f'{y:.1f}',(x,y),xytext=(0,5 if regime=='joint' and x!=8192 else -11),
                         textcoords='offset points',ha='center',fontsize=7,color=colors[regime])
             data_records.append(dict(regime=regime,pairs=x,accuracy=y,n=st['n'],sd=st.get('std')))
-    ax.axhline(50,color='.65',ls=':',lw=.7)
+    ax.axhline(50,color='.65',ls=':',lw=.7,zorder=0)
     ax.set_xscale('log',base=2)
     ax.set_xticks([2048,8192,32768],['2,048','8,192','32,768'])
     ax.set_xlim(1500,45000); ax.set_ylim(35,102)
-    ax.set_yticks([50,75,100]); ax.set_xlabel('Training pairs')
-    ax.set_ylabel('Development accuracy (%) ↑')
-    ax.set_title('(a) Data: LeWM, pusher displacement',fontsize=8)
-    ax.grid(axis='y',alpha=.15)
+    ax.set_yticks([50,75,100]); ax.set_xlabel('Training pairs', labelpad=3)
+    ax.set_ylabel('Accuracy (%)', labelpad=3, fontsize=7.5)
+    fig.text(.02, .985, '(a) Data scale', fontsize=8.5, weight='semibold', va='top')
+    ax.legend(loc='upper left', bbox_to_anchor=(.015,1.01), fontsize=6.6,
+              frameon=False, ncol=1, handlelength=1.3, borderaxespad=0, labelspacing=.2)
+    ax.grid(axis='y',color='#e8ebef',linewidth=.6)
     ax=axes[1]
     labels=[]; capacity_records=[]
     for y,r in enumerate(capacity['rows']):
         small=r['small']['main_percent'];large=r['scaling10x']['main_percent']
-        labels.append(('Friction' if r['task']=='contact_friction' else 'Damping')+' · '+('LeWM' if r['model']=='lewm' else 'PLDM'))
-        ax.plot([small,large],[y,y],color='.5',lw=1)
-        ax.scatter([small],[y],color='#777777',s=28,marker='o',zorder=3)
-        ax.scatter([large],[y],color='#2765a8',s=30,marker='x',zorder=4)
-        ax.text(63,y,f'{large-small:+.2f}',va='center',ha='right',fontsize=7)
-        capacity_records.append(dict(task=r['task'],family=r['model'],small=small,large=large,delta=large-small))
+        delta=large-small
+        labels.append(('LeWM' if r['model']=='lewm' else 'PLDM')+' · '+
+                      ('friction' if r['task']=='contact_friction' else 'damping'))
+        ax.hlines(y, min(0,delta), max(0,delta), color='#647589', linewidth=2)
+        ax.scatter([delta],[y],color='#344b65',s=24,zorder=3)
+        ax.annotate(f'{delta:+.2f}',(delta,y),xytext=(-6 if delta < -1 else 6,0),
+                    textcoords='offset points',ha='right' if delta < -1 else 'left',
+                    va='center',fontsize=7,color='#344b65')
+        capacity_records.append(dict(task=r['task'],family=r['model'],small=small,large=large,delta=delta))
     ax.set_yticks(range(len(labels)),labels,fontsize=7)
-    ax.set_ylim(3.5,-.9); ax.set_xlim(46,64)
-    ax.set_xticks([50,55,60]);ax.axvline(50,color='.65',ls=':',lw=.7)
-    ax.text(63,-.65,'Δ (pp)',fontsize=7,ha='right')
-    ax.set_xlabel('Development accuracy (%) ↑')
-    ax.set_title('(b) Capacity: Mixed training',fontsize=8)
-    ax.grid(axis='x',alpha=.15)
-    handles = [Line2D([],[],color=colors['scratch'],marker='s',label='Mixed'),
-               Line2D([],[],color=colors['joint'],marker='o',label='Original → Mixed (Joint)'),
-               Line2D([],[],color='#777777',marker='o',lw=0,label='18M'),
-               Line2D([],[],color='#2765a8',marker='x',lw=0,label='183M')]
-    fig.legend(handles=handles,loc='lower center',ncol=4,fontsize=7,frameon=False,
-               bbox_to_anchor=(.5,-.01),handlelength=1.4,columnspacing=1.5)
-    fig.tight_layout(rect=(0,.10,1,1),pad=.5,w_pad=2)
-    fig.savefig(OUT/'scaling_comparisons.pdf')
+    ax.set_ylim(3.55,-.55); ax.set_xlim(-10.7,2.5)
+    ax.set_xticks([-10,-5,0]); ax.axvline(0,color='.5',ls=':',lw=.8,zorder=0)
+    ax.set_xlabel('Accuracy change (pp)', labelpad=3, fontsize=7.5)
+    fig.text(.02, .49, '(b) Capacity: 18M → 183M', fontsize=8.5, weight='semibold', va='top')
+    ax.grid(axis='x',color='#e8ebef',linewidth=.6)
+    for ax in axes:
+        ax.set_axisbelow(True)
+        ax.tick_params(labelsize=7.5, length=2.5)
+        for spine in ax.spines.values():
+            spine.set_linewidth(.65)
+    fig.savefig(OUT/'scaling_comparisons.pdf', pad_inches=.035)
     plt.close(fig)
     return dict(split='development',data=data_records,capacity=capacity_records)
 
