@@ -31,7 +31,7 @@ text = [r'''\begingroup
 \setlength{\tabcolsep}{3pt}
 \renewcommand{\arraystretch}{1.15}
 \begin{longtable}{@{}p{1.8cm}lp{3.65cm}rrrp{2.5cm}r@{}}
-\caption{Development prediction diagnostics and original-environment CEM. Entries average the available training repetitions; $E/B$ intervals are 95\% source-bootstrap intervals. History and CEM are percentages. Scheme names match the main text.}\\
+\caption{Development prediction diagnostics and original-environment CEM. Entries average the available training repetitions; $E/B$ intervals are 95\% source-bootstrap intervals. History and CEM are percentages. Scheme names match the main text.}\label{tab:dev-diagnostics}\\
 \toprule
 Task & Model & Scheme & History $\uparrow$ & NRE $\downarrow$ & $E/B$ $\downarrow$ & $E/B$ interval & CEM $\uparrow$\\
 \midrule

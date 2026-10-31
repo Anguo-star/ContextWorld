@@ -272,26 +272,14 @@ Frozen Encoder leaves the remaining modules trainable, including any projector a
 
 \subsection{Adaptation Results}
 \label{sec:adaptation-results}
+\noindent\textbf{Adaptation Emergence and Task Heterogeneity.}
+Table~\ref{tab:test-results} presents test-set adaptation accuracy across all nine tasks. Under \textit{Original} training, models score near or below the 50\% reference level on the seven binary tasks (ranging from 38.48\% to 52.21\%), showing limited ability to distinguish futures under different dynamics after training on fixed-dynamics data. Incorporating ContextWorld data (\textit{Mixed}) improves adaptation across several domains; for instance, arm mass accuracy increases from 50.07\% to 85.74\% for LeWM and from 51.82\% to 91.02\% for PLDM. However, the magnitude of these gains varies substantially across environments and training schemes, indicating that data mixing alone does not universally guarantee effective context conditioning.
 
-Table~\ref{tab:test-results} compares task accuracy on the Test split.
-With Original training, scores on the seven binary tasks range from 38.48\% to 52.21\%, close to or below the 50\% reference level.
-Mixed training improves performance on several tasks: for example, arm mass accuracy rises from 50.07\% to 85.74\% for LeWM and from 51.82\% to 91.02\% for PLDM.
-These gains show that training with ContextWorld data can improve task accuracy, although the benefits vary across tasks and models.
+\noindent\textbf{Task-Dependent Model Advantages.}
+Relative model performance is highly task-dependent, exhibiting pronounced rank reversals across environments. Under \textit{Mixed} training, LeWM and PLDM achieve 97.70\% and 100.00\% accuracy on action delay, whereas DINO-WM scores 16.65\%. Conversely, on pusher displacement, the ordering reverses: DINO-WM achieves 97.66\% accuracy, while LeWM and PLDM reach only 50.78\% and 56.25\%. Meanwhile, all three models achieve near-perfect accuracy on door traversability ($\ge$99.83\%). These cross-task disparities highlight that no single architecture consistently dominates in-context dynamics adaptation, underscoring the necessity of evaluating across diverse physical mechanisms rather than relying on a single representative benchmark.
 
-The relative performance of the models depends on the task.
-With Mixed training, LeWM and PLDM reach 97.70\% and 100.00\% on action delay, compared with 16.65\% for DINO-WM.
-On pusher displacement, the ordering reverses: DINO-WM reaches 97.66\%, while LeWM and PLDM score 50.78\% and 56.25\%.
-All three models reach at least 99.83\% on door traversability.
-These contrasts show why adaptation should be evaluated across different dynamics rather than summarized by a single model ranking.
-
-Task accuracy alone does not establish how well the model uses history or predicts the complete future state.
-We therefore examine history controls and prediction errors on Development.
-For LeWM on pusher displacement, Original $\rightarrow$ Mixed (Frozen Encoder) raises History from 34.05\% to 98.05\% and reduces NRE from 1.015 to 0.144 relative to Original.
-Thus, matching history more often improves prediction, and the predicted response to changing dynamics is closer to the true response in the evaluated representations.
-However, on the extended action sequences used for multi-step evaluation, this model has $E/B=1.464$; the corresponding PLDM model has $E/B=1.445$.
-Both exceed the mean-future reference error.
-These multi-step queries differ from the one-step task queries: successful discrimination on the latter does not establish accurate prediction over longer action sequences.
-Appendix~\ref{app:additional-results} reports the full diagnostics and original-environment CEM results.
+\noindent\textbf{One-Step Adaptation and Multi-Step Prediction.}
+Strong one-step history benefits and conditional responses do not necessarily imply accurate multi-step prediction. We examine history controls and multi-step prediction errors on the Development split (Table~\ref{tab:dev-diagnostics} in Appendix~\ref{app:additional-results}). For LeWM on pusher displacement, \textit{Original $\to$ Mixed (Frozen Encoder)} substantially improves history benefit, raising the History win-rate from 34.05\% to 98.05\% and reducing NRE from 1.015 to 0.144 relative to the Original checkpoint. Thus, matching history more often reduces one-step prediction error, and the predicted differences between conditions more closely match the target differences in the evaluated representations. However, when evaluated over extended action sequences up to 25 simulator steps without intermediate ground-truth observations, this checkpoint yields $E/B = 1.464$ (and the corresponding PLDM model yields $E/B = 1.445$), both exceeding the error of the mean-future reference ($E/B = 1$). Because these multi-step queries employ extended action sequences alongside longer prediction horizons, successful discrimination on one-step task queries does not establish accurate trajectory rollout over extended horizons. Full diagnostic metrics and original-environment CEM results are documented in Appendix~\ref{app:additional-results}.
 
 \begin{table*}[t]
 \centering
@@ -662,7 +650,7 @@ All latent errors are computed in the checkpoint's own target representation.
 \setlength{\tabcolsep}{3pt}
 \renewcommand{\arraystretch}{1.15}
 \begin{longtable}{@{}p{1.8cm}lp{3.65cm}rrrp{2.5cm}r@{}}
-\caption{Development prediction diagnostics and original-environment CEM. Entries average the available training repetitions; $E/B$ intervals are 95\% source-bootstrap intervals. History and CEM are percentages. Scheme names match the main text.}\\
+\caption{Development prediction diagnostics and original-environment CEM. Entries average the available training repetitions; $E/B$ intervals are 95\% source-bootstrap intervals. History and CEM are percentages. Scheme names match the main text.}\label{tab:dev-diagnostics}\\
 \toprule
 Task & Model & Scheme & History $\uparrow$ & NRE $\downarrow$ & $E/B$ $\downarrow$ & $E/B$ interval & CEM $\uparrow$\\
 \midrule
