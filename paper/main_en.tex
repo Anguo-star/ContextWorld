@@ -234,19 +234,17 @@ Retention of control capabilities in the original environments is evaluated sepa
 
 \subsection{Experimental Setup}
 \label{sec:experimental-setup}
+\noindent\textbf{Evaluated Models.}
+We evaluate three representative latent world models with different representation-learning strategies: (1) \textbf{LeWM}~\cite{maes2026leworldmodel}, an end-to-end JEPA trained with a latent prediction loss and representation regularization; (2) \textbf{PLDM}~\cite{sobal2025pldm}, which jointly learns visual representations and latent dynamics from reward-free offline data; and (3) \textbf{DINO-WM}~\cite{zhou2025dinowm}, which trains an action-conditioned predictor exclusively atop frozen pre-trained visual representations (DINOv2). All models operate strictly under frozen weights during evaluation.
 
-Models trained under fixed dynamics may predict future states without learning to adapt to different dynamics from interaction history.
-We therefore examine whether adding ContextWorld training data improves this ability.
-The baseline uses the original-environment datasets released with LeWM~\cite{maes2026leworldmodel}.
-For each task, mixed training draws half of its trajectory windows from the corresponding original-environment dataset and half from the task's ContextWorld Training split.
+\noindent\textbf{Training Regimes and Hypotheses.}
+Models trained solely on fixed-dynamics environments can achieve high prediction accuracy without utilizing interaction context. To investigate how adaptation ability is acquired and how it interacts with visual representations, we evaluate four comparative training schemes across three axes (summarized in Table~\ref{tab:training-schemes}):
+\textit{(1) Data composition and pre-training transfer:} We compare training from scratch on single-dynamics data (\textit{Original}) against a 50/50 mixture of trajectory windows drawn from the original environment and ContextWorld (\textit{Mixed}). Original-environment data are obtained from the datasets released with LeWM~\cite{maes2026leworldmodel}. We retain original-environment data during mixed training to support adaptation while preserving performance in the original environment. To test whether single-dynamics priors facilitate adaptation, we fine-tune pre-trained Original checkpoints on mixed data (\textit{Original $\to$ Mixed}).
+\textit{(2) Visual encoder updates:} Joint fine-tuning (\textit{Joint}) allows the visual encoder to adapt to mixed data, whereas freezing preserves its pre-trained features. Starting from the same Original checkpoint, we compare these choices to test whether updating the visual encoder helps adaptation.
+\textit{(3) Downstream capability retention:} We evaluate planning with the cross-entropy method (CEM)~\cite{deboer2005cem} in the original environments to test whether training for adaptation preserves the models' existing planning ability.
 
-Pretraining in the original environment may provide useful representations for adaptation.
-We therefore compare training from scratch on mixed data with continuing from an Original checkpoint.
-For the latter, we compare updating and freezing the visual encoder to test whether adapting its representations improves performance.
-We evaluate LeWM~\cite{maes2026leworldmodel}, PLDM~\cite{sobal2025pldm}, and DINO-WM~\cite{zhou2025dinowm} using the schemes in Table~\ref{tab:training-schemes}.
-Original and Mixed each train for 10 epochs; the two Original $\rightarrow$ Mixed schemes share the same Original checkpoint and train for a further 10 epochs on mixed data.
-Mixed-data training is performed separately for each task, so the nine-task results do not represent a single multitask model.
-Optimization and sampling details appear in Appendix~\ref{app:training-settings}.
+Each task is trained independently; DINO-WM's visual encoder remains frozen throughout.
+Optimization, sampling, and planning details appear in Appendix~\ref{app:training-settings}.
 
 \begin{table*}[t]
 \centering
@@ -271,10 +269,6 @@ $^\dagger$DINO-WM's visual encoder is always frozen, so it is not evaluated with
 Frozen Encoder leaves the remaining modules trainable, including any projector and action encoder. All schemes retain the model's original training losses.
 \end{minipage}
 \end{table*}
-
-We also evaluate planning with the cross-entropy method (CEM)~\cite{deboer2005cem} in the original environments to test whether models retain their planning ability after training on mixed data.
-These scores measure performance in the original environments, not adaptation to hidden dynamics.
-
 
 \subsection{Adaptation Results}
 \label{sec:adaptation-results}
