@@ -301,8 +301,9 @@ We therefore examine whether adding ContextWorld training data improves this abi
 The baseline uses the original-environment datasets released with LeWM~\cite{maes2026leworldmodel}.
 For each task, mixed training draws half of its trajectory windows from the corresponding original-environment dataset and half from the task's ContextWorld Training split.
 
-Mixed data can be used from the start of training or after pretraining in the original environment.
-We compare these approaches and test whether freezing the pretrained visual encoder helps adaptation.
+Pretraining in the original environment may provide useful representations for adaptation.
+We therefore compare training from scratch on mixed data with continuing from an Original checkpoint.
+For the latter, we compare updating and freezing the visual encoder to test whether adapting its representations improves performance.
 We evaluate LeWM~\cite{maes2026leworldmodel}, PLDM~\cite{sobal2025pldm}, and DINO-WM~\cite{zhou2025dinowm} using the schemes in Table~\ref{tab:training-schemes}.
 Original and Mixed each train for 10 epochs; the two Original $\rightarrow$ Mixed schemes share the same Original checkpoint and train for a further 10 epochs on mixed data.
 Mixed-data training is performed separately for each task, so the nine-task results do not represent a single multitask model.
@@ -311,7 +312,7 @@ Optimization and sampling details appear in Appendix~\ref{app:training-settings}
 \begin{table*}[t]
 \centering
 \small
-\caption{Training schemes. Original data come from the corresponding environment; mixed data use the 50/50 sampling described in the text. LeWM and PLDM start Original and Mixed from random weights. For Original and Mixed, DINO-WM starts with a pretrained, frozen visual encoder and a randomly initialized predictor.}
+\caption{Training schemes for comparing data composition, pretraining, and visual encoder updates. Mixed data combine equal numbers of trajectory windows from the original environment and ContextWorld. Within each task, the two Original $\rightarrow$ Mixed schemes start from the same Original checkpoint.}
 \label{tab:training-schemes}
 \begin{tabularx}{\textwidth}{@{}p{0.23\textwidth}p{0.18\textwidth}XXX@{}}
 \toprule
@@ -326,7 +327,9 @@ Original $\rightarrow$ Mixed (Frozen Encoder) & Same Original checkpoint & Mixed
 \par\smallskip
 \begin{minipage}{\textwidth}
 \footnotesize
-$^\dagger$DINO-WM's visual encoder remains frozen in all experiments, so Original $\rightarrow$ Mixed (Joint) is not evaluated for this model. In Original $\rightarrow$ Mixed (Frozen Encoder), only the visual encoder is frozen; the remaining trainable modules, including any projector and action encoder, continue to update. All schemes retain the model's original training losses.
+For Original and Mixed, LeWM and PLDM start from random weights; DINO-WM uses a pretrained visual encoder and a randomly initialized predictor.
+$^\dagger$DINO-WM's visual encoder is always frozen, so it is not evaluated with Original $\rightarrow$ Mixed (Joint).
+Frozen Encoder leaves the remaining modules trainable, including any projector and action encoder. All schemes retain the model's original training losses.
 \end{minipage}
 \end{table*}
 
