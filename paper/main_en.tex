@@ -15,7 +15,7 @@
 \maketitle
 
 \begin{abstract}
-Latent world models predict future states from visual observations and action sequences within a learned representation space. When environment dynamics vary, accurate prediction requires inferring hidden dynamics from interaction history. However, because models can exploit immediate visual shortcuts or regress to average dynamics to achieve low loss without history conditioning, conventional prediction accuracy fails to reveal genuine adaptation. We introduce ContextWorld, a benchmark designed to evaluate in-context dynamics adaptation in action-conditioned latent world models under strictly frozen weights. ContextWorld employs paired counterfactual evaluations---varying interaction histories while holding the current observation and future action sequence fixed---to concurrently quantify adaptation accuracy (whether predictions correctly distinguish between diverging future states) and history sensitivity (whether matching history yields lower prediction error than mismatched history). Spanning nine tasks across four environments, the benchmark provides separate training and evaluation splits with continuous interaction rollouts under differing dynamics. Our systematic evaluation of representative latent world models (LeWM, PLDM, and DINO-WM) yields three key findings: First, models trained under fixed dynamics make negligible use of interaction history across most tasks. Second, mixing multi-dynamics data improves history responsiveness, but the benefits of data scaling and the relative effectiveness of training strategies vary substantially across tasks. Third, under certain training schemes, models fail to effectively leverage history even on the training distribution, despite steadily decreasing training loss. These results reveal a notable mismatch between prediction-loss reduction and in-context dynamics adaptation, suggesting that standard prediction objectives do not reliably drive models to use interaction history and highlighting the need for objectives and benchmarks explicitly targeted at context-driven physical reasoning.
+Latent world models predict future states from visual observations and action sequences within a learned representation space. When environment dynamics vary, accurate prediction requires inferring hidden dynamics from interaction history. However, because models can exploit immediate visual shortcuts or regress to average dynamics to achieve low loss without history conditioning, conventional prediction accuracy fails to reveal genuine adaptation. We introduce ContextWorld, a benchmark designed to evaluate in-context dynamics adaptation in action-conditioned latent world models under strictly frozen weights. ContextWorld employs paired counterfactual evaluations---varying interaction histories while holding the current observation and future action sequence fixed---to concurrently quantify adaptation accuracy (whether predictions correctly distinguish between diverging future states) and history sensitivity (whether matching history yields lower prediction error than mismatched history). Spanning nine tasks across four environments, the benchmark provides separate training and evaluation splits with continuous interaction rollouts under differing dynamics. Our systematic evaluation of representative latent world models (LeWM, PLDM, and DINO-WM) yields three key findings: First, models trained under fixed dynamics make negligible use of interaction history across most tasks. Second, mixing multi-dynamics data improves history responsiveness, but the benefits of data scaling and the relative effectiveness of training strategies vary substantially across tasks. Third, under some training schemes, models still fail to accurately predict history-conditioned responses on the training set as prediction loss decreases or approaches convergence. These findings reveal that standard prediction objectives do not reliably enforce accurate history-conditioned prediction, motivating training objectives that explicitly support in-context dynamics adaptation.
 \end{abstract}
 
 \section{Introduction}
@@ -47,15 +47,15 @@ We further scale up the training data and examine the impact of freezing the vis
 Our experiments reveal that data scaling improves history utilization on several tasks, while the most effective model and training strategy vary substantially by task.
 For example, starting from the same pretrained weights, freezing PLDM's visual encoder improves its ability to distinguish future states under varying contact friction, but reduces this ability under motion damping.
 
-To understand why models often fail to leverage history, we analyze model predictions on the training distribution itself.
-Under certain training schemes, training loss steadily decreases even while models make limited use of interaction history to distinguish dynamics conditions.
-Because this failure occurs on the training data, it cannot be explained by out-of-distribution generalization alone, suggesting that standard prediction objectives may not sufficiently encourage models to use interaction history for prediction.
+To determine whether weak adaptation stems only from generalization to new interactions, we also examine predictions on the training data.
+Under some training schemes, the predicted responses to different dynamics remain inaccurate even as prediction loss decreases or approaches convergence.
+The failure therefore already occurs during learning: optimizing the prediction objective does not reliably teach models to use history to predict the effects of different dynamics.
 
 Our contributions are:
 \begin{enumerate}
 \item \textbf{The ContextWorld benchmark.} We introduce nine hidden-dynamics tasks across four environments, with separate training and evaluation data. Paired counterfactual evaluations measure future discrimination and the benefit of matching history directly from latent predictions, without weight updates or auxiliary readouts.
 \item \textbf{Systematic empirical comparison.} We benchmark representative latent world models across data scales, training strategies (scratch vs. fine-tuning), and visual encoder freezing schemes, demonstrating that scaling benefits and effective training strategies depend on the task.
-\item \textbf{Empirical evidence of adaptation failures during training.} We show that training loss can steadily decrease even when models fail to leverage interaction history on the training data, providing empirical evidence that standard prediction losses do not reliably drive in-context dynamics adaptation.
+\item \textbf{Training-set analysis of adaptation failures.} We identify a gap between prediction-loss optimization and learning history-conditioned responses, showing that weak adaptation can persist on the training data itself.
 \end{enumerate}
 
 
@@ -267,7 +267,7 @@ A positive $G_H$ means that matching history reduces error, but does not imply t
 Their overall error is measured by $E/B$.
 
 \paragraph{Conditional response error.}
-Training loss can decrease even when the model does not accurately predict how different dynamics change the future.
+Overall prediction error does not isolate how accurately a model predicts the differences caused by dynamics changes.
 We therefore compare the difference between the two predicted futures with the difference between the two true futures.
 For pair $i$, let $\Delta z_i=z_i^B-z_i^A$ denote the true difference and $\Delta\hat z_i=\hat z_i^B-\hat z_i^A$ the predicted difference.
 We define normalized response error (NRE) as the summed squared error between these differences, divided by the summed squared magnitude of the true differences:
@@ -409,24 +409,24 @@ Figure~\ref{fig:training-evidence} compares PLDM's Joint and Frozen Encoder sche
 In friction joint training, the recorded prediction loss decreases by 18.05\% between epochs 5 and 10, with both its mean and median decreasing at every recorded epoch.
 Yet training-query NRE remains near the zero-response reference, at 1.009 and 1.011.
 The model therefore fails to recover the conditional response even on these training queries; a shift to the evaluation distribution cannot explain this failure alone.
+Damping with the encoder frozen exhibits a different loss trajectory: prediction loss approaches convergence, changing by only $-0.39\%$ from epochs 5 to 10, while training-query NRE remains high at 0.940 and 0.867.
 
 \begin{figure*}[t]
 \centering
 \includegraphics[width=.94\textwidth]{figures/training_evidence.pdf}
-\caption{\textbf{Lower training loss does not guarantee a more accurate conditional response.} PLDM Joint and Frozen Encoder start from the same original-environment checkpoint within each task. Top: recorded prediction-loss means, normalized by each run's epoch-5 mean; shading shows the batch interquartile range, not a confidence interval. Bottom: NRE on fixed training and Development queries at the two evaluated checkpoints, predicting five simulator steps ahead. Lines connect measured points and do not show intermediate NRE values. NRE = 1 is the zero-response reference. Loss averages mixed training batches; NRE uses paired task queries.}
+\caption{\textbf{Optimizing prediction loss does not ensure accurate conditional responses.} PLDM Joint and Frozen Encoder start from the same original-environment checkpoint within each task. Top: recorded prediction-loss means, normalized by each run's epoch-5 mean; shading shows the batch interquartile range, not a confidence interval. Bottom: NRE on fixed training and Development queries at the two evaluated checkpoints, predicting five simulator steps ahead. Lines connect measured points and do not show intermediate NRE values. NRE = 1 is the zero-response reference. Loss averages mixed training batches; NRE uses paired task queries.}
 \label{fig:training-evidence}
 \end{figure*}
 
-The positive controls also matter: with the encoder frozen, friction training-query NRE falls from 0.674 to 0.587, while joint training gives the stronger response on damping.
+Changing the training scheme helps, but its effect depends on the task.
+With the encoder frozen, friction training-query NRE falls from 0.674 to 0.587, whereas joint training gives the stronger response on damping.
 Development shows the same ordering between these schemes.
-Thus, the training data support better conditional responses under some schemes, even when another scheme remains weak on training queries.
-This does not establish that every aspect of the future state has been learned accurately.
+Neither scheme consistently produces the better conditional response across both tasks.
 
-Together, these results show that reducing the training objective is not a sufficient indicator of acquiring the measured adaptation ability.
-The prediction term averages errors across mixed data and prediction positions, whereas the response metric tests differences between paired futures.
-Their behavior can therefore differ, and the learned target representation can also change during training.
-Our evidence identifies a gap between optimization progress and conditional prediction, but does not attribute that gap to a unique loss term or representation component.
-The direct training-query evidence is limited to the tested configurations; it is not a common causal explanation for all nine tasks.
+The weak runs reveal insufficient constraints on history-conditioned responses in the tested training schemes: prediction loss decreases or approaches convergence, yet these responses remain poorly learned even on the training set.
+The prediction term averages errors across mixed data and prediction positions, whereas NRE measures the error in the predicted difference between paired futures.
+This distinction helps explain why improving the training objective need not improve the measured response.
+The evidence identifies a limitation of the training objective and strategy, rather than a single responsible loss term or representation component.
 
 \section{Conclusion}
 \label{sec:conclusion}
@@ -435,8 +435,8 @@ ContextWorld evaluates whether latent visual world models use interaction histor
 Its nine tasks combine controlled history comparisons with task accuracy and prediction-error measurements, separating successful discrimination from accurate conditional prediction.
 Across three model families, training on mixed data improves performance on several tasks, but model advantages and the effects of encoder freezing depend on the task.
 Data scaling helps some training schemes, while the tested capacity increase does not consistently improve weak tasks.
-Training-query analysis further shows that prediction loss can decrease without recovering the conditional response.
-These findings motivate evaluating adaptation directly rather than treating loss reduction as evidence that it has been learned.
+Training-set analysis reveals a limitation of current training objectives and strategies: history-conditioned responses can remain weak even as prediction loss decreases or approaches convergence.
+This finding motivates both direct adaptation evaluation and training objectives that better constrain these responses.
 
 \newpage
 The benchmark measures predictions in each model's representation, not a shared physical error space.
@@ -691,7 +691,7 @@ Loss summaries use the logged mixed-training batches, approximately 50--70 recor
 Checkpoints and logs are aligned by update step.
 The curves show recorded means and batch interquartile ranges; loss medians give the same monotonic direction for friction joint training from epochs 5 to 10.
 NRE is evaluated in each checkpoint's target representation and is not a common physical error across checkpoints.
-For damping with the encoder frozen, prediction loss changes by only $-0.39\%$ between these endpoints and fluctuates in between; we describe it as approximately constant.
+For damping with the encoder frozen, prediction loss changes by only $-0.39\%$ between these endpoints and fluctuates in between. The late-training plateau is consistent with the loss approaching convergence.
 
 \section{Additional Results}
 \label{app:additional-results}
