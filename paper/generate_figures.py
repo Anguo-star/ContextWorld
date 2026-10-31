@@ -18,15 +18,13 @@ def training_evidence():
         loss = list(csv.DictReader(f))
     with (ROOT / 'docs/research/data/native_epoch_checkpoints_v1/summary.csv').open() as f:
         nre = list(csv.DictReader(f))
-    # Adjacent loss/response panels for each task, with identical metric scales.
-    fig = plt.figure(figsize=(7.1, 2.2))
-    grid = fig.add_gridspec(1, 5, width_ratios=[1, 1, .18, 1, 1],
-                           left=.055, right=.99, bottom=.26, top=.77, wspace=.39)
-    axes = [fig.add_subplot(grid[0, i]) for i in [0, 1, 3, 4]]
+    fig, axes = plt.subplots(2, 2, figsize=(3.45, 3.05), sharex='col',
+                              gridspec_kw={'hspace': .38, 'wspace': .30})
+    fig.subplots_adjust(left=.16,right=.985,bottom=.25,top=.83)
     colors = {'joint': '#2765a8', 'frozen': '#c46124'}
-    for group, (task, title) in enumerate([('contact_friction', 'Contact friction'),
-                                          ('motion_damping', 'Motion damping')]):
-        loss_ax, nre_ax = axes[2*group:2*group+2]
+    for col, (task, title) in enumerate([('contact_friction', 'Contact friction'),
+                                        ('motion_damping', 'Motion damping')]):
+        loss_ax, nre_ax = axes[:, col]
         for regime in ['joint', 'frozen']:
             suffix = 'num32k_v1_warmstart3073_s3072' if regime == 'joint' else 'encoder_frozen_v1_s3072'
             run = f'{task}_pldm_{suffix}'
@@ -38,46 +36,51 @@ def training_evidence():
             base = float(values[0]['mean'])
             xs = list(range(5, 11))
             loss_ax.plot(xs, [float(r['mean'])/base for r in values],
-                         color=colors[regime], marker='o', markersize=2.6, linewidth=1.35)
+                         color=colors[regime], marker='o', markersize=2.3, linewidth=1.2)
             loss_ax.fill_between(xs, [float(r['q25'])/base for r in values],
                                  [float(r['q75'])/base for r in values],
                                  color=colors[regime], alpha=.12, linewidth=0)
-            for split, linestyle, marker in [('loader_fit', '-', 'o'), ('development', '--', 's')]:
+            for split, marker in [('loader_fit', 'o'), ('development', 's')]:
                 rows = sorted([r for r in nre if r['task'] == task and r['family'] == 'pldm'
                                and r['regime'] == regime and r['split'] == split],
                               key=lambda r: int(r['epoch']))
                 assert [int(r['epoch']) for r in rows] == [5, 10]
                 nre_ax.plot([5, 10], [float(r['NRE']) for r in rows],
-                            color=colors[regime], linestyle=linestyle, marker=marker,
-                            markersize=3.4, linewidth=1.25,
-                            markerfacecolor=colors[regime] if split=='loader_fit' else 'white')
-        loss_ax.set_title('Prediction loss', fontsize=8, pad=5)
-        loss_ax.set_ylim(.76, 1.05)
-        loss_ax.set_yticks([.8, .9, 1.0])
-        loss_ax.set_xticks([5, 7, 10])
-        nre_ax.set_title('Response error (NRE)', fontsize=8, pad=5)
-        nre_ax.set_ylim(0, 1.12)
-        nre_ax.set_yticks([0, .5, 1.0])
-        nre_ax.axhline(1, color='.5', linewidth=.7, linestyle=':', zorder=0)
-        nre_ax.set_xticks([5, 10])
-        for ax in [loss_ax, nre_ax]:
-            ax.set_xlim(4.7, 10.3)
-            ax.grid(axis='y', color='#e8ebef', linewidth=.6)
+                            color=colors[regime], linestyle='none', marker=marker,
+                            markersize=3.3 if split=='loader_fit' else 4.8,
+                            markeredgewidth=.8,
+                            markerfacecolor=colors[regime] if split=='loader_fit' else 'none')
+            if task=='contact_friction' and regime=='joint':
+                reduction=100*(1-float(values[-1]['mean'])/base)
+                loss_ax.text(5.2,.78,f'Joint −{reduction:.2f}%',fontsize=6.3,color=colors[regime])
+                train=[r for r in nre if r['task']==task and r['family']=='pldm'
+                       and r['regime']==regime and r['split']=='loader_fit']
+                assert all(round(float(r['NRE']),2)==1.01 for r in train)
+                nre_ax.text(7.5,.84,'Train ≈ 1.01',color=colors[regime],fontsize=6.4,ha='center')
+        loss_ax.set_title(title,fontsize=8,pad=6)
+        loss_ax.set_ylim(.75,1.05);loss_ax.set_yticks([.8,.9,1.0])
+        nre_ax.set_ylim(0,1.13);nre_ax.set_yticks([0,.5,1.0])
+        nre_ax.axhline(1,color='#707780',linewidth=.8,linestyle=':',zorder=0)
+        nre_ax.set_xticks([5,10])
+        for ax in [loss_ax,nre_ax]:
+            ax.set_xlim(4.65,10.35)
+            ax.grid(axis='y',color='#e8ebef',linewidth=.6)
             ax.set_axisbelow(True)
-            ax.tick_params(labelsize=7, pad=2, length=2.5)
-            for spine in ax.spines.values():
-                spine.set_linewidth(.65)
-        center = (loss_ax.get_position().x0+nre_ax.get_position().x1)/2
-        fig.text(center, .97, title, ha='center', va='top', fontsize=9, weight='semibold')
-    fig.text(.52, .13, 'Training epoch', ha='center', fontsize=8)
-    handles = [Line2D([], [], color=colors['joint'], label='Joint'),
-               Line2D([], [], color=colors['frozen'], label='Frozen Encoder'),
-               Line2D([], [], color='.3', marker='o', markersize=3, label='Training queries'),
-               Line2D([], [], color='.3', marker='s', markerfacecolor='white', markersize=3,
-                      linestyle='--', label='Development')]
-    fig.legend(handles=handles, loc='lower center', ncol=4, frameon=False, fontsize=7.5,
-               bbox_to_anchor=(.52, -.045), handlelength=1.7, columnspacing=1.8)
-    fig.savefig(OUT / 'training_evidence.pdf', pad_inches=.035)
+            ax.tick_params(labelsize=7,pad=2,length=2.5)
+            for spine in ax.spines.values():spine.set_linewidth(.6)
+    axes[0,0].set_ylabel('Relative loss',fontsize=7.5,labelpad=3)
+    axes[1,0].set_ylabel('NRE',fontsize=7.5,labelpad=3)
+    fig.text(.56,.145,'Training epoch',ha='center',fontsize=7.5)
+    methods=[Line2D([],[],color=colors['joint'],label='Joint'),
+             Line2D([],[],color=colors['frozen'],label='Frozen Encoder')]
+    splits=[Line2D([],[],color='.3',marker='o',linestyle='none',markersize=3.3,label='Training'),
+            Line2D([],[],color='.3',marker='s',linestyle='none',markerfacecolor='none',markersize=4.8,label='Development')]
+    fig.legend(handles=methods,loc='upper center',bbox_to_anchor=(.56,1.01),
+               frameon=False,ncol=2,fontsize=7,handlelength=1.6,columnspacing=1.2)
+    fig.legend(handles=splits,loc='lower center',bbox_to_anchor=(.56,-.03),
+               title='NRE data split',title_fontsize=7,frameon=False,ncol=2,fontsize=7,
+               handlelength=1,columnspacing=1.4)
+    fig.savefig(OUT/'training_evidence.pdf',pad_inches=.035)
     plt.close(fig)
 
 
@@ -126,6 +129,7 @@ def multistep_prediction():
     records = []
     colors = {'original': '#777777', 'frozen': '#c46124'}
     for ax, family, title in zip(axes, ['lewm', 'pldm'], ['LeWM', 'PLDM']):
+        ax.axhspan(1,3.35,color='#f3f4f6',zorder=0)
         for regime in ['original', 'frozen']:
             row, = [r for r in summary['rows'] if r['task'] == 'action_strength'
                     and r['family'] == family and r['regime'] == regime]
@@ -159,17 +163,19 @@ def multistep_prediction():
             records.append(dict(family=family, regime=regime, run_ids=row['run_ids'],
                                 horizons=horizons.tolist(), per_horizon_ratio=mean.tolist(),
                                 ci95=np.stack([lo,hi],axis=1).tolist(), aggregate_ratio=float(np.mean(overall))))
-        ax.axhline(1, color='#333333', linestyle=':', linewidth=.9)
+        ax.axhline(1, color='#424952', linestyle='--', linewidth=1.15)
+        ax.text(.03,.96,'Higher error than\nmean-future reference',transform=ax.transAxes,
+                va='top',fontsize=6.2,color='#4c535c')
         ax.set_title(title, fontsize=8)
         ax.set_xticks(horizons)
-        ax.set_ylim(0, 3.2)
+        ax.set_ylim(0, 3.35)
         ax.grid(axis='y', alpha=.15)
         ax.tick_params(labelsize=7)
         ax.set_xlabel('Simulator steps', fontsize=7.5)
     axes[0].set_ylabel(r'Prediction error $E_t/B_t$ $\downarrow$', fontsize=7.5)
     handles = [Line2D([],[],color=colors['original'],marker='s',markersize=3,label='Original'),
                Line2D([],[],color=colors['frozen'],marker='o',markersize=3,label='Original → Mixed (Frozen Encoder)'),
-               Line2D([],[],color='#333333',linestyle=':',label='Mean-future reference')]
+               Line2D([],[],color='#424952',linestyle='--',linewidth=1.15,label='Mean-future reference')]
     fig.legend(handles=handles, loc='lower center', frameon=False, fontsize=7, ncol=1,
                bbox_to_anchor=(.5,-.015), handlelength=1.5, labelspacing=.25)
     fig.tight_layout(rect=(0,.22,1,1),pad=.3,w_pad=.5)
@@ -216,6 +222,7 @@ def scaling_comparisons():
         ax.bar(x-.16, before, .27, color='#b9c1c9', label='Smaller scale', zorder=3)
         ax.bar(x+.16, after, .27, color='#426d99', label='Larger scale', zorder=3)
         ax.set_ylim(0,110); ax.set_yticks([0,50,100])
+        ax.axhline(50,color='#525c68',linestyle='--',linewidth=.85,zorder=4)
         ax.set_ylabel('Accuracy (%)',fontsize=7.5,labelpad=3)
         ax.set_xticks(x, labels, fontsize=7)
         ax.tick_params(length=2.5,labelsize=7)
