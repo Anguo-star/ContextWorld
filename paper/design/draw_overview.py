@@ -97,8 +97,7 @@ def scene(mode,t,x,y,w=181,h=112):
         native_crop(ASSETS/provenance['frames'][mode][str(t)]['file'],CUBE_VIEWBOX,x+1,y+1,w-2,h-2)
 
 if PUSHER:
-    panel(20,15,1408,514,'A','Same current observation and future actions, different futures',32)
-    s.text(1416,47,'Pusher displacement example',21,'#606b7b',anchor='end')
+    panel(20,15,1408,514,'A','Different histories, different futures',32)
     s.rect(787,73,203,434,'url(#current-bg)','#b3dcfc',.8,10)
     s.line(220,290,1416,290,'#ccd5df',1.3,'4 4')
     brace(996,113,362);s.rect(1016,238,94,116,'url(#card-bg)',r=10)
@@ -211,7 +210,7 @@ if PUSHER:s.raw('</g>')
 s.save(HERE/(STEM+'.svg'))
 if args.response_fidelity and PUSHER and not args.prediction_images:
     source=(HERE/(STEM+'.svg')).read_text()
-    source=source.replace(f'width="1448" height="{figure_height}" viewBox="0 0 1448 {figure_height}"', 'width="1448" height="590" viewBox="0 535 1448 590"', 1)
+    source=source.replace(f'width="1448" height="{figure_height}" viewBox="0 0 1448 {figure_height}"', 'width="1448" height="468" viewBox="0 535 1448 468"', 1)
     (HERE/'paired_evaluation_design.svg').write_text(source)
 if PUSHER:
     metadata={
@@ -229,7 +228,7 @@ if PUSHER:
         'preview_only':True,
     }
     if args.response_fidelity:
-        metadata['error_comparison_display']={'design_reference':'https://chatgpt.com/share/6ae8562d-f4ec-83ea-8185-eb0fb5418e9d','prediction_markers':'Filled circles: schematic latent predictions, not decoded outputs.','target_markers':'Open circles: schematic encoded true futures.','geometry':'Illustrates successful paired comparisons, not measured model embeddings.','shared_schematic_states':SCHEMATIC_STATES,'comparison_focus':'Prediction A in Future discrimination; true future A in History benefit. Both conditions are scored.','response_vectors':'Same state differences, rotated -135 degrees and uniformly scaled by 1.5.'}
+        metadata['error_comparison_display']={'design_reference':'https://chatgpt.com/share/6ae8562d-f4ec-83ea-8185-eb0fb5418e9d','prediction_markers':'Filled circles: schematic latent predictions, not decoded outputs.','target_markers':'Open circles: schematic encoded true futures.','geometry':'Illustrates successful paired comparisons, not measured model embeddings.','shared_schematic_states':SCHEMATIC_STATES,'comparison_focus':'Prediction A in Future discrimination; true future A in History benefit. Both conditions are scored.','response_vectors':'Both point diagrams share a 0.9 display scale; their differences are rotated -135 degrees and uniformly enlarged 1.5 times for NRE.'}
         metadata['response_fidelity']={'metric':'NRE, ratio of sums across pairs','true_response':'z_B - z_A','predicted_response':'z_hat_B - z_hat_A','vector_display':'Conceptual diagram; not projected or measured results.'}
     if args.prediction_images:
         metadata['prediction_thumbnail_semantics']='Ground-truth future images supplied as labeled visual references beside latent symbols; not decoded model predictions.'

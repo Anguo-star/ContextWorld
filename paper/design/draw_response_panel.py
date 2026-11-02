@@ -43,7 +43,7 @@ SCHEMATIC_STATES = {
     'pred_A': (92, 151), 'true_A': (221, 151),
     'pred_B': (56, 280), 'true_B': (211, 310),
 }
-RESPONSE_PANEL_EXTRA_HEIGHT = 228
+RESPONSE_PANEL_EXTRA_HEIGHT = 106
 
 
 def draw_response_panel(s, scene, panel, formula, check, prediction_images=False):
@@ -58,7 +58,7 @@ def draw_response_panel(s, scene, panel, formula, check, prediction_images=False
           '<linearGradient id="metric-orange" x2="0" y2="1"><stop stop-color="#fff4e9"/><stop offset="1" stop-color="#ffeddf"/></linearGradient>'
           '<linearGradient id="metric-purple" x2="0" y2="1"><stop stop-color="#f3f0ff"/><stop offset="1" stop-color="#e9e5fc"/></linearGradient>'
           '</defs>')
-    panel(20, 471, 1408, 574, 'B', 'Paired evaluation protocol', 32)
+    panel(20, 471, 1408, 452, 'B', 'Paired evaluation protocol', 32)
 
     def latent(x, y, letter, predicted=False, size=29, color=None, anchor='middle'):
         color = color or (dark_blue if letter == 'A' else dark_orange)
@@ -73,64 +73,65 @@ def draw_response_panel(s, scene, panel, formula, check, prediction_images=False
         s.raw(f'<path d="M {x} {y} H {mid-5} Q {mid} {y} {mid} {y+5 if yy>y else y-5} V {yy-5 if yy>y else yy+5} Q {mid} {yy} {mid+5} {yy} H {xx}" fill="none" stroke="{color}" stroke-width="1.8"/>')
         s.arrow(xx-6,yy,xx,yy,color,1.8,6)
 
-    # The left-hand flow uses source images, never generated scene illustrations.
+    # Give the image-to-prediction flow enough width to read at paper size.
     for mode, yy, letter, col, dark in [
-        ('cannot_hold', 623, 'A', blue, dark_blue),
-        ('can_hold', 798, 'B', orange, dark_orange),
+        ('cannot_hold', 589, 'A', blue, dark_blue),
+        ('can_hold', 751, 'B', orange, dark_orange),
     ]:
-        s.rect(36, yy, 145, 105, '#fbfdff' if letter=='A' else '#fffdfb', '#a7cff4' if letter=='A' else '#edc6a5', 1.1, 11)
-        s.rect(38, yy+2, 141, 28, 'url(#metric-blue)' if letter=='A' else 'url(#metric-orange)', r=9)
-        s.text(108.5, yy+23, 'History '+letter, 21, dark, 700, 'middle')
-        for t, xx in [(0,45),(1,88),(2,138)]:
-            scene(mode,t,xx,yy+38,34,40)
-        s.text(130,yy+64,'…',16,muted,anchor='middle')
-        s.text(108.5,yy+94,'observations + actions',13,muted,anchor='middle')
-        route(182,yy+52.5,207,697 if letter=='A' else 829,col)
-    s.rect(208, 665, 110, 196, 'url(#protocol-model)', '#a6b7d1', 1.2, 12)
+        s.rect(36,yy,176,112,'#fbfdff' if letter=='A' else '#fffdfb','#a7cff4' if letter=='A' else '#edc6a5',1.1,11)
+        s.rect(38,yy+2,172,29,'url(#metric-blue)' if letter=='A' else 'url(#metric-orange)',r=9)
+        s.text(124,yy+24,'History '+letter,22,dark,700,'middle')
+        for t,xx in [(0,44),(1,99),(2,163)]:
+            scene(mode,t,xx,yy+39,42,43)
+        s.text(151,yy+66,'…',16,muted,anchor='middle')
+        s.text(124,yy+101,'observations + actions',14.5,muted,anchor='middle')
+        route(213,yy+56,248,665 if letter=='A' else 787,col)
+    s.rect(249,623,138,206,'url(#protocol-model)','#a6b7d1',1.2,12)
     for angle in [0,math.pi/3,2*math.pi/3]:
         ux,uy=math.cos(angle),math.sin(angle)
-        s.line(263-15*ux,699-15*uy,263+15*ux,699+15*uy,'#589bc4',2)
+        s.line(318-15*ux,656-15*uy,318+15*ux,656+15*uy,'#589bc4',2)
         for sign in [-1,1]:
-            x,y=263+sign*15*ux,699+sign*15*uy
+            x,y=318+sign*15*ux,656+sign*15*uy
             for side in [-1,1]:s.line(x,y,x-sign*5*ux+side*3*uy,y-sign*5*uy-side*3*ux,'#589bc4',1.5)
-    s.lines(263,747,['Frozen','latent world','model'],19,gap=26,fill=ink,weight=700,anchor='middle')
-    s.text(263,839,'weights fixed',14.5,muted,anchor='middle')
-    for mode,yy,letter,col,dark in [('cannot_hold',631,'A',blue,dark_blue),('can_hold',806,'B',orange,dark_orange)]:
-        route(319,697 if letter=='A' else 829,345,yy+44.5,col)
-        s.rect(346,yy,91,89,'#fbfdff' if letter=='A' else '#fffdfb','#a7cff4' if letter=='A' else '#edc6a5',1.1,10)
-        s.rect(348,yy+2,87,26,'url(#metric-blue)' if letter=='A' else 'url(#metric-orange)',r=8)
-        s.text(391.5,yy+22,'Prediction '+letter,16,dark,700,'middle')
+    s.lines(318,702,['Frozen','latent world','model'],21.5,gap=28,fill=ink,weight=700,anchor='middle')
+    s.text(318,808,'weights fixed',15,muted,anchor='middle')
+    for mode,yy,letter,col,dark in [('cannot_hold',594,'A',blue,dark_blue),('can_hold',756,'B',orange,dark_orange)]:
+        route(388,665 if letter=='A' else 787,425,yy+51,col)
+        s.rect(426,yy,106,102,'#fbfdff' if letter=='A' else '#fffdfb','#a7cff4' if letter=='A' else '#edc6a5',1.1,10)
+        s.rect(428,yy+2,102,28,'url(#metric-blue)' if letter=='A' else 'url(#metric-orange)',r=8)
+        s.text(479,yy+23,'Prediction '+letter,17.3,dark,700,'middle')
         if prediction_images:
-            scene(mode,3,352,yy+35,43,34)
-            s.text(373.5,yy+82,'Reference',11.5,muted,anchor='middle')
-            latent(416,yy+63,letter,True,28,dark)
+            scene(mode,3,433,yy+37,48,40)
+            s.text(457,yy+94,'Reference',12.1,muted,anchor='middle')
+            latent(508,yy+74,letter,True,30,dark)
         else:
-            latent(391.5,yy+72,letter,True,39,dark)
-    s.line(450,550,450,944,'#e0e7ef',1)
+            latent(479,yy+81,letter,True,39,dark)
+    s.line(546,541,546,901,'#e0e7ef',1)
 
     # Three equal cards, matching the supplied mockup's information hierarchy.
-    card_y, card_w, card_h = 545, 308, 408
+    card_y, card_w, card_h = 533, 276, 376
+    plot_scale = .9
     for idx,(xx,title,col,tint,border) in enumerate([
-        (466,'Future discrimination',blue,'blue','#c7dff6'),
-        (786,'History benefit',orange,'orange','#e6d9cc'),
-        (1106,'Response fidelity',purple,'purple','#d8d3ec'),
+        (560,'Future discrimination',blue,'blue','#c7dff6'),
+        (849,'History benefit',orange,'orange','#e6d9cc'),
+        (1138,'Response fidelity',purple,'purple','#d8d3ec'),
     ],1):
         s.rect(xx,card_y,card_w,card_h,'#fcfdff',border,1.1,14)
         s.rect(xx+8,card_y+8,card_w-16,38,'url(#metric-'+tint+')',r=10)
         s.circle(xx+30,card_y+27,13,col)
         s.text(xx+30,card_y+34,str(idx),19,'white',700,'middle')
-        s.text(xx+52,card_y+34,title,22,ink,700)
+        s.text(xx+52,card_y+34,title,20.5,ink,700)
 
     def dist_label(x,y,first,second,color=muted):
         s.raw(f'<text x="{x}" y="{y}" fill="{color}" font-size="19" text-anchor="middle" style="font-family:Georgia,serif;font-style:italic;paint-order:stroke;stroke:#fcfdff;stroke-width:4;stroke-linejoin:round">d<tspan baseline-shift="sub" font-size="12">{first}{second}</tspan></text>')
 
-    for xx,kind in [(466,'prediction'),(786,'future')]:
+    for xx,kind in [(560,'prediction'),(849,'future')]:
         s.raw(f'<g id="comparison-fix-{kind}">')
-        caption = ['Hold the prediction fixed;', 'compare the two true futures.'] if kind=='prediction' else ['Hold the true future fixed;', 'compare predictions from A and B.']
-        s.lines(xx+154,card_y+73,caption,16.5,gap=22,fill=ink,anchor='middle')
-        points={k:(xx+v[0],card_y+v[1]) for k,v in SCHEMATIC_STATES.items()}
+        caption = ['Hold the prediction fixed;', 'compare the two true futures.'] if kind=='prediction' else ['Hold the true future fixed;', 'compare the two predictions.']
+        s.lines(xx+138,card_y+65,caption,16,gap=22,fill=ink,anchor='middle')
+        points={k:(xx+5+plot_scale*v[0],card_y+8.1+plot_scale*v[1]) for k,v in SCHEMATIC_STATES.items()}
         focus=points['pred_A' if kind=='prediction' else 'true_A']
-        s.circle(*focus,26,'#e8f3ff')
+        s.circle(*focus,24,'#e8f3ff')
         # Both views contain the same four edges; emphasis changes the fixed node.
         active={'AA','AB'} if kind=='prediction' else {'AA','BA'}
         for ij in ['AB','BA','BB','AA']:
@@ -147,28 +148,31 @@ def draw_response_panel(s, scene, panel, formula, check, prediction_images=False
         for key,(x,y) in points.items():
             letter=key[-1];pred=key.startswith('pred');col=blue if letter=='A' else orange
             s.circle(x,y,8.5,col if pred else 'white',col,2.3)
-            label_y=y-18 if letter=='A' else y+31
+            label_y=y-27 if letter=='A' else y+29
             if key == 'true_B':
-                latent(x+20,y-8,letter,pred,25,anchor='start')
+                latent(x+18,y-8,letter,pred,23.5,anchor='start')
+            elif key == 'pred_B':
+                # Offset the label from the marker so the hat cannot touch it.
+                latent(x-15,label_y,letter,pred,23.5)
             else:
-                latent(x,label_y,letter,pred,25)
-        s.rect(xx+12,card_y+340,card_w-24,56,'url(#metric-'+('blue' if kind=='prediction' else 'orange')+')',r=8)
+                latent(x,label_y,letter,pred,23.5)
+        s.rect(xx+12,card_y+310,card_w-24,52,'url(#metric-'+('blue' if kind=='prediction' else 'orange')+')',r=8)
         a,b=('AB','BA') if kind=='prediction' else ('BA','AB')
-        formula(xx+25,card_y+377,'AA',a,21)
-        s.text(xx+155,card_y+377,';',19,muted,anchor='middle')
-        formula(xx+176,card_y+377,'BB',b,21)
+        formula(xx+20,card_y+345,'AA',a,20)
+        s.text(xx+137,card_y+345,';',18,muted,anchor='middle')
+        formula(xx+155,card_y+345,'BB',b,20)
         s.raw('</g>')
 
     # Rotate both difference vectors identically; their magnitudes and relative
     # directions therefore agree with the four-point schematics.
-    s.lines(1260,card_y+73,['The predicted response should', 'match the true response.'],16.5,gap=22,fill=ink,anchor='middle')
+    s.lines(1276,card_y+65,['The predicted response should', 'match the true response.'],16,gap=22,fill=ink,anchor='middle')
     angle=-3*math.pi/4
     def response(predicted):
         prefix='pred_' if predicted else 'true_'
         a,b=SCHEMATIC_STATES[prefix+'A'],SCHEMATIC_STATES[prefix+'B']
         dx,dy=b[0]-a[0],b[1]-a[1]
-        return ((dx*math.cos(angle)-dy*math.sin(angle))*1.5,(dx*math.sin(angle)+dy*math.cos(angle))*1.5)
-    origin=(1142,card_y+297)
+        return ((dx*math.cos(angle)-dy*math.sin(angle))*plot_scale*1.5,(dx*math.sin(angle)+dy*math.cos(angle))*plot_scale*1.5)
+    origin=(1168,card_y+279)
     true=tuple(a+b for a,b in zip(origin,response(False)))
     pred=tuple(a+b for a,b in zip(origin,response(True)))
     s.line(*true,*pred,'#a0aabc',1.8,'5 4')
@@ -177,31 +181,17 @@ def draw_response_panel(s, scene, panel, formula, check, prediction_images=False
     s.circle(*origin,3.5,'#4c6078')
     def delta_label(x,y,predicted):
         color=dark_orange if predicted else dark_blue
-        s.raw(f'<text x="{x}" y="{y}" fill="{color}" font-size="28" style="font-family:Georgia,serif;font-style:italic">Δ{"ẑ" if predicted else "z"}</text>')
+        s.raw(f'<text x="{x}" y="{y}" fill="{color}" font-size="26" style="font-family:Georgia,serif;font-style:italic">Δ{"ẑ" if predicted else "z"}</text>')
         s.text(x,y+22,'predicted' if predicted else 'true',16,color,700)
     delta_label(true[0]+13,true[1]-2,False)
     delta_label(pred[0]+13,pred[1]+7,True)
-    s.rect(1118,card_y+340,284,56,'url(#metric-purple)',r=8)
+    s.rect(1150,card_y+310,252,52,'url(#metric-purple)',r=8)
     # Compact ratio of sums, retaining dataset-level NRE rather than one-pair NRE.
-    s.text(1131,card_y+377,'NRE =',18,ink,700)
-    s.line(1192,card_y+368,1386,card_y+368,'#34415b',1)
+    s.text(1162,card_y+345,'NRE =',17,ink,700)
+    s.line(1218,card_y+336,1389,card_y+336,'#34415b',1)
     def term(y,numerator):
         inside='Δẑ<tspan baseline-shift="sub" font-size="10">i</tspan> − Δz<tspan baseline-shift="sub" font-size="10">i</tspan>' if numerator else 'Δz<tspan baseline-shift="sub" font-size="10">i</tspan>'
-        s.raw(f'<text x="1289" y="{y}" text-anchor="middle" fill="{ink}" font-size="20" style="font-family:Georgia,serif">∑<tspan baseline-shift="sub" font-size="10">i</tspan> ‖{inside}‖<tspan baseline-shift="super" font-size="10">2</tspan></text>')
-    term(card_y+360,True);term(card_y+391,False)
+        s.raw(f'<text x="1303.5" y="{y}" text-anchor="middle" fill="{ink}" font-size="18" style="font-family:Georgia,serif">∑<tspan baseline-shift="sub" font-size="10">i</tspan> ‖{inside}‖<tspan baseline-shift="super" font-size="10">2</tspan></text>')
+    term(card_y+329,True);term(card_y+357,False)
 
-    # Short, shared key: color denotes condition, fill distinguishes prediction/target.
-    s.rect(34,970,1380,59,'#fcfdff','#dce4ed',1,12)
-    s.text(51,1007,'Key',18,ink,700)
-    s.circle(113,1001,7,blue,blue,2);s.circle(134,1001,7,orange,orange,2)
-    s.text(153,1007,'Prediction',17,ink)
-    s.circle(272,1001,7,'white',blue,2);s.circle(293,1001,7,'white',orange,2)
-    s.text(312,1007,'True future',17,ink)
-    s.line(425,983,425,1016,'#dbe2ec',1)
-    s.line(445,1001,476,1001,blue,2.5);s.text(489,1007,'Matched condition',17,ink)
-    s.line(663,1001,698,1001,'#8796a8',2,'5 4');s.text(711,1007,'Other condition',17,ink)
-    s.line(871,983,871,1016,'#dbe2ec',1)
-    s.circle(902,1001,13,'#e8f3ff');s.circle(902,1001,6,blue)
-    s.text(925,1007,'Fixed for comparison',17,ink)
-    s.text(1396,1007,'Shorter distance → lower error',17,muted,anchor='end')
     s.raw('</g>')
