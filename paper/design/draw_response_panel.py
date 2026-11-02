@@ -135,25 +135,25 @@ def draw_response_panel(s, scene, panel, formula, check, prediction_images=False
     # Blue/orange and neutral fills follow the supplied response-fidelity design.
     # These vectors illustrate differences between conditions, not data projections.
     true_color, predicted_color = '#3187C6', '#E47E47'
-    s.rect(1006, 528, 411, 276, '#FCFDFE', '#E1E8EF', 1, 10)
-    s.text(1211.5, 553, 'Response fidelity', 22, ink, 700, 'middle')
-    s.text(1211.5, 577, 'Difference between conditions', 16, muted, anchor='middle')
+    s.rect(1024, 488, 375, 316, '#FCFDFE', '#E1E8EF', 1, 10)
+    s.text(1211.5, 512, 'Response fidelity', 20, ink, 700, 'middle')
+    s.text(1211.5, 534, 'Difference between conditions', 16.5, muted, anchor='middle')
     # Enlarge the schematic vectors uniformly, preserving their directions.
-    origin = (1074, 710)
+    origin = (1074, 700)
     true = (origin[0]+1.2*167, origin[1]-1.2*95)
     predicted = (origin[0]+1.2*131, origin[1]-1.2*49)
     s.arrow(*origin, *true, true_color, 3, 10)
     s.arrow(*origin, *predicted, predicted_color, 3, 10)
     s.circle(*origin, 3, '#63788D')
     s.line(*true, *predicted, '#7F8B9B', 1.3, '4 4')
-    s.text(1287, 598, 'True', 18, '#277EBF', 700)
-    s.text(1255, 675, 'Predicted', 18, '#D86632', 700)
-    s.raw('<text x="1305" y="626" font-size="24" fill="#277EBF" style="font-family:Georgia,serif;font-style:italic">Δz</text>')
-    s.raw('<text x="1295" y="702" font-size="24" fill="#D86632" style="font-family:Georgia,serif;font-style:italic">Δẑ</text>')
+    s.text(1287, 588, 'True', 18, '#277EBF', 700)
+    s.text(1255, 665, 'Predicted', 18, '#D86632', 700)
+    s.raw('<text x="1305" y="616" font-size="24" fill="#277EBF" style="font-family:Georgia,serif;font-style:italic">Δz</text>')
+    s.raw('<text x="1295" y="692" font-size="24" fill="#D86632" style="font-family:Georgia,serif;font-style:italic">Δẑ</text>')
     # Dataset-level ratio of sums, consistent with the manuscript's NRE definition.
-    s.rect(1016, 731, 391, 63, '#F3F6F9', '#E1E8EF', .8, 8)
-    s.text(1030, 770, 'NRE =', 20, '#33485E', 700)
-    s.line(1110, 762, 1391, 762, '#63788D', 1)
+    s.rect(1034, 731, 355, 63, '#F3F6F9', '#E1E8EF', .8, 8)
+    s.text(1048, 770, 'NRE =', 20, '#33485E', 700)
+    s.line(1128, 762, 1373, 762, '#63788D', 1)
     def term(x, y, numerator):
         inside = 'Δẑ<tspan baseline-shift="sub" font-size="13">i</tspan> − Δz<tspan baseline-shift="sub" font-size="13">i</tspan>' if numerator else 'Δz<tspan baseline-shift="sub" font-size="13">i</tspan>'
         s.raw(f'<text x="{x}" y="{y}" text-anchor="middle" fill="#33485E" font-size="21" style="font-family:Georgia,serif">∑<tspan baseline-shift="sub" font-size="13">i</tspan> ‖{inside}‖<tspan baseline-shift="super" font-size="13">2</tspan></text>')
