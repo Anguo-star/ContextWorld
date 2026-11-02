@@ -225,7 +225,7 @@ if PUSHER:
         'displacement_arrows':'Observed endpoint displacement from saved pusher positions; not an interpolated trajectory.',
         'screenshot_integrity':'All eight source image SHA-256 values checked.',
         'object_origin_outline':'assets/pusher_pair/current_t_outline.json; current-pose silhouette shown only in the larger-response future panel, display annotation only.',
-        'preview_only':True,
+        'preview_only':not args.response_fidelity or args.prediction_images,
     }
     if args.response_fidelity:
         metadata['error_comparison_display']={'design_reference':'https://chatgpt.com/share/6ae8562d-f4ec-83ea-8185-eb0fb5418e9d','prediction_markers':'Filled circles: schematic latent predictions, not decoded outputs.','target_markers':'Open circles: schematic encoded true futures.','geometry':'Illustrates successful paired comparisons, not measured model embeddings.','shared_schematic_states':SCHEMATIC_STATES,'comparison_focus':'Prediction A in Future discrimination; true future A in History benefit. Both conditions are scored.','response_vectors':'Both point diagrams share a 0.9 display scale; their differences are rotated -135 degrees and uniformly enlarged 1.5 times for NRE.'}

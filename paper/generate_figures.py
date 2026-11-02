@@ -19,10 +19,14 @@ def reference_style_figures():
     import sys
     import shutil
     design = ROOT / 'paper' / 'design'
-    for script in ['draw_overview.py', 'draw_training.py', 'draw_training_full.py']:
+    subprocess.run([sys.executable, str(design / 'draw_overview.py'),
+                    '--example', 'pusher', '--response-fidelity'], check=True)
+    for script in ['draw_training.py', 'draw_training_full.py']:
         subprocess.run([sys.executable, str(design / script)], check=True)
-    subprocess.run(['node', str(design / 'render_figures.cjs')], check=True)
-    for source, target in [('benchmark_overview', 'protocol_overview'),
+    subprocess.run(['node', str(design / 'render_figures.cjs'),
+                    'benchmark_overview_pusher_response', 'paired_evaluation_design',
+                    'training_two_panels', 'training_full'], check=True)
+    for source, target in [('benchmark_overview_pusher_response', 'protocol_overview'),
                            ('training_two_panels', 'training_evidence'),
                            ('training_full', 'training_evidence_full')]:
         shutil.copyfile(design / (source + '.pdf'), OUT / (target + '.pdf'))
