@@ -15,8 +15,7 @@ nre=sorted([r for r in rows if r['task']=='contact_friction' and r['family']=='p
 assert [int(r['epoch']) for r in nre]==[5,10]
 ys=[float(r['mean']) for r in loss];nr=[float(r['NRE']) for r in nre]
 reduction=100*(1-ys[-1]/ys[0])
-s=SVG(660,340)
-s.rect(1,1,658,338,'white','#69717d',1.1,12)
+s=SVG(660,286)
 s.text(192,29,'Prediction loss',20,weight=700,anchor='middle')
 s.text(512,29,'Response error (NRE)',20,weight=700,anchor='middle')
 
@@ -43,8 +42,6 @@ xf,yf=plot_frame(390,56,245,170,0,1.5,[(0,'0.0'),(.5,'0.5'),(1,'1.0'),(1.5,'1.5'
 s.line(390,yf(1),635,yf(1),'#626a75',1.5,'6 3')
 s.text(512,yf(1)-14,'zero-response reference = 1',14,'#525b69',anchor='middle')
 for t,v in zip([5,10],nr):s.circle(xf(t),yf(v),5.8,ORANGE,'white',.6)
-s.rect(13,287,634,42,'#e9ebef','none',r=11)
-s.text(330,314,'Lower prediction loss does not ensure an accurate conditional response.',15.7,'#414b59',700,'middle')
 s.save(HERE/'training_two_panels.svg')
 (HERE/'training_two_panels.json').write_text(json.dumps({'task':'contact_friction','family':'pldm','scheme':'Original → Mixed (Joint)','loss_run':run,'loss_epochs':list(range(5,11)),'prediction_loss':ys,'loss_reduction_percent':reduction,'NRE_epochs':[5,10],'training_NRE':nr},indent=2)+'\n')
 print('Single-case measured training panel saved')
