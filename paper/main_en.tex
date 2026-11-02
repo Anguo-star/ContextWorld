@@ -236,7 +236,7 @@ Retention of control capabilities in the original environments is evaluated sepa
 \label{sec:experimental-setup}
 We evaluate three latent world models with different representation-learning strategies: LeWM~\cite{maes2026leworldmodel} combines latent prediction with representation regularization; PLDM~\cite{sobal2025pldm} jointly learns visual representations and latent dynamics; and DINO-WM~\cite{zhou2025dinowm} trains its predictor on frozen DINOv2 features. All weights remain frozen during evaluation.
 
-Table~\ref{tab:training-schemes} defines four schemes for testing how data composition, pretraining, and visual encoder updates affect adaptation. Original uses the fixed-dynamics datasets released with LeWM; Mixed samples equal numbers of trajectory windows from those datasets and ContextWorld to support adaptation while retaining original-environment performance. Comparing Mixed with Original $\to$ Mixed tests the benefit of pretraining. Within the latter, Joint and Frozen Encoder start from the same checkpoint to test whether updating the visual encoder helps. Mixed-data training is performed separately for each task. CEM planning~\cite{deboer2005cem} in the original environments measures capability retention. Optimization and evaluation settings appear in Appendix~\ref{app:training-settings}.
+Table~\ref{tab:training-schemes} defines four schemes for testing how data composition, pretraining, and visual encoder updates affect adaptation. Original uses the fixed-dynamics datasets released with LeWM; Mixed samples equal numbers of trajectory windows from those datasets and ContextWorld to support adaptation while retaining original-environment performance. Comparing Mixed with Original $\to$ Mixed tests the benefit of pretraining. For LeWM and PLDM, Joint and Frozen Encoder start from the same Original checkpoint to test whether updating the visual encoder helps. Mixed-data training is performed separately for each task. CEM planning~\cite{deboer2005cem} in the original environments measures capability retention. Optimization and evaluation settings appear in Appendix~\ref{app:training-settings}.
 
 \begin{table}[!ht]
 \centering
@@ -257,7 +257,7 @@ Original $\to$ Mixed (Frozen Encoder) & Original & Mixed & Frozen \\
 \begin{minipage}{\columnwidth}
 \footnotesize
 Initial weights are random for LeWM and PLDM. DINO-WM uses a pretrained visual encoder and a random predictor.
-$^\dagger$Its encoder is always frozen, so Joint does not apply.
+$^\dagger$DINO-WM keeps its encoder frozen in every scheme; its continued-training scheme is labeled Original $\to$ Mixed.
 Other modules remain trainable; native training losses are retained.
 \end{minipage}
 \end{table}
@@ -284,7 +284,7 @@ PLDM & Original $\rightarrow$ Mixed\newline (Frozen Encoder) & 96.44 & \textbf{9
 \midrule
 DINO-WM & Original & 57.11 & 38.48 & 50.78 & --- & 50.39 & 49.80 & 50.00 & 50.00 & 50.78 \\\addlinespace[2pt]
 DINO-WM & Mixed & 59.41 & 97.66 & 78.32 & 16.65 & 84.18 & 56.45 & 60.16 & \textbf{100.00} & \textbf{100.00} \\\addlinespace[2pt]
-DINO-WM & Original $\rightarrow$ Mixed\newline (Frozen Encoder) & 84.78 & --- & --- & --- & --- & 55.27 & 62.89 & --- & --- \\\addlinespace[2pt]
+DINO-WM & Original $\rightarrow$ Mixed & 84.78 & --- & --- & --- & --- & 55.27 & 62.89 & --- & --- \\\addlinespace[2pt]
 \bottomrule
 \end{tabularx}
 \end{table*}
@@ -690,7 +690,7 @@ Speed & PLDM & Original $\rightarrow$ Mixed (Joint) & 98.89 & 0.046 & 0.353 & [0
 Speed & PLDM & Original $\rightarrow$ Mixed (Frozen Encoder) & 95.56 & 0.065 & 0.302 & [0.285, 0.319] & 98.00 \\
 Speed & DINO-WM & Original & 58.56 & 0.928 & 1.973 & [1.954, 1.991] & 100.00 \\
 Speed & DINO-WM & Mixed & 56.56 & 0.967 & 2.101 & [2.070, 2.133] & 99.89 \\
-Speed & DINO-WM & Original $\rightarrow$ Mixed (Frozen Encoder) & 86.00 & 0.411 & 0.886 & [0.847, 0.927] & 100.00 \\
+Speed & DINO-WM & Original $\rightarrow$ Mixed & 86.00 & 0.411 & 0.886 & [0.847, 0.927] & 100.00 \\
 \midrule
 Pusher displacement & LeWM & Original & 34.05 & 1.015 & 2.378 & [2.284, 2.481] & 82.22 \\
 Pusher displacement & LeWM & Mixed & 73.63 & 0.981 & 3.572 & [3.421, 3.741] & 78.67 \\
@@ -739,7 +739,7 @@ Motion damping & PLDM & Original $\rightarrow$ Mixed (Joint) & 79.10 & 0.221 & 8
 Motion damping & PLDM & Original $\rightarrow$ Mixed (Frozen Encoder) & 62.11 & 0.882 & 5.553 & [5.276, 5.871] & 78.33 \\
 Motion damping & DINO-WM & Original & 52.34 & 1.001 & 8.465 & [8.122, 8.825] & 76.67 \\
 Motion damping & DINO-WM & Mixed & 66.21 & 1.021 & 7.273 & [7.077, 7.482] & 76.67 \\
-Motion damping & DINO-WM & Original $\rightarrow$ Mixed (Frozen Encoder) & 65.62 & 1.083 & 6.927 & [6.731, 7.135] & 76.00 \\
+Motion damping & DINO-WM & Original $\rightarrow$ Mixed & 65.62 & 1.083 & 6.927 & [6.731, 7.135] & 76.00 \\
 \midrule
 Gripper carry rule & LeWM & Original & 74.80 & 0.911 & 11.678 & [10.728, 12.783] & 65.44 \\
 Gripper carry rule & LeWM & Mixed & 49.61 & 1.001 & 198.472 & [166.622, 241.013] & 61.33 \\
@@ -751,7 +751,7 @@ Gripper carry rule & PLDM & Original $\rightarrow$ Mixed (Joint) & 54.49 & 0.985
 Gripper carry rule & PLDM & Original $\rightarrow$ Mixed (Frozen Encoder) & 58.01 & 0.594 & 29.969 & [21.538, 46.388] & 56.67 \\
 Gripper carry rule & DINO-WM & Original & 49.80 & 1.001 & 42.857 & [41.696, 44.068] & 72.67 \\
 Gripper carry rule & DINO-WM & Mixed & 80.66 & 0.890 & 11.789 & [11.454, 12.141] & 71.67 \\
-Gripper carry rule & DINO-WM & Original $\rightarrow$ Mixed (Frozen Encoder) & 82.03 & 0.874 & 11.747 & [11.417, 12.082] & 73.67 \\
+Gripper carry rule & DINO-WM & Original $\rightarrow$ Mixed & 82.03 & 0.874 & 11.747 & [11.417, 12.082] & 73.67 \\
 \midrule
 Door traversability & LeWM & Original & 45.72 & 0.997 & 4.676 & [4.568, 4.784] & 92.44 \\
 Door traversability & LeWM & Mixed & 100.00 & 0.045 & 2.981 & [2.938, 3.024] & 95.11 \\

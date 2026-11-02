@@ -26,6 +26,12 @@ def mean(r,key):
 def fmt(v,dec=2):
     return '---' if v is None else f'{v:.{dec}f}'
 
+def scheme_label(family, regime):
+    # DINO-WM freezes its visual encoder in every training scheme.
+    if family == 'dinowm' and regime == 'frozen':
+        return r'Original $\rightarrow$ Mixed'
+    return LABELS[regime]
+
 def test_statistics_table():
     """Keep multi-run uncertainty in the appendix while the main table shows means."""
     frozen = read('current_reference_test_v1/summary.json')
@@ -47,12 +53,12 @@ Task & Model & Training scheme & $n$ & Mean (\%) & SD (pp)\\
 \bottomrule\endfoot''']
     for task, name in TASKS:
         for family, model in FAMILIES:
-            for regime, label in LABELS.items():
+            for regime in LABELS:
                 stat = index.get((task, family, regime))
                 if not stat or stat['n'] <= 1:
                     continue
                 assert stat['std'] is not None
-                lines.append(' & '.join([name, model, label, str(stat['n']),
+                lines.append(' & '.join([name, model, scheme_label(family, regime), str(stat['n']),
                                          fmt(stat['mean']), fmt(stat['std'])])+r' \\')
     lines.append(r'\end{longtable}\endgroup')
     return lines
@@ -77,14 +83,14 @@ Task & Model & Scheme & History $\uparrow$ & NRE $\downarrow$ & $E/B$ $\downarro
 text = test_statistics_table() + text
 for task,name in TASKS:
     for family,model in FAMILIES:
-        for regime,label in LABELS.items():
+        for regime in LABELS:
             key=(task,family,regime)
             if key not in mult:continue
             m=mult[key];r=rows[key]
             assert r['evaluation_split']=='development'
             eb=1-m['score']/100
             lo,hi=1-m['ci95'][1]/100,1-m['ci95'][0]/100
-            text.append(' & '.join([name,model,label,fmt(mean(r,'history')),fmt(mean(r,'nre'),3),fmt(eb,3),f'[{lo:.3f}, {hi:.3f}]',fmt(mean(r,'cem'))])+r' \\')
+            text.append(' & '.join([name,model,scheme_label(family, regime),fmt(mean(r,'history')),fmt(mean(r,'nre'),3),fmt(eb,3),f'[{lo:.3f}, {hi:.3f}]',fmt(mean(r,'cem'))])+r' \\')
     text.append(r'\midrule')
 text[-1]=r'\end{longtable}\endgroup'
 text.append(r'''\subsection{Data Scale}
@@ -108,14 +114,14 @@ Task & Model & Scheme & Pairs & $n$ & Accuracy (\%) & NRE\\
 for task,name in TASKS:
     if task in ['speed','action_delay','door']:continue
     for family,model in FAMILIES:
-        for regime,label in LABELS.items():
+        for regime in LABELS:
             selected=[r for r in STUDY['rows'] if r['task']==task and r['model']==family and r['regime']==regime and r.get('training_pair_count')]
             # Only show schemes with an actual size comparison.
             selected=[r for r in selected if not r['comparison_variant'] or r['comparison_variant'].startswith('scale_')]
             if len({r['training_pair_count'] for r in selected})<2:continue
             for r in sorted(selected,key=lambda x:x['training_pair_count']):
                 st=r['statistics']['scores']['main']
-                text.append(' & '.join([name,model,label,f"{r['training_pair_count']:,}",str(st['n']),fmt(st['mean']),fmt(mean(r,'nre'),3)])+r' \\')
+                text.append(' & '.join([name,model,scheme_label(family, regime),f"{r['training_pair_count']:,}",str(st['n']),fmt(st['mean']),fmt(mean(r,'nre'),3)])+r' \\')
 text.append(r'\end{longtable}\endgroup')
 cap=read('model_capacity_scaling_v1/final_comparison.json')
 text.append(r'''\subsection{Model Capacity}
