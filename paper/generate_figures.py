@@ -147,8 +147,6 @@ def multistep_prediction():
                                 horizons=horizons.tolist(), per_horizon_ratio=mean.tolist(),
                                 ci95=np.stack([lo,hi],axis=1).tolist(), aggregate_ratio=float(np.mean(overall))))
         ax.axhline(1, color='#424952', linestyle='--', linewidth=1.15)
-        ax.text(.03,.96,'Above baseline',transform=ax.transAxes,
-                va='top',fontsize=6.2,color='#4c535c')
         ax.set_title(title, fontsize=8)
         ax.set_xticks(horizons, range(1, len(horizons)+1))
         ax.set_ylim(0, 3.35)
@@ -157,11 +155,10 @@ def multistep_prediction():
         ax.set_xlabel('Rollout step', fontsize=7.5)
     axes[0].set_ylabel('Prediction error /\nbaseline error', fontsize=7.5)
     handles = [Line2D([],[],color=colors['original'],marker='s',markersize=3,label='Original'),
-               Line2D([],[],color=colors['frozen'],marker='o',markersize=3,label='Original → Mixed (Frozen Encoder)'),
-               Line2D([],[],color='#424952',linestyle='--',linewidth=1.15,label='Mean-future baseline (=1)')]
+               Line2D([],[],color=colors['frozen'],marker='o',markersize=3,label='Original → Mixed (Frozen Encoder)')]
     fig.legend(handles=handles, loc='lower center', frameon=False, fontsize=7, ncol=1,
                bbox_to_anchor=(.5,-.015), handlelength=1.5, labelspacing=.25)
-    fig.tight_layout(rect=(0,.22,1,1),pad=.3,w_pad=.5)
+    fig.tight_layout(rect=(0,.18,1,1),pad=.3,w_pad=.5)
     fig.savefig(OUT/'multistep_prediction.pdf')
     plt.close(fig)
     return dict(split='development', task='action_strength',
