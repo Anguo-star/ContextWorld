@@ -29,7 +29,10 @@ assert (ASSETS/provenance['frames']['cannot_hold']['2']['file']).read_bytes()==(
 for t in range(4):
     assert raw['frames']['cannot_hold'][str(t)]['action_block']==raw['frames']['can_hold'][str(t)]['action_block']
 BLUE='#0094ff'; ORANGE='#ff780a'; DARK_BLUE='#0044b5'; DARK_ORANGE='#c52e00'; INK='#111620'; OUTLINE='#8795aa'
-s=SVG(1448,1158 if PUSHER else 1086)
+from draw_response_panel import RESPONSE_PANEL_EXTRA_HEIGHT, SCHEMATIC_STATES
+response_extra = RESPONSE_PANEL_EXTRA_HEIGHT if args.response_fidelity else 0
+figure_height = (1158 if PUSHER else 1086) + response_extra
+s=SVG(1448,figure_height)
 regular=base64.b64encode((HERE/'assets/fonts/RobotoCondensed-Regular.ttf').read_bytes()).decode()
 bold=base64.b64encode((HERE/'assets/fonts/RobotoCondensed-Bold.ttf').read_bytes()).decode()
 s.raw(f'<style>@font-face{{font-family:ReferenceNarrow;src:url(data:font/ttf;base64,{regular});font-weight:400}}@font-face{{font-family:ReferenceNarrow;src:url(data:font/ttf;base64,{bold});font-weight:700}}</style>')
@@ -180,6 +183,7 @@ else:
 
     from draw_response_panel import draw_original_error_matrix
     draw_original_error_matrix(s,formula,check)
+if response_extra:s.raw(f'<g transform="translate(0,{response_extra})">')
 panel(20,831,1408,236,'C','ContextWorld: 9 tasks across 4 environments',31)
 # Environment views come from saved benchmark data, with provenance retained.
 cards=[(34,374,'TwoRoom','4 tasks',HERE/'assets/environments/tworoom.jpg',['Speed','Action delay','Door traversability','Portal exit'],142),(421,353,'PushT','3 tasks',HERE/'assets/pusher_pair/pusher_low_gain_step10.jpg',['Pusher displacement','Contact friction','Motion damping'],125),(787,301,'Reacher','1 task',HERE/'assets/environments/reacher.jpg',['Arm mass'],104),(1100,320,'Cube','1 task',ASSETS/'can_hold_t0.png',['Gripper carry rule'],125)]
@@ -202,13 +206,18 @@ for x,w,title,count,path,tasks,iw in cards:
         s.text(tx+14,yy+19,t,18,'#41536c')
 
 s.raw('</g>')
+if response_extra:s.raw('</g>')
 if PUSHER:s.raw('</g>')
 s.save(HERE/(STEM+'.svg'))
+if args.response_fidelity and PUSHER and not args.prediction_images:
+    source=(HERE/(STEM+'.svg')).read_text()
+    source=source.replace(f'width="1448" height="{figure_height}" viewBox="0 0 1448 {figure_height}"', 'width="1448" height="590" viewBox="0 535 1448 590"', 1)
+    (HERE/'paired_evaluation_design.svg').write_text(source)
 if PUSHER:
     metadata={
         'pair_id':pusher['pair_id'],
         'source':'assets/pusher_pair/provenance.json',
-        'output_dimensions':[1448,1158],
+        'output_dimensions':[1448,figure_height],
         'scene_source':'Unmodified saved dataset screenshots with vector annotations.',
         'current_observation_identical':True,
         'shared_image_crop':PUSHER_VIEWBOX,
@@ -220,7 +229,7 @@ if PUSHER:
         'preview_only':True,
     }
     if args.response_fidelity:
-        metadata['error_comparison_display']={'prediction_markers':'Schematic latent predictions, not decoded or measured outputs.','target_markers':'Schematic locations of encoded true futures, with unmodified source-frame thumbnails.','geometry':'Illustrates desired error ordering, not a projection of model embeddings.','shown_condition':'A; scoring repeats symmetrically for B.'}
+        metadata['error_comparison_display']={'design_reference':'https://chatgpt.com/share/6ae8562d-f4ec-83ea-8185-eb0fb5418e9d','prediction_markers':'Filled circles: schematic latent predictions, not decoded outputs.','target_markers':'Open circles: schematic encoded true futures.','geometry':'Illustrates successful paired comparisons, not measured model embeddings.','shared_schematic_states':SCHEMATIC_STATES,'comparison_focus':'Prediction A in Future discrimination; true future A in History benefit. Both conditions are scored.','response_vectors':'Same state differences, rotated -135 degrees and uniformly scaled by 1.5.'}
         metadata['response_fidelity']={'metric':'NRE, ratio of sums across pairs','true_response':'z_B - z_A','predicted_response':'z_hat_B - z_hat_A','vector_display':'Conceptual diagram; not projected or measured results.'}
     if args.prediction_images:
         metadata['prediction_thumbnail_semantics']='Ground-truth future images supplied as labeled visual references beside latent symbols; not decoded model predictions.'
@@ -231,7 +240,7 @@ else:
         'design_reference':'https://chatgpt.com/share/6ae80941-7830-83ea-a2af-476c8f212ea8',
         'source':'assets/cube_pair_hd/provenance.json',
         'pair_id':provenance['pair_id'],
-        'output_dimensions':[1448,1086],
+        'output_dimensions':[1448,figure_height],
         'scene_source':'Native high-resolution renders of recorded simulator states; model-input observations remain unchanged.',
         'shared_state_viewbox':CUBE_VIEWBOX,
         'current_render_identical':True,
