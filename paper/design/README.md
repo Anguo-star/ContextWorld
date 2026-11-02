@@ -4,6 +4,7 @@ The overview explains the paired evaluation. The training figure presents one me
 
 - `benchmark_overview.pdf` / `.svg`: the reference design's rounded panels, image cards, blue/orange condition colors and error matrix, using high-resolution renderings of a real Cube pair. Lift and reverse commands label transitions between observations; the shared query action also appears between the current and future states. A shared close-up crop and Not lifted/Lifted labels distinguish the outcomes without overlaying height markers. The current observation and all action blocks are identical across conditions.
 - `training_two_panels.pdf` / `.svg`: PLDM contact friction, Original → Mixed (Joint). The left plot contains six recorded prediction-loss means; the right contains the two measured training-query NRE values. No intermediate NRE values are interpolated.
+- `training_full.pdf` / `.svg`: supplementary friction/damping controls using the same axes, fonts and metric colors as Figure 4. Shape and line style distinguish Joint from Frozen Encoder; filled/open NRE markers distinguish Training from Development.
 - `figure_design.pdf`: both figures at paper size with captions.
 - `assets/cube_pair/provenance.json`: source pair, action blocks, image hashes and sample selection. The original 224-pixel observations are retained for provenance. The pair was selected for legibility, without changing benchmark sampling or scores.
 - `assets/cube_pair_hd/`: 1600 × 900 native simulator renderings, the saved replay states and rendering provenance. A shared camera, palette and lighting make the cube visible at paper size. The recorded cube positions are preserved; the evaluated models still receive the original observations.
@@ -19,6 +20,7 @@ The SVG drawings use Python's standard library. PDF/PNG export requires Node.js,
 ```bash
 python paper/design/draw_overview.py
 python paper/design/draw_training.py
+python paper/design/draw_training_full.py
 node paper/design/render_figures.cjs
 ```
 

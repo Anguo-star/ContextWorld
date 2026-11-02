@@ -2,7 +2,7 @@
 from pathlib import Path
 import csv,json
 from svg_style import SVG
-BLUE, ORANGE, DARK_BLUE = "#0078ff", "#ff780a", "#064789"
+from training_style import BLUE, ORANGE, DARK_BLUE, plot_frame
 
 HERE=Path(__file__).resolve().parent
 ROOT=HERE.parents[1]
@@ -19,25 +19,15 @@ s=SVG(660,324)
 s.text(192,31,'Prediction loss',22,weight=700,anchor='middle')
 s.text(512,31,'Response error (NRE)',22,weight=700,anchor='middle')
 
-def plot_frame(x,y,w,h,lo,hi,ticks):
-    xf=lambda t:x+(t-4.7)/5.6*w
-    yf=lambda v:y+h-(v-lo)/(hi-lo)*h
-    for t in range(5,11):
-        xx=xf(t);s.line(xx,y,xx,y+h,'#e4e5e8',1.1);s.line(xx,y+h,xx,y+h+6,'#171a1d',1.5);s.text(xx,y+h+28,str(t),19,anchor='middle')
-    for val,lab in ticks:
-        yy=yf(val);s.line(x,yy,x+w,yy,'#e4e5e8',1.1);s.line(x-5,yy,x,yy,'#171a1d',1.5);s.text(x-10,yy+7,lab,19,anchor='end')
-    s.line(x,y,x,y+h,'#171a1d',1.5);s.line(x,y+h,x+w,y+h,'#171a1d',1.5)
-    s.text(x+w/2,y+h+58,'Epoch',20,anchor='middle')
-    return xf,yf
 
-xf,yf=plot_frame(70,62,245,190,.019,.027,[(.020,'0.020'),(.022,'0.022'),(.024,'0.024'),(.026,'0.026')])
+xf,yf=plot_frame(s,70,62,245,190,.019,.027,[(.020,'0.020'),(.022,'0.022'),(.024,'0.024'),(.026,'0.026')])
 s.line(70,yf(ys[0]),315,yf(ys[0]),BLUE,1.5,'6 3')
 pts=' '.join(f'{xf(t)},{yf(v)}' for t,v in zip(range(5,11),ys))
 s.raw(f'<polyline points="{pts}" fill="none" stroke="{BLUE}" stroke-width="2.2"/>')
 for t,v in zip(range(5,11),ys):s.circle(xf(t),yf(v),5.0,BLUE,DARK_BLUE,.8)
 s.arrow(306,yf(ys[0])+2,306,yf(ys[-1])-3,BLUE,2.4,9)
 s.text(309,yf(ys[0])-14,f'−{reduction:.2f}%',20,DARK_BLUE,700,'end')
-xf,yf=plot_frame(390,62,245,190,0,1.5,[(0,'0.0'),(.5,'0.5'),(1,'1.0'),(1.5,'1.5')])
+xf,yf=plot_frame(s,390,62,245,190,0,1.5,[(0,'0.0'),(.5,'0.5'),(1,'1.0'),(1.5,'1.5')])
 s.line(390,yf(1),635,yf(1),'#626a75',1.5,'6 3')
 for t,v in zip([5,10],nr):s.circle(xf(t),yf(v),5.8,ORANGE,'white',.6)
 s.save(HERE/'training_two_panels.svg')

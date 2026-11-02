@@ -13,88 +13,18 @@ plt.rcParams.update({'font.family': 'DejaVu Sans', 'font.size': 8,
                      'pdf.fonttype': 42, 'savefig.bbox': 'tight'})
 
 
-def training_evidence_full():
-    with (ROOT / 'docs/research/data/native_training_loss_v1/summary.csv').open() as f:
-        loss = list(csv.DictReader(f))
-    with (ROOT / 'docs/research/data/native_epoch_checkpoints_v1/summary.csv').open() as f:
-        nre = list(csv.DictReader(f))
-    fig, axes = plt.subplots(2, 2, figsize=(3.45, 3.05), sharex='col',
-                              gridspec_kw={'hspace': .38, 'wspace': .30})
-    fig.subplots_adjust(left=.16,right=.985,bottom=.25,top=.83)
-    colors = {'joint': '#2765a8', 'frozen': '#c46124'}
-    for col, (task, title) in enumerate([('contact_friction', 'Contact friction'),
-                                        ('motion_damping', 'Motion damping')]):
-        loss_ax, nre_ax = axes[:, col]
-        for regime in ['joint', 'frozen']:
-            suffix = 'num32k_v1_warmstart3073_s3072' if regime == 'joint' else 'encoder_frozen_v1_s3072'
-            run = f'{task}_pldm_{suffix}'
-            values = sorted([r for r in loss if r['run'] == run and
-                             r['metric'] == 'fit__pred_loss' and
-                             5 <= int(r['checkpoint_epoch']) <= 10],
-                            key=lambda r: int(r['checkpoint_epoch']))
-            assert [int(r['checkpoint_epoch']) for r in values] == list(range(5, 11))
-            base = float(values[0]['mean'])
-            xs = list(range(5, 11))
-            loss_ax.plot(xs, [float(r['mean'])/base for r in values],
-                         color=colors[regime], marker='o', markersize=2.3, linewidth=1.2)
-            loss_ax.fill_between(xs, [float(r['q25'])/base for r in values],
-                                 [float(r['q75'])/base for r in values],
-                                 color=colors[regime], alpha=.12, linewidth=0)
-            for split, marker in [('loader_fit', 'o'), ('development', 's')]:
-                rows = sorted([r for r in nre if r['task'] == task and r['family'] == 'pldm'
-                               and r['regime'] == regime and r['split'] == split],
-                              key=lambda r: int(r['epoch']))
-                assert [int(r['epoch']) for r in rows] == [5, 10]
-                nre_ax.plot([5, 10], [float(r['NRE']) for r in rows],
-                            color=colors[regime], linestyle='none', marker=marker,
-                            markersize=3.3 if split=='loader_fit' else 4.8,
-                            markeredgewidth=.8,
-                            markerfacecolor=colors[regime] if split=='loader_fit' else 'none')
-            if task=='contact_friction' and regime=='joint':
-                reduction=100*(1-float(values[-1]['mean'])/base)
-                loss_ax.text(5.2,.78,f'Joint −{reduction:.2f}%',fontsize=6.3,color=colors[regime])
-                train=[r for r in nre if r['task']==task and r['family']=='pldm'
-                       and r['regime']==regime and r['split']=='loader_fit']
-                assert all(round(float(r['NRE']),2)==1.01 for r in train)
-                nre_ax.text(7.5,.84,'Train ≈ 1.01',color=colors[regime],fontsize=6.4,ha='center')
-        loss_ax.set_title(title,fontsize=8,pad=6)
-        loss_ax.set_ylim(.75,1.05);loss_ax.set_yticks([.8,.9,1.0])
-        nre_ax.set_ylim(0,1.13);nre_ax.set_yticks([0,.5,1.0])
-        nre_ax.axhline(1,color='#707780',linewidth=.8,linestyle=':',zorder=0)
-        nre_ax.set_xticks([5,10])
-        for ax in [loss_ax,nre_ax]:
-            ax.set_xlim(4.65,10.35)
-            ax.grid(axis='y',color='#e8ebef',linewidth=.6)
-            ax.set_axisbelow(True)
-            ax.tick_params(labelsize=7,pad=2,length=2.5)
-            for spine in ax.spines.values():spine.set_linewidth(.6)
-    axes[0,0].set_ylabel('Relative loss',fontsize=7.5,labelpad=3)
-    axes[1,0].set_ylabel('NRE',fontsize=7.5,labelpad=3)
-    fig.text(.56,.145,'Training epoch',ha='center',fontsize=7.5)
-    methods=[Line2D([],[],color=colors['joint'],label='Joint'),
-             Line2D([],[],color=colors['frozen'],label='Frozen Encoder')]
-    splits=[Line2D([],[],color='.3',marker='o',linestyle='none',markersize=3.3,label='Training'),
-            Line2D([],[],color='.3',marker='s',linestyle='none',markerfacecolor='none',markersize=4.8,label='Development')]
-    fig.legend(handles=methods,loc='upper center',bbox_to_anchor=(.56,1.01),
-               frameon=False,ncol=2,fontsize=7,handlelength=1.6,columnspacing=1.2)
-    fig.legend(handles=splits,loc='lower center',bbox_to_anchor=(.56,-.03),
-               title='NRE data split',title_fontsize=7,frameon=False,ncol=2,fontsize=7,
-               handlelength=1,columnspacing=1.4)
-    fig.savefig(OUT/'training_evidence_full.pdf',pad_inches=.035)
-    plt.close(fig)
-
-
 def reference_style_figures():
-    """Build the overview and single-case plot, then export vector PDFs."""
+    """Build the overview and training plots, then export vector PDFs."""
     import subprocess
     import sys
     import shutil
     design = ROOT / 'paper' / 'design'
-    for script in ['draw_overview.py', 'draw_training.py']:
+    for script in ['draw_overview.py', 'draw_training.py', 'draw_training_full.py']:
         subprocess.run([sys.executable, str(design / script)], check=True)
     subprocess.run(['node', str(design / 'render_figures.cjs')], check=True)
     for source, target in [('benchmark_overview', 'protocol_overview'),
-                           ('training_two_panels', 'training_evidence')]:
+                           ('training_two_panels', 'training_evidence'),
+                           ('training_full', 'training_evidence_full')]:
         shutil.copyfile(design / (source + '.pdf'), OUT / (target + '.pdf'))
 
 
@@ -233,7 +163,6 @@ def scaling_comparisons():
 
 if __name__ == '__main__':
     OUT.mkdir(exist_ok=True)
-    training_evidence_full()
     reference_style_figures()
     import json
     records = dict(multistep=multistep_prediction(), scaling=scaling_comparisons())
