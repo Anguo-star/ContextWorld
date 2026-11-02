@@ -187,7 +187,8 @@ Full dataset statistics, dynamics parameters, and task-specific split checks are
 Evaluating latent in-context dynamics adaptation requires disentangling genuine context utilization from predictive shortcuts.
 Because models can minimize prediction errors shared across dynamics conditions or regress to average dynamics without conditioning on interaction history, prediction error alone does not establish genuine adaptation.
 Furthermore, as demonstrated in Appendix~\ref{app:scoring-controls}, constructed predictions barely perturbed from the mean can still achieve high classification accuracy.
-To evaluate models rigorously under strictly frozen weights, we establish an evaluation protocol structured around four complementary aspects: (1) Adaptation Accuracy ($A_{\mathrm{future}}$), testing whether predictions distinguish diverging physical futures; (2) Multi-Step Prediction Error ($E/B$), evaluating trajectory rollout fidelity against an unconditioned mean-future reference; (3) History Controls ($\text{History }\%, G_H$), validating history reliance by examining error changes under counterfactual history swapping; and (4) Normalized Response Error ($\mathrm{NRE}$), isolating the model's conditional response by removing condition-invariant errors.
+Under strictly frozen weights, we evaluate two core aspects: Adaptation Accuracy ($A_{\mathrm{future}}$), testing whether predictions distinguish diverging physical futures, and History Sensitivity (History \%, $G_H$), testing whether matching history reduces prediction error relative to mismatched history.
+We complement these with Multi-Step Prediction Error ($E/B$), evaluating trajectory rollout fidelity against an unconditioned mean-future reference, and Normalized Response Error (NRE), measuring the accuracy of the model's conditional response after removing condition-invariant errors.
 
 \paragraph{Adaptation Accuracy ($A_{\mathrm{future}}$).}
 To test whether predictions distinguish diverging physical outcomes, we evaluate paired counterfactual predictions against latent ground-truth targets.
@@ -199,7 +200,11 @@ A_{\mathrm{future}} = \frac{100}{2N} \sum_{i=1}^{N} \left( I_i^A + I_i^B \right)
 Under identical current observations and future actions, a deterministic model that ignores history produces identical predictions ($\hat{z}_i^A = \hat{z}_i^B$) and scores at most 50\%, with ties counted as failures.
 Multi-condition tasks use task-specific scoring (Appendix~\ref{app:evaluation-details}).
 
-\paragraph{Multi-Step Prediction Error ($E/B$) and History Controls.}
+\paragraph{History Sensitivity (History \%, $G_H$).}
+To isolate whether error reductions stem specifically from context, we swap histories across dynamics conditions while holding the current observation, future actions, and target fixed.
+We report \textbf{History (\%)} (the win rate where matched history yields strictly lower error than mismatched context) and normalized error reduction $G_H = (E_- - E_+)/B$, where $E_-$ and $E_+$ are aggregate errors under mismatched and matched histories, respectively, and $B$ is the aggregate error of the mean-future reference defined below.
+
+\paragraph{Multi-Step Prediction Error ($E/B$).}
 High one-step classification accuracy does not guarantee low trajectory rollout error, as minute perturbations toward the correct target can yield high accuracy (Appendix~\ref{app:scoring-controls}).
 We therefore evaluate open-loop autoregressive rollouts across up to 25 simulator steps without intermediate ground-truth observations.
 Because checkpoints lack a shared physical metric, we normalize rollout error against an unconditioned mean-future reference~\cite{murphy1988skill}:
@@ -210,9 +215,6 @@ E/B = \frac{\sum_{q} L_q}{\sum_{q} B_q}.
 For scene $q$, $L_q$ denotes the mean squared rollout error averaged over $K_q$ dynamics conditions, $C_q$ shared action sequences, and $T=5$ rollout steps; $B_q$ is the corresponding error of the mean-future reference $\bar{z}_{qct} = K_q^{-1}\sum_k z_{qkct}$.
 For equally weighted conditions sharing the current observation and future actions, this reference minimizes squared error among predictions that do not distinguish conditions~\cite{gneiting2011point}; consequently, any deterministic model that ignores history cannot achieve $E/B < 1$.
 Changes in target representations must also be considered when comparing checkpoints.
-
-To isolate whether error reductions stem specifically from context, we swap histories across dynamics conditions while holding the current observation, future actions, and target fixed.
-We report \textbf{History (\%)} (the win rate where matched history yields strictly lower error than mismatched context) and normalized error reduction $G_H = (E_- - E_+)/B$, where $E_-$ and $E_+$ are aggregate errors under mismatched and matched histories, respectively, and $B = \sum_q B_q$.
 
 \paragraph{Normalized Response Error (NRE).}
 Prediction loss can decrease as errors shared across conditions shrink, even when the predicted difference between dynamics conditions remains inaccurate.
@@ -234,14 +236,33 @@ Finally, to assess whether adaptation to varied dynamics impairs base control ca
 
 \subsection{Experimental Setup}
 \label{sec:experimental-setup}
-We evaluate three latent world models with different representation-learning strategies: LeWM~\cite{maes2026leworldmodel} combines latent prediction with representation regularization; PLDM~\cite{sobal2025pldm} jointly learns visual representations and latent dynamics; and DINO-WM~\cite{zhou2025dinowm} trains its predictor on frozen DINOv2 features. All weights remain frozen during evaluation.
+\paragraph{Evaluated models and representation strategies.}
+In-context dynamics adaptation relies on a predictor operating over latent representations.
+To investigate how different latent world model formulations exhibit this ability, we evaluate three action-conditioned architectures spanning distinct representation-learning strategies: (1) DINO-WM~\cite{zhou2025dinowm}, which trains its dynamics predictor atop frozen, general-purpose DINOv2 features; (2) PLDM~\cite{sobal2025pldm}, which jointly optimizes visual representations and latent dynamics; and (3) LeWM~\cite{maes2026leworldmodel}, which combines latent prediction with explicit representation regularization to prevent representation collapse.
+During evaluation, all model weights remain strictly frozen.
+Because these models differ across architectures, loss formulations, and pretraining distributions, their comparison provides an empirical survey across established world-modeling choices rather than an ablation of a single structural factor.
 
-Table~\ref{tab:training-schemes} defines four schemes for testing how data composition, pretraining, and visual encoder updates affect adaptation. Original uses the fixed-dynamics datasets released with LeWM; Mixed samples equal numbers of trajectory windows from those datasets and ContextWorld to support adaptation while retaining original-environment performance. Comparing Mixed with Original $\to$ Mixed tests the benefit of pretraining. For LeWM and PLDM, Joint and Frozen Encoder start from the same Original checkpoint to test whether updating the visual encoder helps. Mixed-data training is performed separately for each task. CEM planning~\cite{deboer2005cem} in the original environments measures capability retention. Optimization and evaluation settings appear in Appendix~\ref{app:training-settings}.
+\paragraph{Training schemes and design rationale.}
+To examine how training choices affect adaptation, we evaluate four training regimes (Table~\ref{tab:training-schemes}):
+
+\noindent\textit{Pretraining and data composition:}
+Models trained exclusively under fixed dynamics (Original) establish whether adaptation emerges without training on ContextWorld data.
+To support adaptation while maintaining original-environment performance, we construct Mixed datasets by sampling trajectory windows equally ($1:1$) from the original datasets and ContextWorld.
+Comparing models trained directly on this mixture (Mixed) against fine-tuned checkpoints (Original $\rightarrow$ Mixed) evaluates the benefit of base-dynamics pretraining, though this two-stage regime incorporates an additional training phase and differs in total updates.
+
+\noindent\textit{Visual encoder updates:}
+Full joint fine-tuning allows visual representations to adapt alongside the dynamics predictor, but may also alter latent feature geometry as dynamics vary.
+For LeWM and PLDM, we branch from the same pretrained checkpoint into Joint (updating all modules) and Frozen Encoder (fixing the visual backbone while keeping the projector, action encoder, and predictor trainable).
+This comparison tests whether freezing the visual encoder improves history-conditioned prediction, without holding the entire target representation static.
+
+Models are trained independently for each task.
+To assess whether training on multi-dynamics distributions compromises base control capabilities, we measure task performance in unperturbed environments using Cross-Entropy Method (CEM) planning~\cite{deboer2005cem}.
+Optimization details and hyperparameters are provided in Appendix~\ref{app:training-settings}.
 
 \begin{table}[!ht]
 \centering
 \footnotesize
-\caption{Training schemes. Mixed samples original-environment and ContextWorld trajectory windows equally.}
+\caption{Training schemes. Mixed samples trajectory windows equally ($1:1$) from original-environment and ContextWorld datasets to support adaptation while maintaining base performance. Comparing Mixed with Original $\rightarrow$ Mixed evaluates the benefit of pretraining under base dynamics, while Joint versus Frozen Encoder evaluates the effect of freezing the visual backbone. DINO-WM retains its frozen pretrained visual encoder across all schemes.}
 \label{tab:training-schemes}
 \begin{tabularx}{\columnwidth}{@{}p{.38\columnwidth}XXc@{}}
 \toprule
@@ -293,16 +314,31 @@ DINO-WM & Original $\rightarrow$ Mixed & 84.78 & --- & --- & --- & --- & 55.27 &
 
 \subsection{Adaptation Results}
 \label{sec:adaptation-results}
-Models trained on fixed-dynamics data show limited ability to distinguish futures under different dynamics: Original scores near or below 50\% on the seven binary tasks (Table~\ref{tab:test-results}). Adding ContextWorld data improves several tasks, including arm mass for LeWM and PLDM, but does not produce uniformly strong adaptation.
 
-Model advantages also depend on the task. With Mixed training, LeWM and PLDM achieve near-perfect action-delay accuracy, whereas DINO-WM scores 16.65\%. On pusher displacement, DINO-WM leads at 97.66\%, while LeWM and PLDM remain much closer to the 50\% reference. All three reach near-perfect door-traversability accuracy. These rank reversals motivate evaluation across diverse dynamics rather than a single representative task.
+\paragraph{Limited in-context dynamics adaptation under fixed dynamics.}
+We first evaluate whether latent world models trained exclusively in fixed-dynamics environments adapt to varied physics without parameter updates.
+Across the seven binary tasks, models evaluated under the Original scheme score near or below the 50\% history-agnostic upper bound (Table~\ref{tab:test-results}).
+Because a deterministic model that ignores history receives identical current observations and planned actions in paired counterfactuals, it cannot exceed 50\%; however, these scores indicate that models trained under fixed dynamics show limited ability to distinguish futures across differing dynamics.
 
-Strong one-step adaptation does not establish accurate multi-step prediction. On pusher displacement, LeWM and PLDM trained with Original $\to$ Mixed (Frozen Encoder) exceed 98\% History win-rate and substantially reduce NRE (Appendix~\ref{app:additional-results}). Yet Figure~\ref{fig:multistep-prediction} shows that their prediction errors on extended action sequences exceed the corresponding mean-future reference at later horizons, despite improving on Original. Aggregate $E/B$ remains above 1.4 for both models. These queries extend both the actions and prediction horizon relative to the one-step tasks; the contrast does not isolate a single cause of rollout error.
+\paragraph{Mixed-data training improves adaptation but exposes task-dependent trade-offs.}
+Introducing ContextWorld data via Mixed training improves adaptation on several tasks, but its effectiveness varies across models and tasks.
+Furthermore, no single architecture excels across all evaluated tasks.
+For instance, LeWM and PLDM achieve near-perfect performance on action delay ($>97\%$), whereas DINO-WM reaches only 16.65\%.
+Conversely, on pusher displacement, DINO-WM leads at 97.66\%, while LeWM and PLDM remain much closer to the 50\% reference.
+All three architectures attain near-perfect accuracy on door traversability.
+These rank reversals demonstrate that adaptation capabilities depend heavily on the specific dynamic variation, underscoring the need to benchmark world models across diverse physical settings rather than a single representative task.
+
+\paragraph{Single-step history sensitivity does not guarantee low multi-step rollout error.}
+A critical consideration is whether models that effectively utilize context in single-step settings maintain accurate rollouts over extended horizons.
+On pusher displacement, LeWM and PLDM trained under Original $\rightarrow$ Mixed (Frozen Encoder) show strong one-step history sensitivity, exceeding a 98\% History win-rate and substantially reducing NRE (Appendix~\ref{app:additional-results}).
+However, evaluating autoregressive rollouts across extended action sequences reveals a different picture: as shown in Figure~\ref{fig:multistep-prediction}, prediction errors divided by the error of the unconditioned mean-future reference ($E_t/B_t$) escalate monotonically, exceeding 1.0 from the third rollout step onward and resulting in aggregate $E/B$ ratios above 1.4 for both models.
+These extended queries differ from the one-step tasks by lengthening both the planned action sequences and the rollout horizon.
+Consequently, while these checkpoints outperform the Original baseline, high one-step history sensitivity does not guarantee low multi-step prediction error under open-loop rollout.
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=\columnwidth]{figures/multistep_prediction.pdf}
-\caption{\textbf{Multi-step prediction on pusher displacement (Development).} Each rollout step spans five simulator steps without new observations. Prediction error is divided by the error of predicting the mean future representation across dynamics conditions. Ratios are computed within each checkpoint's representation, then averaged over runs. These extended queries differ from the one-step tasks; nine-task summaries appear in Appendix~\ref{app:additional-results}.}
+\caption{\textbf{Multi-step prediction on pusher displacement (Development).} Each rollout step spans five simulator steps simulated open-loop without intermediate observations. Prediction error is normalized by the error of predicting the mean future representation across dynamics conditions ($E_t/B_t$), computed within each checkpoint's native representation and averaged over available training runs. While checkpoints trained under Original $\rightarrow$ Mixed (Frozen Encoder) exhibit over 98\% one-step history win-rates, their normalized multi-step rollout error steadily increases and exceeds the unconditioned mean-future reference ($E_t/B_t > 1.0$) from the third rollout step onward. These extended queries lengthen both the action sequences and prediction horizons relative to the one-step tasks; complete nine-task summaries appear in Appendix~\ref{app:additional-results}.}
 \label{fig:multistep-prediction}
 \end{figure}
 
