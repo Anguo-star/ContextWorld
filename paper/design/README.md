@@ -5,6 +5,8 @@ The overview explains the controlled task design, paired evaluation and task cov
 - `benchmark_overview.pdf` / `.svg`: an editable reconstruction of the supplied 1448 × 1086 design. Panel A shows a recorded Cube carry-rule pair; panel B shows separate frozen-model calls and the four error comparisons; panel C maps nine tasks to four environments. Commands label transitions, and both conditions use exactly the same current-observation rendering. Text, arrows, matrix cells and panel frames remain vector graphics. Cube images are high-resolution native renderings of recorded states. Other environment views are saved dataset screenshots. The design reference supplies the layout and visual styling, not scene pixels.
 - `benchmark_overview_pusher.pdf` / `.svg`: alternative main-figure preview using a real PushT pusher-displacement pair. The original scene screenshots share one crop. Red arrows summarize the shared action directions; dashed arrows show measured endpoint displacement, not an interpolated path. Sources and arrow semantics are recorded in `overview_pusher.json`.
 - `overview_comparison.pdf`: PushT and Cube alternatives at manuscript width on separate pages. The manuscript continues to use the Cube version pending selection.
+- `benchmark_overview_pusher_response.pdf` / `.svg`: PushT alternative with a compact error matrix and a Response fidelity panel. Row comparisons measure future discrimination, column comparisons measure history benefit, and NRE compares the predicted and true differences between conditions. The two arrows are conceptual latent response vectors, not measured trajectories or a projection of model outputs.
+- `response_fidelity_preview.pdf`: the response-fidelity alternative at manuscript width, with its explanatory caption. This preview preserves the real PushT images and does not replace the current manuscript figure.
 - `assets/reference/main_figure_design.png`: the complete supplied design, retained at its original resolution. It is used only as a visual layout reference and is not embedded in the figure. `overview_crop.json` records the native data sources, shared crop and state/action checks.
 - `training_two_panels.pdf` / `.svg`: PLDM contact friction, Original → Mixed (Joint). The left plot contains six recorded prediction-loss means; the right contains the two measured training-query NRE values. No intermediate NRE values are interpolated.
 - `training_full.pdf` / `.svg`: supplementary friction/damping controls using the same axes, fonts and metric colors as Figure 4. Shape and line style distinguish Joint from Frozen Encoder; filled/open NRE markers distinguish Training from Development.
@@ -14,7 +16,7 @@ The overview explains the controlled task design, paired evaluation and task cov
 - `assets/environments/provenance.json`: sources for the environment thumbnails. The PushT thumbnail comes from `assets/pusher_pair/provenance.json`.
 - `assets/fonts/`: embedded Roboto fonts, distributed under the accompanying SIL Open Font License. The font sources are [Roboto](https://github.com/google/fonts/tree/main/ofl/roboto) and [Roboto Condensed](https://github.com/google/fonts/tree/main/ofl/robotocondensed). Roboto Condensed is used only in the two narrow brace labels.
 
-The layout follows the [new supplied design reference](https://chatgpt.com/share/6ae80941-7830-83ea-a2af-476c8f212ea8). The overview combines native scene images with a schematic evaluation flow; the training plots use measured values. Lift/reverse illustrates the Cube carry rule, not the actions used in every task. Predictions are latent states, so the diagram does not imply pixel decoding. Rows compare candidate futures; columns compare histories for a fixed target. Checkmarks illustrate successful comparisons, not measured outcomes. The shared future-action input is shown explicitly, and lowercase latent notation follows the manuscript.
+The layout follows the [new supplied design reference](https://chatgpt.com/share/6ae80941-7830-83ea-a2af-476c8f212ea8). The overview combines native scene images with a schematic evaluation flow; the training plots use measured values. Lift/reverse illustrates the Cube carry rule, not the actions used in every task. Predictions are latent states, so the diagram does not imply pixel decoding. Rows compare candidate futures; columns compare histories for a fixed target. In the original layout, checkmarks illustrate successful comparisons, not measured outcomes. The response-fidelity alternative removes the checkmarks and inequality boxes to make room for the response vectors; its NRE formula uses the same ratio of sums over pairs as the manuscript. The shared future-action input is shown explicitly, and lowercase latent notation follows the manuscript.
 
 ## Regeneration
 
@@ -35,6 +37,15 @@ python paper/design/draw_overview.py --example pusher
 node paper/design/render_figures.cjs benchmark_overview_pusher
 cd paper
 pdflatex -interaction=nonstopmode -halt-on-error -output-directory=design -jobname=overview_comparison design/overview_comparison.tex
+```
+
+The [response-fidelity design discussion](https://chatgpt.com/share/6ae83146-0a04-83ea-86d4-c335690cff4c) motivates the optional third comparison in panel B. Build it with:
+
+```bash
+python paper/design/draw_overview.py --example pusher --response-fidelity
+node paper/design/render_figures.cjs benchmark_overview_pusher_response
+cd paper
+pdflatex -interaction=nonstopmode -halt-on-error -output-directory=design -jobname=response_fidelity_preview design/response_fidelity_preview.tex
 ```
 
 Set `CW_FIGURE_BROWSER` to an existing Chromium executable if needed. Set `NODE_PATH` if Playwright is installed outside the repository.

@@ -6,9 +6,11 @@ import base64
 HERE=Path(__file__).resolve().parent
 parser=argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--example',choices=['cube','pusher'],default='cube')
+parser.add_argument('--response-fidelity',action='store_true',help='Add a compact NRE explanation to the paired-evaluation panel.')
 args=parser.parse_args()
 PUSHER=args.example=='pusher'
 STEM='benchmark_overview_pusher' if PUSHER else 'benchmark_overview'
+if args.response_fidelity:STEM += '_response'
 PUSHER_ASSETS=HERE/'assets/pusher_pair'
 pusher=json.loads((PUSHER_ASSETS/'provenance.json').read_text())
 if PUSHER:
@@ -133,58 +135,61 @@ else:
         for x1,x2,label in [(418,499,'Lift'),(702,782,'Reverse'),(1017,1109,'Lift')]:
             s.text((x1+x2)/2,y+32,label,22,'#cf0000',700,'middle')
             s.arrow(x1,y+48 if letter=='A' else y+49,x2,y+48 if letter=='A' else y+49,'#344054',2,9)
-panel(20,471,1408,346,'B','Paired evaluation protocol',32)
-for mode,y,col,dark,letter in [('cannot_hold',537,BLUE,DARK_BLUE,'A'),('can_hold',678,ORANGE,DARK_ORANGE,'B')]:
-    s.rect(37,y,247,125,'#f1f9ff' if letter=='A' else '#fff7f0',col,1.2,10)
-    s.rect(39,y+2,243,33,'url(#blue)' if letter=='A' else 'url(#orange)',r=8)
-    s.text(160.5,y+25,'History '+letter,24,dark,700,'middle')
-    for t,xx in [(0,52),(1,114),(2,206)]:scene(mode,t,xx,y+42,59,52)
-    s.text(190,y+72,'…',23,anchor='middle')
-    s.text(160.5,y+115,'observations + actions',19,'#536172',anchor='middle')
-    s.arrow(287,y+65,331,y+65,col,2,9)
-s.text(427,543,'Shared future actions',18,'#536172',anchor='middle')
-s.arrow(427,548,427,565,'#536172',1.5,6)
-s.rect(334,568,186,181,'url(#model)',OUTLINE,1.3,11)
-s.lines(427,619,['Frozen','latent world','model'],26,gap=30,weight=700,anchor='middle')
-# Snowflake: vector icon rather than a font glyph.
-for angle in [0,math.pi/3,2*math.pi/3]:
-    ux,uy=math.cos(angle),math.sin(angle)
-    s.line(427-18*ux,710-18*uy,427+18*ux,710+18*uy,'#348fbc',2.2)
-    for sign in [-1,1]:
-        xx,yy=427+sign*18*ux,710+sign*18*uy
-        for side in [-1,1]:s.line(xx,yy,xx-sign*7*ux+side*4*uy,yy-sign*7*uy-side*4*ux,'#348fbc',2)
-for y,col,dark,letter in [(545,BLUE,DARK_BLUE,'A'),(681,ORANGE,DARK_ORANGE,'B')]:
-    s.arrow(523,y+53,567,y+53,col,2,9)
-    s.rect(571,y,176,101,'#f4faff' if letter=='A' else '#fff9f3',col,1.2,10)
-    s.rect(573,y+2,172,32,'#e4f2ff' if letter=='A' else '#ffeedf',r=8)
-    s.text(659,y+25,'Prediction from '+letter,20,dark,700,'middle')
-    s.raw(f'<text x="636" y="{y+82}" font-size="43" fill="{dark}" style="font-family:Georgia,serif;font-style:italic">z<tspan font-size="25" baseline-shift="sub">{letter}</tspan></text>')
-    s.raw(f'<path d="M 638 {y+49} l 9 -7 l 9 7" fill="none" stroke="{dark}" stroke-width="2"/>')
+if args.response_fidelity:
+    from draw_response_panel import draw_response_panel
+    draw_response_panel(s,scene,panel)
+else:
+    panel(20,471,1408,346,'B','Paired evaluation protocol',32)
+    for mode,y,col,dark,letter in [('cannot_hold',537,BLUE,DARK_BLUE,'A'),('can_hold',678,ORANGE,DARK_ORANGE,'B')]:
+        s.rect(37,y,247,125,'#f1f9ff' if letter=='A' else '#fff7f0',col,1.2,10)
+        s.rect(39,y+2,243,33,'url(#blue)' if letter=='A' else 'url(#orange)',r=8)
+        s.text(160.5,y+25,'History '+letter,24,dark,700,'middle')
+        for t,xx in [(0,52),(1,114),(2,206)]:scene(mode,t,xx,y+42,59,52)
+        s.text(190,y+72,'…',23,anchor='middle')
+        s.text(160.5,y+115,'observations + actions',19,'#536172',anchor='middle')
+        s.arrow(287,y+65,331,y+65,col,2,9)
+    s.text(427,543,'Shared future actions',18,'#536172',anchor='middle')
+    s.arrow(427,548,427,565,'#536172',1.5,6)
+    s.rect(334,568,186,181,'url(#model)',OUTLINE,1.3,11)
+    s.lines(427,619,['Frozen','latent world','model'],26,gap=30,weight=700,anchor='middle')
+    # Snowflake: vector icon rather than a font glyph.
+    for angle in [0,math.pi/3,2*math.pi/3]:
+        ux,uy=math.cos(angle),math.sin(angle)
+        s.line(427-18*ux,710-18*uy,427+18*ux,710+18*uy,'#348fbc',2.2)
+        for sign in [-1,1]:
+            xx,yy=427+sign*18*ux,710+sign*18*uy
+            for side in [-1,1]:s.line(xx,yy,xx-sign*7*ux+side*4*uy,yy-sign*7*uy-side*4*ux,'#348fbc',2)
+    for y,col,dark,letter in [(545,BLUE,DARK_BLUE,'A'),(681,ORANGE,DARK_ORANGE,'B')]:
+        s.arrow(523,y+53,567,y+53,col,2,9)
+        s.rect(571,y,176,101,'#f4faff' if letter=='A' else '#fff9f3',col,1.2,10)
+        s.rect(573,y+2,172,32,'#e4f2ff' if letter=='A' else '#ffeedf',r=8)
+        s.text(659,y+25,'Prediction from '+letter,20,dark,700,'middle')
+        s.raw(f'<text x="636" y="{y+82}" font-size="43" fill="{dark}" style="font-family:Georgia,serif;font-style:italic">z<tspan font-size="25" baseline-shift="sub">{letter}</tspan></text>')
+        s.raw(f'<path d="M 638 {y+49} l 9 -7 l 9 7" fill="none" stroke="{dark}" stroke-width="2"/>')
 
-s.rect(779,485,525,93,'#e3f2fe',r=11)
-s.text(1041.5,514,'Future discrimination (row-wise)',23,DARK_BLUE,700,'middle')
-for xx,first,second in [(839,'AA','AB'),(1073,'BB','BA')]:
-    s.rect(xx,526,188,44,'white','#b3bfd0',1.1,11);formula(xx+27,555,first,second,25);check(xx+160,548)
-for j,(letter,dark) in enumerate([('A',DARK_BLUE),('B',DARK_ORANGE)]):
-    xx=861+j*170
-    s.rect(xx,593,169,44,'#e0f0fe' if j==0 else '#fff0e3',OUTLINE,1,5)
-    s.text(xx+84.5,624,'True future '+letter,22,dark,700,'middle')
-    s.rect(773,636+j*68,88,66,'#e1f0ff' if j==0 else '#fff0e2',OUTLINE,1,5)
-    s.lines(817,664+j*68,['Pred','from '+letter],21,gap=23,fill=dark,weight=700,anchor='middle')
-for i in range(2):
- for j in range(2):
-    xx=861+j*170;yy=637+i*68
-    fill='url(#blue)' if i==j==0 else 'url(#orange)' if i==j==1 else 'url(#neutral)'
-    stroke=BLUE if i==j==0 else ORANGE if i==j==1 else '#c3cbd7'
-    s.rect(xx,yy,169,66,fill,stroke,1.2,4)
-    s.raw(f'<text x="{xx+84.5}" y="{yy+45}" text-anchor="middle" style="font-family:Georgia,serif;font-style:italic" font-size="36">d<tspan font-size="24" baseline-shift="sub">{"AB"[i]}{"AB"[j]}</tspan></text>')
-s.text(1031,797,'Prediction error (lower is better)',18,'#667488',anchor='middle')
-s.rect(1219,590,200,212,'#fff0e4',r=12)
-s.text(1319,621,'History benefit',23,DARK_ORANGE,700,'middle')
-s.text(1319,649,'(column-wise)',22,DARK_ORANGE,anchor='middle')
-for yy,first,second in [(669,'AA','BA'),(731,'BB','AB')]:
-    s.rect(1227,yy,185,48,'white','#c6c4c3',1.1,11);formula(1246,yy+32,first,second,25);check(1385,yy+24)
-
+    s.rect(779,485,525,93,'#e3f2fe',r=11)
+    s.text(1041.5,514,'Future discrimination (row-wise)',23,DARK_BLUE,700,'middle')
+    for xx,first,second in [(839,'AA','AB'),(1073,'BB','BA')]:
+        s.rect(xx,526,188,44,'white','#b3bfd0',1.1,11);formula(xx+27,555,first,second,25);check(xx+160,548)
+    for j,(letter,dark) in enumerate([('A',DARK_BLUE),('B',DARK_ORANGE)]):
+        xx=861+j*170
+        s.rect(xx,593,169,44,'#e0f0fe' if j==0 else '#fff0e3',OUTLINE,1,5)
+        s.text(xx+84.5,624,'True future '+letter,22,dark,700,'middle')
+        s.rect(773,636+j*68,88,66,'#e1f0ff' if j==0 else '#fff0e2',OUTLINE,1,5)
+        s.lines(817,664+j*68,['Pred','from '+letter],21,gap=23,fill=dark,weight=700,anchor='middle')
+    for i in range(2):
+     for j in range(2):
+        xx=861+j*170;yy=637+i*68
+        fill='url(#blue)' if i==j==0 else 'url(#orange)' if i==j==1 else 'url(#neutral)'
+        stroke=BLUE if i==j==0 else ORANGE if i==j==1 else '#c3cbd7'
+        s.rect(xx,yy,169,66,fill,stroke,1.2,4)
+        s.raw(f'<text x="{xx+84.5}" y="{yy+45}" text-anchor="middle" style="font-family:Georgia,serif;font-style:italic" font-size="36">d<tspan font-size="24" baseline-shift="sub">{"AB"[i]}{"AB"[j]}</tspan></text>')
+    s.text(1031,797,'Prediction error (lower is better)',18,'#667488',anchor='middle')
+    s.rect(1219,590,200,212,'#fff0e4',r=12)
+    s.text(1319,621,'History benefit',23,DARK_ORANGE,700,'middle')
+    s.text(1319,649,'(column-wise)',22,DARK_ORANGE,anchor='middle')
+    for yy,first,second in [(669,'AA','BA'),(731,'BB','AB')]:
+        s.rect(1227,yy,185,48,'white','#c6c4c3',1.1,11);formula(1246,yy+32,first,second,25);check(1385,yy+24)
 panel(20,831,1408,236,'C','ContextWorld: 9 tasks across 4 environments',31)
 # Environment views come from saved benchmark data, with provenance retained.
 cards=[(34,374,'TwoRoom','4 tasks',HERE/'assets/environments/tworoom.jpg',['Speed','Action delay','Door traversability','Portal exit'],142),(421,353,'PushT','3 tasks',HERE/'assets/pusher_pair/pusher_low_gain_step10.jpg',['Pusher displacement','Contact friction','Motion damping'],125),(787,301,'Reacher','1 task',HERE/'assets/environments/reacher.jpg',['Arm mass'],104),(1100,320,'Cube','1 task',ASSETS/'can_hold_t0.png',['Gripper carry rule'],125)]
@@ -221,9 +226,11 @@ if PUSHER:
         'screenshot_integrity':'All eight source image SHA-256 values checked.',
         'preview_only':True,
     }
-    (HERE/'overview_pusher.json').write_text(json.dumps(metadata,indent=2)+'\n')
+    if args.response_fidelity:
+        metadata['response_fidelity']={'metric':'NRE, ratio of sums across pairs','true_response':'z_B - z_A','predicted_response':'z_hat_B - z_hat_A','vector_display':'Conceptual diagram; not projected or measured results.'}
+    (HERE/('overview_pusher_response.json' if args.response_fidelity else 'overview_pusher.json')).write_text(json.dumps(metadata,indent=2)+'\n')
 else:
-    (HERE/'overview_crop.json').write_text(json.dumps({
+    (HERE/('overview_response.json' if args.response_fidelity else 'overview_crop.json')).write_text(json.dumps({
         'design_reference':'https://chatgpt.com/share/6ae80941-7830-83ea-a2af-476c8f212ea8',
         'source':'assets/cube_pair_hd/provenance.json',
         'pair_id':provenance['pair_id'],
