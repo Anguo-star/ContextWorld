@@ -37,20 +37,46 @@ def draw_original_error_matrix(s, formula, check):
 
 
 def draw_arrow_error_matrix(s):
-    # Preserve the approved cell design; replace the surrounding inequalities.
-    s.raw('<g id="arrow-error-grid" transform="translate(609,595) scale(0.9) translate(-773,-593)">')
-    draw_original_error_grid(s)
-    s.raw('</g>')
+    # Headers stay outside the comparison arrows; only errors occupy cells.
+    blue, orange = '#0094ff', '#ff780a'
     row_color, column_color = '#0044b5', '#c52e00'
-    s.text(840, 553, 'Future discrimination', 20, row_color, 700, 'middle')
-    # Row A: AB -> AA. Row B: BA -> BB.
-    s.arrow(917.25, 577, 764.25, 577, row_color, 2.3, 8)
-    s.arrow(764.25, 775, 917.25, 775, row_color, 2.3, 8)
-    # Column A: BA -> AA. Column B: AB -> BB.
-    s.arrow(592, 725.5, 592, 664.3, column_color, 2.3, 8)
-    s.arrow(1012, 664.3, 1012, 725.5, column_color, 2.3, 8)
-    s.text(1045, 695, 'History benefit', 18, column_color, 700, 'middle', transform='rotate(90 1045 695)')
-    s.text(834, 802, 'Arrowheads: lower error', 17, '#667488', anchor='middle')
+    grid_x, grid_y, cell_w, cell_h, gap = 732, 600, 106, 80, 2
+    s.raw('<g id="arrow-error-matrix">')
+    s.text(839, 530, 'Prediction error · lower is better', 18, '#263547', 700, 'middle')
+    for index, (letter, color) in enumerate([('A', row_color), ('B', column_color)]):
+        center_x = grid_x + index*(cell_w+gap) + cell_w/2
+        center_y = grid_y + index*(cell_h+gap) + cell_h/2
+        s.text(center_x, 552, 'True future', 16.5, color, 700, 'middle')
+        s.text(center_x, 574, letter, 18, color, 700, 'middle')
+        s.lines(656, center_y-6, ['Pred', 'from '+letter], 18, gap=21,
+                fill=color, weight=700, anchor='middle')
+    for i in range(2):
+        for j in range(2):
+            x, y = grid_x+j*(cell_w+gap), grid_y+i*(cell_h+gap)
+            fill = 'url(#blue)' if i == j == 0 else 'url(#orange)' if i == j == 1 else 'url(#neutral)'
+            stroke = blue if i == j == 0 else orange if i == j == 1 else '#c3cbd7'
+            s.rect(x, y, cell_w, cell_h, fill, stroke, 1.2, 4)
+            s.raw(f'<text x="{x+cell_w/2}" y="{y+51}" text-anchor="middle" style="font-family:Georgia,serif;font-style:italic" font-size="34">d<tspan font-size="23" baseline-shift="sub">{"AB"[i]}{"AB"[j]}</tspan></text>')
+
+    def half_arrow(name, x1, y1, x2, y2, outward_x, outward_y, color):
+        # Only the outer wing is drawn. The side facing the cells stays open.
+        length = math.hypot(x2-x1, y2-y1)
+        ux, uy = (x2-x1)/length, (y2-y1)/length
+        wing_x, wing_y = x2-9*ux+6*outward_x, y2-9*uy+6*outward_y
+        s.raw(f'<path id="comparison-{name}" d="M {x1} {y1} L {x2} {y2} M {x2} {y2} L {wing_x} {wing_y}" fill="none" stroke="{color}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>')
+    # Row A: AB -> AA; row B: BA -> BB.
+    half_arrow('row-a', 893, 589, 785, 589, 0, -1, row_color)
+    half_arrow('row-b', 785, 778, 893, 778, 0, 1, row_color)
+    # Column A: BA -> AA; column B: AB -> BB.
+    half_arrow('column-a', 710, 722, 710, 640, -1, 0, column_color)
+    half_arrow('column-b', 968, 640, 968, 722, 1, 0, column_color)
+
+    # Horizontal legends avoid a second set of axis-like labels.
+    s.line(596, 797, 612, 797, row_color, 1.8)
+    s.text(622, 803, 'Future discrimination', 17, row_color)
+    s.line(843, 797, 859, 797, column_color, 1.8)
+    s.text(869, 803, 'History benefit', 17, column_color)
+    s.raw('</g>')
 
 
 def draw_response_panel(s, scene, panel, formula, check, prediction_images=False):
