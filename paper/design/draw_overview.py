@@ -7,10 +7,14 @@ HERE=Path(__file__).resolve().parent
 parser=argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--example',choices=['cube','pusher'],default='cube')
 parser.add_argument('--response-fidelity',action='store_true',help='Add a compact NRE explanation to the paired-evaluation panel.')
+parser.add_argument('--prediction-images',action='store_true',help='Preview true-future reference thumbnails beside latent prediction symbols; not decoded predictions.')
 args=parser.parse_args()
+if args.prediction_images and not (args.example=='pusher' and args.response_fidelity):
+    parser.error('--prediction-images requires --example pusher --response-fidelity')
 PUSHER=args.example=='pusher'
 STEM='benchmark_overview_pusher' if PUSHER else 'benchmark_overview'
 if args.response_fidelity:STEM += '_response'
+if args.prediction_images:STEM += '_images'
 PUSHER_ASSETS=HERE/'assets/pusher_pair'
 pusher=json.loads((PUSHER_ASSETS/'provenance.json').read_text())
 if PUSHER:
@@ -67,7 +71,7 @@ def pusher_frame(mode,t,x,y,w,h,annotate=False):
         ox=x+(w-size)/2-PUSHER_VIEWBOX[0]*scale
         oy=y+(h-size)/2-PUSHER_VIEWBOX[1]*scale
         points=' '.join(f'{ox+px*scale:.3f},{oy+py*scale:.3f}' for px,py in silhouette['vertices'])
-        s.raw(f'<polygon points="{points}" fill="none" stroke="#8698a7" stroke-width="1.15" stroke-dasharray="3.5 3" stroke-linejoin="round" opacity="0.85"/>')
+        s.raw(f'<polygon points="{points}" fill="#8698a7" fill-opacity="0.16" stroke="#6e8294" stroke-width="1.2" stroke-dasharray="3.5 3" stroke-linejoin="round" stroke-opacity="0.9"/>')
     if annotate and t in [1,2,3]:
         # Endpoint displacements only; no unobserved path or intermediate state is drawn.
         size=min(w-2,h-2);pixel_scale=size/PUSHER_VIEWBOX[2]
@@ -101,7 +105,7 @@ if PUSHER:
     s.circle(55,272,6,'#527fff','#3563b3',1)
     s.text(73,279,'Pusher',19,'#41536c')
     s.line(42,307,64,307,'#46556b',1.6,'3 2');s.arrow(60,307,67,307,'#46556b',1.3,5)
-    s.text(73,313,'Displacement',17,'#41536c')
+    s.text(73,313,'Movement',17,'#41536c')
     blocks=['context_0_to_5','context_5_to_10','query_10_to_15']
     for mode,y,letter,dark,desc in [('low_gain',110,'A',DARK_BLUE,['Smaller','action response']),('high_gain',337,'B',DARK_ORANGE,['Larger','action response'])]:
         s.rect(36,y+16,175,111,'#e2f2ff' if letter=='A' else '#fff0e4',r=11)
@@ -146,7 +150,7 @@ else:
             s.arrow(x1,y+48 if letter=='A' else y+49,x2,y+48 if letter=='A' else y+49,'#344054',2,9)
 if args.response_fidelity:
     from draw_response_panel import draw_response_panel
-    draw_response_panel(s,scene,panel,formula,check)
+    draw_response_panel(s,scene,panel,formula,check,prediction_images=args.prediction_images)
 else:
     panel(20,471,1408,346,'B','Paired evaluation protocol',32)
     for mode,y,col,dark,letter in [('cannot_hold',537,BLUE,DARK_BLUE,'A'),('can_hold',678,ORANGE,DARK_ORANGE,'B')]:
@@ -181,6 +185,7 @@ else:
 panel(20,831,1408,236,'C','ContextWorld: 9 tasks across 4 environments',31)
 # Environment views come from saved benchmark data, with provenance retained.
 cards=[(34,374,'TwoRoom','4 tasks',HERE/'assets/environments/tworoom.jpg',['Speed','Action delay','Door traversability','Portal exit'],142),(421,353,'PushT','3 tasks',HERE/'assets/pusher_pair/pusher_low_gain_step10.jpg',['Pusher displacement','Contact friction','Motion damping'],125),(787,301,'Reacher','1 task',HERE/'assets/environments/reacher.jpg',['Arm mass'],104),(1100,320,'Cube','1 task',ASSETS/'can_hold_t0.png',['Gripper carry rule'],125)]
+s.raw('<g id="environment-cards" transform="translate(0,6)">')
 for x,w,title,count,path,tasks,iw in cards:
     s.rect(x,881,w,172,'url(#card-bg)',r=15)
     ix=x+13;iy=896;ih=137
@@ -198,6 +203,7 @@ for x,w,title,count,path,tasks,iw in cards:
         s.rect(tx,yy,tw,25,'white',r=7)
         s.text(tx+14,yy+19,t,18,'#41536c')
 
+s.raw('</g>')
 if PUSHER:s.raw('</g>')
 s.save(HERE/(STEM+'.svg'))
 if PUSHER:
@@ -217,7 +223,10 @@ if PUSHER:
     }
     if args.response_fidelity:
         metadata['response_fidelity']={'metric':'NRE, ratio of sums across pairs','true_response':'z_B - z_A','predicted_response':'z_hat_B - z_hat_A','vector_display':'Conceptual diagram; not projected or measured results.'}
-    (HERE/('overview_pusher_response.json' if args.response_fidelity else 'overview_pusher.json')).write_text(json.dumps(metadata,indent=2)+'\n')
+    if args.prediction_images:
+        metadata['prediction_thumbnail_semantics']='Ground-truth future images supplied as labeled visual references beside latent symbols; not decoded model predictions.'
+    metadata_name='overview_pusher_response_images.json' if args.prediction_images else 'overview_pusher_response.json' if args.response_fidelity else 'overview_pusher.json'
+    (HERE/metadata_name).write_text(json.dumps(metadata,indent=2)+'\n')
 else:
     (HERE/('overview_response.json' if args.response_fidelity else 'overview_crop.json')).write_text(json.dumps({
         'design_reference':'https://chatgpt.com/share/6ae80941-7830-83ea-a2af-476c8f212ea8',

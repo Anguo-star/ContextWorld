@@ -30,7 +30,7 @@ def draw_original_error_matrix(s, formula, check):
         s.rect(1227,yy,185,48,'white','#c6c4c3',1.1,11);formula(1246,yy+32,first,second,25);check(1385,yy+24)
 
 
-def draw_response_panel(s, scene, panel, formula, check):
+def draw_response_panel(s, scene, panel, formula, check, prediction_images=False):
     blue, orange = '#0094ff', '#ff780a'
     dark_blue, dark_orange = '#0044b5', '#c52e00'
     ink, muted, outline = '#263547', '#667488', '#8795aa'
@@ -61,12 +61,27 @@ def draw_response_panel(s, scene, panel, formula, check):
                 s.line(x, y, x-sign*7*ux+side*4*uy, y-sign*7*uy-side*4*ux, '#348fbc', 2)
     for y, col, dark, letter in [(545, blue, dark_blue, 'A'), (681, orange, dark_orange, 'B')]:
         s.arrow(453, y+53, 491, y+53, col, 2, 8)
-        s.rect(495, y, 165, 101, '#f4faff' if letter == 'A' else '#fff9f3', col, 1.2, 10)
-        s.rect(497, y+2, 161, 32, '#e4f2ff' if letter == 'A' else '#ffeedf', r=8)
-        s.text(577.5, y+25, 'Prediction from '+letter, 20, dark, 700, 'middle')
-        s.raw(f'<text x="555" y="{y+82}" font-size="43" fill="{dark}" style="font-family:Georgia,serif;font-style:italic">z<tspan font-size="25" baseline-shift="sub">{letter}</tspan></text>')
-        s.raw(f'<path d="M 557 {y+49} l 9 -7 l 9 7" fill="none" stroke="{dark}" stroke-width="2"/>')
+        if not prediction_images:
+            s.rect(495, y, 165, 101, '#f4faff' if letter == 'A' else '#fff9f3', col, 1.2, 10)
+            s.rect(497, y+2, 161, 32, '#e4f2ff' if letter == 'A' else '#ffeedf', r=8)
+            s.text(577.5, y+25, 'Prediction from '+letter, 20, dark, 700, 'middle')
+            s.raw(f'<text x="555" y="{y+82}" font-size="43" fill="{dark}" style="font-family:Georgia,serif;font-style:italic">z<tspan font-size="25" baseline-shift="sub">{letter}</tspan></text>')
+            s.raw(f'<path d="M 557 {y+49} l 9 -7 l 9 7" fill="none" stroke="{dark}" stroke-width="2"/>')
     s.raw('</g>')
+    if prediction_images:
+        # Real future images are visual references, not decoded predictions.
+        for mode, y, col, dark, letter in [
+            ('cannot_hold', 537, blue, dark_blue, 'A'),
+            ('can_hold', 675, orange, dark_orange, 'B'),
+        ]:
+            s.rect(415, y, 137, 114, '#f4faff' if letter == 'A' else '#fff9f3', col, 1.0, 8)
+            s.rect(417, y+2, 133, 26, '#e4f2ff' if letter == 'A' else '#ffeedf', r=6)
+            s.text(483.5, y+20, 'Prediction '+letter, 16.5, dark, 700, 'middle')
+            scene(mode, 3, 423, y+36, 65, 57)
+            s.text(455.5, y+108, 'Reference', 14, '#667488', anchor='middle')
+            s.raw(f'<text x="505" y="{y+76}" font-size="32" fill="{dark}" style="font-family:Georgia,serif;font-style:italic">z<tspan font-size="19" baseline-shift="sub">{letter}</tspan></text>')
+            s.raw(f'<path d="M 507 {y+50} l 7 -5 l 7 5" fill="none" stroke="{dark}" stroke-width="1.6"/>')
+            s.text(522, y+108, 'latent', 14, dark, anchor='middle')
     # The original matrix, labels and inequality cards are an unchanged group.
     s.raw('<g id="original-error-comparisons" transform="translate(573,537) scale(0.8) translate(-773,-485)">')
     draw_original_error_matrix(s, formula, check)
