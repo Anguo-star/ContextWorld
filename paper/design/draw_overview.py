@@ -1,9 +1,21 @@
 """Reference-layout overview using recorded Cube states and dataset screenshots."""
 from pathlib import Path
-import json, math
+import argparse, hashlib, json, math
 from svg_style import SVG, data_uri
 import base64
 HERE=Path(__file__).resolve().parent
+parser=argparse.ArgumentParser(description=__doc__)
+parser.add_argument('--example',choices=['cube','pusher'],default='cube')
+args=parser.parse_args()
+PUSHER=args.example=='pusher'
+STEM='benchmark_overview_pusher' if PUSHER else 'benchmark_overview'
+PUSHER_ASSETS=HERE/'assets/pusher_pair'
+pusher=json.loads((PUSHER_ASSETS/'provenance.json').read_text())
+if PUSHER:
+    for mode in ['low_gain','high_gain']:
+        for step,record in pusher['frames'][mode].items():
+            assert hashlib.sha256((PUSHER_ASSETS/record['file']).read_bytes()).hexdigest()==record['sha256']
+    assert pusher['frames']['low_gain']['10']['sha256']==pusher['frames']['high_gain']['10']['sha256']
 ASSETS=HERE/'assets/cube_pair_hd'
 provenance=json.loads((ASSETS/'provenance.json').read_text())
 raw=json.loads((HERE/'assets/cube_pair/provenance.json').read_text())
@@ -11,7 +23,7 @@ assert (ASSETS/provenance['frames']['cannot_hold']['2']['file']).read_bytes()==(
 for t in range(4):
     assert raw['frames']['cannot_hold'][str(t)]['action_block']==raw['frames']['can_hold'][str(t)]['action_block']
 BLUE='#0094ff'; ORANGE='#ff780a'; DARK_BLUE='#0044b5'; DARK_ORANGE='#c52e00'; INK='#111620'; OUTLINE='#8795aa'
-s=SVG(1448,1086)
+s=SVG(1448,1158 if PUSHER else 1086)
 regular=base64.b64encode((HERE/'assets/fonts/RobotoCondensed-Regular.ttf').read_bytes()).decode()
 bold=base64.b64encode((HERE/'assets/fonts/RobotoCondensed-Bold.ttf').read_bytes()).decode()
 s.raw(f'<style>@font-face{{font-family:ReferenceNarrow;src:url(data:font/ttf;base64,{regular});font-weight:400}}@font-face{{font-family:ReferenceNarrow;src:url(data:font/ttf;base64,{bold});font-weight:700}}</style>')
@@ -40,32 +52,87 @@ def native_crop(path,box,x,y,w,h,r=3,source_size=(1600,900),fit='slice'):
     s.raw(f'<defs><clipPath id="{ident}"><rect x="{x}" y="{y}" width="{w}" height="{h}" rx="{r}"/></clipPath></defs>')
     viewbox=' '.join(map(str,box))
     s.raw(f'<g clip-path="url(#{ident})"><svg x="{x}" y="{y}" width="{w}" height="{h}" viewBox="{viewbox}" preserveAspectRatio="xMidYMid {fit}" overflow="hidden"><use href="#{embedded[path]}"/></svg></g>')
+PUSHER_VIEWBOX=(27,20,146,146)
+def pusher_frame(mode,t,x,y,w,h,annotate=False):
+    record=pusher['frames'][mode][str(t*5)]
+    s.rect(x,y,w,h,'white','#8f99a8',1.2,4)
+    native_crop(PUSHER_ASSETS/record['file'],PUSHER_VIEWBOX,x+1,y+1,w-2,h-2,source_size=(224,224),fit='meet')
+    if annotate and t in [1,3]:
+        # Endpoint displacements only; no unobserved path or intermediate state is drawn.
+        size=min(w-2,h-2);pixel_scale=size/PUSHER_VIEWBOX[2]
+        scale=pixel_scale*224/512
+        ox=x+(w-size)/2-PUSHER_VIEWBOX[0]*pixel_scale
+        oy=y+(h-size)/2-PUSHER_VIEWBOX[1]*pixel_scale
+        start=pusher['frames'][mode][str((t-1)*5)]['state'][:2]
+        end=record['state'][:2]
+        ax,ay=ox+start[0]*scale,oy+start[1]*scale
+        bx,by=ox+end[0]*scale,oy+end[1]*scale
+        dx,dy=bx-ax,by-ay;length=math.hypot(dx,dy);ux,uy=dx/length,dy/length
+        s.circle(ax,ay,4,'white','#46556b',1.3)
+        s.line(ax+5*ux,ay+5*uy,bx-8*ux,by-8*uy,'#46556b',1.6,'3 2')
+        s.arrow(bx-11*ux,by-11*uy,bx-7.5*ux,by-7.5*uy,'#46556b',1.3,4.5)
 def scene(mode,t,x,y,w=181,h=112):
-    s.rect(x,y,w,h,'#eef1f6','#8f99a8',1.2,4)
-    native_crop(ASSETS/provenance['frames'][mode][str(t)]['file'],CUBE_VIEWBOX,x+1,y+1,w-2,h-2)
+    if PUSHER:
+        pusher_frame('low_gain' if mode=='cannot_hold' else 'high_gain',t,x,y,w,h)
+    else:
+        s.rect(x,y,w,h,'#eef1f6','#8f99a8',1.2,4)
+        native_crop(ASSETS/provenance['frames'][mode][str(t)]['file'],CUBE_VIEWBOX,x+1,y+1,w-2,h-2)
 
-panel(20,15,1408,442,'A','Same current observation and future actions, different futures',32)
-s.text(1416,47,'Cube carry-rule example',22,'#606b7b',anchor='end')
-s.rect(787,73,203,362,'url(#current-bg)','#b3dcfc',.8,10)
-s.line(29,258,1416,258,'#ccd5df',1.3,'4 4')
-brace(996,113,290);s.rect(1016,202,94,116,'url(#card-bg)',r=10)
-s.lines(1063,245,['Identical','current','observation'],21,gap=23,weight=700,anchor='middle',style='font-family:ReferenceNarrow')
-brace(1317,111,293);s.rect(1333,110,86,294,'url(#card-bg)',r=10)
-s.lines(1376,245,['Different','future','outcomes'],21,gap=24,weight=700,anchor='middle',style='font-family:ReferenceNarrow')
-for mode,y,letter,dark,desc in [('cannot_hold',110,'A',DARK_BLUE,['Cannot carry','the cube']),('can_hold',305,'B',DARK_ORANGE,['Can carry','the cube'])]:
-    s.rect(36,y-1,175,111,'#e2f2ff' if letter=='A' else '#fff0e4',r=11)
-    s.text(48,y+36,f'Condition {letter}:',26,dark,700)
-    s.lines(48,y+64,desc,24,gap=28,weight=700)
-    for t,x,title in [(0,222,'History t − 2'),(1,510,'History t − 1'),(2,800,'Current observation'),(3,1122,'Ground-truth future')]:
-        hy=y-36
-        s.rect(x-3,hy,187,37,'url(#neutral)' if t!=2 else '#e1f3ff',r=6)
-        s.text(x+90.5,hy+25,title,20,DARK_BLUE if t==2 else INK,700,'middle')
-        scene(mode,t,x,y)
-        if t in [1,3]:s.text(x+90.5,y+132,'Not lifted' if letter=='A' else 'Lifted',23,dark,700,'middle')
-    for x1,x2,label in [(418,499,'Lift'),(702,782,'Reverse'),(1017,1109,'Lift')]:
-        s.text((x1+x2)/2,y+32,label,22,'#cf0000',700,'middle')
-        s.arrow(x1,y+48 if letter=='A' else y+49,x2,y+48 if letter=='A' else y+49,'#344054',2,9)
-
+if PUSHER:
+    panel(20,15,1408,514,'A','Same current observation and future actions, different futures',32)
+    s.text(1416,47,'Pusher displacement example',21,'#606b7b',anchor='end')
+    s.rect(787,73,203,434,'url(#current-bg)','#b3dcfc',.8,10)
+    s.line(220,290,1416,290,'#ccd5df',1.3,'4 4')
+    brace(996,113,362);s.rect(1016,238,94,116,'url(#card-bg)',r=10)
+    s.lines(1063,281,['Identical','current','observation'],21,gap=23,weight=700,anchor='middle',style='font-family:ReferenceNarrow')
+    brace(1317,111,365);s.rect(1333,110,86,366,'url(#card-bg)',r=10)
+    s.lines(1376,281,['Different','future','outcomes'],21,gap=24,weight=700,anchor='middle',style='font-family:ReferenceNarrow')
+    s.circle(55,272,6,'#527fff','#3563b3',1)
+    s.text(73,279,'Pusher',19,'#41536c')
+    s.line(42,307,64,307,'#46556b',1.6,'3 2');s.arrow(60,307,67,307,'#46556b',1.3,5)
+    s.text(73,313,'Displacement',17,'#41536c')
+    blocks=['context_0_to_5','context_5_to_10','query_10_to_15']
+    for mode,y,letter,dark,desc in [('low_gain',110,'A',DARK_BLUE,['Smaller','action response']),('high_gain',337,'B',DARK_ORANGE,['Larger','action response'])]:
+        s.rect(36,y+16,175,111,'#e2f2ff' if letter=='A' else '#fff0e4',r=11)
+        s.text(48,y+52,f'Condition {letter}:',26,dark,700)
+        s.lines(48,y+81,desc,21,gap=25,weight=700)
+        for t,x,title in [(0,222,'History t − 2'),(1,510,'History t − 1'),(2,800,'Current observation'),(3,1122,'Ground-truth future')]:
+            hy=y-36
+            s.rect(x-3,hy,187,37,'url(#neutral)' if t!=2 else '#e1f3ff',r=6)
+            s.text(x+90.5,hy+25,title,20,DARK_BLUE if t==2 else INK,700,'middle')
+            pusher_frame(mode,t,x,y,181,146,annotate=True)
+            if t in [1,3]:s.text(x+90.5,y+167,'Shorter movement' if letter=='A' else 'Longer movement',20,dark,700,'middle')
+        for j,(x1,x2,label) in enumerate([(418,499,'Move'),(702,782,'Reverse'),(1017,1109,'Move')]):
+            center=(x1+x2)/2
+            s.text(center,y+40,label,21,'#cf0000',700,'middle')
+            commands=pusher['action_blocks'][blocks[j]]
+            dx,dy=[sum(a[k] for a in commands) for k in range(2)];norm=math.hypot(dx,dy)
+            ux,uy=dx/norm,dy/norm
+            s.arrow(center-15*ux,y+71-15*uy,center+15*ux,y+71+15*uy,'#cf0000',2.5,7)
+            s.arrow(x1,y+113,x2,y+113,'#344054',2,9)
+    s.raw('<g transform="translate(0,72)">')
+else:
+    panel(20,15,1408,442,'A','Same current observation and future actions, different futures',32)
+    s.text(1416,47,'Cube carry-rule example',22,'#606b7b',anchor='end')
+    s.rect(787,73,203,362,'url(#current-bg)','#b3dcfc',.8,10)
+    s.line(29,258,1416,258,'#ccd5df',1.3,'4 4')
+    brace(996,113,290);s.rect(1016,202,94,116,'url(#card-bg)',r=10)
+    s.lines(1063,245,['Identical','current','observation'],21,gap=23,weight=700,anchor='middle',style='font-family:ReferenceNarrow')
+    brace(1317,111,293);s.rect(1333,110,86,294,'url(#card-bg)',r=10)
+    s.lines(1376,245,['Different','future','outcomes'],21,gap=24,weight=700,anchor='middle',style='font-family:ReferenceNarrow')
+    for mode,y,letter,dark,desc in [('cannot_hold',110,'A',DARK_BLUE,['Cannot carry','the cube']),('can_hold',305,'B',DARK_ORANGE,['Can carry','the cube'])]:
+        s.rect(36,y-1,175,111,'#e2f2ff' if letter=='A' else '#fff0e4',r=11)
+        s.text(48,y+36,f'Condition {letter}:',26,dark,700)
+        s.lines(48,y+64,desc,24,gap=28,weight=700)
+        for t,x,title in [(0,222,'History t − 2'),(1,510,'History t − 1'),(2,800,'Current observation'),(3,1122,'Ground-truth future')]:
+            hy=y-36
+            s.rect(x-3,hy,187,37,'url(#neutral)' if t!=2 else '#e1f3ff',r=6)
+            s.text(x+90.5,hy+25,title,20,DARK_BLUE if t==2 else INK,700,'middle')
+            scene(mode,t,x,y)
+            if t in [1,3]:s.text(x+90.5,y+132,'Not lifted' if letter=='A' else 'Lifted',23,dark,700,'middle')
+        for x1,x2,label in [(418,499,'Lift'),(702,782,'Reverse'),(1017,1109,'Lift')]:
+            s.text((x1+x2)/2,y+32,label,22,'#cf0000',700,'middle')
+            s.arrow(x1,y+48 if letter=='A' else y+49,x2,y+48 if letter=='A' else y+49,'#344054',2,9)
 panel(20,471,1408,346,'B','Paired evaluation protocol',32)
 for mode,y,col,dark,letter in [('cannot_hold',537,BLUE,DARK_BLUE,'A'),('can_hold',678,ORANGE,DARK_ORANGE,'B')]:
     s.rect(37,y,247,125,'#f1f9ff' if letter=='A' else '#fff7f0',col,1.2,10)
@@ -138,19 +205,36 @@ for x,w,title,count,path,tasks,iw in cards:
         s.rect(tx,yy,tw,25,'white',r=7)
         s.text(tx+14,yy+19,t,18,'#41536c')
 
-s.save(HERE/'benchmark_overview.svg')
-(HERE/'overview_crop.json').write_text(json.dumps({
-    'design_reference':'https://chatgpt.com/share/6ae80941-7830-83ea-a2af-476c8f212ea8',
-    'source':'assets/cube_pair_hd/provenance.json',
-    'pair_id':provenance['pair_id'],
-    'output_dimensions':[1448,1086],
-    'scene_source':'Native high-resolution renders of recorded simulator states; model-input observations remain unchanged.',
-    'shared_state_viewbox':CUBE_VIEWBOX,
-    'current_render_identical':True,
-    'shared_action_blocks_verified':True,
-    'cube_state_max_abs_replay_error_m':provenance['cube_state_max_abs_replay_error_m'],
-    'cube_lift_m':provenance['cube_lift_m'],
-    'environment_sources':['assets/environments/provenance.json','assets/pusher_pair/provenance.json','assets/cube_pair_hd/provenance.json'],
-    'layout':'Reference A/B/C layout with native data images. The design-reference artwork is not embedded.',
-},indent=2)+'\n')
-print('Native-data overview saved; shared observations and actions verified.')
+if PUSHER:s.raw('</g>')
+s.save(HERE/(STEM+'.svg'))
+if PUSHER:
+    metadata={
+        'pair_id':pusher['pair_id'],
+        'source':'assets/pusher_pair/provenance.json',
+        'output_dimensions':[1448,1158],
+        'scene_source':'Unmodified saved dataset screenshots with vector annotations.',
+        'current_observation_identical':True,
+        'shared_image_crop':PUSHER_VIEWBOX,
+        'shared_actions':pusher['action_blocks'],
+        'action_arrows':'Direction of the sum of each shared five-step action block.',
+        'displacement_arrows':'Observed endpoint displacement from saved pusher positions; not an interpolated trajectory.',
+        'screenshot_integrity':'All eight source image SHA-256 values checked.',
+        'preview_only':True,
+    }
+    (HERE/'overview_pusher.json').write_text(json.dumps(metadata,indent=2)+'\n')
+else:
+    (HERE/'overview_crop.json').write_text(json.dumps({
+        'design_reference':'https://chatgpt.com/share/6ae80941-7830-83ea-a2af-476c8f212ea8',
+        'source':'assets/cube_pair_hd/provenance.json',
+        'pair_id':provenance['pair_id'],
+        'output_dimensions':[1448,1086],
+        'scene_source':'Native high-resolution renders of recorded simulator states; model-input observations remain unchanged.',
+        'shared_state_viewbox':CUBE_VIEWBOX,
+        'current_render_identical':True,
+        'shared_action_blocks_verified':True,
+        'cube_state_max_abs_replay_error_m':provenance['cube_state_max_abs_replay_error_m'],
+        'cube_lift_m':provenance['cube_lift_m'],
+        'environment_sources':['assets/environments/provenance.json','assets/pusher_pair/provenance.json','assets/cube_pair_hd/provenance.json'],
+        'layout':'Reference A/B/C layout with native data images. The design-reference artwork is not embedded.',
+    },indent=2)+'\n')
+    print('Native-data overview saved; shared observations and actions verified.')

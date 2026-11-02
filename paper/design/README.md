@@ -3,6 +3,8 @@
 The overview explains the controlled task design, paired evaluation and task coverage. The training figure presents a measured example; it is not repeated in the overview.
 
 - `benchmark_overview.pdf` / `.svg`: an editable reconstruction of the supplied 1448 × 1086 design. Panel A shows a recorded Cube carry-rule pair; panel B shows separate frozen-model calls and the four error comparisons; panel C maps nine tasks to four environments. Commands label transitions, and both conditions use exactly the same current-observation rendering. Text, arrows, matrix cells and panel frames remain vector graphics. Cube images are high-resolution native renderings of recorded states. Other environment views are saved dataset screenshots. The design reference supplies the layout and visual styling, not scene pixels.
+- `benchmark_overview_pusher.pdf` / `.svg`: alternative main-figure preview using a real PushT pusher-displacement pair. The original scene screenshots share one crop. Red arrows summarize the shared action directions; dashed arrows show measured endpoint displacement, not an interpolated path. Sources and arrow semantics are recorded in `overview_pusher.json`.
+- `overview_comparison.pdf`: PushT and Cube alternatives at manuscript width on separate pages. The manuscript continues to use the Cube version pending selection.
 - `assets/reference/main_figure_design.png`: the complete supplied design, retained at its original resolution. It is used only as a visual layout reference and is not embedded in the figure. `overview_crop.json` records the native data sources, shared crop and state/action checks.
 - `training_two_panels.pdf` / `.svg`: PLDM contact friction, Original → Mixed (Joint). The left plot contains six recorded prediction-loss means; the right contains the two measured training-query NRE values. No intermediate NRE values are interpolated.
 - `training_full.pdf` / `.svg`: supplementary friction/damping controls using the same axes, fonts and metric colors as Figure 4. Shape and line style distinguish Joint from Frozen Encoder; filled/open NRE markers distinguish Training from Development.
@@ -24,6 +26,15 @@ python paper/design/draw_training.py
 python paper/design/draw_training_full.py
 node paper/design/render_figures.cjs
 # To export only the overview: node paper/design/render_figures.cjs benchmark_overview
+```
+
+To build the PushT alternative and its comparison PDF without changing the manuscript figure:
+
+```bash
+python paper/design/draw_overview.py --example pusher
+node paper/design/render_figures.cjs benchmark_overview_pusher
+cd paper
+pdflatex -interaction=nonstopmode -halt-on-error -output-directory=design -jobname=overview_comparison design/overview_comparison.tex
 ```
 
 Set `CW_FIGURE_BROWSER` to an existing Chromium executable if needed. Set `NODE_PATH` if Playwright is installed outside the repository.

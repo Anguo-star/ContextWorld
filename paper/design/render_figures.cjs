@@ -9,7 +9,8 @@ const { pathToFileURL } = require('url');
     args: ['--no-sandbox', '--disable-dev-shm-usage']});
   const dir = __dirname;
   for (const [stem, width, height, paperWidth] of [
-    ['benchmark_overview',1448,1086,7.1], ['training_two_panels',660,324,3.45], ['training_full',1380,410,7.1]]) {
+    ['benchmark_overview',1448,1086,7.1], ['benchmark_overview_pusher',1448,1158,7.1], ['training_two_panels',660,324,3.45], ['training_full',1380,410,7.1]]) {
+    if (stem === 'benchmark_overview_pusher' && !process.argv.slice(2).includes(stem)) continue;
     if (process.argv.length > 2 && !process.argv.slice(2).includes(stem)) continue;
     const page = await browser.newPage({viewport:{width,height},deviceScaleFactor:1});
     await page.goto(pathToFileURL(path.join(dir, stem+'.svg')).href);

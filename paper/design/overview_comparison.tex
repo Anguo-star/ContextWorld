@@ -1,0 +1,27 @@
+\documentclass[10pt,twocolumn,letterpaper]{article}
+\usepackage{cvpr}
+\usepackage{times}
+\usepackage{graphicx}
+\usepackage{amsmath,amssymb}
+\def\paperID{*****}
+\def\confName{CVPR}
+\def\confYear{2027}
+\begin{document}
+\onecolumn
+\noindent\textbf{Pusher displacement example}
+
+\medskip
+\noindent\includegraphics[width=\textwidth]{design/benchmark_overview_pusher.pdf}
+
+\smallskip
+{\small\noindent\textbf{ContextWorld overview.} (A) A recorded pusher-displacement pair. The blue disk is the pusher. Identical action sequences produce different movement distances under the two hidden action gains. The history returns both conditions to the same current observation before the future query. Red arrows summarize the direction of each shared action block; dashed arrows mark the pusher's observed displacement from the hollow starting marker to its recorded endpoint. All frames use the same crop of the original dataset images. (B) The same histories and shared future actions enter a frozen model. Rows of the error matrix compare candidate futures; columns compare histories for a fixed target. The inequalities illustrate successful comparisons. (C) Nine tasks across four environments.}
+
+\clearpage
+\noindent\textbf{Cube carry-rule example}
+
+\medskip
+\noindent\includegraphics[width=\textwidth]{design/benchmark_overview.pdf}
+
+\smallskip
+{\small\noindent\textbf{ContextWorld overview.} (A) Recorded Cube carry-rule states, re-rendered at high resolution. A lift command and its reverse reveal whether the cube is carried, then return both conditions to the same current observation. Repeating the lift produces different futures. Commands label transitions. (B) Paired evaluation with frozen weights. Given each history and the shared future actions, the model predicts a latent future. Rows of the error matrix compare candidate futures; columns compare histories for a fixed target. (C) Nine tasks across four environments.}
+\end{document}
