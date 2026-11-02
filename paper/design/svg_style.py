@@ -72,12 +72,12 @@ class SVG:
         path=f'M {x} {y} Q {x} {y+14*d} {x+20} {y+14*d} L {x+w/2-20} {y+14*d} Q {x+w/2-6} {y+14*d} {x+w/2} {y+25*d} Q {x+w/2+6} {y+14*d} {x+w/2+20} {y+14*d} L {x+w-20} {y+14*d} Q {x+w} {y+14*d} {x+w} {y}'
         self.raw(f'<path d="{path}" fill="none" stroke="#16191d" stroke-width="2"/>')
 
-    def image(self,path,x,y,w,h,viewbox=None,r=3):
+    def image(self,path,x,y,w,h,viewbox=None,r=3,source_size=(224,224)):
         ident=f'clip{len(self.parts)}'
         self.raw(f'<defs><clipPath id="{ident}"><rect x="{x}" y="{y}" width="{w}" height="{h}" rx="{r}"/></clipPath></defs>')
         self.raw(f'<g clip-path="url(#{ident})">')
         if viewbox:
-            self.raw(f'<svg x="{x}" y="{y}" width="{w}" height="{h}" viewBox="{viewbox}" preserveAspectRatio="xMidYMid meet"><image href="{data_uri(path)}" width="224" height="224"/></svg>')
+            self.raw(f'<svg x="{x}" y="{y}" width="{w}" height="{h}" viewBox="{viewbox}" preserveAspectRatio="xMidYMid meet"><image href="{data_uri(path)}" width="{source_size[0]}" height="{source_size[1]}"/></svg>')
         else:self.raw(f'<image href="{data_uri(path)}" x="{x}" y="{y}" width="{w}" height="{h}" preserveAspectRatio="xMidYMid meet"/>')
         self.raw('</g>')
 

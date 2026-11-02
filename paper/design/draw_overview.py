@@ -14,6 +14,8 @@ s=SVG(1491,954)
 s.panel(11,10,1470,477,'A','Same observation and action, different futures')
 s.text(1450,43,'Cube carry-rule example',20,'#525b69',anchor='end')
 xs=[213,558,902,1247];w=218;h=122
+# Identical crop in every state: enlarge the gripper/cube without recentering motion.
+CUBE_VIEWBOX='430 325 720 405'
 headers=['History t − 2','History t − 1','Current observation','Ground-truth future']
 # Query actions are between state frames, never represented as an observation.
 s.raw('<rect x="1132" y="103" width="105" height="352" rx="8" fill="#f5f7fa" stroke="#b6bfcb" stroke-width="1.2" stroke-dasharray="5 4"/>')
@@ -21,21 +23,12 @@ s.lines(1184.5,259,['Same future','action'],18,gap=23,weight=700,anchor='middle'
 
 def frame(mode,t,x,y):
     s.rect(x,y,w,h,'white','#4f5359',1.3,4)
-    s.image(ASSETS/p['frames'][mode][str(t)]['file'],x+1,y+1,w-2,h-2,r=3)
+    s.image(ASSETS/p['frames'][mode][str(t)]['file'],x+1,y+1,w-2,h-2,
+            viewbox=CUBE_VIEWBOX,r=3,source_size=(1600,900))
     if t in [1,3]:
-        # Reference height and arrow derive from the rendered cube's actual bounds.
-        lo=p['frames']['cannot_hold'][str(t)]['cube_bbox']
-        hi=p['frames'][mode][str(t)]['cube_bbox']
-        scale=min((w-2)/1600,(h-2)/900)
-        ox=x+(w-1600*scale)/2;oy=y+(h-900*scale)/2
-        bottom=oy+lo[3]*scale;current=oy+hi[3]*scale
-        left=ox+lo[0]*scale;right=ox+max(lo[2],hi[2])*scale
-        s.line(left-10,bottom+2,right+12,bottom+2,'#5d6670',1.5,'3 2')
-        if mode=='can_hold':
-            s.arrow(left-7,bottom+1,left-7,current+1,ORANGE,2.0,3.2)
-        label='Cube stays' if mode=='cannot_hold' else 'Cube lifts'
+        label='Not lifted' if mode=='cannot_hold' else 'Lifted'
         dark=DARK_BLUE if mode=='cannot_hold' else DARK_ORANGE
-        # Outcome labels sit below the image, leaving the visible cube unobscured.
+        # Keep the image unobstructed; label the outcome below the frame.
         s.text(x+w/2,y+h+23,label,21,dark,700,'middle')
 
 def action_between(x1,x2,y,reverse=False):
@@ -121,5 +114,5 @@ for title,path,x in thumbs:
     s.image(path,x+2,861,72,68)
     s.text(x+91,902,title,18,weight=700)
 s.save(HERE/'benchmark_overview.svg')
-(HERE/'overview_crop.json').write_text(json.dumps({'source':'assets/cube_pair_hd/provenance.json','source_type':'Native high-resolution rendering of the existing Cube pair for visualization; original model inputs unchanged','pair_id':p['pair_id'],'output_dimensions':[1491,954],'layout':'Four state frames, actions only between states; compact B; C omitted.'},indent=2)+'\n')
+(HERE/'overview_crop.json').write_text(json.dumps({'source':'assets/cube_pair_hd/provenance.json','source_type':'Native high-resolution rendering of the existing Cube pair for visualization; original model inputs unchanged','pair_id':p['pair_id'],'output_dimensions':[1491,954],'shared_state_viewbox':[430,325,720,405],'layout':'Four state frames, actions only between states; compact B; C omitted.'},indent=2)+'\n')
 print('Reference-style overview with high-resolution Cube views saved')
