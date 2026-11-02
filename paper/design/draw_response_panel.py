@@ -36,50 +36,42 @@ def draw_original_error_matrix(s, formula, check):
         s.rect(1227,yy,185,48,'white','#c6c4c3',1.1,11);formula(1246,yy+32,first,second,25);check(1385,yy+24)
 
 
-def draw_arrow_error_matrix(s):
-    # Headers stay outside the comparison arrows; only errors occupy cells.
-    blue, orange = '#0094ff', '#ff780a'
-    row_color, column_color = '#0044b5', '#c52e00'
-    grid_x, grid_y, cell_w, cell_h, gap = 716, 600, 106, 80, 2
-    s.raw('<g id="arrow-error-matrix">')
+def draw_controlled_error_comparisons(s):
+    """Show what stays fixed in each comparison, without matrix indexing."""
+    ink, muted, line = '#263547', '#667488', '#8795aa'
+    colors = {'A': ('#0044b5', '#eaf5ff', '#72b9ee'),
+              'B': ('#c52e00', '#fff2e8', '#eeae83')}
+    s.raw('<g id="controlled-error-comparisons">')
     s.rect(574, 488, 430, 316, '#FCFDFE', '#E1E8EF', 1, 10)
-    s.text(789, 512, 'Latent prediction error (d)', 20, '#263547', 700, 'middle')
-    s.text(789, 534, 'Arrows point to the desired lower error', 16.5, '#536172', anchor='middle')
-    s.text(823, 554, 'True future', 17, '#263547', 700, 'middle')
-    s.raw('<g id="prediction-axis-title" transform="translate(646,681) rotate(-90)">')
-    s.text(0, 6, 'Prediction', 17, '#263547', 700, 'middle')
-    s.raw('</g>')
-    for index, (letter, color) in enumerate([('A', row_color), ('B', column_color)]):
-        center_x = grid_x + index*(cell_w+gap) + cell_w/2
-        center_y = grid_y + index*(cell_h+gap) + cell_h/2
-        s.text(center_x, 574, letter, 18, color, 700, 'middle')
-        s.text(684, center_y+6, letter, 18, color, 700, 'middle')
-    for i in range(2):
-        for j in range(2):
-            x, y = grid_x+j*(cell_w+gap), grid_y+i*(cell_h+gap)
-            fill = 'url(#blue)' if i == j == 0 else 'url(#orange)' if i == j == 1 else 'url(#neutral)'
-            stroke = blue if i == j == 0 else orange if i == j == 1 else '#c3cbd7'
-            s.rect(x, y, cell_w, cell_h, fill, stroke, 1.2, 4)
-            s.raw(f'<text x="{x+cell_w/2}" y="{y+51}" text-anchor="middle" style="font-family:Georgia,serif;font-style:italic" font-size="34">d<tspan font-size="23" baseline-shift="sub">{"AB"[i]}{"AB"[j]}</tspan></text>')
+    s.text(789, 512, 'Two controlled comparisons', 20, ink, 700, 'middle')
+    s.text(789, 534, 'Shown for A; repeated for B', 16.5, muted, anchor='middle')
 
-    def half_arrow(name, x1, y1, x2, y2, outward_x, outward_y, color):
-        # Only the outer wing is drawn. The side facing the cells stays open.
-        length = math.hypot(x2-x1, y2-y1)
-        ux, uy = (x2-x1)/length, (y2-y1)/length
-        wing_x, wing_y = x2-9*ux+6*outward_x, y2-9*uy+6*outward_y
-        s.raw(f'<path id="comparison-{name}" d="M {x1} {y1} L {x2} {y2} M {x2} {y2} L {wing_x} {wing_y}" fill="none" stroke="{color}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>')
-    # Row A: AB -> AA; row B: BA -> BB.
-    half_arrow('row-a', 877, 592, 769, 592, 0, -1, row_color)
-    half_arrow('row-b', 769, 770, 877, 770, 0, 1, row_color)
-    # Column A: BA -> AA; column B: AB -> BB.
-    half_arrow('column-a', 708, 722, 708, 640, -1, 0, column_color)
-    half_arrow('column-b', 938, 640, 938, 722, 1, 0, column_color)
+    def node(x, y, height, label, condition):
+        color, fill, stroke = colors[condition]
+        s.rect(x, y, 126, height, fill, stroke, 1.1, 6)
+        s.text(x+63, y+height/2+5.5, label, 16.5, color, 700, 'middle')
 
-    # Label the comparison directions directly, beside their arrows.
-    s.text(823, 795, 'Compare futures', 17, row_color, anchor='middle')
-    s.raw('<g id="history-comparison-label" transform="translate(975,681) rotate(90)">')
-    s.text(0, 6, 'Compare histories', 17, column_color, anchor='middle')
-    s.raw('</g>')
+    def comparison(x1, y1, x2, y2, label_y):
+        # Undirected connectors are comparisons, not state transitions.
+        s.line(x1, y1, x2, y2, line, 1.5)
+        s.text((x1+x2)/2, label_y, 'error', 15, muted, anchor='middle')
+
+    s.text(592, 557, '1. Keep prediction A fixed', 17, ink, 700)
+    comparison(718, 607, 860, 587, 590)
+    comparison(718, 607, 860, 627, 634)
+    node(592, 586, 42, 'Prediction A', 'A')
+    node(860, 572, 30, 'True future A', 'A')
+    node(860, 612, 30, 'True future B', 'B')
+    s.text(789, 661, 'Correct future should have lower error', 15.5, ink, anchor='middle')
+
+    s.line(592, 673, 986, 673, '#E1E8EF', 1)
+    s.text(592, 694, '2. Keep true future A fixed', 17, ink, 700)
+    comparison(718, 720, 860, 740, 719)
+    comparison(718, 760, 860, 740, 767)
+    node(592, 705, 30, 'Prediction A', 'A')
+    node(592, 745, 30, 'Prediction B', 'B')
+    node(860, 719, 42, 'True future A', 'A')
+    s.text(789, 795, 'Matching history should give lower error', 15.5, ink, anchor='middle')
     s.raw('</g>')
 
 
@@ -133,7 +125,7 @@ def draw_response_panel(s, scene, panel, formula, check, prediction_images=False
             s.raw(f'<text x="505" y="{y+73}" font-size="32" fill="{dark}" style="font-family:Georgia,serif;font-style:italic">z<tspan font-size="19" baseline-shift="sub">{letter}</tspan></text>')
             s.raw(f'<path d="M 507 {y+47} l 7 -5 l 7 5" fill="none" stroke="{dark}" stroke-width="1.6"/>')
             s.text(522, y+99, 'latent', 14, dark, anchor='middle')
-    draw_arrow_error_matrix(s)
+    draw_controlled_error_comparisons(s)
 
     # Blue/orange and neutral fills follow the supplied response-fidelity design.
     # These vectors illustrate differences between conditions, not data projections.
