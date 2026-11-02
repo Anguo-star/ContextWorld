@@ -109,7 +109,7 @@ This section formalizes the prediction setting, describes how we construct the t
 \begin{figure*}[t]
 \centering
 \includegraphics[width=\textwidth]{figures/protocol_overview.pdf}
-\caption{\textbf{Controlled prediction and history comparisons.} (A) Cube carry-rule example, re-rendered for clarity. A lift command and its reverse reveal whether the cube is carried, then return both conditions to the same current observation. Repeating the lift produces different futures. Commands label transitions. (B) The frozen model receives observations and actions and produces latent predictions. Rows of the error matrix compare futures for a fixed prediction; columns compare histories for a fixed target.}
+\caption{\textbf{ContextWorld overview.} (A) A schematic of the Cube carry rule. A lift command and its reverse reveal whether the cube is carried, then return both conditions to the same current observation. Repeating the lift produces different futures. Commands label transitions. (B) Paired evaluation with frozen weights. Given each history and the shared future actions, the model predicts a latent future. Rows of the error matrix compare candidate futures; columns compare histories for a fixed target. The inequalities illustrate correct discrimination and a benefit from matching history. (C) Nine tasks across four environments.}
 \label{fig:protocol}
 \end{figure*}
 
@@ -136,7 +136,7 @@ Predictions are evaluated directly against these encoded targets in latent space
 
 To evaluate dynamics adaptation, we construct nine tasks spanning four base environments by introducing controlled variations in physical parameters and interaction rules.
 These environments build upon TwoRoom navigation~\cite{zhou2025dinowm}, the PushT pushing environment~\cite{chi2023diffusionpolicy}, Reacher from the DeepMind Control Suite~\cite{tassa2018control}, and Cube from OGBench~\cite{park2025ogbench}.
-The tasks and their history requirements are summarized in Table~\ref{tab:tasks}.
+Figure~\ref{fig:protocol} illustrates the task structure and paired comparisons; Table~\ref{tab:tasks} summarizes the tasks and their history requirements.
 Importantly, models are trained separately for each task, and baselines like DINO-WM keep their pretrained visual encoder frozen throughout.
 
 \begin{table*}[t]

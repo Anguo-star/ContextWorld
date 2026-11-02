@@ -1,117 +1,149 @@
-"""Reference-style overview with native high-resolution Cube renderings."""
+"""Editable replica of the supplied main-figure schematic. Scene art is illustrative."""
 from pathlib import Path
 import json, math
-from svg_style import SVG, BLUE, DARK_BLUE, ORANGE, DARK_ORANGE
-
+from svg_style import SVG, data_uri
+import base64
 HERE=Path(__file__).resolve().parent
-ASSETS=HERE/'assets/cube_pair_hd'
-p=json.loads((ASSETS/'provenance.json').read_text())
-raw=json.loads((HERE/'assets/cube_pair/provenance.json').read_text())
-assert (ASSETS/p['frames']['cannot_hold']['2']['file']).read_bytes()==(ASSETS/p['frames']['can_hold']['2']['file']).read_bytes()
-for t in range(4):
-    assert raw['frames']['cannot_hold'][str(t)]['action_block']==raw['frames']['can_hold'][str(t)]['action_block']
-s=SVG(1491,954)
-s.panel(11,10,1470,477,'A','Same observation and action, different futures')
-s.text(1450,43,'Cube carry-rule example',20,'#525b69',anchor='end')
-xs=[213,558,902,1247];w=218;h=122
-# Identical crop in every state: enlarge the gripper/cube without recentering motion.
-CUBE_VIEWBOX='430 325 720 405'
-headers=['History t − 2','History t − 1','Current observation','Ground-truth future']
-# Query actions are between state frames, never represented as an observation.
-s.raw('<rect x="1132" y="103" width="105" height="352" rx="8" fill="#f5f7fa" stroke="#b6bfcb" stroke-width="1.2" stroke-dasharray="5 4"/>')
-s.lines(1184.5,259,['Same future','action'],18,gap=23,weight=700,anchor='middle')
+REFERENCE=HERE/'assets/reference/main_figure_design.png'
+BLUE='#0094ff'; ORANGE='#ff780a'; DARK_BLUE='#0044b5'; DARK_ORANGE='#c52e00'; INK='#111620'; OUTLINE='#8795aa'
+s=SVG(1448,1086)
+s.raw(f'<defs><image id="reference-art" href="{data_uri(REFERENCE)}" width="1448" height="1086"/></defs>')
+regular=base64.b64encode((HERE/'assets/fonts/RobotoCondensed-Regular.ttf').read_bytes()).decode()
+bold=base64.b64encode((HERE/'assets/fonts/RobotoCondensed-Bold.ttf').read_bytes()).decode()
+s.raw(f'<style>@font-face{{font-family:ReferenceNarrow;src:url(data:font/ttf;base64,{regular});font-weight:400}}@font-face{{font-family:ReferenceNarrow;src:url(data:font/ttf;base64,{bold});font-weight:700}}</style>')
+# Layout coordinates follow the supplied 1448 x 1086 reference, not an inferred layout.
+s.raw('<defs><linearGradient id="current-bg" x2="0" y2="1"><stop stop-color="#eef8ff"/><stop offset="1" stop-color="#def2fe"/></linearGradient><linearGradient id="card-bg" x2="1" y2="1"><stop stop-color="#f3f6fb"/><stop offset="1" stop-color="#eaf0f8"/></linearGradient></defs>')
+def panel(x,y,w,h,letter,title,size=32):
+    s.rect(x,y,w,h,'white',OUTLINE,1.15,14)
+    s.rect(x,y,54,53,'url(#badge)',r=11)
+    s.text(x+27,y+38,letter,34,'white',700,'middle')
+    s.text(x+69,y+37,title,size,weight=700)
+def brace(x,y,h):
+    s.raw(f'<path d="M {x} {y} Q {x+10} {y} {x+10} {y+20} L {x+10} {y+h/2-18} Q {x+10} {y+h/2-3} {x+20} {y+h/2} Q {x+10} {y+h/2+3} {x+10} {y+h/2+18} L {x+10} {y+h-20} Q {x+10} {y+h} {x} {y+h}" fill="none" stroke="#14191e" stroke-width="1.8"/>')
+def formula(x,y,first,second,size=28):
+    s.raw(f'<text x="{x}" y="{y}" font-size="{size}" style="font-family:Georgia,serif;font-style:italic"><tspan fill="{DARK_BLUE if first=="AA" else DARK_ORANGE}">d<tspan baseline-shift="sub" font-size="{size*.64}">{first}</tspan></tspan><tspan> &lt; </tspan><tspan>d<tspan baseline-shift="sub" font-size="{size*.64}">{second}</tspan></tspan></text>')
+def check(x,y):
+    s.raw(f'<path d="M {x-7} {y} l 6 8 l 12 -20" fill="none" stroke="#21842c" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round"/>')
+# Reuse the supplied illustration assets, not generated experimental observations.
+# Both rows deliberately reuse the same current-observation crop.
+SCENES={
+    'cannot_hold':[(223,111,179,109),(511,111,177,109),(801,113,175,109),(1123,112,180,109)],
+    'can_hold':[(223,111,179,109),(511,307,177,108),(801,113,175,109),(1123,307,180,108)],
+}
+def reference_crop(box,x,y,w,h,r=3):
+    ident=f'illustration{len(s.parts)}'
+    s.raw(f'<defs><clipPath id="{ident}"><rect x="{x}" y="{y}" width="{w}" height="{h}" rx="{r}"/></clipPath></defs>')
+    viewbox=' '.join(map(str,box))
+    s.raw(f'<g clip-path="url(#{ident})"><svg x="{x}" y="{y}" width="{w}" height="{h}" viewBox="{viewbox}" preserveAspectRatio="xMidYMid slice" overflow="hidden"><use href="#reference-art"/></svg></g>')
+def scene(mode,t,x,y,w=181,h=112):
+    s.rect(x,y,w,h,'#eef1f6','#8f99a8',1.2,4)
+    box=SCENES[mode][t]
+    if w<100:
+        box=([53,115,207][t],721 if mode=='can_hold' and t==1 else 580,57,49)
+    reference_crop(box,x+1,y+1,w-2,h-2)
 
-def frame(mode,t,x,y):
-    s.rect(x,y,w,h,'white','#4f5359',1.3,4)
-    s.image(ASSETS/p['frames'][mode][str(t)]['file'],x+1,y+1,w-2,h-2,
-            viewbox=CUBE_VIEWBOX,r=3,source_size=(1600,900))
-    if t in [1,3]:
-        label='Not lifted' if mode=='cannot_hold' else 'Lifted'
-        dark=DARK_BLUE if mode=='cannot_hold' else DARK_ORANGE
-        # Keep the image unobstructed; label the outcome below the frame.
-        s.text(x+w/2,y+h+23,label,21,dark,700,'middle')
+panel(20,15,1408,442,'A','Same current observation and future actions, different futures',32)
+s.text(1416,47,'Cube carry-rule schematic',22,'#606b7b',anchor='end')
+s.rect(787,73,203,362,'url(#current-bg)','#b3dcfc',.8,10)
+s.line(29,258,1416,258,'#ccd5df',1.3,'4 4')
+brace(996,113,290);s.rect(1016,202,94,116,'url(#card-bg)',r=10)
+s.lines(1063,245,['Identical','current','observation'],21,gap=23,weight=700,anchor='middle',style='font-family:ReferenceNarrow')
+brace(1317,111,293);s.rect(1333,110,86,294,'url(#card-bg)',r=10)
+s.lines(1376,245,['Different','future','outcomes'],21,gap=24,weight=700,anchor='middle',style='font-family:ReferenceNarrow')
+for mode,y,letter,dark,desc in [('cannot_hold',110,'A',DARK_BLUE,['Cannot carry','the cube']),('can_hold',305,'B',DARK_ORANGE,['Can carry','the cube'])]:
+    s.rect(36,y-1,175,111,'#e2f2ff' if letter=='A' else '#fff0e4',r=11)
+    s.text(48,y+36,f'Condition {letter}:',26,dark,700)
+    s.lines(48,y+64,desc,24,gap=28,weight=700)
+    for t,x,title in [(0,222,'History t − 2'),(1,510,'History t − 1'),(2,800,'Current observation'),(3,1122,'Ground-truth future')]:
+        hy=y-36
+        s.rect(x-3,hy,187,37,'url(#neutral)' if t!=2 else '#e1f3ff',r=6)
+        s.text(x+90.5,hy+25,title,20,DARK_BLUE if t==2 else INK,700,'middle')
+        scene(mode,t,x,y)
+        if t in [1,3]:s.text(x+90.5,y+132,'Not lifted' if letter=='A' else 'Lifted',23,dark,700,'middle')
+    for x1,x2,label in [(418,499,'Lift'),(702,782,'Reverse'),(1017,1109,'Lift')]:
+        s.text((x1+x2)/2,y+32,label,22,'#cf0000',700,'middle')
+        s.arrow(x1,y+48 if letter=='A' else y+49,x2,y+48 if letter=='A' else y+49,'#344054',2,9)
 
-def action_between(x1,x2,y,reverse=False):
-    center=(x1+x2)/2
-    label='Reverse' if reverse else 'Lift'
-    s.text(center-11,y+40,label,20,'#ba3030',700,'middle')
-    ax=center+46 if reverse else center+36
-    s.arrow(ax,y+22 if reverse else y+43,ax,y+43 if reverse else y+22,'#d23835',2.3,6)
-    s.arrow(x1+12,y+64,x2-12,y+64,'#3e454d',2.4,8)
-
-for mode,header_y,y,letter,dark,description in [
-    ('cannot_hold',69,103,'A',DARK_BLUE,['Cannot carry','the cube']),
-    ('can_hold',301,333,'B',DARK_ORANGE,['Can carry','the cube'])]:
-    s.rect(26,y+9,173,105,'#e4f1ff' if letter=='A' else '#fff0e2',r=8)
-    s.text(41,y+44,f'Condition {letter}:',24,dark,700)
-    s.lines(41,y+73,description,22,gap=26,weight=700)
-    for t,(x,label) in enumerate(zip(xs,headers)):
-        fill='url(#blue)' if t==2 and letter=='A' else 'url(#orange)' if t==2 else 'url(#neutral)'
-        s.rect(x,header_y,w,37,fill,r=6)
-        s.text(x+w/2,header_y+25,label,18.5,dark if t==2 else '#101216',700,'middle')
-        frame(mode,t,x,y)
-    for j in range(3):action_between(xs[j]+w,xs[j+1],y,reverse=j==1)
-s.line(26,285,1125,285,'#bdc5d0',1.3,'7 6')
-s.line(1242,285,1465,285,'#bdc5d0',1.3,'7 6')
-s.brace(xs[2],230,w,1);s.brace(xs[2],296,w,-1)
-s.text(xs[2]+w/2,269,'Same current observation',20,weight=700,anchor='middle')
-
-s.panel(11,501,1470,334,'B','How evaluation works')
-# Compact, connected flow: histories -> shared model -> predictions -> errors.
-for mode,y,col,dark,letter in [('cannot_hold',575,BLUE,DARK_BLUE,'A'),('can_hold',701,ORANGE,DARK_ORANGE,'B')]:
-    s.rect(40,y,210,108,'#f8fbff' if letter=='A' else '#fffaf6',col,1.2,8)
-    s.rect(41,y+1,208,29,'url(#blue)' if letter=='A' else 'url(#orange)',r=7)
-    s.text(145,y+23,f'History {letter}',20,dark,700,'middle')
-    for j,t in enumerate([0,1,2]):
-        xx=51+j*55;yy=y+39+(2-j)*3
-        s.rect(xx-2,yy-2,82,57,'#d4d8de','#747d88',.8,3)
-        s.image(ASSETS/p['frames'][mode][str(t)]['file'],xx,yy,78,53)
-    s.text(145,y+123,'Observations + actions',16,'#515966',anchor='middle')
-    s.arrow(253,y+63,300,y+63,col,2.2,8)
-s.text(400,566,'Same observation and future actions',17,'#46505d',anchor='middle')
-s.arrow(400,575,400,601,'#6b7380',1.8,7)
-s.rect(305,608,190,174,'url(#model)','#8d95a2',1.8,12)
-s.lines(400,650,['Frozen','latent world','model'],24,gap=27,weight=700,anchor='middle')
-for a in [0,math.pi/3,2*math.pi/3]:
-    dx,dy=16*math.cos(a),16*math.sin(a)
-    s.line(400-dx,747-dy,400+dx,747+dy,'#438fb9',2)
+panel(20,471,1408,346,'B','Paired evaluation protocol',32)
+for mode,y,col,dark,letter in [('cannot_hold',537,BLUE,DARK_BLUE,'A'),('can_hold',678,ORANGE,DARK_ORANGE,'B')]:
+    s.rect(37,y,247,125,'#f1f9ff' if letter=='A' else '#fff7f0',col,1.2,10)
+    s.rect(39,y+2,243,33,'url(#blue)' if letter=='A' else 'url(#orange)',r=8)
+    s.text(160.5,y+25,'History '+letter,24,dark,700,'middle')
+    for t,xx in [(0,52),(1,114),(2,206)]:scene(mode,t,xx,y+42,59,52)
+    s.text(190,y+72,'…',23,anchor='middle')
+    s.text(160.5,y+115,'observations + actions',19,'#536172',anchor='middle')
+    s.arrow(287,y+65,331,y+65,col,2,9)
+s.text(427,543,'Shared future actions',18,'#536172',anchor='middle')
+s.arrow(427,548,427,565,'#536172',1.5,6)
+s.rect(334,568,186,181,'url(#model)',OUTLINE,1.3,11)
+s.lines(427,619,['Frozen','latent world','model'],26,gap=30,weight=700,anchor='middle')
+# Snowflake: vector icon rather than a font glyph.
+for angle in [0,math.pi/3,2*math.pi/3]:
+    ux,uy=math.cos(angle),math.sin(angle)
+    s.line(427-18*ux,710-18*uy,427+18*ux,710+18*uy,'#348fbc',2.2)
     for sign in [-1,1]:
-        xx,yy=400+sign*dx,747+sign*dy;ux,uy=sign*math.cos(a),sign*math.sin(a)
-        for side in [-1,1]:s.line(xx,yy,xx-7*ux+side*4*uy,yy-7*uy-side*4*ux,'#438fb9',1.7)
-s.text(400,813,'Separate calls · shared weights',16,'#515966',anchor='middle')
-for y,col,dark,letter in [(583,BLUE,DARK_BLUE,'A'),(709,ORANGE,DARK_ORANGE,'B')]:
-    s.arrow(499,y+55,555,y+55,col,2.3,9)
-    s.rect(560,y,190,100,'#f8fbff' if letter=='A' else '#fffaf6',col,1.2,8)
-    s.rect(561,y+1,188,30,'url(#blue)' if letter=='A' else 'url(#orange)',r=7)
-    s.text(655,y+23,f'Prediction from {letter}',18,dark,700,'middle')
-    s.raw(f'<text x="642" y="{y+80}" style="font-family:Georgia,serif;font-style:italic" font-size="40" fill="{dark}">z<tspan font-size="21" baseline-shift="sub">{letter}</tspan></text>')
-    s.raw(f'<path d="M 642 {y+48} L 651 {y+42} L 660 {y+48}" fill="none" stroke="{dark}" stroke-width="1.7"/>')
-s.arrow(776,704,858,704,'#66707b',1.8,8)
-mx,my,cw,ch=1030,618,180,84
-s.brace(mx,575,2*cw,-1)
-s.text(mx+cw,544,'Future discrimination',20,weight=700,anchor='middle')
-for j,(letter,dark) in enumerate([('A',DARK_BLUE),('B',DARK_ORANGE)]):
-    s.rect(mx+j*cw,579,cw-4,35,'url(#blue)' if j==0 else 'url(#orange)',r=7)
-    s.text(mx+(j+.5)*cw-2,603,f'True future {letter}',20,dark,700,'middle')
-    s.rect(mx-96,my+j*ch,90,ch-4,'#e7f2ff' if j==0 else '#fff0e2',r=7)
-    s.lines(mx-51,my+j*ch+34,['Pred','from '+letter],19,gap=24,fill=dark,weight=700,anchor='middle')
-for i in range(2):
-    for j in range(2):
-        s.rect(mx+j*cw,my+i*ch,cw-4,ch-4,'url(#blue)' if i==j==0 else 'url(#orange)' if i==j==1 else '#ebecef',BLUE if i==j==0 else ORANGE if i==j==1 else '#d5d8de',1.5)
-        s.raw(f'<text x="{mx+(j+.5)*cw-2}" y="{my+i*ch+52}" text-anchor="middle" style="font-family:Georgia,serif;font-style:italic" font-size="33" fill="#20242a">d<tspan font-size="22" baseline-shift="sub">{"AB"[i]}{"AB"[j]}</tspan></text>')
-s.raw('<path d="M 924 618 Q 907 618 907 634 L 907 682 Q 907 695 893 702 Q 907 709 907 722 L 907 770 Q 907 786 924 786" fill="none" stroke="#171a1f" stroke-width="2"/>')
-s.text(881,702,'History benefit',19,weight=700,anchor='middle',transform='rotate(-90 881 702)')
-s.text(mx+cw,815,'Prediction error · lower is better',16,'#515966',anchor='middle')
+        xx,yy=427+sign*18*ux,710+sign*18*uy
+        for side in [-1,1]:s.line(xx,yy,xx-sign*7*ux+side*4*uy,yy-sign*7*uy-side*4*ux,'#348fbc',2)
+s.text(427,778,'Separate calls · shared weights',17,'#667488',anchor='middle')
+for y,col,dark,letter in [(545,BLUE,DARK_BLUE,'A'),(681,ORANGE,DARK_ORANGE,'B')]:
+    s.arrow(523,y+53,567,y+53,col,2,9)
+    s.rect(571,y,176,101,'#f4faff' if letter=='A' else '#fff9f3',col,1.2,10)
+    s.rect(573,y+2,172,32,'#e4f2ff' if letter=='A' else '#ffeedf',r=8)
+    s.text(659,y+25,'Prediction from '+letter,20,dark,700,'middle')
+    s.raw(f'<text x="636" y="{y+82}" font-size="43" fill="{dark}" style="font-family:Georgia,serif;font-style:italic">z<tspan font-size="25" baseline-shift="sub">{letter}</tspan></text>')
+    s.raw(f'<path d="M 638 {y+49} l 9 -7 l 9 7" fill="none" stroke="{dark}" stroke-width="2"/>')
 
-s.rect(12,848,1468,96,'white','#69717d',1.2,11)
-s.text(61,903,'ContextWorld:',27,weight=700)
-s.text(254,903,'9 tasks across 4 environments',22)
-s.line(555,870,555,926,'#7c8490',1.5)
-thumbs=[('TwoRoom',HERE/'assets/environments/tworoom.jpg',615),('PushT',HERE/'assets/pusher_pair/pusher_low_gain_step10.jpg',832),('Reacher',HERE/'assets/environments/reacher.jpg',1045),('Cube',ASSETS/'can_hold_t0.png',1260)]
-for title,path,x in thumbs:
-    s.rect(x,859,76,72,'#e8e9eb','#747c87',1,5)
-    s.image(path,x+2,861,72,68)
-    s.text(x+91,902,title,18,weight=700)
+s.rect(779,485,525,93,'#e3f2fe',r=11)
+s.text(1041.5,514,'Future discrimination (row-wise)',23,DARK_BLUE,700,'middle')
+for xx,first,second in [(839,'AA','AB'),(1073,'BB','BA')]:
+    s.rect(xx,526,188,44,'white','#b3bfd0',1.1,11);formula(xx+27,555,first,second,25);check(xx+160,548)
+for j,(letter,dark) in enumerate([('A',DARK_BLUE),('B',DARK_ORANGE)]):
+    xx=861+j*170
+    s.rect(xx,593,169,44,'#e0f0fe' if j==0 else '#fff0e3',OUTLINE,1,5)
+    s.text(xx+84.5,624,'True future '+letter,22,dark,700,'middle')
+    s.rect(773,636+j*68,88,66,'#e1f0ff' if j==0 else '#fff0e2',OUTLINE,1,5)
+    s.lines(817,664+j*68,['Pred','from '+letter],21,gap=23,fill=dark,weight=700,anchor='middle')
+for i in range(2):
+ for j in range(2):
+    xx=861+j*170;yy=637+i*68
+    fill='url(#blue)' if i==j==0 else 'url(#orange)' if i==j==1 else 'url(#neutral)'
+    stroke=BLUE if i==j==0 else ORANGE if i==j==1 else '#c3cbd7'
+    s.rect(xx,yy,169,66,fill,stroke,1.2,4)
+    s.raw(f'<text x="{xx+84.5}" y="{yy+45}" text-anchor="middle" style="font-family:Georgia,serif;font-style:italic" font-size="36">d<tspan font-size="24" baseline-shift="sub">{"AB"[i]}{"AB"[j]}</tspan></text>')
+s.text(1031,797,'Prediction error (lower is better)',18,'#667488',anchor='middle')
+s.rect(1219,590,200,212,'#fff0e4',r=12)
+s.text(1319,621,'History benefit',23,DARK_ORANGE,700,'middle')
+s.text(1319,649,'(column-wise)',22,DARK_ORANGE,anchor='middle')
+for yy,first,second in [(669,'AA','BA'),(731,'BB','AB')]:
+    s.rect(1227,yy,185,48,'white','#c6c4c3',1.1,11);formula(1246,yy+32,first,second,25);check(1385,yy+24)
+
+panel(20,831,1408,236,'C','ContextWorld: 9 tasks across 4 environments',31)
+# These are illustrative environment icons from the same supplied design.
+cards=[(34,374,'TwoRoom','4 tasks',(48,899,139,137),['Speed','Action delay','Door traversability','Portal exit'],142),(421,353,'PushT','3 tasks',(435,897,122,133),['Pusher displacement','Contact friction','Motion damping'],125),(787,301,'Reacher','1 task',(802,897,100,134),['Arm mass'],104),(1100,320,'Cube','1 task',(1115,897,121,134),['Gripper carry rule'],125)]
+for x,w,title,count,box,tasks,iw in cards:
+    s.rect(x,881,w,172,'url(#card-bg)',r=15)
+    ix=x+13;iy=896;ih=137
+    s.rect(ix,iy,iw,ih,'#e7ebf1','#c6ced8',1,7)
+    reference_crop(box,ix+1,iy+1,iw-2,ih-2,6)
+    tx=ix+iw+14;tw=x+w-16-tx
+    s.text(tx,915,title,24,weight=700)
+    title_width={'TwoRoom':112,'PushT':75,'Reacher':96,'Cube':61}[title]
+    s.text(tx+title_width+6,915,'('+count+')',19,'#596779')
+    for k,t in enumerate(tasks):
+        yy=929+k*29
+        s.rect(tx,yy,tw,25,'white',r=7)
+        s.text(tx+14,yy+19,t,18,'#41536c')
+
 s.save(HERE/'benchmark_overview.svg')
-(HERE/'overview_crop.json').write_text(json.dumps({'source':'assets/cube_pair_hd/provenance.json','source_type':'Native high-resolution rendering of the existing Cube pair for visualization; original model inputs unchanged','pair_id':p['pair_id'],'output_dimensions':[1491,954],'shared_state_viewbox':[430,325,720,405],'layout':'Four state frames, actions only between states; compact B; C omitted.'},indent=2)+'\n')
-print('Reference-style overview with high-resolution Cube views saved')
+(HERE/'overview_crop.json').write_text(json.dumps({
+    'design_reference':'https://chatgpt.com/share/6ae80941-7830-83ea-a2af-476c8f212ea8',
+    'source':'assets/reference/main_figure_design.png',
+    'output_dimensions':[1448,1086],
+    'scene_source':'Illustrations supplied in the design reference; not recorded observations or model predictions.',
+    'scene_crops':SCENES,
+    'shared_current_crop':SCENES['cannot_hold'][2],
+    'history_thumbnails_share_initial_and_current':True,
+    'layout':'A controlled Cube schematic; B paired row/column error comparisons; C nine tasks in four environments.',
+    'semantic_adjustments':['Shared future-action input explicitly shown.','Lowercase latent z follows manuscript notation.','Current-observation crop is identical across conditions.'],
+},indent=2)+'\n')
+print('Reference-matched schematic saved.')
