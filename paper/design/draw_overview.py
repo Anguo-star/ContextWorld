@@ -59,7 +59,16 @@ def pusher_frame(mode,t,x,y,w,h,annotate=False):
     record=pusher['frames'][mode][str(t*5)]
     s.rect(x,y,w,h,'white','#8f99a8',1.2,4)
     native_crop(PUSHER_ASSETS/record['file'],PUSHER_VIEWBOX,x+1,y+1,w-2,h-2,source_size=(224,224),fit='meet')
-    if annotate and t in [1,3]:
+    if annotate and t == 3:
+        silhouette=json.loads((PUSHER_ASSETS/'current_t_outline.json').read_text())
+        source=PUSHER_ASSETS/silhouette['source']
+        assert hashlib.sha256(source.read_bytes()).hexdigest()==silhouette['sha256']
+        size=min(w-2,h-2);scale=size/PUSHER_VIEWBOX[2]
+        ox=x+(w-size)/2-PUSHER_VIEWBOX[0]*scale
+        oy=y+(h-size)/2-PUSHER_VIEWBOX[1]*scale
+        points=' '.join(f'{ox+px*scale:.3f},{oy+py*scale:.3f}' for px,py in silhouette['vertices'])
+        s.raw(f'<polygon points="{points}" fill="none" stroke="#8698a7" stroke-width="1.15" stroke-dasharray="3.5 3" stroke-linejoin="round" opacity="0.85"/>')
+    if annotate and t in [1,2,3]:
         # Endpoint displacements only; no unobserved path or intermediate state is drawn.
         size=min(w-2,h-2);pixel_scale=size/PUSHER_VIEWBOX[2]
         scale=pixel_scale*224/512
@@ -104,7 +113,7 @@ if PUSHER:
             s.text(x+90.5,hy+25,title,20,DARK_BLUE if t==2 else INK,700,'middle')
             pusher_frame(mode,t,x,y,181,146,annotate=True)
             if t in [1,3]:s.text(x+90.5,y+167,'Shorter movement' if letter=='A' else 'Longer movement',20,dark,700,'middle')
-        for j,(x1,x2,label) in enumerate([(418,499,'Move'),(702,782,'Reverse'),(1017,1109,'Move')]):
+        for j,(x1,x2,label) in enumerate([(418,499,'Move'),(702,782,'Move'),(1017,1109,'Move')]):
             center=(x1+x2)/2
             s.text(center,y+40,label,21,'#cf0000',700,'middle')
             commands=pusher['action_blocks'][blocks[j]]
@@ -137,7 +146,7 @@ else:
             s.arrow(x1,y+48 if letter=='A' else y+49,x2,y+48 if letter=='A' else y+49,'#344054',2,9)
 if args.response_fidelity:
     from draw_response_panel import draw_response_panel
-    draw_response_panel(s,scene,panel)
+    draw_response_panel(s,scene,panel,formula,check)
 else:
     panel(20,471,1408,346,'B','Paired evaluation protocol',32)
     for mode,y,col,dark,letter in [('cannot_hold',537,BLUE,DARK_BLUE,'A'),('can_hold',678,ORANGE,DARK_ORANGE,'B')]:
@@ -167,29 +176,8 @@ else:
         s.raw(f'<text x="636" y="{y+82}" font-size="43" fill="{dark}" style="font-family:Georgia,serif;font-style:italic">z<tspan font-size="25" baseline-shift="sub">{letter}</tspan></text>')
         s.raw(f'<path d="M 638 {y+49} l 9 -7 l 9 7" fill="none" stroke="{dark}" stroke-width="2"/>')
 
-    s.rect(779,485,525,93,'#e3f2fe',r=11)
-    s.text(1041.5,514,'Future discrimination (row-wise)',23,DARK_BLUE,700,'middle')
-    for xx,first,second in [(839,'AA','AB'),(1073,'BB','BA')]:
-        s.rect(xx,526,188,44,'white','#b3bfd0',1.1,11);formula(xx+27,555,first,second,25);check(xx+160,548)
-    for j,(letter,dark) in enumerate([('A',DARK_BLUE),('B',DARK_ORANGE)]):
-        xx=861+j*170
-        s.rect(xx,593,169,44,'#e0f0fe' if j==0 else '#fff0e3',OUTLINE,1,5)
-        s.text(xx+84.5,624,'True future '+letter,22,dark,700,'middle')
-        s.rect(773,636+j*68,88,66,'#e1f0ff' if j==0 else '#fff0e2',OUTLINE,1,5)
-        s.lines(817,664+j*68,['Pred','from '+letter],21,gap=23,fill=dark,weight=700,anchor='middle')
-    for i in range(2):
-     for j in range(2):
-        xx=861+j*170;yy=637+i*68
-        fill='url(#blue)' if i==j==0 else 'url(#orange)' if i==j==1 else 'url(#neutral)'
-        stroke=BLUE if i==j==0 else ORANGE if i==j==1 else '#c3cbd7'
-        s.rect(xx,yy,169,66,fill,stroke,1.2,4)
-        s.raw(f'<text x="{xx+84.5}" y="{yy+45}" text-anchor="middle" style="font-family:Georgia,serif;font-style:italic" font-size="36">d<tspan font-size="24" baseline-shift="sub">{"AB"[i]}{"AB"[j]}</tspan></text>')
-    s.text(1031,797,'Prediction error (lower is better)',18,'#667488',anchor='middle')
-    s.rect(1219,590,200,212,'#fff0e4',r=12)
-    s.text(1319,621,'History benefit',23,DARK_ORANGE,700,'middle')
-    s.text(1319,649,'(column-wise)',22,DARK_ORANGE,anchor='middle')
-    for yy,first,second in [(669,'AA','BA'),(731,'BB','AB')]:
-        s.rect(1227,yy,185,48,'white','#c6c4c3',1.1,11);formula(1246,yy+32,first,second,25);check(1385,yy+24)
+    from draw_response_panel import draw_original_error_matrix
+    draw_original_error_matrix(s,formula,check)
 panel(20,831,1408,236,'C','ContextWorld: 9 tasks across 4 environments',31)
 # Environment views come from saved benchmark data, with provenance retained.
 cards=[(34,374,'TwoRoom','4 tasks',HERE/'assets/environments/tworoom.jpg',['Speed','Action delay','Door traversability','Portal exit'],142),(421,353,'PushT','3 tasks',HERE/'assets/pusher_pair/pusher_low_gain_step10.jpg',['Pusher displacement','Contact friction','Motion damping'],125),(787,301,'Reacher','1 task',HERE/'assets/environments/reacher.jpg',['Arm mass'],104),(1100,320,'Cube','1 task',ASSETS/'can_hold_t0.png',['Gripper carry rule'],125)]
@@ -224,6 +212,7 @@ if PUSHER:
         'action_arrows':'Direction of the sum of each shared five-step action block.',
         'displacement_arrows':'Observed endpoint displacement from saved pusher positions; not an interpolated trajectory.',
         'screenshot_integrity':'All eight source image SHA-256 values checked.',
+        'object_origin_outline':'assets/pusher_pair/current_t_outline.json; same current-pose silhouette in both future panels, display annotation only.',
         'preview_only':True,
     }
     if args.response_fidelity:

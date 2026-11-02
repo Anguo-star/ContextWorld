@@ -1,12 +1,41 @@
-"""Compact paired-error matrix and schematic NRE explanation for overview previews."""
+"""Original paired-error matrix and schematic NRE explanation for overview previews."""
 import math
 
 
-def draw_response_panel(s, scene, panel):
+def draw_original_error_matrix(s, formula, check):
+    BLUE, ORANGE = '#0094ff', '#ff780a'
+    DARK_BLUE, DARK_ORANGE, OUTLINE = '#0044b5', '#c52e00', '#8795aa'
+    s.rect(779,485,525,93,'#e3f2fe',r=11)
+    s.text(1041.5,514,'Future discrimination (row-wise)',23,DARK_BLUE,700,'middle')
+    for xx,first,second in [(839,'AA','AB'),(1073,'BB','BA')]:
+        s.rect(xx,526,188,44,'white','#b3bfd0',1.1,11);formula(xx+27,555,first,second,25);check(xx+160,548)
+    for j,(letter,dark) in enumerate([('A',DARK_BLUE),('B',DARK_ORANGE)]):
+        xx=861+j*170
+        s.rect(xx,593,169,44,'#e0f0fe' if j==0 else '#fff0e3',OUTLINE,1,5)
+        s.text(xx+84.5,624,'True future '+letter,22,dark,700,'middle')
+        s.rect(773,636+j*68,88,66,'#e1f0ff' if j==0 else '#fff0e2',OUTLINE,1,5)
+        s.lines(817,664+j*68,['Pred','from '+letter],21,gap=23,fill=dark,weight=700,anchor='middle')
+    for i in range(2):
+     for j in range(2):
+        xx=861+j*170;yy=637+i*68
+        fill='url(#blue)' if i==j==0 else 'url(#orange)' if i==j==1 else 'url(#neutral)'
+        stroke=BLUE if i==j==0 else ORANGE if i==j==1 else '#c3cbd7'
+        s.rect(xx,yy,169,66,fill,stroke,1.2,4)
+        s.raw(f'<text x="{xx+84.5}" y="{yy+45}" text-anchor="middle" style="font-family:Georgia,serif;font-style:italic" font-size="36">d<tspan font-size="24" baseline-shift="sub">{"AB"[i]}{"AB"[j]}</tspan></text>')
+    s.text(1031,797,'Prediction error (lower is better)',18,'#667488',anchor='middle')
+    s.rect(1219,590,200,212,'#fff0e4',r=12)
+    s.text(1319,621,'History benefit',23,DARK_ORANGE,700,'middle')
+    s.text(1319,649,'(column-wise)',22,DARK_ORANGE,anchor='middle')
+    for yy,first,second in [(669,'AA','BA'),(731,'BB','AB')]:
+        s.rect(1227,yy,185,48,'white','#c6c4c3',1.1,11);formula(1246,yy+32,first,second,25);check(1385,yy+24)
+
+
+def draw_response_panel(s, scene, panel, formula, check):
     blue, orange = '#0094ff', '#ff780a'
     dark_blue, dark_orange = '#0044b5', '#c52e00'
-    ink, muted, outline, purple = '#263547', '#667488', '#8795aa', '#7657aa'
+    ink, muted, outline = '#263547', '#667488', '#8795aa'
     panel(20, 471, 1408, 346, 'B', 'Paired evaluation protocol', 32)
+    s.raw('<g id="history-prediction-flow" transform="translate(37,554) scale(0.825) translate(-37,-537)">')
     for mode, y, col, dark, letter in [
         ('cannot_hold', 537, blue, dark_blue, 'A'),
         ('can_hold', 678, orange, dark_orange, 'B'),
@@ -37,45 +66,34 @@ def draw_response_panel(s, scene, panel):
         s.text(577.5, y+25, 'Prediction from '+letter, 20, dark, 700, 'middle')
         s.raw(f'<text x="555" y="{y+82}" font-size="43" fill="{dark}" style="font-family:Georgia,serif;font-style:italic">z<tspan font-size="25" baseline-shift="sub">{letter}</tspan></text>')
         s.raw(f'<path d="M 557 {y+49} l 9 -7 l 9 7" fill="none" stroke="{dark}" stroke-width="2"/>')
-    s.line(681, 534, 681, 799, '#dbe2eb', 1)
-    s.text(880, 542, 'Prediction error', 23, ink, 700, 'middle')
-    s.text(910, 568, 'True future', 20, muted, anchor='middle')
-    for j, (letter, dark) in enumerate([('A', dark_blue), ('B', dark_orange)]):
-        x = 764+j*147
-        s.rect(x, 579, 145, 31, '#e0f0fe' if j == 0 else '#fff0e3', outline, 1, 5)
-        s.text(x+72.5, 603, letter, 23, dark, 700, 'middle')
-        y = 612+j*67
-        s.rect(697, y, 65, 64, '#e1f0ff' if j == 0 else '#fff0e2', outline, 1, 5)
-        s.lines(729.5, y+24, ['Pred', 'from '+letter], 19, gap=23, fill=dark, weight=700, anchor='middle')
-    for i in range(2):
-        for j in range(2):
-            x, y = 764+j*147, 612+i*67
-            fill = 'url(#blue)' if i == j == 0 else 'url(#orange)' if i == j == 1 else 'url(#neutral)'
-            stroke = blue if i == j == 0 else orange if i == j == 1 else '#c3cbd7'
-            s.rect(x, y, 145, 64, fill, stroke, 1.2, 4)
-            s.raw(f'<text x="{x+72.5}" y="{y+44}" text-anchor="middle" style="font-family:Georgia,serif;font-style:italic" font-size="34">d<tspan font-size="23" baseline-shift="sub">{"AB"[i]}{"AB"[j]}</tspan></text>')
-    s.text(704, 774, 'Rows → Future discrimination', 20, dark_blue)
-    s.text(704, 801, 'Columns ↓ History benefit', 20, dark_orange)
-    s.line(1080, 534, 1080, 799, '#dbe2eb', 1)
+    s.raw('</g>')
+    # The original matrix, labels and inequality cards are an unchanged group.
+    s.raw('<g id="original-error-comparisons" transform="translate(573,537) scale(0.8) translate(-773,-485)">')
+    draw_original_error_matrix(s, formula, check)
+    s.raw('</g>')
+    s.line(1103, 542, 1103, 790, '#dbe2eb', 1)
 
-    # This is a conceptual high-dimensional difference comparison, not a data projection.
-    s.rect(1097, 529, 320, 277, '#faf8fe', '#ddd4ec', 1, 10)
-    s.text(1257, 552, 'Response fidelity', 24, purple, 700, 'middle')
-    s.text(1257, 577, 'Difference between conditions', 17, muted, anchor='middle')
-    origin, true, predicted = (1144, 714), (1322, 613), (1280, 664)
-    s.arrow(*origin, *true, '#405268', 3, 10)
-    s.arrow(*origin, *predicted, purple, 3, 10)
-    s.circle(*origin, 3.5, '#64748b')
-    s.line(*true, *predicted, '#9b8eae', 1.5, '4 4')
-    s.text(1331, 611, 'True', 19, '#405268', 700)
-    s.text(1296, 682, 'Predicted', 19, purple, 700)
-    s.raw('<text x="1351" y="640" font-size="26" fill="#405268" style="font-family:Georgia,serif;font-style:italic">Δz</text>')
-    s.raw(f'<text x="1340" y="713" font-size="26" fill="{purple}" style="font-family:Georgia,serif;font-style:italic">Δẑ</text>')
-    # Dataset-level ratio of sums, consistent with Eq. (response-error) in the paper.
-    s.text(1112, 774, 'NRE =', 21, purple, 700)
-    s.line(1190, 766, 1403, 766, '#5c5870', 1.2)
+    # Blue/orange and neutral fills follow the supplied response-fidelity design.
+    # These vectors illustrate differences between conditions, not data projections.
+    true_color, predicted_color = '#3187C6', '#E47E47'
+    s.rect(1119, 537, 298, 254, '#FCFDFE', '#E1E8EF', 1, 10)
+    s.text(1268, 560, 'Response fidelity', 21, ink, 700, 'middle')
+    s.text(1268, 583, 'Difference between conditions', 15, muted, anchor='middle')
+    origin, true, predicted = (1144, 706), (1311, 611), (1275, 657)
+    s.arrow(*origin, *true, true_color, 3, 10)
+    s.arrow(*origin, *predicted, predicted_color, 3, 10)
+    s.circle(*origin, 3, '#63788D')
+    s.line(*true, *predicted, '#7F8B9B', 1.3, '4 4')
+    s.text(1320, 610, 'True', 17, '#277EBF', 700)
+    s.text(1294, 675, 'Predicted', 17, '#D86632', 700)
+    s.raw('<text x="1338" y="636" font-size="23" fill="#277EBF" style="font-family:Georgia,serif;font-style:italic">Δz</text>')
+    s.raw('<text x="1334" y="704" font-size="23" fill="#D86632" style="font-family:Georgia,serif;font-style:italic">Δẑ</text>')
+    # Dataset-level ratio of sums, consistent with the manuscript's NRE definition.
+    s.rect(1126, 724, 284, 60, '#F3F6F9', '#E1E8EF', .8, 8)
+    s.text(1135, 761, 'NRE =', 19, '#33485E', 700)
+    s.line(1205, 754, 1398, 754, '#63788D', 1)
     def term(x, y, numerator):
-        inside = 'Δẑ<tspan baseline-shift="sub" font-size="13">i</tspan> − Δz<tspan baseline-shift="sub" font-size="13">i</tspan>' if numerator else 'Δz<tspan baseline-shift="sub" font-size="13">i</tspan>'
-        s.raw(f'<text x="{x}" y="{y}" text-anchor="middle" fill="#403d50" font-size="21" style="font-family:Georgia,serif">∑<tspan baseline-shift="sub" font-size="13">i</tspan> ‖{inside}‖<tspan baseline-shift="super" font-size="13">2</tspan></text>')
-    term(1296.5, 754, True)
-    term(1296.5, 790, False)
+        inside = 'Δẑ<tspan baseline-shift="sub" font-size="12">i</tspan> − Δz<tspan baseline-shift="sub" font-size="12">i</tspan>' if numerator else 'Δz<tspan baseline-shift="sub" font-size="12">i</tspan>'
+        s.raw(f'<text x="{x}" y="{y}" text-anchor="middle" fill="#33485E" font-size="19" style="font-family:Georgia,serif">∑<tspan baseline-shift="sub" font-size="12">i</tspan> ‖{inside}‖<tspan baseline-shift="super" font-size="12">2</tspan></text>')
+    term(1301.5, 743, True)
+    term(1301.5, 776, False)
