@@ -9,7 +9,7 @@ const { pathToFileURL } = require('url');
     args: ['--no-sandbox', '--disable-dev-shm-usage']});
   const dir = __dirname;
   for (const [stem, width, height, paperWidth] of [
-    ['benchmark_overview',1491,954,7.1], ['training_two_panels',660,286,3.45]]) {
+    ['benchmark_overview',1491,954,7.1], ['training_two_panels',660,324,3.45]]) {
     const page = await browser.newPage({viewport:{width,height},deviceScaleFactor:1});
     await page.goto(pathToFileURL(path.join(dir, stem+'.svg')).href);
     await page.evaluate(() => document.fonts.ready);
