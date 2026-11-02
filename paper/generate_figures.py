@@ -192,18 +192,18 @@ def scaling_comparisons():
         capacity_records.append(dict(task=r['task'],family=r['model'],small=small,
                                      large=large,delta=large-small))
     fig = plt.figure(figsize=(3.45, 3.25))
-    axes = [fig.add_axes([.15, .59, .81, .27]),
-            fig.add_axes([.15, .13, .81, .27])]
+    axes = [fig.add_axes([.15, .60, .81, .27]),
+            fig.add_axes([.15, .10, .81, .27])]
     before_data, after_data = [], []
     for regime in ['scratch', 'joint']:
         small, = [r for r in data_records if r['regime']==regime and r['pairs']==2048]
         large, = [r for r in data_records if r['regime']==regime and r['pairs']==32768]
         before_data.append(small['accuracy']); after_data.append(large['accuracy'])
-    def bars(ax, before, after, labels):
+    def bars(ax, before, after, labels, scales):
         import numpy as np
         x = np.arange(len(before))
-        ax.bar(x-.16, before, .27, color='#b9c1c9', label='Smaller scale', zorder=3)
-        ax.bar(x+.16, after, .27, color='#426d99', label='Larger scale', zorder=3)
+        ax.bar(x-.16, before, .27, color='#b9c1c9', label=scales[0], zorder=3)
+        ax.bar(x+.16, after, .27, color='#426d99', label=scales[1], zorder=3)
         ax.set_ylim(0,110); ax.set_yticks([0,50,100])
         ax.axhline(50,color='#525c68',linestyle='--',linewidth=.85,zorder=4)
         ax.set_ylabel('Accuracy (%)',fontsize=7.5,labelpad=3)
@@ -214,18 +214,21 @@ def scaling_comparisons():
         for spine in ax.spines.values():
             spine.set_linewidth(.6)
         for i,(small,large) in enumerate(zip(before,after)):
-            ax.text(i,max(small,large)+4,f'Δ {large-small:+.2f}'.replace('-', '−'),
-                    ha='center',fontsize=6.6)
-    bars(axes[0],before_data,after_data,['Mixed','Original → Mixed\n(Joint)'])
+            for offset,value in [(-.16,small),(.16,large)]:
+                ax.text(i+offset,value+3,f'{value:.1f}',
+                        ha='center',va='bottom',fontsize=6.2)
+    bars(axes[0],before_data,after_data,['Mixed','Original → Mixed\n(Joint)'],
+         ['2,048 pairs','32,768 pairs'])
     labels=[('LeWM' if r['family']=='lewm' else 'PLDM')+'\n'+
             ('friction' if r['task']=='contact_friction' else 'damping') for r in capacity_records]
     bars(axes[1],[r['small'] for r in capacity_records],
-         [r['large'] for r in capacity_records],labels)
-    fig.text(.15,.99,'(a) Data: 2,048 → 32,768 pairs',fontsize=8,va='top')
-    fig.text(.15,.48,'(b) Models: 18M → 183M',fontsize=8,va='top')
-    fig.legend(*axes[0].get_legend_handles_labels(),loc='upper left',
-               bbox_to_anchor=(.13,.94),ncol=2,frameon=False,fontsize=7,
-               handlelength=1.1,columnspacing=1.5,borderaxespad=0)
+         [r['large'] for r in capacity_records],labels,['18M','183M'])
+    fig.text(.15,.99,'(a) Data scaling',fontsize=8,va='top')
+    fig.text(.15,.49,'(b) Model scaling',fontsize=8,va='top')
+    for ax,y in zip(axes,[.94,.44]):
+        fig.legend(*ax.get_legend_handles_labels(),loc='upper left',
+                   bbox_to_anchor=(.13,y),ncol=2,frameon=False,fontsize=7,
+                   handlelength=1.1,columnspacing=1.5,borderaxespad=0)
     fig.savefig(OUT/'scaling_comparisons.pdf',pad_inches=.035)
     plt.close(fig)
     return dict(split='development',data=data_records,capacity=capacity_records)
