@@ -42,7 +42,6 @@ def multistep_prediction():
     records = []
     colors = {'original': '#777777', 'frozen': '#c46124'}
     for ax, family, title in zip(axes, ['lewm', 'pldm'], ['LeWM', 'PLDM']):
-        ax.axhspan(1,3.35,color='#f3f4f6',zorder=0)
         for regime in ['original', 'frozen']:
             row, = [r for r in summary['rows'] if r['task'] == 'action_strength'
                     and r['family'] == family and r['regime'] == regime]
@@ -76,7 +75,6 @@ def multistep_prediction():
             records.append(dict(family=family, regime=regime, run_ids=row['run_ids'],
                                 horizons=horizons.tolist(), per_horizon_ratio=mean.tolist(),
                                 ci95=np.stack([lo,hi],axis=1).tolist(), aggregate_ratio=float(np.mean(overall))))
-        ax.axhline(1, color='#424952', linestyle='--', linewidth=1.15)
         ax.set_title(title, fontsize=8)
         ax.set_xticks(horizons, range(1, len(horizons)+1))
         ax.set_ylim(0, 3.35)
