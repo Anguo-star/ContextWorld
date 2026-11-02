@@ -220,6 +220,7 @@ if PUSHER:
         'preview_only':True,
     }
     if args.response_fidelity:
+        metadata['error_comparison_display']={'prediction_markers':'Schematic latent predictions, not decoded or measured outputs.','target_markers':'Schematic locations of encoded true futures, with unmodified source-frame thumbnails.','geometry':'Illustrates desired error ordering, not a projection of model embeddings.','shown_condition':'A; scoring repeats symmetrically for B.'}
         metadata['response_fidelity']={'metric':'NRE, ratio of sums across pairs','true_response':'z_B - z_A','predicted_response':'z_hat_B - z_hat_A','vector_display':'Conceptual diagram; not projected or measured results.'}
     if args.prediction_images:
         metadata['prediction_thumbnail_semantics']='Ground-truth future images supplied as labeled visual references beside latent symbols; not decoded model predictions.'

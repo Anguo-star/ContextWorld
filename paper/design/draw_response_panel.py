@@ -36,42 +36,48 @@ def draw_original_error_matrix(s, formula, check):
         s.rect(1227,yy,185,48,'white','#c6c4c3',1.1,11);formula(1246,yy+32,first,second,25);check(1385,yy+24)
 
 
-def draw_controlled_error_comparisons(s):
-    """Show what stays fixed in each comparison, without matrix indexing."""
+def draw_controlled_error_comparisons(s, scene):
+    """Illustrate error comparisons with latent markers and real target images."""
     ink, muted, line = '#263547', '#667488', '#8795aa'
-    colors = {'A': ('#0044b5', '#eaf5ff', '#72b9ee'),
-              'B': ('#c52e00', '#fff2e8', '#eeae83')}
+    blue, orange = '#0044b5', '#c52e00'
     s.raw('<g id="controlled-error-comparisons">')
     s.rect(574, 488, 430, 316, '#FCFDFE', '#E1E8EF', 1, 10)
-    s.text(789, 512, 'Two controlled comparisons', 20, ink, 700, 'middle')
-    s.text(789, 534, 'Shown for A; repeated for B', 16.5, muted, anchor='middle')
+    s.text(789, 512, 'Error comparisons', 20, ink, 700, 'middle')
+    s.text(789, 534, 'Latent-space schematic · condition A', 16, muted, anchor='middle')
 
-    def node(x, y, height, label, condition):
-        color, fill, stroke = colors[condition]
-        s.rect(x, y, 126, height, fill, stroke, 1.1, 6)
-        s.text(x+63, y+height/2+5.5, label, 16.5, color, 700, 'middle')
+    def prediction(x, y, condition, label_x, label_y):
+        color = blue if condition == 'A' else orange
+        s.raw(f'<path d="M {x} {y-6} L {x+6} {y} L {x} {y+6} L {x-6} {y} Z" fill="white" stroke="{color}" stroke-width="2"/>')
+        s.text(label_x, label_y, 'Prediction '+condition, 16, color, 700, 'middle')
 
-    def comparison(x1, y1, x2, y2, label_y):
-        # Undirected connectors are comparisons, not state transitions.
-        s.line(x1, y1, x2, y2, line, 1.5)
-        s.text((x1+x2)/2, label_y, 'error', 15, muted, anchor='middle')
+    def target(x, y, condition, image_x, image_y):
+        color = blue if condition == 'A' else orange
+        mode = 'cannot_hold' if condition == 'A' else 'can_hold'
+        # The circle is a latent target; its attached image is the true observation.
+        s.line(x+5, y, image_x-3, image_y+25, color, 1, '2 3')
+        s.circle(x, y, 5, color)
+        scene(mode, 3, image_x, image_y, 70, 50)
+        s.text(image_x+35, image_y-5, 'True future '+condition, 15.5, color, 700, 'middle')
 
-    s.text(592, 557, '1. Keep prediction A fixed', 17, ink, 700)
-    comparison(718, 607, 860, 587, 590)
-    comparison(718, 607, 860, 627, 634)
-    node(592, 586, 42, 'Prediction A', 'A')
-    node(860, 572, 30, 'True future A', 'A')
-    node(860, 612, 30, 'True future B', 'B')
-    s.text(789, 661, 'Correct future should have lower error', 15.5, ink, anchor='middle')
+    def error_segment(x1, y1, x2, y2, label_x, label_y):
+        s.line(x1, y1, x2, y2, line, 1.6)
+        s.text(label_x, label_y, 'error', 15, muted, anchor='middle')
 
-    s.line(592, 673, 986, 673, '#E1E8EF', 1)
-    s.text(592, 694, '2. Keep true future A fixed', 17, ink, 700)
-    comparison(718, 720, 860, 740, 719)
-    comparison(718, 760, 860, 740, 767)
-    node(592, 705, 30, 'Prediction A', 'A')
-    node(592, 745, 30, 'Prediction B', 'B')
-    node(860, 719, 42, 'True future A', 'A')
-    s.text(789, 795, 'Matching history should give lower error', 15.5, ink, anchor='middle')
+    s.text(592, 557, '1. Same prediction', 17, ink, 700)
+    error_segment(648, 625, 760, 600, 723, 598)
+    error_segment(648, 625, 888, 648, 775, 655)
+    prediction(648, 625, 'A', 650, 603)
+    target(760, 600, 'A', 778, 575)
+    target(888, 648, 'B', 914, 625)
+
+    s.line(592, 683, 986, 683, '#E1E8EF', 1)
+    s.text(592, 698, '2. Same true future', 17, ink, 700)
+    error_segment(758, 737, 888, 748, 834, 735)
+    error_segment(640, 760, 888, 748, 775, 776)
+    prediction(758, 737, 'A', 760, 723)
+    prediction(640, 760, 'B', 650, 744)
+    target(888, 748, 'A', 910, 723)
+    s.text(789, 795, 'Closer states indicate lower error', 15.5, ink, anchor='middle')
     s.raw('</g>')
 
 
@@ -125,7 +131,7 @@ def draw_response_panel(s, scene, panel, formula, check, prediction_images=False
             s.raw(f'<text x="505" y="{y+73}" font-size="32" fill="{dark}" style="font-family:Georgia,serif;font-style:italic">z<tspan font-size="19" baseline-shift="sub">{letter}</tspan></text>')
             s.raw(f'<path d="M 507 {y+47} l 7 -5 l 7 5" fill="none" stroke="{dark}" stroke-width="1.6"/>')
             s.text(522, y+99, 'latent', 14, dark, anchor='middle')
-    draw_controlled_error_comparisons(s)
+    draw_controlled_error_comparisons(s, scene)
 
     # Blue/orange and neutral fills follow the supplied response-fidelity design.
     # These vectors illustrate differences between conditions, not data projections.
