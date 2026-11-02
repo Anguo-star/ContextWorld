@@ -1,13 +1,17 @@
-"""Editable replica of the supplied main-figure schematic. Scene art is illustrative."""
+"""Reference-layout overview using recorded Cube states and dataset screenshots."""
 from pathlib import Path
 import json, math
 from svg_style import SVG, data_uri
 import base64
 HERE=Path(__file__).resolve().parent
-REFERENCE=HERE/'assets/reference/main_figure_design.png'
+ASSETS=HERE/'assets/cube_pair_hd'
+provenance=json.loads((ASSETS/'provenance.json').read_text())
+raw=json.loads((HERE/'assets/cube_pair/provenance.json').read_text())
+assert (ASSETS/provenance['frames']['cannot_hold']['2']['file']).read_bytes()==(ASSETS/provenance['frames']['can_hold']['2']['file']).read_bytes()
+for t in range(4):
+    assert raw['frames']['cannot_hold'][str(t)]['action_block']==raw['frames']['can_hold'][str(t)]['action_block']
 BLUE='#0094ff'; ORANGE='#ff780a'; DARK_BLUE='#0044b5'; DARK_ORANGE='#c52e00'; INK='#111620'; OUTLINE='#8795aa'
 s=SVG(1448,1086)
-s.raw(f'<defs><image id="reference-art" href="{data_uri(REFERENCE)}" width="1448" height="1086"/></defs>')
 regular=base64.b64encode((HERE/'assets/fonts/RobotoCondensed-Regular.ttf').read_bytes()).decode()
 bold=base64.b64encode((HERE/'assets/fonts/RobotoCondensed-Bold.ttf').read_bytes()).decode()
 s.raw(f'<style>@font-face{{font-family:ReferenceNarrow;src:url(data:font/ttf;base64,{regular});font-weight:400}}@font-face{{font-family:ReferenceNarrow;src:url(data:font/ttf;base64,{bold});font-weight:700}}</style>')
@@ -24,26 +28,24 @@ def formula(x,y,first,second,size=28):
     s.raw(f'<text x="{x}" y="{y}" font-size="{size}" style="font-family:Georgia,serif;font-style:italic"><tspan fill="{DARK_BLUE if first=="AA" else DARK_ORANGE}">d<tspan baseline-shift="sub" font-size="{size*.64}">{first}</tspan></tspan><tspan> &lt; </tspan><tspan>d<tspan baseline-shift="sub" font-size="{size*.64}">{second}</tspan></tspan></text>')
 def check(x,y):
     s.raw(f'<path d="M {x-7} {y} l 6 8 l 12 -20" fill="none" stroke="#21842c" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round"/>')
-# Reuse the supplied illustration assets, not generated experimental observations.
-# Both rows deliberately reuse the same current-observation crop.
-SCENES={
-    'cannot_hold':[(223,111,179,109),(511,111,177,109),(801,113,175,109),(1123,112,180,109)],
-    'can_hold':[(223,111,179,109),(511,307,177,108),(801,113,175,109),(1123,307,180,108)],
-}
-def reference_crop(box,x,y,w,h,r=3):
-    ident=f'illustration{len(s.parts)}'
+# Use a shared crop without recentering individual frames: visible motion is real.
+CUBE_VIEWBOX=(430,325,720,445)
+embedded={}
+def native_crop(path,box,x,y,w,h,r=3,source_size=(1600,900),fit='slice'):
+    path=Path(path)
+    if path not in embedded:
+        embedded[path]=f'native-asset-{len(embedded)}'
+        s.raw(f'<defs><image id="{embedded[path]}" href="{data_uri(path)}" width="{source_size[0]}" height="{source_size[1]}"/></defs>')
+    ident=f'crop{len(s.parts)}'
     s.raw(f'<defs><clipPath id="{ident}"><rect x="{x}" y="{y}" width="{w}" height="{h}" rx="{r}"/></clipPath></defs>')
     viewbox=' '.join(map(str,box))
-    s.raw(f'<g clip-path="url(#{ident})"><svg x="{x}" y="{y}" width="{w}" height="{h}" viewBox="{viewbox}" preserveAspectRatio="xMidYMid slice" overflow="hidden"><use href="#reference-art"/></svg></g>')
+    s.raw(f'<g clip-path="url(#{ident})"><svg x="{x}" y="{y}" width="{w}" height="{h}" viewBox="{viewbox}" preserveAspectRatio="xMidYMid {fit}" overflow="hidden"><use href="#{embedded[path]}"/></svg></g>')
 def scene(mode,t,x,y,w=181,h=112):
     s.rect(x,y,w,h,'#eef1f6','#8f99a8',1.2,4)
-    box=SCENES[mode][t]
-    if w<100:
-        box=([53,115,207][t],721 if mode=='can_hold' and t==1 else 580,57,49)
-    reference_crop(box,x+1,y+1,w-2,h-2)
+    native_crop(ASSETS/provenance['frames'][mode][str(t)]['file'],CUBE_VIEWBOX,x+1,y+1,w-2,h-2)
 
 panel(20,15,1408,442,'A','Same current observation and future actions, different futures',32)
-s.text(1416,47,'Cube carry-rule schematic',22,'#606b7b',anchor='end')
+s.text(1416,47,'Cube carry-rule example',22,'#606b7b',anchor='end')
 s.rect(787,73,203,362,'url(#current-bg)','#b3dcfc',.8,10)
 s.line(29,258,1416,258,'#ccd5df',1.3,'4 4')
 brace(996,113,290);s.rect(1016,202,94,116,'url(#card-bg)',r=10)
@@ -84,7 +86,6 @@ for angle in [0,math.pi/3,2*math.pi/3]:
     for sign in [-1,1]:
         xx,yy=427+sign*18*ux,710+sign*18*uy
         for side in [-1,1]:s.line(xx,yy,xx-sign*7*ux+side*4*uy,yy-sign*7*uy-side*4*ux,'#348fbc',2)
-s.text(427,778,'Separate calls · shared weights',17,'#667488',anchor='middle')
 for y,col,dark,letter in [(545,BLUE,DARK_BLUE,'A'),(681,ORANGE,DARK_ORANGE,'B')]:
     s.arrow(523,y+53,567,y+53,col,2,9)
     s.rect(571,y,176,101,'#f4faff' if letter=='A' else '#fff9f3',col,1.2,10)
@@ -118,13 +119,16 @@ for yy,first,second in [(669,'AA','BA'),(731,'BB','AB')]:
     s.rect(1227,yy,185,48,'white','#c6c4c3',1.1,11);formula(1246,yy+32,first,second,25);check(1385,yy+24)
 
 panel(20,831,1408,236,'C','ContextWorld: 9 tasks across 4 environments',31)
-# These are illustrative environment icons from the same supplied design.
-cards=[(34,374,'TwoRoom','4 tasks',(48,899,139,137),['Speed','Action delay','Door traversability','Portal exit'],142),(421,353,'PushT','3 tasks',(435,897,122,133),['Pusher displacement','Contact friction','Motion damping'],125),(787,301,'Reacher','1 task',(802,897,100,134),['Arm mass'],104),(1100,320,'Cube','1 task',(1115,897,121,134),['Gripper carry rule'],125)]
-for x,w,title,count,box,tasks,iw in cards:
+# Environment views come from saved benchmark data, with provenance retained.
+cards=[(34,374,'TwoRoom','4 tasks',HERE/'assets/environments/tworoom.jpg',['Speed','Action delay','Door traversability','Portal exit'],142),(421,353,'PushT','3 tasks',HERE/'assets/pusher_pair/pusher_low_gain_step10.jpg',['Pusher displacement','Contact friction','Motion damping'],125),(787,301,'Reacher','1 task',HERE/'assets/environments/reacher.jpg',['Arm mass'],104),(1100,320,'Cube','1 task',ASSETS/'can_hold_t0.png',['Gripper carry rule'],125)]
+for x,w,title,count,path,tasks,iw in cards:
     s.rect(x,881,w,172,'url(#card-bg)',r=15)
     ix=x+13;iy=896;ih=137
     s.rect(ix,iy,iw,ih,'#e7ebf1','#c6ced8',1,7)
-    reference_crop(box,ix+1,iy+1,iw-2,ih-2,6)
+    if title=='Cube':
+        native_crop(path,(490,180,620,680),ix+1,iy+1,iw-2,ih-2,6)
+    else:
+        native_crop(path,(0,0,224,224),ix+1,iy+1,iw-2,ih-2,6,source_size=(224,224),fit='meet')
     tx=ix+iw+14;tw=x+w-16-tx
     s.text(tx,915,title,24,weight=700)
     title_width={'TwoRoom':112,'PushT':75,'Reacher':96,'Cube':61}[title]
@@ -137,13 +141,16 @@ for x,w,title,count,box,tasks,iw in cards:
 s.save(HERE/'benchmark_overview.svg')
 (HERE/'overview_crop.json').write_text(json.dumps({
     'design_reference':'https://chatgpt.com/share/6ae80941-7830-83ea-a2af-476c8f212ea8',
-    'source':'assets/reference/main_figure_design.png',
+    'source':'assets/cube_pair_hd/provenance.json',
+    'pair_id':provenance['pair_id'],
     'output_dimensions':[1448,1086],
-    'scene_source':'Illustrations supplied in the design reference; not recorded observations or model predictions.',
-    'scene_crops':SCENES,
-    'shared_current_crop':SCENES['cannot_hold'][2],
-    'history_thumbnails_share_initial_and_current':True,
-    'layout':'A controlled Cube schematic; B paired row/column error comparisons; C nine tasks in four environments.',
-    'semantic_adjustments':['Shared future-action input explicitly shown.','Lowercase latent z follows manuscript notation.','Current-observation crop is identical across conditions.'],
+    'scene_source':'Native high-resolution renders of recorded simulator states; model-input observations remain unchanged.',
+    'shared_state_viewbox':CUBE_VIEWBOX,
+    'current_render_identical':True,
+    'shared_action_blocks_verified':True,
+    'cube_state_max_abs_replay_error_m':provenance['cube_state_max_abs_replay_error_m'],
+    'cube_lift_m':provenance['cube_lift_m'],
+    'environment_sources':['assets/environments/provenance.json','assets/pusher_pair/provenance.json','assets/cube_pair_hd/provenance.json'],
+    'layout':'Reference A/B/C layout with native data images. The design-reference artwork is not embedded.',
 },indent=2)+'\n')
-print('Reference-matched schematic saved.')
+print('Native-data overview saved; shared observations and actions verified.')
