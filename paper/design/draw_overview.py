@@ -116,7 +116,7 @@ if PUSHER:
             s.rect(x-3,hy,187,37,'url(#neutral)' if t!=2 else '#e1f3ff',r=6)
             s.text(x+90.5,hy+25,title,20,DARK_BLUE if t==2 else INK,700,'middle')
             pusher_frame(mode,t,x,y,181,146,annotate=True)
-            if t in [1,3]:s.text(x+90.5,y+167,'Shorter movement' if letter=='A' else 'Longer movement',20,dark,700,'middle')
+            if t in [1,3]:s.text(x+90.5,y+167,'Pusher moves less' if letter=='A' else 'Pusher moves more',20,dark,700,'middle')
         for j,(x1,x2,label) in enumerate([(418,499,'Move'),(702,782,'Move'),(1017,1109,'Move')]):
             center=(x1+x2)/2
             s.text(center,y+40,label,21,'#cf0000',700,'middle')
@@ -160,20 +160,18 @@ else:
         for t,xx in [(0,52),(1,114),(2,206)]:scene(mode,t,xx,y+42,59,52)
         s.text(190,y+72,'…',23,anchor='middle')
         s.text(160.5,y+115,'observations + actions',19,'#536172',anchor='middle')
-        s.arrow(287,y+65,331,y+65,col,2,9)
-    s.text(427,543,'Shared future actions',18,'#536172',anchor='middle')
-    s.arrow(427,548,427,565,'#536172',1.5,6)
-    s.rect(334,568,186,181,'url(#model)',OUTLINE,1.3,11)
-    s.lines(427,619,['Frozen','latent world','model'],26,gap=30,weight=700,anchor='middle')
+        s.arrow(287,y+62.5,331,y+62.5,col,2,9)
+    s.rect(334,550,186,240,'url(#model)',OUTLINE,1.3,11)
+    s.lines(427,630.5,['Frozen','latent world','model'],26,gap=30,weight=700,anchor='middle')
     # Snowflake: vector icon rather than a font glyph.
     for angle in [0,math.pi/3,2*math.pi/3]:
         ux,uy=math.cos(angle),math.sin(angle)
-        s.line(427-18*ux,710-18*uy,427+18*ux,710+18*uy,'#348fbc',2.2)
+        s.line(427-18*ux,721.5-18*uy,427+18*ux,721.5+18*uy,'#348fbc',2.2)
         for sign in [-1,1]:
-            xx,yy=427+sign*18*ux,710+sign*18*uy
+            xx,yy=427+sign*18*ux,721.5+sign*18*uy
             for side in [-1,1]:s.line(xx,yy,xx-sign*7*ux+side*4*uy,yy-sign*7*uy-side*4*ux,'#348fbc',2)
-    for y,col,dark,letter in [(545,BLUE,DARK_BLUE,'A'),(681,ORANGE,DARK_ORANGE,'B')]:
-        s.arrow(523,y+53,567,y+53,col,2,9)
+    for y,col,dark,letter in [(549,BLUE,DARK_BLUE,'A'),(690,ORANGE,DARK_ORANGE,'B')]:
+        s.arrow(523,y+50.5,567,y+50.5,col,2,9)
         s.rect(571,y,176,101,'#f4faff' if letter=='A' else '#fff9f3',col,1.2,10)
         s.rect(573,y+2,172,32,'#e4f2ff' if letter=='A' else '#ffeedf',r=8)
         s.text(659,y+25,'Prediction from '+letter,20,dark,700,'middle')
