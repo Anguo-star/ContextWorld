@@ -75,11 +75,11 @@ def draw_arrow_error_matrix(s):
     half_arrow('column-a', 708, 722, 708, 640, -1, 0, column_color)
     half_arrow('column-b', 938, 640, 938, 722, 1, 0, column_color)
 
-    # Compact color keys keep the footer a legend rather than prose.
-    s.line(610, 789, 626, 789, row_color, 1.8)
-    s.text(636, 795, 'Future discrimination', 17, row_color)
-    s.line(834, 789, 850, 789, column_color, 1.8)
-    s.text(860, 795, 'History benefit', 17, column_color)
+    # Label the comparison directions directly, beside their arrows.
+    s.text(823, 795, 'Compare futures', 17, row_color, anchor='middle')
+    s.raw('<g id="history-comparison-label" transform="translate(975,681) rotate(90)">')
+    s.text(0, 6, 'Compare histories', 17, column_color, anchor='middle')
+    s.raw('</g>')
     s.raw('</g>')
 
 
