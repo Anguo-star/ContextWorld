@@ -87,7 +87,6 @@ for y,col,dark,letter in [(583,BLUE,DARK_BLUE,'A'),(709,ORANGE,DARK_ORANGE,'B')]
     s.raw(f'<text x="642" y="{y+80}" style="font-family:Georgia,serif;font-style:italic" font-size="40" fill="{dark}">z<tspan font-size="21" baseline-shift="sub">{letter}</tspan></text>')
     s.raw(f'<path d="M 642 {y+48} L 651 {y+42} L 660 {y+48}" fill="none" stroke="{dark}" stroke-width="1.7"/>')
 s.arrow(776,704,858,704,'#66707b',1.8,8)
-s.text(817,691,'MSE',18,'#515966',anchor='middle')
 mx,my,cw,ch=1030,618,180,84
 s.brace(mx,575,2*cw,-1)
 s.text(mx+cw,544,'Future discrimination',20,weight=700,anchor='middle')
@@ -102,7 +101,7 @@ for i in range(2):
         s.raw(f'<text x="{mx+(j+.5)*cw-2}" y="{my+i*ch+52}" text-anchor="middle" style="font-family:Georgia,serif;font-style:italic" font-size="33" fill="#20242a">d<tspan font-size="22" baseline-shift="sub">{"AB"[i]}{"AB"[j]}</tspan></text>')
 s.raw('<path d="M 924 618 Q 907 618 907 634 L 907 682 Q 907 695 893 702 Q 907 709 907 722 L 907 770 Q 907 786 924 786" fill="none" stroke="#171a1f" stroke-width="2"/>')
 s.text(881,702,'History benefit',19,weight=700,anchor='middle',transform='rotate(-90 881 702)')
-s.text(mx+cw,815,'Latent-space MSE · lower is better',16,'#515966',anchor='middle')
+s.text(mx+cw,815,'Prediction error · lower is better',16,'#515966',anchor='middle')
 
 s.rect(12,848,1468,96,'white','#69717d',1.2,11)
 s.text(61,903,'ContextWorld:',27,weight=700)
