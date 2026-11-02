@@ -63,7 +63,7 @@ def pusher_frame(mode,t,x,y,w,h,annotate=False):
     record=pusher['frames'][mode][str(t*5)]
     s.rect(x,y,w,h,'white','#8f99a8',1.2,4)
     native_crop(PUSHER_ASSETS/record['file'],PUSHER_VIEWBOX,x+1,y+1,w-2,h-2,source_size=(224,224),fit='meet')
-    if annotate and t == 3:
+    if annotate and t == 3 and mode == 'high_gain':
         silhouette=json.loads((PUSHER_ASSETS/'current_t_outline.json').read_text())
         source=PUSHER_ASSETS/silhouette['source']
         assert hashlib.sha256(source.read_bytes()).hexdigest()==silhouette['sha256']
@@ -216,7 +216,7 @@ if PUSHER:
         'action_arrows':'Direction of the sum of each shared five-step action block.',
         'displacement_arrows':'Observed endpoint displacement from saved pusher positions; not an interpolated trajectory.',
         'screenshot_integrity':'All eight source image SHA-256 values checked.',
-        'object_origin_outline':'assets/pusher_pair/current_t_outline.json; same current-pose silhouette in both future panels, display annotation only.',
+        'object_origin_outline':'assets/pusher_pair/current_t_outline.json; current-pose silhouette shown only in the larger-response future panel, display annotation only.',
         'preview_only':True,
     }
     if args.response_fidelity:
