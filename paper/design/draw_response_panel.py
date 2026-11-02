@@ -40,17 +40,20 @@ def draw_arrow_error_matrix(s):
     # Headers stay outside the comparison arrows; only errors occupy cells.
     blue, orange = '#0094ff', '#ff780a'
     row_color, column_color = '#0044b5', '#c52e00'
-    grid_x, grid_y, cell_w, cell_h, gap = 732, 600, 106, 80, 2
+    grid_x, grid_y, cell_w, cell_h, gap = 716, 600, 106, 80, 2
     s.raw('<g id="arrow-error-matrix">')
-    s.text(839, 512, 'Latent prediction error (d)', 20, '#263547', 700, 'middle')
-    s.text(839, 534, 'Arrows point to the desired lower error', 16.5, '#536172', anchor='middle')
-    s.text(839, 554, 'True future', 17, '#263547', 700, 'middle')
-    s.text(626, 687, 'Prediction', 17, '#263547', 700, 'middle')
+    s.rect(574, 488, 430, 316, '#FCFDFE', '#E1E8EF', 1, 10)
+    s.text(789, 512, 'Latent prediction error (d)', 20, '#263547', 700, 'middle')
+    s.text(789, 534, 'Arrows point to the desired lower error', 16.5, '#536172', anchor='middle')
+    s.text(823, 554, 'True future', 17, '#263547', 700, 'middle')
+    s.raw('<g id="prediction-axis-title" transform="translate(646,681) rotate(-90)">')
+    s.text(0, 6, 'Prediction', 17, '#263547', 700, 'middle')
+    s.raw('</g>')
     for index, (letter, color) in enumerate([('A', row_color), ('B', column_color)]):
         center_x = grid_x + index*(cell_w+gap) + cell_w/2
         center_y = grid_y + index*(cell_h+gap) + cell_h/2
         s.text(center_x, 574, letter, 18, color, 700, 'middle')
-        s.text(696, center_y+6, letter, 18, color, 700, 'middle')
+        s.text(684, center_y+6, letter, 18, color, 700, 'middle')
     for i in range(2):
         for j in range(2):
             x, y = grid_x+j*(cell_w+gap), grid_y+i*(cell_h+gap)
@@ -66,17 +69,15 @@ def draw_arrow_error_matrix(s):
         wing_x, wing_y = x2-9*ux+6*outward_x, y2-9*uy+6*outward_y
         s.raw(f'<path id="comparison-{name}" d="M {x1} {y1} L {x2} {y2} M {x2} {y2} L {wing_x} {wing_y}" fill="none" stroke="{color}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>')
     # Row A: AB -> AA; row B: BA -> BB.
-    half_arrow('row-a', 893, 592, 785, 592, 0, -1, row_color)
-    half_arrow('row-b', 785, 770, 893, 770, 0, 1, row_color)
+    half_arrow('row-a', 877, 592, 769, 592, 0, -1, row_color)
+    half_arrow('row-b', 769, 770, 877, 770, 0, 1, row_color)
     # Column A: BA -> AA; column B: AB -> BB.
-    half_arrow('column-a', 724, 722, 724, 640, -1, 0, column_color)
-    half_arrow('column-b', 954, 640, 954, 722, 1, 0, column_color)
+    half_arrow('column-a', 708, 722, 708, 640, -1, 0, column_color)
+    half_arrow('column-b', 938, 640, 938, 722, 1, 0, column_color)
 
-    # Horizontal legends avoid a second set of axis-like labels.
-    s.line(596, 797, 612, 797, row_color, 1.8)
-    s.text(622, 803, 'Future discrimination', 17, row_color)
-    s.line(843, 797, 859, 797, column_color, 1.8)
-    s.text(869, 803, 'History benefit', 17, column_color)
+    # Direct row/column labels stay clear at publication scale.
+    s.text(684, 795, 'Rows: future discrimination', 16, row_color, anchor='middle')
+    s.text(897, 795, 'Columns: history benefit', 16, column_color, anchor='middle')
     s.raw('</g>')
 
 
