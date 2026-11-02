@@ -44,13 +44,13 @@ def draw_arrow_error_matrix(s):
     s.raw('<g id="arrow-error-matrix">')
     s.text(839, 512, 'Latent prediction error (d)', 20, '#263547', 700, 'middle')
     s.text(839, 534, 'Arrows point to the desired lower error', 16.5, '#536172', anchor='middle')
-    s.text(839, 554, 'True future', 16.5, '#263547', 700, 'middle')
+    s.text(839, 554, 'True future', 17, '#263547', 700, 'middle')
+    s.text(626, 687, 'Prediction', 17, '#263547', 700, 'middle')
     for index, (letter, color) in enumerate([('A', row_color), ('B', column_color)]):
         center_x = grid_x + index*(cell_w+gap) + cell_w/2
         center_y = grid_y + index*(cell_h+gap) + cell_h/2
         s.text(center_x, 574, letter, 18, color, 700, 'middle')
-        s.lines(656, center_y-6, ['Pred', 'from '+letter], 18, gap=21,
-                fill=color, weight=700, anchor='middle')
+        s.text(696, center_y+6, letter, 18, color, 700, 'middle')
     for i in range(2):
         for j in range(2):
             x, y = grid_x+j*(cell_w+gap), grid_y+i*(cell_h+gap)
@@ -66,11 +66,11 @@ def draw_arrow_error_matrix(s):
         wing_x, wing_y = x2-9*ux+6*outward_x, y2-9*uy+6*outward_y
         s.raw(f'<path id="comparison-{name}" d="M {x1} {y1} L {x2} {y2} M {x2} {y2} L {wing_x} {wing_y}" fill="none" stroke="{color}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>')
     # Row A: AB -> AA; row B: BA -> BB.
-    half_arrow('row-a', 893, 589, 785, 589, 0, -1, row_color)
-    half_arrow('row-b', 785, 778, 893, 778, 0, 1, row_color)
+    half_arrow('row-a', 893, 592, 785, 592, 0, -1, row_color)
+    half_arrow('row-b', 785, 770, 893, 770, 0, 1, row_color)
     # Column A: BA -> AA; column B: AB -> BB.
-    half_arrow('column-a', 710, 722, 710, 640, -1, 0, column_color)
-    half_arrow('column-b', 968, 640, 968, 722, 1, 0, column_color)
+    half_arrow('column-a', 724, 722, 724, 640, -1, 0, column_color)
+    half_arrow('column-b', 954, 640, 954, 722, 1, 0, column_color)
 
     # Horizontal legends avoid a second set of axis-like labels.
     s.line(596, 797, 612, 797, row_color, 1.8)
@@ -135,24 +135,27 @@ def draw_response_panel(s, scene, panel, formula, check, prediction_images=False
     # Blue/orange and neutral fills follow the supplied response-fidelity design.
     # These vectors illustrate differences between conditions, not data projections.
     true_color, predicted_color = '#3187C6', '#E47E47'
-    s.rect(1119, 537, 298, 254, '#FCFDFE', '#E1E8EF', 1, 10)
-    s.text(1268, 560, 'Response fidelity', 21, ink, 700, 'middle')
-    s.text(1268, 583, 'Difference between conditions', 15, muted, anchor='middle')
-    origin, true, predicted = (1144, 706), (1311, 611), (1275, 657)
+    s.rect(1006, 528, 411, 276, '#FCFDFE', '#E1E8EF', 1, 10)
+    s.text(1211.5, 553, 'Response fidelity', 22, ink, 700, 'middle')
+    s.text(1211.5, 577, 'Difference between conditions', 16, muted, anchor='middle')
+    # Enlarge the schematic vectors uniformly, preserving their directions.
+    origin = (1074, 710)
+    true = (origin[0]+1.2*167, origin[1]-1.2*95)
+    predicted = (origin[0]+1.2*131, origin[1]-1.2*49)
     s.arrow(*origin, *true, true_color, 3, 10)
     s.arrow(*origin, *predicted, predicted_color, 3, 10)
     s.circle(*origin, 3, '#63788D')
     s.line(*true, *predicted, '#7F8B9B', 1.3, '4 4')
-    s.text(1320, 610, 'True', 17, '#277EBF', 700)
-    s.text(1294, 675, 'Predicted', 17, '#D86632', 700)
-    s.raw('<text x="1338" y="636" font-size="23" fill="#277EBF" style="font-family:Georgia,serif;font-style:italic">Δz</text>')
-    s.raw('<text x="1334" y="704" font-size="23" fill="#D86632" style="font-family:Georgia,serif;font-style:italic">Δẑ</text>')
+    s.text(1287, 598, 'True', 18, '#277EBF', 700)
+    s.text(1255, 675, 'Predicted', 18, '#D86632', 700)
+    s.raw('<text x="1305" y="626" font-size="24" fill="#277EBF" style="font-family:Georgia,serif;font-style:italic">Δz</text>')
+    s.raw('<text x="1295" y="702" font-size="24" fill="#D86632" style="font-family:Georgia,serif;font-style:italic">Δẑ</text>')
     # Dataset-level ratio of sums, consistent with the manuscript's NRE definition.
-    s.rect(1126, 724, 284, 60, '#F3F6F9', '#E1E8EF', .8, 8)
-    s.text(1135, 761, 'NRE =', 19, '#33485E', 700)
-    s.line(1205, 754, 1398, 754, '#63788D', 1)
+    s.rect(1016, 731, 391, 63, '#F3F6F9', '#E1E8EF', .8, 8)
+    s.text(1030, 770, 'NRE =', 20, '#33485E', 700)
+    s.line(1110, 762, 1391, 762, '#63788D', 1)
     def term(x, y, numerator):
-        inside = 'Δẑ<tspan baseline-shift="sub" font-size="12">i</tspan> − Δz<tspan baseline-shift="sub" font-size="12">i</tspan>' if numerator else 'Δz<tspan baseline-shift="sub" font-size="12">i</tspan>'
-        s.raw(f'<text x="{x}" y="{y}" text-anchor="middle" fill="#33485E" font-size="19" style="font-family:Georgia,serif">∑<tspan baseline-shift="sub" font-size="12">i</tspan> ‖{inside}‖<tspan baseline-shift="super" font-size="12">2</tspan></text>')
-    term(1301.5, 743, True)
-    term(1301.5, 776, False)
+        inside = 'Δẑ<tspan baseline-shift="sub" font-size="13">i</tspan> − Δz<tspan baseline-shift="sub" font-size="13">i</tspan>' if numerator else 'Δz<tspan baseline-shift="sub" font-size="13">i</tspan>'
+        s.raw(f'<text x="{x}" y="{y}" text-anchor="middle" fill="#33485E" font-size="21" style="font-family:Georgia,serif">∑<tspan baseline-shift="sub" font-size="13">i</tspan> ‖{inside}‖<tspan baseline-shift="super" font-size="13">2</tspan></text>')
+    term(1250.5, 749, True)
+    term(1250.5, 784, False)
