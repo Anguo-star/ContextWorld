@@ -71,7 +71,6 @@ def multistep_prediction():
             assert np.isclose(np.mean(overall), 1-row['score']/100, rtol=1e-9)
             ax.plot(horizons, mean, color=colors[regime], marker='o' if regime=='frozen' else 's',
                     markersize=3, linewidth=1.2)
-            ax.fill_between(horizons, lo, hi, color=colors[regime], alpha=.14, linewidth=0)
             records.append(dict(family=family, regime=regime, run_ids=row['run_ids'],
                                 horizons=horizons.tolist(), per_horizon_ratio=mean.tolist(),
                                 ci95=np.stack([lo,hi],axis=1).tolist(), aggregate_ratio=float(np.mean(overall))))

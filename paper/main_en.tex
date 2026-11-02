@@ -302,7 +302,7 @@ Strong one-step adaptation does not establish accurate multi-step prediction. On
 \begin{figure}[t]
 \centering
 \includegraphics[width=\columnwidth]{figures/multistep_prediction.pdf}
-\caption{\textbf{Multi-step prediction on pusher displacement (Development).} Each rollout step spans five simulator steps without new observations. Prediction error is divided by the error of predicting the mean future representation across dynamics conditions. Ratios are computed within each checkpoint's representation, then averaged over runs. Bands give pointwise 95\% source-bootstrap intervals. These extended queries differ from the one-step tasks; nine-task summaries appear in Appendix~\ref{app:additional-results}.}
+\caption{\textbf{Multi-step prediction on pusher displacement (Development).} Each rollout step spans five simulator steps without new observations. Prediction error is divided by the error of predicting the mean future representation across dynamics conditions. Ratios are computed within each checkpoint's representation, then averaged over runs. These extended queries differ from the one-step tasks; nine-task summaries appear in Appendix~\ref{app:additional-results}.}
 \label{fig:multistep-prediction}
 \end{figure}
 
@@ -587,7 +587,7 @@ The main task comparison uses Test.
 The multi-step and history diagnostics below use Development, with the same checkpoint identities where the input protocol is comparable.
 Multi-step evaluation covers 2,436 source scenes across the nine tasks and predicts at 5, 10, 15, 20, and 25 simulator steps using only the initial observed history.
 The candidate actions and multi-step targets extend the one-step task queries.
-Figure~\ref{fig:multistep-prediction} reports $E_t/B_t$: prediction and mean-future errors are summed over queries separately at each horizon, normalized within each checkpoint, then averaged equally over training repetitions. The aggregate $E/B$ instead combines errors over all horizons before division; it is not the arithmetic mean of these per-horizon ratios. The pointwise intervals use the same source-cluster bootstrap protocol.
+Figure~\ref{fig:multistep-prediction} reports $E_t/B_t$: prediction and mean-future errors are summed over queries separately at each horizon, normalized within each checkpoint, then averaged equally over training repetitions. The aggregate $E/B$ instead combines errors over all horizons before division; it is not the arithmetic mean of these per-horizon ratios.
 Each checkpoint is scored separately, and matching training repetitions are then averaged equally.
 Intervals use 4,000 source-cluster bootstrap samples; all conditions, actions, and times from a source remain together.
 They condition on the evaluated checkpoints and do not estimate variation from retraining the model.
