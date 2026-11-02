@@ -42,11 +42,12 @@ def draw_arrow_error_matrix(s):
     row_color, column_color = '#0044b5', '#c52e00'
     grid_x, grid_y, cell_w, cell_h, gap = 732, 600, 106, 80, 2
     s.raw('<g id="arrow-error-matrix">')
-    s.text(839, 530, 'Prediction error · lower is better', 18, '#263547', 700, 'middle')
+    s.text(839, 512, 'Latent prediction error (d)', 20, '#263547', 700, 'middle')
+    s.text(839, 534, 'Arrows point to the desired lower error', 16.5, '#536172', anchor='middle')
+    s.text(839, 554, 'True future', 16.5, '#263547', 700, 'middle')
     for index, (letter, color) in enumerate([('A', row_color), ('B', column_color)]):
         center_x = grid_x + index*(cell_w+gap) + cell_w/2
         center_y = grid_y + index*(cell_h+gap) + cell_h/2
-        s.text(center_x, 552, 'True future', 16.5, color, 700, 'middle')
         s.text(center_x, 574, letter, 18, color, 700, 'middle')
         s.lines(656, center_y-6, ['Pred', 'from '+letter], 18, gap=21,
                 fill=color, weight=700, anchor='middle')
@@ -130,7 +131,6 @@ def draw_response_panel(s, scene, panel, formula, check, prediction_images=False
             s.raw(f'<path d="M 507 {y+47} l 7 -5 l 7 5" fill="none" stroke="{dark}" stroke-width="1.6"/>')
             s.text(522, y+99, 'latent', 14, dark, anchor='middle')
     draw_arrow_error_matrix(s)
-    s.line(1103, 542, 1103, 790, '#dbe2eb', 1)
 
     # Blue/orange and neutral fills follow the supplied response-fidelity design.
     # These vectors illustrate differences between conditions, not data projections.
