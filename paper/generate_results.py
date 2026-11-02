@@ -26,6 +26,38 @@ def mean(r,key):
 def fmt(v,dec=2):
     return '---' if v is None else f'{v:.{dec}f}'
 
+def test_statistics_table():
+    """Keep multi-run uncertainty in the appendix while the main table shows means."""
+    frozen = read('current_reference_test_v1/summary.json')
+    assert frozen['evaluation_split'] == 'test'
+    cells = frozen['cells']
+    assert all(c['status'] == 'complete' for c in cells)
+    index = {(c['task'], c['family'], c['regime']): c['main'] for c in cells}
+    lines = [r'''\begingroup
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{longtable}{@{}p{2.8cm}lp{5.3cm}rrr@{}}
+\caption{Training-run variation in Test accuracy. The table lists configurations with multiple training runs; $n$ is the run count and SD is the sample standard deviation in percentage points. All other available entries in Table~\ref{tab:test-results} use one training run, for which sample SD is undefined.}\label{tab:test-variability}\\
+\toprule
+Task & Model & Training scheme & $n$ & Mean (\%) & SD (pp)\\
+\midrule\endfirsthead
+\toprule
+Task & Model & Training scheme & $n$ & Mean (\%) & SD (pp)\\
+\midrule\endhead
+\bottomrule\endfoot''']
+    for task, name in TASKS:
+        for family, model in FAMILIES:
+            for regime, label in LABELS.items():
+                stat = index.get((task, family, regime))
+                if not stat or stat['n'] <= 1:
+                    continue
+                assert stat['std'] is not None
+                lines.append(' & '.join([name, model, label, str(stat['n']),
+                                         fmt(stat['mean']), fmt(stat['std'])])+r' \\')
+    lines.append(r'\end{longtable}\endgroup')
+    return lines
+
+
 text = [r'''\begingroup
 \small
 \setlength{\tabcolsep}{3pt}
@@ -42,6 +74,7 @@ Task & Model & Scheme & History $\uparrow$ & NRE $\downarrow$ & $E/B$ $\downarro
 \endhead
 \bottomrule
 \endfoot''']
+text = test_statistics_table() + text
 for task,name in TASKS:
     for family,model in FAMILIES:
         for regime,label in LABELS.items():

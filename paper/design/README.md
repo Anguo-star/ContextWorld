@@ -2,7 +2,7 @@
 
 The overview explains the paired evaluation. The training figure presents one measured example; it is not repeated in the overview.
 
-- `benchmark_overview.pdf` / `.svg`: the reference design's rounded panels, image cards, blue/orange condition colors and error matrix, using high-resolution renderings of a real Cube pair. Lift and reverse commands label transitions between observations; the shared query action also appears between the current and future states. Dashed height references and Lifts/Stays labels distinguish the outcomes. The current observation and all action blocks are identical across conditions.
+- `benchmark_overview.pdf` / `.svg`: the reference design's rounded panels, image cards, blue/orange condition colors and error matrix, using high-resolution renderings of a real Cube pair. Lift and reverse commands label transitions between observations; the shared query action also appears between the current and future states. A shared close-up crop and Not lifted/Lifted labels distinguish the outcomes without overlaying height markers. The current observation and all action blocks are identical across conditions.
 - `training_two_panels.pdf` / `.svg`: PLDM contact friction, Original → Mixed (Joint). The left plot contains six recorded prediction-loss means; the right contains the two measured training-query NRE values. No intermediate NRE values are interpolated.
 - `figure_design.pdf`: both figures at paper size with captions.
 - `assets/cube_pair/provenance.json`: source pair, action blocks, image hashes and sample selection. The original 224-pixel observations are retained for provenance. The pair was selected for legibility, without changing benchmark sampling or scores.

@@ -16,18 +16,18 @@ assert [int(r['epoch']) for r in nre]==[5,10]
 ys=[float(r['mean']) for r in loss];nr=[float(r['NRE']) for r in nre]
 reduction=100*(1-ys[-1]/ys[0])
 s=SVG(660,324)
-s.text(192,31,'Prediction loss',25,weight=700,anchor='middle')
-s.text(512,31,'Response error (NRE)',25,weight=700,anchor='middle')
+s.text(192,31,'Prediction loss',22,weight=700,anchor='middle')
+s.text(512,31,'Response error (NRE)',22,weight=700,anchor='middle')
 
 def plot_frame(x,y,w,h,lo,hi,ticks):
     xf=lambda t:x+(t-4.7)/5.6*w
     yf=lambda v:y+h-(v-lo)/(hi-lo)*h
     for t in range(5,11):
-        xx=xf(t);s.line(xx,y,xx,y+h,'#e4e5e8',1.1);s.line(xx,y+h,xx,y+h+6,'#171a1d',1.5);s.text(xx,y+h+28,str(t),22,anchor='middle')
+        xx=xf(t);s.line(xx,y,xx,y+h,'#e4e5e8',1.1);s.line(xx,y+h,xx,y+h+6,'#171a1d',1.5);s.text(xx,y+h+28,str(t),19,anchor='middle')
     for val,lab in ticks:
-        yy=yf(val);s.line(x,yy,x+w,yy,'#e4e5e8',1.1);s.line(x-5,yy,x,yy,'#171a1d',1.5);s.text(x-10,yy+7,lab,22,anchor='end')
+        yy=yf(val);s.line(x,yy,x+w,yy,'#e4e5e8',1.1);s.line(x-5,yy,x,yy,'#171a1d',1.5);s.text(x-10,yy+7,lab,19,anchor='end')
     s.line(x,y,x,y+h,'#171a1d',1.5);s.line(x,y+h,x+w,y+h,'#171a1d',1.5)
-    s.text(x+w/2,y+h+58,'Epoch',24,anchor='middle')
+    s.text(x+w/2,y+h+58,'Epoch',20,anchor='middle')
     return xf,yf
 
 xf,yf=plot_frame(70,62,245,190,.019,.027,[(.020,'0.020'),(.022,'0.022'),(.024,'0.024'),(.026,'0.026')])
@@ -36,10 +36,9 @@ pts=' '.join(f'{xf(t)},{yf(v)}' for t,v in zip(range(5,11),ys))
 s.raw(f'<polyline points="{pts}" fill="none" stroke="{BLUE}" stroke-width="2.2"/>')
 for t,v in zip(range(5,11),ys):s.circle(xf(t),yf(v),5.0,BLUE,DARK_BLUE,.8)
 s.arrow(306,yf(ys[0])+2,306,yf(ys[-1])-3,BLUE,2.4,9)
-s.text(309,yf(ys[0])-14,f'−{reduction:.2f}%',23,DARK_BLUE,700,'end')
+s.text(309,yf(ys[0])-14,f'−{reduction:.2f}%',20,DARK_BLUE,700,'end')
 xf,yf=plot_frame(390,62,245,190,0,1.5,[(0,'0.0'),(.5,'0.5'),(1,'1.0'),(1.5,'1.5')])
 s.line(390,yf(1),635,yf(1),'#626a75',1.5,'6 3')
-s.text(512,yf(1)-20,'Zero-response reference',22,'#525b69',anchor='middle')
 for t,v in zip([5,10],nr):s.circle(xf(t),yf(v),5.8,ORANGE,'white',.6)
 s.save(HERE/'training_two_panels.svg')
 (HERE/'training_two_panels.json').write_text(json.dumps({'task':'contact_friction','family':'pldm','scheme':'Original → Mixed (Joint)','loss_run':run,'loss_epochs':list(range(5,11)),'prediction_loss':ys,'loss_reduction_percent':reduction,'NRE_epochs':[5,10],'training_NRE':nr},indent=2)+'\n')

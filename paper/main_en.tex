@@ -6,7 +6,6 @@
 \usepackage{longtable}
 \definecolor{cvprblue}{rgb}{0.21,0.49,0.74}
 \usepackage[pagebackref,breaklinks,colorlinks,allcolors=cvprblue]{hyperref}
-\newcommand{\tablesd}[1]{{\color{black!65}\fontsize{6.3}{7}\selectfont$\pm$#1}}
 \def\paperID{*****}
 \def\confName{CVPR}
 \def\confYear{2027}
@@ -251,7 +250,7 @@ Scheme & Start & Data & Encoder \\
 Original & Initial & Original & Updated$^\dagger$ \\
 Mixed & Initial & Mixed & Updated$^\dagger$ \\
 Original $\to$ Mixed (Joint) & Original & Mixed & Updated \\
-Original $\to$ Mixed (Frozen Encoder) & Same Original & Mixed & Frozen \\
+Original $\to$ Mixed (Frozen Encoder) & Original & Mixed & Frozen \\
 \bottomrule
 \end{tabularx}
 \par\smallskip
@@ -267,24 +266,24 @@ Other modules remain trainable; native training losses are retained.
 \centering
 \scriptsize
 \setlength{\tabcolsep}{2pt}
-\caption{Test task accuracy (\%, higher is better). Entries report means across available training runs; a smaller gray second line gives the sample standard deviation where three runs are available. Other entries use one run. Speed reports unseen speeds within the training range; action delay uses seven-frame history. A dash denotes no comparable checkpoint. Each task uses its own checkpoint. Bold marks the highest displayed mean per task, not statistical significance.}
+\caption{Test task accuracy (\%, higher is better). Entries report mean accuracy. Training-run counts and available standard deviations are given in Table~\ref{tab:test-variability}. Speed reports unseen speeds within the training range; action delay uses seven-frame history. A dash denotes no comparable checkpoint. Each task uses its own checkpoint. Bold marks the highest displayed mean per task, not statistical significance.}
 \label{tab:test-results}
 \begin{tabularx}{\textwidth}{@{}lp{2.9cm}*{9}{>{\centering\arraybackslash}X}@{}}
 \toprule
 Model & Training scheme & Speed & Pusher displacement & Arm mass & Action delay & Contact friction & Motion damping & Gripper carry rule & Door\newline travers\-ability & Portal exit \\
 \midrule
-LeWM & Original & \shortstack{58.04\\\tablesd{1.70}} & \shortstack{48.96\\\tablesd{1.00}} & \shortstack{50.07\\\tablesd{0.11}} & --- & \shortstack{49.93\\\tablesd{0.23}} & \shortstack{50.00\\\tablesd{0.00}} & \shortstack{52.21\\\tablesd{1.11}} & \shortstack{50.33\\\tablesd{0.00}} & \shortstack{50.07\\\tablesd{0.11}} \\\addlinespace[2pt]
-LeWM & Mixed & \shortstack{98.19\\\tablesd{0.57}} & 50.78 & 85.74 & \shortstack{97.70\\\tablesd{0.59}} & 50.00 & 50.00 & 50.00 & \shortstack{99.83\\\tablesd{0.29}} & 50.78 \\\addlinespace[2pt]
+LeWM & Original & 58.04 & 48.96 & 50.07 & --- & 49.93 & 50.00 & 52.21 & 50.33 & 50.07 \\\addlinespace[2pt]
+LeWM & Mixed & 98.19 & 50.78 & 85.74 & 97.70 & 50.00 & 50.00 & 50.00 & 99.83 & 50.78 \\\addlinespace[2pt]
 LeWM & Original $\rightarrow$ Mixed (Joint) & 96.89 & 91.80 & 87.30 & --- & 50.39 & 50.00 & 50.00 & 99.83 & 50.39 \\\addlinespace[2pt]
 LeWM & Original $\rightarrow$ Mixed\newline (Frozen Encoder) & \textbf{98.44} & 97.46 & 77.15 & --- & \textbf{86.13} & 53.91 & \textbf{76.37} & \textbf{100.00} & 77.93 \\\addlinespace[2pt]
 \midrule
-PLDM & Original & \shortstack{48.41\\\tablesd{4.33}} & \shortstack{45.57\\\tablesd{1.88}} & \shortstack{51.82\\\tablesd{1.30}} & --- & \shortstack{50.00\\\tablesd{0.34}} & \shortstack{50.26\\\tablesd{0.30}} & \shortstack{50.78\\\tablesd{0.20}} & \shortstack{50.06\\\tablesd{0.10}} & \shortstack{50.07\\\tablesd{0.11}} \\\addlinespace[2pt]
-PLDM & Mixed & \shortstack{96.78\\\tablesd{2.02}} & 56.25 & \textbf{91.02} & \shortstack{\textbf{100.00}\\\tablesd{0.00}} & 50.00 & 58.20 & 49.80 & \shortstack{\textbf{100.00}\\\tablesd{0.00}} & 72.27 \\\addlinespace[2pt]
+PLDM & Original & 48.41 & 45.57 & 51.82 & --- & 50.00 & 50.26 & 50.78 & 50.06 & 50.07 \\\addlinespace[2pt]
+PLDM & Mixed & 96.78 & 56.25 & \textbf{91.02} & \textbf{100.00} & 50.00 & 58.20 & 49.80 & \textbf{100.00} & 72.27 \\\addlinespace[2pt]
 PLDM & Original $\rightarrow$ Mixed (Joint) & 98.33 & 59.18 & 84.77 & --- & 50.00 & \textbf{79.88} & 50.20 & \textbf{100.00} & 52.54 \\\addlinespace[2pt]
 PLDM & Original $\rightarrow$ Mixed\newline (Frozen Encoder) & 96.44 & \textbf{98.63} & 81.84 & --- & 73.63 & 54.49 & 52.93 & \textbf{100.00} & 91.21 \\\addlinespace[2pt]
 \midrule
 DINO-WM & Original & 57.11 & 38.48 & 50.78 & --- & 50.39 & 49.80 & 50.00 & 50.00 & 50.78 \\\addlinespace[2pt]
-DINO-WM & Mixed & \shortstack{59.41\\\tablesd{3.87}} & 97.66 & 78.32 & \shortstack{16.65\\\tablesd{0.03}} & 84.18 & 56.45 & 60.16 & \shortstack{\textbf{100.00}\\\tablesd{0.00}} & \textbf{100.00} \\\addlinespace[2pt]
+DINO-WM & Mixed & 59.41 & 97.66 & 78.32 & 16.65 & 84.18 & 56.45 & 60.16 & \textbf{100.00} & \textbf{100.00} \\\addlinespace[2pt]
 DINO-WM & Original $\rightarrow$ Mixed\newline (Frozen Encoder) & 84.78 & --- & --- & --- & --- & 55.27 & 62.89 & --- & --- \\\addlinespace[2pt]
 \bottomrule
 \end{tabularx}
@@ -303,7 +302,7 @@ Strong one-step adaptation does not establish accurate multi-step prediction. On
 \begin{figure}[t]
 \centering
 \includegraphics[width=\columnwidth]{figures/multistep_prediction.pdf}
-\caption{\textbf{Multi-step prediction on pusher displacement (Development).} At each horizon $t$, $E_t/B_t$ compares prediction error with the mean-future error at that horizon; 1 marks the reference. Ratios are computed within each checkpoint's representation, then averaged over runs. The shaded background marks error above the reference; bands give pointwise 95\% source-bootstrap intervals. These extended queries differ from the one-step tasks; nine-task summaries appear in Appendix~\ref{app:additional-results}.}
+\caption{\textbf{Multi-step prediction on pusher displacement (Development).} Each rollout step spans five simulator steps without new observations. The baseline predicts the mean latent future across dynamics conditions; a ratio above 1 means higher prediction error. Ratios are computed within each checkpoint's representation, then averaged over runs. Bands give pointwise 95\% source-bootstrap intervals. These extended queries differ from the one-step tasks; nine-task summaries appear in Appendix~\ref{app:additional-results}.}
 \label{fig:multistep-prediction}
 \end{figure}
 
@@ -314,7 +313,7 @@ Freezing the pretrained visual encoder helps some tasks and hurts others. For PL
 \begin{figure}[t]
 \centering
 \includegraphics[width=\columnwidth]{figures/scaling_comparisons.pdf}
-\caption{\textbf{Data and model scaling on Development.} (a) LeWM on pusher displacement. (b) LeWM and PLDM under Mixed. Labels above the bars give accuracy (\%). Dashed lines mark the 50\% paired-task reference. Epoch counts are fixed. Full results and run counts appear in Appendix~\ref{app:data-scale}--\ref{app:model-capacity}.}
+\caption{\textbf{Data and model scaling on Development.} (a) LeWM on pusher displacement, with 2,048 versus 32,768 ContextWorld training pairs and the same original-environment dataset. (b) LeWM and PLDM under Mixed. Labels above the bars give accuracy (\%). Dashed lines mark the 50\% paired-task reference. Epoch counts are fixed. Full results and run counts appear in Appendix~\ref{app:data-scale}--\ref{app:model-capacity}.}
 \label{fig:scaling-comparisons}
 \end{figure}
 
@@ -620,13 +619,51 @@ For damping with the encoder frozen, prediction loss changes by only $-0.39\%$ b
 \section{Additional Results}
 \label{app:additional-results}
 
-The following tables separate prediction diagnostics from original-environment planning.
+The following tables report variation in Test accuracy across training runs, Development prediction diagnostics, and original-environment planning.
 History measures strict error reduction from matching history on the task queries; NRE measures the conditional response on those queries.
 $E/B$ uses the extended multi-step action panels and includes errors shared by both conditions.
 Because the query sets and prediction horizons differ, these columns should not be treated as measurements of the same event.
 All latent errors are computed in the checkpoint's own target representation.
 
 % BEGIN GENERATED PAPER RESULTS
+\begingroup
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{longtable}{@{}p{2.8cm}lp{5.3cm}rrr@{}}
+\caption{Training-run variation in Test accuracy. The table lists configurations with multiple training runs; $n$ is the run count and SD is the sample standard deviation in percentage points. All other available entries in Table~\ref{tab:test-results} use one training run, for which sample SD is undefined.}\label{tab:test-variability}\\
+\toprule
+Task & Model & Training scheme & $n$ & Mean (\%) & SD (pp)\\
+\midrule\endfirsthead
+\toprule
+Task & Model & Training scheme & $n$ & Mean (\%) & SD (pp)\\
+\midrule\endhead
+\bottomrule\endfoot
+Speed & LeWM & Original & 3 & 58.04 & 1.70 \\
+Speed & LeWM & Mixed & 3 & 98.19 & 0.57 \\
+Speed & PLDM & Original & 3 & 48.41 & 4.33 \\
+Speed & PLDM & Mixed & 3 & 96.78 & 2.02 \\
+Speed & DINO-WM & Mixed & 3 & 59.41 & 3.87 \\
+Pusher displacement & LeWM & Original & 3 & 48.96 & 1.00 \\
+Pusher displacement & PLDM & Original & 3 & 45.57 & 1.88 \\
+Arm mass & LeWM & Original & 3 & 50.07 & 0.11 \\
+Arm mass & PLDM & Original & 3 & 51.82 & 1.30 \\
+Action delay & LeWM & Mixed & 3 & 97.70 & 0.59 \\
+Action delay & PLDM & Mixed & 3 & 100.00 & 0.00 \\
+Action delay & DINO-WM & Mixed & 3 & 16.65 & 0.03 \\
+Contact friction & LeWM & Original & 3 & 49.93 & 0.23 \\
+Contact friction & PLDM & Original & 3 & 50.00 & 0.34 \\
+Motion damping & LeWM & Original & 3 & 50.00 & 0.00 \\
+Motion damping & PLDM & Original & 3 & 50.26 & 0.30 \\
+Gripper carry rule & LeWM & Original & 3 & 52.21 & 1.11 \\
+Gripper carry rule & PLDM & Original & 3 & 50.78 & 0.20 \\
+Door traversability & LeWM & Original & 3 & 50.33 & 0.00 \\
+Door traversability & LeWM & Mixed & 3 & 99.83 & 0.29 \\
+Door traversability & PLDM & Original & 3 & 50.06 & 0.10 \\
+Door traversability & PLDM & Mixed & 3 & 100.00 & 0.00 \\
+Door traversability & DINO-WM & Mixed & 3 & 100.00 & 0.00 \\
+Portal exit & LeWM & Original & 3 & 50.07 & 0.11 \\
+Portal exit & PLDM & Original & 3 & 50.07 & 0.11 \\
+\end{longtable}\endgroup
 \begingroup
 \small
 \setlength{\tabcolsep}{3pt}

@@ -147,18 +147,18 @@ def multistep_prediction():
                                 horizons=horizons.tolist(), per_horizon_ratio=mean.tolist(),
                                 ci95=np.stack([lo,hi],axis=1).tolist(), aggregate_ratio=float(np.mean(overall))))
         ax.axhline(1, color='#424952', linestyle='--', linewidth=1.15)
-        ax.text(.03,.96,'Higher error than\nmean-future reference',transform=ax.transAxes,
+        ax.text(.03,.96,'Above baseline',transform=ax.transAxes,
                 va='top',fontsize=6.2,color='#4c535c')
         ax.set_title(title, fontsize=8)
-        ax.set_xticks(horizons)
+        ax.set_xticks(horizons, range(1, len(horizons)+1))
         ax.set_ylim(0, 3.35)
         ax.grid(axis='y', alpha=.15)
         ax.tick_params(labelsize=7)
-        ax.set_xlabel('Simulator steps', fontsize=7.5)
-    axes[0].set_ylabel(r'Prediction error $E_t/B_t$ $\downarrow$', fontsize=7.5)
+        ax.set_xlabel('Rollout step', fontsize=7.5)
+    axes[0].set_ylabel('Prediction error /\nbaseline error', fontsize=7.5)
     handles = [Line2D([],[],color=colors['original'],marker='s',markersize=3,label='Original'),
                Line2D([],[],color=colors['frozen'],marker='o',markersize=3,label='Original → Mixed (Frozen Encoder)'),
-               Line2D([],[],color='#424952',linestyle='--',linewidth=1.15,label='Mean-future reference')]
+               Line2D([],[],color='#424952',linestyle='--',linewidth=1.15,label='Mean-future baseline (=1)')]
     fig.legend(handles=handles, loc='lower center', frameon=False, fontsize=7, ncol=1,
                bbox_to_anchor=(.5,-.015), handlelength=1.5, labelspacing=.25)
     fig.tight_layout(rect=(0,.22,1,1),pad=.3,w_pad=.5)
@@ -218,12 +218,12 @@ def scaling_comparisons():
                 ax.text(i+offset,value+3,f'{value:.1f}',
                         ha='center',va='bottom',fontsize=6.2)
     bars(axes[0],before_data,after_data,['Mixed','Original → Mixed\n(Joint)'],
-         ['2,048 pairs','32,768 pairs'])
+         ['2k pairs','32k pairs'])
     labels=[('LeWM' if r['family']=='lewm' else 'PLDM')+'\n'+
             ('friction' if r['task']=='contact_friction' else 'damping') for r in capacity_records]
     bars(axes[1],[r['small'] for r in capacity_records],
          [r['large'] for r in capacity_records],labels,['18M','183M'])
-    fig.text(.15,.99,'(a) Data scaling',fontsize=8,va='top')
+    fig.text(.15,.99,'(a) ContextWorld data scaling',fontsize=8,va='top')
     fig.text(.15,.49,'(b) Model scaling',fontsize=8,va='top')
     for ax,y in zip(axes,[.94,.44]):
         fig.legend(*ax.get_legend_handles_labels(),loc='upper left',
