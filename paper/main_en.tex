@@ -95,6 +95,28 @@ To evaluate adaptation across environments, existing benchmarks introduce contro
 Meta-World~\cite{yu2020metaworld} and Procgen~\cite{cobbe2020procgen} test generalization across manipulation tasks and procedurally generated levels.
 CausalWorld~\cite{ahmed2021causalworld} and CARL~\cite{benjamins2023context} vary environment properties, while the XLand series (XLand-MiniGrid~\cite{nikulin2024xland}, XLand-100B~\cite{nikulin2025xland100b}) evaluates policy adaptation from interaction history across distributions of tasks.
 
+% Queue the task overview early so the two-column float shares a page with Task Design.
+\begin{table*}[t]
+\centering
+\caption{Overview of the nine tasks evaluating in-context dynamics adaptation across four environments. History length $h$ counts context observations (including the current observation) provided to the model. Sampling details and simulation settings appear in Appendices~\ref{app:input-sampling} and~\ref{app:dataset-splits}.}
+\label{tab:tasks}
+\begin{tabularx}{\textwidth}{@{}llcX@{}}
+\toprule
+Task & Environment & History length $h$ & What history helps the model predict \\
+\midrule
+Speed & TwoRoom & 3 & How far the agent moves under the same action \\
+Pusher displacement & PushT & 3 & Whether the same action moves the pusher a shorter or longer distance \\
+Arm mass & Reacher & 3 & How the same torque changes arm motion \\
+Action delay & TwoRoom & 7 & When an action takes effect \\
+Contact friction & PushT & 3 & How friction changes object motion during contact \\
+Motion damping & PushT & 3 & How quickly object motion decays after contact ends \\
+Gripper carry rule & Cube & 3 & Whether a closed gripper carries the cube \\
+Door traversability & TwoRoom & 3 & Whether a visually identical door permits passage \\
+Portal exit & TwoRoom & 3 & Where the agent emerges after entering the same portal \\
+\bottomrule
+\end{tabularx}
+\end{table*}
+
 For physical prediction, several benchmarks focus on counterfactual reasoning and hidden property inference.
 CoPhy~\cite{baradel2020cophy} asks models to predict outcomes after changes to a scene's initial configuration, using the original trajectory as evidence of hidden properties.
 Filtered-CoPhy~\cite{janny2022filteredcophy} ensures the observed trajectory contains sufficient information for the counterfactual prediction.
@@ -139,26 +161,7 @@ These environments build upon TwoRoom navigation~\cite{zhou2025dinowm}, the Push
 Figure~\ref{fig:protocol} illustrates the task structure and paired comparisons; Table~\ref{tab:tasks} summarizes the tasks and their history requirements.
 Importantly, models are trained separately for each task, and baselines like DINO-WM keep their pretrained visual encoder frozen throughout.
 
-\begin{table*}[t]
-\centering
-\caption{Overview of the nine tasks evaluating in-context dynamics adaptation across four environments. History length $h$ counts context observations (including the current observation) provided to the model. Sampling details and simulation settings appear in Appendices~\ref{app:input-sampling} and~\ref{app:dataset-splits}.}
-\label{tab:tasks}
-\begin{tabularx}{\textwidth}{@{}llcX@{}}
-\toprule
-Task & Environment & History length $h$ & What history helps the model predict \\
-\midrule
-Speed & TwoRoom & 3 & How far the agent moves under the same action \\
-Pusher displacement & PushT & 3 & Whether the same action moves the pusher a shorter or longer distance \\
-Arm mass & Reacher & 3 & How the same torque changes arm motion \\
-Action delay & TwoRoom & 7 & When an action takes effect \\
-Contact friction & PushT & 3 & How friction changes object motion during contact \\
-Motion damping & PushT & 3 & How quickly object motion decays after contact ends \\
-Gripper carry rule & Cube & 3 & Whether a closed gripper carries the cube \\
-Door traversability & TwoRoom & 3 & Whether a visually identical door permits passage \\
-Portal exit & TwoRoom & 3 & Where the agent emerges after entering the same portal \\
-\bottomrule
-\end{tabularx}
-\end{table*}
+
 
 To isolate the role of interaction history, we construct paired counterfactual samples for six tasks: pusher displacement, arm mass, contact friction, motion damping, gripper carry rule, and portal exit.
 Within each pair, the two samples share the same current observation and future action sequence, but operate under different hidden dynamics.
