@@ -29,8 +29,15 @@ Interaction history provides evidence about these hidden physical properties.
 We investigate whether latent world models can leverage this contextual evidence to predict future states under varied dynamics \emph{without updating their weights}---an ability we term \emph{in-context dynamics adaptation}.
 
 Physical prediction benchmarks evaluate whether observed interactions help models infer hidden properties or predict downstream outcomes governed by them~\cite{baradel2020cophy,tung2023physionpp}.
-While benchmarks like Physion++ assess physical understanding via auxiliary readout classifiers, we introduce ContextWorld to evaluate in-context dynamics adaptation directly within action-conditioned latent world models, leveraging their existing latent predictors without training separate classifiers for future events.
+While benchmarks like Physion++ assess physical understanding via auxiliary readout classifiers, we introduce ContextWorld (Figure~\ref{fig:protocol}) to evaluate in-context dynamics adaptation directly within action-conditioned latent world models, leveraging their existing latent predictors without training separate classifiers for future events.
 The benchmark spans nine tasks across four environments, covering physical parameter variations and interaction rules, and provides separate training and evaluation data.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/protocol_overview.pdf}
+\caption{\textbf{ContextWorld overview.} (A) A recorded pusher-displacement pair with shared current observations and future actions. Red arrows show action directions; dashed arrows mark observed endpoint displacement. The translucent outline in the lower future panel marks the T block's current pose. These annotations are not model inputs; all scene images use the same crop of the original observations. (B) The frozen model produces latent predictions from each history. The three subpanels illustrate complementary checks for paired tasks. Filled circles denote predictions and open circles denote encoded true futures. The first two views share the same four points: the highlighted point fixes the prediction for future discrimination and the true future for history benefit. Here $d_{ij}$ is the error between the prediction from history $i$ and true future $j$; the inequalities show the desired ordering for both conditions. Response fidelity compares $\Delta\hat z=\hat z_B-\hat z_A$ with $\Delta z=z_B-z_A$, using the same schematic points. All latent-space geometry is illustrative, not a projection of measured model outputs. (C) Nine tasks across four environments.}
+\label{fig:protocol}
+\end{figure*}
 
 In its paired tasks, two dynamics conditions share the identical current observation and future action sequence, but produce diverging ground-truth futures.
 Interaction history is therefore strictly necessary to distinguish the two outcomes.
@@ -105,13 +112,6 @@ ContextWorld addresses this gap through controlled comparisons across models, ta
 
 ContextWorld is designed to evaluate in-context dynamics adaptation---specifically, whether models use interaction history to accurately predict future states conditioned on an action sequence.
 This section formalizes the prediction setting, describes how we construct the tasks and datasets, and explains the paired evaluation protocol and metrics.
-
-\begin{figure*}[t]
-\centering
-\includegraphics[width=\textwidth]{figures/protocol_overview.pdf}
-\caption{\textbf{ContextWorld overview.} (A) A recorded pusher-displacement pair with shared current observations and future actions. Red arrows show action directions; dashed arrows mark observed endpoint displacement. The translucent outline in the lower future panel marks the T block's current pose. These annotations are not model inputs; all scene images use the same crop of the original observations. (B) The frozen model produces latent predictions from each history. The three subpanels illustrate complementary checks for paired tasks. Filled circles denote predictions and open circles denote encoded true futures. The first two views share the same four points: the highlighted point fixes the prediction for future discrimination and the true future for history benefit. Here $d_{ij}$ is the error between the prediction from history $i$ and true future $j$; the inequalities show the desired ordering for both conditions. Response fidelity compares $\Delta\hat z=\hat z_B-\hat z_A$ with $\Delta z=z_B-z_A$, using the same schematic points. All latent-space geometry is illustrative, not a projection of measured model outputs. (C) Nine tasks across four environments.}
-\label{fig:protocol}
-\end{figure*}
 
 \subsection{Problem Formulation}
 \label{sec:problem}
