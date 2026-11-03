@@ -1,4 +1,4 @@
-"""Paired-evaluation layouts: original matrix and three aligned geometric views."""
+"""Paired-evaluation layouts: original matrix and shared geometric comparisons."""
 import math
 
 
@@ -41,7 +41,7 @@ def draw_original_error_matrix(s, formula, check):
 # illustrative, not measured embeddings; the NRE arrows use the same differences.
 SCHEMATIC_STATES = {
     'pred_A': (92, 151), 'true_A': (221, 151),
-    'pred_B': (56, 280), 'true_B': (211, 310),
+    'pred_B': (105, 280), 'true_B': (211, 310),
 }
 RESPONSE_PANEL_HEIGHT = 416
 RESPONSE_PANEL_EXTRA_HEIGHT = RESPONSE_PANEL_HEIGHT - 346
@@ -49,7 +49,7 @@ RESPONSE_CONTENT_SHIFT = -36
 
 
 def draw_response_panel(s, scene, panel, formula, check, prediction_images=False):
-    """Reproduce the supplied three-card design, with real history observations."""
+    """Share one four-point diagram across accuracy and history sensitivity."""
     blue, orange, purple = '#0874db', '#e27817', '#6456ba'
     dark_blue, dark_orange = '#064b9a', '#a94b0a'
     ink, muted = '#122840', '#64758a'
@@ -113,7 +113,8 @@ def draw_response_panel(s, scene, panel, formula, check, prediction_images=False
             latent(479,yy+81,letter,True,39,dark)
     s.line(546,541,546,901,'#e0e7ef',1)
 
-    # Three equal cards, matching the supplied mockup's information hierarchy.
+    # Keep all metric headings and formulas in place; merge only the first
+    # two card backgrounds so their four-point geometry is drawn once.
     card_y, card_w, card_h = 533, 276, 376
     plot_scale = .9
     for idx,(xx,title,col,tint,border) in enumerate([
@@ -121,7 +122,8 @@ def draw_response_panel(s, scene, panel, formula, check, prediction_images=False
         (849,'History sensitivity',orange,'orange','#e6d9cc'),
         (1138,'Response fidelity',purple,'purple','#d8d3ec'),
     ],1):
-        s.rect(xx,card_y,card_w,card_h,'#fcfdff',border,1.1,14)
+        if idx != 2:
+            s.rect(xx,card_y,565 if idx == 1 else card_w,card_h,'#fcfdff',border,1.1,14)
         s.rect(xx+8,card_y+8,card_w-16,38,'url(#metric-'+tint+')',r=10)
         s.circle(xx+30,card_y+27,13,col)
         s.text(xx+30,card_y+34,str(idx),19,'white',700,'middle')
@@ -130,44 +132,39 @@ def draw_response_panel(s, scene, panel, formula, check, prediction_images=False
     def dist_label(x,y,first,second,color=muted):
         s.raw(f'<text x="{x}" y="{y}" fill="{color}" font-size="19" text-anchor="middle" style="font-family:Georgia,serif;font-style:italic;paint-order:stroke;stroke:#fcfdff;stroke-width:4;stroke-linejoin:round">d<tspan baseline-shift="sub" font-size="12">{first}{second}</tspan></text>')
 
+    # Titles and comparison rules retain their original locations. Only the
+    # true-future points move right, preserving both response difference vectors.
+    s.lines(698,card_y+65,['Same prediction,', 'compare true futures'],16,gap=22,fill=ink,anchor='middle')
+    s.lines(987,card_y+65,['Same true future,', 'compare histories'],16,gap=22,fill=ink,anchor='middle')
+    s.raw('<g id="shared-error-comparison">')
+    points={k:(565+plot_scale*v[0]+(289 if k.startswith('true_') else 0),
+               card_y+8.1+plot_scale*v[1]) for k,v in SCHEMATIC_STATES.items()}
+    for ij in ['AB','BA','BB','AA']:
+        a,b=points['pred_'+ij[0]],points['true_'+ij[1]]
+        matched=ij[0]==ij[1]
+        col=(blue if ij=='AA' else orange) if matched else '#8796a8'
+        s.line(*a,*b,col,2.7,None if matched else '5 5')
+        if ij=='AA':lp=((a[0]+b[0])/2,(a[1]+b[1])/2-10)
+        elif ij=='BB':lp=((a[0]+b[0])/2,(a[1]+b[1])/2+20)
+        elif ij=='AB':lp=(a[0]+.68*(b[0]-a[0]),a[1]+.68*(b[1]-a[1])+23)
+        else:lp=(a[0]+.30*(b[0]-a[0]),a[1]+.30*(b[1]-a[1])-12)
+        dist_label(*lp,*ij,(dark_blue if ij=='AA' else dark_orange) if matched else ink)
+    for key,(x,y) in points.items():
+        letter=key[-1];pred=key.startswith('pred');col=blue if letter=='A' else orange
+        s.circle(x,y,8.5,col if pred else 'white',col,2.3)
+        label_y=y-27 if letter=='A' else y+29
+        if key == 'true_B':
+            latent(x+18,y-8,letter,pred,23.5,anchor='start')
+        elif key == 'pred_B':
+            latent(x-15,label_y,letter,pred,23.5)
+        else:
+            latent(x,label_y,letter,pred,23.5)
+    s.raw('</g>')
     for xx,kind in [(560,'prediction'),(849,'future')]:
-        s.raw(f'<g id="comparison-fix-{kind}">')
-        caption = ['Is each prediction closer to', 'its matching true future?'] if kind=='prediction' else ['Does matching history reduce', 'error for the same true future?']
-        s.lines(xx+138,card_y+65,caption,16,gap=22,fill=ink,anchor='middle')
-        points={k:(xx+5+plot_scale*v[0],card_y+8.1+plot_scale*v[1]) for k,v in SCHEMATIC_STATES.items()}
-        # Highlight the reference for each condition's comparison symmetrically:
-        # predictions for accuracy, true futures for history sensitivity.
-        prefix='pred_' if kind=='prediction' else 'true_'
-        for letter,tint in [('A','#e8f3ff'),('B','#fff0e3')]:
-            s.circle(*points[prefix+letter],24,tint)
-        # Both A and B comparisons have equal visual weight in each view.
-        for ij in ['AB','BA','BB','AA']:
-            a,b=points['pred_'+ij[0]],points['true_'+ij[1]]
-            matched=ij[0]==ij[1]
-            col=(blue if ij=='AA' else orange) if matched else '#8796a8'
-            width=2.7
-            s.line(*a,*b,col,width,None if matched else '5 5')
-            if ij=='AA':lp=((a[0]+b[0])/2,(a[1]+b[1])/2-10)
-            elif ij=='BB':lp=((a[0]+b[0])/2,(a[1]+b[1])/2+20)
-            elif ij=='AB':lp=(a[0]+.64*(b[0]-a[0])+16,a[1]+.64*(b[1]-a[1])-4)
-            else:lp=(a[0]+.35*(b[0]-a[0])-16,a[1]+.35*(b[1]-a[1])-3)
-            dist_label(*lp,*ij,(dark_blue if ij=='AA' else dark_orange) if matched else ink)
-        for key,(x,y) in points.items():
-            letter=key[-1];pred=key.startswith('pred');col=blue if letter=='A' else orange
-            s.circle(x,y,8.5,col if pred else 'white',col,2.3)
-            label_y=y-27 if letter=='A' else y+29
-            if key == 'true_B':
-                latent(x+18,y-8,letter,pred,23.5,anchor='start')
-            elif key == 'pred_B':
-                # Offset the label from the marker so the hat cannot touch it.
-                latent(x-15,label_y,letter,pred,23.5)
-            else:
-                latent(x,label_y,letter,pred,23.5)
         s.rect(xx+12,card_y+310,card_w-24,52,'url(#metric-'+('blue' if kind=='prediction' else 'orange')+')',r=8)
         a,b=('AB','BA') if kind=='prediction' else ('BA','AB')
         formula(xx+23,card_y+345,'AA',a,20)
         formula(xx+155,card_y+345,'BB',b,20)
-        s.raw('</g>')
 
     # Rotate both difference vectors identically; their magnitudes and relative
     # directions therefore agree with the four-point schematics.
@@ -190,7 +187,7 @@ def draw_response_panel(s, scene, panel, formula, check, prediction_images=False
         s.raw(f'<text x="{x}" y="{y}" fill="{color}" font-size="26" style="font-family:Georgia,serif;font-style:italic">Δ{"ẑ" if predicted else "z"}</text>')
         s.text(x,y+22,'predicted' if predicted else 'true',16,color,700)
     delta_label(true[0]+13,true[1]-2,False)
-    delta_label(pred[0]+13,pred[1]+7,True)
+    delta_label(pred[0]-85,pred[1]-20,True)
     s.rect(1150,card_y+310,252,52,'url(#metric-purple)',r=8)
     # Compact ratio of sums, retaining dataset-level NRE rather than one-pair NRE.
     s.text(1162,card_y+345,'NRE =',17,ink,700)

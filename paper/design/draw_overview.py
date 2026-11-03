@@ -195,10 +195,7 @@ for x,w,title,count,path,tasks,iw in cards:
     s.rect(x,881,w,172,'url(#card-bg)',r=15)
     ix=x+13;iy=896;ih=137
     s.rect(ix,iy,iw,ih,'#e7ebf1','#c6ced8',1,7)
-    if title=='Cube':
-        native_crop(path,(45,20,145,159),ix+1,iy+1,iw-2,ih-2,6,source_size=(224,224),fit='meet')
-    else:
-        native_crop(path,(0,0,224,224),ix+1,iy+1,iw-2,ih-2,6,source_size=(224,224),fit='meet')
+    native_crop(path,(0,0,224,224),ix+1,iy+1,iw-2,ih-2,6,source_size=(224,224),fit='meet')
     tx=ix+iw+14;tw=x+w-16-tx
     s.text(tx,915,title,24,weight=700)
     title_width={'TwoRoom':112,'PushT':75,'Reacher':96,'Cube':61}[title]
@@ -231,11 +228,11 @@ if PUSHER:
         'displacement_arrows':'Observed endpoint displacement from saved pusher positions; not an interpolated trajectory.',
         'screenshot_integrity':'All eight source image SHA-256 values checked.',
         'object_origin_outline':'assets/pusher_pair/current_t_outline.json; current-pose silhouette shown only in the larger-response future panel, display annotation only.',
-        'cube_environment_thumbnail':{'source':'assets/environments/provenance.json','crop':[45,20,145,159],'display':'Original recorded observation; crop only.'},
+        'cube_environment_thumbnail':{'source':'assets/environments/provenance.json','crop':[0,0,224,224],'display':'Complete original recorded observation; uniformly resized without cropping.'},
         'preview_only':not args.response_fidelity or args.prediction_images,
     }
     if args.response_fidelity:
-        metadata['error_comparison_display']={'design_reference':'https://chatgpt.com/share/6ae8562d-f4ec-83ea-8185-eb0fb5418e9d','prediction_markers':'Filled circles: schematic latent predictions, not decoded outputs.','target_markers':'Open circles: schematic encoded true futures.','geometry':'Illustrates successful paired comparisons, not measured model embeddings.','shared_schematic_states':SCHEMATIC_STATES,'comparison_focus':'Halos mark both predictions in Adaptation accuracy and both true futures in History sensitivity. A and B comparisons have equal visual weight.','response_vectors':'Both point diagrams share a 0.9 display scale; their differences are rotated -135 degrees and uniformly enlarged 1.5 times for NRE.'}
+        metadata['error_comparison_display']={'design_reference':'https://chatgpt.com/share/6ae8562d-f4ec-83ea-8185-eb0fb5418e9d','prediction_markers':'Filled circles: schematic latent predictions, not decoded outputs.','target_markers':'Open circles: schematic encoded true futures.','geometry':'Illustrates successful paired comparisons, not measured model embeddings.','shared_schematic_states':SCHEMATIC_STATES,'comparison_focus':'One shared four-point diagram without halos. Accuracy compares futures for the same prediction; history sensitivity compares predictions for the same true future. Both conditions are shown.','response_vectors':'The true-future pair is translated 289 display units to the right to share one diagram across the first two metric regions. This preserves both within-pair differences, shown with a common -135-degree rotation and 1.5 enlargement for NRE.'}
         metadata['response_fidelity']={'metric':'NRE, ratio of sums across pairs','true_response':'z_B - z_A','predicted_response':'z_hat_B - z_hat_A','vector_display':'Conceptual diagram; not projected or measured results.'}
     if args.prediction_images:
         metadata['prediction_thumbnail_semantics']='Ground-truth future images supplied as labeled visual references beside latent symbols; not decoded model predictions.'
