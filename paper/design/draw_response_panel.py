@@ -138,13 +138,15 @@ def draw_response_panel(s, scene, panel, formula, check, prediction_images=False
             a,b=points['pred_'+ij[0]],points['true_'+ij[1]]
             matched=ij[0]==ij[1]
             col=(blue if ij=='AA' else orange) if matched else '#8796a8'
-            if ij not in active:col=('#b7d0e9' if ij=='AA' else '#e8ccb3') if matched else '#d4dce5'
-            s.line(*a,*b,col,2.7 if ij in active else 1.6,None if matched else '5 5')
+            if ij not in active:col=('#b7d0e9' if ij=='AA' else '#cf985f') if matched else '#d4dce5'
+            # Keep the B matched distance legible without obscuring the A focus.
+            width=2.7 if ij in active else 2.2 if ij=='BB' else 1.6
+            s.line(*a,*b,col,width,None if matched else '5 5')
             if ij=='AA':lp=((a[0]+b[0])/2,(a[1]+b[1])/2-10)
             elif ij=='BB':lp=((a[0]+b[0])/2,(a[1]+b[1])/2+20)
             elif ij=='AB':lp=(a[0]+.64*(b[0]-a[0])+16,a[1]+.64*(b[1]-a[1])-4)
             else:lp=(a[0]+.35*(b[0]-a[0])-16,a[1]+.35*(b[1]-a[1])-3)
-            dist_label(*lp,*ij,ink if ij in active else '#8996a5')
+            dist_label(*lp,*ij,ink if ij in active else dark_orange if ij=='BB' else '#8996a5')
         for key,(x,y) in points.items():
             letter=key[-1];pred=key.startswith('pred');col=blue if letter=='A' else orange
             s.circle(x,y,8.5,col if pred else 'white',col,2.3)
@@ -158,9 +160,10 @@ def draw_response_panel(s, scene, panel, formula, check, prediction_images=False
                 latent(x,label_y,letter,pred,23.5)
         s.rect(xx+12,card_y+310,card_w-24,52,'url(#metric-'+('blue' if kind=='prediction' else 'orange')+')',r=8)
         a,b=('AB','BA') if kind=='prediction' else ('BA','AB')
-        formula(xx+20,card_y+345,'AA',a,20)
-        s.text(xx+137,card_y+345,';',18,muted,anchor='middle')
-        formula(xx+155,card_y+345,'BB',b,20)
+        s.text(xx+68,card_y+326,'A',16,dark_blue,700,'middle')
+        s.text(xx+203,card_y+326,'B',16,dark_orange,700,'middle')
+        formula(xx+20,card_y+350,'AA',a,20)
+        formula(xx+155,card_y+350,'BB',b,20)
         s.raw('</g>')
 
     # Rotate both difference vectors identically; their magnitudes and relative
