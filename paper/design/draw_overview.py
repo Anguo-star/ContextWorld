@@ -29,9 +29,11 @@ assert (ASSETS/provenance['frames']['cannot_hold']['2']['file']).read_bytes()==(
 for t in range(4):
     assert raw['frames']['cannot_hold'][str(t)]['action_block']==raw['frames']['can_hold'][str(t)]['action_block']
 BLUE='#0094ff'; ORANGE='#ff780a'; DARK_BLUE='#0044b5'; DARK_ORANGE='#c52e00'; INK='#111620'; OUTLINE='#8795aa'
-from draw_response_panel import RESPONSE_PANEL_EXTRA_HEIGHT, SCHEMATIC_STATES
+from draw_response_panel import RESPONSE_PANEL_HEIGHT, RESPONSE_PANEL_EXTRA_HEIGHT, SCHEMATIC_STATES
 response_extra = RESPONSE_PANEL_EXTRA_HEIGHT if args.response_fidelity else 0
-figure_height = (1158 if PUSHER else 1086) + response_extra
+PUSHER_PANEL_HEIGHT = 438
+PUSHER_PANEL_SHIFT = PUSHER_PANEL_HEIGHT - 442
+figure_height = 1086 + (PUSHER_PANEL_SHIFT if PUSHER else 0) + response_extra
 s=SVG(1448,figure_height)
 regular=base64.b64encode((HERE/'assets/fonts/RobotoCondensed-Regular.ttf').read_bytes()).decode()
 bold=base64.b64encode((HERE/'assets/fonts/RobotoCondensed-Bold.ttf').read_bytes()).decode()
@@ -97,37 +99,42 @@ def scene(mode,t,x,y,w=181,h=112):
         native_crop(ASSETS/provenance['frames'][mode][str(t)]['file'],CUBE_VIEWBOX,x+1,y+1,w-2,h-2)
 
 if PUSHER:
-    panel(20,15,1408,514,'A','Different histories, different futures',32)
-    s.rect(787,73,203,434,'url(#current-bg)','#b3dcfc',.8,10)
-    s.line(220,290,1416,290,'#ccd5df',1.3,'4 4')
-    brace(996,113,362);s.rect(1016,238,94,116,'url(#card-bg)',r=10)
-    s.lines(1063,281,['Identical','current','observation'],21,gap=23,weight=700,anchor='middle',style='font-family:ReferenceNarrow')
-    brace(1317,111,365);s.rect(1333,110,86,366,'url(#card-bg)',r=10)
-    s.lines(1376,281,['Different','future','outcomes'],21,gap=24,weight=700,anchor='middle',style='font-family:ReferenceNarrow')
-    s.circle(55,272,6,'#527fff','#3563b3',1)
-    s.text(73,279,'Pusher',19,'#41536c')
-    s.line(42,307,64,307,'#46556b',1.6,'3 2');s.arrow(60,307,67,307,'#46556b',1.3,5)
-    s.text(73,313,'Movement',17,'#41536c')
+    panel(20,15,1408,PUSHER_PANEL_HEIGHT,'A','Different histories, different futures',32)
+    s.rect(787,73,203,370,'url(#current-bg)','#b3dcfc',.8,10)
+    s.line(220,274,1416,274,'#ccd5df',1.3,'4 4')
+    # State the shared observation inside its column, keeping the query-action
+    # transitions clear when the two condition rows are brought closer.
+    s.rect(834,251,113,27,'#e6f4ff',r=5)
+    s.text(890.5,271,'Identical',18,DARK_BLUE,700,'middle')
+    brace(1317,111,307);s.rect(1333,110,86,308,'url(#card-bg)',r=10)
+    s.lines(1376,250,['Different','future','outcomes'],21,gap=24,weight=700,anchor='middle',style='font-family:ReferenceNarrow')
+    s.circle(55,253,6,'#527fff','#3563b3',1)
+    s.text(73,260,'Pusher',19,'#41536c')
+    s.line(42,278,64,278,'#46556b',1.6,'3 2');s.arrow(60,278,67,278,'#46556b',1.3,5)
+    s.text(73,284,'Movement',17,'#41536c')
     blocks=['context_0_to_5','context_5_to_10','query_10_to_15']
-    for mode,y,letter,dark,desc in [('low_gain',110,'A',DARK_BLUE,['Smaller','action response']),('high_gain',337,'B',DARK_ORANGE,['Larger','action response'])]:
+    columns=[(0,222,'History t − 2'),(1,510,'History t − 1'),(2,800,'Current observation'),(3,1122,'Ground-truth future')]
+    # Both dynamics conditions share the column labels. Preserve the image crop
+    # and scale each recorded frame uniformly within its smaller viewport.
+    for t,x,title in columns:
+        s.rect(x-3,74,187,37,'url(#neutral)' if t!=2 else '#e1f3ff',r=6)
+        s.text(x+90.5,99,title,20,DARK_BLUE if t==2 else INK,700,'middle')
+    for mode,y,letter,dark,desc in [('low_gain',110,'A',DARK_BLUE,['Smaller','action response']),('high_gain',282,'B',DARK_ORANGE,['Larger','action response'])]:
         s.rect(36,y+16,175,111,'#e2f2ff' if letter=='A' else '#fff0e4',r=11)
-        s.text(48,y+52,f'Condition {letter}:',26,dark,700)
-        s.lines(48,y+81,desc,21,gap=25,weight=700)
-        for t,x,title in [(0,222,'History t − 2'),(1,510,'History t − 1'),(2,800,'Current observation'),(3,1122,'Ground-truth future')]:
-            hy=y-36
-            s.rect(x-3,hy,187,37,'url(#neutral)' if t!=2 else '#e1f3ff',r=6)
-            s.text(x+90.5,hy+25,title,20,DARK_BLUE if t==2 else INK,700,'middle')
-            pusher_frame(mode,t,x,y,181,146,annotate=True)
-            if t in [1,3]:s.text(x+90.5,y+167,'Pusher moves less' if letter=='A' else 'Pusher moves more',20,dark,700,'middle')
+        s.text(48,y+52,f'Condition {letter}:',24,dark,700)
+        s.lines(48,y+81,desc,20,gap=25,weight=700)
+        for t,x,title in columns:
+            pusher_frame(mode,t,x+5,y,171,136,annotate=True)
+            if t in [1,3]:s.text(x+90.5,y+156,'Pusher moves less' if letter=='A' else 'Pusher moves more',20,dark,700,'middle')
         for j,(x1,x2,label) in enumerate([(418,499,'Move'),(702,782,'Move'),(1017,1109,'Move')]):
             center=(x1+x2)/2
-            s.text(center,y+40,label,21,'#cf0000',700,'middle')
+            s.text(center,y+38,label,20,'#cf0000',700,'middle')
             commands=pusher['action_blocks'][blocks[j]]
             dx,dy=[sum(a[k] for a in commands) for k in range(2)];norm=math.hypot(dx,dy)
             ux,uy=dx/norm,dy/norm
-            s.arrow(center-15*ux,y+71-15*uy,center+15*ux,y+71+15*uy,'#cf0000',2.5,7)
-            s.arrow(x1,y+113,x2,y+113,'#344054',2,9)
-    s.raw('<g transform="translate(0,72)">')
+            s.arrow(center-15*ux,y+68-15*uy,center+15*ux,y+68+15*uy,'#cf0000',2.5,7)
+            s.arrow(x1,y+105,x2,y+105,'#344054',2,9)
+    s.raw(f'<g transform="translate(0,{PUSHER_PANEL_SHIFT})">')
 else:
     panel(20,15,1408,442,'A','Same current observation and future actions, different futures',32)
     s.text(1416,47,'Cube carry-rule example',22,'#606b7b',anchor='end')
@@ -210,7 +217,9 @@ if PUSHER:s.raw('</g>')
 s.save(HERE/(STEM+'.svg'))
 if args.response_fidelity and PUSHER and not args.prediction_images:
     source=(HERE/(STEM+'.svg')).read_text()
-    source=source.replace(f'width="1448" height="{figure_height}" viewBox="0 0 1448 {figure_height}"', 'width="1448" height="468" viewBox="0 535 1448 468"', 1)
+    b_view_y = 471 + PUSHER_PANEL_SHIFT - 8
+    b_view_height = RESPONSE_PANEL_HEIGHT + 16
+    source=source.replace(f'width="1448" height="{figure_height}" viewBox="0 0 1448 {figure_height}"', f'width="1448" height="{b_view_height}" viewBox="0 {b_view_y} 1448 {b_view_height}"', 1)
     (HERE/'paired_evaluation_design.svg').write_text(source)
 if PUSHER:
     metadata={

@@ -43,7 +43,9 @@ SCHEMATIC_STATES = {
     'pred_A': (92, 151), 'true_A': (221, 151),
     'pred_B': (56, 280), 'true_B': (211, 310),
 }
-RESPONSE_PANEL_EXTRA_HEIGHT = 106
+RESPONSE_PANEL_HEIGHT = 416
+RESPONSE_PANEL_EXTRA_HEIGHT = RESPONSE_PANEL_HEIGHT - 346
+RESPONSE_CONTENT_SHIFT = -36
 
 
 def draw_response_panel(s, scene, panel, formula, check, prediction_images=False):
@@ -58,7 +60,10 @@ def draw_response_panel(s, scene, panel, formula, check, prediction_images=False
           '<linearGradient id="metric-orange" x2="0" y2="1"><stop stop-color="#fff4e9"/><stop offset="1" stop-color="#ffeddf"/></linearGradient>'
           '<linearGradient id="metric-purple" x2="0" y2="1"><stop stop-color="#f3f0ff"/><stop offset="1" stop-color="#e9e5fc"/></linearGradient>'
           '</defs>')
-    panel(20, 471, 1408, 452, 'B', 'Paired evaluation protocol', 32)
+    panel(20, 471, 1408, RESPONSE_PANEL_HEIGHT, 'B', 'Paired evaluation protocol', 32)
+    # Reuse the open area to the right of the B title; keep all text and
+    # schematic geometry at their original scale.
+    s.raw(f'<g transform="translate(0,{RESPONSE_CONTENT_SHIFT})">')
 
     def latent(x, y, letter, predicted=False, size=29, color=None, anchor='middle'):
         color = color or (dark_blue if letter == 'A' else dark_orange)
@@ -195,4 +200,4 @@ def draw_response_panel(s, scene, panel, formula, check, prediction_images=False
         s.raw(f'<text x="1303.5" y="{y}" text-anchor="middle" fill="{ink}" font-size="18" style="font-family:Georgia,serif">∑<tspan baseline-shift="sub" font-size="10">i</tspan> ‖{inside}‖<tspan baseline-shift="super" font-size="10">2</tspan></text>')
     term(card_y+329,True);term(card_y+357,False)
 
-    s.raw('</g>')
+    s.raw('</g></g>')
