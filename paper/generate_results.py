@@ -1,6 +1,9 @@
 """Populate supplemental result tables from frozen repository summaries."""
 from pathlib import Path
 import json
+from generate_test_tables import write_tables
+
+write_tables()
 ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / 'docs/research/data'
 read = lambda name: json.loads((DATA / name).read_text())
@@ -33,35 +36,8 @@ def scheme_label(family, regime):
     return LABELS[regime]
 
 def test_statistics_table():
-    """Keep multi-run uncertainty in the appendix while the main table shows means."""
-    frozen = read('current_reference_test_v1/summary.json')
-    assert frozen['evaluation_split'] == 'test'
-    cells = frozen['cells']
-    assert all(c['status'] == 'complete' for c in cells)
-    index = {(c['task'], c['family'], c['regime']): c['main'] for c in cells}
-    lines = [r'''\begingroup
-\small
-\setlength{\tabcolsep}{4pt}
-\begin{longtable}{@{}p{2.8cm}lp{5.3cm}rrr@{}}
-\caption{Training-run variation in Test accuracy. The table lists configurations with multiple training runs; $n$ is the run count and SD is the sample standard deviation in percentage points. All other available entries in Table~\ref{tab:test-results} use one training run, for which sample SD is undefined.}\label{tab:test-variability}\\
-\toprule
-Task & Model & Training scheme & $n$ & Mean (\%) & SD (pp)\\
-\midrule\endfirsthead
-\toprule
-Task & Model & Training scheme & $n$ & Mean (\%) & SD (pp)\\
-\midrule\endhead
-\bottomrule\endfoot''']
-    for task, name in TASKS:
-        for family, model in FAMILIES:
-            for regime in LABELS:
-                stat = index.get((task, family, regime))
-                if not stat or stat['n'] <= 1:
-                    continue
-                assert stat['std'] is not None
-                lines.append(' & '.join([name, model, scheme_label(family, regime), str(stat['n']),
-                                         fmt(stat['mean']), fmt(stat['std'])])+r' \\')
-    lines.append(r'\end{longtable}\endgroup')
-    return lines
+    """Keep all three Test metrics and training-run variability together."""
+    return [r'\input{tables/test_metrics_full}']
 
 
 text = [r'''\begingroup

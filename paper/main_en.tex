@@ -283,32 +283,7 @@ Other modules remain trainable; native training losses are retained.
 \end{minipage}
 \end{table}
 
-\begin{table*}[t]
-\centering
-\scriptsize
-\setlength{\tabcolsep}{2pt}
-\caption{Test task accuracy (\%, higher is better). Entries report mean accuracy. Training-run counts and available standard deviations are given in Table~\ref{tab:test-variability}. Speed reports unseen speeds within the training range; action delay uses seven-frame history. A dash denotes no comparable checkpoint. Each task uses its own checkpoint. Bold marks the highest displayed mean per task, not statistical significance.}
-\label{tab:test-results}
-\begin{tabularx}{\textwidth}{@{}lp{2.9cm}*{9}{>{\centering\arraybackslash}X}@{}}
-\toprule
-Model & Training scheme & Speed & Pusher displacement & Arm mass & Action delay & Contact friction & Motion damping & Gripper carry rule & Door\newline travers\-ability & Portal exit \\
-\midrule
-LeWM & Original & 58.04 & 48.96 & 50.07 & --- & 49.93 & 50.00 & 52.21 & 50.33 & 50.07 \\\addlinespace[2pt]
-LeWM & Mixed & 98.19 & 50.78 & 85.74 & 97.70 & 50.00 & 50.00 & 50.00 & 99.83 & 50.78 \\\addlinespace[2pt]
-LeWM & Original $\rightarrow$ Mixed (Joint) & 96.89 & 91.80 & 87.30 & --- & 50.39 & 50.00 & 50.00 & 99.83 & 50.39 \\\addlinespace[2pt]
-LeWM & Original $\rightarrow$ Mixed\newline (Frozen Encoder) & \textbf{98.44} & 97.46 & 77.15 & --- & \textbf{86.13} & 53.91 & \textbf{76.37} & \textbf{100.00} & 77.93 \\\addlinespace[2pt]
-\midrule
-PLDM & Original & 48.41 & 45.57 & 51.82 & --- & 50.00 & 50.26 & 50.78 & 50.06 & 50.07 \\\addlinespace[2pt]
-PLDM & Mixed & 96.78 & 56.25 & \textbf{91.02} & \textbf{100.00} & 50.00 & 58.20 & 49.80 & \textbf{100.00} & 72.27 \\\addlinespace[2pt]
-PLDM & Original $\rightarrow$ Mixed (Joint) & 98.33 & 59.18 & 84.77 & --- & 50.00 & \textbf{79.88} & 50.20 & \textbf{100.00} & 52.54 \\\addlinespace[2pt]
-PLDM & Original $\rightarrow$ Mixed\newline (Frozen Encoder) & 96.44 & \textbf{98.63} & 81.84 & --- & 73.63 & 54.49 & 52.93 & \textbf{100.00} & 91.21 \\\addlinespace[2pt]
-\midrule
-DINO-WM & Original & 57.11 & 38.48 & 50.78 & --- & 50.39 & 49.80 & 50.00 & 50.00 & 50.78 \\\addlinespace[2pt]
-DINO-WM & Mixed & 59.41 & 97.66 & 78.32 & 16.65 & 84.18 & 56.45 & 60.16 & \textbf{100.00} & \textbf{100.00} \\\addlinespace[2pt]
-DINO-WM & Original $\rightarrow$ Mixed & 84.78 & --- & --- & --- & --- & 55.27 & 62.89 & --- & --- \\\addlinespace[2pt]
-\bottomrule
-\end{tabularx}
-\end{table*}
+\input{tables/test_metrics_main}
 
 
 
@@ -328,9 +303,13 @@ Conversely, on pusher displacement, DINO-WM leads at 97.66\%, while LeWM and PLD
 All three architectures attain near-perfect accuracy on door traversability.
 These rank reversals demonstrate that adaptation capabilities depend heavily on the specific dynamic variation, underscoring the need to benchmark world models across diverse physical settings rather than a single representative task.
 
+History benefits do not necessarily imply an accurate conditional response.
+For LeWM on pusher displacement, Mixed training achieves a 79.10\% History win rate, yet NRE remains 0.974, close to the zero-response reference (Table~\ref{tab:test-results}).
+Matching history can therefore reduce prediction error without accurately reproducing the difference between dynamics conditions.
+
 \paragraph{Single-step history sensitivity does not guarantee low multi-step rollout error.}
 A critical consideration is whether models that effectively utilize context in single-step settings maintain accurate rollouts over extended horizons.
-On pusher displacement, LeWM and PLDM trained under Original $\rightarrow$ Mixed (Frozen Encoder) show strong one-step history sensitivity, exceeding a 98\% History win-rate and substantially reducing NRE (Appendix~\ref{app:additional-results}).
+For the separate analysis on Development, LeWM and PLDM trained under Original $\rightarrow$ Mixed (Frozen Encoder) show strong one-step history sensitivity on pusher displacement, exceeding a 98\% History win-rate and substantially reducing NRE (Appendix~\ref{app:additional-results}).
 However, evaluating autoregressive rollouts across extended action sequences reveals a different picture: as shown in Figure~\ref{fig:multistep-prediction}, prediction errors divided by the error of the unconditioned mean-future reference ($E_t/B_t$) escalate monotonically, exceeding 1.0 from the third rollout step onward and resulting in aggregate $E/B$ ratios above 1.4 for both models.
 These extended queries differ from the one-step tasks by lengthening both the planned action sequences and the rollout horizon.
 Consequently, while these checkpoints outperform the Original baseline, high one-step history sensitivity does not guarantee low multi-step prediction error under open-loop rollout.
@@ -656,51 +635,15 @@ For damping with the encoder frozen, prediction loss changes by only $-0.39\%$ b
 \section{Additional Results}
 \label{app:additional-results}
 
-The following tables report variation in Test accuracy across training runs, Development prediction diagnostics, and original-environment planning.
+Table~\ref{tab:test-metrics-full} reports all three Test adaptation metrics with training-run counts and standard deviations.
+Table~\ref{tab:dev-diagnostics} reports the separate Development diagnostics, multi-step prediction errors, and original-environment planning results.
 History measures strict error reduction from matching history on the task queries; NRE measures the conditional response on those queries.
 $E/B$ uses the extended multi-step action panels and includes errors shared by both conditions.
 Because the query sets and prediction horizons differ, these columns should not be treated as measurements of the same event.
 All latent errors are computed in the checkpoint's own target representation.
 
 % BEGIN GENERATED PAPER RESULTS
-\begingroup
-\small
-\setlength{\tabcolsep}{4pt}
-\begin{longtable}{@{}p{2.8cm}lp{5.3cm}rrr@{}}
-\caption{Training-run variation in Test accuracy. The table lists configurations with multiple training runs; $n$ is the run count and SD is the sample standard deviation in percentage points. All other available entries in Table~\ref{tab:test-results} use one training run, for which sample SD is undefined.}\label{tab:test-variability}\\
-\toprule
-Task & Model & Training scheme & $n$ & Mean (\%) & SD (pp)\\
-\midrule\endfirsthead
-\toprule
-Task & Model & Training scheme & $n$ & Mean (\%) & SD (pp)\\
-\midrule\endhead
-\bottomrule\endfoot
-Speed & LeWM & Original & 3 & 58.04 & 1.70 \\
-Speed & LeWM & Mixed & 3 & 98.19 & 0.57 \\
-Speed & PLDM & Original & 3 & 48.41 & 4.33 \\
-Speed & PLDM & Mixed & 3 & 96.78 & 2.02 \\
-Speed & DINO-WM & Mixed & 3 & 59.41 & 3.87 \\
-Pusher displacement & LeWM & Original & 3 & 48.96 & 1.00 \\
-Pusher displacement & PLDM & Original & 3 & 45.57 & 1.88 \\
-Arm mass & LeWM & Original & 3 & 50.07 & 0.11 \\
-Arm mass & PLDM & Original & 3 & 51.82 & 1.30 \\
-Action delay & LeWM & Mixed & 3 & 97.70 & 0.59 \\
-Action delay & PLDM & Mixed & 3 & 100.00 & 0.00 \\
-Action delay & DINO-WM & Mixed & 3 & 16.65 & 0.03 \\
-Contact friction & LeWM & Original & 3 & 49.93 & 0.23 \\
-Contact friction & PLDM & Original & 3 & 50.00 & 0.34 \\
-Motion damping & LeWM & Original & 3 & 50.00 & 0.00 \\
-Motion damping & PLDM & Original & 3 & 50.26 & 0.30 \\
-Gripper carry rule & LeWM & Original & 3 & 52.21 & 1.11 \\
-Gripper carry rule & PLDM & Original & 3 & 50.78 & 0.20 \\
-Door traversability & LeWM & Original & 3 & 50.33 & 0.00 \\
-Door traversability & LeWM & Mixed & 3 & 99.83 & 0.29 \\
-Door traversability & PLDM & Original & 3 & 50.06 & 0.10 \\
-Door traversability & PLDM & Mixed & 3 & 100.00 & 0.00 \\
-Door traversability & DINO-WM & Mixed & 3 & 100.00 & 0.00 \\
-Portal exit & LeWM & Original & 3 & 50.07 & 0.11 \\
-Portal exit & PLDM & Original & 3 & 50.07 & 0.11 \\
-\end{longtable}\endgroup
+\input{tables/test_metrics_full}
 \begingroup
 \small
 \setlength{\tabcolsep}{3pt}

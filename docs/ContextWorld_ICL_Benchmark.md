@@ -41,6 +41,8 @@ NRE 是归一化响应误差；E/B 是完整预测误差与条件均值参照误
 | DINO-WM | T3 | 84.78 (n=1) | — | — | — | — | 55.27 (n=1) | 62.89 (n=1) | — | — |
 <!-- END CURRENT_REFERENCE_TEST -->
 
+全部 86 个有效组合的 Test 准确率、匹配历史胜率与 NRE 并列见[完整 Test 指标表](research/data/current_reference_test_v1/metrics.md)，提供 [CSV](research/data/current_reference_test_v1/metrics.csv) 与 [JSON](research/data/current_reference_test_v1/metrics.json)。
+
 完整逐次结果、样本标准差与评测身份见 [Test JSON](research/data/current_reference_test_v1/summary.json)、[CSV](research/data/current_reference_test_v1/summary.csv)及[固定检查点集合](../configs/benchmark/current_reference_test_v1.json)。Public Test 是公开离线测试划分；权重和评分协议在评测前固定，所有预定组合均报告，包括低分结果。
 
 **Test 保留了主要的任务与训练方案差异。**
