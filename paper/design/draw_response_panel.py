@@ -160,10 +160,9 @@ def draw_response_panel(s, scene, panel, formula, check, prediction_images=False
                 latent(x,label_y,letter,pred,23.5)
         s.rect(xx+12,card_y+310,card_w-24,52,'url(#metric-'+('blue' if kind=='prediction' else 'orange')+')',r=8)
         a,b=('AB','BA') if kind=='prediction' else ('BA','AB')
-        s.text(xx+68,card_y+326,'A',16,dark_blue,700,'middle')
-        s.text(xx+203,card_y+326,'B',16,dark_orange,700,'middle')
-        formula(xx+20,card_y+350,'AA',a,20)
-        formula(xx+155,card_y+350,'BB',b,20)
+        formula(xx+20,card_y+345,'AA',a,20)
+        s.text(xx+137,card_y+345,';',18,muted,anchor='middle')
+        formula(xx+155,card_y+345,'BB',b,20)
         s.raw('</g>')
 
     # Rotate both difference vectors identically; their magnitudes and relative
