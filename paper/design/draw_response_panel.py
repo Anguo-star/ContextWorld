@@ -113,31 +113,31 @@ def draw_response_panel(s, scene, panel, formula, check, prediction_images=False
             latent(479,yy+81,letter,True,39,dark)
     s.line(546,541,546,901,'#e0e7ef',1)
 
-    # Keep all metric headings and formulas in place; merge only the first
-    # two card backgrounds so their four-point geometry is drawn once.
-    card_y, card_w, card_h = 533, 276, 376
+    # The shared diagram needs less than two full cards. Transfer 40 display
+    # units to response fidelity while retaining every text size.
+    card_y, card_w, card_h = 533, 256, 376
+    shared_w, response_w = 525, 316
     plot_scale = .9
     for idx,(xx,title,col,tint,border) in enumerate([
         (560,'Adaptation accuracy',blue,'blue','#c7dff6'),
-        (849,'History sensitivity',orange,'orange','#e6d9cc'),
-        (1138,'Response fidelity',purple,'purple','#d8d3ec'),
+        (829,'History sensitivity',orange,'orange','#e6d9cc'),
+        (1098,'Response fidelity',purple,'purple','#d8d3ec'),
     ],1):
         if idx != 2:
-            s.rect(xx,card_y,565 if idx == 1 else card_w,card_h,'#fcfdff',border,1.1,14)
-        s.rect(xx+8,card_y+8,card_w-16,38,'url(#metric-'+tint+')',r=10)
+            s.rect(xx,card_y,shared_w if idx == 1 else response_w,card_h,'#fcfdff',border,1.1,14)
+        s.rect(xx+8,card_y+8,(card_w if idx < 3 else response_w)-16,38,'url(#metric-'+tint+')',r=10)
         s.circle(xx+30,card_y+27,13,col)
         s.text(xx+30,card_y+34,str(idx),19,'white',700,'middle')
-        s.text(xx+52,card_y+34,title,20.5,ink,700)
+        s.text(xx+46,card_y+34,title,20.5,ink,700)
 
     def dist_label(x,y,first,second,color=muted):
         s.raw(f'<text x="{x}" y="{y}" fill="{color}" font-size="19" text-anchor="middle" style="font-family:Georgia,serif;font-style:italic;paint-order:stroke;stroke:#fcfdff;stroke-width:4;stroke-linejoin:round">d<tspan baseline-shift="sub" font-size="12">{first}{second}</tspan></text>')
 
-    # Titles and comparison rules retain their original locations. Only the
-    # true-future points move right, preserving both response difference vectors.
-    s.lines(698,card_y+65,['Same prediction,', 'compare true futures'],16,gap=22,fill=ink,anchor='middle')
-    s.lines(987,card_y+65,['Same true future,', 'compare histories'],16,gap=22,fill=ink,anchor='middle')
+    # Center the unchanged four-point geometry within the narrower shared area.
+    s.lines(688,card_y+65,['Same prediction,', 'compare true futures'],16,gap=22,fill=ink,anchor='middle')
+    s.lines(957,card_y+65,['Same true future,', 'compare histories'],16,gap=22,fill=ink,anchor='middle')
     s.raw('<g id="shared-error-comparison">')
-    points={k:(600+plot_scale*v[0]+(219 if k.startswith('true_') else 0),
+    points={k:(580+plot_scale*v[0]+(219 if k.startswith('true_') else 0),
                card_y+8.1+plot_scale*v[1]) for k,v in SCHEMATIC_STATES.items()}
     for ij in ['AB','BA','BB','AA']:
         a,b=points['pred_'+ij[0]],points['true_'+ij[1]]
@@ -160,22 +160,22 @@ def draw_response_panel(s, scene, panel, formula, check, prediction_images=False
         else:
             latent(x,label_y,letter,pred,23.5)
     s.raw('</g>')
-    for xx,kind in [(560,'prediction'),(849,'future')]:
+    for xx,kind in [(560,'prediction'),(829,'future')]:
         s.rect(xx+12,card_y+310,card_w-24,52,'url(#metric-'+('blue' if kind=='prediction' else 'orange')+')',r=8)
         a,b=('AB','BA') if kind=='prediction' else ('BA','AB')
-        formula(xx+23,card_y+345,'AA',a,20)
-        formula(xx+155,card_y+345,'BB',b,20)
+        formula(xx+17,card_y+345,'AA',a,20)
+        formula(xx+141,card_y+345,'BB',b,20)
 
     # Rotate both difference vectors identically; their magnitudes and relative
     # directions therefore agree with the four-point schematics.
-    s.lines(1276,card_y+65,['Does the predicted response', 'match the true response?'],16,gap=22,fill=ink,anchor='middle')
+    s.lines(1256,card_y+65,['Does the predicted response', 'match the true response?'],16,gap=22,fill=ink,anchor='middle')
     angle=math.radians(-115)
     def response(predicted):
         prefix='pred_' if predicted else 'true_'
         a,b=SCHEMATIC_STATES[prefix+'A'],SCHEMATIC_STATES[prefix+'B']
         dx,dy=b[0]-a[0],b[1]-a[1]
-        return ((dx*math.cos(angle)-dy*math.sin(angle))*plot_scale*1.5,(dx*math.sin(angle)+dy*math.cos(angle))*plot_scale*1.5)
-    origin=(1158,card_y+250)
+        return ((dx*math.cos(angle)-dy*math.sin(angle))*plot_scale*1.65,(dx*math.sin(angle)+dy*math.cos(angle))*plot_scale*1.65)
+    origin=(1128,card_y+250)
     true=tuple(a+b for a,b in zip(origin,response(False)))
     pred=tuple(a+b for a,b in zip(origin,response(True)))
     s.line(*true,*pred,'#a0aabc',1.8,'5 4')
@@ -188,13 +188,13 @@ def draw_response_panel(s, scene, panel, formula, check, prediction_images=False
         s.text(x,y+22,'predicted' if predicted else 'true',16,color,700)
     delta_label(true[0]+13,true[1]-2,False)
     delta_label(pred[0]-85,pred[1]-20,True)
-    s.rect(1150,card_y+310,252,52,'url(#metric-purple)',r=8)
+    s.rect(1110,card_y+310,292,52,'url(#metric-purple)',r=8)
     # Compact ratio of sums, retaining dataset-level NRE rather than one-pair NRE.
-    s.text(1162,card_y+345,'NRE =',17,ink,700)
-    s.line(1218,card_y+336,1389,card_y+336,'#34415b',1)
+    s.text(1142,card_y+345,'NRE =',17,ink,700)
+    s.line(1198,card_y+336,1369,card_y+336,'#34415b',1)
     def term(y,numerator):
         inside='Δẑ<tspan baseline-shift="sub" font-size="10">i</tspan> − Δz<tspan baseline-shift="sub" font-size="10">i</tspan>' if numerator else 'Δz<tspan baseline-shift="sub" font-size="10">i</tspan>'
-        s.raw(f'<text x="1303.5" y="{y}" text-anchor="middle" fill="{ink}" font-size="18" style="font-family:Georgia,serif">∑<tspan baseline-shift="sub" font-size="10">i</tspan> ‖{inside}‖<tspan baseline-shift="super" font-size="10">2</tspan></text>')
+        s.raw(f'<text x="1283.5" y="{y}" text-anchor="middle" fill="{ink}" font-size="18" style="font-family:Georgia,serif">∑<tspan baseline-shift="sub" font-size="10">i</tspan> ‖{inside}‖<tspan baseline-shift="super" font-size="10">2</tspan></text>')
     term(card_y+329,True);term(card_y+357,False)
 
     s.raw('</g></g>')
