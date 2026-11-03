@@ -117,8 +117,6 @@ def draw_response_panel(s, scene, panel, formula, check, prediction_images=False
     # units to response fidelity while retaining every text size.
     card_y, card_w, card_h = 533, 256, 376
     shared_w, response_w = 525, 316
-    # Measured with the embedded Roboto Bold at 20.5; retain the 3-unit gap.
-    title_widths = {'Adaptation accuracy': 195, 'History sensitivity': 174, 'Response fidelity': 164}
     plot_scale = .9
     for idx,(xx,title,col,tint,border) in enumerate([
         (560,'Adaptation accuracy',blue,'blue','#c7dff6'),
@@ -129,10 +127,7 @@ def draw_response_panel(s, scene, panel, formula, check, prediction_images=False
             s.rect(xx,card_y,shared_w if idx == 1 else response_w,card_h,'#fcfdff',border,1.1,14)
         s.rect(xx+8,card_y+8,(card_w if idx < 3 else response_w)-16,38,'url(#metric-'+tint+')',r=10)
         heading_width = card_w if idx < 3 else response_w
-        title_left = xx + (heading_width - 29 - title_widths[title]) / 2
-        s.circle(title_left+13,card_y+27,13,col)
-        s.text(title_left+13,card_y+34,str(idx),19,'white',700,'middle')
-        s.text(title_left+29,card_y+34,title,20.5,ink,700)
+        s.text(xx+heading_width/2,card_y+34,title,20.5,ink,700,'middle')
 
     def dist_label(x,y,first,second,color=muted):
         s.raw(f'<text x="{x}" y="{y}" fill="{color}" font-size="19" text-anchor="middle" style="font-family:Georgia,serif;font-style:italic;paint-order:stroke;stroke:#fcfdff;stroke-width:4;stroke-linejoin:round">d<tspan baseline-shift="sub" font-size="12">{first}{second}</tspan></text>')
