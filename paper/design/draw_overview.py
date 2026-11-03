@@ -189,14 +189,14 @@ else:
 if response_extra:s.raw(f'<g transform="translate(0,{response_extra})">')
 panel(20,831,1408,236,'C','ContextWorld: 9 tasks across 4 environments',31)
 # Environment views come from saved benchmark data, with provenance retained.
-cards=[(34,374,'TwoRoom','4 tasks',HERE/'assets/environments/tworoom.jpg',['Speed','Action delay','Door traversability','Portal exit'],142),(421,353,'PushT','3 tasks',HERE/'assets/pusher_pair/pusher_low_gain_step10.jpg',['Pusher displacement','Contact friction','Motion damping'],125),(787,301,'Reacher','1 task',HERE/'assets/environments/reacher.jpg',['Arm mass'],104),(1100,320,'Cube','1 task',ASSETS/'can_hold_t0.png',['Gripper carry rule'],125)]
+cards=[(34,374,'TwoRoom','4 tasks',HERE/'assets/environments/tworoom.jpg',['Speed','Action delay','Door traversability','Portal exit'],142),(421,353,'PushT','3 tasks',HERE/'assets/pusher_pair/pusher_low_gain_step10.jpg',['Pusher displacement','Contact friction','Motion damping'],125),(787,301,'Reacher','1 task',HERE/'assets/environments/reacher.jpg',['Arm mass'],104),(1100,320,'Cube','1 task',HERE/'assets/environments/cube.jpg',['Gripper carry rule'],125)]
 s.raw('<g id="environment-cards" transform="translate(0,6)">')
 for x,w,title,count,path,tasks,iw in cards:
     s.rect(x,881,w,172,'url(#card-bg)',r=15)
     ix=x+13;iy=896;ih=137
     s.rect(ix,iy,iw,ih,'#e7ebf1','#c6ced8',1,7)
     if title=='Cube':
-        native_crop(path,(490,180,620,680),ix+1,iy+1,iw-2,ih-2,6)
+        native_crop(path,(45,20,145,159),ix+1,iy+1,iw-2,ih-2,6,source_size=(224,224),fit='meet')
     else:
         native_crop(path,(0,0,224,224),ix+1,iy+1,iw-2,ih-2,6,source_size=(224,224),fit='meet')
     tx=ix+iw+14;tw=x+w-16-tx
@@ -231,6 +231,7 @@ if PUSHER:
         'displacement_arrows':'Observed endpoint displacement from saved pusher positions; not an interpolated trajectory.',
         'screenshot_integrity':'All eight source image SHA-256 values checked.',
         'object_origin_outline':'assets/pusher_pair/current_t_outline.json; current-pose silhouette shown only in the larger-response future panel, display annotation only.',
+        'cube_environment_thumbnail':{'source':'assets/environments/provenance.json','crop':[45,20,145,159],'display':'Original recorded observation; crop only.'},
         'preview_only':not args.response_fidelity or args.prediction_images,
     }
     if args.response_fidelity:
