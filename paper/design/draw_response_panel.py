@@ -127,7 +127,7 @@ def draw_response_panel(s, scene, panel, formula, check, prediction_images=False
 
     for xx,kind in [(560,'prediction'),(849,'future')]:
         s.raw(f'<g id="comparison-fix-{kind}">')
-        caption = ['Hold the prediction fixed;', 'compare the two true futures.'] if kind=='prediction' else ['Hold the true future fixed;', 'compare the two predictions.']
+        caption = ['Is each prediction closer to', 'its matching true future?'] if kind=='prediction' else ['Does matching history reduce', 'error for the same true future?']
         s.lines(xx+138,card_y+65,caption,16,gap=22,fill=ink,anchor='middle')
         points={k:(xx+5+plot_scale*v[0],card_y+8.1+plot_scale*v[1]) for k,v in SCHEMATIC_STATES.items()}
         focus=points['pred_A' if kind=='prediction' else 'true_A']
@@ -160,14 +160,13 @@ def draw_response_panel(s, scene, panel, formula, check, prediction_images=False
                 latent(x,label_y,letter,pred,23.5)
         s.rect(xx+12,card_y+310,card_w-24,52,'url(#metric-'+('blue' if kind=='prediction' else 'orange')+')',r=8)
         a,b=('AB','BA') if kind=='prediction' else ('BA','AB')
-        s.text(xx+138,card_y+326,'Desired ordering',15.5,ink,anchor='middle')
-        formula(xx+23,card_y+350,'AA',a,20)
-        formula(xx+155,card_y+350,'BB',b,20)
+        formula(xx+23,card_y+345,'AA',a,20)
+        formula(xx+155,card_y+345,'BB',b,20)
         s.raw('</g>')
 
     # Rotate both difference vectors identically; their magnitudes and relative
     # directions therefore agree with the four-point schematics.
-    s.lines(1276,card_y+65,['The predicted response should', 'match the true response.'],16,gap=22,fill=ink,anchor='middle')
+    s.lines(1276,card_y+65,['Does the predicted response', 'match the true response?'],16,gap=22,fill=ink,anchor='middle')
     angle=-3*math.pi/4
     def response(predicted):
         prefix='pred_' if predicted else 'true_'
