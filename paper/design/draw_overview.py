@@ -101,7 +101,8 @@ def scene(mode,t,x,y,w=181,h=112):
 if PUSHER:
     panel(20,15,1408,PUSHER_PANEL_HEIGHT,'A','Different histories, different futures',32)
     s.rect(787,73,203,386,'url(#current-bg)','#b3dcfc',.8,10)
-    s.line(220,284,1416,284,'#ccd5df',1.3,'4 4')
+    # Center between the upper frame bottom (246) and lower frame top (298).
+    s.line(220,272,1416,272,'#ccd5df',1.3,'4 4')
     brace(1317,111,323);s.rect(1333,110,86,324,'url(#card-bg)',r=10)
     s.lines(1376,258,['Different','future','outcomes'],21,gap=24,weight=700,anchor='middle',style='font-family:ReferenceNarrow')
     s.circle(55,253,6,'#527fff','#3563b3',1)
