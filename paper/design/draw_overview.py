@@ -121,7 +121,7 @@ if PUSHER:
         s.lines(48,y+81,desc,20,gap=25,weight=700)
         for t,x,title in columns:
             pusher_frame(mode,t,x+5,y,171,136,annotate=True)
-            if t in [1,3]:s.text(x+90.5,y+154,'Pusher moves less' if letter=='A' else 'Pusher moves more',20,dark,700,'middle')
+            if t == 3:s.text(x+90.5,y+154,'Pusher moves less' if letter=='A' else 'Pusher moves more',20,dark,700,'middle')
         for j,(x1,x2,label) in enumerate([(418,499,'Move'),(702,782,'Move'),(1017,1109,'Move')]):
             center=(x1+x2)/2
             s.text(center,y+38,label,20,'#cf0000',700,'middle')
