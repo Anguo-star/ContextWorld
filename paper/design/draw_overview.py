@@ -45,16 +45,7 @@ def panel(x,y,w,h,letter,title,size=32):
     s.text(x+69,y+37,title,size,weight=700)
 def brace(x,y,h):
     s.raw(f'<path d="M {x} {y} Q {x+10} {y} {x+10} {y+20} L {x+10} {y+h/2-18} Q {x+10} {y+h/2-3} {x+20} {y+h/2} Q {x+10} {y+h/2+3} {x+10} {y+h/2+18} L {x+10} {y+h-20} Q {x+10} {y+h} {x} {y+h}" fill="none" stroke="#14191e" stroke-width="1.8"/>')
-def formula(x,y,first,second,size=28,question=False):
-    if question:
-        # Query the ordering rather than assert it as a measured outcome.
-        color=DARK_BLUE if first=='AA' else DARK_ORANGE
-        s.raw(f'<text x="{x}" y="{y}" fill="{color}" font-size="{size}" style="font-family:Georgia,serif;font-style:italic">d<tspan baseline-shift="sub" font-size="{size*.64}">{first}</tspan></text>')
-        cx=x+size*2.12
-        s.raw(f'<text x="{cx}" y="{y}" text-anchor="middle" fill="{INK}" font-size="{size}" style="font-family:Georgia,serif">&lt;</text>')
-        s.raw(f'<text x="{cx}" y="{y-size*.70}" text-anchor="middle" fill="{INK}" font-size="{size*.65}" style="font-family:Georgia,serif">?</text>')
-        s.raw(f'<text x="{x+size*2.85}" y="{y}" fill="{INK}" font-size="{size}" style="font-family:Georgia,serif;font-style:italic">d<tspan baseline-shift="sub" font-size="{size*.64}">{second}</tspan></text>')
-        return
+def formula(x,y,first,second,size=28):
     s.raw(f'<text x="{x}" y="{y}" font-size="{size}" style="font-family:Georgia,serif;font-style:italic"><tspan fill="{DARK_BLUE if first=="AA" else DARK_ORANGE}">d<tspan baseline-shift="sub" font-size="{size*.64}">{first}</tspan></tspan><tspan> &lt; </tspan><tspan>d<tspan baseline-shift="sub" font-size="{size*.64}">{second}</tspan></tspan></text>')
 def check(x,y):
     s.raw(f'<path d="M {x-7} {y} l 6 8 l 12 -20" fill="none" stroke="#21842c" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round"/>')
