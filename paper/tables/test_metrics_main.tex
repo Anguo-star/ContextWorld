@@ -2,50 +2,34 @@
 \begin{table*}[t]
 \centering
 \scriptsize
-\setlength{\tabcolsep}{2.2pt}
-\renewcommand{\arraystretch}{1.03}
-\caption{\textbf{Adaptation metrics on the Test split.} Accuracy and History are percentages (higher is better); NRE is normalized response error (lower is better). Joint and Frozen denote the two Original $\to$ Mixed schemes. Speed uses the same scoring rule for Accuracy and History. Entries are means; run counts and standard deviations appear in Table~\ref{tab:test-metrics-full}. Bold marks the highest displayed Accuracy or History per task. NRE is measured in each checkpoint's target representation. A dash denotes no comparable checkpoint.}
+\setlength{\tabcolsep}{2.6pt}
+\renewcommand{\arraystretch}{0.95}
+\caption{\textbf{Adaptation metrics on the Test split.} Each cell lists Accuracy (\%) $\uparrow$, History (\%) $\uparrow$, and NRE $\downarrow$ from top to bottom. Entries are means; run counts and standard deviations appear in Table~\ref{tab:test-metrics-full}. Speed uses the same scoring rule for Accuracy and History. Bold marks the highest displayed Accuracy or History per task. NRE is measured in each checkpoint's target representation. A dash denotes no comparable checkpoint.}
 \label{tab:test-results}
-\begin{tabularx}{\textwidth}{@{}p{1.7cm}l*{11}{>{\centering\arraybackslash}X}@{}}
+\begin{tabularx}{\textwidth}{@{}ll*{9}{>{\centering\arraybackslash}X}@{}}
 \toprule
-& & \multicolumn{4}{c}{LeWM} & \multicolumn{4}{c}{PLDM} & \multicolumn{3}{c}{DINO-WM} \\
-\cmidrule(lr){3-6}\cmidrule(lr){7-10}\cmidrule(lr){11-13}
-Task & Metric & Original & Mixed & Joint & Frozen & Original & Mixed & Joint & Frozen & Original & Mixed & \shortstack{Original\\$\to$ Mixed} \\
+Model & Training scheme & \begin{tabular}[c]{@{}c@{}}Speed\end{tabular} & \begin{tabular}[c]{@{}c@{}}Pusher \\ displacement\end{tabular} & \begin{tabular}[c]{@{}c@{}}Arm \\ mass\end{tabular} & \begin{tabular}[c]{@{}c@{}}Action \\ delay\end{tabular} & \begin{tabular}[c]{@{}c@{}}Contact \\ friction\end{tabular} & \begin{tabular}[c]{@{}c@{}}Motion \\ damping\end{tabular} & \begin{tabular}[c]{@{}c@{}}Gripper \\ carry rule\end{tabular} & \begin{tabular}[c]{@{}c@{}}Door \\ traversability\end{tabular} & \begin{tabular}[c]{@{}c@{}}Portal \\ exit\end{tabular} \\
 \midrule
-Speed & Acc. $\uparrow$ & 58.04 & 98.19 & 96.89 & \textbf{98.44} & 48.41 & 96.78 & 98.33 & 96.44 & 57.11 & 59.41 & 84.78 \\
- & History $\uparrow$ & 58.04 & 98.19 & 96.89 & \textbf{98.44} & 48.41 & 96.78 & 98.33 & 96.44 & 57.11 & 59.41 & 84.78 \\
- & NRE $\downarrow$ & 0.896 & 0.042 & 0.055 & 0.030 & 0.922 & 0.084 & 0.047 & 0.062 & 0.919 & 0.961 & 0.411 \\
-\addlinespace[3pt]
-Pusher & Acc. $\uparrow$ & 48.96 & 50.78 & 91.80 & 97.46 & 45.57 & 56.25 & 59.18 & \textbf{98.63} & 38.48 & 97.66 & --- \\
-displacement & History $\uparrow$ & 28.32 & 79.10 & 99.02 & 98.83 & 9.38 & 68.16 & 73.44 & \textbf{99.80} & 9.38 & 99.61 & --- \\
- & NRE $\downarrow$ & 1.018 & 0.974 & 0.215 & 0.128 & 1.058 & 0.835 & 0.740 & 0.101 & 1.127 & 0.394 & --- \\
-\addlinespace[3pt]
-Arm mass & Acc. $\uparrow$ & 50.07 & 85.74 & 87.30 & 77.15 & 51.82 & \textbf{91.02} & 84.77 & 81.84 & 50.78 & 78.32 & --- \\
- & History $\uparrow$ & 51.63 & 89.84 & 93.36 & 86.52 & 66.99 & \textbf{93.55} & 90.82 & 89.26 & 61.33 & 88.09 & --- \\
- & NRE $\downarrow$ & 0.977 & 0.045 & 0.038 & 0.346 & 0.921 & 0.031 & 0.073 & 0.213 & 0.977 & 0.673 & --- \\
-\addlinespace[3pt]
-Action delay & Acc. $\uparrow$ & --- & 97.70 & --- & --- & --- & \textbf{100.00} & --- & --- & --- & 16.65 & --- \\
- & History $\uparrow$ & --- & 99.18 & --- & --- & --- & \textbf{100.00} & --- & --- & --- & 19.45 & --- \\
- & NRE $\downarrow$ & --- & 0.013 & --- & --- & --- & 0.006 & --- & --- & --- & 1.000 & --- \\
-\addlinespace[3pt]
-Contact & Acc. $\uparrow$ & 49.93 & 50.00 & 50.39 & \textbf{86.13} & 50.00 & 50.00 & 50.00 & 73.63 & 50.39 & 84.18 & --- \\
-friction & History $\uparrow$ & 50.13 & 49.41 & 54.30 & \textbf{92.77} & 49.09 & 48.63 & 46.48 & 83.59 & 47.66 & 92.19 & --- \\
- & NRE $\downarrow$ & 1.001 & 1.000 & 0.999 & 0.429 & 1.014 & 1.001 & 1.020 & 0.595 & 1.015 & 0.648 & --- \\
-\addlinespace[3pt]
-Motion & Acc. $\uparrow$ & 50.00 & 50.00 & 50.00 & 53.91 & 50.26 & 58.20 & \textbf{79.88} & 54.49 & 49.80 & 56.45 & 55.27 \\
-damping & History $\uparrow$ & 48.63 & 48.24 & 49.61 & 61.91 & 50.52 & 55.86 & \textbf{81.84} & 64.26 & 49.61 & 65.23 & 61.13 \\
- & NRE $\downarrow$ & 1.007 & 1.004 & 1.001 & 0.958 & 0.947 & 2.435 & 0.237 & 0.867 & 1.014 & 1.042 & 1.111 \\
-\addlinespace[3pt]
-Gripper & Acc. $\uparrow$ & 52.21 & 50.00 & 50.00 & \textbf{76.37} & 50.78 & 49.80 & 50.20 & 52.93 & 50.00 & 60.16 & 62.89 \\
-carry rule & History $\uparrow$ & 73.76 & 49.80 & 52.34 & \textbf{84.57} & 57.42 & 50.78 & 54.30 & 57.81 & 50.59 & 77.34 & 80.27 \\
- & NRE $\downarrow$ & 0.909 & 1.000 & 0.997 & 0.271 & 0.937 & 0.997 & 0.982 & 0.606 & 1.000 & 0.892 & 0.871 \\
-\addlinespace[3pt]
-Door & Acc. $\uparrow$ & 50.33 & 99.83 & 99.83 & \textbf{100.00} & 50.06 & \textbf{100.00} & \textbf{100.00} & \textbf{100.00} & 50.00 & \textbf{100.00} & --- \\
-traversability & History $\uparrow$ & 50.94 & \textbf{100.00} & \textbf{100.00} & \textbf{100.00} & 51.50 & \textbf{100.00} & \textbf{100.00} & \textbf{100.00} & 64.33 & \textbf{100.00} & --- \\
- & NRE $\downarrow$ & 0.996 & 0.041 & 0.038 & 0.036 & 0.997 & 0.022 & 0.023 & 0.048 & 0.985 & 0.217 & --- \\
-\addlinespace[3pt]
-Portal exit & Acc. $\uparrow$ & 50.07 & 50.78 & 50.39 & 77.93 & 50.07 & 72.27 & 52.54 & 91.21 & 50.78 & \textbf{100.00} & --- \\
- & History $\uparrow$ & 51.95 & 76.37 & 66.80 & 94.34 & 51.50 & 79.10 & 61.52 & 98.83 & 56.45 & \textbf{100.00} & --- \\
- & NRE $\downarrow$ & 0.990 & 0.922 & 0.934 & 0.264 & 0.996 & 0.128 & 0.708 & 0.191 & 0.996 & 0.142 & --- \\
+LeWM & \begin{tabular}[c]{@{}l@{}}Original\end{tabular} & \begin{tabular}[c]{@{}r@{}}58.04 \\ 58.04 \\ 0.896\end{tabular} & \begin{tabular}[c]{@{}r@{}}48.96 \\ 28.32 \\ 1.018\end{tabular} & \begin{tabular}[c]{@{}r@{}}50.07 \\ 51.63 \\ 0.977\end{tabular} & --- & \begin{tabular}[c]{@{}r@{}}49.93 \\ 50.13 \\ 1.001\end{tabular} & \begin{tabular}[c]{@{}r@{}}50.00 \\ 48.63 \\ 1.007\end{tabular} & \begin{tabular}[c]{@{}r@{}}52.21 \\ 73.76 \\ 0.909\end{tabular} & \begin{tabular}[c]{@{}r@{}}50.33 \\ 50.94 \\ 0.996\end{tabular} & \begin{tabular}[c]{@{}r@{}}50.07 \\ 51.95 \\ 0.990\end{tabular} \\
+\addlinespace[4pt]
+ & \begin{tabular}[c]{@{}l@{}}Mixed\end{tabular} & \begin{tabular}[c]{@{}r@{}}98.19 \\ 98.19 \\ 0.042\end{tabular} & \begin{tabular}[c]{@{}r@{}}50.78 \\ 79.10 \\ 0.974\end{tabular} & \begin{tabular}[c]{@{}r@{}}85.74 \\ 89.84 \\ 0.045\end{tabular} & \begin{tabular}[c]{@{}r@{}}97.70 \\ 99.18 \\ 0.013\end{tabular} & \begin{tabular}[c]{@{}r@{}}50.00 \\ 49.41 \\ 1.000\end{tabular} & \begin{tabular}[c]{@{}r@{}}50.00 \\ 48.24 \\ 1.004\end{tabular} & \begin{tabular}[c]{@{}r@{}}50.00 \\ 49.80 \\ 1.000\end{tabular} & \begin{tabular}[c]{@{}r@{}}99.83 \\ \textbf{100.00} \\ 0.041\end{tabular} & \begin{tabular}[c]{@{}r@{}}50.78 \\ 76.37 \\ 0.922\end{tabular} \\
+\addlinespace[4pt]
+ & \begin{tabular}[c]{@{}l@{}}Original $\to$ Mixed \\ (Joint)\end{tabular} & \begin{tabular}[c]{@{}r@{}}96.89 \\ 96.89 \\ 0.055\end{tabular} & \begin{tabular}[c]{@{}r@{}}91.80 \\ 99.02 \\ 0.215\end{tabular} & \begin{tabular}[c]{@{}r@{}}87.30 \\ 93.36 \\ 0.038\end{tabular} & --- & \begin{tabular}[c]{@{}r@{}}50.39 \\ 54.30 \\ 0.999\end{tabular} & \begin{tabular}[c]{@{}r@{}}50.00 \\ 49.61 \\ 1.001\end{tabular} & \begin{tabular}[c]{@{}r@{}}50.00 \\ 52.34 \\ 0.997\end{tabular} & \begin{tabular}[c]{@{}r@{}}99.83 \\ \textbf{100.00} \\ 0.038\end{tabular} & \begin{tabular}[c]{@{}r@{}}50.39 \\ 66.80 \\ 0.934\end{tabular} \\
+\addlinespace[4pt]
+ & \begin{tabular}[c]{@{}l@{}}Original $\to$ Mixed \\ (Frozen Encoder)\end{tabular} & \begin{tabular}[c]{@{}r@{}}\textbf{98.44} \\ \textbf{98.44} \\ 0.030\end{tabular} & \begin{tabular}[c]{@{}r@{}}97.46 \\ 98.83 \\ 0.128\end{tabular} & \begin{tabular}[c]{@{}r@{}}77.15 \\ 86.52 \\ 0.346\end{tabular} & --- & \begin{tabular}[c]{@{}r@{}}\textbf{86.13} \\ \textbf{92.77} \\ 0.429\end{tabular} & \begin{tabular}[c]{@{}r@{}}53.91 \\ 61.91 \\ 0.958\end{tabular} & \begin{tabular}[c]{@{}r@{}}\textbf{76.37} \\ \textbf{84.57} \\ 0.271\end{tabular} & \begin{tabular}[c]{@{}r@{}}\textbf{100.00} \\ \textbf{100.00} \\ 0.036\end{tabular} & \begin{tabular}[c]{@{}r@{}}77.93 \\ 94.34 \\ 0.264\end{tabular} \\
+\midrule
+PLDM & \begin{tabular}[c]{@{}l@{}}Original\end{tabular} & \begin{tabular}[c]{@{}r@{}}48.41 \\ 48.41 \\ 0.922\end{tabular} & \begin{tabular}[c]{@{}r@{}}45.57 \\ 9.38 \\ 1.058\end{tabular} & \begin{tabular}[c]{@{}r@{}}51.82 \\ 66.99 \\ 0.921\end{tabular} & --- & \begin{tabular}[c]{@{}r@{}}50.00 \\ 49.09 \\ 1.014\end{tabular} & \begin{tabular}[c]{@{}r@{}}50.26 \\ 50.52 \\ 0.947\end{tabular} & \begin{tabular}[c]{@{}r@{}}50.78 \\ 57.42 \\ 0.937\end{tabular} & \begin{tabular}[c]{@{}r@{}}50.06 \\ 51.50 \\ 0.997\end{tabular} & \begin{tabular}[c]{@{}r@{}}50.07 \\ 51.50 \\ 0.996\end{tabular} \\
+\addlinespace[4pt]
+ & \begin{tabular}[c]{@{}l@{}}Mixed\end{tabular} & \begin{tabular}[c]{@{}r@{}}96.78 \\ 96.78 \\ 0.084\end{tabular} & \begin{tabular}[c]{@{}r@{}}56.25 \\ 68.16 \\ 0.835\end{tabular} & \begin{tabular}[c]{@{}r@{}}\textbf{91.02} \\ \textbf{93.55} \\ 0.031\end{tabular} & \begin{tabular}[c]{@{}r@{}}\textbf{100.00} \\ \textbf{100.00} \\ 0.006\end{tabular} & \begin{tabular}[c]{@{}r@{}}50.00 \\ 48.63 \\ 1.001\end{tabular} & \begin{tabular}[c]{@{}r@{}}58.20 \\ 55.86 \\ 2.435\end{tabular} & \begin{tabular}[c]{@{}r@{}}49.80 \\ 50.78 \\ 0.997\end{tabular} & \begin{tabular}[c]{@{}r@{}}\textbf{100.00} \\ \textbf{100.00} \\ 0.022\end{tabular} & \begin{tabular}[c]{@{}r@{}}72.27 \\ 79.10 \\ 0.128\end{tabular} \\
+\addlinespace[4pt]
+ & \begin{tabular}[c]{@{}l@{}}Original $\to$ Mixed \\ (Joint)\end{tabular} & \begin{tabular}[c]{@{}r@{}}98.33 \\ 98.33 \\ 0.047\end{tabular} & \begin{tabular}[c]{@{}r@{}}59.18 \\ 73.44 \\ 0.740\end{tabular} & \begin{tabular}[c]{@{}r@{}}84.77 \\ 90.82 \\ 0.073\end{tabular} & --- & \begin{tabular}[c]{@{}r@{}}50.00 \\ 46.48 \\ 1.020\end{tabular} & \begin{tabular}[c]{@{}r@{}}\textbf{79.88} \\ \textbf{81.84} \\ 0.237\end{tabular} & \begin{tabular}[c]{@{}r@{}}50.20 \\ 54.30 \\ 0.982\end{tabular} & \begin{tabular}[c]{@{}r@{}}\textbf{100.00} \\ \textbf{100.00} \\ 0.023\end{tabular} & \begin{tabular}[c]{@{}r@{}}52.54 \\ 61.52 \\ 0.708\end{tabular} \\
+\addlinespace[4pt]
+ & \begin{tabular}[c]{@{}l@{}}Original $\to$ Mixed \\ (Frozen Encoder)\end{tabular} & \begin{tabular}[c]{@{}r@{}}96.44 \\ 96.44 \\ 0.062\end{tabular} & \begin{tabular}[c]{@{}r@{}}\textbf{98.63} \\ \textbf{99.80} \\ 0.101\end{tabular} & \begin{tabular}[c]{@{}r@{}}81.84 \\ 89.26 \\ 0.213\end{tabular} & --- & \begin{tabular}[c]{@{}r@{}}73.63 \\ 83.59 \\ 0.595\end{tabular} & \begin{tabular}[c]{@{}r@{}}54.49 \\ 64.26 \\ 0.867\end{tabular} & \begin{tabular}[c]{@{}r@{}}52.93 \\ 57.81 \\ 0.606\end{tabular} & \begin{tabular}[c]{@{}r@{}}\textbf{100.00} \\ \textbf{100.00} \\ 0.048\end{tabular} & \begin{tabular}[c]{@{}r@{}}91.21 \\ 98.83 \\ 0.191\end{tabular} \\
+\midrule
+DINO-WM & \begin{tabular}[c]{@{}l@{}}Original\end{tabular} & \begin{tabular}[c]{@{}r@{}}57.11 \\ 57.11 \\ 0.919\end{tabular} & \begin{tabular}[c]{@{}r@{}}38.48 \\ 9.38 \\ 1.127\end{tabular} & \begin{tabular}[c]{@{}r@{}}50.78 \\ 61.33 \\ 0.977\end{tabular} & --- & \begin{tabular}[c]{@{}r@{}}50.39 \\ 47.66 \\ 1.015\end{tabular} & \begin{tabular}[c]{@{}r@{}}49.80 \\ 49.61 \\ 1.014\end{tabular} & \begin{tabular}[c]{@{}r@{}}50.00 \\ 50.59 \\ 1.000\end{tabular} & \begin{tabular}[c]{@{}r@{}}50.00 \\ 64.33 \\ 0.985\end{tabular} & \begin{tabular}[c]{@{}r@{}}50.78 \\ 56.45 \\ 0.996\end{tabular} \\
+\addlinespace[4pt]
+ & \begin{tabular}[c]{@{}l@{}}Mixed\end{tabular} & \begin{tabular}[c]{@{}r@{}}59.41 \\ 59.41 \\ 0.961\end{tabular} & \begin{tabular}[c]{@{}r@{}}97.66 \\ 99.61 \\ 0.394\end{tabular} & \begin{tabular}[c]{@{}r@{}}78.32 \\ 88.09 \\ 0.673\end{tabular} & \begin{tabular}[c]{@{}r@{}}16.65 \\ 19.45 \\ 1.000\end{tabular} & \begin{tabular}[c]{@{}r@{}}84.18 \\ 92.19 \\ 0.648\end{tabular} & \begin{tabular}[c]{@{}r@{}}56.45 \\ 65.23 \\ 1.042\end{tabular} & \begin{tabular}[c]{@{}r@{}}60.16 \\ 77.34 \\ 0.892\end{tabular} & \begin{tabular}[c]{@{}r@{}}\textbf{100.00} \\ \textbf{100.00} \\ 0.217\end{tabular} & \begin{tabular}[c]{@{}r@{}}\textbf{100.00} \\ \textbf{100.00} \\ 0.142\end{tabular} \\
+\addlinespace[4pt]
+ & \begin{tabular}[c]{@{}l@{}}Original $\to$ Mixed\end{tabular} & \begin{tabular}[c]{@{}r@{}}84.78 \\ 84.78 \\ 0.411\end{tabular} & --- & --- & --- & --- & \begin{tabular}[c]{@{}r@{}}55.27 \\ 61.13 \\ 1.111\end{tabular} & \begin{tabular}[c]{@{}r@{}}62.89 \\ 80.27 \\ 0.871\end{tabular} & --- & --- \\
 \bottomrule
 \end{tabularx}\end{table*}
