@@ -135,23 +135,23 @@ def draw_response_panel(s, scene, panel, formula, check, prediction_images=False
         caption = ['Is each prediction closer to', 'its matching true future?'] if kind=='prediction' else ['Does matching history reduce', 'error for the same true future?']
         s.lines(xx+138,card_y+65,caption,16,gap=22,fill=ink,anchor='middle')
         points={k:(xx+5+plot_scale*v[0],card_y+8.1+plot_scale*v[1]) for k,v in SCHEMATIC_STATES.items()}
-        focus=points['pred_A' if kind=='prediction' else 'true_A']
-        s.circle(*focus,24,'#e8f3ff')
-        # Both views contain the same four edges; emphasis changes the fixed node.
-        active={'AA','AB'} if kind=='prediction' else {'AA','BA'}
+        # Highlight the reference for each condition's comparison symmetrically:
+        # predictions for accuracy, true futures for history sensitivity.
+        prefix='pred_' if kind=='prediction' else 'true_'
+        for letter,tint in [('A','#e8f3ff'),('B','#fff0e3')]:
+            s.circle(*points[prefix+letter],24,tint)
+        # Both A and B comparisons have equal visual weight in each view.
         for ij in ['AB','BA','BB','AA']:
             a,b=points['pred_'+ij[0]],points['true_'+ij[1]]
             matched=ij[0]==ij[1]
             col=(blue if ij=='AA' else orange) if matched else '#8796a8'
-            if ij not in active:col=('#b7d0e9' if ij=='AA' else '#cf985f') if matched else '#d4dce5'
-            # Keep the B matched distance legible without obscuring the A focus.
-            width=2.7 if ij in active else 2.2 if ij=='BB' else 1.6
+            width=2.7
             s.line(*a,*b,col,width,None if matched else '5 5')
             if ij=='AA':lp=((a[0]+b[0])/2,(a[1]+b[1])/2-10)
             elif ij=='BB':lp=((a[0]+b[0])/2,(a[1]+b[1])/2+20)
             elif ij=='AB':lp=(a[0]+.64*(b[0]-a[0])+16,a[1]+.64*(b[1]-a[1])-4)
             else:lp=(a[0]+.35*(b[0]-a[0])-16,a[1]+.35*(b[1]-a[1])-3)
-            dist_label(*lp,*ij,ink if ij in active else dark_orange if ij=='BB' else '#8996a5')
+            dist_label(*lp,*ij,(dark_blue if ij=='AA' else dark_orange) if matched else ink)
         for key,(x,y) in points.items():
             letter=key[-1];pred=key.startswith('pred');col=blue if letter=='A' else orange
             s.circle(x,y,8.5,col if pred else 'white',col,2.3)
