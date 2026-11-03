@@ -117,8 +117,8 @@ def draw_response_panel(s, scene, panel, formula, check, prediction_images=False
     card_y, card_w, card_h = 533, 276, 376
     plot_scale = .9
     for idx,(xx,title,col,tint,border) in enumerate([
-        (560,'Future discrimination',blue,'blue','#c7dff6'),
-        (849,'History benefit',orange,'orange','#e6d9cc'),
+        (560,'Adaptation accuracy',blue,'blue','#c7dff6'),
+        (849,'History sensitivity',orange,'orange','#e6d9cc'),
         (1138,'Response fidelity',purple,'purple','#d8d3ec'),
     ],1):
         s.rect(xx,card_y,card_w,card_h,'#fcfdff',border,1.1,14)
