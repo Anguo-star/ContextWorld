@@ -31,7 +31,7 @@ for t in range(4):
 BLUE='#0094ff'; ORANGE='#ff780a'; DARK_BLUE='#0044b5'; DARK_ORANGE='#c52e00'; INK='#111620'; OUTLINE='#8795aa'
 from draw_response_panel import RESPONSE_PANEL_HEIGHT, RESPONSE_PANEL_EXTRA_HEIGHT, SCHEMATIC_STATES
 response_extra = RESPONSE_PANEL_EXTRA_HEIGHT if args.response_fidelity else 0
-PUSHER_PANEL_HEIGHT = 438
+PUSHER_PANEL_HEIGHT = 454
 PUSHER_PANEL_SHIFT = PUSHER_PANEL_HEIGHT - 442
 figure_height = 1086 + (PUSHER_PANEL_SHIFT if PUSHER else 0) + response_extra
 s=SVG(1448,figure_height)
@@ -100,14 +100,10 @@ def scene(mode,t,x,y,w=181,h=112):
 
 if PUSHER:
     panel(20,15,1408,PUSHER_PANEL_HEIGHT,'A','Different histories, different futures',32)
-    s.rect(787,73,203,370,'url(#current-bg)','#b3dcfc',.8,10)
-    s.line(220,274,1416,274,'#ccd5df',1.3,'4 4')
-    # State the shared observation inside its column, keeping the query-action
-    # transitions clear when the two condition rows are brought closer.
-    s.rect(834,251,113,27,'#e6f4ff',r=5)
-    s.text(890.5,271,'Identical',18,DARK_BLUE,700,'middle')
-    brace(1317,111,307);s.rect(1333,110,86,308,'url(#card-bg)',r=10)
-    s.lines(1376,250,['Different','future','outcomes'],21,gap=24,weight=700,anchor='middle',style='font-family:ReferenceNarrow')
+    s.rect(787,73,203,386,'url(#current-bg)','#b3dcfc',.8,10)
+    s.line(220,284,1416,284,'#ccd5df',1.3,'4 4')
+    brace(1317,111,323);s.rect(1333,110,86,324,'url(#card-bg)',r=10)
+    s.lines(1376,258,['Different','future','outcomes'],21,gap=24,weight=700,anchor='middle',style='font-family:ReferenceNarrow')
     s.circle(55,253,6,'#527fff','#3563b3',1)
     s.text(73,260,'Pusher',19,'#41536c')
     s.line(42,278,64,278,'#46556b',1.6,'3 2');s.arrow(60,278,67,278,'#46556b',1.3,5)
@@ -119,13 +115,13 @@ if PUSHER:
     for t,x,title in columns:
         s.rect(x-3,74,187,37,'url(#neutral)' if t!=2 else '#e1f3ff',r=6)
         s.text(x+90.5,99,title,20,DARK_BLUE if t==2 else INK,700,'middle')
-    for mode,y,letter,dark,desc in [('low_gain',110,'A',DARK_BLUE,['Smaller','action response']),('high_gain',282,'B',DARK_ORANGE,['Larger','action response'])]:
+    for mode,y,letter,dark,desc in [('low_gain',110,'A',DARK_BLUE,['Smaller','action response']),('high_gain',298,'B',DARK_ORANGE,['Larger','action response'])]:
         s.rect(36,y+16,175,111,'#e2f2ff' if letter=='A' else '#fff0e4',r=11)
         s.text(48,y+52,f'Condition {letter}:',24,dark,700)
         s.lines(48,y+81,desc,20,gap=25,weight=700)
         for t,x,title in columns:
             pusher_frame(mode,t,x+5,y,171,136,annotate=True)
-            if t in [1,3]:s.text(x+90.5,y+156,'Pusher moves less' if letter=='A' else 'Pusher moves more',20,dark,700,'middle')
+            if t in [1,3]:s.text(x+90.5,y+154,'Pusher moves less' if letter=='A' else 'Pusher moves more',20,dark,700,'middle')
         for j,(x1,x2,label) in enumerate([(418,499,'Move'),(702,782,'Move'),(1017,1109,'Move')]):
             center=(x1+x2)/2
             s.text(center,y+38,label,20,'#cf0000',700,'middle')
