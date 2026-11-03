@@ -137,7 +137,7 @@ def draw_response_panel(s, scene, panel, formula, check, prediction_images=False
     s.lines(698,card_y+65,['Same prediction,', 'compare true futures'],16,gap=22,fill=ink,anchor='middle')
     s.lines(987,card_y+65,['Same true future,', 'compare histories'],16,gap=22,fill=ink,anchor='middle')
     s.raw('<g id="shared-error-comparison">')
-    points={k:(565+plot_scale*v[0]+(289 if k.startswith('true_') else 0),
+    points={k:(600+plot_scale*v[0]+(219 if k.startswith('true_') else 0),
                card_y+8.1+plot_scale*v[1]) for k,v in SCHEMATIC_STATES.items()}
     for ij in ['AB','BA','BB','AA']:
         a,b=points['pred_'+ij[0]],points['true_'+ij[1]]
@@ -169,13 +169,13 @@ def draw_response_panel(s, scene, panel, formula, check, prediction_images=False
     # Rotate both difference vectors identically; their magnitudes and relative
     # directions therefore agree with the four-point schematics.
     s.lines(1276,card_y+65,['Does the predicted response', 'match the true response?'],16,gap=22,fill=ink,anchor='middle')
-    angle=-3*math.pi/4
+    angle=math.radians(-115)
     def response(predicted):
         prefix='pred_' if predicted else 'true_'
         a,b=SCHEMATIC_STATES[prefix+'A'],SCHEMATIC_STATES[prefix+'B']
         dx,dy=b[0]-a[0],b[1]-a[1]
         return ((dx*math.cos(angle)-dy*math.sin(angle))*plot_scale*1.5,(dx*math.sin(angle)+dy*math.cos(angle))*plot_scale*1.5)
-    origin=(1168,card_y+279)
+    origin=(1158,card_y+250)
     true=tuple(a+b for a,b in zip(origin,response(False)))
     pred=tuple(a+b for a,b in zip(origin,response(True)))
     s.line(*true,*pred,'#a0aabc',1.8,'5 4')
