@@ -177,7 +177,7 @@ To evaluate models on unseen interaction rollouts, all nine tasks provide trajec
 
 Prediction error alone does not establish in-context dynamics adaptation, as models may reduce errors shared across dynamics conditions without accurately predicting their differences.
 Conversely, high classification accuracy does not guarantee accurate conditional predictions: Appendix~\ref{app:scoring-controls} shows that predictions close to the mean future can still distinguish the correct outcome.
-We therefore evaluate two aspects of adaptation: (1) Adaptation Accuracy ($A_{\mathrm{future}}$), measuring whether predictions distinguish different physical futures; and (2) History Sensitivity ($\text{History }\%, G_H$), measuring whether matching histories improve predictions relative to mismatched histories.
+We therefore evaluate two aspects of adaptation: (1) Adaptation Accuracy ($A_{\mathrm{future}}$), measuring whether predictions distinguish different physical futures; and (2) History Sensitivity (History win rate, $G_H$), measuring whether matching histories improve predictions relative to mismatched histories.
 We further report Normalized Response Error ($\mathrm{NRE}$) to assess predicted differences between dynamics conditions and Multi-Step Prediction Error ($E/B$) to assess rollout errors against a mean-future reference.
 
 \paragraph{Adaptation Accuracy ($A_{\mathrm{future}}$).}
@@ -192,9 +192,9 @@ A_{\mathrm{future}} = \frac{100}{2N} \sum_{i=1}^{N} \left( I_i^A + I_i^B \right)
 Because each pair shares the same current observation and future actions, a deterministic model that ignores history produces identical predictions ($\hat{z}_i^A = \hat{z}_i^B$) and scores at most 50\%, with ties counted as failures.
 Tasks with multiple dynamics conditions use task-specific scoring (Appendix~\ref{app:evaluation-details}).
 
-\paragraph{History Sensitivity (History \%, $G_H$).}
+\paragraph{History Sensitivity (History win rate, $G_H$).}
 To measure the effect of interaction history, we swap histories across dynamics conditions while holding the current observation, future actions, and target fixed.
-We report \textbf{History (\%)}, the percentage of comparisons in which matched history yields strictly lower prediction error than mismatched history.
+We report \textbf{History win rate (\%)}, the percentage of comparisons in which matched history yields strictly lower prediction error than mismatched history.
 We also measure the normalized error reduction:
 \begin{equation}
 G_H = \frac{E_- - E_+}{B},
@@ -232,7 +232,7 @@ B_q &= \frac{1}{K_q C_q T}
 \sum_{k,c,t}\|z_{qkct}-\bar{z}_{qct}\|^2.
 \end{aligned}
 \end{equation}
-We report the normalized prediction error:
+We report the normalized prediction error~\cite{murphy1988skill}:
 \begin{equation}
 E/B = \frac{\sum_q L_q}{\sum_q B_q}.
 \label{eq:complete-error}
@@ -243,7 +243,7 @@ For equally weighted conditions sharing the current observation and future actio
 Thus, a deterministic model that ignores history cannot achieve $E/B<1$.
 
 \paragraph{Evaluation Scope and Reporting.}
-We report adaptation accuracy, History, and NRE on the Test split, while multi-step prediction and additional mechanism analyses use the Development split.
+We report adaptation accuracy, History win rate, and NRE on the Test split, while multi-step prediction and additional mechanism analyses use the Development split.
 The task-query diagnostics and extended multi-step evaluations differ in action sequences and prediction horizons.
 Latent errors are measured in each checkpoint's native representation and do not provide a shared physical error scale across models.
 We report means and standard deviations across available training runs.
@@ -584,7 +584,7 @@ It verifies the scorer on these queries, not physical calibration across all rep
 \begin{center}\small
 \begin{tabular}{@{}lrrr@{}}
 \toprule
-Constructed prediction & Accuracy (\%) & History (\%) & NRE\\
+Constructed prediction & Accuracy (\%) & \shortstack{History\\win rate (\%)} & NRE\\
 \midrule
 True target for each condition & 100 & 100 & 0\\
 Same target $z_A$ for both conditions & 50 & 0 & 1\\
@@ -652,7 +652,7 @@ For damping with the encoder frozen, prediction loss changes by only $-0.39\%$ b
 
 Table~\ref{tab:test-metrics-full} reports all three Test adaptation metrics with training-run counts and standard deviations.
 Table~\ref{tab:dev-diagnostics} reports the separate Development diagnostics, multi-step prediction errors, and original-environment planning results.
-History measures strict error reduction from matching history on the task queries; NRE measures the conditional response on those queries.
+History win rate measures strict error reduction from matching history on the task queries; NRE measures the conditional response on those queries.
 $E/B$ uses the extended multi-step action panels and includes errors shared by both conditions.
 Because the query sets and prediction horizons differ, these columns should not be treated as measurements of the same event.
 All latent errors are computed in the checkpoint's own target representation.
@@ -664,13 +664,13 @@ All latent errors are computed in the checkpoint's own target representation.
 \setlength{\tabcolsep}{3pt}
 \renewcommand{\arraystretch}{1.15}
 \begin{longtable}{@{}p{1.8cm}lp{3.65cm}rrrp{2.5cm}r@{}}
-\caption{Development prediction diagnostics and original-environment CEM. Entries average the available training repetitions; $E/B$ intervals are 95\% source-bootstrap intervals. History and CEM are percentages. Scheme names match the main text.}\label{tab:dev-diagnostics}\\
+\caption{Development prediction diagnostics and original-environment CEM. Entries average the available training repetitions; $E/B$ intervals are 95\% source-bootstrap intervals. History win rate and CEM are percentages. Scheme names match the main text.}\label{tab:dev-diagnostics}\\
 \toprule
-Task & Model & Scheme & History $\uparrow$ & NRE $\downarrow$ & $E/B$ $\downarrow$ & $E/B$ interval & CEM $\uparrow$\\
+Task & Model & Scheme & \shortstack{History\\win rate $\uparrow$} & NRE $\downarrow$ & $E/B$ $\downarrow$ & $E/B$ interval & CEM $\uparrow$\\
 \midrule
 \endfirsthead
 \toprule
-Task & Model & Scheme & History $\uparrow$ & NRE $\downarrow$ & $E/B$ $\downarrow$ & $E/B$ interval & CEM $\uparrow$\\
+Task & Model & Scheme & \shortstack{History\\win rate $\uparrow$} & NRE $\downarrow$ & $E/B$ $\downarrow$ & $E/B$ interval & CEM $\uparrow$\\
 \midrule
 \endhead
 \bottomrule

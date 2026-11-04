@@ -2,14 +2,14 @@
 \begingroup
 \small
 \setlength{\tabcolsep}{3pt}
-\renewcommand{\arraystretch}{1.08}
+\renewcommand{\arraystretch}{1.05}
 \begin{longtable}{@{}>{\raggedright\arraybackslash}p{2.55cm}l>{\raggedright\arraybackslash}p{4.05cm}rrrr@{}}
-\caption{\textbf{Complete Test adaptation metrics.} Each row uses the same evaluated checkpoints for all three metrics. Entries are means $\pm$ sample standard deviations across $n$ training runs; a single run has no sample standard deviation. Accuracy and History are percentages; NRE is dimensionless. Speed uses unseen interpolation speeds, and its Accuracy and History use the same scoring rule. Action delay uses seven-frame history. Only available comparable configurations are listed.}\label{tab:test-metrics-full}\label{tab:test-variability}\\
+\caption{\textbf{Complete Test adaptation metrics.} Each row uses the same evaluated checkpoints for all three metrics. Entries are means $\pm$ sample standard deviations across $n$ training runs; a single run has no sample standard deviation. Accuracy and History win rate are percentages; NRE is dimensionless. Speed uses unseen interpolation speeds, and its Accuracy and History win rate use the same scoring rule. Action delay uses seven-frame history. Only available comparable configurations are listed.}\label{tab:test-metrics-full}\label{tab:test-variability}\\
 \toprule
-Task & Model & Training scheme & $n$ & Accuracy $\uparrow$ & History $\uparrow$ & NRE $\downarrow$ \\
+Task & Model & Training scheme & $n$ & Accuracy $\uparrow$ & \shortstack{History\\win rate $\uparrow$} & NRE $\downarrow$ \\
 \midrule\endfirsthead
 \toprule
-Task & Model & Training scheme & $n$ & Accuracy $\uparrow$ & History $\uparrow$ & NRE $\downarrow$ \\
+Task & Model & Training scheme & $n$ & Accuracy $\uparrow$ & \shortstack{History\\win rate $\uparrow$} & NRE $\downarrow$ \\
 \midrule\endhead
 \bottomrule\endfoot
 Speed & LeWM & Original & 3 & $58.04\pm1.70$ & $58.04\pm1.70$ & $0.896\pm0.027$ \\
@@ -106,5 +106,4 @@ Portal exit & PLDM & Original $\to$ Mixed (Joint) & 1 & 52.54 & 61.52 & 0.708 \\
 Portal exit & PLDM & Original $\to$ Mixed\newline (Frozen Encoder) & 1 & 91.21 & 98.83 & 0.191 \\
 Portal exit & DINO-WM & Original & 1 & 50.78 & 56.45 & 0.996 \\
 Portal exit & DINO-WM & Mixed & 1 & 100.00 & 100.00 & 0.142 \\
-\addlinespace[3pt]
 \end{longtable}\endgroup

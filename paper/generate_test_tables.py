@@ -21,7 +21,7 @@ SCHEMES = {'original': 'Original', 'scratch': 'Mixed',
 COLUMNS = [(f, r) for f, _ in FAMILIES for r in SCHEMES
            if not (f == 'dinowm' and r == 'joint')]
 METRICS = [('accuracy', r'Acc. $\uparrow$', 2),
-           ('history', r'History $\uparrow$', 2),
+           ('history', r'History win rate $\uparrow$', 2),
            ('nre', r'NRE $\downarrow$', 3)]
 
 
@@ -46,7 +46,7 @@ def main_table(index):
 \scriptsize
 \setlength{\tabcolsep}{2.6pt}
 \renewcommand{\arraystretch}{0.95}
-\caption{\textbf{Adaptation metrics on the Test split.} Each cell lists Accuracy (\%) $\uparrow$, History (\%) $\uparrow$, and NRE $\downarrow$ from top to bottom. Entries are means; run counts and standard deviations appear in Table~\ref{tab:test-metrics-full}. Speed uses the same scoring rule for Accuracy and History. Bold marks the highest Accuracy and History and lowest NRE per task, including ties at the displayed precision. NRE is measured in each checkpoint's target representation. A dash denotes no comparable checkpoint.}
+\caption{\textbf{Adaptation metrics on the Test split.} Each cell lists Accuracy (\%) $\uparrow$, History win rate (\%) $\uparrow$, and NRE $\downarrow$ from top to bottom. Entries are means; run counts and standard deviations appear in Table~\ref{tab:test-metrics-full}. Speed uses the same scoring rule for Accuracy and History win rate. Bold marks the highest Accuracy and History win rate and lowest NRE per task, including ties at the displayed precision. NRE is measured in each checkpoint's target representation. A dash denotes no comparable checkpoint.}
 \label{tab:test-results}
 \begin{tabularx}{\textwidth}{@{}ll*{9}{>{\centering\arraybackslash}X}@{}}
 \toprule''']
@@ -93,14 +93,14 @@ def full_table(index):
 \begingroup
 \small
 \setlength{\tabcolsep}{3pt}
-\renewcommand{\arraystretch}{1.08}
+\renewcommand{\arraystretch}{1.05}
 \begin{longtable}{@{}>{\raggedright\arraybackslash}p{2.55cm}l>{\raggedright\arraybackslash}p{4.05cm}rrrr@{}}
-\caption{\textbf{Complete Test adaptation metrics.} Each row uses the same evaluated checkpoints for all three metrics. Entries are means $\pm$ sample standard deviations across $n$ training runs; a single run has no sample standard deviation. Accuracy and History are percentages; NRE is dimensionless. Speed uses unseen interpolation speeds, and its Accuracy and History use the same scoring rule. Action delay uses seven-frame history. Only available comparable configurations are listed.}\label{tab:test-metrics-full}\label{tab:test-variability}\\
+\caption{\textbf{Complete Test adaptation metrics.} Each row uses the same evaluated checkpoints for all three metrics. Entries are means $\pm$ sample standard deviations across $n$ training runs; a single run has no sample standard deviation. Accuracy and History win rate are percentages; NRE is dimensionless. Speed uses unseen interpolation speeds, and its Accuracy and History win rate use the same scoring rule. Action delay uses seven-frame history. Only available comparable configurations are listed.}\label{tab:test-metrics-full}\label{tab:test-variability}\\
 \toprule
-Task & Model & Training scheme & $n$ & Accuracy $\uparrow$ & History $\uparrow$ & NRE $\downarrow$ \\
+Task & Model & Training scheme & $n$ & Accuracy $\uparrow$ & \shortstack{History\\win rate $\uparrow$} & NRE $\downarrow$ \\
 \midrule\endfirsthead
 \toprule
-Task & Model & Training scheme & $n$ & Accuracy $\uparrow$ & History $\uparrow$ & NRE $\downarrow$ \\
+Task & Model & Training scheme & $n$ & Accuracy $\uparrow$ & \shortstack{History\\win rate $\uparrow$} & NRE $\downarrow$ \\
 \midrule\endhead
 \bottomrule\endfoot''']
     for task, name, _ in TASKS:
@@ -118,6 +118,8 @@ Task & Model & Training scheme & $n$ & Accuracy $\uparrow$ & History $\uparrow$ 
                     values.append(value)
                 lines.append(' & '.join([name, model, scheme_label(family, regime), str(cell['n']), *values]) + r' \\')
         lines.append(r'\addlinespace[3pt]')
+    if lines[-1] == r'\addlinespace[3pt]':
+        lines.pop()  # Avoid an empty continuation page after the final task.
     lines.append(r'\end{longtable}\endgroup')
     return '\n'.join(lines) + '\n'
 
