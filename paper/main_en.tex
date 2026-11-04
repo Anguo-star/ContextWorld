@@ -204,6 +204,35 @@ where $E_-$ and $E_+$ denote the aggregate prediction errors under mismatched an
 Here, $B$ is the aggregate error of the ground-truth mean-future reference across dynamics conditions, computed on the same evaluation queries.
 A positive $G_H$ indicates that matching history reduces prediction error, but does not imply accurate prediction.
 
+\begin{table}[!b]
+\centering
+\footnotesize
+\caption{Training schemes.
+Mixed combines original-environment and ContextWorld training windows at a $1:1$ sampling ratio.
+Original $\rightarrow$ Mixed starts from an Original checkpoint, with Joint updating the visual encoder and Frozen Encoder keeping it fixed.
+DINO-WM uses a frozen pretrained visual encoder in all schemes.}
+\label{tab:training-schemes}
+\begin{tabularx}{\columnwidth}{@{}p{.38\columnwidth}XXc@{}}
+\toprule
+Scheme & Start & Data & Encoder \\
+\midrule
+Original & Initial & Original & Updated$^\dagger$ \\
+Mixed & Initial & Mixed & Updated$^\dagger$ \\
+Original $\to$ Mixed (Joint) & Original & Mixed & Updated \\
+Original $\to$ Mixed (Frozen Encoder) & Original & Mixed & Frozen \\
+\bottomrule
+\end{tabularx}
+\par\smallskip
+\begin{minipage}{\columnwidth}
+\footnotesize
+Initial weights are random for LeWM and PLDM. DINO-WM uses a pretrained visual encoder and a random predictor.
+$^\dagger$DINO-WM keeps its encoder frozen in every scheme; its continued-training scheme is labeled Original $\to$ Mixed.
+Other modules remain trainable; native training losses are retained.
+\end{minipage}
+\end{table}
+
+\input{tables/test_metrics_main}
+
 \paragraph{Normalized Response Error (NRE).}
 To measure prediction errors in the response to differing dynamics, we define the ground-truth difference $\Delta z_i = z_i^B - z_i^A$ and predicted difference $\Delta\hat{z}_i = \hat{z}_i^B - \hat{z}_i^A$ for each counterfactual pair $i$.
 The Normalized Response Error is
@@ -282,36 +311,18 @@ Models are trained independently for each task.
 We evaluate planning success in the original environments using the Cross-Entropy Method (CEM)~\cite{deboer2005cem} to assess whether existing control performance is maintained.
 Optimization details are provided in Appendix~\ref{app:training-settings}.
 
-\begin{table}[!ht]
+
+
+
+
+
+
+\begin{figure}[!tb]
 \centering
-\footnotesize
-\caption{Training schemes.
-Mixed combines original-environment and ContextWorld training windows at a $1:1$ sampling ratio.
-Original $\rightarrow$ Mixed starts from an Original checkpoint, with Joint updating the visual encoder and Frozen Encoder keeping it fixed.
-DINO-WM uses a frozen pretrained visual encoder in all schemes.}
-\label{tab:training-schemes}
-\begin{tabularx}{\columnwidth}{@{}p{.38\columnwidth}XXc@{}}
-\toprule
-Scheme & Start & Data & Encoder \\
-\midrule
-Original & Initial & Original & Updated$^\dagger$ \\
-Mixed & Initial & Mixed & Updated$^\dagger$ \\
-Original $\to$ Mixed (Joint) & Original & Mixed & Updated \\
-Original $\to$ Mixed (Frozen Encoder) & Original & Mixed & Frozen \\
-\bottomrule
-\end{tabularx}
-\par\smallskip
-\begin{minipage}{\columnwidth}
-\footnotesize
-Initial weights are random for LeWM and PLDM. DINO-WM uses a pretrained visual encoder and a random predictor.
-$^\dagger$DINO-WM keeps its encoder frozen in every scheme; its continued-training scheme is labeled Original $\to$ Mixed.
-Other modules remain trainable; native training losses are retained.
-\end{minipage}
-\end{table}
-
-\input{tables/test_metrics_main}
-
-
+\includegraphics[width=\columnwidth]{figures/multistep_prediction.pdf}
+\caption{\textbf{Multi-step prediction on pusher displacement (Development).} Each rollout step spans five simulator steps without new observations. Prediction error is divided by the error of predicting the mean future representation across dynamics conditions. Ratios are computed within each checkpoint's representation, then averaged over runs. These extended queries differ from the one-step tasks; nine-task summaries appear in Appendix~\ref{app:additional-results}.}
+\label{fig:multistep-prediction}
+\end{figure}
 
 \subsection{Adaptation Results}
 \label{sec:adaptation-results}
@@ -329,12 +340,7 @@ On pusher displacement, LeWM and PLDM under Original $\rightarrow$ Mixed (Frozen
 However, their prediction errors exceed the mean-future reference at later horizons (Figure~\ref{fig:multistep-prediction}), with aggregate $E/B>1.4$ for both models.
 These multi-step evaluations use extended action sequences and prediction horizons, so the results do not isolate the source of rollout errors.
 
-\begin{figure}[t]
-\centering
-\includegraphics[width=\columnwidth]{figures/multistep_prediction.pdf}
-\caption{\textbf{Multi-step prediction on pusher displacement (Development).} Each rollout step spans five simulator steps without new observations. Prediction error is divided by the error of predicting the mean future representation across dynamics conditions. Ratios are computed within each checkpoint's representation, then averaged over runs. These extended queries differ from the one-step tasks; nine-task summaries appear in Appendix~\ref{app:additional-results}.}
-\label{fig:multistep-prediction}
-\end{figure}
+
 
 \subsection{Effects of Training Choices}
 \label{sec:training-effects}
