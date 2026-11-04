@@ -60,7 +60,7 @@ def draw_response_panel(s, scene, panel, formula, check, prediction_images=False
           '<linearGradient id="metric-orange" x2="0" y2="1"><stop stop-color="#fff4e9"/><stop offset="1" stop-color="#ffeddf"/></linearGradient>'
           '<linearGradient id="metric-purple" x2="0" y2="1"><stop stop-color="#f3f0ff"/><stop offset="1" stop-color="#e9e5fc"/></linearGradient>'
           '</defs>')
-    panel(20, 471, 1408, RESPONSE_PANEL_HEIGHT, 'B', 'Paired evaluation protocol', 32)
+    panel(20, 471, 1408, RESPONSE_PANEL_HEIGHT, 'B', 'Evaluation', 32)
     # Reuse the open area to the right of the B title; keep all text and
     # schematic geometry at their original scale.
     s.raw(f'<g transform="translate(0,{RESPONSE_CONTENT_SHIFT})">')
