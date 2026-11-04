@@ -324,7 +324,7 @@ On pusher displacement, DINO-WM reaches 97.66\%, substantially outperforming LeW
 All three models achieve near-perfect accuracy on door traversability.
 No single model consistently performs best across tasks.
 
-Strong one-step adaptation does not guarantee accurate multi-step prediction.
+Because autoregressive rollouts use predicted states as inputs to subsequent steps, we also evaluate multi-step prediction error.
 On pusher displacement, LeWM and PLDM under Original $\rightarrow$ Mixed (Frozen Encoder) achieve History win rates above 98\% and low NRE (Appendix~\ref{app:additional-results}).
 However, their prediction errors exceed the mean-future reference at later horizons (Figure~\ref{fig:multistep-prediction}), with aggregate $E/B>1.4$ for both models.
 These multi-step evaluations use extended action sequences and prediction horizons, so the results do not isolate the source of rollout errors.
