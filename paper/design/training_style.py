@@ -1,5 +1,5 @@
 """Shared axes and colors for the main and supplementary training figures."""
-BLUE, ORANGE, DARK_BLUE = '#0078ff', '#ff780a', '#064789'
+BLUE, ORANGE, DARK_BLUE, DARK_ORANGE = '#0078ff', '#ff780a', '#064789', '#b63d00'
 
 
 def plot_frame(s, x, y, w, h, lo, hi, ticks, *, epochs=range(5, 11), xlim=(4.7, 10.3)):
@@ -29,10 +29,6 @@ def marker(s, x, y, regime, color, *, filled=True, radius=5):
         s.rect(x-radius,y-radius,2*radius,2*radius,fill,color,1.6)
 
 
-def scheme_color(regime):
-    return BLUE if regime == 'joint' else ORANGE
-
-
 def nre_frame(s, x, y, w=245, h=190):
     xf, yf = plot_frame(s, x, y, w, h, 0, 1.5,
                         [(0, '0.0'), (.5, '0.5'), (1, '1.0'), (1.5, '1.5')],
@@ -45,5 +41,5 @@ def nre_frame(s, x, y, w=245, h=190):
 
 def nre_points(s, xf, yf, values, regime='joint', split='training', offset=0):
     for epoch, value in zip((5, 10), values):
-        marker(s, xf(epoch+offset), yf(value), regime, scheme_color(regime),
+        marker(s, xf(epoch+offset), yf(value), regime, ORANGE,
                filled=split == 'training', radius=5.8)

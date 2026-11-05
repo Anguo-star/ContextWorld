@@ -2,7 +2,7 @@
 from pathlib import Path
 import csv, json
 from svg_style import SVG
-from training_style import plot_frame, marker, scheme_color, nre_frame, nre_points
+from training_style import BLUE, ORANGE, DARK_BLUE, DARK_ORANGE, plot_frame, marker, nre_frame, nre_points
 
 HERE=Path(__file__).resolve().parent
 DATA=HERE.parents[1]/'docs/research/data'
@@ -19,7 +19,7 @@ for offset,task,title in [(0,'contact_friction','Contact friction'),(700,'motion
     lx,ly=plot_frame(s,offset+70,96,245,190,.75,1.05,[(.8,'0.8'),(.9,'0.9'),(1,'1.0')])
     nx,ny=nre_frame(s,offset+390,96)
     for regime in ['joint','frozen']:
-        color=scheme_color(regime)
+        color=BLUE
         suffix='num32k_v1_warmstart3073_s3072' if regime=='joint' else 'encoder_frozen_v1_s3072'
         run=f'{task}_pldm_{suffix}'
         rows=sorted([r for r in loss if r['run']==run and r['metric']=='fit__pred_loss' and 5<=int(r['checkpoint_epoch'])<=10],key=lambda r:int(r['checkpoint_epoch']))
@@ -46,6 +46,10 @@ for offset,task,title in [(0,'contact_friction','Contact friction'),(700,'motion
             record['nre'][split]=dict(epochs=[5,10],values=values,
                                      checkpoint_sha256=[r['checkpoint_sha256'] for r in selected])
             nre_points(s,nx,ny,values,regime,split,offset=-.20 if split=='training' else .20)
+        if task=='contact_friction' and regime=='joint':
+            reduction=100*(1-means[-1])
+            s.text(offset+304,ly(means[-1])+28,f'Joint: −{reduction:.2f}%',18,DARK_BLUE,700,'end')
+            s.text(offset+512,ny(1)+32,'NRE ≈ 1 (Joint)',20,DARK_ORANGE,700,'middle')
         records.append(record)
 # Each NRE legend entry identifies both scheme and split directly.
 y=384
@@ -55,7 +59,7 @@ for x,regime,split,label in [
         (390,'joint','test','Joint · Test'),
         (630,'frozen','training','Frozen Encoder · Training'),
         (1000,'frozen','test','Frozen Encoder · Test')]:
-    color=scheme_color(regime)
+    color=ORANGE
     marker(s,x+17.5,y,regime,color,filled=split=='training')
     s.text(x+47,y+7,label,20)
 s.save(HERE/'training_full.svg')

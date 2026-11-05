@@ -2,7 +2,7 @@
 from pathlib import Path
 import csv,json
 from svg_style import SVG
-from training_style import BLUE, DARK_BLUE, plot_frame, nre_frame, nre_points
+from training_style import BLUE, DARK_BLUE, DARK_ORANGE, plot_frame, nre_frame, nre_points
 
 HERE=Path(__file__).resolve().parent
 ROOT=HERE.parents[1]
@@ -16,20 +16,20 @@ assert [int(r['epoch']) for r in nre]==[5,10]
 ys=[float(r['mean']) for r in loss];nr=[float(r['NRE']) for r in nre]
 reduction=100*(1-ys[-1]/ys[0])
 s=SVG(660,324)
-s.text(192,26,'Prediction loss',22,weight=700,anchor='middle')
-s.text(192,53,f'−{reduction:.2f}%',21,DARK_BLUE,700,'middle')
-s.text(512,26,'Training-query NRE',22,weight=700,anchor='middle')
-s.text(512,53,'≈ 1',21,DARK_BLUE,700,'middle')
+s.text(192,31,'Prediction loss',22,weight=700,anchor='middle')
+s.text(512,31,'Training-query NRE',22,weight=700,anchor='middle')
 
 
-xf,yf=plot_frame(s,70,80,245,172,.019,.027,[(.020,'0.020'),(.022,'0.022'),(.024,'0.024'),(.026,'0.026')])
+xf,yf=plot_frame(s,70,62,245,190,.019,.027,[(.020,'0.020'),(.022,'0.022'),(.024,'0.024'),(.026,'0.026')])
 s.line(70,yf(ys[0]),315,yf(ys[0]),BLUE,1.5,'6 3')
 pts=' '.join(f'{xf(t)},{yf(v)}' for t,v in zip(range(5,11),ys))
 s.raw(f'<polyline points="{pts}" fill="none" stroke="{BLUE}" stroke-width="2.2"/>')
 for t,v in zip(range(5,11),ys):s.circle(xf(t),yf(v),5.0,BLUE,DARK_BLUE,.8)
 s.arrow(306,yf(ys[0])+2,306,yf(ys[-1])-3,BLUE,2.4,9)
-xf,yf=nre_frame(s,390,80,h=172)
+s.text(309,yf(ys[0])-14,f'−{reduction:.2f}%',20,DARK_BLUE,700,'end')
+xf,yf=nre_frame(s,390,62)
 nre_points(s,xf,yf,nr)
+s.text(512,yf(1)+32,'NRE ≈ 1',20,DARK_ORANGE,700,'middle')
 s.save(HERE/'training_two_panels.svg')
 (HERE/'training_two_panels.json').write_text(json.dumps({'task':'contact_friction','family':'pldm','scheme':'Original → Mixed (Joint)','loss_run':run,'loss_epochs':list(range(5,11)),'prediction_loss':ys,'loss_reduction_percent':reduction,'NRE_epochs':[5,10],'training_NRE':nr,'training_accuracy_percent':[float(r['main_percent']) for r in nre]},indent=2)+'\n')
 print('Single-case measured training panel saved')
