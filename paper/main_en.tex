@@ -365,21 +365,11 @@ Optimization details are provided in Appendix~\ref{app:training-settings}.
 
 \subsection{Adaptation Results}
 \label{sec:adaptation-results}
-Models trained only under fixed dynamics show limited adaptation, with Original scores near or below 50\% on the seven binary tasks (Table~\ref{tab:test-results}).
-Adding ContextWorld training data improves accuracy on several tasks, including arm mass for LeWM and PLDM, but does not yield consistent improvements across all tasks.
+Original models trained under fixed dynamics have future-selection accuracy near 50\% on most of the seven binary tasks (Table~\ref{tab:test-results}). Adding ContextWorld training data improves several tasks, including arm mass for LeWM and PLDM, but the gains are not uniform.
 
-Performance also varies by model and task.
-Under Mixed training, LeWM and PLDM achieve near-perfect accuracy on action delay, while DINO-WM scores 16.65\%.
-On pusher displacement, DINO-WM reaches 97.66\%, substantially outperforming LeWM and PLDM.
-All three models achieve near-perfect accuracy on door traversability.
-No single model consistently performs best across tasks.
+Under Mixed training, LeWM and PLDM reach 97.70\% and 100.00\% on action delay, whereas DINO-WM reaches 16.65\%. On pusher displacement, DINO-WM reaches 97.66\%, outperforming both LeWM and PLDM under Mixed. All three models score at least 99.83\% on door traversability. No model leads across all tasks.
 
-Because autoregressive rollouts use predicted states as inputs to subsequent steps, we also evaluate multi-step prediction error.
-On pusher displacement, LeWM and PLDM under Original $\rightarrow$ Mixed (Frozen Encoder) achieve History win rates above 98\% and low NRE (Appendix~\ref{app:additional-results}).
-However, their prediction errors exceed the mean-future reference at later horizons (Figure~\ref{fig:multistep-prediction}), with aggregate $E/B>1.4$ for both models.
-These multi-step evaluations use extended action sequences and prediction horizons, so the results do not isolate the source of rollout errors.
-
-
+On pusher displacement, Original $\rightarrow$ Mixed (Frozen Encoder) achieves Test History win rates of 98.83\% for LeWM and 99.80\% for PLDM, with NRE of 0.128 and 0.101. Yet their extended multi-step Test evaluations yield aggregate $E/B$ of 1.436 and 1.448, respectively (Figure~\ref{fig:multistep-prediction}). Thus, strong task-query adaptation does not guarantee low complete prediction error under different actions and longer horizons; these evaluations do not isolate the cause of the errors.
 
 \subsection{Effects of Training Choices}
 \label{sec:training-effects}
