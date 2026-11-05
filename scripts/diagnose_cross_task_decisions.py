@@ -87,6 +87,20 @@ def costs_summary(cost,physical):
     return dict(matched_cost=correct.mean(0).tolist(),matched_regret=(correct-oracle).mean(0).tolist(),
         wrong_history_cost=wrong.mean(0).tolist(),history_benefit=(wrong-correct).mean(0).tolist(),selected_indices=choice.tolist())
 
+def wrong_history_prediction_error_sum(prediction, target):
+    """Sum wrong-history squared errors, averaging the K-1 wrong histories per target."""
+    if prediction.shape != target.shape or prediction.ndim != 4:
+        raise ValueError('Expected matching [condition,candidate,horizon,feature] arrays')
+    K, _, T, _ = prediction.shape
+    if K < 2:
+        raise ValueError('Wrong-history error needs at least two conditions')
+    wrong=np.zeros(T,dtype=np.float64)
+    for h in range(K):
+        for k in range(K):
+            if h!=k:
+                wrong+=np.sum((prediction[h]-target[k])**2,axis=(0,2),dtype=np.float64)
+    return (wrong/(K-1)).tolist()
+
 def evaluate(adapter,data,family,canonical,modes=('free','full','current','past')):
     pix=data['history_pixels'];K,H=pix.shape[:2];C,T=data['candidate_actions'].shape[:2]
     assert data['future_pixels'].shape[:3]==(K,C,T)
@@ -126,9 +140,10 @@ def evaluate(adapter,data,family,canonical,modes=('free','full','current','past'
     arrays=dict(physical_cost=physical,encoded_goal_cost=target_goal)
     for mode,z in out.items():
         z=z.reshape(K,C,T,-1)
+        wrong_sum=wrong_history_prediction_error_sum(z,y.reshape(K,C,T,-1))
         pc=np.mean((z-g)**2,-1);err=np.sum((z-y)**2,-1,dtype=np.float64)
         resp=np.sum(((z-z.mean(0,keepdims=True))-(y-y.mean(0,keepdims=True)))**2,axis=(0,1,3),dtype=np.float64)
-        result['modes'][mode]=dict(prediction_error_sum=err.sum((0,1)).tolist(),response_error_sum=resp.tolist(),
+        result['modes'][mode]=dict(prediction_error_sum=err.sum((0,1)).tolist(),wrong_history_prediction_error_sum=wrong_sum,response_error_sum=resp.tolist(),
             ranking=costs_summary(pc,physical))
         arrays[mode+'_goal_cost']=pc;arrays[mode+'_prediction_error']=err
     return result,arrays
@@ -138,6 +153,7 @@ def main():
     p.add_argument('--panel',type=Path,required=True);p.add_argument('--output',type=Path,required=True);p.add_argument('--threads',type=int,default=2)
     p.add_argument('--shard',type=int,default=0);p.add_argument('--shards',type=int,default=1)
     p.add_argument('--device',default='cpu')
+    p.add_argument('--evaluation-split',choices=('development','test'),default='development')
     p.add_argument('--modes',nargs='+',choices=('free','full','current','past'),default=['free','full','current','past'])
     a=p.parse_args();
     if 'free' not in a.modes:p.error('--modes must include free')
@@ -146,7 +162,11 @@ def main():
     import torch
     torch.set_num_threads(a.threads);torch.set_num_interop_threads(1);torch.manual_seed(20260930)
     spec=next(x for x in json.loads(a.models.read_text()) if x['id']==a.id)
-    manifest=json.loads((a.panel/'manifest.json').read_text());norm=manifest.get('normalization',manifest.get('protocol',{}).get('normalization'))
+    manifest=json.loads((a.panel/'manifest.json').read_text())
+    panel_split=manifest.get('evaluation_split',manifest.get('split'))
+    if panel_split is None and a.evaluation_split=='development':panel_split='development'
+    assert panel_split==a.evaluation_split, 'Panel evaluation split mismatch or missing Test split provenance'
+    norm=manifest.get('normalization',manifest.get('protocol',{}).get('normalization'))
     assert norm, 'Missing frozen normalization'
     print(a.id,'loading',flush=True);adapter=load_adapter(spec,norm,a.output,a.device);torch.set_float32_matmul_precision('highest');torch.backends.cuda.matmul.allow_tf32=False;torch.backends.cudnn.allow_tf32=False;before=adapter.frozen_state_hash();print(a.id,'loaded',flush=True)
     entries=manifest.get('scenes',manifest.get('pairs',manifest.get('queries')));assert entries
@@ -160,6 +180,8 @@ def main():
         outpath=a.output/(path.stem+'.json')
         if outpath.exists():
             old=json.loads(outpath.read_text());assert old['checkpoint_sha256']==spec['checkpoint_sha256'] and old['source_sha256']==source_sha
+            if a.evaluation_split=='test' and any('wrong_history_prediction_error_sum' not in old['modes'][mode] for mode in a.modes):
+                raise ValueError('Existing Test output lacks wrong-history energies; use a separate output directory')
             if not set(a.modes).issubset(old['modes']):
                 raise ValueError('Existing output lacks requested modes; use a separate output directory')
             rows.append(old);continue
@@ -171,7 +193,7 @@ def main():
         write(outpath,row);rows.append(row);print(a.id,i+1,'/',len(entries),flush=True)
     after=adapter.frozen_state_hash();assert before==after
     write(a.output/('receipt.json' if a.shards==1 else f'shard{a.shard}_receipt.json'),dict(model=adapter.metadata,model_id=a.id,panel_sha256=sha(a.panel/'manifest.json'),
-        state_hash_before=before,state_hash_after=after,scenes=len(rows),no_training=True,new_searches=0,modes=a.modes,
+        state_hash_before=before,state_hash_after=after,evaluation_split=a.evaluation_split,data_version=manifest.get('data_version'),scenes=len(rows),no_training=True,new_searches=0,modes=a.modes,
         privileged_refresh_is_not_planning=True,entry_hashes={p.name:sha(p) for p in a.output.glob('*.json') if 'receipt' not in p.name}))
 
 if __name__=='__main__':main()

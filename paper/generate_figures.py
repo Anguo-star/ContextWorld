@@ -38,9 +38,10 @@ def multistep_prediction():
     import json
     import numpy as np
     data = ROOT / 'docs/research/data'
-    summary = json.loads((data / 'multistep_prediction_coverage_v2.json').read_text())
-    with gzip.open(data / 'multistep_prediction_coverage_v2_queries.json.gz', 'rt') as f:
+    summary = json.loads((data / 'multistep_prediction_test_v1/summary.json').read_text())
+    with gzip.open(data / 'multistep_prediction_test_v1/summary_queries.json.gz', 'rt') as f:
         queries = json.load(f)
+    assert summary['evaluation_split'] == 'test'
     horizons = np.array(summary['protocol']['horizons_raw_steps'])
     fig, axes = plt.subplots(1, 2, figsize=(3.45, 2.15), sharey=True)
     records = []
@@ -84,7 +85,7 @@ def multistep_prediction():
         ax.grid(axis='y', alpha=.15)
         ax.tick_params(labelsize=7)
         ax.set_xlabel('Rollout step', fontsize=7.5)
-    axes[0].set_ylabel('Prediction error /\nbaseline error', fontsize=7.5)
+    axes[0].set_ylabel('Normalized\nprediction error', fontsize=7.5)
     handles = [Line2D([],[],color=colors['original'],marker='s',markersize=3,label='Original'),
                Line2D([],[],color=colors['frozen'],marker='o',markersize=3,label='Original → Mixed (Frozen Encoder)')]
     fig.legend(handles=handles, loc='lower center', frameon=False, fontsize=7, ncol=1,
@@ -92,7 +93,7 @@ def multistep_prediction():
     fig.tight_layout(rect=(0,.18,1,1),pad=.3,w_pad=.5)
     fig.savefig(OUT/'multistep_prediction.pdf')
     plt.close(fig)
-    return dict(split='development', task='action_strength',
+    return dict(split='test', task='action_strength',
                 metric='sum of prediction energies / sum of mean-future energies at each horizon; equal mean over training runs',
                 interval='95% source-cluster bootstrap; 4000 resamples; conditional on checkpoints', rows=records)
 

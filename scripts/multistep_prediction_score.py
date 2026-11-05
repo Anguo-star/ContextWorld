@@ -43,6 +43,12 @@ def query_energies(record):
                 horizon_numerators=(n/size).tolist(), horizon_denominators=(d/size).tolist(),
                 conditions=int(record['conditions']), candidates=int(record['candidates']),
                 zero_separation_horizons=int(np.sum(d==0)))
+    free=record['modes']['free']
+    for source,key in (('wrong_history_prediction_error_sum','wrong_history_numerator'),('response_error_sum','response_numerator')):
+        if source in free:
+            value=np.asarray(free[source],dtype=np.float64)
+            if value.shape!=(5,) or np.any(value<0) or not np.isfinite(value).all():raise ValueError('Invalid '+source)
+            result[key]=float(value.mean()/size)
     if 'full' in record['modes']:
         full=np.asarray(record['modes']['full']['prediction_error_sum'],dtype=np.float64)
         if full.shape!=(5,) or np.any(full<0) or not np.isfinite(full).all():
@@ -53,7 +59,7 @@ def query_energies(record):
     return result
 
 
-def read_run(spec, result_dir, panel_dir):
+def read_run(spec, result_dir, panel_dir, evaluation_split='development'):
     receipt_path=result_dir/'receipt.json'
     receipt=json.loads(receipt_path.read_text())
     if receipt['state_hash_before']!=receipt['state_hash_after'] or not receipt['no_training']:
@@ -62,6 +68,12 @@ def read_run(spec, result_dir, panel_dir):
     if receipt['panel_sha256']!=sha(manifest_path):
         raise ValueError('Panel identity mismatch')
     manifest=json.loads(manifest_path.read_text())
+    panel_split=manifest.get('evaluation_split',manifest.get('split'))
+    if panel_split is None and evaluation_split=='development':panel_split='development'
+    if panel_split!=evaluation_split or receipt.get('evaluation_split','development')!=evaluation_split:
+        raise ValueError('Evaluation split mismatch or missing Test provenance')
+    if receipt.get('data_version',manifest.get('data_version'))!=manifest.get('data_version'):
+        raise ValueError('Data version mismatch')
     entries={x.get('scene_id',x.get('pair_id',x.get('query_id'))):x for x in manifest['scenes']}
     queries=[]
     for name,expected in receipt['entry_hashes'].items():
@@ -118,6 +130,19 @@ def aggregate_runs(runs):
                 training_repetitions=len(runs),training_sd=float(np.std(values,ddof=1)) if len(runs)>1 else None,
                 training_seeds=[r['training_seed'] for r in runs],scenes=len(ids),run_ids=[r['id'] for r in runs],
                 panel_sha256=runs[0]['panel_sha256'],bootstrap_clusters=len(groups))
+    result['complete_error_over_reference']=float(np.mean([1-v/100 for v in values]))
+    result['complete_error_over_reference_ci95']=[1-result['ci95'][1]/100,1-result['ci95'][0]/100]
+    for field,name,subtract in (('wrong_history_numerator','normalized_history_gain',True),('response_numerator','response_nre',False)):
+        if all(field in q for r in runs for q in r['queries']):
+            metric_values=[];metric_draws=[]
+            for r in runs:
+                x=np.array([q[field]-(q['numerator'] if subtract else 0) for q in r['queries']])
+                d=np.array([q['denominator'] for q in r['queries']])
+                metric_values.append(x.sum()/d.sum())
+                xc,dc=clustered(x),clustered(d)
+                metric_draws.append(xc[ix].sum(1)/dc[ix].sum(1))
+            result[name]=float(np.mean(metric_values))
+            result[name+'_ci95']=np.quantile(np.mean(metric_draws,axis=0),[.025,.975]).tolist()
     if all('real_input_horizon_numerators' in q for r in runs for q in r['queries']):
         means=[];boot=[]
         for r in runs:
@@ -139,13 +164,19 @@ def aggregate_runs(runs):
     return result
 
 
-def collect(specs, results_root, panels_root):
+def collect(specs, results_root, panels_root, evaluation_split='development'):
     runs=[];missing=[]
+    specified={(s['task'],s['family'],s['regime']) for s in specs}
     for spec in specs:
         root=Path(spec.get('result_dir') or results_root/spec['id'])
         if not (root/'receipt.json').is_file():
-            missing.append(dict(id=spec['id'],reason='prediction results unavailable'));continue
-        runs.append(read_run(spec,root,panels_root/spec['task']))
+            panel_missing=not (panels_root/spec['task']/'manifest.json').is_file()
+            reason=('Test multi-step panel unavailable: source-state replay tolerance not met'
+                    if evaluation_split=='test' and spec['task']=='cube_gripper_carry' and panel_missing
+                    else 'evaluation panel unavailable' if panel_missing
+                    else 'prediction results unavailable')
+            missing.append(dict(id=spec['id'],reason=reason));continue
+        runs.append(read_run(spec,root,panels_root/spec['task'],evaluation_split))
     rows=[]
     for key in sorted({(r['task'],r['family'],r['regime']) for r in runs}):
         group=[r for r in runs if (r['task'],r['family'],r['regime'])==key]
@@ -158,11 +189,18 @@ def collect(specs, results_root, panels_root):
     for task in sorted({s['task'] for s in specs}):
         for family,regime in combinations:
             if (task,family,regime) not in present:
-                reason=('No matching native H7 checkpoint; H3 projections are excluded'
-                        if task=='action_delay' else
-                        'No matching strict pixels-and-actions checkpoint in the published training comparison')
+                key=(task,family,regime)
+                if key in specified:
+                    reasons={m['reason'] for m in missing
+                             if any(s['id']==m['id'] and
+                                    (s['task'],s['family'],s['regime'])==key for s in specs)}
+                    reason=next(iter(reasons)) if len(reasons)==1 else 'prediction results unavailable'
+                else:
+                    reason=('No matching native H7 checkpoint; H3 projections are excluded'
+                            if task=='action_delay' else
+                            'No matching strict pixels-and-actions checkpoint in the published training comparison')
                 unavailable.append(dict(task=task,family=family,regime=regime,reason=reason))
-    return dict(schema=SCHEMA,metric='multistep_complete_prediction_score',evaluation_split='development',
+    return dict(schema=SCHEMA,metric='multistep_complete_prediction_score',evaluation_split=evaluation_split,
                 data_versions=sorted({r['data_version'] for r in runs}),
                 protocol=dict(horizons_raw_steps=list(HORIZONS),horizon_weights=[.2]*5,
                     prediction='free autoregression; initial real history only; no future-observation refresh',
@@ -171,7 +209,7 @@ def collect(specs, results_root, panels_root):
                     negative_scores='retained; score has maximum100 and no finite minimum; not a percentage accuracy',
                     bootstrap=dict(samples=BOOTSTRAP_SAMPLES,seed=BOOTSTRAP_SEED,unit='source cluster shared across all conditions/candidates and training repetitions; source episode or mirrored-scene family when known, otherwise query',scope='source-sampling uncertainty conditional on the evaluated checkpoints; training repetitions are not resampled'),
                     score_space='each checkpoint native frozen evaluation representation',
-                    scope='registered Development candidate-action panels; per-task source coverage is reported below; not Test',
+                    scope=f'registered {evaluation_split} candidate-action panels; per-task source coverage is reported below',
                     error_diagnostics='real-input predictions use privileged future observations; error at every depth is normalized by the same all-horizon target-mean energy; free-minus-real is a sensitivity contrast, not an additive causal decomposition'),
                 coverage=dict(evaluated_runs=len(runs),evaluated_combinations=len(rows),
                     scenes_by_task={t:sorted({r['scenes'] for r in rows if r['task']==t})
@@ -192,24 +230,34 @@ def write_outputs(payload, output, split_queries=False):
         payload['query_records']=dict(path=path.name,sha256=sha(path),format='gzip-compressed JSON keyed by run id',
                                       count=sum(map(len,queries.values())))
     output.write_text(json.dumps(payload,ensure_ascii=False,indent=2,allow_nan=False)+'\n')
-    fields=['task','family','regime','score','ci95_low','ci95_high','training_repetitions','training_sd','scenes']
+    fields=['task','family','regime','score','ci95_low','ci95_high',
+            'complete_error_over_reference','complete_error_over_reference_ci95_low','complete_error_over_reference_ci95_high',
+            'normalized_history_gain','normalized_history_gain_ci95_low','normalized_history_gain_ci95_high',
+            'response_nre','response_nre_ci95_low','response_nre_ci95_high',
+            'training_repetitions','training_sd','scenes']
     with output.with_suffix('.csv').open('w') as f:
         w=csv.DictWriter(f,fieldnames=fields);w.writeheader()
         for r in payload['rows']:
             row={k:r[k] for k in fields if k in r}
-            row.update(ci95_low=r['ci95'][0],ci95_high=r['ci95'][1]);w.writerow(row)
+            row.update(ci95_low=r['ci95'][0],ci95_high=r['ci95'][1])
+            for metric in ('complete_error_over_reference','normalized_history_gain','response_nre'):
+                ci=r.get(metric+'_ci95')
+                if ci is not None:
+                    row[metric+'_ci95_low'],row[metric+'_ci95_high']=ci
+            w.writerow(row)
 
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--models',type=Path,required=True)
+    p.add_argument('--evaluation-split',choices=('development','test'),default='development')
     p.add_argument('--results-root',type=Path,required=True)
     p.add_argument('--panels-root',type=Path,required=True)
     p.add_argument('--output',type=Path,required=True)
     p.add_argument('--split-query-records',action='store_true',help='Save per-query energies separately as compressed JSON')
     a=p.parse_args();specs=json.loads(a.models.read_text())
     if isinstance(specs,dict):specs=specs['specs']
-    data=collect(specs,a.results_root,a.panels_root);write_outputs(data,a.output,a.split_query_records)
+    data=collect(specs,a.results_root,a.panels_root,a.evaluation_split);write_outputs(data,a.output,a.split_query_records)
     print(f"Scored {len(data['runs'])} runs into {len(data['rows'])} task/model/scheme rows; missing {len(data['missing'])}")
 
 if __name__=='__main__':

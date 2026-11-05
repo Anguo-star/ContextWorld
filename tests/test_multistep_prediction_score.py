@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'scripts'))
 from multistep_prediction_score import score,query_energies,aggregate_runs
+from diagnose_cross_task_decisions import wrong_history_prediction_error_sum
 
 
 def from_arrays(p,z):
@@ -121,3 +122,90 @@ def test_shared_source_queries_are_bootstrapped_together():
     r=aggregate_runs([run])
     assert r['score']==50 and r['bootstrap_clusters']==1
     assert r['ci95']==[50.,50.]
+
+
+def test_new_diagnostics_preserve_common_bias_and_history_signal():
+    z=arrays()
+    # Perfect response with shared bias: response NRE is zero, E/B is nine.
+    p=z+3
+    record=from_arrays(p,z)
+    record['modes']['free']['response_error_sum']=[0.]*5
+    record['modes']['free']['wrong_history_prediction_error_sum']=wrong_history_prediction_error_sum(p,z)
+    q=query_energies(record)
+    assert q['response_numerator']==0
+    assert q['wrong_history_numerator']==pytest.approx(13)
+    base=dict(task='speed',family='lewm',regime='scratch',panel_sha256='p',id='a',
+              training_seed=1,checkpoint_sha256='a',queries=[q])
+    row=aggregate_runs([base])
+    assert row['complete_error_over_reference']==pytest.approx(9)
+    assert row['response_nre']==0
+    assert row['normalized_history_gain']==pytest.approx(4)
+    assert row['score']==pytest.approx(-800)
+
+
+def test_aggregate_diagnostics_sum_energy_before_division():
+    queries=[dict(query_id='a',numerator=1.,denominator=1.,wrong_history_numerator=2.,response_numerator=0.),
+             dict(query_id='b',numerator=1.,denominator=9.,wrong_history_numerator=5.,response_numerator=9.)]
+    run=dict(task='speed',family='lewm',regime='scratch',panel_sha256='p',id='a',
+             training_seed=1,checkpoint_sha256='a',queries=queries)
+    row=aggregate_runs([run])
+    assert row['complete_error_over_reference']==pytest.approx(.2)
+    assert row['normalized_history_gain']==pytest.approx(.5)
+    assert row['response_nre']==pytest.approx(.9)
+
+
+def test_test_split_rejects_legacy_development_provenance(tmp_path):
+    import json
+    from multistep_prediction_score import read_run
+    panel=tmp_path/'panel';result=tmp_path/'result';panel.mkdir();result.mkdir()
+    (panel/'manifest.json').write_text(json.dumps({'data_version':'development','scenes':[]}))
+    from multistep_prediction_score import sha
+    (result/'receipt.json').write_text(json.dumps({'state_hash_before':'a','state_hash_after':'a',
+        'no_training':True,'panel_sha256':sha(panel/'manifest.json'),'entry_hashes':{}}))
+    with pytest.raises(ValueError,match='split'):
+        read_run({},result,panel,'test')
+
+
+def test_wrong_history_numerical_cases():
+    z=arrays()
+    cases=[(z,8.),(np.zeros_like(z),2.),(z+3,26.),(-z,0.)]
+    for p,expected in cases:
+        raw=wrong_history_prediction_error_sum(p,z)
+        assert raw==pytest.approx([expected]*5)
+        record=from_arrays(p,z)
+        record['modes']['free']['wrong_history_prediction_error_sum']=raw
+        q=query_energies(record)
+        assert q['wrong_history_numerator']==pytest.approx(expected/2)
+    assert query_energies(from_arrays(np.zeros_like(z),z))['numerator']==pytest.approx(1)
+
+
+def test_wrong_history_k3_matches_brute_force_with_candidates_and_horizons():
+    rng=np.random.default_rng(11)
+    z=rng.normal(size=(3,4,5,2))
+    p=rng.normal(size=z.shape)
+    observed=wrong_history_prediction_error_sum(p,z)
+    expected=[]
+    for t in range(5):
+        e=0.
+        for k in range(3):
+            for h in range(3):
+                if h!=k:e+=np.square(p[h,:,t]-z[k,:,t]).sum()/2
+        expected.append(e)
+    assert observed==pytest.approx(expected)
+
+
+def test_metric_csv_has_intervals_and_blank_legacy_fields(tmp_path):
+    import csv
+    from multistep_prediction_score import write_outputs
+    q=dict(query_id='q',numerator=1.,denominator=2.,wrong_history_numerator=3.,response_numerator=1.)
+    run=dict(task='speed',family='lewm',regime='scratch',panel_sha256='p',id='a',
+             training_seed=1,checkpoint_sha256='a',queries=[q])
+    row=aggregate_runs([run]);out=tmp_path/'metrics.json'
+    write_outputs(dict(runs=[run],rows=[row]),out)
+    with out.with_suffix('.csv').open() as f:record=next(csv.DictReader(f))
+    assert float(record['complete_error_over_reference_ci95_low'])==pytest.approx(.5)
+    assert float(record['normalized_history_gain_ci95_high'])==pytest.approx(1)
+    legacy=aggregate_runs([dict(run,queries=[dict(query_id='q',numerator=1.,denominator=2.)])])
+    write_outputs(dict(runs=[run],rows=[legacy]),out)
+    with out.with_suffix('.csv').open() as f:record=next(csv.DictReader(f))
+    assert record['normalized_history_gain']=='' and record['response_nre']==''

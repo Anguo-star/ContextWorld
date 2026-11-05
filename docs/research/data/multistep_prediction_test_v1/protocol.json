@@ -1,0 +1,45 @@
+{
+  "evaluation_split": "test",
+  "data_version": "multistep_test_v1",
+  "training": false,
+  "model_selection": "same 136 frozen checkpoints as current_reference_test_v1; no Test-based selection",
+  "models_sha256": "c3bbe45443838678651aa5961ebd6cbd759ca82e09c6a517c37ab2e9a815ecd7",
+  "source_benchmark_root": "/opt/huawei/explorer-env/dataset/ag_data/data/world_model/ContextWorld-v1-full",
+  "horizons_raw_steps": [
+    5,
+    10,
+    15,
+    20,
+    25
+  ],
+  "modes": [
+    "free",
+    "full"
+  ],
+  "candidate_rules": "same task-specific construction as frozen Development multistep_development_coverage_v2",
+  "scenes_by_task": {
+    "speed": 300,
+    "action_delay": 300,
+    "door": 300,
+    "action_strength": 256,
+    "contact_friction": 256,
+    "motion_damping": 256,
+    "robot_arm_mass": 256,
+    "cube_gripper_carry": 256,
+    "portal_exit": 256
+  },
+  "speed_scope": "unseen_interpolation",
+  "metrics": {
+    "complete_error_over_reference": "matched free-running prediction error / condition-mean reference error",
+    "normalized_history_gain": "(wrong-history error averaged across all other histories - matched-history error) / same reference error",
+    "response_nre": "condition-centered response error / same reference error; multi-condition, five-horizon diagnostic"
+  },
+  "aggregation": "average conditions/candidates/horizons per source query, sum query energies, ratio per checkpoint, equal-weight existing training repetitions",
+  "history_control": "reuse each condition prediction against each other fixed target; valid only with matching current observation and identical context/future actions",
+  "bootstrap_samples": 4000,
+  "bootstrap_seed": 20260930,
+  "allowed_gpus": [
+    6,
+    7
+  ]
+}

@@ -180,7 +180,7 @@ Both rules appear during training, while Test uses 42 previously unseen door pos
 \subsection{Dataset Construction and Splits}
 \label{sec:data}
 
-To evaluate models on unseen interaction rollouts, all nine tasks provide trajectory-disjoint Training, Development, and Test splits. Crucially, the Test set is strictly reserved for main benchmark scores, while the Development set supports model selection and ablation studies. Across the six paired tasks, Action Delay, and Door Traversability, models are evaluated on unseen trajectories under dynamics conditions or rules represented in training. In contrast, the speed task assesses parameter generalization, with the main Test results reported for unseen speeds held out within the training range. Each paired task provides up to 32,768 training pairs, alongside 256 balanced counterfactual pairs in each evaluation split (Table~\ref{tab:dataset-sizes}, Appendix~\ref{app:dataset-splits}).
+To evaluate models on unseen interaction rollouts, all nine tasks provide trajectory-disjoint Training, Development, and Test splits. Crucially, the Test set is reserved for final evaluation, while the Development set supports method and checkpoint selection. Across the six paired tasks, Action Delay, and Door Traversability, models are evaluated on unseen trajectories under dynamics conditions or rules represented in training. In contrast, the speed task assesses parameter generalization, with the main Test results reported for unseen speeds held out within the training range. Each paired task provides up to 32,768 training pairs, alongside 256 balanced counterfactual pairs in each evaluation split (Table~\ref{tab:dataset-sizes}, Appendix~\ref{app:dataset-splits}).
 
 \subsection{Evaluation Protocol and Metrics}
 \label{sec:evaluation}
@@ -289,7 +289,7 @@ Lower is better: $E/B=0$ means exact predictions, while $E/B=1$ matches the mean
 For equally weighted conditions sharing the current observation and future actions, this reference minimizes squared error among predictions that ignore the dynamics condition~\cite{gneiting2011point}; thus a deterministic history-independent model cannot achieve $E/B<1$.
 
 
-For the Development history diagnostic, we also report normalized history gain $G_H$.
+For the history diagnostic, we also report normalized history gain $G_H$.
 Let $\hat z_{qhct}$ be the prediction using history from condition $h$, while $z_{qkct}$ is the true future under condition $k$, with the same current observation and future actions.
 The aggregate matching- and mismatched-history errors are
 \begin{equation}
@@ -311,7 +311,7 @@ using the same reference error $B$ as above.
 A positive $G_H$ means matching history reduces prediction error; unlike History win rate, it measures the size of this reduction and does not imply accurate prediction.
 
 \paragraph{Evaluation Scope and Reporting.}
-Adaptation Accuracy, History win rate, and NRE use the Test split for the main benchmark; multi-step prediction uses Development.
+Adaptation Accuracy, History win rate, and NRE use Test for the main benchmark, as do multi-step prediction and additional mechanism analyses; training-query analyses use Training.
 The main task queries and extended multi-step evaluations differ in future actions and prediction horizons.
 Latent errors are measured in each checkpoint's own target representation and do not provide a common physical error scale across models.
 We report means and standard deviations across available training runs.
@@ -359,7 +359,7 @@ Optimization details are provided in Appendix~\ref{app:training-settings}.
 \begin{figure}[!tb]
 \centering
 \includegraphics[width=\columnwidth]{figures/multistep_prediction.pdf}
-\caption{\textbf{Multi-step prediction on pusher displacement (Development).} Each rollout step spans five simulator steps without new observations. Prediction error is divided by the error of predicting the mean future representation across dynamics conditions. Ratios are computed within each checkpoint's representation, then averaged over runs. These extended queries differ from the one-step tasks; nine-task summaries appear in Appendix~\ref{app:additional-results}.}
+\caption{\textbf{Multi-step prediction on pusher displacement (Test).} Each rollout step spans five simulator steps without new observations. Prediction error is divided by the error of predicting the mean future representation across dynamics conditions. Ratios are computed within each checkpoint's representation, then averaged over runs. These extended queries differ from the one-step tasks; additional results appear in Appendix~\ref{app:additional-results}.}
 \label{fig:multistep-prediction}
 \end{figure}
 
@@ -394,7 +394,7 @@ Freezing the pretrained visual encoder helps some tasks and hurts others. For Le
 
 Figure~\ref{fig:scaling-comparisons}a examines the effect of data scaling on Test accuracy. For LeWM on pusher displacement, data scaling substantially benefits Original $\to$ Mixed (Joint), whereas Mixed stays near chance. NRE also improves with joint fine-tuning (Appendix~\ref{app:data-scale}). Fixed epochs allow update counts to change with data size, so this is not a fixed-compute comparison.
 
-Under the tested 10-epoch recipe, increasing LeWM and PLDM from 18M to 183M parameters yields no consistent Development accuracy gain on friction and damping (Appendix~\ref{app:model-capacity}).
+Under the tested 10-epoch recipe, increasing LeWM and PLDM from 18M to 183M parameters yields no consistent Test accuracy gain on friction and damping (Appendix~\ref{app:model-capacity}).
 
 \begin{figure}[t]
 \centering
@@ -617,7 +617,7 @@ The metrics describe different aspects of the same predictions and are not indep
 \section{Scoring Controls}
 \label{app:scoring-controls}
 
-We validate the paired scorer using constructed predictions on 256 Development pusher-displacement scenes, separately in the target representations of LeWM Original and Original $\rightarrow$ Mixed (Frozen Encoder).
+We validate the paired scorer using constructed predictions on 256 Test pusher-displacement scenes, separately in the target representations of LeWM Original and Original $\rightarrow$ Mixed (Frozen Encoder).
 The queries use a nonzero action candidate and the five-step prediction horizon; the predictor is not run for this check.
 Both representations give the results below.
 With $m=(z_A+z_B)/2$, even predictions $m+0.001(z_k-m)$ select the correct future while recovering only a tiny fraction of the true response.
@@ -658,9 +658,10 @@ Consequently, equal epoch counts do not guarantee equal update counts across dat
 
 \paragraph{Prediction diagnostics.}
 The main task comparison uses Test.
-The multi-step and history diagnostics below use Development, with the same checkpoint identities where the input protocol is comparable.
-Multi-step evaluation covers 2,436 source scenes across the nine tasks and predicts at 5, 10, 15, 20, and 25 simulator steps using only the initial observed history.
+The multi-step and history diagnostics below use Test and the same checkpoints as the main task comparison.
+Multi-step evaluation covers 2,180 source scenes across eight tasks and predicts at 5, 10, 15, 20, and 25 simulator steps using only the initial observed history.
 The candidate actions and multi-step targets extend the one-step task queries.
+Gripper carry is excluded from the multi-step evaluation because its reconstructed trajectories did not meet the source-state replay tolerance; its task-query scores are reported on Test.
 Figure~\ref{fig:multistep-prediction} reports $E_t/B_t$: prediction and mean-future errors are summed over queries separately at each horizon, normalized within each checkpoint, then averaged equally over training repetitions. The aggregate $E/B$ instead combines errors over all horizons before division; it is not the arithmetic mean of these per-horizon ratios.
 Each checkpoint is scored separately, and matching training repetitions are then averaged equally.
 Intervals use 4,000 source-cluster bootstrap samples; all conditions, actions, and times from a source remain together.
@@ -694,7 +695,7 @@ For damping with the encoder frozen, prediction loss changes by only $-0.39\%$ b
 \label{app:additional-results}
 
 Table~\ref{tab:test-metrics-full} reports all three Test adaptation metrics with training-run counts and standard deviations.
-Table~\ref{tab:dev-diagnostics} reports the separate Development diagnostics, multi-step prediction errors, and original-environment planning results.
+Table~\ref{tab:test-diagnostics} combines Test history and response metrics with multi-step prediction errors and original-environment planning results.
 History win rate measures strict error reduction from matching history on the task queries; NRE measures the conditional response on those queries.
 $E/B$ uses the extended multi-step action panels and includes errors shared by both conditions.
 Because the query sets and prediction horizons differ, these columns should not be treated as measurements of the same event.
@@ -707,7 +708,7 @@ All latent errors are computed in the checkpoint's own target representation.
 \setlength{\tabcolsep}{3pt}
 \renewcommand{\arraystretch}{1.15}
 \begin{longtable}{@{}p{1.8cm}lp{3.65cm}rrrp{2.5cm}r@{}}
-\caption{Development prediction diagnostics and original-environment CEM. Entries average the available training repetitions; $E/B$ intervals are 95\% source-bootstrap intervals. History win rate and CEM are percentages. Scheme names match the main text.}\label{tab:dev-diagnostics}\\
+\caption{Test prediction diagnostics and original-environment CEM. Entries average the available training repetitions; $E/B$ intervals are 95\% source-bootstrap intervals. History win rate and CEM are percentages. A dash indicates unavailable multi-step results. Scheme names match the main text.}\label{tab:test-diagnostics}\\
 \toprule
 Task & Model & Scheme & \shortstack{History\\win rate $\uparrow$} & NRE $\downarrow$ & $E/B$ $\downarrow$ & $E/B$ interval & CEM $\uparrow$\\
 \midrule
@@ -718,100 +719,100 @@ Task & Model & Scheme & \shortstack{History\\win rate $\uparrow$} & NRE $\downar
 \endhead
 \bottomrule
 \endfoot
-Speed & LeWM & Original & 59.15 & 0.896 & 1.498 & [1.478, 1.517] & 92.44 \\
-Speed & LeWM & Mixed & 98.00 & 0.042 & 0.363 & [0.345, 0.381] & 97.44 \\
-Speed & LeWM & Original $\rightarrow$ Mixed (Joint) & 96.67 & 0.055 & 0.406 & [0.384, 0.429] & 97.00 \\
-Speed & LeWM & Original $\rightarrow$ Mixed (Frozen Encoder) & 98.56 & 0.030 & 0.144 & [0.132, 0.156] & 95.00 \\
-Speed & PLDM & Original & 48.48 & 0.925 & 3.377 & [3.309, 3.445] & 90.56 \\
-Speed & PLDM & Mixed & 97.19 & 0.084 & 0.520 & [0.498, 0.544] & 96.89 \\
-Speed & PLDM & Original $\rightarrow$ Mixed (Joint) & 98.89 & 0.046 & 0.353 & [0.327, 0.379] & 96.33 \\
-Speed & PLDM & Original $\rightarrow$ Mixed (Frozen Encoder) & 95.56 & 0.065 & 0.302 & [0.285, 0.319] & 98.00 \\
-Speed & DINO-WM & Original & 58.56 & 0.928 & 1.973 & [1.954, 1.991] & 100.00 \\
-Speed & DINO-WM & Mixed & 56.56 & 0.967 & 2.101 & [2.070, 2.133] & 99.89 \\
-Speed & DINO-WM & Original $\rightarrow$ Mixed & 86.00 & 0.411 & 0.886 & [0.847, 0.927] & 100.00 \\
+Speed & LeWM & Original & 58.04 & 0.896 & 1.512 & [1.491, 1.533] & 92.44 \\
+Speed & LeWM & Mixed & 98.19 & 0.042 & 0.368 & [0.350, 0.388] & 97.44 \\
+Speed & LeWM & Original $\rightarrow$ Mixed (Joint) & 96.89 & 0.055 & 0.399 & [0.376, 0.423] & 97.00 \\
+Speed & LeWM & Original $\rightarrow$ Mixed (Frozen Encoder) & 98.44 & 0.030 & 0.145 & [0.133, 0.157] & 95.00 \\
+Speed & PLDM & Original & 48.41 & 0.922 & 3.446 & [3.366, 3.542] & 90.56 \\
+Speed & PLDM & Mixed & 96.78 & 0.084 & 0.515 & [0.492, 0.539] & 96.89 \\
+Speed & PLDM & Original $\rightarrow$ Mixed (Joint) & 98.33 & 0.047 & 0.380 & [0.355, 0.408] & 96.33 \\
+Speed & PLDM & Original $\rightarrow$ Mixed (Frozen Encoder) & 96.44 & 0.062 & 0.308 & [0.290, 0.326] & 98.00 \\
+Speed & DINO-WM & Original & 57.11 & 0.919 & 1.967 & [1.949, 1.987] & 100.00 \\
+Speed & DINO-WM & Mixed & 59.41 & 0.961 & 2.086 & [2.054, 2.123] & 99.89 \\
+Speed & DINO-WM & Original $\rightarrow$ Mixed & 84.78 & 0.411 & 0.886 & [0.851, 0.924] & 100.00 \\
 \midrule
-Pusher displacement & LeWM & Original & 34.05 & 1.015 & 2.378 & [2.284, 2.481] & 82.22 \\
-Pusher displacement & LeWM & Mixed & 73.63 & 0.981 & 3.572 & [3.421, 3.741] & 78.67 \\
-Pusher displacement & LeWM & Original $\rightarrow$ Mixed (Joint) & 97.46 & 0.222 & 2.504 & [2.425, 2.586] & 86.00 \\
-Pusher displacement & LeWM & Original $\rightarrow$ Mixed (Frozen Encoder) & 98.05 & 0.144 & 1.464 & [1.396, 1.537] & 73.67 \\
-Pusher displacement & PLDM & Original & 15.89 & 1.048 & 2.471 & [2.395, 2.552] & 75.67 \\
-Pusher displacement & PLDM & Mixed & 66.60 & 0.896 & 6.533 & [6.241, 6.847] & 61.33 \\
-Pusher displacement & PLDM & Original $\rightarrow$ Mixed (Joint) & 73.83 & 0.798 & 3.811 & [3.664, 3.968] & 72.00 \\
-Pusher displacement & PLDM & Original $\rightarrow$ Mixed (Frozen Encoder) & 99.61 & 0.115 & 1.445 & [1.388, 1.506] & 59.33 \\
-Pusher displacement & DINO-WM & Original & 14.65 & 1.113 & 3.300 & [3.166, 3.446] & 76.67 \\
-Pusher displacement & DINO-WM & Mixed & 98.63 & 0.432 & 1.996 & [1.941, 2.055] & 76.67 \\
+Pusher displacement & LeWM & Original & 28.32 & 1.018 & 2.279 & [2.211, 2.354] & 82.22 \\
+Pusher displacement & LeWM & Mixed & 79.10 & 0.974 & 3.779 & [3.596, 3.968] & 78.67 \\
+Pusher displacement & LeWM & Original $\rightarrow$ Mixed (Joint) & 99.02 & 0.215 & 2.426 & [2.353, 2.504] & 86.00 \\
+Pusher displacement & LeWM & Original $\rightarrow$ Mixed (Frozen Encoder) & 98.83 & 0.128 & 1.436 & [1.365, 1.510] & 73.67 \\
+Pusher displacement & PLDM & Original & 9.38 & 1.058 & 2.386 & [2.332, 2.442] & 75.67 \\
+Pusher displacement & PLDM & Mixed & 68.16 & 0.835 & 6.284 & [6.001, 6.589] & 61.33 \\
+Pusher displacement & PLDM & Original $\rightarrow$ Mixed (Joint) & 73.44 & 0.740 & 3.720 & [3.604, 3.840] & 72.00 \\
+Pusher displacement & PLDM & Original $\rightarrow$ Mixed (Frozen Encoder) & 99.80 & 0.101 & 1.448 & [1.397, 1.501] & 59.33 \\
+Pusher displacement & DINO-WM & Original & 9.38 & 1.127 & 3.140 & [3.024, 3.261] & 76.67 \\
+Pusher displacement & DINO-WM & Mixed & 99.61 & 0.394 & 1.931 & [1.884, 1.981] & 76.67 \\
 \midrule
-Arm mass & LeWM & Original & 50.98 & 0.977 & 687.381 & [571.339, 816.332] & 55.89 \\
-Arm mass & LeWM & Mixed & 91.60 & 0.048 & 51.291 & [45.684, 56.751] & 58.00 \\
-Arm mass & LeWM & Original $\rightarrow$ Mixed (Joint) & 91.80 & 0.039 & 47.152 & [41.802, 52.374] & 59.00 \\
-Arm mass & LeWM & Original $\rightarrow$ Mixed (Frozen Encoder) & 88.28 & 0.338 & 31.814 & [27.581, 35.547] & 59.67 \\
-Arm mass & PLDM & Original & 66.80 & 0.922 & 18.594 & [16.630, 20.929] & 69.67 \\
-Arm mass & PLDM & Mixed & 92.19 & 0.033 & 13.617 & [12.780, 14.631] & 51.67 \\
-Arm mass & PLDM & Original $\rightarrow$ Mixed (Joint) & 91.02 & 0.077 & 44.421 & [38.659, 50.208] & 58.67 \\
-Arm mass & PLDM & Original $\rightarrow$ Mixed (Frozen Encoder) & 92.38 & 0.211 & 16.644 & [15.067, 18.031] & 89.00 \\
-Arm mass & DINO-WM & Original & 59.38 & 0.980 & 48.246 & [45.632, 51.198] & 90.67 \\
-Arm mass & DINO-WM & Mixed & 89.26 & 0.658 & 14.246 & [13.770, 14.655] & 75.00 \\
+Arm mass & LeWM & Original & 51.63 & 0.977 & 741.737 & [644.066, 844.093] & 55.89 \\
+Arm mass & LeWM & Mixed & 89.84 & 0.045 & 51.802 & [47.895, 56.217] & 58.00 \\
+Arm mass & LeWM & Original $\rightarrow$ Mixed (Joint) & 93.36 & 0.038 & 47.590 & [44.059, 51.609] & 59.00 \\
+Arm mass & LeWM & Original $\rightarrow$ Mixed (Frozen Encoder) & 86.52 & 0.346 & 33.070 & [30.472, 35.587] & 59.67 \\
+Arm mass & PLDM & Original & 66.99 & 0.921 & 19.698 & [17.799, 21.952] & 69.67 \\
+Arm mass & PLDM & Mixed & 93.55 & 0.031 & 13.815 & [12.861, 14.967] & 51.67 \\
+Arm mass & PLDM & Original $\rightarrow$ Mixed (Joint) & 90.82 & 0.073 & 46.000 & [42.230, 50.596] & 58.67 \\
+Arm mass & PLDM & Original $\rightarrow$ Mixed (Frozen Encoder) & 89.26 & 0.213 & 17.048 & [16.034, 18.176] & 89.00 \\
+Arm mass & DINO-WM & Original & 61.33 & 0.977 & 49.483 & [46.626, 52.747] & 90.67 \\
+Arm mass & DINO-WM & Mixed & 88.09 & 0.673 & 14.166 & [13.764, 14.537] & 75.00 \\
 \midrule
-Action delay & LeWM & Mixed & 99.00 & 0.012 & 1.462 & [1.439, 1.487] & 87.33 \\
-Action delay & PLDM & Mixed & 99.99 & 0.007 & 1.807 & [1.795, 1.820] & 90.89 \\
-Action delay & DINO-WM & Mixed & 21.14 & 1.000 & 65.764 & [64.835, 66.676] & 33.56 \\
+Action delay & LeWM & Mixed & 99.18 & 0.013 & 1.429 & [1.406, 1.453] & 87.33 \\
+Action delay & PLDM & Mixed & 100.00 & 0.006 & 1.818 & [1.804, 1.832] & 90.89 \\
+Action delay & DINO-WM & Mixed & 19.45 & 1.000 & 66.094 & [65.265, 66.948] & 33.56 \\
 \midrule
-Contact friction & LeWM & Original & 50.59 & 1.001 & 2.753 & [2.680, 2.834] & 82.22 \\
-Contact friction & LeWM & Mixed & 50.00 & 0.999 & 2.693 & [2.642, 2.747] & 76.67 \\
-Contact friction & LeWM & Original $\rightarrow$ Mixed (Joint) & 57.23 & 0.999 & 2.714 & [2.674, 2.758] & 86.00 \\
-Contact friction & LeWM & Original $\rightarrow$ Mixed (Frozen Encoder) & 92.77 & 0.448 & 2.891 & [2.833, 2.953] & 83.33 \\
-Contact friction & PLDM & Original & 49.28 & 1.012 & 3.869 & [3.753, 3.992] & 75.67 \\
-Contact friction & PLDM & Mixed & 50.00 & 1.001 & 6.269 & [5.975, 6.602] & 65.67 \\
-Contact friction & PLDM & Original $\rightarrow$ Mixed (Joint) & 51.37 & 1.004 & 7.086 & [6.828, 7.366] & 73.33 \\
-Contact friction & PLDM & Original $\rightarrow$ Mixed (Frozen Encoder) & 85.94 & 0.604 & 4.499 & [4.391, 4.618] & 79.67 \\
-Contact friction & DINO-WM & Original & 48.63 & 1.019 & 6.109 & [5.850, 6.372] & 76.67 \\
-Contact friction & DINO-WM & Mixed & 93.16 & 0.684 & 3.673 & [3.603, 3.744] & 75.67 \\
+Contact friction & LeWM & Original & 50.13 & 1.001 & 2.716 & [2.642, 2.791] & 82.22 \\
+Contact friction & LeWM & Mixed & 49.41 & 1.000 & 2.727 & [2.678, 2.781] & 76.67 \\
+Contact friction & LeWM & Original $\rightarrow$ Mixed (Joint) & 54.30 & 0.999 & 2.717 & [2.677, 2.757] & 86.00 \\
+Contact friction & LeWM & Original $\rightarrow$ Mixed (Frozen Encoder) & 92.77 & 0.429 & 2.902 & [2.843, 2.960] & 83.33 \\
+Contact friction & PLDM & Original & 49.09 & 1.014 & 3.809 & [3.686, 3.940] & 75.67 \\
+Contact friction & PLDM & Mixed & 48.63 & 1.001 & 6.392 & [6.077, 6.741] & 65.67 \\
+Contact friction & PLDM & Original $\rightarrow$ Mixed (Joint) & 46.48 & 1.020 & 7.236 & [6.961, 7.541] & 73.33 \\
+Contact friction & PLDM & Original $\rightarrow$ Mixed (Frozen Encoder) & 83.59 & 0.595 & 4.536 & [4.408, 4.666] & 79.67 \\
+Contact friction & DINO-WM & Original & 47.66 & 1.015 & 6.252 & [5.971, 6.531] & 76.67 \\
+Contact friction & DINO-WM & Mixed & 92.19 & 0.648 & 3.695 & [3.611, 3.776] & 75.67 \\
 \midrule
-Motion damping & LeWM & Original & 49.09 & 0.995 & 5.308 & [5.042, 5.616] & 82.22 \\
-Motion damping & LeWM & Mixed & 49.61 & 1.002 & 291.614 & [253.071, 335.959] & 78.00 \\
-Motion damping & LeWM & Original $\rightarrow$ Mixed (Joint) & 50.20 & 1.001 & 95.787 & [83.792, 110.333] & 88.33 \\
-Motion damping & LeWM & Original $\rightarrow$ Mixed (Frozen Encoder) & 58.79 & 0.997 & 8.202 & [7.657, 8.832] & 84.33 \\
-Motion damping & PLDM & Original & 51.69 & 0.957 & 5.973 & [5.668, 6.318] & 75.67 \\
-Motion damping & PLDM & Mixed & 58.59 & 1.521 & 25.424 & [22.201, 29.444] & 61.00 \\
-Motion damping & PLDM & Original $\rightarrow$ Mixed (Joint) & 79.10 & 0.221 & 8.247 & [7.957, 8.547] & 70.00 \\
-Motion damping & PLDM & Original $\rightarrow$ Mixed (Frozen Encoder) & 62.11 & 0.882 & 5.553 & [5.276, 5.871] & 78.33 \\
-Motion damping & DINO-WM & Original & 52.34 & 1.001 & 8.465 & [8.122, 8.825] & 76.67 \\
-Motion damping & DINO-WM & Mixed & 66.21 & 1.021 & 7.273 & [7.077, 7.482] & 76.67 \\
-Motion damping & DINO-WM & Original $\rightarrow$ Mixed & 65.62 & 1.083 & 6.927 & [6.731, 7.135] & 76.00 \\
+Motion damping & LeWM & Original & 48.63 & 1.007 & 5.341 & [5.105, 5.611] & 82.22 \\
+Motion damping & LeWM & Mixed & 48.24 & 1.004 & 248.446 & [216.917, 288.116] & 78.00 \\
+Motion damping & LeWM & Original $\rightarrow$ Mixed (Joint) & 49.61 & 1.001 & 87.139 & [77.847, 98.646] & 88.33 \\
+Motion damping & LeWM & Original $\rightarrow$ Mixed (Frozen Encoder) & 61.91 & 0.958 & 8.316 & [7.878, 8.794] & 84.33 \\
+Motion damping & PLDM & Original & 50.52 & 0.947 & 6.216 & [5.937, 6.535] & 75.67 \\
+Motion damping & PLDM & Mixed & 55.86 & 2.435 & 21.427 & [18.508, 25.342] & 61.00 \\
+Motion damping & PLDM & Original $\rightarrow$ Mixed (Joint) & 81.84 & 0.237 & 8.323 & [8.060, 8.597] & 70.00 \\
+Motion damping & PLDM & Original $\rightarrow$ Mixed (Frozen Encoder) & 64.26 & 0.867 & 5.680 & [5.431, 5.959] & 78.33 \\
+Motion damping & DINO-WM & Original & 49.61 & 1.014 & 8.442 & [8.184, 8.713] & 76.67 \\
+Motion damping & DINO-WM & Mixed & 65.23 & 1.042 & 7.292 & [7.117, 7.484] & 76.67 \\
+Motion damping & DINO-WM & Original $\rightarrow$ Mixed & 61.13 & 1.111 & 6.975 & [6.800, 7.165] & 76.00 \\
 \midrule
-Gripper carry rule & LeWM & Original & 74.80 & 0.911 & 11.678 & [10.728, 12.783] & 65.44 \\
-Gripper carry rule & LeWM & Mixed & 49.61 & 1.001 & 198.472 & [166.622, 241.013] & 61.33 \\
-Gripper carry rule & LeWM & Original $\rightarrow$ Mixed (Joint) & 52.34 & 0.998 & 13.085 & [11.613, 14.946] & 71.00 \\
-Gripper carry rule & LeWM & Original $\rightarrow$ Mixed (Frozen Encoder) & 78.12 & 0.320 & 11.937 & [11.096, 12.883] & 67.00 \\
-Gripper carry rule & PLDM & Original & 57.62 & 0.923 & 15.350 & [12.126, 22.152] & 53.44 \\
-Gripper carry rule & PLDM & Mixed & 52.54 & 0.985 & 147.591 & [121.468, 184.796] & 55.00 \\
-Gripper carry rule & PLDM & Original $\rightarrow$ Mixed (Joint) & 54.49 & 0.985 & 26.553 & [24.128, 29.592] & 56.67 \\
-Gripper carry rule & PLDM & Original $\rightarrow$ Mixed (Frozen Encoder) & 58.01 & 0.594 & 29.969 & [21.538, 46.388] & 56.67 \\
-Gripper carry rule & DINO-WM & Original & 49.80 & 1.001 & 42.857 & [41.696, 44.068] & 72.67 \\
-Gripper carry rule & DINO-WM & Mixed & 80.66 & 0.890 & 11.789 & [11.454, 12.141] & 71.67 \\
-Gripper carry rule & DINO-WM & Original $\rightarrow$ Mixed & 82.03 & 0.874 & 11.747 & [11.417, 12.082] & 73.67 \\
+Gripper carry rule & LeWM & Original & 73.76 & 0.909 & --- & --- & 65.44 \\
+Gripper carry rule & LeWM & Mixed & 49.80 & 1.000 & --- & --- & 61.33 \\
+Gripper carry rule & LeWM & Original $\rightarrow$ Mixed (Joint) & 52.34 & 0.997 & --- & --- & 71.00 \\
+Gripper carry rule & LeWM & Original $\rightarrow$ Mixed (Frozen Encoder) & 84.57 & 0.271 & --- & --- & 67.00 \\
+Gripper carry rule & PLDM & Original & 57.42 & 0.937 & --- & --- & 53.44 \\
+Gripper carry rule & PLDM & Mixed & 50.78 & 0.997 & --- & --- & 55.00 \\
+Gripper carry rule & PLDM & Original $\rightarrow$ Mixed (Joint) & 54.30 & 0.982 & --- & --- & 56.67 \\
+Gripper carry rule & PLDM & Original $\rightarrow$ Mixed (Frozen Encoder) & 57.81 & 0.606 & --- & --- & 56.67 \\
+Gripper carry rule & DINO-WM & Original & 50.59 & 1.000 & --- & --- & 72.67 \\
+Gripper carry rule & DINO-WM & Mixed & 77.34 & 0.892 & --- & --- & 71.67 \\
+Gripper carry rule & DINO-WM & Original $\rightarrow$ Mixed & 80.27 & 0.871 & --- & --- & 73.67 \\
 \midrule
-Door traversability & LeWM & Original & 45.72 & 0.997 & 4.676 & [4.568, 4.784] & 92.44 \\
-Door traversability & LeWM & Mixed & 100.00 & 0.045 & 2.981 & [2.938, 3.024] & 95.11 \\
-Door traversability & LeWM & Original $\rightarrow$ Mixed (Joint) & 100.00 & 0.047 & 2.427 & [2.378, 2.478] & 97.67 \\
-Door traversability & LeWM & Original $\rightarrow$ Mixed (Frozen Encoder) & 100.00 & 0.036 & 2.442 & [2.400, 2.483] & 94.00 \\
-Door traversability & PLDM & Original & 52.22 & 0.997 & 7.520 & [7.323, 7.718] & 90.56 \\
-Door traversability & PLDM & Mixed & 100.00 & 0.021 & 2.404 & [2.384, 2.424] & 95.78 \\
-Door traversability & PLDM & Original $\rightarrow$ Mixed (Joint) & 100.00 & 0.027 & 2.349 & [2.302, 2.397] & 99.33 \\
-Door traversability & PLDM & Original $\rightarrow$ Mixed (Frozen Encoder) & 100.00 & 0.049 & 2.455 & [2.419, 2.491] & 98.67 \\
-Door traversability & DINO-WM & Original & 61.00 & 0.986 & 4.233 & [4.143, 4.321] & 100.00 \\
-Door traversability & DINO-WM & Mixed & 100.00 & 0.223 & 1.329 & [1.303, 1.354] & 97.56 \\
+Door traversability & LeWM & Original & 50.94 & 0.996 & 5.255 & [5.151, 5.364] & 92.44 \\
+Door traversability & LeWM & Mixed & 100.00 & 0.041 & 3.027 & [2.984, 3.070] & 95.11 \\
+Door traversability & LeWM & Original $\rightarrow$ Mixed (Joint) & 100.00 & 0.038 & 2.309 & [2.261, 2.358] & 97.67 \\
+Door traversability & LeWM & Original $\rightarrow$ Mixed (Frozen Encoder) & 100.00 & 0.036 & 2.495 & [2.459, 2.528] & 94.00 \\
+Door traversability & PLDM & Original & 51.50 & 0.997 & 8.278 & [8.069, 8.487] & 90.56 \\
+Door traversability & PLDM & Mixed & 100.00 & 0.022 & 2.370 & [2.352, 2.389] & 95.78 \\
+Door traversability & PLDM & Original $\rightarrow$ Mixed (Joint) & 100.00 & 0.023 & 2.352 & [2.318, 2.387] & 99.33 \\
+Door traversability & PLDM & Original $\rightarrow$ Mixed (Frozen Encoder) & 100.00 & 0.048 & 2.449 & [2.417, 2.479] & 98.67 \\
+Door traversability & DINO-WM & Original & 64.33 & 0.985 & 3.812 & [3.710, 3.915] & 100.00 \\
+Door traversability & DINO-WM & Mixed & 100.00 & 0.217 & 1.261 & [1.238, 1.286] & 97.56 \\
 \midrule
-Portal exit & LeWM & Original & 51.82 & 0.990 & 822.254 & [587.576, 1303.713] & 92.44 \\
-Portal exit & LeWM & Mixed & 77.54 & 0.918 & 58.552 & [47.450, 74.465] & 98.33 \\
-Portal exit & LeWM & Original $\rightarrow$ Mixed (Joint) & 66.21 & 0.919 & 61.538 & [49.099, 81.373] & 95.67 \\
-Portal exit & LeWM & Original $\rightarrow$ Mixed (Frozen Encoder) & 93.16 & 0.253 & 13.286 & [10.625, 17.147] & 89.33 \\
-Portal exit & PLDM & Original & 51.63 & 0.996 & 1056.976 & [789.611, 1513.078] & 90.56 \\
-Portal exit & PLDM & Mixed & 78.71 & 0.121 & 37.556 & [35.991, 39.195] & 97.00 \\
-Portal exit & PLDM & Original $\rightarrow$ Mixed (Joint) & 62.11 & 0.694 & 21.881 & [20.065, 24.077] & 98.67 \\
-Portal exit & PLDM & Original $\rightarrow$ Mixed (Frozen Encoder) & 98.24 & 0.203 & 10.485 & [9.219, 12.101] & 98.67 \\
-Portal exit & DINO-WM & Original & 54.69 & 0.995 & 41.991 & [40.909, 43.144] & 100.00 \\
-Portal exit & DINO-WM & Mixed & 100.00 & 0.143 & 8.092 & [8.005, 8.181] & 100.00 \\
+Portal exit & LeWM & Original & 51.95 & 0.990 & 908.548 & [650.682, 1395.382] & 92.44 \\
+Portal exit & LeWM & Mixed & 76.37 & 0.922 & 47.098 & [35.158, 68.065] & 98.33 \\
+Portal exit & LeWM & Original $\rightarrow$ Mixed (Joint) & 66.80 & 0.934 & 49.651 & [34.092, 86.154] & 95.67 \\
+Portal exit & LeWM & Original $\rightarrow$ Mixed (Frozen Encoder) & 94.34 & 0.264 & 11.124 & [9.727, 13.437] & 89.33 \\
+Portal exit & PLDM & Original & 51.50 & 0.996 & 1067.079 & [840.093, 1434.396] & 90.56 \\
+Portal exit & PLDM & Mixed & 79.10 & 0.128 & 36.403 & [33.836, 39.033] & 97.00 \\
+Portal exit & PLDM & Original $\rightarrow$ Mixed (Joint) & 61.52 & 0.708 & 23.385 & [21.534, 25.531] & 98.67 \\
+Portal exit & PLDM & Original $\rightarrow$ Mixed (Frozen Encoder) & 98.83 & 0.191 & 10.203 & [9.431, 11.154] & 98.67 \\
+Portal exit & DINO-WM & Original & 56.45 & 0.996 & 42.346 & [41.223, 43.577] & 100.00 \\
+Portal exit & DINO-WM & Mixed & 100.00 & 0.142 & 8.046 & [7.960, 8.133] & 100.00 \\
 \end{longtable}\endgroup
 \subsection{Data Scale}
 \label{app:data-scale}
@@ -832,7 +833,7 @@ Mixed & 32,768 & 1 & 50.78 & 79.10 & 0.974 \\
 Original $\rightarrow$ Mixed (Joint) & 2,048 & 1 & 59.57 & 83.01 & 0.813 \\
 Original $\rightarrow$ Mixed (Joint) & 32,768 & 1 & 91.80 & 99.02 & 0.215 \\
 \bottomrule\end{longtable}\endgroup
-The broader comparisons in Table~\ref{tab:data-scale} use Development.
+Table~\ref{tab:data-scale} reports the remaining data-scale comparisons on Test.
 The sample counts describe pairs, not necessarily independent source episodes.
 Pusher displacement uses 2,048, 8,192, and 32,768 pairs; friction and damping compare 8,192 with 32,768; mass and portal exit compare 2,048 with 32,768.
 Gripper carry expands from 2,048 to 10,000 source episodes.
@@ -840,7 +841,7 @@ Portal expansion also broadens initial distances and action magnitudes, so its c
 \begingroup\small
 \setlength{\tabcolsep}{4pt}
 \begin{longtable}{@{}p{2cm}lp{4cm}rrrr@{}}
-\caption{Data-scale comparisons on Development. $n$ counts training repetitions contributing to task accuracy and NRE. Planning repetitions can differ and are not counted as additional training runs.}\label{tab:data-scale}\\
+\caption{Data-scale comparisons on Test. $n$ counts training repetitions contributing to task accuracy and NRE. Planning repetitions can differ and are not counted as additional training runs.}\label{tab:data-scale}\\
 \toprule
 Task & Model & Scheme & Pairs & $n$ & Accuracy (\%) & NRE\\
 \midrule\endfirsthead
@@ -849,65 +850,64 @@ Task & Model & Scheme & Pairs & $n$ & Accuracy (\%) & NRE\\
 \midrule\endhead
 \bottomrule\endfoot
 Pusher displacement & LeWM & Mixed & 2,048 & 3 & 50.00 & 1.000 \\
-Pusher displacement & LeWM & Mixed & 32,768 & 1 & 50.78 & 0.981 \\
-Pusher displacement & LeWM & Original $\rightarrow$ Mixed (Joint) & 2,048 & 1 & 55.66 & 0.810 \\
-Pusher displacement & LeWM & Original $\rightarrow$ Mixed (Joint) & 8,192 & 1 & 82.42 & 0.390 \\
-Pusher displacement & LeWM & Original $\rightarrow$ Mixed (Joint) & 32,768 & 1 & 90.82 & 0.222 \\
-Pusher displacement & PLDM & Mixed & 2,048 & 3 & 50.07 & 1.003 \\
-Pusher displacement & PLDM & Mixed & 32,768 & 1 & 56.64 & 0.896 \\
-Pusher displacement & DINO-WM & Mixed & 2,048 & 3 & 89.19 & 0.583 \\
-Pusher displacement & DINO-WM & Mixed & 32,768 & 1 & 96.09 & 0.432 \\
-Arm mass & LeWM & Mixed & 2,048 & 3 & 85.35 & 0.132 \\
-Arm mass & LeWM & Mixed & 32,768 & 1 & 87.11 & 0.048 \\
-Arm mass & PLDM & Mixed & 2,048 & 3 & 52.60 & 1.054 \\
-Arm mass & PLDM & Mixed & 32,768 & 1 & 91.21 & 0.033 \\
-Arm mass & DINO-WM & Mixed & 2,048 & 3 & 51.37 & 0.999 \\
-Arm mass & DINO-WM & Mixed & 32,768 & 1 & 80.47 & 0.658 \\
-Contact friction & LeWM & Mixed & 8,192 & 3 & 50.07 & 1.000 \\
-Contact friction & LeWM & Mixed & 32,768 & 1 & 50.00 & 0.999 \\
-Contact friction & PLDM & Mixed & 8,192 & 3 & 50.13 & 1.001 \\
-Contact friction & PLDM & Mixed & 32,768 & 1 & 50.20 & 1.001 \\
-Contact friction & DINO-WM & Mixed & 8,192 & 3 & 49.61 & 1.025 \\
-Contact friction & DINO-WM & Mixed & 32,768 & 1 & 81.84 & 0.684 \\
-Motion damping & LeWM & Mixed & 8,192 & 3 & 50.07 & 0.999 \\
-Motion damping & LeWM & Mixed & 32,768 & 1 & 49.80 & 1.002 \\
-Motion damping & PLDM & Mixed & 8,192 & 3 & 51.89 & 2.122 \\
-Motion damping & PLDM & Mixed & 32,768 & 1 & 58.40 & 1.521 \\
-Motion damping & DINO-WM & Mixed & 8,192 & 3 & 50.13 & 1.014 \\
-Motion damping & DINO-WM & Mixed & 32,768 & 1 & 57.42 & 1.021 \\
-Gripper carry rule & LeWM & Mixed & 2,048 & 3 & 49.93 & 1.001 \\
-Gripper carry rule & LeWM & Mixed & 10,000 & 1 & 50.00 & 1.001 \\
-Gripper carry rule & PLDM & Mixed & 2,048 & 3 & 50.00 & 0.996 \\
-Gripper carry rule & PLDM & Mixed & 10,000 & 1 & 50.00 & 0.985 \\
-Gripper carry rule & DINO-WM & Mixed & 2,048 & 3 & 50.33 & 0.995 \\
-Gripper carry rule & DINO-WM & Mixed & 10,000 & 1 & 61.33 & 0.890 \\
-Portal exit & LeWM & Mixed & 2,048 & 3 & 50.91 & 0.925 \\
-Portal exit & LeWM & Mixed & 32,768 & 1 & 51.95 & 0.918 \\
-Portal exit & PLDM & Mixed & 2,048 & 3 & 69.53 & 0.155 \\
-Portal exit & PLDM & Mixed & 32,768 & 1 & 73.63 & 0.121 \\
-Portal exit & DINO-WM & Mixed & 2,048 & 3 & 99.41 & 0.554 \\
-Portal exit & DINO-WM & Mixed & 32,768 & 1 & 100.00 & 0.143 \\
+Pusher displacement & LeWM & Mixed & 32,768 & 1 & 50.78 & 0.974 \\
+Pusher displacement & LeWM & Original $\rightarrow$ Mixed (Joint) & 2,048 & 1 & 59.57 & 0.813 \\
+Pusher displacement & LeWM & Original $\rightarrow$ Mixed (Joint) & 8,192 & 1 & 83.40 & 0.377 \\
+Pusher displacement & LeWM & Original $\rightarrow$ Mixed (Joint) & 32,768 & 1 & 91.80 & 0.215 \\
+Pusher displacement & PLDM & Mixed & 2,048 & 3 & 50.20 & 1.005 \\
+Pusher displacement & PLDM & Mixed & 32,768 & 1 & 56.25 & 0.835 \\
+Pusher displacement & DINO-WM & Mixed & 2,048 & 3 & 93.82 & 0.507 \\
+Pusher displacement & DINO-WM & Mixed & 32,768 & 1 & 97.66 & 0.394 \\
+Arm mass & LeWM & Mixed & 2,048 & 3 & 85.42 & 0.120 \\
+Arm mass & LeWM & Mixed & 32,768 & 1 & 85.74 & 0.045 \\
+Arm mass & PLDM & Mixed & 2,048 & 3 & 53.12 & 1.122 \\
+Arm mass & PLDM & Mixed & 32,768 & 1 & 91.02 & 0.031 \\
+Arm mass & DINO-WM & Mixed & 2,048 & 3 & 51.17 & 0.999 \\
+Arm mass & DINO-WM & Mixed & 32,768 & 1 & 78.32 & 0.673 \\
+Contact friction & LeWM & Mixed & 8,192 & 3 & 50.00 & 1.000 \\
+Contact friction & LeWM & Mixed & 32,768 & 1 & 50.00 & 1.000 \\
+Contact friction & PLDM & Mixed & 8,192 & 3 & 50.00 & 1.002 \\
+Contact friction & PLDM & Mixed & 32,768 & 1 & 50.00 & 1.001 \\
+Contact friction & DINO-WM & Mixed & 8,192 & 3 & 49.93 & 1.006 \\
+Contact friction & DINO-WM & Mixed & 32,768 & 1 & 84.18 & 0.648 \\
+Motion damping & LeWM & Mixed & 8,192 & 3 & 50.20 & 1.000 \\
+Motion damping & LeWM & Mixed & 32,768 & 1 & 50.00 & 1.004 \\
+Motion damping & PLDM & Mixed & 8,192 & 3 & 51.24 & 2.590 \\
+Motion damping & PLDM & Mixed & 32,768 & 1 & 58.20 & 2.435 \\
+Motion damping & DINO-WM & Mixed & 8,192 & 3 & 49.61 & 1.031 \\
+Motion damping & DINO-WM & Mixed & 32,768 & 1 & 56.45 & 1.042 \\
+Gripper carry rule & LeWM & Mixed & 2,048 & 3 & 50.00 & 1.000 \\
+Gripper carry rule & LeWM & Mixed & 10,000 & 1 & 50.00 & 1.000 \\
+Gripper carry rule & PLDM & Mixed & 2,048 & 3 & 50.00 & 1.003 \\
+Gripper carry rule & PLDM & Mixed & 10,000 & 1 & 49.80 & 0.997 \\
+Gripper carry rule & DINO-WM & Mixed & 2,048 & 3 & 50.78 & 0.996 \\
+Gripper carry rule & DINO-WM & Mixed & 10,000 & 1 & 60.16 & 0.892 \\
+Portal exit & LeWM & Mixed & 2,048 & 3 & 51.37 & 0.934 \\
+Portal exit & LeWM & Mixed & 32,768 & 1 & 50.78 & 0.922 \\
+Portal exit & PLDM & Mixed & 2,048 & 3 & 69.47 & 0.271 \\
+Portal exit & PLDM & Mixed & 32,768 & 1 & 72.27 & 0.128 \\
+Portal exit & DINO-WM & Mixed & 2,048 & 3 & 99.35 & 0.549 \\
+Portal exit & DINO-WM & Mixed & 32,768 & 1 & 100.00 & 0.142 \\
 \end{longtable}\endgroup
 \subsection{Model Capacity}
 \label{app:model-capacity}
 Both model sizes use the same 32,768-pair datasets, training seed, Mixed initialization, and 10-epoch recipe.
 The larger model changes the visual backbone from ViT-Tiny to ViT-Base, the representation width from 192 to 768, and predictor depth from six to nine layers.
 This is a joint expansion of the encoder and predictor, not a predictor-only intervention.
+Accuracy and NRE use Test; CEM measures planning success in the original environment.
 \begin{center}\small
 \begin{tabular}{@{}llrrrrrr@{}}
 \toprule
 & & \multicolumn{2}{c}{Accuracy (\%)} & \multicolumn{2}{c}{NRE} & \multicolumn{2}{c}{CEM (\%)}\\
 Task & Model & 18M & 183M & 18M & 183M & 18M & 183M\\
 \midrule
-Contact friction & LeWM & 50.00 & 49.80 & 0.999 & 1.000 & 76.67 & 74.00 \\
-Motion damping & LeWM & 49.80 & 50.00 & 1.002 & 1.000 & 78.00 & 71.33 \\
-Contact friction & PLDM & 50.20 & 49.80 & 1.001 & 1.107 & 65.67 & 47.33 \\
-Motion damping & PLDM & 58.40 & 50.39 & 1.521 & 1.536 & 61.00 & 50.33 \\
+Contact friction & LeWM & 50.00 & 50.00 & 1.000 & 1.000 & 76.67 & 74.00 \\
+Contact friction & PLDM & 50.00 & 49.80 & 1.001 & 1.061 & 65.67 & 47.33 \\
+Motion damping & LeWM & 50.00 & 50.20 & 1.004 & 1.003 & 78.00 & 71.33 \\
+Motion damping & PLDM & 58.20 & 50.98 & 2.435 & 1.768 & 61.00 & 50.33 \\
 \bottomrule\end{tabular}\end{center}
 The four endpoint comparisons do not show a consistent improvement from increasing capacity under this recipe.
-Only measured checkpoints are used in the training-curve analysis: epochs 1--10 for the large LeWM models and epochs 5 and 10 for the other models.
-There is no shared trajectory of accurate training responses followed by worsening Development response error across these runs.
-This does not exclude earlier overfitting where checkpoints are unavailable, or gains from retuning the larger models.
+These endpoint comparisons do not exclude gains from retuning the larger models.
 
 % END GENERATED PAPER RESULTS
 
