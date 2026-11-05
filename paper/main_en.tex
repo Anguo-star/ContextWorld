@@ -156,16 +156,26 @@ Predictions are evaluated directly against these encoded targets in latent space
 \subsection{Task Design}
 \label{sec:tasks}
 
-To evaluate dynamics adaptation, we construct nine tasks spanning four base environments by introducing controlled variations in physical parameters and interaction rules.
-These environments build upon TwoRoom navigation~\cite{zhou2025dinowm}, the PushT pushing environment~\cite{chi2023diffusionpolicy}, Reacher from the DeepMind Control Suite~\cite{tassa2018control}, and Cube from OGBench~\cite{park2025ogbench}.
-Figure~\ref{fig:protocol} illustrates the task structure and paired comparisons; Table~\ref{tab:tasks} summarizes the tasks and their history requirements.
-Importantly, models are trained separately for each task, and baselines like DINO-WM keep their pretrained visual encoder frozen throughout.
+We construct nine tasks across four environments by varying physical parameters and interaction rules.
+These environments are TwoRoom navigation~\cite{zhou2025dinowm}, PushT~\cite{chi2023diffusionpolicy}, Reacher from the DeepMind Control Suite~\cite{tassa2018control}, and Cube from OGBench~\cite{park2025ogbench}.
+Figure~\ref{fig:protocol} illustrates the task design, and Table~\ref{tab:tasks} summarizes the tasks and their history lengths.
+Models are trained separately for each task, and DINO-WM keeps its pretrained visual encoder frozen.
 
+Our main design is to test whether models can use interaction history to predict different outcomes when the current observation and future actions alone cannot distinguish the underlying dynamics.
+For six tasks---pusher displacement, arm mass, contact friction, motion damping, gripper carry rule, and portal exit---we construct pairs of samples that share the same current observation and future action sequence but have different interaction histories and ground-truth futures.
+Each sample is generated through a continuous simulation under fixed dynamics.
+We check relevant physical states, such as velocity and contact state, at the prediction point, since identical images do not necessarily imply identical physical states.
+For tasks where the two conditions cannot naturally share a starting position, we exchange their starting positions to prevent the initial images from revealing the dynamics condition.
+A model that ignores history therefore cannot distinguish the two futures within a pair (Appendix~\ref{app:trajectory-pairing}).
 
-
-To isolate the role of interaction history, we construct paired counterfactual samples for six tasks: pusher displacement, arm mass, contact friction, motion damping, gripper carry rule, and portal exit. Within each pair, the two samples share the current observation and future action sequence but operate under different hidden dynamics. The history and ground-truth future for each sample are generated through one continuous simulation with fixed dynamics. Because the resulting futures differ physically, accurate prediction relies on the interaction history (Appendix~\ref{app:trajectory-pairing}).
-
-The remaining three tasks evaluate history usage across varying conditions and environmental rules. The speed task tests unseen velocities by holding the current observation and planned actions fixed, using histories generated at different speeds to observe motion scaling. Action delay introduces variable latency to test predictions before and after an action takes effect. Delays yielding identical future states (e.g., zero movement within the next five steps for delays of six or ten steps) are scored as a single response group with equal weighting (Appendix~\ref{app:delay-groups}). Finally, the door task tests whether the model infers passage or blockage from preceding interactions.
+The other three tasks examine history-based prediction through their respective task protocols.
+For Speed, we compare predictions conditioned on histories generated at different speeds, while keeping the current observation and query actions fixed.
+The model must achieve lower prediction error with the history corresponding to the target speed than with any alternative history.
+Evaluation includes seen speeds, interpolation, and extrapolation, while the main results use unseen interpolation speeds.
+For Action Delay, the model receives seven observation frames to infer action delays ranging from 0 to 10 simulator steps.
+Since the main prediction horizon is five steps, delays of 5--10 produce the same response within this horizon and are grouped into one of six equally weighted response groups (Appendix~\ref{app:delay-groups}).
+For Door traversability, the model uses preceding interactions to predict whether a door is passable or blocked.
+Both rules appear during training, while Test uses 42 previously unseen door positions to evaluate generalization to new positions.
 
 \subsection{Dataset Construction and Splits}
 \label{sec:data}
@@ -175,34 +185,46 @@ To evaluate models on unseen interaction rollouts, all nine tasks provide trajec
 \subsection{Evaluation Protocol and Metrics}
 \label{sec:evaluation}
 
-Prediction error alone does not establish in-context dynamics adaptation, as models may reduce errors shared across dynamics conditions without accurately predicting their differences.
-Conversely, high classification accuracy does not guarantee accurate conditional predictions: Appendix~\ref{app:scoring-controls} shows that predictions close to the mean future can still distinguish the correct outcome.
-We therefore evaluate two aspects of adaptation: (1) Adaptation Accuracy ($A_{\mathrm{future}}$), measuring whether predictions distinguish different physical futures; and (2) History Sensitivity (History win rate, $G_H$), measuring whether matching histories improve predictions relative to mismatched histories.
-We further report Normalized Response Error ($\mathrm{NRE}$) to assess predicted differences between dynamics conditions and Multi-Step Prediction Error ($E/B$) to assess rollout errors against a mean-future reference.
+Prediction error alone does not establish in-context dynamics adaptation: models may reduce errors shared across dynamics conditions without predicting their differences.
+Conversely, selecting the correct future does not guarantee an accurate conditional response: Appendix~\ref{app:scoring-controls} shows that a small predicted difference can still yield perfect future-selection accuracy.
+We therefore evaluate two aspects: Adaptation Accuracy and History Sensitivity.
+We additionally report Normalized Response Error (NRE) and Multi-Step Prediction Error ($E/B$) to assess conditional response and complete rollout errors.
 
 \paragraph{Adaptation Accuracy ($A_{\mathrm{future}}$).}
-We measure whether predictions distinguish the latent ground-truth futures of different dynamics conditions.
-For each counterfactual pair $i \in \{1,\dots,N\}$, let $z_i^A, z_i^B$ denote the latent targets and $\hat{z}_i^A, \hat{z}_i^B$ the corresponding predictions.
-A prediction is correct if it is strictly closer in mean squared error ($d$) to its matching target than to the alternative.
-Defining $I_i^A = \mathbf{1}[d(\hat{z}_i^A, z_i^A) < d(\hat{z}_i^A, z_i^B)]$ and $I_i^B$ symmetrically, we compute:
+For each of the six paired tasks, let $i\in\{1,\ldots,N\}$ index the $N$ counterfactual pairs, with dynamics conditions $A$ and $B$.
+Let $z_i^A,z_i^B$ be the encoded ground-truth futures and $\hat z_i^A,\hat z_i^B$ the predictions from their respective histories.
+Write $d(x,y)$ for the mean squared error between latent representations $x$ and $y$.
+A prediction is correct if it is strictly closer to the future under its own condition than to the alternative:
 \begin{equation}
-A_{\mathrm{future}} = \frac{100}{2N} \sum_{i=1}^{N} \left( I_i^A + I_i^B \right).
+\begin{aligned}
+I_i^A &= \mathbf{1}[d(\hat z_i^A,z_i^A)<d(\hat z_i^A,z_i^B)],\\
+I_i^B &= \mathbf{1}[d(\hat z_i^B,z_i^B)<d(\hat z_i^B,z_i^A)].
+\end{aligned}
+\end{equation}
+Here $\mathbf{1}[\cdot]$ equals one if its condition holds and zero otherwise.
+The percentage accuracy is
+\begin{equation}
+A_{\mathrm{future}}=\frac{100}{2N}\sum_{i=1}^{N}(I_i^A+I_i^B).
 \label{eq:future-score}
 \end{equation}
-Because each pair shares the same current observation and future actions, a deterministic model that ignores history produces identical predictions ($\hat{z}_i^A = \hat{z}_i^B$) and scores at most 50\%, with ties counted as failures.
-Tasks with multiple dynamics conditions use task-specific scoring (Appendix~\ref{app:evaluation-details}).
+Because the current observation and future actions are shared, a deterministic model ignoring history makes identical predictions for the two conditions and scores at most 50\%; ties count as failures.
+Speed, action delay, and door traversability follow their own scoring rules (Appendix~\ref{app:evaluation-details}).
 
-\paragraph{History Sensitivity (History win rate, $G_H$).}
-To measure the effect of interaction history, we swap histories across dynamics conditions while holding the current observation, future actions, and target fixed.
-We report \textbf{History win rate (\%)}, the percentage of comparisons in which matched history yields strictly lower prediction error than mismatched history.
-We also measure the normalized error reduction:
+\paragraph{History Sensitivity (History win rate).}
+We test whether matching history reduces prediction error by keeping the current observation, future actions, and true future fixed while swapping the history.
+For paired tasks, define
 \begin{equation}
-G_H = \frac{E_- - E_+}{B},
-\label{eq:history-gain}
+\begin{aligned}
+J_i^A &= \mathbf{1}[d(\hat z_i^A,z_i^A)<d(\hat z_i^B,z_i^A)],\\
+J_i^B &= \mathbf{1}[d(\hat z_i^B,z_i^B)<d(\hat z_i^A,z_i^B)].
+\end{aligned}
 \end{equation}
-where $E_-$ and $E_+$ denote the aggregate prediction errors under mismatched and matched histories, respectively.
-Here, $B$ is the aggregate error of the ground-truth mean-future reference across dynamics conditions, computed on the same evaluation queries.
-A positive $G_H$ indicates that matching history reduces prediction error, but does not imply accurate prediction.
+The History win rate in percent is
+\begin{equation}
+A_{\mathrm{history}}=\frac{100}{2N}\sum_{i=1}^{N}(J_i^A+J_i^B).
+\end{equation}
+Unlike adaptation accuracy, which compares two targets for a fixed prediction, History win rate compares predictions from two histories against a fixed target; ties count as failures.
+The other tasks use their corresponding history comparisons (Appendix~\ref{app:evaluation-details}).
 
 \begin{table}[!b]
 \centering
@@ -234,56 +256,74 @@ Other modules remain trainable; native training losses are retained.
 \input{tables/test_metrics_main}
 
 \paragraph{Normalized Response Error (NRE).}
-To measure prediction errors in the response to differing dynamics, we define the ground-truth difference $\Delta z_i = z_i^B - z_i^A$ and predicted difference $\Delta\hat{z}_i = \hat{z}_i^B - \hat{z}_i^A$ for each counterfactual pair $i$.
-The Normalized Response Error is
+To assess whether predicted differences between conditions match the true differences, define $\Delta z_i=z_i^B-z_i^A$ and $\Delta\hat z_i=\hat z_i^B-\hat z_i^A$.
+We compute
 \begin{equation}
-\mathrm{NRE} =
-\frac{\sum_i \|\Delta\hat{z}_i - \Delta z_i\|^2}
-{\sum_i \|\Delta z_i\|^2}.
+\mathrm{NRE}=\frac{\sum_i\|\Delta\hat z_i-\Delta z_i\|^2}{\sum_i\|\Delta z_i\|^2},
 \label{eq:response-error}
 \end{equation}
-Taking differences removes errors shared across dynamics conditions.
-An NRE of 0 indicates an exact differential response, while predicting zero differential response yields an NRE of 1.
-Lower values indicate more accurate conditional responses.
+where $\|\cdot\|$ is the Euclidean norm in latent space and the denominator must be positive.
+An NRE of 0 means the predicted difference is exact; a zero predicted difference gives NRE equal to 1.
+Differences cancel errors shared across conditions, so low NRE does not guarantee accurate complete predictions.
+Multi-condition tasks use their task-specific response comparisons.
 
 \paragraph{Multi-Step Prediction Error ($E/B$).}
-To assess prediction accuracy beyond one-step future selection, we evaluate open-loop autoregressive rollouts at simulator steps 5, 10, 15, 20, and 25 without intermediate ground-truth observations.
-For scene $q$, let $z_{qkct}$ and $\hat{z}_{qkct}$ denote the ground-truth and predicted latent states under dynamics condition $k$, shared action sequence $c$, and evaluation time $t$.
-Each scene contains $K_q$ dynamics conditions, $C_q$ shared action sequences, and $T=5$ evaluation times.
-We define the mean-future reference as
-$\bar{z}_{qct}=K_q^{-1}\sum_k z_{qkct}$.
-The prediction error $L_q$ and reference error $B_q$ are
+We evaluate open-loop autoregressive predictions at simulator steps 5, 10, 15, 20, and 25, without intermediate ground-truth observations.
+Let $q$ index evaluation scenes; $k$, dynamics conditions; $c$, shared future action sequences; and $t$, the five evaluation times.
+Scene $q$ contains $K_q$ conditions and $C_q$ action sequences, with $T=5$ times.
+Let $\hat z_{qkct}$ and $z_{qkct}$ denote predicted and true latent states, and let $\bar z_{qct}=K_q^{-1}\sum_k z_{qkct}$ be the mean true future across conditions for the same scene, actions, and time.
+The scene-level prediction error $L_q$ and mean-future reference error $B_q$ are
 \begin{equation}
 \begin{aligned}
-L_q &= \frac{1}{K_q C_q T}
-\sum_{k,c,t}\|\hat{z}_{qkct}-z_{qkct}\|^2,\\
-B_q &= \frac{1}{K_q C_q T}
-\sum_{k,c,t}\|z_{qkct}-\bar{z}_{qct}\|^2.
+L_q &=\frac{1}{K_qC_qT}\sum_{k,c,t}\|\hat z_{qkct}-z_{qkct}\|^2,\\
+B_q &=\frac{1}{K_qC_qT}\sum_{k,c,t}\|z_{qkct}-\bar z_{qct}\|^2.
 \end{aligned}
 \end{equation}
-We report the normalized prediction error~\cite{murphy1988skill}:
+We report their aggregate ratio~\cite{murphy1988skill}:
 \begin{equation}
-E/B = \frac{\sum_q L_q}{\sum_q B_q}.
+E/B=\frac{\sum_q L_q}{\sum_q B_q},
 \label{eq:complete-error}
 \end{equation}
-Lower values indicate smaller prediction errors: $E/B=0$ denotes exact predictions, while $E/B=1$ matches the mean-future reference.
-Values below or above 1 indicate lower or higher errors than this reference, respectively.
-For equally weighted conditions sharing the current observation and future actions, the mean-future reference minimizes squared error among predictions that do not distinguish dynamics conditions~\cite{gneiting2011point}.
-Thus, a deterministic model that ignores history cannot achieve $E/B<1$.
+where $E=\sum_q L_q$ and $B=\sum_q B_q$ are the total prediction and reference errors, respectively, with $B>0$.
+Lower is better: $E/B=0$ means exact predictions, while $E/B=1$ matches the mean-future reference error.
+For equally weighted conditions sharing the current observation and future actions, this reference minimizes squared error among predictions that ignore the dynamics condition~\cite{gneiting2011point}; thus a deterministic history-independent model cannot achieve $E/B<1$.
+
+
+For the Development history diagnostic, we also report normalized history gain $G_H$.
+Let $\hat z_{qhct}$ be the prediction using history from condition $h$, while $z_{qkct}$ is the true future under condition $k$, with the same current observation and future actions.
+The aggregate matching- and mismatched-history errors are
+\begin{equation}
+\begin{aligned}
+E_+ &= \sum_q \frac{1}{K_qC_qT}
+\sum_{k,c,t}\|\hat z_{qkct}-z_{qkct}\|^2,\\
+E_- &= \sum_q \frac{1}{K_qC_qT}
+\sum_{k,c,t}\frac{1}{K_q-1}\sum_{h\ne k}
+\|\hat z_{qhct}-z_{qkct}\|^2.
+\end{aligned}
+\end{equation}
+The mismatched error averages equally over all $K_q-1$ alternative histories.
+We compute
+\begin{equation}
+G_H = \frac{E_- - E_+}{B},
+\label{eq:history-gain}
+\end{equation}
+using the same reference error $B$ as above.
+A positive $G_H$ means matching history reduces prediction error; unlike History win rate, it measures the size of this reduction and does not imply accurate prediction.
 
 \paragraph{Evaluation Scope and Reporting.}
-We report adaptation accuracy, History win rate, and NRE on the Test split, while multi-step prediction and additional mechanism analyses use the Development split.
-The task-query diagnostics and extended multi-step evaluations differ in action sequences and prediction horizons.
-Latent errors are measured in each checkpoint's native representation and do not provide a shared physical error scale across models.
+Adaptation Accuracy, History win rate, and NRE use the Test split for the main benchmark; multi-step prediction uses Development.
+The main task queries and extended multi-step evaluations differ in future actions and prediction horizons.
+Latent errors are measured in each checkpoint's own target representation and do not provide a common physical error scale across models.
 We report means and standard deviations across available training runs.
-For multi-step prediction, source-cluster bootstrap intervals quantify sampling uncertainty for the evaluated checkpoints, rather than variability across training runs (Appendix~\ref{app:evaluation-details}).
-We separately evaluate CEM planning performance in the original environments to assess whether training for varied dynamics affects existing control capabilities (Section~\ref{sec:experiments}).
+For multi-step prediction, source-cluster bootstrap intervals reflect sampling uncertainty for the evaluated checkpoints, not training-run variability (Appendix~\ref{app:evaluation-details}).
+We separately report CEM planning success in the original environments to assess retention of existing control capabilities (Section~\ref{sec:experiments}).
 
 \section{Experiments}
 \label{sec:experiments}
 
 \subsection{Experimental Setup}
 \label{sec:experimental-setup}
+
 \paragraph{Evaluated models and representation strategies.}
 We evaluate three action-conditioned latent world models with different representation-learning strategies:
 (1) DINO-WM~\cite{zhou2025dinowm}, which trains a dynamics predictor on frozen, pretrained DINOv2 features;
@@ -297,15 +337,14 @@ We evaluate four training schemes to examine how training choices affect in-cont
 
 \noindent\textit{Pretraining and data composition:}
 The Original scheme uses only fixed-dynamics data to assess adaptation without exposure to ContextWorld training data.
-The Mixed dataset combines original-environment and ContextWorld training trajectories with equal sampling of trajectory windows ($1:1$).
-We compare training on Mixed from initialization with fine-tuning Original checkpoints on Mixed to examine the role of prior training under fixed dynamics.
-The latter includes an additional training stage and therefore differs in total training updates.
+The Mixed dataset combines original-environment and ContextWorld training windows at a $1:1$ sampling ratio.
+We compare training on Mixed from initialization with training on Mixed after an Original training stage.
+The latter includes an additional 10 epochs of Original training, so the two schemes do not have equal total training budgets.
 
 \noindent\textit{Visual encoder updates:}
 For LeWM and PLDM, we compare two fine-tuning schemes starting from the same Original checkpoint.
-The first jointly trains the visual encoder, predictor, projector, and action encoder (Joint).
-The second freezes the visual encoder while training the remaining components (Frozen Encoder).
-This comparison examines the effect of freezing the visual encoder on adaptation, although the target representation may still change.
+Joint updates the visual encoder and the remaining trainable modules, whereas Frozen Encoder fixes the visual encoder while training the remaining modules.
+This comparison examines the effect of freezing the visual encoder on adaptation, but does not freeze the entire latent representation, as the projector remains trainable.
 
 Models are trained independently for each task.
 We evaluate planning success in the original environments using the Cross-Entropy Method (CEM)~\cite{deboer2005cem} to assess whether existing control performance is maintained.
