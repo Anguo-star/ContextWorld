@@ -136,7 +136,6 @@ def scaling_comparisons():
         ax.bar(x+.16, after, .27, color='#426d99', label=legend[1], zorder=3)
         ax.set_ylim(0, 110)
         ax.set_yticks([0, 50, 100])
-        ax.axhline(50, color='#525c68', linestyle='--', linewidth=.85, zorder=4)
         ax.set_ylabel('Accuracy (%)', fontsize=7.5, labelpad=3)
         ax.set_xticks(x, labels, fontsize=7)
         ax.tick_params(length=2.5, labelsize=7)
