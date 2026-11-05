@@ -40,18 +40,44 @@ def test_statistics_table():
     return [r'\input{tables/test_metrics_full}']
 
 
+def data_scale_test_table():
+    summary = read('figure3_data_scaling_test_v1/metrics.json')
+    assert summary['evaluation_split'] == 'test'
+    lines = [r'''Figure~\ref{fig:scaling-comparisons}a compares LeWM on pusher displacement using the same Test trajectories at both training-data scales.
+Table~\ref{tab:data-scale-test} reports all three adaptation metrics for these checkpoints.
+All data-scale comparisons hold training epochs fixed.
+\begingroup\small
+\setlength{\tabcolsep}{5pt}
+\begin{longtable}{@{}lrrrrr@{}}
+\caption{LeWM data scaling on pusher displacement (Test). Entries are means over $n$ training runs; pair counts refer to ContextWorld training data.}\label{tab:data-scale-test}\\
+\toprule
+Scheme & Pairs & $n$ & Accuracy (\%) & \shortstack{History\\win rate (\%)} & NRE\\
+\midrule
+''']
+    for regime in ['scratch', 'joint']:
+        for pairs in [2048, 32768]:
+            row, = [r for r in summary['cells'] if r['regime'] == regime
+                    and r['training_pair_count'] == pairs]
+            scores = row['scores']
+            lines.append(' & '.join([LABELS[regime], f'{pairs:,}', str(row['n']),
+                         fmt(scores['accuracy']['mean']), fmt(scores['history']['mean']),
+                         fmt(scores['nre']['mean'], 3)]) + r' \\')
+    lines.append(r'\bottomrule\end{longtable}\endgroup')
+    return '\n'.join(lines)
+
+
 text = [r'''\begingroup
 \small
 \setlength{\tabcolsep}{3pt}
 \renewcommand{\arraystretch}{1.15}
 \begin{longtable}{@{}p{1.8cm}lp{3.65cm}rrrp{2.5cm}r@{}}
-\caption{Development prediction diagnostics and original-environment CEM. Entries average the available training repetitions; $E/B$ intervals are 95\% source-bootstrap intervals. History and CEM are percentages. Scheme names match the main text.}\label{tab:dev-diagnostics}\\
+\caption{Development prediction diagnostics and original-environment CEM. Entries average the available training repetitions; $E/B$ intervals are 95\% source-bootstrap intervals. History win rate and CEM are percentages. Scheme names match the main text.}\label{tab:dev-diagnostics}\\
 \toprule
-Task & Model & Scheme & History $\uparrow$ & NRE $\downarrow$ & $E/B$ $\downarrow$ & $E/B$ interval & CEM $\uparrow$\\
+Task & Model & Scheme & \shortstack{History\\win rate $\uparrow$} & NRE $\downarrow$ & $E/B$ $\downarrow$ & $E/B$ interval & CEM $\uparrow$\\
 \midrule
 \endfirsthead
 \toprule
-Task & Model & Scheme & History $\uparrow$ & NRE $\downarrow$ & $E/B$ $\downarrow$ & $E/B$ interval & CEM $\uparrow$\\
+Task & Model & Scheme & \shortstack{History\\win rate $\uparrow$} & NRE $\downarrow$ & $E/B$ $\downarrow$ & $E/B$ interval & CEM $\uparrow$\\
 \midrule
 \endhead
 \bottomrule
@@ -71,7 +97,9 @@ for task,name in TASKS:
 text[-1]=r'\end{longtable}\endgroup'
 text.append(r'''\subsection{Data Scale}
 \label{app:data-scale}
-These comparisons use Development and hold training epochs fixed.
+''')
+text.append(data_scale_test_table())
+text.append(r'''The broader comparisons in Table~\ref{tab:data-scale} use Development.
 The sample counts describe pairs, not necessarily independent source episodes.
 Pusher displacement uses 2,048, 8,192, and 32,768 pairs; friction and damping compare 8,192 with 32,768; mass and portal exit compare 2,048 with 32,768.
 Gripper carry expands from 2,048 to 10,000 source episodes.

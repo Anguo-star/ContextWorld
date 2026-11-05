@@ -35,11 +35,11 @@
 
 主图见 [主图预览](design/response_fidelity_preview.pdf)，训练图见 [设计预览](design/figure_design.pdf)；[设计文件](design/README.md)包含可编辑 SVG、真实轨迹渲染、数据来源和复绘脚本。
 
-正文实验按实验设置、任务适应结果、训练选择、预测损失与适应四个小节组织。完整九任务 Test 主表以模型和训练方案为行、任务为列，每个单元格从上到下列出 Accuracy、History 和 NRE 的均值，指标顺序只在表注中统一说明；附录完整表同时列出三项指标的标准差及训练重复次数。多步预测、数据与容量对照、训练损失与条件响应分别由图表展示。详细结果与评测设置保留在附录。
+正文实验按实验设置、任务适应结果、训练选择、预测损失与适应四个小节组织。完整九任务 Test 主表以模型和训练方案为行、任务为列，每个单元格从上到下列出 Accuracy、History 和 NRE 的均值，指标顺序只在表注中统一说明；附录完整表同时列出三项指标的标准差及训练重复次数。多步预测、数据扩量与编码器冻结对照、训练损失与条件响应分别由图表展示；模型容量结果保留在附录。详细结果与评测设置保留在附录。
 
-数据与容量图采用成组柱状图：分别比较数据从 2,048 增至 32,768 对、模型从 18M 增至 183M 前后的准确率。两组采用相同准确率刻度，柱顶标注各柱准确率；扩量仅改变 ContextWorld 训练样本对数，原环境数据集保持相同。中间数据规模及重复次数见附录。正文训练图只展示 PLDM 摩擦任务的联合训练案例：蓝色折线显示六个 epoch 的预测损失，橙色散点显示两个实测时点的训练集 NRE；两个任务、两种训练方案及 Development 对照保留在附录。主图使用真实 PushT 推手位移配对轨迹，展示不同历史在相同当前观测与后续动作下对应不同未来；B 中三个子图分别说明未来辨别、匹配历史的收益和响应保真度。场景图片来自原始观测，潜空间点位与向量为概念示意。主图由 `design/benchmark_overview_pusher_response.pdf` 导出，复绘入口会同步到 `figures/protocol_overview.pdf`。多步预测图展示 Original 与冻结编码器方案的逐步归一化误差。
+Figure 3 两部分均使用 Test：上图比较 LeWM 在推手位移任务上使用 2,048 与 32,768 对 ContextWorld 训练数据的结果；下图比较 PLDM 在摩擦和阻尼任务上的联合训练与冻结编码器训练。两部分采用相同准确率刻度，柱顶标注准确率；数据扩量时原环境数据集保持相同。Test 端点的三项指标与训练重复次数见附录，其他数据规模和模型容量结果仍按 Development 单独报告。正文训练图只展示 PLDM 摩擦任务的联合训练案例：蓝色折线显示六个 epoch 的预测损失，橙色散点显示两个实测时点的训练集 NRE；两个任务、两种训练方案及 Development 对照保留在附录。主图使用真实 PushT 推手位移配对轨迹，展示不同历史在相同当前观测与后续动作下对应不同未来；B 中三个子图分别说明未来辨别、匹配历史的收益和响应保真度。场景图片来自原始观测，潜空间点位与向量为概念示意。主图由 `design/benchmark_overview_pusher_response.pdf` 导出，复绘入口会同步到 `figures/protocol_overview.pdf`。多步预测图展示 Original 与冻结编码器方案的逐步归一化误差。
 
-`scripts/summarize_test_metrics.py` 从 136 次已保存的 Test 原始结果生成三项指标汇总；`generate_test_tables.py` 生成正文与附录的 Test 表格，`generate_results.py` 调用它并生成其他 Development 附录表格。`generate_figures.py` 生成协议示意图、多步预测图、数据与容量对照图，以及训练损失／条件响应图。它们不训练模型、不重新评测检查点。在仓库根目录运行：
+`scripts/summarize_test_metrics.py` 从 136 次已保存的 Test 原始结果生成三项指标汇总；`generate_test_tables.py` 生成正文与附录的 Test 表格，`generate_results.py` 调用它并生成其他 Development 附录表格。`generate_figures.py` 生成协议示意图、多步预测图、数据扩量与编码器冻结对照图，以及训练损失／条件响应图。它们不训练模型、不重新评测检查点。在仓库根目录运行：
 
 ```bash
 python scripts/summarize_test_metrics.py
@@ -47,7 +47,7 @@ python paper/generate_results.py
 python paper/generate_figures.py
 ```
 
-结果表读取 `docs/research/data/current_reference_test_v1/metrics.json`、`icl_training_study_v2.json`、`multistep_prediction_coverage_v2.json` 和 `model_capacity_scaling_v1/final_comparison.json`；训练图读取 `native_training_loss_v1/summary.csv` 与 `native_epoch_checkpoints_v1/summary.csv`。九任务 Test 主表与附录完整表依据 `current_reference_test_v1/metrics.json`；准确率与原 `summary.json` 保持一致，History 和 NRE 按同一检查点的原始 Test 结果汇总。多步图从 `multistep_prediction_coverage_v2_queries.json.gz` 复算逐时域误差比：各时域分别汇总预测误差与均值未来参照误差，再在检查点内取比值，最后对训练重复取均值。图中横轴为 rollout 第 1–5 步，每步对应 5 个仿真步。该曲线与先汇总所有时域再取比值的整体 `E/B` 不同。新图使用的数值、运行标识和区间保存于 `figures/experiment_plot_data.json`，可随脚本重新生成。
+结果表读取 `docs/research/data/current_reference_test_v1/metrics.json`、`icl_training_study_v2.json`、`multistep_prediction_coverage_v2.json` 和 `model_capacity_scaling_v1/final_comparison.json`；训练图读取 `native_training_loss_v1/summary.csv` 与 `native_epoch_checkpoints_v1/summary.csv`。Figure 3 的 Test 数据扩量端点读取 `figure3_data_scaling_test_v1/metrics.json`，其中 2k 端点使用已有权重补评，32k 端点复用主 Test 归档；编码器冻结对比读取 `current_reference_test_v1/metrics.json`。九任务 Test 主表与附录完整表依据 `current_reference_test_v1/metrics.json`；准确率与原 `summary.json` 保持一致，History 和 NRE 按同一检查点的原始 Test 结果汇总。多步图从 `multistep_prediction_coverage_v2_queries.json.gz` 复算逐时域误差比：各时域分别汇总预测误差与均值未来参照误差，再在检查点内取比值，最后对训练重复取均值。图中横轴为 rollout 第 1–5 步，每步对应 5 个仿真步。该曲线与先汇总所有时域再取比值的整体 `E/B` 不同。新图使用的数值、运行标识和区间保存于 `figures/experiment_plot_data.json`，可随脚本重新生成。
 
 全部图形生成需要 Matplotlib、NumPy，以及用于 SVG 导出的 Node.js、Playwright 和 Chromium；配置见 [图形说明](design/README.md)。编译论文直接使用已保存的 PDF 图，无需执行这些脚本。
 

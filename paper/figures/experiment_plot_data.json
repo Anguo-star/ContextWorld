@@ -188,72 +188,211 @@
     ]
   },
   "scaling": {
-    "split": "development",
+    "split": "test",
+    "data_source": "docs/research/data/figure3_data_scaling_test_v1/metrics.json",
+    "encoder_source": "docs/research/data/current_reference_test_v1/metrics.json",
     "data": [
       {
         "regime": "scratch",
         "pairs": 2048,
         "accuracy": 50.0,
         "n": 3,
-        "sd": 0.0
+        "sd": 0.0,
+        "runs": [
+          {
+            "id": "action_strength/lewm/scratch/scale_2k/s3072",
+            "seed": 3072,
+            "checkpoint": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/lewm-contextworld-v1/checkpoints/action_strength_lewm_joint_scratch_v1_s3072/weights_epoch_10.pt",
+            "checkpoint_sha256": "789ecf6060ccf0148c9527f7342864c0601269a10826ba3db146225be731626f",
+            "result": "docs/research/data/figure3_data_scaling_test_v1/results/scratch_s3072/test.json",
+            "result_sha256": "aca226af56798d1fc62e984c72a67ae53cc9067dac595af2a76e854731c27236",
+            "accuracy": 50.0,
+            "history": 51.3671875,
+            "nre": 0.9996019158926002,
+            "stable_repo": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/lewm-contextworld-v1/.contextworld/stable-worldmodel/c3dfc4431bfdba39ad05955752feca7939773103",
+            "stable_ref": "c3dfc4431bfdba39ad05955752feca7939773103",
+            "bundle_manifest_sha256": "81eb29d8eeaefb91750187831b9120b9241c78b4903047cd4b720a186c7f6d97",
+            "bundle_task_registry_sha256": "26b78ae7d3bbaa2c170080bc1eb8791582a9183e7d606322aaf6bae1b01dcbdd",
+            "test_payload_bytes": 67467739
+          },
+          {
+            "id": "action_strength/lewm/scratch/scale_2k/s3073",
+            "seed": 3073,
+            "checkpoint": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/lewm-contextworld-v1/checkpoints/action_strength_lewm_joint_scratch_v1_s3073/weights_epoch_10.pt",
+            "checkpoint_sha256": "5704bb4cfff9878917986b03f0a64c2d38cf86b9bc45aa5c81fa56cc0e0e555e",
+            "result": "docs/research/data/figure3_data_scaling_test_v1/results/scratch_s3073/test.json",
+            "result_sha256": "90a4651536b531d382b1743303e97610ebe0683ca8ab4b1d5fcfc04d1c24b1dd",
+            "accuracy": 50.0,
+            "history": 52.34375,
+            "nre": 0.9997774284710423,
+            "stable_repo": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/lewm-contextworld-v1/.contextworld/stable-worldmodel/c3dfc4431bfdba39ad05955752feca7939773103",
+            "stable_ref": "c3dfc4431bfdba39ad05955752feca7939773103",
+            "bundle_manifest_sha256": "81eb29d8eeaefb91750187831b9120b9241c78b4903047cd4b720a186c7f6d97",
+            "bundle_task_registry_sha256": "26b78ae7d3bbaa2c170080bc1eb8791582a9183e7d606322aaf6bae1b01dcbdd",
+            "test_payload_bytes": 67467739
+          },
+          {
+            "id": "action_strength/lewm/scratch/scale_2k/s3074",
+            "seed": 3074,
+            "checkpoint": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/lewm-contextworld-v1/checkpoints/action_strength_lewm_joint_scratch_v1_s3074/weights_epoch_10.pt",
+            "checkpoint_sha256": "a943a06f3aa7489ee6c9d72f08f802deec6a81678c1cd25d828472865fd3327e",
+            "result": "docs/research/data/figure3_data_scaling_test_v1/results/scratch_s3074/test.json",
+            "result_sha256": "4cb944c2ffab5dc59e11154be7318daa69f9d855be0c9ea4dca8dc8f3cb5ff57",
+            "accuracy": 50.0,
+            "history": 51.171875,
+            "nre": 0.9995063586226354,
+            "stable_repo": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/lewm-contextworld-v1/.contextworld/stable-worldmodel/c3dfc4431bfdba39ad05955752feca7939773103",
+            "stable_ref": "c3dfc4431bfdba39ad05955752feca7939773103",
+            "bundle_manifest_sha256": "81eb29d8eeaefb91750187831b9120b9241c78b4903047cd4b720a186c7f6d97",
+            "bundle_task_registry_sha256": "26b78ae7d3bbaa2c170080bc1eb8791582a9183e7d606322aaf6bae1b01dcbdd",
+            "test_payload_bytes": 67467739
+          }
+        ]
       },
       {
         "regime": "scratch",
         "pairs": 32768,
         "accuracy": 50.78125,
         "n": 1,
-        "sd": null
+        "sd": null,
+        "runs": [
+          {
+            "id": "action_strength/lewm/scratch/s3072",
+            "seed": 3072,
+            "checkpoint_sha256": "aa296d32cdd20bf817545f7feb027f4bdc5cd87ee99547bb990c433e8915bed1",
+            "result": "docs/research/data/current_reference_test_v1/results/action_strength/lewm/scratch/s3072/test.json",
+            "result_sha256": "8808995e9d3cf2193e525e8eee1aa4dceb5ec72febae7a3d3df3d0ed13e6f58b",
+            "accuracy": 50.78125,
+            "history": 79.1015625,
+            "nre": 0.974002618148429
+          }
+        ]
       },
       {
         "regime": "joint",
         "pairs": 2048,
-        "accuracy": 55.6640625,
+        "accuracy": 59.5703125,
         "n": 1,
-        "sd": null
-      },
-      {
-        "regime": "joint",
-        "pairs": 8192,
-        "accuracy": 82.421875,
-        "n": 1,
-        "sd": null
+        "sd": null,
+        "runs": [
+          {
+            "id": "action_strength/lewm/joint/scale_2k/s3072",
+            "seed": 3072,
+            "checkpoint": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/lewm-contextworld-v1/checkpoints/action_strength_lewm_init_form_pusht_lewm_baseline_seed3073_weights_s3072/weights_epoch_10.pt",
+            "checkpoint_sha256": "d2a9b7f8fec6aeada4647f830c7bba462d3298353a9055620a0a950623df9864",
+            "result": "docs/research/data/figure3_data_scaling_test_v1/results/joint_s3072/test.json",
+            "result_sha256": "da8a1f1665e5d3929b3a02cb9b6cce08375fc2baad13d91c302ffdd8e3a7d030",
+            "accuracy": 59.5703125,
+            "history": 83.0078125,
+            "nre": 0.8126867499528749,
+            "stable_repo": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/lewm-contextworld-v1/.contextworld/stable-worldmodel/c34a107e787133468369e08f8f3efa2a43db67a2",
+            "stable_ref": "c34a107e787133468369e08f8f3efa2a43db67a2",
+            "bundle_manifest_sha256": "81eb29d8eeaefb91750187831b9120b9241c78b4903047cd4b720a186c7f6d97",
+            "bundle_task_registry_sha256": "26b78ae7d3bbaa2c170080bc1eb8791582a9183e7d606322aaf6bae1b01dcbdd",
+            "test_payload_bytes": 67467739
+          }
+        ]
       },
       {
         "regime": "joint",
         "pairs": 32768,
-        "accuracy": 90.8203125,
+        "accuracy": 91.796875,
         "n": 1,
-        "sd": null
+        "sd": null,
+        "runs": [
+          {
+            "id": "action_strength/lewm/joint/s3072",
+            "seed": 3072,
+            "checkpoint_sha256": "e7c8fcb342c330beca0f7c7aff6582145a2039dd97797785651e7b63e9dd2ce2",
+            "result": "docs/research/data/current_reference_test_v1/results/action_strength/lewm/joint/s3072/test.json",
+            "result_sha256": "e088dceed862c68199cfd553c355921e4dc4fe6963d5f931103ef0d9e20e0fea",
+            "accuracy": 91.796875,
+            "history": 99.0234375,
+            "nre": 0.215190281117049
+          }
+        ]
       }
     ],
-    "capacity": [
+    "encoder": [
       {
         "task": "contact_friction",
-        "family": "lewm",
-        "small": 50.0,
-        "large": 49.8046875,
-        "delta": -0.1953125
-      },
-      {
-        "task": "motion_damping",
-        "family": "lewm",
-        "small": 49.8046875,
-        "large": 50.0,
-        "delta": 0.1953125
+        "family": "pldm",
+        "regime": "joint",
+        "accuracy": 50.0,
+        "n": 1,
+        "sd": null,
+        "runs": [
+          {
+            "id": "contact_friction/pldm/joint/s3072",
+            "seed": 3072,
+            "checkpoint_sha256": "49d95172e823ee185f6da1adaa5b294ca9bb1b7a711669761234d4cff5e2d2c1",
+            "result": "docs/research/data/current_reference_test_v1/results/contact_friction/pldm/joint/s3072/test.json",
+            "result_sha256": "7c920927c12a017298d92ca84d7486d38fabf48d53e4e6b1d7f577e8ba5501ab",
+            "accuracy": 50.0,
+            "history": 46.484375,
+            "nre": 1.0195516778956486
+          }
+        ]
       },
       {
         "task": "contact_friction",
         "family": "pldm",
-        "small": 50.1953125,
-        "large": 49.8046875,
-        "delta": -0.390625
+        "regime": "frozen",
+        "accuracy": 73.6328125,
+        "n": 1,
+        "sd": null,
+        "runs": [
+          {
+            "id": "contact_friction/pldm/frozen/s3072",
+            "seed": 3072,
+            "checkpoint_sha256": "9a9ee650ba7fd16ecaf9b4b04f94cc84e97d01fbaa94ac9c1d5008bd4585bfb4",
+            "result": "docs/research/data/current_reference_test_v1/results/contact_friction/pldm/frozen/s3072/test.json",
+            "result_sha256": "c6306dbb77f3e0e5de532188b62865b7d21f57d62e46a8c769554b17bb759f27",
+            "accuracy": 73.6328125,
+            "history": 83.59375,
+            "nre": 0.5951334982038576
+          }
+        ]
       },
       {
         "task": "motion_damping",
         "family": "pldm",
-        "small": 58.3984375,
-        "large": 50.390625,
-        "delta": -8.0078125
+        "regime": "joint",
+        "accuracy": 79.8828125,
+        "n": 1,
+        "sd": null,
+        "runs": [
+          {
+            "id": "motion_damping/pldm/joint/s3072",
+            "seed": 3072,
+            "checkpoint_sha256": "2f71a802a3d7bacf305c7e8257c2f76b526ab04ab2676d7ffe0ee6dbe94bcb66",
+            "result": "docs/research/data/current_reference_test_v1/results/motion_damping/pldm/joint/s3072/test.json",
+            "result_sha256": "87d06b79b79b5c4e31357270a25f4f895b5ebb0ed9e6d65d4206bf1436770741",
+            "accuracy": 79.8828125,
+            "history": 81.8359375,
+            "nre": 0.2369033846687058
+          }
+        ]
+      },
+      {
+        "task": "motion_damping",
+        "family": "pldm",
+        "regime": "frozen",
+        "accuracy": 54.4921875,
+        "n": 1,
+        "sd": null,
+        "runs": [
+          {
+            "id": "motion_damping/pldm/frozen/s3072",
+            "seed": 3072,
+            "checkpoint_sha256": "58229053b8b49e1e652ffcb172e33e53373411727c378c0a4cc745ad73cb99a6",
+            "result": "docs/research/data/current_reference_test_v1/results/motion_damping/pldm/frozen/s3072/test.json",
+            "result_sha256": "fadabaca4c23023f3d3ac85387a5c94d027e7bcb8647487561b8fafb4f1c5be3",
+            "accuracy": 54.4921875,
+            "history": 64.2578125,
+            "nre": 0.8673180771323961
+          }
+        ]
       }
     ]
   }
