@@ -117,12 +117,12 @@ def scaling_comparisons():
                                      accuracy=st['mean'], n=st['n'], sd=st['std'],
                                      runs=row['runs']))
     encoder_records = []
-    for task in ['contact_friction', 'motion_damping']:
+    for task in ['contact_friction', 'robot_arm_mass']:
         for regime in ['joint', 'frozen']:
             row, = [r for r in test['cells'] if r['task'] == task
-                    and r['family'] == 'pldm' and r['regime'] == regime]
+                    and r['family'] == 'lewm' and r['regime'] == regime]
             st = row['scores']['accuracy']
-            encoder_records.append(dict(task=task, family='pldm', regime=regime,
+            encoder_records.append(dict(task=task, family='lewm', regime=regime,
                                         accuracy=st['mean'], n=st['n'], sd=st['std'],
                                         runs=row['runs']))
     fig = plt.figure(figsize=(3.45, 3.25))
@@ -154,7 +154,7 @@ def scaling_comparisons():
          ['Mixed', 'Original → Mixed\n(Joint)'], ['2k pairs', '32k pairs'])
     bars(axes[1], [r['accuracy'] for r in encoder_records if r['regime'] == 'joint'],
          [r['accuracy'] for r in encoder_records if r['regime'] == 'frozen'],
-         ['Contact friction', 'Motion damping'], ['Joint', 'Frozen Encoder'])
+         ['Contact friction', 'Arm mass'], ['Joint', 'Frozen Encoder'])
     fig.text(.15, .99, '(a) Data scaling', fontsize=8, va='top')
     fig.text(.15, .49, '(b) Encoder freezing', fontsize=8, va='top')
     for ax, y in zip(axes, [.94, .44]):

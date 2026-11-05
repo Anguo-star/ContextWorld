@@ -344,12 +344,12 @@ These multi-step evaluations use extended action sequences and prediction horizo
 
 \subsection{Effects of Training Choices}
 \label{sec:training-effects}
-Freezing the pretrained visual encoder helps some tasks and hurts others. For PLDM, it improves contact friction Test accuracy from 50.00\% to 73.63\% relative to joint training, but reduces motion damping accuracy from 79.88\% to 54.49\% (Figure~\ref{fig:scaling-comparisons}b; Table~\ref{tab:test-results}). Each comparison holds the data, initialization, and training duration fixed. Because projectors and action encoders remain trainable, this intervention does not isolate a static target representation.
+Freezing the pretrained visual encoder helps some tasks and hurts others. For LeWM, it improves contact friction Test accuracy from 50.39\% to 86.13\% relative to joint training, but reduces arm mass accuracy from 87.30\% to 77.15\% (Figure~\ref{fig:scaling-comparisons}b; Table~\ref{tab:test-results}). Each comparison holds the data, initialization, and training duration fixed. Because projectors and action encoders remain trainable, this intervention does not isolate a static target representation.
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=\columnwidth]{figures/scaling_comparisons.pdf}
-\caption{\textbf{Data scaling and encoder freezing on Test.} (a) LeWM on pusher displacement with 2,048 versus 32,768 ContextWorld training pairs; original-environment data are unchanged. (b) PLDM joint or frozen-encoder fine-tuning from the same Original checkpoint within each task. Bars show accuracy (\%); dashed lines mark the 50\% reference. Training epochs are fixed. Full results and run counts appear in Table~\ref{tab:test-metrics-full} and Appendix~\ref{app:data-scale}.}
+\caption{\textbf{Data scaling and encoder freezing on Test.} Both panels evaluate LeWM. (a) Pusher displacement with 2,048 versus 32,768 ContextWorld training pairs; original-environment data are unchanged. (b) Joint or frozen-encoder fine-tuning from the same Original checkpoint within each task. Bars show accuracy (\%); dashed lines mark the 50\% reference. Training epochs are fixed. Full results and run counts appear in Table~\ref{tab:test-metrics-full} and Appendix~\ref{app:data-scale}.}
 \label{fig:scaling-comparisons}
 \end{figure}
 
