@@ -155,8 +155,8 @@ def scaling_comparisons():
     bars(axes[1], [r['accuracy'] for r in encoder_records if r['regime'] == 'joint'],
          [r['accuracy'] for r in encoder_records if r['regime'] == 'frozen'],
          ['Contact friction', 'Motion damping'], ['Joint', 'Frozen Encoder'])
-    fig.text(.15, .99, '(a) Data scaling: LeWM', fontsize=8, va='top')
-    fig.text(.15, .49, '(b) Encoder freezing: PLDM', fontsize=8, va='top')
+    fig.text(.15, .99, '(a) Data scaling', fontsize=8, va='top')
+    fig.text(.15, .49, '(b) Encoder freezing', fontsize=8, va='top')
     for ax, y in zip(axes, [.94, .44]):
         fig.legend(*ax.get_legend_handles_labels(), loc='upper left',
                    bbox_to_anchor=(.13, y), ncol=2, frameon=False, fontsize=7,
