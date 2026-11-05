@@ -35,8 +35,8 @@
     "error_diagnostics": "real-input predictions use privileged future observations; error at every depth is normalized by the same all-horizon target-mean energy; free-minus-real is a sensitivity contrast, not an additive causal decomposition"
   },
   "coverage": {
-    "evaluated_runs": 121,
-    "evaluated_combinations": 75,
+    "evaluated_runs": 136,
+    "evaluated_combinations": 86,
     "scenes_by_task": {
       "action_delay": [
         300
@@ -45,6 +45,9 @@
         256
       ],
       "contact_friction": [
+        256
+      ],
+      "cube_gripper_carry": [
         256
       ],
       "door": [
@@ -123,72 +126,6 @@
         "family": "dinowm",
         "regime": "frozen",
         "reason": "No matching strict pixels-and-actions checkpoint in the published training comparison"
-      },
-      {
-        "task": "cube_gripper_carry",
-        "family": "lewm",
-        "regime": "original",
-        "reason": "Test multi-step panel unavailable: source-state replay tolerance not met"
-      },
-      {
-        "task": "cube_gripper_carry",
-        "family": "lewm",
-        "regime": "scratch",
-        "reason": "Test multi-step panel unavailable: source-state replay tolerance not met"
-      },
-      {
-        "task": "cube_gripper_carry",
-        "family": "lewm",
-        "regime": "joint",
-        "reason": "Test multi-step panel unavailable: source-state replay tolerance not met"
-      },
-      {
-        "task": "cube_gripper_carry",
-        "family": "lewm",
-        "regime": "frozen",
-        "reason": "Test multi-step panel unavailable: source-state replay tolerance not met"
-      },
-      {
-        "task": "cube_gripper_carry",
-        "family": "pldm",
-        "regime": "original",
-        "reason": "Test multi-step panel unavailable: source-state replay tolerance not met"
-      },
-      {
-        "task": "cube_gripper_carry",
-        "family": "pldm",
-        "regime": "scratch",
-        "reason": "Test multi-step panel unavailable: source-state replay tolerance not met"
-      },
-      {
-        "task": "cube_gripper_carry",
-        "family": "pldm",
-        "regime": "joint",
-        "reason": "Test multi-step panel unavailable: source-state replay tolerance not met"
-      },
-      {
-        "task": "cube_gripper_carry",
-        "family": "pldm",
-        "regime": "frozen",
-        "reason": "Test multi-step panel unavailable: source-state replay tolerance not met"
-      },
-      {
-        "task": "cube_gripper_carry",
-        "family": "dinowm",
-        "regime": "original",
-        "reason": "Test multi-step panel unavailable: source-state replay tolerance not met"
-      },
-      {
-        "task": "cube_gripper_carry",
-        "family": "dinowm",
-        "regime": "scratch",
-        "reason": "Test multi-step panel unavailable: source-state replay tolerance not met"
-      },
-      {
-        "task": "cube_gripper_carry",
-        "family": "dinowm",
-        "regime": "frozen",
-        "reason": "Test multi-step panel unavailable: source-state replay tolerance not met"
       },
       {
         "task": "door",
@@ -3252,6 +3189,410 @@
           ]
         }
       }
+    },
+    {
+      "task": "cube_gripper_carry",
+      "family": "dinowm",
+      "regime": "frozen",
+      "score": -1028.6319823997935,
+      "ci95": [
+        -1058.5301029462598,
+        -998.2439455658581
+      ],
+      "training_repetitions": 1,
+      "training_sd": null,
+      "training_seeds": [
+        3073
+      ],
+      "scenes": 256,
+      "run_ids": [
+        "cube_gripper_carry/dinowm/frozen/s3073"
+      ],
+      "panel_sha256": "ea96b50425425214ee5bf4f218bf87d035b1cadf80c09fc791a1fa27e4980cdb",
+      "bootstrap_clusters": 256,
+      "complete_error_over_reference": 11.286319823997935,
+      "complete_error_over_reference_ci95": [
+        10.98243945565858,
+        11.585301029462599
+      ],
+      "normalized_history_gain": 0.14015303516254426,
+      "normalized_history_gain_ci95": [
+        0.12742109069572818,
+        0.1526163149842374
+      ],
+      "response_nre": 0.9505520754189598,
+      "response_nre_ci95": [
+        0.946275374271695,
+        0.9547978844127302
+      ]
+    },
+    {
+      "task": "cube_gripper_carry",
+      "family": "dinowm",
+      "regime": "original",
+      "score": -3983.742584857296,
+      "ci95": [
+        -4105.070543993933,
+        -3866.202183490546
+      ],
+      "training_repetitions": 1,
+      "training_sd": null,
+      "training_seeds": [
+        3073
+      ],
+      "scenes": 256,
+      "run_ids": [
+        "cube_gripper_carry/dinowm/original/s3073"
+      ],
+      "panel_sha256": "ea96b50425425214ee5bf4f218bf87d035b1cadf80c09fc791a1fa27e4980cdb",
+      "bootstrap_clusters": 256,
+      "complete_error_over_reference": 40.83742584857296,
+      "complete_error_over_reference_ci95": [
+        39.66202183490546,
+        42.05070543993933
+      ],
+      "normalized_history_gain": -0.0017489688149122744,
+      "normalized_history_gain_ci95": [
+        -0.0030141677630343222,
+        -0.0004843005960809274
+      ],
+      "response_nre": 1.0019963774056746,
+      "response_nre_ci95": [
+        1.0012886850837173,
+        1.0026875604208907
+      ]
+    },
+    {
+      "task": "cube_gripper_carry",
+      "family": "dinowm",
+      "regime": "scratch",
+      "score": -1040.2475828198476,
+      "ci95": [
+        -1070.8736938063562,
+        -1008.8304398139695
+      ],
+      "training_repetitions": 1,
+      "training_sd": null,
+      "training_seeds": [
+        3072
+      ],
+      "scenes": 256,
+      "run_ids": [
+        "cube_gripper_carry/dinowm/scratch/s3072"
+      ],
+      "panel_sha256": "ea96b50425425214ee5bf4f218bf87d035b1cadf80c09fc791a1fa27e4980cdb",
+      "bootstrap_clusters": 256,
+      "complete_error_over_reference": 11.402475828198476,
+      "complete_error_over_reference_ci95": [
+        11.088304398139694,
+        11.708736938063561
+      ],
+      "normalized_history_gain": 0.1272045288930656,
+      "normalized_history_gain_ci95": [
+        0.1133912850361155,
+        0.14196882345016099
+      ],
+      "response_nre": 0.954315237465938,
+      "response_nre_ci95": [
+        0.9495376601125294,
+        0.9588635888962184
+      ]
+    },
+    {
+      "task": "cube_gripper_carry",
+      "family": "lewm",
+      "regime": "frozen",
+      "score": -1014.8689651515089,
+      "ci95": [
+        -1100.8108795955102,
+        -936.2774546446097
+      ],
+      "training_repetitions": 1,
+      "training_sd": null,
+      "training_seeds": [
+        3072
+      ],
+      "scenes": 256,
+      "run_ids": [
+        "cube_gripper_carry/lewm/frozen/s3072"
+      ],
+      "panel_sha256": "ea96b50425425214ee5bf4f218bf87d035b1cadf80c09fc791a1fa27e4980cdb",
+      "bootstrap_clusters": 256,
+      "complete_error_over_reference": 11.148689651515088,
+      "complete_error_over_reference_ci95": [
+        10.362774546446097,
+        12.008108795955103
+      ],
+      "normalized_history_gain": 0.26602200905127815,
+      "normalized_history_gain_ci95": [
+        0.23748298053499842,
+        0.29654963702718684
+      ],
+      "response_nre": 0.8972330676295338,
+      "response_nre_ci95": [
+        0.8871481433789755,
+        0.9071087074552686
+      ]
+    },
+    {
+      "task": "cube_gripper_carry",
+      "family": "lewm",
+      "regime": "joint",
+      "score": -1114.8316795277412,
+      "ci95": [
+        -1281.5657002563185,
+        -984.9659870057948
+      ],
+      "training_repetitions": 1,
+      "training_sd": null,
+      "training_seeds": [
+        3072
+      ],
+      "scenes": 256,
+      "run_ids": [
+        "cube_gripper_carry/lewm/joint/s3072"
+      ],
+      "panel_sha256": "ea96b50425425214ee5bf4f218bf87d035b1cadf80c09fc791a1fa27e4980cdb",
+      "bootstrap_clusters": 256,
+      "complete_error_over_reference": 12.148316795277413,
+      "complete_error_over_reference_ci95": [
+        10.849659870057948,
+        13.815657002563185
+      ],
+      "normalized_history_gain": 0.0003554194165493953,
+      "normalized_history_gain_ci95": [
+        0.0001738507846842147,
+        0.0005665741200960421
+      ],
+      "response_nre": 0.9998295116469411,
+      "response_nre_ci95": [
+        0.9997246331630828,
+        0.9999198158139776
+      ]
+    },
+    {
+      "task": "cube_gripper_carry",
+      "family": "lewm",
+      "regime": "original",
+      "score": -964.7374067024361,
+      "ci95": [
+        -1063.408327546233,
+        -880.6955018414394
+      ],
+      "training_repetitions": 3,
+      "training_sd": 146.55865351433107,
+      "training_seeds": [
+        3072,
+        3073,
+        3074
+      ],
+      "scenes": 256,
+      "run_ids": [
+        "cube_gripper_carry/lewm/original/s3072",
+        "cube_gripper_carry/lewm/original/s3073",
+        "cube_gripper_carry/lewm/original/s3074"
+      ],
+      "panel_sha256": "ea96b50425425214ee5bf4f218bf87d035b1cadf80c09fc791a1fa27e4980cdb",
+      "bootstrap_clusters": 256,
+      "complete_error_over_reference": 10.64737406702436,
+      "complete_error_over_reference_ci95": [
+        9.806955018414394,
+        11.63408327546233
+      ],
+      "normalized_history_gain": 0.0784905415692198,
+      "normalized_history_gain_ci95": [
+        0.07241934125102124,
+        0.08470126187350047
+      ],
+      "response_nre": 0.9627553640979581,
+      "response_nre_ci95": [
+        0.9598151419571433,
+        0.9656600753284094
+      ]
+    },
+    {
+      "task": "cube_gripper_carry",
+      "family": "lewm",
+      "regime": "scratch",
+      "score": -16979.425792630886,
+      "ci95": [
+        -22180.37166457665,
+        -13124.99756481008
+      ],
+      "training_repetitions": 1,
+      "training_sd": null,
+      "training_seeds": [
+        3072
+      ],
+      "scenes": 256,
+      "run_ids": [
+        "cube_gripper_carry/lewm/scratch/s3072"
+      ],
+      "panel_sha256": "ea96b50425425214ee5bf4f218bf87d035b1cadf80c09fc791a1fa27e4980cdb",
+      "bootstrap_clusters": 256,
+      "complete_error_over_reference": 170.79425792630886,
+      "complete_error_over_reference_ci95": [
+        132.24997564810081,
+        222.8037166457665
+      ],
+      "normalized_history_gain": 6.509411350573869e-05,
+      "normalized_history_gain_ci95": [
+        -0.00012490623357357028,
+        0.0002851174949612589
+      ],
+      "response_nre": 0.9999727224171431,
+      "response_nre_ci95": [
+        0.9998630721297719,
+        1.0000674856508638
+      ]
+    },
+    {
+      "task": "cube_gripper_carry",
+      "family": "pldm",
+      "regime": "frozen",
+      "score": -2468.0582922992617,
+      "ci95": [
+        -3279.3185352354885,
+        -1913.8349783842586
+      ],
+      "training_repetitions": 1,
+      "training_sd": null,
+      "training_seeds": [
+        3072
+      ],
+      "scenes": 256,
+      "run_ids": [
+        "cube_gripper_carry/pldm/frozen/s3072"
+      ],
+      "panel_sha256": "ea96b50425425214ee5bf4f218bf87d035b1cadf80c09fc791a1fa27e4980cdb",
+      "bootstrap_clusters": 256,
+      "complete_error_over_reference": 25.680582922992617,
+      "complete_error_over_reference_ci95": [
+        20.138349783842585,
+        33.79318535235488
+      ],
+      "normalized_history_gain": 0.1146155719118355,
+      "normalized_history_gain_ci95": [
+        0.05689713153894213,
+        0.1807800899450474
+      ],
+      "response_nre": 0.9792085019380231,
+      "response_nre_ci95": [
+        0.9400725849448374,
+        1.0176133405985148
+      ]
+    },
+    {
+      "task": "cube_gripper_carry",
+      "family": "pldm",
+      "regime": "joint",
+      "score": -2519.1621186735083,
+      "ci95": [
+        -2816.9008544210224,
+        -2262.853471230395
+      ],
+      "training_repetitions": 1,
+      "training_sd": null,
+      "training_seeds": [
+        3072
+      ],
+      "scenes": 256,
+      "run_ids": [
+        "cube_gripper_carry/pldm/joint/s3072"
+      ],
+      "panel_sha256": "ea96b50425425214ee5bf4f218bf87d035b1cadf80c09fc791a1fa27e4980cdb",
+      "bootstrap_clusters": 256,
+      "complete_error_over_reference": 26.191621186735084,
+      "complete_error_over_reference_ci95": [
+        23.62853471230395,
+        29.169008544210225
+      ],
+      "normalized_history_gain": 0.001784205445382107,
+      "normalized_history_gain_ci95": [
+        0.0007456661105854441,
+        0.002882652668810386
+      ],
+      "response_nre": 0.9992061992718444,
+      "response_nre_ci95": [
+        0.9986634367902262,
+        0.9997252424816543
+      ]
+    },
+    {
+      "task": "cube_gripper_carry",
+      "family": "pldm",
+      "regime": "original",
+      "score": -1099.3502591889828,
+      "ci95": [
+        -1432.7851120368282,
+        -880.9098840158889
+      ],
+      "training_repetitions": 3,
+      "training_sd": 307.3957600566984,
+      "training_seeds": [
+        3072,
+        3073,
+        3074
+      ],
+      "scenes": 256,
+      "run_ids": [
+        "cube_gripper_carry/pldm/original/s3072",
+        "cube_gripper_carry/pldm/original/s3073",
+        "cube_gripper_carry/pldm/original/s3074"
+      ],
+      "panel_sha256": "ea96b50425425214ee5bf4f218bf87d035b1cadf80c09fc791a1fa27e4980cdb",
+      "bootstrap_clusters": 256,
+      "complete_error_over_reference": 11.993502591889827,
+      "complete_error_over_reference_ci95": [
+        9.809098840158889,
+        15.327851120368281
+      ],
+      "normalized_history_gain": 0.021888502409905124,
+      "normalized_history_gain_ci95": [
+        0.002031321398666292,
+        0.04514731808299141
+      ],
+      "response_nre": 0.9928843888398333,
+      "response_nre_ci95": [
+        0.9813304932564153,
+        1.0032189099130537
+      ]
+    },
+    {
+      "task": "cube_gripper_carry",
+      "family": "pldm",
+      "regime": "scratch",
+      "score": -13768.65912973264,
+      "ci95": [
+        -16594.11548037995,
+        -11456.378883844738
+      ],
+      "training_repetitions": 1,
+      "training_sd": null,
+      "training_seeds": [
+        3072
+      ],
+      "scenes": 256,
+      "run_ids": [
+        "cube_gripper_carry/pldm/scratch/s3072"
+      ],
+      "panel_sha256": "ea96b50425425214ee5bf4f218bf87d035b1cadf80c09fc791a1fa27e4980cdb",
+      "bootstrap_clusters": 256,
+      "complete_error_over_reference": 138.6865912973264,
+      "complete_error_over_reference_ci95": [
+        115.56378883844738,
+        166.94115480379952
+      ],
+      "normalized_history_gain": -0.002440634844794462,
+      "normalized_history_gain_ci95": [
+        -0.005715359671907332,
+        0.0012119967268728207
+      ],
+      "response_nre": 1.0015028454876356,
+      "response_nre_ci95": [
+        0.9997455085495688,
+        1.003119325039113
+      ]
     },
     {
       "task": "door",
@@ -9853,6 +10194,201 @@
       "weights_unchanged": true
     },
     {
+      "id": "cube_gripper_carry/dinowm/frozen/s3073",
+      "task": "cube_gripper_carry",
+      "family": "dinowm",
+      "regime": "frozen",
+      "training_seed": 3073,
+      "checkpoint_sha256": "009ae0366585b9d449a9999218f5a0d1dd738c35349e8ad94b66c822227a2442",
+      "panel_sha256": "ea96b50425425214ee5bf4f218bf87d035b1cadf80c09fc791a1fa27e4980cdb",
+      "receipt_sha256": "93529afa3481d5d6364a153ea8f44473a3c297bbf14996b75a77121fd2dd3b48",
+      "data_version": "multistep_test_v1",
+      "score": -1028.6319823997935,
+      "weights_unchanged": true
+    },
+    {
+      "id": "cube_gripper_carry/dinowm/original/s3073",
+      "task": "cube_gripper_carry",
+      "family": "dinowm",
+      "regime": "original",
+      "training_seed": 3073,
+      "checkpoint_sha256": "dcb65a10f6328290cf74b25b4044bd8c5b26569eb49af27fc221bfef25923780",
+      "panel_sha256": "ea96b50425425214ee5bf4f218bf87d035b1cadf80c09fc791a1fa27e4980cdb",
+      "receipt_sha256": "6b44e7ff6555e0ebb8e95951989f2f11ec39640b523b57658d60e14df805e2fe",
+      "data_version": "multistep_test_v1",
+      "score": -3983.742584857296,
+      "weights_unchanged": true
+    },
+    {
+      "id": "cube_gripper_carry/dinowm/scratch/s3072",
+      "task": "cube_gripper_carry",
+      "family": "dinowm",
+      "regime": "scratch",
+      "training_seed": 3072,
+      "checkpoint_sha256": "1506fa3b8074dafda3149b797fbc31276cb864ed01d18b9361e523a07f00e8a6",
+      "panel_sha256": "ea96b50425425214ee5bf4f218bf87d035b1cadf80c09fc791a1fa27e4980cdb",
+      "receipt_sha256": "0402d3db3ca3a52be84741c645a39d5f49381fe251386578a4633bb7f0ad06cc",
+      "data_version": "multistep_test_v1",
+      "score": -1040.2475828198476,
+      "weights_unchanged": true
+    },
+    {
+      "id": "cube_gripper_carry/lewm/frozen/s3072",
+      "task": "cube_gripper_carry",
+      "family": "lewm",
+      "regime": "frozen",
+      "training_seed": 3072,
+      "checkpoint_sha256": "610a005d05712f9bf3defe88e911cb63a75411ba2c439de1337f8980a50305c4",
+      "panel_sha256": "ea96b50425425214ee5bf4f218bf87d035b1cadf80c09fc791a1fa27e4980cdb",
+      "receipt_sha256": "08c12349b669dea219bab1fb50253a94ca5734e67880844dbc0e156eb226774a",
+      "data_version": "multistep_test_v1",
+      "score": -1014.8689651515089,
+      "weights_unchanged": true
+    },
+    {
+      "id": "cube_gripper_carry/lewm/joint/s3072",
+      "task": "cube_gripper_carry",
+      "family": "lewm",
+      "regime": "joint",
+      "training_seed": 3072,
+      "checkpoint_sha256": "f800237f2b151b7b2f14972bcc2af8d78ead6e226b36f16ed1fe61d599e40496",
+      "panel_sha256": "ea96b50425425214ee5bf4f218bf87d035b1cadf80c09fc791a1fa27e4980cdb",
+      "receipt_sha256": "c76ac1d4c64d5977b75776ef84fa8cc618e66cefb9194a440bff3de150a2285e",
+      "data_version": "multistep_test_v1",
+      "score": -1114.8316795277412,
+      "weights_unchanged": true
+    },
+    {
+      "id": "cube_gripper_carry/lewm/original/s3072",
+      "task": "cube_gripper_carry",
+      "family": "lewm",
+      "regime": "original",
+      "training_seed": 3072,
+      "checkpoint_sha256": "c7407e0df2729467be74932080ba07930a22942f94c9493b69c2c369977556ec",
+      "panel_sha256": "ea96b50425425214ee5bf4f218bf87d035b1cadf80c09fc791a1fa27e4980cdb",
+      "receipt_sha256": "20a814e2306ea75041c770cab6fa22c926072e6435f0bd947cb606c1b622c533",
+      "data_version": "multistep_test_v1",
+      "score": -870.2174322000174,
+      "weights_unchanged": true
+    },
+    {
+      "id": "cube_gripper_carry/lewm/original/s3073",
+      "task": "cube_gripper_carry",
+      "family": "lewm",
+      "regime": "original",
+      "training_seed": 3073,
+      "checkpoint_sha256": "d10f75cc62e8de0aab21ee486719127cb593bb5ed6a86902f2a6ad213d8ba0d8",
+      "panel_sha256": "ea96b50425425214ee5bf4f218bf87d035b1cadf80c09fc791a1fa27e4980cdb",
+      "receipt_sha256": "8d74bfc7cd38de757b68deaf6409bcead8e762a9cde55ceb138c4fe542ce86ab",
+      "data_version": "multistep_test_v1",
+      "score": -1133.5659743310619,
+      "weights_unchanged": true
+    },
+    {
+      "id": "cube_gripper_carry/lewm/original/s3074",
+      "task": "cube_gripper_carry",
+      "family": "lewm",
+      "regime": "original",
+      "training_seed": 3074,
+      "checkpoint_sha256": "b574dd80325163b275445715a673f1542f444e5bd763d74aebda9bdf8964be4b",
+      "panel_sha256": "ea96b50425425214ee5bf4f218bf87d035b1cadf80c09fc791a1fa27e4980cdb",
+      "receipt_sha256": "bf2680208969acfc9f63664c168c08367bf17dcfe1fd439393b7a2996c96d18a",
+      "data_version": "multistep_test_v1",
+      "score": -890.4288135762293,
+      "weights_unchanged": true
+    },
+    {
+      "id": "cube_gripper_carry/lewm/scratch/s3072",
+      "task": "cube_gripper_carry",
+      "family": "lewm",
+      "regime": "scratch",
+      "training_seed": 3072,
+      "checkpoint_sha256": "d09b23a91747229e57e2b9cf7d474ff50c8876885748d5f22f24d3b522a90a5c",
+      "panel_sha256": "ea96b50425425214ee5bf4f218bf87d035b1cadf80c09fc791a1fa27e4980cdb",
+      "receipt_sha256": "0f17c310e714ba1d2f8ca251a63271de0d9614d4b7dfac8d3a9f9e7194c9ba8f",
+      "data_version": "multistep_test_v1",
+      "score": -16979.425792630886,
+      "weights_unchanged": true
+    },
+    {
+      "id": "cube_gripper_carry/pldm/frozen/s3072",
+      "task": "cube_gripper_carry",
+      "family": "pldm",
+      "regime": "frozen",
+      "training_seed": 3072,
+      "checkpoint_sha256": "141343ab42c552ed4228254d59afa4aad8eb9c2afdd5948653b0768a444b7857",
+      "panel_sha256": "ea96b50425425214ee5bf4f218bf87d035b1cadf80c09fc791a1fa27e4980cdb",
+      "receipt_sha256": "4ab3318412a47a23c25f4f72afff59e5e283d322ed17470bb6324df00fa45dc9",
+      "data_version": "multistep_test_v1",
+      "score": -2468.0582922992617,
+      "weights_unchanged": true
+    },
+    {
+      "id": "cube_gripper_carry/pldm/joint/s3072",
+      "task": "cube_gripper_carry",
+      "family": "pldm",
+      "regime": "joint",
+      "training_seed": 3072,
+      "checkpoint_sha256": "99a187000b07b04d74844de4f9a1cf0e999df799dfc4e209bba8077d920708dd",
+      "panel_sha256": "ea96b50425425214ee5bf4f218bf87d035b1cadf80c09fc791a1fa27e4980cdb",
+      "receipt_sha256": "897df3c006c786bc1a25315ca6dfc20935b78e353e57caa99d1a71cb347aa599",
+      "data_version": "multistep_test_v1",
+      "score": -2519.1621186735083,
+      "weights_unchanged": true
+    },
+    {
+      "id": "cube_gripper_carry/pldm/original/s3072",
+      "task": "cube_gripper_carry",
+      "family": "pldm",
+      "regime": "original",
+      "training_seed": 3072,
+      "checkpoint_sha256": "9da51fcddcde4c8675c5cda60cf595e996899afbac902a35f93f93684bf05044",
+      "panel_sha256": "ea96b50425425214ee5bf4f218bf87d035b1cadf80c09fc791a1fa27e4980cdb",
+      "receipt_sha256": "13aecceb6cc44c0d7d349790fba985ebbbba2c1eccf688e57396b5101f9f4c27",
+      "data_version": "multistep_test_v1",
+      "score": -1308.9041999809433,
+      "weights_unchanged": true
+    },
+    {
+      "id": "cube_gripper_carry/pldm/original/s3073",
+      "task": "cube_gripper_carry",
+      "family": "pldm",
+      "regime": "original",
+      "training_seed": 3073,
+      "checkpoint_sha256": "9212dda85d4e6cb9ecb45f9916a4eac6ff6531cba6b39641210c4f23d757ebc6",
+      "panel_sha256": "ea96b50425425214ee5bf4f218bf87d035b1cadf80c09fc791a1fa27e4980cdb",
+      "receipt_sha256": "3fa9fe9c865f26891273388988aa0818a3b009820df610f06e234c8eb740529c",
+      "data_version": "multistep_test_v1",
+      "score": -1242.681153893557,
+      "weights_unchanged": true
+    },
+    {
+      "id": "cube_gripper_carry/pldm/original/s3074",
+      "task": "cube_gripper_carry",
+      "family": "pldm",
+      "regime": "original",
+      "training_seed": 3074,
+      "checkpoint_sha256": "70f665a311c2a73c7b88ee8f672e9bad462accc2865a861794bd868dcfa80a19",
+      "panel_sha256": "ea96b50425425214ee5bf4f218bf87d035b1cadf80c09fc791a1fa27e4980cdb",
+      "receipt_sha256": "fd8b697c7b06f9a7173acfb8e5c846bf27b1d1868186798eb650dced6c7bfcc9",
+      "data_version": "multistep_test_v1",
+      "score": -746.465423692448,
+      "weights_unchanged": true
+    },
+    {
+      "id": "cube_gripper_carry/pldm/scratch/s3072",
+      "task": "cube_gripper_carry",
+      "family": "pldm",
+      "regime": "scratch",
+      "training_seed": 3072,
+      "checkpoint_sha256": "acff28a8c08d1052416844dbea0446b06e4b2f58f5e67462c80da6bff03eb4b5",
+      "panel_sha256": "ea96b50425425214ee5bf4f218bf87d035b1cadf80c09fc791a1fa27e4980cdb",
+      "receipt_sha256": "d9af1bda938f4f31035402ffff534ae4a0909a4748d39c90c7aa6134968efabb",
+      "data_version": "multistep_test_v1",
+      "score": -13768.65912973264,
+      "weights_unchanged": true
+    },
+    {
       "id": "door/dinowm/original/s3073",
       "task": "door",
       "family": "dinowm",
@@ -10945,72 +11481,11 @@
       "weights_unchanged": true
     }
   ],
-  "missing": [
-    {
-      "id": "cube_gripper_carry/dinowm/frozen/s3073",
-      "reason": "Test multi-step panel unavailable: source-state replay tolerance not met"
-    },
-    {
-      "id": "cube_gripper_carry/dinowm/original/s3073",
-      "reason": "Test multi-step panel unavailable: source-state replay tolerance not met"
-    },
-    {
-      "id": "cube_gripper_carry/dinowm/scratch/s3072",
-      "reason": "Test multi-step panel unavailable: source-state replay tolerance not met"
-    },
-    {
-      "id": "cube_gripper_carry/lewm/frozen/s3072",
-      "reason": "Test multi-step panel unavailable: source-state replay tolerance not met"
-    },
-    {
-      "id": "cube_gripper_carry/lewm/joint/s3072",
-      "reason": "Test multi-step panel unavailable: source-state replay tolerance not met"
-    },
-    {
-      "id": "cube_gripper_carry/lewm/original/s3072",
-      "reason": "Test multi-step panel unavailable: source-state replay tolerance not met"
-    },
-    {
-      "id": "cube_gripper_carry/lewm/original/s3073",
-      "reason": "Test multi-step panel unavailable: source-state replay tolerance not met"
-    },
-    {
-      "id": "cube_gripper_carry/lewm/original/s3074",
-      "reason": "Test multi-step panel unavailable: source-state replay tolerance not met"
-    },
-    {
-      "id": "cube_gripper_carry/lewm/scratch/s3072",
-      "reason": "Test multi-step panel unavailable: source-state replay tolerance not met"
-    },
-    {
-      "id": "cube_gripper_carry/pldm/frozen/s3072",
-      "reason": "Test multi-step panel unavailable: source-state replay tolerance not met"
-    },
-    {
-      "id": "cube_gripper_carry/pldm/joint/s3072",
-      "reason": "Test multi-step panel unavailable: source-state replay tolerance not met"
-    },
-    {
-      "id": "cube_gripper_carry/pldm/original/s3072",
-      "reason": "Test multi-step panel unavailable: source-state replay tolerance not met"
-    },
-    {
-      "id": "cube_gripper_carry/pldm/original/s3073",
-      "reason": "Test multi-step panel unavailable: source-state replay tolerance not met"
-    },
-    {
-      "id": "cube_gripper_carry/pldm/original/s3074",
-      "reason": "Test multi-step panel unavailable: source-state replay tolerance not met"
-    },
-    {
-      "id": "cube_gripper_carry/pldm/scratch/s3072",
-      "reason": "Test multi-step panel unavailable: source-state replay tolerance not met"
-    }
-  ],
+  "missing": [],
   "query_records": {
     "path": "summary_queries.json.gz",
-    "sha256": "6f802d135c7f9b3453a6258607a4a5b8823afa23ef1f6660ef1492f14278f255",
+    "sha256": "34ce4f6a0a7790223b4085f72501be717d422e7dded7beb0692275738293421b",
     "format": "gzip-compressed JSON keyed by run id",
-    "count": 33176
+    "count": 37016
   }
 }

@@ -1,12 +1,12 @@
 # Multi-step Test prediction results
 
-`summary.json` contains 121 frozen-checkpoint runs and 75 model/task/scheme combinations across eight tasks. `summary_queries.json.gz` contains 33,176 per-query energy records; `summary.csv` is the corresponding row summary. All scores use Test panels and the checkpoints registered for the main Test task comparison.
+`summary.json`, `summary.csv`, and `summary_queries.json.gz` contain 136 registered checkpoint runs and 86 model/task/scheme settings across nine Test tasks. The 13 unavailable model settings in `coverage.unavailable_combinations` reflect untrained or unregistered schemes; `missing` is empty.
 
-Cube gripper carry has 15 registered checkpoints (11 combinations), but no multi-step score: its Test panel did not pass the source-state replay tolerance. The `missing` entries and `coverage.unavailable_combinations` in `summary.json` record this gap. Cube's main task-query Test metrics are separate and remain available.
+`models.json`, `protocol.json`, `provenance.json`, `panel_checks/`, and `receipts/` record checkpoint, panel, root-check, and frozen inference identities.
 
-`models.json`, `protocol.json`, and `provenance.json` identify the checkpoints, panel manifests, scoring code, frozen-state receipts, and source checks. `runner_free.py` records the free-rollout evaluation command used for the final subset; earlier completed runs also include optional full-observation diagnostics. The paper's multi-step metrics use only free rollouts.
+For Cube gripper carry, `cube_replay/` contains the coherent Test source replay builder, 256 scene receipts, panel manifest, and full replay measurements. Its root check is in `panel_checks/cube_gripper_carry.json`. The registered Test source identities and paired constraints are retained. The original source pixels/states were not exactly replayed; the measurement files record that diagnostic. This archive does not claim exact reproduction of the original source generation environment. See `cube_replay/README.md` for dependencies and the portable build command.
 
-To recompute the aggregate scores from the saved per-scene predictions, restore the Test panel and prediction directories at the runtime paths recorded in `provenance.json` (under `/tmp/cw-test-multistep-20261028`), with the registered checkpoints and the Python environment available, then run from the ContextWorld repository:
+`summary_queries.json.gz` contains 37,016 per-query energy records. To recompute aggregate scores from saved per-scene predictions, restore the Test panel and prediction directories at the paths recorded in `provenance.json`, then run from the ContextWorld repository:
 
 ```bash
 python scripts/multistep_prediction_score.py \
@@ -18,4 +18,4 @@ python scripts/multistep_prediction_score.py \
   --split-query-records
 ```
 
-The archived query energies and summary can be inspected without those runtime directories. Re-running the scorer from raw predictions requires them; it does not train models or run inference.
+The archived summaries can be inspected without those runtime directories. Re-running the scorer from raw predictions requires them and does not train or run inference.

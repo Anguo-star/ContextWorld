@@ -25,7 +25,7 @@
 | [数据生成方法](../docs/Data_Generation.md) | 轨迹与配对构建、数据划分及方法附录细节 |
 | [模型训练说明](../docs/StableWM_Training.md) | 训练入口、初始化、冻结模块及实验设置 |
 
-上述文档链接到的结果文件和图表均保存在仓库中。制作表格或绘图时，使用对应的 [JSON／CSV 结果](../docs/research/data/)，无需搬运原始轨迹、模型权重或重新运行训练。九任务完整 Test 准确率、History 与 NRE 见[三项指标汇总](../docs/research/data/current_reference_test_v1/metrics.md)，并提供 [CSV](../docs/research/data/current_reference_test_v1/metrics.csv) 与 [JSON](../docs/research/data/current_reference_test_v1/metrics.json)；正式评测统一使用 Test，训练过程分析使用 Training；Development 用于方法与检查点选择。多步 Test 结果覆盖八个任务、121 次运行；Gripper carry 的三个 Test 主指标完整，多步结果因轨迹回放一致性检查未通过而未报告。
+上述文档链接到的结果文件和图表均保存在仓库中。制作表格或绘图时，使用对应的 [JSON／CSV 结果](../docs/research/data/)，无需搬运原始轨迹、模型权重或重新运行训练。九任务完整 Test 准确率、History 与 NRE 见[三项指标汇总](../docs/research/data/current_reference_test_v1/metrics.md)，并提供 [CSV](../docs/research/data/current_reference_test_v1/metrics.csv) 与 [JSON](../docs/research/data/current_reference_test_v1/metrics.json)；正式评测统一使用 Test，训练过程分析使用 Training；Development 用于方法与检查点选择。多步 Test 结果同样覆盖九个任务、136 次运行和 86 个模型／任务／训练方案组合，见[完整汇总](../docs/research/data/multistep_prediction_test_v1/summary.csv)。Gripper carry 使用全部 256 个 Test 来源样本连续重渲染历史与多步未来；配对约束及与原始图像的重放差异均有[可复现记录](../docs/research/data/multistep_prediction_test_v1/cube_replay/README.md)，三个主指标仍使用原始 Test 数据。
 
 参考文献在 `references.bib` 中维护。引用已有工作的具体结论时，应核对原文；研究文档提供相关背景，但不能替代文献本身。完整复跑实验所需的数据与权重不包含在论文工程中。
 

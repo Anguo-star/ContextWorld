@@ -12,7 +12,7 @@ MULTI = read('multistep_prediction_test_v1/summary.json')
 REFERENCE = read('current_reference_test_v1/metrics.json')
 SCALE = read('data_scaling_test_v1/summary.json')
 assert MULTI['evaluation_split'] == REFERENCE['evaluation_split'] == SCALE.get('evaluation_split', SCALE.get('split')) == 'test'
-assert all(r['id'].split('/')[0] == 'cube_gripper_carry' for r in MULTI['missing'])
+assert not MULTI['missing'], 'Every registered Test checkpoint must have multi-step results'
 TASKS = [('speed','Speed'), ('action_strength','Pusher displacement'),
          ('robot_arm_mass','Arm mass'), ('action_delay','Action delay'),
          ('contact_friction','Contact friction'), ('motion_damping','Motion damping'),
@@ -24,10 +24,9 @@ LABELS = {'original':'Original', 'scratch':'Mixed',
           'frozen':r'Original $\rightarrow$ Mixed (Frozen Encoder)'}
 rows = {(r['task'],r['model'],r['regime']):r for r in STUDY['rows'] if not r['comparison_variant']}
 mult = {(r['task'],r['family'],r['regime']):r for r in MULTI['rows']}
-assert len(mult) in (75, 86)
+assert len(mult) == 86
 test_rows = {(r['task'],r['family'],r['regime']):r for r in REFERENCE['cells']}
-assert set(mult) <= set(test_rows)
-assert all(key[0] == 'cube_gripper_carry' for key in set(test_rows) - set(mult))
+assert set(mult) == set(test_rows)
 for key, row in mult.items():
     assert set(row['run_ids']) == {r['id'] for r in test_rows[key]['runs']}
 
@@ -80,7 +79,7 @@ text = [r'''\begingroup
 \setlength{\tabcolsep}{3pt}
 \renewcommand{\arraystretch}{1.15}
 \begin{longtable}{@{}p{1.8cm}lp{3.65cm}rrrp{2.5cm}r@{}}
-\caption{Test prediction diagnostics and original-environment CEM. Entries average the available training repetitions; $E/B$ intervals are 95\% source-bootstrap intervals. History win rate and CEM are percentages. A dash indicates unavailable multi-step results. Scheme names match the main text.}\label{tab:test-diagnostics}\\
+\caption{Test prediction diagnostics and original-environment CEM. Entries average the available training repetitions; $E/B$ intervals are 95\% source-bootstrap intervals. History win rate and CEM are percentages. Scheme names match the main text.}\label{tab:test-diagnostics}\\
 \toprule
 Task & Model & Scheme & \shortstack{History\\win rate $\uparrow$} & NRE $\downarrow$ & $E/B$ $\downarrow$ & $E/B$ interval & CEM $\uparrow$\\
 \midrule

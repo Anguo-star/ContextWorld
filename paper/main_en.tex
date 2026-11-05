@@ -649,9 +649,9 @@ Consequently, equal epoch counts do not guarantee equal update counts across dat
 \paragraph{Prediction diagnostics.}
 The main task comparison uses Test.
 The multi-step and history diagnostics below use Test and the same checkpoints as the main task comparison.
-Multi-step evaluation covers 2,180 source scenes across eight tasks and predicts at 5, 10, 15, 20, and 25 simulator steps using only the initial observed history.
+Multi-step evaluation covers 2,436 source scenes across all nine tasks and predicts at 5, 10, 15, 20, and 25 simulator steps using only the initial observed history.
 The candidate actions and multi-step targets extend the one-step task queries.
-Gripper carry is excluded from the multi-step evaluation because its reconstructed trajectories did not meet the source-state replay tolerance; its task-query scores are reported on Test.
+For gripper carry, we replay all 256 held-out source cases and render their histories and extended futures together, preserving the paired current-observation constraint without mixing stored images with newly rendered futures. These coherent replays retain the source conditions and actions but do not reproduce the stored images exactly; the original task-query evaluation is unchanged.
 Figure~\ref{fig:multistep-prediction} reports $E_t/B_t$: prediction and mean-future errors are summed over queries separately at each horizon, normalized within each checkpoint, then averaged equally over training repetitions. The aggregate $E/B$ instead combines errors over all horizons before division; it is not the arithmetic mean of these per-horizon ratios.
 Each checkpoint is scored separately, and matching training repetitions are then averaged equally.
 Intervals use 4,000 source-cluster bootstrap samples; all conditions, actions, and times from a source remain together.
@@ -698,7 +698,7 @@ All latent errors are computed in the checkpoint's own target representation.
 \setlength{\tabcolsep}{3pt}
 \renewcommand{\arraystretch}{1.15}
 \begin{longtable}{@{}p{1.8cm}lp{3.65cm}rrrp{2.5cm}r@{}}
-\caption{Test prediction diagnostics and original-environment CEM. Entries average the available training repetitions; $E/B$ intervals are 95\% source-bootstrap intervals. History win rate and CEM are percentages. A dash indicates unavailable multi-step results. Scheme names match the main text.}\label{tab:test-diagnostics}\\
+\caption{Test prediction diagnostics and original-environment CEM. Entries average the available training repetitions; $E/B$ intervals are 95\% source-bootstrap intervals. History win rate and CEM are percentages. Scheme names match the main text.}\label{tab:test-diagnostics}\\
 \toprule
 Task & Model & Scheme & \shortstack{History\\win rate $\uparrow$} & NRE $\downarrow$ & $E/B$ $\downarrow$ & $E/B$ interval & CEM $\uparrow$\\
 \midrule
@@ -770,17 +770,17 @@ Motion damping & DINO-WM & Original & 49.61 & 1.014 & 8.442 & [8.184, 8.713] & 7
 Motion damping & DINO-WM & Mixed & 65.23 & 1.042 & 7.292 & [7.117, 7.484] & 76.67 \\
 Motion damping & DINO-WM & Original $\rightarrow$ Mixed & 61.13 & 1.111 & 6.975 & [6.800, 7.165] & 76.00 \\
 \midrule
-Gripper carry rule & LeWM & Original & 73.76 & 0.909 & --- & --- & 65.44 \\
-Gripper carry rule & LeWM & Mixed & 49.80 & 1.000 & --- & --- & 61.33 \\
-Gripper carry rule & LeWM & Original $\rightarrow$ Mixed (Joint) & 52.34 & 0.997 & --- & --- & 71.00 \\
-Gripper carry rule & LeWM & Original $\rightarrow$ Mixed (Frozen Encoder) & 84.57 & 0.271 & --- & --- & 67.00 \\
-Gripper carry rule & PLDM & Original & 57.42 & 0.937 & --- & --- & 53.44 \\
-Gripper carry rule & PLDM & Mixed & 50.78 & 0.997 & --- & --- & 55.00 \\
-Gripper carry rule & PLDM & Original $\rightarrow$ Mixed (Joint) & 54.30 & 0.982 & --- & --- & 56.67 \\
-Gripper carry rule & PLDM & Original $\rightarrow$ Mixed (Frozen Encoder) & 57.81 & 0.606 & --- & --- & 56.67 \\
-Gripper carry rule & DINO-WM & Original & 50.59 & 1.000 & --- & --- & 72.67 \\
-Gripper carry rule & DINO-WM & Mixed & 77.34 & 0.892 & --- & --- & 71.67 \\
-Gripper carry rule & DINO-WM & Original $\rightarrow$ Mixed & 80.27 & 0.871 & --- & --- & 73.67 \\
+Gripper carry rule & LeWM & Original & 73.76 & 0.909 & 10.647 & [9.807, 11.634] & 65.44 \\
+Gripper carry rule & LeWM & Mixed & 49.80 & 1.000 & 170.794 & [132.250, 222.804] & 61.33 \\
+Gripper carry rule & LeWM & Original $\rightarrow$ Mixed (Joint) & 52.34 & 0.997 & 12.148 & [10.850, 13.816] & 71.00 \\
+Gripper carry rule & LeWM & Original $\rightarrow$ Mixed (Frozen Encoder) & 84.57 & 0.271 & 11.149 & [10.363, 12.008] & 67.00 \\
+Gripper carry rule & PLDM & Original & 57.42 & 0.937 & 11.994 & [9.809, 15.328] & 53.44 \\
+Gripper carry rule & PLDM & Mixed & 50.78 & 0.997 & 138.687 & [115.564, 166.941] & 55.00 \\
+Gripper carry rule & PLDM & Original $\rightarrow$ Mixed (Joint) & 54.30 & 0.982 & 26.192 & [23.629, 29.169] & 56.67 \\
+Gripper carry rule & PLDM & Original $\rightarrow$ Mixed (Frozen Encoder) & 57.81 & 0.606 & 25.681 & [20.138, 33.793] & 56.67 \\
+Gripper carry rule & DINO-WM & Original & 50.59 & 1.000 & 40.837 & [39.662, 42.051] & 72.67 \\
+Gripper carry rule & DINO-WM & Mixed & 77.34 & 0.892 & 11.402 & [11.088, 11.709] & 71.67 \\
+Gripper carry rule & DINO-WM & Original $\rightarrow$ Mixed & 80.27 & 0.871 & 11.286 & [10.982, 11.585] & 73.67 \\
 \midrule
 Door traversability & LeWM & Original & 50.94 & 0.996 & 5.255 & [5.151, 5.364] & 92.44 \\
 Door traversability & LeWM & Mixed & 100.00 & 0.041 & 3.027 & [2.984, 3.070] & 95.11 \\
