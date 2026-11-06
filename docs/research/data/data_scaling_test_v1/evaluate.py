@@ -17,6 +17,8 @@ FIGURE3 = ROOT / "docs/research/data/figure3_data_scaling_test_v1/metrics.json"
 MAP = HERE / "checkpoint_map.json"
 ADAPTER = {"lewm": "lewm", "pldm": "pldm", "dinowm": "prejepa"}
 DINO_PYTHON = Path("/tmp/cw-strength-ablation-20260922/venv/bin/python")
+PLDM_JOINT_2K_IDENTITY = HERE / "pldm_joint_2k_identity.json"
+PLDM_JOINT_2K_REPORT = HERE / "results/action_strength/pldm/joint/scale_2k/s3072/test.json"
 
 
 def sha256(path):
@@ -38,6 +40,53 @@ def report_path(item):
     if task == "action_strength" and model == "lewm" and size == "scale_2k":
         return ROOT / f"docs/research/data/figure3_data_scaling_test_v1/results/{regime}_s{seed}/test.json"
     return HERE / f"results/{task}/{model}/{regime}/{size}/s{seed}/test.json"
+
+
+def pldm_joint_2k_row(main):
+    """Return the extra archived Test cell only after its result and identity exist."""
+    if not PLDM_JOINT_2K_IDENTITY.exists() and not PLDM_JOINT_2K_REPORT.exists():
+        return None
+    if not PLDM_JOINT_2K_IDENTITY.exists() or not PLDM_JOINT_2K_REPORT.exists():
+        raise ValueError("incomplete PLDM Joint 2k Test archive")
+    identity = json.loads(PLDM_JOINT_2K_IDENTITY.read_text())
+    report = json.loads(PLDM_JOINT_2K_REPORT.read_text())
+    result = report["result"]
+    adapter = result["model"]["adapter"]
+    expected_id = "action_strength/pldm/joint/scale_2k/s3072"
+    if (identity["run_id"] != expected_id or identity["training_pair_count"] != 2048
+            or identity["test_pair_count"] != 256 or identity["stable_ref"] !=
+            "c34a107e787133468369e08f8f3efa2a43db67a2"
+            or sha256(PLDM_JOINT_2K_REPORT) != identity["result_sha256"]
+            or adapter["checkpoint_sha256"] != identity["checkpoint_sha256"]
+            or adapter["stable_worldmodel_commit"] != identity["stable_ref"]
+            or report["evaluation_split"] != "test" or result["status"] != "completed"
+            or result["model"]["training_recipe"] != "joint"
+            or result["model"]["training_seed"] != 3072
+            or result["model"]["state_sha256_before"] != result["model"]["state_sha256_after"]
+            or result["data"]["pair_count"] != 256 or result["metrics"]["pair_count"] != 256
+            or not report["bundle"].get("test_payload_sha256_verified")):
+        raise ValueError("invalid PLDM Joint 2k frozen Test result")
+    reference = next(c for c in main["cells"] if c["task"] == "action_strength"
+                     and c["family"] == "pldm" and c["regime"] == "joint")
+    reference_report = json.loads((ROOT / reference["runs"][0]["result"]).read_text())
+    keys = ("bundle_root", "artifact_root", "manifest_sha256", "task_registry_sha256")
+    if any(report["bundle"][key] != reference_report["bundle"][key] for key in keys):
+        raise ValueError("PLDM Joint 2k Test bundle differs from 32k")
+    metrics = result["metrics"]
+    run = {"id": expected_id, "seed": 3072, "checkpoint": identity["checkpoint"],
+           "checkpoint_sha256": identity["checkpoint_sha256"],
+           "result": str(PLDM_JOINT_2K_REPORT.relative_to(ROOT)),
+           "result_sha256": identity["result_sha256"],
+           "accuracy": 100 * metrics["correct_future_rate"],
+           "history": 100 * metrics["correct_history_rate"],
+           "nre": metrics["latent_response"]["normalized_response_error"],
+           "test_bundle": {key: report["bundle"][key] for key in keys}}
+    def one(key):
+        return {"mean": run[key], "std": None, "n": 1}
+    return {"task": "action_strength", "model": "pldm", "family": "pldm",
+            "regime": "joint", "training_pair_count": 2048, "n": 1,
+            "accuracy": one("accuracy"), "history": one("history"), "nre": one("nre"),
+            "runs": [run]}
 
 
 def evaluate(worker, workers, device, dino_python, skip_dino=False):
@@ -159,6 +208,9 @@ def summarize():
                                "runs": cell["runs"],
                                "source_metrics": str(MAIN_METRICS.relative_to(ROOT)),
                                "source_metrics_sha256": sha256(MAIN_METRICS)})
+    extra = pldm_joint_2k_row(main)
+    if extra is not None:
+        output["rows"].append(extra)
     output["rows"].sort(key=lambda r: (r["task"], r["model"], r["regime"], r["training_pair_count"]))
     (HERE / "summary.json").write_text(json.dumps(output, indent=2) + "\n")
     print(f"wrote {HERE / 'summary.json'} with {len(output['rows'])} rows")

@@ -1,0 +1,63 @@
+{
+  "schema": "contextworld.training-budget-readonly.v1",
+  "scope": "PushT action_strength history3 num_preds1 frameskip5; Original10 + Mixed10 versus Mixed scratch10/15/20",
+  "source_counts": {
+    "original_h5_episodes": 18685,
+    "original_h5_rows": 2336736,
+    "original_clips_span20": 1981721,
+    "synthetic_2k_episodes_and_clips": 4096,
+    "synthetic_32k_episodes_and_clips": 65536
+  },
+  "mixture_rule": "50/50 _default_epoch_size = 2*max(original_clips,synthetic_clips); both 2k and 32k dominated by Original",
+  "epoch_lengths": {
+    "original": 1981721,
+    "mixed_2k": 3963442,
+    "mixed_32k": 3963442
+  },
+  "split_and_loader": {
+    "train_split": 0.9,
+    "batch_per_device": 128,
+    "devices": 8,
+    "accumulate_grad_batches": 1,
+    "drop_last": true,
+    "train_lengths": {
+      "original": 1783549,
+      "mixed": 3567098
+    },
+    "batches_per_epoch": {
+      "original": 1741,
+      "mixed": 3483
+    }
+  },
+  "budgets": {
+    "original_10_batches": 17410,
+    "mixed_10_batches": 34830,
+    "staged_10_plus_10_batches": 52240,
+    "scratch_mixed_15_batches": 52245,
+    "scratch_mixed_20_batches": 69660,
+    "staged_over_scratch10": 1.4998564455928798,
+    "scratch15_minus_staged_batches": 5
+  },
+  "checkpoint_confirmation": {
+    "lewm_original_seed3073_epoch10_lightning_global_step": 17410,
+    "pldm_original_seed3073_epoch10_lightning_global_step": 34820,
+    "pldm_note": "PLDM has two optimizers (model and IDM), so Lightning global_step counts two updates per training batch; the budget comparison in this report uses batches and per-module optimizer updates."
+  },
+  "per_module_optimizer_updates": {
+    "lewm_staged": 52240,
+    "lewm_scratch10": 34830,
+    "lewm_scratch15": 52245,
+    "pldm_each_module_staged": 52240,
+    "pldm_each_module_scratch10": 34830,
+    "pldm_each_module_scratch15": 52245
+  },
+  "interpretation": "An equal-total-update scratch comparator is approximately 15 Mixed epochs from random initialization, with its own 15-epoch schedule. Continuing an existing 10-epoch scratch checkpoint with a reset optimizer or schedule is not the same controlled comparison. 20 Mixed scratch epochs exceed the staged batch budget by 17,420 batches. Data exposure and curriculum differ independently from total updates.",
+  "sources": [
+    "pinned stable_worldmodel/data/dataset.py Dataset.__init__: clip count sum(max(ep_len - num_steps*frameskip + 1,0))",
+    "contextworld/training/stablewm_bundle.py _default_epoch_size and split_for_training",
+    "pinned scripts/train/pldm.py and original config.yaml",
+    "ContextWorld-v1 and ContextWorld-action-strength-32k-v1 action_strength training Lance episode_idx/step_idx metadata",
+    "Original PushT H5 ep_len metadata",
+    "LeWM and PLDM Original seed3073 Lightning weights checkpoint epoch/global_step metadata"
+  ]
+}

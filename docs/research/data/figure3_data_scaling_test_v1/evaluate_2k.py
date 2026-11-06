@@ -3,6 +3,7 @@
 
 import argparse
 import hashlib
+import importlib.util
 import json
 import statistics
 import subprocess
@@ -14,6 +15,7 @@ OUT = Path(__file__).resolve().parent / "results"
 PLAN = ROOT / "docs/research/data/current_reference_test_v1/plan.json"
 STUDY = ROOT / "docs/research/data/icl_training_study_v2.json"
 METRICS = ROOT / "docs/research/data/current_reference_test_v1/metrics.json"
+SCALING_DIR = ROOT / "docs/research/data/data_scaling_test_v1"
 CHECKPOINT_ROOT = Path("/opt/huawei/explorer-env/dataset/ag_data/ckpt/lewm-contextworld-v1/checkpoints")
 
 
@@ -138,6 +140,53 @@ def summarize():
             "source_metrics": str(METRICS.relative_to(ROOT)),
             "source_metrics_sha256": sha256(METRICS),
         })
+    # The PLDM panel is included only when its extra 2k Joint Test report and
+    # independent checkpoint identity have been archived and validated.
+    spec = importlib.util.spec_from_file_location("data_scaling_test_evaluate", SCALING_DIR / "evaluate.py")
+    scaling_evaluate = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(scaling_evaluate)
+    joint_2k = scaling_evaluate.pldm_joint_2k_row(reference_metrics)
+    if joint_2k is not None:
+        scaling = json.loads((SCALING_DIR / "summary.json").read_text())
+        scratch_2k = next(row for row in scaling["rows"] if row["task"] == "action_strength"
+                          and row["model"] == "pldm" and row["regime"] == "scratch"
+                          and row["training_pair_count"] == 2048)
+        for regime, cell_2k in (("scratch", scratch_2k), ("joint", joint_2k)):
+            for run in cell_2k["runs"]:
+                report_path = ROOT / run["result"]
+                if sha256(report_path) != run["result_sha256"]:
+                    raise ValueError(f"PLDM 2k Test result hash differs: {report_path}")
+                report = json.loads(report_path.read_text())
+                if (report["evaluation_split"] != "test" or
+                        report["result"]["data"]["pair_count"] != 256 or
+                        tuple(report["bundle"][key] for key in identity_keys) != reference_identity):
+                    raise ValueError(f"PLDM 2k Test identity differs: {report_path}")
+            output["cells"].append({
+                "task": "action_strength", "family": "pldm", "regime": regime,
+                "scheme": "Mixed" if regime == "scratch" else "Original -> Mixed (Joint)",
+                "training_pair_count": 2048, "n": cell_2k["n"],
+                "scores": {key: cell_2k[key] for key in ("accuracy", "history", "nre")},
+                "runs": cell_2k["runs"], "source_metrics": None, "source_metrics_sha256": None,
+            })
+            reference_cell = next(cell for cell in reference_metrics["cells"]
+                                  if cell["task"] == "action_strength" and
+                                  cell["family"] == "pldm" and cell["regime"] == regime)
+            for run in reference_cell["runs"]:
+                path = ROOT / run["result"]
+                if sha256(path) != run["result_sha256"]:
+                    raise ValueError(f"PLDM 32k Test result hash differs: {path}")
+                report = json.loads(path.read_text())
+                if tuple(report["bundle"][key] for key in identity_keys) != reference_identity:
+                    raise ValueError(f"PLDM 32k Test bundle differs: {path}")
+            output["cells"].append({
+                "task": "action_strength", "family": "pldm", "regime": regime,
+                "scheme": "Mixed" if regime == "scratch" else "Original -> Mixed (Joint)",
+                "training_pair_count": 32768, "n": reference_cell["n"],
+                "scores": reference_cell["scores"], "runs": reference_cell["runs"],
+                "source_metrics": str(METRICS.relative_to(ROOT)),
+                "source_metrics_sha256": sha256(METRICS),
+            })
+        output["family"] = ["lewm", "pldm"]
     destination = OUT.parent / "metrics.json"
     destination.write_text(json.dumps(output, indent=2, ensure_ascii=False) + "\n")
     print(f"wrote {destination}")

@@ -378,11 +378,11 @@ Freezing the pretrained visual encoder helps some tasks and hurts others. For Le
 \begin{figure}[t]
 \centering
 \includegraphics[width=\columnwidth]{figures/scaling_comparisons.pdf}
-\caption{\textbf{Data scaling and encoder freezing on Test.} Both panels evaluate LeWM. (a) Pusher displacement with 2,048 versus 32,768 ContextWorld training pairs; original-environment data are unchanged. (b) Joint or frozen-encoder fine-tuning across four tasks, starting from the same Original checkpoint within each task. Bars show accuracy (\%). Training epochs are fixed. Full results and run counts appear in Table~\ref{tab:test-metrics-full} and Appendix~\ref{app:data-scale}.}
+\caption{\textbf{Data scaling and encoder freezing on Test.} (a) LeWM on pusher displacement with 2,048 versus 32,768 ContextWorld training pairs; original-environment data are unchanged. (b) Joint versus frozen-encoder fine-tuning for LeWM and PLDM. Each comparison uses the same Original checkpoint and task data. Bars show accuracy (\%). Training epochs are fixed. Full results and run counts appear in Table~\ref{tab:test-metrics-full} and Appendix~\ref{app:data-scale}.}
 \label{fig:scaling-comparisons}
 \end{figure}
 
-Figure~\ref{fig:scaling-comparisons}a examines the effect of data scaling on Test accuracy. For LeWM on pusher displacement, data scaling substantially benefits Original $\to$ Mixed (Joint), whereas Mixed stays near chance. NRE also improves with joint fine-tuning (Appendix~\ref{app:data-scale}). Fixed epochs allow update counts to change with data size, so this is not a fixed-compute comparison.
+Figure~\ref{fig:scaling-comparisons}a examines the effect of data scaling on Test accuracy. For LeWM on pusher displacement, data scaling substantially benefits Original $\to$ Mixed (Joint), whereas Mixed stays near chance. NRE also improves with joint fine-tuning (Appendix~\ref{app:data-scale}). Both data scales use the same number of training updates.
 
 Under the tested 10-epoch recipe, increasing LeWM and PLDM from 18M to 183M parameters yields no consistent Test accuracy gain on friction and damping (Appendix~\ref{app:model-capacity}).
 
@@ -810,6 +810,8 @@ Portal exit & DINO-WM & Mixed & 100.00 & 0.142 & 8.046 & [7.960, 8.133] & 100.00
 Figure~\ref{fig:scaling-comparisons}a compares LeWM on pusher displacement using the same Test trajectories at both training-data scales.
 Table~\ref{tab:data-scale-test} reports all three adaptation metrics for these checkpoints.
 All data-scale comparisons hold training epochs fixed.
+For pusher displacement, the original-data component determines the mixture length at both 2,048 and 32,768 pairs, giving 3,483 training batches per epoch.
+The two-stage scheme uses 17,410 Original-pretraining batches followed by 34,830 Mixed batches, compared with 34,830 batches for Mixed training from scratch.
 \begingroup\small
 \setlength{\tabcolsep}{5pt}
 \begin{longtable}{@{}lrrrrr@{}}
