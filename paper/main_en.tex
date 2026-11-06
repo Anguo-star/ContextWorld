@@ -15,7 +15,7 @@
 \maketitle
 
 \begin{abstract}
-Latent world models predict future states from visual observations and action sequences within a learned representation space. When environment dynamics vary, accurate prediction requires inferring hidden dynamic properties from interaction history. However, because models can exploit immediate visual shortcuts or regress to average dynamics to achieve low loss without history conditioning, conventional prediction accuracy fails to reveal genuine adaptation. We introduce ContextWorld, a benchmark designed to evaluate in-context dynamics adaptation in action-conditioned latent world models under strictly frozen weights. ContextWorld employs paired counterfactual evaluations—varying interaction histories while holding the current observation and future action sequence fixed—to concurrently quantify adaptation accuracy (whether predictions correctly distinguish between diverging future states) and history sensitivity (whether predictions respond to altered context and yield lower error than mismatched history). Spanning nine tasks across four environments, the benchmark provides separate training and evaluation splits with continuous interaction rollouts under differing dynamics. Our systematic evaluation of representative latent world models (LeWM, PLDM, and DINO-WM) yields three key findings: First, models trained under fixed dynamics make negligible use of interaction history across most tasks. Second, mixing multi-dynamics data improves history responsiveness, but the benefits of data scaling and the relative effectiveness of training strategies vary substantially across tasks. Third, under certain training schemes, models fail to effectively leverage history even on the training distribution, despite steadily decreasing training loss. These results reveal a notable mismatch between prediction-loss optimization and in-context dynamics adaptation, suggesting that standard prediction objectives do not reliably drive models to use interaction history and highlighting the need for objectives and benchmarks explicitly targeted at in-context dynamics adaptation.
+Latent world models learn environment dynamics to predict future states from visual observations and action sequences. These dynamics are not always fixed, and interaction history can help models adapt their predictions to different conditions. Yet low prediction error does not necessarily indicate that models have learned to adapt from interaction history. We introduce ContextWorld, a benchmark for evaluating in-context dynamics adaptation in action-conditioned latent world models without weight updates. ContextWorld uses paired counterfactual evaluations that vary interaction histories while keeping the current observation and future actions fixed. This design measures both whether predictions distinguish the correct future and whether they benefit from the corresponding history. The benchmark spans nine tasks across four environments, with separate training and evaluation data. Evaluating three latent world models, LeWM, PLDM, and DINO-WM, reveals that models trained under fixed dynamics make little use of interaction history on most tasks. Training with multiple dynamics can improve adaptation, but the effectiveness of data scaling and training strategies varies substantially across tasks. We further find that training loss can decrease while models still fail to capture dynamics from interaction history, even on the training distribution. These findings expose a gap between optimizing prediction loss and in-context dynamics adaptation, highlighting the need to evaluate whether models use interaction history to adapt their predictions.
 \end{abstract}
 
 \section{Introduction}
@@ -23,14 +23,15 @@ Latent world models predict future states from visual observations and action se
 
 Visual world models learn environment dynamics to predict future states~\cite{ha2018worldmodels}, with latent world models performing these predictions within learned representations of visual observations~\cite{hafner2019planet,hafner2020dreamer}.
 A model trained under fixed dynamics can achieve high prediction accuracy without utilizing interaction history to adapt its predictions to current conditions.
-However, such predictions can fail when environment dynamics vary~\cite{wang2026context}.
+However, this does not necessarily mean that the model can adapt to changes in environment dynamics~\cite{wang2026context}.
 For example, visually identical objects can move different distances under the same push if surface friction differs.
 Interaction history provides evidence about these hidden physical properties.
 We investigate whether latent world models can leverage this contextual evidence to predict future states under varied dynamics \emph{without updating their weights}---an ability we term \emph{in-context dynamics adaptation}.
 
-Physical prediction benchmarks evaluate whether observed interactions help models infer hidden properties or predict downstream outcomes governed by them~\cite{baradel2020cophy,tung2023physionpp}.
-While benchmarks like Physion++ assess physical understanding via auxiliary readout classifiers, we introduce ContextWorld (Figure~\ref{fig:protocol}) to evaluate in-context dynamics adaptation directly within action-conditioned latent world models, leveraging their existing latent predictors without training separate classifiers for future events.
-The benchmark spans nine tasks across four environments, covering physical parameter variations and interaction rules, and provides separate training and evaluation data.
+Existing physical prediction benchmarks have examined how interaction history supports reasoning about hidden properties and future outcomes~\cite{baradel2020cophy,tung2023physionpp}.
+Evaluating in-context dynamics adaptation in latent world models requires examining not only whether predictions distinguish different dynamics, but also whether they benefit from the corresponding interaction history.
+We introduce ContextWorld (Figure~\ref{fig:protocol}) to evaluate these complementary aspects directly through action-conditioned latent predictions.
+The benchmark spans nine tasks across four environments, with separate training and evaluation data.
 
 \begin{figure*}[t]
 \centering
@@ -39,26 +40,21 @@ The benchmark spans nine tasks across four environments, covering physical param
 \label{fig:protocol}
 \end{figure*}
 
-In its paired tasks, two dynamics conditions share the identical current observation and future action sequence, but produce diverging ground-truth futures.
-Interaction history is therefore strictly necessary to distinguish the two outcomes.
-Because a deterministic model that ignores history receives identical inputs and yields identical predictions for both conditions, it scores at most 50\% on paired future selection when ties count as failures.
-This paired counterfactual design restricts history-agnostic heuristics, enabling us to concurrently evaluate two aspects directly in latent space: (1) adaptation accuracy, which measures whether a model's prediction correctly aligns with its corresponding true future rather than the alternative condition's future; and (2) history sensitivity, which measures whether predictions reliably respond to altered context, verified by substituting the history with that from an alternate dynamics setting to examine if matching history yields strictly lower error.
+In its paired tasks, two dynamics conditions share the same current observation and future action sequence, but produce diverging ground-truth futures.
+Because a deterministic model that ignores history receives identical inputs and yields identical predictions for both conditions, it scores at most 50\% on paired future selection.
+This paired counterfactual design restricts history-agnostic heuristics, enabling us to concurrently evaluate two aspects directly in latent space: (1) adaptation accuracy, which measures whether a model's prediction is closer to its corresponding true future than to the alternative condition's future; and (2) history sensitivity, which measures whether matching history yields lower prediction error than mismatched history.
 
 Using ContextWorld, we benchmark three representative latent world models: LeWM~\cite{maes2026leworldmodel}, PLDM~\cite{sobal2025pldm}, and DINO-WM~\cite{zhou2025dinowm}.
-We find that after training under fixed dynamics, these models make negligible use of interaction history across most tasks.
-To examine how this adaptation ability can be acquired, we mix ContextWorld training data with original rollouts and compare training from scratch against fine-tuning models pretrained under fixed dynamics.
-We further scale up the training data and examine the impact of freezing the visual encoder.
-Our experiments reveal that while data scaling improves history utilization on several tasks, the optimal model and training strategy vary substantially by task.
-For example, starting from the same pretrained weights, freezing PLDM's visual encoder improves its ability to distinguish future states under varying contact friction, but reduces this ability under motion damping.
-
-To understand why models often fail to leverage history, we analyze model predictions on the training distribution itself.
-Under certain training schemes, training loss steadily decreases or approaches convergence even while models fail to use interaction history to distinguish physical conditions.
-Because this failure occurs on the training data, it cannot be explained by out-of-distribution generalization alone, suggesting that standard prediction objectives may not inherently provide sufficient incentive for models to condition their predictions on interaction history.
+We find that models trained under fixed dynamics make negligible use of interaction history across most tasks.
+To examine how this adaptation ability can be acquired, we evaluate the effects of multi-dynamics training, data scaling, and training strategies.
+Our experiments reveal that the effectiveness of these training choices varies substantially across tasks.
+We further find that training loss can decrease while models still fail to use interaction history to distinguish dynamics conditions, even on the training distribution.
+This reveals a gap between optimizing prediction loss and in-context dynamics adaptation.
 
 Our main contributions are:
 \begin{itemize}
-\item \textbf{The ContextWorld benchmark and paired evaluation protocol.} We introduce a standardized framework featuring separate training and evaluation data across nine hidden-dynamics tasks. This paired design quantifies both adaptation accuracy and history sensitivity directly from action-conditioned latent rollouts.
-\item \textbf{Empirical findings on adaptation limits.} We benchmark representative models across data scales, training strategies, and visual encoder freezing schemes, demonstrating that optimal strategies are highly task-dependent. Furthermore, we show that training loss can steadily decrease even when models fail to leverage history on the training data, revealing a disconnect between standard prediction losses and in-context dynamics adaptation.
+\item \textbf{ContextWorld benchmark.} We introduce nine tasks involving hidden dynamics across four environments, with separate training and evaluation data. The benchmark includes paired counterfactual evaluations that measure adaptation accuracy and history sensitivity directly from action-conditioned latent predictions.
+\item \textbf{Systematic evaluation.} We benchmark three representative latent world models across data scales and training strategies, revealing substantial differences in adaptation across tasks. We further show that training loss can decrease even when models fail to leverage interaction history on the training distribution.
 \end{itemize}
 
 \section{Related Work}
