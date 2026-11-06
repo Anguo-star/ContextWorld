@@ -1,0 +1,51 @@
+{
+  "schema": "contextworld.mixed-continuation-execution.v1",
+  "execution_root": "/tmp/cw-mixed20-control-20261105",
+  "status_at_recording": "queued_after_existing_pldm_2k_training_and_test",
+  "models": [
+    "lewm",
+    "pldm"
+  ],
+  "initialization": "full_state_resume_from_existing_epoch10",
+  "target_total_epochs": 20,
+  "additional_epochs": 10,
+  "global_batch_size": 1024,
+  "world_size_per_run": 4,
+  "batch_per_device": 256,
+  "gpu_groups": {
+    "lewm": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "pldm": [
+      4,
+      5,
+      6,
+      7
+    ]
+  },
+  "scheduler_policy": "restore_parent_state_without_horizon_change",
+  "test_epochs": [
+    10,
+    15,
+    20
+  ],
+  "epoch10_test_source": "reuse_existing_verified_results",
+  "test_split": "Test",
+  "results_available": false,
+  "queue_pid": 2957520,
+  "files_sha256": {
+    "plan.json": "b65cbd081ae4c0a221b1a14ae01bbf57902518ccf571427a7350d7a0f3315f1f",
+    "launch.py": "98b2f634da7e0a994c51a8340cf6e184759f22ad3491e6bb149b6b37196bca28",
+    "evaluate_checkpoints.py": "49bd6fb8c496277ba4e9590a6d48913873afa95e12bf628fecd56f6436ac7d72",
+    "run_queue.py": "d7b82165eb71997b7c6aab2d6204855592c187b636c46c5dce46e54a11d5a989",
+    "start_detached.py": "975742b5ec31a8db1b22ca6e194353331f9773a0adb83c91282cc995b1d0b638",
+    "runtime/sitecustomize.py": "8debd1287490c1cffe86a9def8e764fac77d1e71597f3a5c6c46760e6855094f",
+    "lewm/train.env": "b137b68779ea07c82f7c3fe50515c49f8381bd1d13241967c2ff55b6f2e4e518",
+    "lewm/continuation_receipt.json": "c3d48a83eb0dce35052cafe1d0204792f0993734ea513e09ad4d2cc65efb5fe2",
+    "pldm/train.env": "282b428a23115fefd473dda2d8a57dd2b5ce9e81b9e5fde939e447b5b251bcb8",
+    "pldm/continuation_receipt.json": "51a3318a5093839dbea65a106c0e890ae3d5145a184a04a569f915490784a665"
+  }
+}
