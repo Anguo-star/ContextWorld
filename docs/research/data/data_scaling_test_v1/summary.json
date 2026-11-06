@@ -363,6 +363,48 @@
       "task": "action_strength",
       "model": "pldm",
       "family": "pldm",
+      "regime": "joint",
+      "training_pair_count": 2048,
+      "n": 1,
+      "accuracy": {
+        "mean": 50.1953125,
+        "std": null,
+        "n": 1
+      },
+      "history": {
+        "mean": 49.21875,
+        "std": null,
+        "n": 1
+      },
+      "nre": {
+        "mean": 1.0011499333911833,
+        "std": null,
+        "n": 1
+      },
+      "runs": [
+        {
+          "id": "action_strength/pldm/joint/scale_2k/s3072",
+          "seed": 3072,
+          "checkpoint": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/pldm-contextworld-v1/checkpoints/action_strength_pldm_as2k_joint_match32k_v1_warmstart3073_retry1_s3072/weights_epoch_10.pt",
+          "checkpoint_sha256": "6f7f4cf10a595e027d662164c4841a881af9722e177719553d080d9978f962a5",
+          "result": "docs/research/data/data_scaling_test_v1/results/action_strength/pldm/joint/scale_2k/s3072/test.json",
+          "result_sha256": "f15f32cc8b85eb22a00621a1d4edfe4400779278beea613482840de83b89a41f",
+          "accuracy": 50.1953125,
+          "history": 49.21875,
+          "nre": 1.0011499333911833,
+          "test_bundle": {
+            "bundle_root": "/opt/huawei/explorer-env/dataset/ag_data/data/world_model/ContextWorld-v1-full",
+            "artifact_root": "artifacts/evaluation/history3/pusht_action_strength_h3_public_test_v1",
+            "manifest_sha256": "81eb29d8eeaefb91750187831b9120b9241c78b4903047cd4b720a186c7f6d97",
+            "task_registry_sha256": "26b78ae7d3bbaa2c170080bc1eb8791582a9183e7d606322aaf6bae1b01dcbdd"
+          }
+        }
+      ]
+    },
+    {
+      "task": "action_strength",
+      "model": "pldm",
+      "family": "pldm",
       "regime": "scratch",
       "training_pair_count": 2048,
       "n": 3,

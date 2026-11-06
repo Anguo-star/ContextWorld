@@ -99,48 +99,46 @@ def multistep_prediction():
 
 
 def scaling_comparisons():
-    """Test accuracy for data scaling and task-dependent encoder freezing."""
+    """Matched Test comparisons for both models, using the same task order."""
     import json
-    data = ROOT / 'docs/research/data'
-    scale_source = 'docs/research/data/figure3_data_scaling_test_v1/metrics.json'
+    data_source = 'docs/research/data/figure3_data_scaling_test_v1/metrics.json'
     test_source = 'docs/research/data/current_reference_test_v1/metrics.json'
-    scaling = json.loads((ROOT / scale_source).read_text())
+    scaling = json.loads((ROOT / data_source).read_text())
     test = json.loads((ROOT / test_source).read_text())
     assert scaling['evaluation_split'] == test['evaluation_split'] == 'test'
-    data_records = []
-    for regime in ['scratch', 'joint']:
-        for pairs in [2048, 32768]:
-            row, = [r for r in scaling['cells'] if r['task'] == 'action_strength'
-                    and r['family'] == 'lewm' and r['regime'] == regime
-                    and r['training_pair_count'] == pairs]
-            st = row['scores']['accuracy']
-            data_records.append(dict(regime=regime, pairs=pairs,
-                                     accuracy=st['mean'], n=st['n'], sd=st['std'],
-                                     runs=row['runs']))
-    encoder_tasks = [
-        ('lewm', 'contact_friction', 'Contact\nfriction'),
-        ('lewm', 'robot_arm_mass', 'Arm mass'),
-        ('pldm', 'contact_friction', 'Contact\nfriction'),
-        ('pldm', 'motion_damping', 'Motion\ndamping'),
-    ]
-    encoder_records = []
-    for family, task, _ in encoder_tasks:
-        for regime in ['joint', 'frozen']:
-            row, = [r for r in test['cells'] if r['task'] == task
-                    and r['family'] == family and r['regime'] == regime]
-            st = row['scores']['accuracy']
-            encoder_records.append(dict(task=task, family=family, regime=regime,
-                                        accuracy=st['mean'], n=st['n'], sd=st['std'],
-                                        runs=row['runs']))
-    fig = plt.figure(figsize=(3.45, 3.25))
-    axes = [fig.add_axes([.15, .60, .81, .27]),
-            fig.add_axes([.15, .065, .81, .27])]
+    families = [('lewm', 'LeWM'), ('pldm', 'PLDM')]
+    tasks = [('contact_friction', 'Contact friction'),
+             ('robot_arm_mass', 'Arm mass'),
+             ('motion_damping', 'Motion damping')]
+    data_records, encoder_records = [], []
+    for family, _ in families:
+        for regime in ['scratch', 'joint']:
+            for pairs in [2048, 32768]:
+                row, = [r for r in scaling['cells'] if r['task'] == 'action_strength'
+                        and r['family'] == family and r['regime'] == regime
+                        and r['training_pair_count'] == pairs]
+                st = row['scores']['accuracy']
+                data_records.append(dict(family=family, regime=regime, pairs=pairs,
+                                         accuracy=st['mean'], n=st['n'], sd=st['std'],
+                                         runs=row['runs']))
+        for task, _ in tasks:
+            for regime in ['joint', 'frozen']:
+                row, = [r for r in test['cells'] if r['task'] == task
+                        and r['family'] == family and r['regime'] == regime]
+                st = row['scores']['accuracy']
+                encoder_records.append(dict(task=task, family=family, regime=regime,
+                                            accuracy=st['mean'], n=st['n'], sd=st['std'],
+                                            runs=row['runs']))
+    fig = plt.figure(figsize=(3.45, 4.05))
+    axes = [fig.add_axes([.15, .705, .81, .17]),
+            fig.add_axes([.15, .31, .81, .17]),
+            fig.add_axes([.15, .05, .81, .17])]
 
-    def bars(ax, before, after, labels, legend, positions=None):
+    def bars(ax, before, after, labels, legend, positions=None, offset=.16, width=.27):
         import numpy as np
         x = np.arange(len(before)) if positions is None else np.asarray(positions)
-        ax.bar(x-.16, before, .27, color='#b9c1c9', label=legend[0], zorder=3)
-        ax.bar(x+.16, after, .27, color='#426d99', label=legend[1], zorder=3)
+        ax.bar(x-offset, before, width, color='#b9c1c9', label=legend[0], zorder=3)
+        ax.bar(x+offset, after, width, color='#426d99', label=legend[1], zorder=3)
         ax.set_ylim(0, 110)
         ax.set_yticks([0, 50, 100])
         ax.set_ylabel('Accuracy (%)', fontsize=7.5, labelpad=3)
@@ -151,29 +149,33 @@ def scaling_comparisons():
         for spine in ax.spines.values():
             spine.set_linewidth(.6)
         for i, values in zip(x, zip(before, after)):
-            for offset, value in zip([-.16, .16], values):
-                ax.text(i+offset, value+3, f'{value:.1f}',
+            for dx, value in zip([-offset, offset], values):
+                ax.text(i+dx, value+3, f'{value:.1f}',
                         ha='center', va='bottom', fontsize=6.5)
 
     bars(axes[0], [r['accuracy'] for r in data_records if r['pairs'] == 2048],
          [r['accuracy'] for r in data_records if r['pairs'] == 32768],
-         ['Mixed', 'Original → Mixed\n(Joint)'], ['2k pairs', '32k pairs'])
-    bars(axes[1], [r['accuracy'] for r in encoder_records if r['regime'] == 'joint'],
-         [r['accuracy'] for r in encoder_records if r['regime'] == 'frozen'],
-         [label for _, _, label in encoder_tasks], ['Joint', 'Frozen Encoder'],
-         positions=[0, 1, 2.35, 3.35])
-    for center, label in [(0.5, 'LeWM'), (2.85, 'PLDM')]:
-        axes[1].text(center, 1.04, label, transform=axes[1].get_xaxis_transform(),
+         ['Mixed', 'Original →\nMixed (Joint)'] * 2, ['2k pairs', '32k pairs'],
+         positions=[0, 1.15, 2.75, 3.9], offset=.21, width=.34)
+    for center, label in [(.575, 'LeWM'), (3.325, 'PLDM')]:
+        axes[0].text(center, 1.04, label, transform=axes[0].get_xaxis_transform(),
                      ha='center', va='bottom', fontsize=7, fontweight='medium')
-    fig.text(.15, .99, '(a) Data scaling', fontsize=8, va='top')
-    fig.text(.15, .49, '(b) Encoder freezing', fontsize=8, va='top')
-    for ax, y in zip(axes, [.94, .44]):
+    for ax, (family, label) in zip(axes[1:], families):
+        selected = [r for r in encoder_records if r['family'] == family]
+        bars(ax, [r['accuracy'] for r in selected if r['regime'] == 'joint'],
+             [r['accuracy'] for r in selected if r['regime'] == 'frozen'],
+             [name for _, name in tasks], ['Joint', 'Frozen Encoder'])
+        ax.text(.5, 1.04, label, transform=ax.transAxes,
+                ha='center', va='bottom', fontsize=7, fontweight='medium')
+    fig.text(.15, .995, '(a) Data scaling', fontsize=8, va='top')
+    fig.text(.15, .61, '(b) Encoder freezing', fontsize=8, va='top')
+    for ax, y in zip(axes[:2], [.955, .565]):
         fig.legend(*ax.get_legend_handles_labels(), loc='upper left',
                    bbox_to_anchor=(.13, y), ncol=2, frameon=False, fontsize=7,
                    handlelength=1.1, columnspacing=1.5, borderaxespad=0)
     fig.savefig(OUT / 'scaling_comparisons.pdf', pad_inches=.035)
     plt.close(fig)
-    return dict(split='test', data_source=scale_source, encoder_source=test_source,
+    return dict(split='test', data_source=data_source, encoder_source=test_source,
                 data=data_records, encoder=encoder_records)
 
 if __name__ == '__main__':

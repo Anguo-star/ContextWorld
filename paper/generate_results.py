@@ -51,25 +51,28 @@ def test_statistics_table():
 def data_scale_test_table():
     summary = read('figure3_data_scaling_test_v1/metrics.json')
     assert summary['evaluation_split'] == 'test'
-    lines = [r'''Figure~\ref{fig:scaling-comparisons}a compares LeWM on pusher displacement using the same Test trajectories at both training-data scales.
+    lines = [r'''Figure~\ref{fig:scaling-comparisons}a compares LeWM and PLDM on pusher displacement using the same Test trajectories at both training-data scales.
 Table~\ref{tab:data-scale-test} reports all three adaptation metrics for these checkpoints.
 All data-scale comparisons hold training epochs fixed.
+For pusher displacement, the original-data component determines the mixture length at both 2,048 and 32,768 pairs, giving 3,483 training batches per epoch.
+The two-stage scheme uses 17,410 Original-pretraining batches followed by 34,830 Mixed batches, compared with 34,830 batches for Mixed training from scratch.
 \begingroup\small
 \setlength{\tabcolsep}{5pt}
-\begin{longtable}{@{}lrrrrr@{}}
-\caption{LeWM data scaling on pusher displacement (Test). Entries are means over $n$ training runs; pair counts refer to ContextWorld training data.}\label{tab:data-scale-test}\\
+\begin{longtable}{@{}llrrrrr@{}}
+\caption{LeWM and PLDM data scaling on pusher displacement (Test). Entries are means over $n$ training runs; pair counts refer to ContextWorld training data.}\label{tab:data-scale-test}\\
 \toprule
-Scheme & Pairs & $n$ & Accuracy (\%) & \shortstack{History\\win rate (\%)} & NRE\\
+Model & Scheme & Pairs & $n$ & Accuracy (\%) & \shortstack{History\\win rate (\%)} & NRE\\
 \midrule
 ''']
-    for regime in ['scratch', 'joint']:
-        for pairs in [2048, 32768]:
-            row, = [r for r in summary['cells'] if r['regime'] == regime
-                    and r['training_pair_count'] == pairs]
-            scores = row['scores']
-            lines.append(' & '.join([LABELS[regime], f'{pairs:,}', str(row['n']),
-                         fmt(scores['accuracy']['mean']), fmt(scores['history']['mean']),
-                         fmt(scores['nre']['mean'], 3)]) + r' \\')
+    for family, model in [('lewm', 'LeWM'), ('pldm', 'PLDM')]:
+        for regime in ['scratch', 'joint']:
+            for pairs in [2048, 32768]:
+                row, = [r for r in summary['cells'] if r['family'] == family
+                        and r['regime'] == regime and r['training_pair_count'] == pairs]
+                scores = row['scores']
+                lines.append(' & '.join([model, LABELS[regime], f'{pairs:,}', str(row['n']),
+                             fmt(scores['accuracy']['mean']), fmt(scores['history']['mean']),
+                             fmt(scores['nre']['mean'], 3)]) + r' \\')
     lines.append(r'\bottomrule\end{longtable}\endgroup')
     return '\n'.join(lines)
 

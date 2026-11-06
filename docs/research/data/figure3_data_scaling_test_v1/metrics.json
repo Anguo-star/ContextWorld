@@ -2,7 +2,10 @@
   "schema": "contextworld.figure3-data-scaling-test-metrics.v1",
   "evaluation_split": "test",
   "task": "action_strength",
-  "family": "lewm",
+  "family": [
+    "lewm",
+    "pldm"
+  ],
   "protocol": {
     "source_plan": "docs/research/data/current_reference_test_v1/plan.json",
     "source_plan_sha256": "398d53ee2b2197a59b741a82443984f4605040bac87b4d59815404f73b1eaeb7",
@@ -212,6 +215,210 @@
           "accuracy": 91.796875,
           "history": 99.0234375,
           "nre": 0.215190281117049
+        }
+      ],
+      "source_metrics": "docs/research/data/current_reference_test_v1/metrics.json",
+      "source_metrics_sha256": "e0c619eaaf8a57c65acb9d0feec42300c1b3e6674e8cd7921feb7bda250cb027"
+    },
+    {
+      "task": "action_strength",
+      "family": "pldm",
+      "regime": "scratch",
+      "scheme": "Mixed",
+      "training_pair_count": 2048,
+      "n": 3,
+      "scores": {
+        "accuracy": {
+          "mean": 50.1953125,
+          "std": 0.33829117335329634,
+          "n": 3
+        },
+        "history": {
+          "mean": 50.651041666666664,
+          "std": 1.2404009689620865,
+          "n": 3
+        },
+        "nre": {
+          "mean": 1.005028151544141,
+          "std": 0.0031980262165419186,
+          "n": 3
+        }
+      },
+      "runs": [
+        {
+          "id": "action_strength/pldm/scratch/scale_2k/s3072",
+          "seed": 3072,
+          "checkpoint": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/pldm-contextworld-v1/checkpoints/action_strength_pldm_joint_scratch_v1_s3072/weights_epoch_10.pt",
+          "checkpoint_sha256": "c768e37b926d86455b1b96a74a91875fcf54fbb5ed912d1f076360421d8decd8",
+          "result": "docs/research/data/data_scaling_test_v1/results/action_strength/pldm/scratch/scale_2k/s3072/test.json",
+          "result_sha256": "37aee43b29ae1e26f29f490639e932d0c597cc91177c144089839fea894d7772",
+          "accuracy": 49.8046875,
+          "history": 51.3671875,
+          "nre": 1.0086610187016893,
+          "test_bundle": {
+            "bundle_root": "/opt/huawei/explorer-env/dataset/ag_data/data/world_model/ContextWorld-v1-full",
+            "artifact_root": "artifacts/evaluation/history3/pusht_action_strength_h3_public_test_v1",
+            "manifest_sha256": "81eb29d8eeaefb91750187831b9120b9241c78b4903047cd4b720a186c7f6d97",
+            "task_registry_sha256": "26b78ae7d3bbaa2c170080bc1eb8791582a9183e7d606322aaf6bae1b01dcbdd"
+          }
+        },
+        {
+          "id": "action_strength/pldm/scratch/scale_2k/s3073",
+          "seed": 3073,
+          "checkpoint": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/pldm-contextworld-v1/checkpoints/action_strength_pldm_joint_scratch_v1_s3073/weights_epoch_10.pt",
+          "checkpoint_sha256": "4b1ad4134870893fb5440760422ecb151609af13aa2dc830a031f6551d09d25c",
+          "result": "docs/research/data/data_scaling_test_v1/results/action_strength/pldm/scratch/scale_2k/s3073/test.json",
+          "result_sha256": "86fa6b8ea8445221b8d4d95eda93da29f2e3bd8f529ae0466ed458ed347fd002",
+          "accuracy": 50.390625,
+          "history": 49.21875,
+          "nre": 1.0026380640249164,
+          "test_bundle": {
+            "bundle_root": "/opt/huawei/explorer-env/dataset/ag_data/data/world_model/ContextWorld-v1-full",
+            "artifact_root": "artifacts/evaluation/history3/pusht_action_strength_h3_public_test_v1",
+            "manifest_sha256": "81eb29d8eeaefb91750187831b9120b9241c78b4903047cd4b720a186c7f6d97",
+            "task_registry_sha256": "26b78ae7d3bbaa2c170080bc1eb8791582a9183e7d606322aaf6bae1b01dcbdd"
+          }
+        },
+        {
+          "id": "action_strength/pldm/scratch/scale_2k/s3074",
+          "seed": 3074,
+          "checkpoint": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/pldm-contextworld-v1/checkpoints/action_strength_pldm_joint_scratch_v1_s3074/weights_epoch_10.pt",
+          "checkpoint_sha256": "27024dc3002e3160be537cb128a40748d46a7b49a5e856bf5d25e955ec7e3867",
+          "result": "docs/research/data/data_scaling_test_v1/results/action_strength/pldm/scratch/scale_2k/s3074/test.json",
+          "result_sha256": "362eda51ffc4a3398882d4e7aa572a1bb747dab0856a3edd9e3a97a37fcfbe4f",
+          "accuracy": 50.390625,
+          "history": 51.3671875,
+          "nre": 1.0037853719058172,
+          "test_bundle": {
+            "bundle_root": "/opt/huawei/explorer-env/dataset/ag_data/data/world_model/ContextWorld-v1-full",
+            "artifact_root": "artifacts/evaluation/history3/pusht_action_strength_h3_public_test_v1",
+            "manifest_sha256": "81eb29d8eeaefb91750187831b9120b9241c78b4903047cd4b720a186c7f6d97",
+            "task_registry_sha256": "26b78ae7d3bbaa2c170080bc1eb8791582a9183e7d606322aaf6bae1b01dcbdd"
+          }
+        }
+      ],
+      "source_metrics": null,
+      "source_metrics_sha256": null
+    },
+    {
+      "task": "action_strength",
+      "family": "pldm",
+      "regime": "scratch",
+      "scheme": "Mixed",
+      "training_pair_count": 32768,
+      "n": 1,
+      "scores": {
+        "accuracy": {
+          "mean": 56.25,
+          "std": null,
+          "n": 1
+        },
+        "history": {
+          "mean": 68.1640625,
+          "std": null,
+          "n": 1
+        },
+        "nre": {
+          "mean": 0.83533900807078,
+          "std": null,
+          "n": 1
+        }
+      },
+      "runs": [
+        {
+          "id": "action_strength/pldm/scratch/s3072",
+          "seed": 3072,
+          "checkpoint_sha256": "b3e4cb257ae822501909e6ab99fe0919f35e60ee50eff08b6075cbb22f476594",
+          "result": "docs/research/data/current_reference_test_v1/results/action_strength/pldm/scratch/s3072/test.json",
+          "result_sha256": "3faeb547c56dc40773af00db8d489233ae5294cc070627c75561cb3f835ced27",
+          "accuracy": 56.25,
+          "history": 68.1640625,
+          "nre": 0.83533900807078
+        }
+      ],
+      "source_metrics": "docs/research/data/current_reference_test_v1/metrics.json",
+      "source_metrics_sha256": "e0c619eaaf8a57c65acb9d0feec42300c1b3e6674e8cd7921feb7bda250cb027"
+    },
+    {
+      "task": "action_strength",
+      "family": "pldm",
+      "regime": "joint",
+      "scheme": "Original -> Mixed (Joint)",
+      "training_pair_count": 2048,
+      "n": 1,
+      "scores": {
+        "accuracy": {
+          "mean": 50.1953125,
+          "std": null,
+          "n": 1
+        },
+        "history": {
+          "mean": 49.21875,
+          "std": null,
+          "n": 1
+        },
+        "nre": {
+          "mean": 1.0011499333911833,
+          "std": null,
+          "n": 1
+        }
+      },
+      "runs": [
+        {
+          "id": "action_strength/pldm/joint/scale_2k/s3072",
+          "seed": 3072,
+          "checkpoint": "/opt/huawei/explorer-env/dataset/ag_data/ckpt/pldm-contextworld-v1/checkpoints/action_strength_pldm_as2k_joint_match32k_v1_warmstart3073_retry1_s3072/weights_epoch_10.pt",
+          "checkpoint_sha256": "6f7f4cf10a595e027d662164c4841a881af9722e177719553d080d9978f962a5",
+          "result": "docs/research/data/data_scaling_test_v1/results/action_strength/pldm/joint/scale_2k/s3072/test.json",
+          "result_sha256": "f15f32cc8b85eb22a00621a1d4edfe4400779278beea613482840de83b89a41f",
+          "accuracy": 50.1953125,
+          "history": 49.21875,
+          "nre": 1.0011499333911833,
+          "test_bundle": {
+            "bundle_root": "/opt/huawei/explorer-env/dataset/ag_data/data/world_model/ContextWorld-v1-full",
+            "artifact_root": "artifacts/evaluation/history3/pusht_action_strength_h3_public_test_v1",
+            "manifest_sha256": "81eb29d8eeaefb91750187831b9120b9241c78b4903047cd4b720a186c7f6d97",
+            "task_registry_sha256": "26b78ae7d3bbaa2c170080bc1eb8791582a9183e7d606322aaf6bae1b01dcbdd"
+          }
+        }
+      ],
+      "source_metrics": null,
+      "source_metrics_sha256": null
+    },
+    {
+      "task": "action_strength",
+      "family": "pldm",
+      "regime": "joint",
+      "scheme": "Original -> Mixed (Joint)",
+      "training_pair_count": 32768,
+      "n": 1,
+      "scores": {
+        "accuracy": {
+          "mean": 59.1796875,
+          "std": null,
+          "n": 1
+        },
+        "history": {
+          "mean": 73.4375,
+          "std": null,
+          "n": 1
+        },
+        "nre": {
+          "mean": 0.7401099605307557,
+          "std": null,
+          "n": 1
+        }
+      },
+      "runs": [
+        {
+          "id": "action_strength/pldm/joint/s3072",
+          "seed": 3072,
+          "checkpoint_sha256": "c381ba772729826b05769210d2c404ba25c1c6515e9344b33648fc80d8b68526",
+          "result": "docs/research/data/current_reference_test_v1/results/action_strength/pldm/joint/s3072/test.json",
+          "result_sha256": "15814cb61a5ec4e38dd10389b7ac66eacb37b57d4a850dc86973da5151ce2b6e",
+          "accuracy": 59.1796875,
+          "history": 73.4375,
+          "nre": 0.7401099605307557
         }
       ],
       "source_metrics": "docs/research/data/current_reference_test_v1/metrics.json",

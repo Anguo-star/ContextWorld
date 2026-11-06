@@ -378,11 +378,11 @@ Freezing the pretrained visual encoder helps some tasks and hurts others. For Le
 \begin{figure}[t]
 \centering
 \includegraphics[width=\columnwidth]{figures/scaling_comparisons.pdf}
-\caption{\textbf{Data scaling and encoder freezing on Test.} (a) LeWM on pusher displacement with 2,048 versus 32,768 ContextWorld training pairs; original-environment data are unchanged. (b) Joint versus frozen-encoder fine-tuning for LeWM and PLDM. Each comparison uses the same Original checkpoint and task data. Bars show accuracy (\%). Training epochs are fixed. Full results and run counts appear in Table~\ref{tab:test-metrics-full} and Appendix~\ref{app:data-scale}.}
+\caption{\textbf{Data scaling and encoder freezing on Test.} (a) LeWM and PLDM on pusher displacement with 2,048 versus 32,768 ContextWorld training pairs; original-environment data are unchanged. (b) Joint versus frozen-encoder fine-tuning on the same three tasks for both models. Each comparison uses the same Original checkpoint and task data. Bars show accuracy (\%). Training epochs are fixed. Full results and run counts appear in Table~\ref{tab:test-metrics-full} and Appendix~\ref{app:data-scale}.}
 \label{fig:scaling-comparisons}
 \end{figure}
 
-Figure~\ref{fig:scaling-comparisons}a examines the effect of data scaling on Test accuracy. For LeWM on pusher displacement, data scaling substantially benefits Original $\to$ Mixed (Joint), whereas Mixed stays near chance. NRE also improves with joint fine-tuning (Appendix~\ref{app:data-scale}). Both data scales use the same number of training updates.
+Figure~\ref{fig:scaling-comparisons}a examines the effect of data scaling on Test accuracy. For LeWM on pusher displacement, data scaling substantially benefits Original $\to$ Mixed (Joint), whereas Mixed stays near chance. PLDM improves under both schemes, with smaller accuracy gains than LeWM joint fine-tuning. NRE also improves with joint fine-tuning (Appendix~\ref{app:data-scale}). Both data scales use the same number of training updates.
 
 Under the tested 10-epoch recipe, increasing LeWM and PLDM from 18M to 183M parameters yields no consistent Test accuracy gain on friction and damping (Appendix~\ref{app:model-capacity}).
 
@@ -807,23 +807,27 @@ Portal exit & DINO-WM & Mixed & 100.00 & 0.142 & 8.046 & [7.960, 8.133] & 100.00
 \subsection{Data Scale}
 \label{app:data-scale}
 
-Figure~\ref{fig:scaling-comparisons}a compares LeWM on pusher displacement using the same Test trajectories at both training-data scales.
+Figure~\ref{fig:scaling-comparisons}a compares LeWM and PLDM on pusher displacement using the same Test trajectories at both training-data scales.
 Table~\ref{tab:data-scale-test} reports all three adaptation metrics for these checkpoints.
 All data-scale comparisons hold training epochs fixed.
 For pusher displacement, the original-data component determines the mixture length at both 2,048 and 32,768 pairs, giving 3,483 training batches per epoch.
 The two-stage scheme uses 17,410 Original-pretraining batches followed by 34,830 Mixed batches, compared with 34,830 batches for Mixed training from scratch.
 \begingroup\small
 \setlength{\tabcolsep}{5pt}
-\begin{longtable}{@{}lrrrrr@{}}
-\caption{LeWM data scaling on pusher displacement (Test). Entries are means over $n$ training runs; pair counts refer to ContextWorld training data.}\label{tab:data-scale-test}\\
+\begin{longtable}{@{}llrrrrr@{}}
+\caption{LeWM and PLDM data scaling on pusher displacement (Test). Entries are means over $n$ training runs; pair counts refer to ContextWorld training data.}\label{tab:data-scale-test}\\
 \toprule
-Scheme & Pairs & $n$ & Accuracy (\%) & \shortstack{History\\win rate (\%)} & NRE\\
+Model & Scheme & Pairs & $n$ & Accuracy (\%) & \shortstack{History\\win rate (\%)} & NRE\\
 \midrule
 
-Mixed & 2,048 & 3 & 50.00 & 51.63 & 1.000 \\
-Mixed & 32,768 & 1 & 50.78 & 79.10 & 0.974 \\
-Original $\rightarrow$ Mixed (Joint) & 2,048 & 1 & 59.57 & 83.01 & 0.813 \\
-Original $\rightarrow$ Mixed (Joint) & 32,768 & 1 & 91.80 & 99.02 & 0.215 \\
+LeWM & Mixed & 2,048 & 3 & 50.00 & 51.63 & 1.000 \\
+LeWM & Mixed & 32,768 & 1 & 50.78 & 79.10 & 0.974 \\
+LeWM & Original $\rightarrow$ Mixed (Joint) & 2,048 & 1 & 59.57 & 83.01 & 0.813 \\
+LeWM & Original $\rightarrow$ Mixed (Joint) & 32,768 & 1 & 91.80 & 99.02 & 0.215 \\
+PLDM & Mixed & 2,048 & 3 & 50.20 & 50.65 & 1.005 \\
+PLDM & Mixed & 32,768 & 1 & 56.25 & 68.16 & 0.835 \\
+PLDM & Original $\rightarrow$ Mixed (Joint) & 2,048 & 1 & 50.20 & 49.22 & 1.001 \\
+PLDM & Original $\rightarrow$ Mixed (Joint) & 32,768 & 1 & 59.18 & 73.44 & 0.740 \\
 \bottomrule\end{longtable}\endgroup
 Table~\ref{tab:data-scale} reports the remaining data-scale comparisons on Test.
 The sample counts describe pairs, not necessarily independent source episodes.
