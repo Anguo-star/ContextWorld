@@ -167,7 +167,7 @@ def scaling_comparisons():
              [name for _, name in tasks], ['Joint', 'Frozen Encoder'])
         ax.text(.5, 1.04, label, transform=ax.transAxes,
                 ha='center', va='bottom', fontsize=7, fontweight='medium')
-    fig.text(.15, .995, '(a) Data scaling', fontsize=8, va='top')
+    fig.text(.15, .995, '(a) Data scaling: Pusher displacement', fontsize=8, va='top')
     fig.text(.15, .61, '(b) Encoder freezing', fontsize=8, va='top')
     for ax, y in zip(axes[:2], [.955, .565]):
         fig.legend(*ax.get_legend_handles_labels(), loc='upper left',
