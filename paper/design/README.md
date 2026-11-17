@@ -1,12 +1,14 @@
 # ContextWorld figures
 
-The manuscript uses `benchmark_overview_pusher_response.pdf`, copied to `paper/figures/protocol_overview.pdf` by `paper/generate_figures.py`. The overview explains the controlled task design, paired evaluation and task coverage. The Cube environment thumbnail uses a recorded carry-enabled frame with an orange cube and the original scene appearance; the complete observation is uniformly resized without cropping. Its source and display bounds are recorded in `assets/environments/provenance.json`. The training figure presents a measured example; it is not repeated in the overview.
+The manuscript uses `benchmark_overview_pusher_response.pdf`, generated from HTML/CSS by `draw_overview_html.py` and copied to `paper/figures/protocol_overview.pdf` by `paper/generate_figures.py`. Open `benchmark_overview_pusher_response.html` directly to inspect it. This current overview uses native HTML text, CSS shapes and embedded original screenshots, with no SVG or canvas. The browser prints at the original layout size with geometric text precision; LaTeX scales the resulting vector PDF to manuscript width. This avoids the integer-rounded glyph advances introduced by the earlier reduced-size SVG export. The earlier SVG files remain as design history, not the current Figure 1 build input.
+
+The overview explains the controlled task design, paired evaluation and task coverage. The Cube environment thumbnail uses a recorded carry-enabled frame with an orange cube and the original scene appearance; the complete observation is uniformly resized without cropping. Its source and display bounds are recorded in `assets/environments/provenance.json`. The training figure presents a measured example; it is not repeated in the overview.
 
 - `benchmark_overview.pdf` / `.svg`: an editable reconstruction of the supplied 1448 × 1086 design. Panel A shows a recorded Cube carry-rule pair; panel B shows separate frozen-model calls and the four error comparisons; panel C maps nine tasks to four environments. Commands label transitions, and both conditions use exactly the same current-observation rendering. Text, arrows, matrix cells and panel frames remain vector graphics. Cube images are high-resolution native renderings of recorded states. Other environment views are saved dataset screenshots. The design reference supplies the layout and visual styling, not scene pixels.
 - `benchmark_overview_pusher.pdf` / `.svg`: alternative main-figure preview using a real PushT pusher-displacement pair. The original scene screenshots share one crop. All three transitions are labeled Move; red arrows summarize the shared action directions. Dashed arrows show measured endpoint displacement, including the return to the shared current observation, not an interpolated path. A faint translucent silhouette with a dashed outline in the lower future panel marks the T block's current pose; its silhouette is traced from the shared original observation and saved in `assets/pusher_pair/current_t_outline.json`. These annotations are not part of model inputs. Sources and arrow semantics are recorded in `overview_pusher.json`.
 - `overview_comparison.pdf`: PushT and Cube alternatives at manuscript width on separate pages.
 - `benchmark_overview_pusher_response.pdf` / `.svg`: PushT overview with three evaluation metrics: Adaptation accuracy, History sensitivity, and Response fidelity. The first two share one wider four-point diagram; their headings and comparison rules retain their positions. Panel A uses one set of column headings for both condition rows, with the shared current-observation column highlighted in blue. Movement descriptions appear only beneath the true future frames, separated from the next row by additional whitespace; the history frames and condition labels already show the earlier movement differences. Panel B places the metric cards beside the title area to reduce height without shrinking their text or geometry. The shared diagram uses four schematic states without halos. Filled circles denote predictions; open circles denote true futures. Accuracy fixes the prediction and compares futures; history sensitivity fixes the true future and compares histories. The NRE vectors are computed from the same schematic differences, with a common rotation and scale. These are conceptual geometry, not measured embeddings; source history images remain unchanged.
-- `paired_evaluation_design.pdf` / `.svg` / `.png`: the same B panel exported separately for inspection at manuscript width. Its layout follows the latest supplied design, with three numbered pastel cards. Marker meanings are stated in the figure caption, without a separate key row. Its outer title and panel badge match panels A and C. `assets/reference/paired_evaluation_design.png` retains the original design image for comparison, not as paper content.
+- `paired_evaluation_design.html` / `.pdf` / `.png`: the same B panel exported separately from HTML for inspection at manuscript width. Marker meanings are stated in the figure caption, without a separate key row. Its outer title and panel badge match panels A and C. The `.svg` and `assets/reference/paired_evaluation_design.png` retain earlier designs for comparison, not as current paper content.
 - `prediction_image_preview.pdf`: layout alternative with true-future thumbnails labeled Reference beside the latent prediction symbols. These are visual references, not decoded predictions. Generate it with `--example pusher --response-fidelity --prediction-images` and export `benchmark_overview_pusher_response_images`.
 - `response_fidelity_preview.pdf`: the response-fidelity alternative at manuscript width, with its explanatory caption. This standalone preview uses the same real PushT figure as the manuscript.
 - `assets/reference/main_figure_design.png`: the complete supplied design, retained at its original resolution. It is used only as a visual layout reference and is not embedded in the figure. `overview_crop.json` records the native data sources, shared crop and state/action checks.
@@ -22,14 +24,15 @@ The layout follows the [new supplied design reference](https://chatgpt.com/share
 
 ## Regeneration
 
-The SVG drawings use Python's standard library. PDF/PNG export requires Node.js, Playwright and Chromium:
+The HTML overview and legacy SVG drawings use Python's standard library. PDF/PNG export requires Node.js, Playwright and Chromium:
 
 ```bash
-python paper/design/draw_overview.py
+python paper/design/draw_overview_html.py
 python paper/design/draw_training.py
 python paper/design/draw_training_full.py
-node paper/design/render_figures.cjs
-# To export only the overview: node paper/design/render_figures.cjs benchmark_overview
+node paper/design/render_figures.cjs benchmark_overview_pusher_response paired_evaluation_design training_two_panels training_full
+# To export only Figure 1:
+# node paper/design/render_figures.cjs benchmark_overview_pusher_response
 ```
 
 To build the PushT alternative and its comparison PDF without changing the manuscript figure:
@@ -44,7 +47,7 @@ pdflatex -interaction=nonstopmode -halt-on-error -output-directory=design -jobna
 The [three-subpanel design discussion](https://chatgpt.com/share/6ae8562d-f4ec-83ea-8185-eb0fb5418e9d) supplies the current B-panel layout. Real observation images are preserved; schematic point positions and response vectors are made geometrically consistent. Build it with:
 
 ```bash
-python paper/design/draw_overview.py --example pusher --response-fidelity
+python paper/design/draw_overview_html.py
 node paper/design/render_figures.cjs benchmark_overview_pusher_response paired_evaluation_design
 cd paper
 pdflatex -interaction=nonstopmode -halt-on-error -output-directory=design -jobname=response_fidelity_preview design/response_fidelity_preview.tex

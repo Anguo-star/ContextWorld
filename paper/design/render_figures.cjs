@@ -1,4 +1,4 @@
-// Export editable SVG figures to PNG and vector PDF. Requires Playwright/Chromium.
+// Export HTML Figure 1 and legacy SVG plots. Requires Playwright/Chromium.
 const { chromium } = require('playwright');
 const fs = require('fs');
 const path = require('path');
@@ -12,6 +12,25 @@ const { pathToFileURL } = require('url');
     ['benchmark_overview',1448,1086,7.1], ['benchmark_overview_pusher',1448,1158,7.1], ['benchmark_overview_response',1448,1086,7.1], ['benchmark_overview_pusher_response',1448,1158,7.1], ['benchmark_overview_pusher_response_images',1448,1158,7.1], ['paired_evaluation_design',1448,590,7.1], ['training_two_panels',660,324,3.45], ['training_full',1380,410,7.1]]) {
     if ((stem.includes('_pusher') || stem.endsWith('_response')) && !process.argv.slice(2).includes(stem)) continue;
     if (process.argv.length > 2 && !process.argv.slice(2).includes(stem)) continue;
+    const htmlPath = path.join(dir, stem+'.html');
+    if (fs.existsSync(htmlPath)) {
+      const page = await browser.newPage({viewport:{width:1448,height:1168},deviceScaleFactor:2});
+      await page.goto(pathToFileURL(htmlPath).href);
+      await page.evaluate(async () => {
+        await document.fonts.ready;
+        await Promise.all([...document.images].map(image => image.decode()));
+      });
+      if (await page.locator('svg,canvas').count()) throw new Error('HTML figure must not embed SVG or canvas');
+      const viewport = page.locator('.viewport');
+      const box = await viewport.boundingBox();
+      await page.setViewportSize({width:Math.ceil(box.width),height:Math.ceil(box.height)});
+      await viewport.screenshot({path:path.join(dir,stem+'.png')});
+      // Print at the native CSS size; LaTeX scales the vector PDF afterwards.
+      // Scaling SVG text to a small CSS size before printing rounded glyph advances.
+      await page.pdf({path:path.join(dir,stem+'.pdf'),preferCSSPageSize:true,printBackground:true});
+      await page.close();
+      continue;
+    }
     const svg = fs.readFileSync(path.join(dir, stem+'.svg'),'utf8');
     const root = svg.match(/<svg\b[^>]*>/)[0];
     const width = Number(root.match(/\bwidth="([0-9.]+)"/)?.[1] || defaultWidth);

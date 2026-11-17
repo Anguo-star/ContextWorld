@@ -17,7 +17,8 @@
 | `build/full.pdf` | 主文、完整参考文献与附录的合并版 |
 | `references.bib` | 参考文献 |
 | `figures/` | 图片资源 |
-| `cvpr.sty`、`ieeenat_fullname.bst` | CVPR 样式与参考文献格式 |
+| `cvpr.sty`、`ieeenat_fullname.bst` | CVPR 2027 官方样式与参考文献格式 |
+| `lineno.sty` | 上游 v5.9，修复本机 v5.7 的双栏行号错位 |
 
 ## 写作资料
 
@@ -39,7 +40,7 @@
 
 ## 图表与结果复算
 
-主图见 [主图预览](design/response_fidelity_preview.pdf)，训练图见 [设计预览](design/figure_design.pdf)；[设计文件](design/README.md)包含可编辑 SVG、真实轨迹渲染、数据来源和复绘脚本。
+主图见 [HTML 预览](design/benchmark_overview_pusher_response.html)及 [PDF](figures/protocol_overview.pdf)，训练图见 [设计预览](design/figure_design.pdf)；[设计文件](design/README.md)包含 HTML/CSS 主图、其他图的 SVG、真实轨迹渲染、数据来源和复绘脚本。
 
 正文实验按实验设置、任务适应结果、训练选择、预测损失与适应四个小节组织。完整九任务 Test 主表以模型和训练方案为行、任务为列，每个单元格从上到下列出 Accuracy、History 和 NRE 的均值，指标顺序只在表注中统一说明；附录完整表同时列出三项指标的标准差及训练重复次数。多步预测、数据扩量与编码器冻结对照、训练损失与条件响应分别由图表展示；模型容量结果保留在附录。详细结果与评测设置保留在附录。
 
@@ -57,7 +58,7 @@ python paper/generate_figures.py
 
 评分控制使用 `scoring_controls_test_v1/results.json`：在两个 LeWM 检查点的表示中，对同一批 256 对 Test 查询验证构造预测的评分。上述 Test 结果目录保存复现脚本、原始分数或逐查询能量、数据来源和检查点身份；不以 Development 结果替代缺项。
 
-全部图形生成需要 Matplotlib、NumPy，以及用于 SVG 导出的 Node.js、Playwright 和 Chromium；配置见 [图形说明](design/README.md)。编译论文直接使用已保存的 PDF 图，无需执行这些脚本。
+全部图形生成需要 Matplotlib、NumPy，以及用于 HTML/SVG 导出的 Node.js、Playwright 和 Chromium；配置见 [图形说明](design/README.md)。图 1 的当前复绘入口为 `design/draw_overview_html.py`，不依赖 SVG。编译论文直接使用已保存的 PDF 图，无需执行这些脚本。
 
 本地 `contextworld-cvpr.zip` 保存编译所需论文源文件与图形。复算图表需要完整仓库中的上述结果文件，单独编译源包不需要原始数据或权重。
 
@@ -71,6 +72,8 @@ make en
 
 英文稿使用 pdfLaTeX。`make en` 依次编译主文和补充材料，并再次编译以解析双向引用，最后生成合并版；输出为 `build/main_en.pdf`、`build/supplementary.pdf` 和 `build/full.pdf`。单独更新合并版可运行 `make full`。中文参考稿使用 XeLaTeX，通过 `make zh` 编译，输出为 `build/main.pdf`。
 
+主文和独立补充材料启用 `\usepackage[review]{cvpr}`，显示匿名作者、审稿页眉、页码与行号。合并阅读版仍使用 `pagenumbers`，不带行号；投稿主文应使用 `main_en.pdf`，不是 `full.pdf`。CVPR 2027 模板已取消 Paper ID，不需要在 TeX 中填入投稿编号。
+
 主文与补充材料各有自己的参考文献编号；附录的公式、图表编号延续主文。两份 PDF 放在同一目录时，跨文件引用链接可以定位到另一份 PDF；分开阅读时，印出的章节与图表编号仍可用于查找。附录的生成结果写入 `appendix.tex`，三种构建不维护重复正文。
 
 当前环境若未设置编译器路径，可先执行：
@@ -83,4 +86,6 @@ export PATH="/opt/texlive/2025/bin/x86_64-linux:$PATH"
 
 ## 模板来源
 
-样式文件原样取自 [CVPR 官方 author-kit](https://github.com/cvpr-org/author-kit/tree/CVPR2026-v1(latex)) 的 `CVPR2026-v1(latex)` 发布版。工程的目标会议年份为 2027；正式投稿时需按 CVPR 2027 官方模板与要求设置。中文双栏预览的篇幅不用于判断英文投稿页数。
+`cvpr.sty` 与 `ieeenat_fullname.bst` 原样取自 [CVPR 2027 作者指南](https://cvpr.thecvf.com/Conferences/2027/AuthorGuidelines)直接链接的 [2027 模板](https://media.eventhosts.cc/Conferences/CVPR2027/author-kit-CVPR2027-v1-latex.zip)。本地同时保留 [lineno 上游 v5.9](https://github.com/latex-lineno/lineno/blob/dac33d1961b7dd7b53b0ae5281670c3cd61cef83/lineno.sty)，修复本机 v5.7 在双栏审稿版中把行号放到栏间的问题，见[上游问题记录](https://github.com/latex-lineno/lineno/issues/26)。上游文件未作修改。
+
+2027 作者指南要求在正文后、参考文献前加入 `LLM Usage Statement`；声明及参考文献不计入八页主文限制。当前声明依据作者提供的使用范围及后续更正：OpenAI ChatGPT/GPT 用于稿件审阅反馈；文字、实验、图形和数据准备为 Assist，相关工作／引用和代码为 Generate。作者确认研究想法与结论没有 AI 辅助，因此声明不包含该项，投稿页面也应同步更正。声明保留作者核验和承担责任的说明。中文双栏预览的篇幅不用于判断英文投稿页数。

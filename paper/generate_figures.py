@@ -19,8 +19,7 @@ def reference_style_figures():
     import sys
     import shutil
     design = ROOT / 'paper' / 'design'
-    subprocess.run([sys.executable, str(design / 'draw_overview.py'),
-                    '--example', 'pusher', '--response-fidelity'], check=True)
+    subprocess.run([sys.executable, str(design / 'draw_overview_html.py')], check=True)
     for script in ['draw_training.py', 'draw_training_full.py']:
         subprocess.run([sys.executable, str(design / script)], check=True)
     subprocess.run(['node', str(design / 'render_figures.cjs'),
