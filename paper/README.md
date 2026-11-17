@@ -88,4 +88,4 @@ export PATH="/opt/texlive/2025/bin/x86_64-linux:$PATH"
 
 `cvpr.sty` 与 `ieeenat_fullname.bst` 原样取自 [CVPR 2027 作者指南](https://cvpr.thecvf.com/Conferences/2027/AuthorGuidelines)直接链接的 [2027 模板](https://media.eventhosts.cc/Conferences/CVPR2027/author-kit-CVPR2027-v1-latex.zip)。本地同时保留 [lineno 上游 v5.9](https://github.com/latex-lineno/lineno/blob/dac33d1961b7dd7b53b0ae5281670c3cd61cef83/lineno.sty)，修复本机 v5.7 在双栏审稿版中把行号放到栏间的问题，见[上游问题记录](https://github.com/latex-lineno/lineno/issues/26)。上游文件未作修改。
 
-2027 作者指南要求在正文后、参考文献前加入 `LLM Usage Statement`；声明及参考文献不计入八页主文限制。当前声明依据作者提供的使用范围及后续更正：OpenAI ChatGPT/GPT 用于稿件审阅反馈；文字、实验、图形和数据准备为 Assist，相关工作／引用和代码为 Generate。作者确认研究想法与结论没有 AI 辅助，因此声明不包含该项，投稿页面也应同步更正。声明保留作者核验和承担责任的说明。中文双栏预览的篇幅不用于判断英文投稿页数。
+2027 作者指南要求在正文后、参考文献前加入 `LLM Usage Statement`；声明及参考文献不计入八页主文限制。当前声明与作者最新更新的投稿页面一致：OpenAI ChatGPT/GPT 用于稿件审阅反馈；研究想法、假设、论断或结论的最高参与程度为 Assist，其余类别（文字、相关工作／引用、代码、实验、图形、数据准备）为 Generate。这是各类别的最高使用程度，不代表整体平均程度或整类工作均由 AI 生成。声明保留作者核验和承担责任的说明。中文双栏预览的篇幅不用于判断英文投稿页数。
