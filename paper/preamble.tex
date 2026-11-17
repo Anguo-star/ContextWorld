@@ -1,0 +1,37 @@
+\documentclass[10pt,twocolumn,letterpaper]{article}
+\usepackage[pagenumbers]{cvpr}
+\usepackage{tabularx}
+\usepackage{longtable}
+\definecolor{cvprblue}{rgb}{0.21,0.49,0.74}
+\usepackage{xr-hyper}
+\usepackage[pagebackref,breaklinks,colorlinks,allcolors=cvprblue]{hyperref}
+\def\paperID{*****}
+\def\confName{CVPR}
+\def\confYear{2027}
+\title{ContextWorld: Benchmarking In-Context Dynamics Adaptation in Latent World Models}
+\author{}
+\hypersetup{pdftitle={ContextWorld: Benchmarking In-Context Dynamics Adaptation in Latent World Models}}
+
+% Import labels, but keep each standalone document's bibliography independent.
+\newcommand{\cwExternalDocument}[1]{%
+  \IfFileExists{build/#1.aux}{%
+    \externaldocument[][nocite]{build/#1}[#1.pdf]%
+  }{%
+    \externaldocument[][nocite]{#1}[#1.pdf]%
+  }%
+}
+% Continue appendix figure/table/equation numbering from the main paper.
+\makeatletter
+\newcommand{\cwSaveMainCounters}{%
+  \begingroup
+  \edef\@currentlabel{\arabic{figure}}\label{cw:main-figures}%
+  \edef\@currentlabel{\arabic{table}}\label{cw:main-tables}%
+  \edef\@currentlabel{\arabic{equation}}\label{cw:main-equations}%
+  \endgroup
+}
+\makeatother
+\newcommand{\cwRestoreMainCounters}{%
+  \setcounter{figure}{\getrefnumber{cw:main-figures}}%
+  \setcounter{table}{\getrefnumber{cw:main-tables}}%
+  \setcounter{equation}{\getrefnumber{cw:main-equations}}%
+}

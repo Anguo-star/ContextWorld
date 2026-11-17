@@ -158,7 +158,7 @@ text.append(r'''\bottomrule\end{tabular}\end{center}
 The four endpoint comparisons do not show a consistent improvement from increasing capacity under this recipe.
 These endpoint comparisons do not exclude gains from retuning the larger models.
 ''')
-p=ROOT/'paper/main_en.tex';s=p.read_text();start='% BEGIN GENERATED PAPER RESULTS';end='% END GENERATED PAPER RESULTS'
+p=ROOT/'paper/appendix.tex';s=p.read_text();start='% BEGIN GENERATED PAPER RESULTS';end='% END GENERATED PAPER RESULTS'
 assert s.count(start)==s.count(end)==1
 s=s[:s.index(start)+len(start)]+'\n'+'\n'.join(text)+'\n'+s[s.index(end):]
 p.write_text(s)

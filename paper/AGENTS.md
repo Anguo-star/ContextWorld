@@ -1,6 +1,6 @@
 # Paper writing and revision
 
-- Use `main_en.tex` as the current manuscript. Preserve separate author drafts and the Chinese reference unless explicitly asked to change them.
+- Use `main_en.tex` as the current main manuscript and `appendix.tex` for supplementary content. `supplementary.tex` and `full.tex` are build entries that share this content. Preserve separate author drafts and the Chinese reference unless explicitly asked to change them.
 - Write for external readers: clear, natural English; no internal terminology, progress logs, or disconnected lists of experiments. Explain why a design is needed before defining it.
 - Revise one paragraph at a time unless the user approves a specific broader edit. First identify concrete problems, then explain the proposed changes, apply them, and review the result in context.
 - Treat approved author wording as the baseline. Correct factual errors and unsupported claims with the smallest necessary changes; do not rewrite a good sentence to fix one overstated word. Leave clear passages alone.
@@ -10,4 +10,4 @@
 - When reproducing a supplied figure design, preserve real trajectory and environment images. Match layout, typography and styling without substituting design illustrations for data. State-preserving simulator re-renderings must retain their provenance and be identified in the caption.
 - Preserve experimental facts, scope, and metric meanings. Distinguish future discrimination, prediction error, and history benefit. Do not turn limited history use into total failure, task-specific findings into universal mechanisms, or encoder freezing into a claim that the entire representation is fixed.
 - Use the source documents linked in `README.md` for results. Preserve each result's actual split, model, training strategy, and prediction horizon. Verify literature claims against primary sources; distinguish a method's general foundation from the paper's own metric definition.
-- After editing, reread the affected paragraph and its neighbors for continuity, precision, repetition, and unintended changes in meaning. Compile the English PDF and check references and layout. When updating the existing source ZIP, preserve its other entries. Commit and publish only authorized paper changes; keep unrelated workspace edits separate.
+- After editing, reread the affected paragraph and its neighbors for continuity, precision, repetition, and unintended changes in meaning. Run `make en` to compile the main, supplementary, and full PDFs; check cross-document references and layout. When updating the existing source ZIP, preserve its other entries. Commit and publish only authorized paper changes; keep unrelated workspace edits separate.

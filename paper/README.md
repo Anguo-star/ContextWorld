@@ -1,6 +1,6 @@
 # ContextWorld 论文
 
-英文主稿为 `main_en.tex`，可直接阅读[英文 PDF](build/main_en.pdf)。`main.tex` 保留中文稿作为写作参考。两份源文件均记录中英文题目。
+英文主稿为 `main_en.tex`，附录内容在 `appendix.tex` 中维护。投稿文件分别为[主文 PDF](build/main_en.pdf)和[补充材料 PDF](build/supplementary.pdf)；[完整合并版](build/full.pdf)用于内部阅读和 arXiv 整理。`main.tex` 保留中文稿作为写作参考。
 
 ## 文件
 
@@ -8,7 +8,13 @@
 |---|---|
 | `main.tex` | 中文参考稿与编译入口 |
 | `main_en.tex` | 英文主稿与编译入口 |
-| `build/main_en.pdf` | 英文预览，随源稿同步更新 |
+| `supplementary.tex` | 补充材料独立编译入口，标题为 Supplementary Material |
+| `appendix.tex` | 附录正文及完整结果，保留 A、B、C… 章节编号 |
+| `full.tex` | 共用主文与附录内容的合并版编译入口 |
+| `preamble.tex` | 英文版共用的样式、标题及跨文件引用设置 |
+| `build/main_en.pdf` | 主文及主文引用的参考文献 |
+| `build/supplementary.pdf` | 补充材料及其中引用的参考文献 |
+| `build/full.pdf` | 主文、完整参考文献与附录的合并版 |
 | `references.bib` | 参考文献 |
 | `figures/` | 图片资源 |
 | `cvpr.sty`、`ieeenat_fullname.bst` | CVPR 样式与参考文献格式 |
@@ -63,7 +69,9 @@ python paper/generate_figures.py
 make en
 ```
 
-英文稿使用 pdfLaTeX，输出为 `build/main_en.pdf`。中文参考稿使用 XeLaTeX，通过 `make zh` 编译，输出为 `build/main.pdf`。
+英文稿使用 pdfLaTeX。`make en` 依次编译主文和补充材料，并再次编译以解析双向引用，最后生成合并版；输出为 `build/main_en.pdf`、`build/supplementary.pdf` 和 `build/full.pdf`。单独更新合并版可运行 `make full`。中文参考稿使用 XeLaTeX，通过 `make zh` 编译，输出为 `build/main.pdf`。
+
+主文与补充材料各有自己的参考文献编号；附录的公式、图表编号延续主文。两份 PDF 放在同一目录时，跨文件引用链接可以定位到另一份 PDF；分开阅读时，印出的章节与图表编号仍可用于查找。附录的生成结果写入 `appendix.tex`，三种构建不维护重复正文。
 
 当前环境若未设置编译器路径，可先执行：
 
@@ -71,7 +79,7 @@ make en
 export PATH="/opt/texlive/2025/bin/x86_64-linux:$PATH"
 ```
 
-在 Overleaf 中，中文稿选择 `main.tex` 和 XeLaTeX；英文稿选择 `main_en.tex` 和 pdfLaTeX。两者均使用 TeX Live 2025。中文字体使用 TeX Live 自带的 Fandol。
+在 Overleaf 中，中文稿选择 `main.tex` 和 XeLaTeX；英文稿使用 pdfLaTeX，合并版选择 `full.tex`。若需要独立投稿文件，依次编译 `main_en.tex`、`supplementary.tex`，再回到 `main_en.tex` 编译，以解析跨文件引用。均使用 TeX Live 2025。中文字体使用 TeX Live 自带的 Fandol。
 
 ## 模板来源
 
